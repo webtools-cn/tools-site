@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Free online URL encoder and decoder. Supports encodeURI and encodeURIComponent modes, batch processing, auto-detect. Pure frontend, data never leaves your browser.">
+<meta name="keywords" content="URL encoder, URL decoder, encodeURI, encodeURIComponent, decodeURI, decodeURIComponent, online URL encode tool, percent encoding, URL escape">
+<title>Online URL Encoder & Decoder - encodeURI/encodeURIComponent · Pure Frontend</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:900px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.nav-back a{color:#64748b}
+.nav-back a:hover{color:#94a3b8}
+.input-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.input-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+textarea{width:100%;min-height:120px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.9rem;resize:vertical}
+textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
+.options{display:flex;gap:16px;align-items:center;margin:12px 0;flex-wrap:wrap}
+.options label{display:flex;align-items:center;gap:6px;font-size:.85rem;color:#94a3b8;cursor:pointer}
+.options input[type=checkbox]{accent-color:#06b6d4}
+.mode-group{display:inline-flex;background:#0f172a;border-radius:6px;padding:3px;border:1px solid rgba(148,163,184,.2)}
+.mode-group input[type=radio]{display:none}
+.mode-group label{padding:5px 14px;border-radius:4px;font-size:.85rem;color:#94a3b8;cursor:pointer;transition:all .2s}
+.mode-group input[type=radio]:checked+label{background:rgba(6,182,212,.2);color:#22d3ee}
+.stats{display:flex;gap:16px;margin-top:8px;font-size:.8rem;color:#64748b}
+.stats span{background:rgba(148,163,184,.08);padding:4px 10px;border-radius:4px}
+.result-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.result-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.result-box{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.9rem;min-height:80px;word-break:break-all;max-height:300px;overflow-y:auto;white-space:pre-wrap}
+.copy-btn{margin-top:8px}
+.info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.info-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.info-section h3{font-size:.95rem;color:#e2e8f0;margin:16px 0 8px}
+.info-section p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
+.info-section code{background:rgba(6,182,212,.1);color:#22d3ee;padding:2px 6px;border-radius:3px;font-size:.85rem}
+.info-section ul{color:#94a3b8;font-size:.9rem;margin:8px 0 8px 20px}
+.info-section li{margin-bottom:4px}
+.char-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.85rem}
+.char-table th,.char-table td{border:1px solid rgba(148,163,184,.15);padding:8px 10px;text-align:left}
+.char-table th{background:rgba(148,163,184,.05);color:#e2e8f9}
+.char-table td{color:#94a3b8}
+.char-table code{background:rgba(6,182,212,.1);color:#22d3ee;padding:2px 6px;border-radius:3px;font-size:.85rem}
+.ad-placeholder{background:rgba(148,163,184,.05);border:1px dashed rgba(148,163,184,.2);border-radius:8px;text-align:center;padding:20px;color:#475569;font-size:.85rem;margin-bottom:16px}
+.faq-item{margin-bottom:16px}
+.faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px}
+.faq-item p{color:#94a3b8;font-size:.9rem}
+.shortcut-hint{font-size:.78rem;color:#475569;margin-top:10px}
+.shortcut-hint kbd{background:rgba(148,163,184,.1);border:1px solid rgba(148,163,184,.2);border-radius:3px;padding:1px 5px;font-size:.75rem;color:#94a3b8}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#64748b;margin:0 8px}
+.footer a:hover{color:#94a3b8}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How much does URL encoding increase length?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Each encoded character becomes 3 characters (e.g. a space becomes %20). Chinese characters typically occupy 3 bytes in UTF-8, becoming 9 characters after encoding (e.g. a Chinese character becomes %E4%B8%AD). URLs containing many Chinese or special characters will increase significantly in length after encoding."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Should I choose encodeURI or encodeURIComponent?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "If you are encoding an entire URL (with protocol, domain, path), use encodeURI, which preserves structural characters like :/?#&=. If you are encoding a specific parameter value or fragment within a URL, use encodeURIComponent, which encodes all special characters to prevent them from breaking the URL structure."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does URL encoding support Chinese/Unicode?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. JavaScript's encodeURI and encodeURIComponent automatically convert Chinese characters to percent-encoding using UTF-8. For example, two Chinese characters meaning 'hello' become %E4%BD%A0%E5%A5%BD. This tool fully supports Chinese, Emoji, and all Unicode characters."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is a space encoded as? What is the difference between %20 and +?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "encodeURI and encodeURIComponent encode a space as %20. In the application/x-www-form-urlencoded format (such as form submissions), a space is encoded as +. This tool uses the standard %20 encoding. If you need + encoding, you can replace it manually."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I use batch mode?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "After checking 'Batch mode', the tool processes each line in the input box separately, one URL per line. Empty lines are preserved. If a line fails to decode, an error message is shown for that line without affecting other lines."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is URL encoding encryption? Is it secure?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. URL encoding is an encoding scheme, not encryption. Anyone can decode it and it provides no security. Its purpose is to ensure that special characters in URLs are correctly transmitted and parsed, not to protect data. For secure transmission, use HTTPS or a real encryption algorithm."
+      }
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🔗 Online URL Encoder & Decoder</h1>
+    <div class="lang-switch">
+      <a href="../../url-encoder/">中文</a>
+      <a href="index.html" class="active">EN</a>
+    </div>
+  </div>
+  <p class="nav-back"><a href="../index.html">← All Tools</a></p>
+
+  <div class="ad-placeholder">Ad Space - Top (728x90)</div>
+
+  <div class="input-section">
+    <h2>Input Text</h2>
+    <textarea id="inputText" placeholder="Enter text or URL to encode or decode..."></textarea>
+    <div class="options">
+      <div class="mode-group">
+        <input type="radio" id="modeStandard" name="encodemode" value="standard" checked>
+        <label for="modeStandard">Standard (encodeURI)</label>
+        <input type="radio" id="modeFull" name="encodemode" value="full">
+        <label for="modeFull">Full (encodeURIComponent)</label>
+      </div>
+    </div>
+    <div class="options">
+      <label><input type="checkbox" id="autoDetect"> Auto-detect (decode if %XX found, otherwise encode)</label>
+      <label><input type="checkbox" id="batchMode"> Batch mode (one URL per line)</label>
+    </div>
+    <div class="stats" id="inputStats"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="encodeURL()">Encode →</button>
+      <button class="btn btn-primary" onclick="decodeURL()">← Decode</button>
+      <button class="btn btn-secondary" onclick="swapText()">⇅ Swap</button>
+      <button class="btn btn-danger" onclick="clearAll()">🗑 Clear</button>
+    </div>
+    <div class="shortcut-hint">
+      Shortcuts: <kbd>Ctrl+Enter</kbd> Encode | <kbd>Ctrl+Shift+D</kbd> Decode | <kbd>Ctrl+Shift+S</kbd> Swap
+    </div>
+  </div>
+
+  <div class="result-section">
+    <h2>Result</h2>
+    <div class="result-box" id="resultBox">Result will appear here...</div>
+    <div class="stats" id="resultStats"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary copy-btn" onclick="copyResult()">📋 Copy Result</button>
+      <button class="btn btn-secondary" onclick="resultToInput()">↑ Result to Input</button>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">Ad Space - Middle (728x90)</div>
+
+  <div class="info-section">
+    <h2>URL Encoding Knowledge</h2>
+
+    <h3>What is URL Encoding?</h3>
+    <p>URL encoding (also known as percent-encoding) is a mechanism that converts special characters in a URL into the <code>%XX</code> format, where <code>XX</code> is the hexadecimal representation of the character's ASCII/UTF-8 byte. The URL standard is defined in <a href="https://datatracker.ietf.org/doc/html/rfc3986" target="_blank" rel="noopener">RFC 3986</a>, which specifies that URLs may only contain ASCII letters, digits, and a few reserved characters. All other characters must be encoded.</p>
+
+    <h3>When Do You Need URL Encoding?</h3>
+    <ul>
+      <li><strong>URL contains non-ASCII characters</strong>: Characters like accented letters or CJK characters need encoding</li>
+      <li><strong>Query parameter values contain special characters</strong>: Characters like <code>&amp; = ?</code> in values break the URL structure</li>
+      <li><strong>Building API request URLs</strong>: Ensures parameter values are correctly transmitted and parsed</li>
+      <li><strong>URL redirects</strong>: Passing target URLs in <code>Location</code> headers or <code>redirect</code> parameters</li>
+      <li><strong>Anchor/fragment identifiers</strong>: Encoding special characters in the fragment portion</li>
+      <li><strong>mailto / tel links</strong>: Special characters in email subjects or bodies need encoding</li>
+    </ul>
+
+    <h3>encodeURI vs encodeURIComponent</h3>
+    <p>JavaScript provides two URL encoding functions. The core difference is how they handle reserved characters:</p>
+    <p>• <code>encodeURI</code>: Encodes a complete URL, <strong>preserving</strong> structural characters <code>; , / ? : @ &amp; = + $ #</code>. Use this when encoding a full URL address.</p>
+    <p>• <code>encodeURIComponent</code>: Encodes a URL component (such as a parameter value), <strong>encoding all</strong> reserved characters, ensuring that special characters in the value do not break the URL structure.</p>
+    <p>Simple rule: <strong>Use encodeURI for entire URLs, use encodeURIComponent for parameter values</strong>.</p>
+
+    <h3>URL Encoding Reserved Character Table</h3>
+    <table class="char-table">
+      <thead>
+        <tr><th>Character Type</th><th>Characters</th><th>encodeURI</th><th>encodeURIComponent</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Alphanumeric</td><td><code>A-Z a-z 0-9</code></td><td>Preserved</td><td>Preserved</td></tr>
+        <tr><td>Unreserved symbols</td><td><code>- _ . ! ~ * ' ( )</code></td><td>Preserved</td><td>Preserved</td></tr>
+        <tr><td>URL structure chars</td><td><code>; , / ? : @ &amp; = + $ #</code></td><td>Preserved</td><td>Encoded as %XX</td></tr>
+        <tr><td>Space</td><td><code>(space)</code></td><td>Encoded as <code>%20</code></td><td>Encoded as <code>%20</code></td></tr>
+        <tr><td>Unicode chars</td><td><code>e.g. CJK</code></td><td>Encoded as %XX</td><td>Encoded as %XX</td></tr>
+        <tr><td>Other special chars</td><td><code>&lt; &gt; " { } | \ ^ `</code></td><td>Encoded as %XX</td><td>Encoded as %XX</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Common Use Cases</h3>
+    <ul>
+      <li><strong>API parameters</strong>: <code>?q=<span id="demoEnc1"></span></code> (search keyword encoded as a parameter value)</li>
+      <li><strong>URL redirects</strong>: <code>?redirect=<span id="demoEnc2"></span></code> (target URL encoded as a parameter value, use encodeURIComponent)</li>
+      <li><strong>Anchor navigation</strong>: <code>#<span id="demoEnc3"></span></code> (encode special characters in the fragment)</li>
+      <li><strong>mailto links</strong>: <code>mailto:?subject=<span id="demoEnc4"></span></code> (encode email subject)</li>
+      <li><strong>Path segments</strong>: <code>/path/<span id="demoEnc5"></span></code> (encode path segment with special characters)</li>
+    </ul>
+
+    <div class="faq-item">
+      <h3>How much does URL encoding increase length?</h3>
+      <p>Each encoded character becomes 3 characters (e.g. a space becomes <code>%20</code>). Characters that occupy multiple bytes in UTF-8 will expand further — for example, a 3-byte CJK character becomes 9 characters after encoding. URLs containing many non-ASCII or special characters will increase significantly in length after encoding.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Should I choose encodeURI or encodeURIComponent?</h3>
+      <p>If you are encoding an entire URL (with protocol, domain, path), use <code>encodeURI</code>, which preserves <code>:/?#&amp;=</code> and other structural characters. If you are encoding a specific parameter value or fragment within a URL, use <code>encodeURIComponent</code>, which encodes all special characters to prevent them from breaking the URL structure.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Does URL encoding support Chinese/Unicode?</h3>
+      <p>Yes. JavaScript's <code>encodeURI</code> and <code>encodeURIComponent</code> automatically convert Unicode characters to percent-encoding using UTF-8. This tool fully supports Chinese, Emoji, and all Unicode characters.</p>
+    </div>
+    <div class="faq-item">
+      <h3>What is a space encoded as? What is the difference between %20 and +?</h3>
+      <p><code>encodeURI</code> and <code>encodeURIComponent</code> encode a space as <code>%20</code>. In the <code>application/x-www-form-urlencoded</code> format (such as form submissions), a space is encoded as <code>+</code>. This tool uses the standard <code>%20</code> encoding. If you need <code>+</code> encoding, you can replace it manually.</p>
+    </div>
+    <div class="faq-item">
+      <h3>How do I use batch mode?</h3>
+      <p>After checking "Batch mode", the tool processes each line in the input box separately, one URL per line. Empty lines are preserved. If a line fails to decode, an error message is shown for that line without affecting other lines.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Is URL encoding encryption? Is it secure?</h3>
+      <p>No. URL encoding is an encoding scheme, not encryption. Anyone can decode it and it provides no security. Its purpose is to ensure that special characters in URLs are correctly transmitted and parsed, not to protect data. For secure transmission, use HTTPS or a real encryption algorithm.</p>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">Ad Space - Bottom (728x90)</div>
+</div>
+
+<div class="footer container">
+  <div style="margin-bottom:12px">
+    <a href="../index.html">Home</a>
+    <a href="../index.html">All Tools</a>
+    <a href="mailto:REDACTED_EMAIL">Contact</a>
+    <a href="../../url-encoder/">中文</a>
+  </div>
+  <p>Online URL Encoder & Decoder · Pure Frontend · Data Never Leaves Your Browser</p>
+  <p style="margin-top:4px">Supports encodeURI / encodeURIComponent · Batch processing · Auto-detect</p>
+  <p style="margin-top:8px;color:#475569;font-size:.8rem">Feedback: REDACTED_EMAIL</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const inputText = document.getElementById('inputText');
+const resultBox = document.getElementById('resultBox');
+const autoDetect = document.getElementById('autoDetect');
+const batchMode = document.getElementById('batchMode');
+const inputStats = document.getElementById('inputStats');
+const resultStats = document.getElementById('resultStats');
+const toast = document.getElementById('toast');
+const PLACEHOLDER = 'Result will appear here...';
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function getMode() {
+  return document.querySelector('input[name="encodemode"]:checked').value;
+}
+
+function updateInputStats() {
+  const text = inputText.value;
+  const bytes = new TextEncoder().encode(text).length;
+  inputStats.innerHTML = '<span>Chars: ' + text.length + '</span><span>Bytes: ' + bytes + '</span>';
+}
+
+function updateResultStats(text) {
+  const bytes = new TextEncoder().encode(text).length;
+  resultStats.innerHTML = '<span>Chars: ' + text.length + '</span><span>Bytes: ' + bytes + '</span>';
+}
+
+function encodeLine(line, mode) {
+  if (mode === 'full') return encodeURIComponent(line);
+  return encodeURI(line);
+}
+
+function decodeLine(line, mode) {
+  if (mode === 'full') return decodeURIComponent(line);
+  return decodeURI(line);
+}
+
+function encodeURL() {
+  const text = inputText.value;
+  if (!text) { showToast('Please enter text'); return; }
+  const mode = getMode();
+  try {
+    let result;
+    if (batchMode.checked) {
+      result = text.split('\n').map(function(line) {
+        if (!line) return '';
+        try { return encodeLine(line, mode); }
+        catch(e) { return '[Error: ' + line + ']'; }
+      }).join('\n');
+    } else {
+      result = encodeLine(text, mode);
+    }
+    resultBox.textContent = result;
+    updateResultStats(result);
+  } catch (e) {
+    resultBox.textContent = 'Encoding error: ' + e.message;
+  }
+}
+
+function decodeURL() {
+  const text = inputText.value;
+  if (!text) { showToast('Please enter text'); return; }
+  const mode = getMode();
+  try {
+    let result;
+    if (batchMode.checked) {
+      result = text.split('\n').map(function(line) {
+        if (!line.trim()) return line;
+        try { return decodeLine(line, mode); }
+        catch(e) { return '[Decode error: ' + line + ']'; }
+      }).join('\n');
+    } else {
+      result = decodeLine(text, mode);
+    }
+    resultBox.textContent = result;
+    updateResultStats(result);
+  } catch (e) {
+    resultBox.textContent = 'Decode error: ' + e.message + ' (try switching to Full mode)';
+  }
+}
+
+function autoProcess() {
+  const text = inputText.value;
+  if (!text.trim()) return;
+  const hasEncoded = /%[0-9A-Fa-f]{2}/.test(text);
+  if (hasEncoded) {
+    // Try full decode first (most permissive)
+    try {
+      if (batchMode.checked) {
+        text.split('\n').forEach(function(line) {
+          if (line.trim()) decodeURIComponent(line);
+        });
+      } else {
+        decodeURIComponent(text);
+      }
+      decodeURL();
+    } catch(e) {
+      // Can't decode, encode instead
+      encodeURL();
+    }
+  } else {
+    encodeURL();
+  }
+}
+
+function swapText() {
+  const input = inputText.value;
+  const result = resultBox.textContent;
+  if (result === PLACEHOLDER) { showToast('No result to swap'); return; }
+  inputText.value = result;
+  resultBox.textContent = input;
+  updateInputStats();
+  updateResultStats(input);
+}
+
+function clearAll() {
+  inputText.value = '';
+  resultBox.textContent = PLACEHOLDER;
+  inputStats.innerHTML = '';
+  resultStats.innerHTML = '';
+}
+
+function copyResult() {
+  const result = resultBox.textContent;
+  if (!result || result === PLACEHOLDER) { showToast('No result to copy'); return; }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(result).then(function() { showToast('Copied to clipboard'); });
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = result;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Copied to clipboard');
+  }
+}
+
+function resultToInput() {
+  const result = resultBox.textContent;
+  if (!result || result === PLACEHOLDER) { showToast('No result'); return; }
+  inputText.value = result;
+  updateInputStats();
+}
+
+// Auto-detect on input
+inputText.addEventListener('input', function() {
+  updateInputStats();
+  if (autoDetect.checked) {
+    autoProcess();
+  }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'Enter') { e.preventDefault(); encodeURL(); }
+    if (e.key === 'd' && e.shiftKey) { e.preventDefault(); decodeURL(); }
+    if (e.key === 's' && e.shiftKey) { e.preventDefault(); swapText(); }
+  }
+});
+
+// Populate demo examples
+document.getElementById('demoEnc1').textContent = encodeURIComponent('search query');
+document.getElementById('demoEnc2').textContent = encodeURIComponent('https://example.com/page?q=test&page=1');
+document.getElementById('demoEnc3').textContent = encodeURIComponent('section one');
+document.getElementById('demoEnc4').textContent = encodeURIComponent('Check out this tool');
+document.getElementById('demoEnc5').textContent = encodeURIComponent('my folder');
+
+updateInputStats();
+</script>
+</body>
+</html>
