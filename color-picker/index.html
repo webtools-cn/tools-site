@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="免费在线颜色选择器工具，支持HEX/RGB/HSL/HSV/CMYK多格式互转、配色方案生成、WCAG对比度检查、渐变色生成。纯前端本地处理，无需上传。">
+<meta name="keywords" content="颜色选择器,在线取色器,HEX转RGB,RGB转HEX,HSL,HSV,CMYK,配色方案,互补色,类比色,三元色,WCAG对比度,无障碍颜色,渐变色生成,颜色代码">
+<title>在线颜色选择器 - HEX/RGB/HSL/HSV/CMYK互转·配色方案·WCAG对比度</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:960px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.nav-back a{color:#64748b}
+.nav-back a:hover{color:#94a3b8}
+.panel{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.panel-title{font-size:1.1rem;color:#f1f5f9;margin-bottom:14px;font-weight:600}
+.btn{padding:8px 16px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+/* picker */
+.picker-row{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.color-preview{width:140px;height:140px;border-radius:12px;border:1px solid rgba(148,163,184,.2);box-shadow:0 4px 18px rgba(0,0,0,.3);flex-shrink:0}
+.picker-controls{flex:1;min-width:220px}
+.color-input-wrap{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+input[type=color]{width:54px;height:40px;border:none;border-radius:8px;background:transparent;cursor:pointer;padding:0}
+input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+input[type=color]::-webkit-color-swatch{border:1px solid rgba(148,163,184,.3);border-radius:8px}
+.preset-label{font-size:.8rem;color:#64748b;margin-bottom:8px}
+.preset-palette{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:8px}
+.swatch{width:100%;aspect-ratio:1;border-radius:7px;cursor:pointer;border:1px solid rgba(148,163,184,.2);transition:transform .15s,box-shadow .15s}
+.swatch:hover{transform:scale(1.12);box-shadow:0 0 0 2px rgba(6,182,212,.6);z-index:2}
+/* formats */
+.format-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.format-label{width:60px;font-size:.85rem;color:#94a3b8;font-weight:600;flex-shrink:0}
+.format-input{flex:1;min-width:160px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:8px 12px;font-family:monospace;font-size:.85rem}
+.format-input:focus{outline:none;border-color:rgba(6,182,212,.5)}
+.copy-mini{padding:8px 12px;font-size:.8rem;flex-shrink:0}
+/* history */
+.swatches-row{display:flex;flex-wrap:wrap;gap:8px;min-height:40px}
+.history-swatch{width:34px;height:34px;border-radius:7px;cursor:pointer;border:1px solid rgba(148,163,184,.2);transition:transform .15s}
+.history-swatch:hover{transform:scale(1.12);box-shadow:0 0 0 2px rgba(6,182,212,.6)}
+.empty-hint{color:#64748b;font-size:.85rem}
+/* palette schemes */
+.scheme{margin-bottom:16px}
+.scheme-label{font-size:.85rem;color:#94a3b8;margin-bottom:8px}
+.scheme-row{display:flex;gap:8px;flex-wrap:wrap}
+.scheme-swatch{position:relative;width:72px;height:54px;border-radius:8px;cursor:pointer;border:1px solid rgba(148,163,184,.15);overflow:hidden}
+.scheme-swatch span{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);color:#e2e8f0;font-size:.7rem;text-align:center;padding:2px;font-family:monospace}
+.scheme-swatch:hover{box-shadow:0 0 0 2px rgba(6,182,212,.6)}
+/* contrast */
+.contrast-controls{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.contrast-controls label{display:flex;align-items:center;gap:8px;font-size:.85rem;color:#94a3b8}
+.contrast-result{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.ratio-box{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:10px 16px;text-align:center}
+.ratio-box .ratio-num{font-size:1.6rem;font-weight:700;color:#f1f5f9;font-family:monospace}
+.ratio-box .ratio-label{font-size:.75rem;color:#64748b}
+.badges{display:flex;flex-direction:column;gap:6px}
+.badge{padding:5px 12px;border-radius:6px;font-size:.8rem;font-weight:600}
+.badge-pass{background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.3)}
+.badge-fail{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.25)}
+.contrast-preview{border-radius:10px;padding:24px;border:1px solid rgba(148,163,184,.15)}
+.contrast-preview .big{font-size:2rem;font-weight:700}
+.contrast-preview .small{font-size:1.1rem;margin-top:6px}
+/* gradient */
+.gradient-controls{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.gradient-controls label{display:flex;align-items:center;gap:8px;font-size:.85rem;color:#94a3b8}
+input[type=range]{accent-color:#06b6d4}
+.gradient-bar{width:100%;height:40px;border-radius:8px;border:1px solid rgba(148,163,184,.2);margin-bottom:12px}
+.gradient-swatches{display:flex;flex-wrap:wrap;gap:8px}
+.grad-swatch{width:64px;text-align:center;border-radius:8px;overflow:hidden;border:1px solid rgba(148,163,184,.15)}
+.grad-swatch .gs-color{height:48px;cursor:pointer}
+.grad-swatch .gs-hex{font-size:.7rem;color:#94a3b8;font-family:monospace;padding:3px;background:#0f172a}
+/* info / seo */
+.info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.info-section h2{font-size:1.15rem;color:#f1f5f9;margin-bottom:12px;margin-top:8px}
+.info-section h2:first-child{margin-top:0}
+.info-section h3{font-size:.95rem;color:#e2e8f0;margin:14px 0 6px}
+.info-section p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
+.info-section ul{margin:6px 0 12px 4px;list-style:none}
+.info-section li{color:#94a3b8;font-size:.9rem;padding:3px 0 3px 18px;position:relative}
+.info-section li::before{content:"·";position:absolute;left:4px;color:#06b6d4}
+.info-section code{background:rgba(6,182,212,.1);color:#22d3ee;padding:2px 6px;border-radius:3px;font-size:.85rem}
+.color-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.85rem}
+.color-table th,.color-table td{padding:8px 10px;text-align:left;border-bottom:1px solid rgba(148,163,184,.1)}
+.color-table th{color:#94a3b8;font-weight:600}
+.color-table td{color:#94a3b8}
+.color-table .ct-swatch{width:24px;height:24px;border-radius:5px;border:1px solid rgba(148,163,184,.2)}
+.faq-item{margin-bottom:14px;padding:14px 16px;border-radius:10px;background:#0f172a;border:1px solid rgba(148,163,184,.08)}
+.faq-item h3{font-size:.95rem;color:#f1f5f9;margin-bottom:6px}
+.faq-item p{color:#94a3b8;font-size:.9rem}
+.ad-placeholder{background:rgba(148,163,184,.05);border:1px dashed rgba(148,163,184,.2);border-radius:8px;text-align:center;padding:20px;color:#475569;font-size:.85rem;margin-bottom:16px}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#64748b;margin:0 8px}
+.footer a:hover{color:#94a3b8}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+@media(max-width:600px){.header h1{font-size:1.3rem}.color-preview{width:100%;height:100px}.format-label{width:50px}}
+</style>
+</head>
+<body>
+<div class="ad-placeholder">广告位 - 顶部 (728×90)</div>
+<div class="container">
+  <div class="header">
+    <h1>🎨 在线颜色选择器</h1>
+    <div class="lang-switch">
+      <a href="./" class="active">中文</a>
+      <a href="../en/color-picker/">EN</a>
+    </div>
+  </div>
+  <p class="nav-back"><a href="../index.html">← 全部工具</a></p>
+
+  <!-- 拾色器 -->
+  <div class="panel">
+    <div class="panel-title">🎨 拾色器</div>
+    <div class="picker-row">
+      <div class="color-preview" id="colorPreview"></div>
+      <div class="picker-controls">
+        <div class="color-input-wrap">
+          <input type="color" id="colorInput" value="#06b6d4">
+          <span style="font-size:.85rem;color:#94a3b8">拖动选择颜色，或在下方色板中点选</span>
+        </div>
+        <div class="preset-label">预设色板</div>
+        <div class="preset-palette" id="presetPalette"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 颜色格式 -->
+  <div class="panel">
+    <div class="panel-title">📐 颜色格式（可编辑互转）</div>
+    <div class="format-row">
+      <label class="format-label" for="hexInput">HEX</label>
+      <input class="format-input" id="hexInput" type="text" spellcheck="false" placeholder="#06B6D4">
+      <button class="btn btn-secondary copy-mini" onclick="copyFmt('hex')">复制</button>
+    </div>
+    <div class="format-row">
+      <label class="format-label" for="rgbInput">RGB</label>
+      <input class="format-input" id="rgbInput" type="text" spellcheck="false" placeholder="rgb(6, 182, 212)">
+      <button class="btn btn-secondary copy-mini" onclick="copyFmt('rgb')">复制</button>
+    </div>
+    <div class="format-row">
+      <label class="format-label" for="hslInput">HSL</label>
+      <input class="format-input" id="hslInput" type="text" spellcheck="false" placeholder="hsl(189, 97%, 43%)">
+      <button class="btn btn-secondary copy-mini" onclick="copyFmt('hsl')">复制</button>
+    </div>
+    <div class="format-row">
+      <label class="format-label" for="hsvInput">HSV</label>
+      <input class="format-input" id="hsvInput" type="text" spellcheck="false" placeholder="hsv(189, 97%, 83%)">
+      <button class="btn btn-secondary copy-mini" onclick="copyFmt('hsv')">复制</button>
+    </div>
+    <div class="format-row">
+      <label class="format-label" for="cmykInput">CMYK</label>
+      <input class="format-input" id="cmykInput" type="text" spellcheck="false" placeholder="cmyk(97%, 14%, 0%, 17%)">
+      <button class="btn btn-secondary copy-mini" onclick="copyFmt('cmyk')">复制</button>
+    </div>
+    <p style="font-size:.8rem;color:#64748b;margin-top:8px">提示：可直接在任意输入框中修改数值，其它格式将自动同步更新。</p>
+  </div>
+
+  <div class="ad-placeholder">广告位 - 中部 (728×90)</div>
+
+  <!-- 颜色历史 -->
+  <div class="panel">
+    <div class="panel-title">🕘 颜色历史</div>
+    <div class="swatches-row" id="historyRow"><span class="empty-hint">选择颜色后会自动记录在此（最多 24 条）</span></div>
+    <div class="btn-row">
+      <button class="btn btn-danger" onclick="clearHistory()">🗑 清空历史</button>
+    </div>
+  </div>
+
+  <!-- 配色方案 -->
+  <div class="panel">
+    <div class="panel-title">🎨 配色方案生成</div>
+    <p style="font-size:.85rem;color:#64748b;margin-bottom:14px">基于当前颜色的色相生成配色方案，点击任意色块可应用为当前颜色。</p>
+    <div class="scheme">
+      <div class="scheme-label">互补色 Complementary（色相相差 180°）</div>
+      <div class="scheme-row" id="palComp"></div>
+    </div>
+    <div class="scheme">
+      <div class="scheme-label">类比色 Analogous（色相相差 30°）</div>
+      <div class="scheme-row" id="palAna"></div>
+    </div>
+    <div class="scheme">
+      <div class="scheme-label">三元色 Triadic（色相相差 120°）</div>
+      <div class="scheme-row" id="palTri"></div>
+    </div>
+    <div class="scheme">
+      <div class="scheme-label">分裂互补色 Split-Complementary</div>
+      <div class="scheme-row" id="palSplit"></div>
+    </div>
+  </div>
+
+  <!-- 对比度检查 -->
+  <div class="panel">
+    <div class="panel-title">♿ WCAG 颜色对比度检查</div>
+    <p style="font-size:.85rem;color:#64748b;margin-bottom:14px">检测前景色与背景色的对比度是否符合无障碍标准（WCAG 2.1）。</p>
+    <div class="contrast-controls">
+      <label>前景色 <input type="color" id="ctFg" value="#06b6d4"></label>
+      <label>背景色 <input type="color" id="ctBg" value="#ffffff"></label>
+      <button class="btn btn-secondary" onclick="useCurrentAsFg()">用当前色做前景</button>
+    </div>
+    <div class="contrast-result" id="contrastResult"></div>
+    <div class="contrast-preview" id="contrastPreview">
+      <div class="big">Aa 颜色 Color</div>
+      <div class="small">The quick brown fox jumps over the lazy dog. 敏捷的棕色狐狸跳过了懒狗。</div>
+    </div>
+  </div>
+
+  <!-- 渐变色生成器 -->
+  <div class="panel">
+    <div class="panel-title">🌈 渐变色生成器</div>
+    <div class="gradient-controls">
+      <label>起始色 <input type="color" id="grad1" value="#06b6d4"></label>
+      <label>结束色 <input type="color" id="grad2" value="#f783ac"></label>
+      <label>级数 <input type="range" id="gradSteps" min="2" max="20" value="6"> <span id="gradStepsVal">6</span></label>
+    </div>
+    <div class="gradient-bar" id="gradBar"></div>
+    <div class="gradient-swatches" id="gradSwatches"></div>
+  </div>
+
+  <!-- SEO 内容 -->
+  <div class="info-section">
+    <h2>颜色格式说明</h2>
+    <p>在网页与设计工作中，同一种颜色常用多种格式表示，各有适用场景。本工具支持 HEX、RGB、HSL、HSV、CMYK 五种格式的实时互转。</p>
+
+    <h3>HEX（十六进制）</h3>
+    <p>形如 <code>#FF6B6B</code>，用 6 位十六进制数分别表示红、绿、蓝三个通道（每通道 2 位，范围 00-FF）。也支持 3 位简写 <code>#F00</code>。它是 CSS 中最常用的写法，紧凑且兼容性最好。</p>
+
+    <h3>RGB（红绿蓝）</h3>
+    <p>形如 <code>rgb(255, 107, 107)</code>，三个数值范围 0-255，对应加色法中红、绿、蓝光的强度。CSS 中可直接使用 <code>rgb()</code> 与带透明度的 <code>rgba()</code>。</p>
+
+    <h3>HSL（色相/饱和度/亮度）</h3>
+    <p>形如 <code>hsl(0, 100%, 71%)</code>：色相 H 为 0-360° 的色环角度（0 红、120 绿、240 蓝）；饱和度 S 和亮度 L 为 0%-100%。HSL 更符合人对颜色的直觉，调配色相和明暗非常方便。</p>
+
+    <h3>HSV（色相/饱和度/明度）</h3>
+    <p>与 HSL 类似，但第三个分量是明度 Value 而非亮度 Lightness。HSV 常用于图像编辑软件（如 Photoshop 的拾色器），V=100% 时为该色相下最纯的色。</p>
+
+    <h3>CMYK（青/品红/黄/黑）</h3>
+    <p>形如 <code>cmyk(0%, 58%, 58%, 0%)</code>，基于减色法，用于印刷。四个分量均为百分比，K（黑色）用于提升暗部纯度与节省油墨。屏幕显示为 RGB，因此 CMYK 值仅为近似转换参考。</p>
+
+    <h2>互补色与配色方案原理</h2>
+    <p>好的配色往往建立在色环关系之上。本工具基于 HSL 色相自动生成四种经典配色方案：</p>
+    <ul>
+      <li><strong>互补色（Complementary）</strong>：色环上相距 180° 的两色，对比最强烈，适合突出重点，但大面积使用易刺眼。</li>
+      <li><strong>类比色（Analogous）</strong>：色环上相邻（约 30°）的 3 色，色调和谐统一，适合营造柔和、自然的氛围。</li>
+      <li><strong>三元色（Triadic）</strong>：色环上等距 120° 的 3 色，色彩丰富且平衡，适合活泼、富有表现力的设计。</li>
+      <li><strong>分裂互补色（Split-Complementary）</strong>：取互补色两侧的 150° 与 210°，既有互补色的对比张力，又比纯互补色更柔和。</li>
+    </ul>
+    <p>实践中建议遵循 60-30-10 原则：主色 60%、辅助色 30%、强调色 10%，让画面有主次、不杂乱。</p>
+
+    <h2>WCAG 无障碍颜色对比度标准</h2>
+    <p>Web 内容无障碍指南（WCAG）2.1 通过<strong>对比度比率</strong>衡量文字与背景的可读性。比率范围 1:1 到 21:1，计算基于颜色的相对亮度（加权 RGB 通道）。</p>
+    <ul>
+      <li><strong>AA 级（正常文字）</strong>：对比度 ≥ 4.5:1</li>
+      <li><strong>AA 级（大号文字 ≥18pt 或 14pt 粗体）</strong>：对比度 ≥ 3:1</li>
+      <li><strong>AAA 级（正常文字）</strong>：对比度 ≥ 7:1</li>
+      <li><strong>AAA 级（大号文字）</strong>：对比度 ≥ 4.5:1</li>
+    </ul>
+    <p>本工具的对比度检查器会自动计算前景与背景的比率，并标注各项是否通过。设计按钮、链接、图标等界面元素时，也应保证与背景对比度 ≥ 3:1。</p>
+
+    <h2>常用颜色代码表</h2>
+    <table class="color-table">
+      <thead><tr><th>颜色</th><th>名称</th><th>HEX</th><th>RGB</th></tr></thead>
+      <tbody id="colorTableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- FAQ -->
+  <div class="info-section">
+    <h2>常见问题 FAQ</h2>
+    <div class="faq-item">
+      <h3>在线颜色选择器怎么用？</h3>
+      <p>点击顶部色块拖动拾色器，或在预设色板中点选任意颜色即可。选中后 HEX/RGB/HSL/HSV/CMYK 会同步显示，点击对应"复制"按钮即可一键复制到剪贴板。</p>
+    </div>
+    <div class="faq-item">
+      <h3>HEX、RGB、HSL、HSV、CMYK 有什么区别？</h3>
+      <p>HEX 和 RGB 直接描述红绿蓝光强度，适合屏幕显示；HSL 与 HSV 用色相/饱和度/明度描述，调色更直观；CMYK 是减色法，用于印刷。本工具支持五种格式一键互转。</p>
+    </div>
+    <div class="faq-item">
+      <h3>如何计算颜色对比度是否符合 WCAG 标准？</h3>
+      <p>在"WCAG 对比度检查"中设置前景色与背景色，工具会基于相对亮度计算比率，并标注 AA/AAA 的正常文字与大号文字是否达标（4.5:1、3:1、7:1）。</p>
+    </div>
+    <div class="faq-item">
+      <h3>互补色和类比色有什么区别？</h3>
+      <p>互补色是色环上正对（相距 180°）的两色，对比最强；类比色是色环上相邻（约 30°）的几个颜色，更和谐柔和。互补色适合强调，类比色适合统一氛围。</p>
+    </div>
+    <div class="faq-item">
+      <h3>颜色历史记录会保存吗？</h3>
+      <p>会。你选择的颜色会自动记录在"颜色历史"中并保存在浏览器本地（localStorage），刷新页面后依然存在，最多保留 24 条。可随时点击"清空历史"删除。</p>
+    </div>
+    <div class="faq-item">
+      <h3>这个工具是免费的吗？数据会上传吗？</h3>
+      <p>完全免费，零依赖纯前端实现。所有颜色计算与转换都在你的浏览器本地完成，不会上传到任何服务器，断网也能正常使用。</p>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">广告位 - 底部 (728×90)</div>
+</div>
+
+<div class="footer container">
+  <div style="margin-bottom:12px">
+    <a href="../index.html">首页</a>
+    <a href="../index.html">全部工具</a>
+    <a href="mailto:REDACTED_EMAIL">联系我们</a>
+    <a href="../en/color-picker/">EN</a>
+  </div>
+  <p>在线颜色选择器 · HEX/RGB/HSL/HSV/CMYK 互转 · 配色方案 · WCAG 对比度</p>
+  <p style="margin-top:4px">纯前端本地处理 · 数据绝不上传服务器 · 零依赖可离线</p>
+  <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: REDACTED_EMAIL</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@graph":[
+    {
+      "@type":"WebApplication",
+      "name":"在线颜色选择器",
+      "url":"https://webtools-cn.github.io/tools-site/color-picker/",
+      "description":"免费在线颜色选择器，支持HEX/RGB/HSL/HSV/CMYK互转、配色方案生成、WCAG对比度检查与渐变色生成。",
+      "applicationCategory":"DesignApplication",
+      "operatingSystem":"Any",
+      "offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},
+      "featureList":["HEX/RGB/HSL/HSV/CMYK 互转","互补色/类比色/三元色/分裂互补色配色方案","WCAG AA/AAA 对比度检查","渐变色生成器","颜色历史记录"]
+    },
+    {
+      "@type":"FAQPage",
+      "mainEntity":[
+        {"@type":"Question","name":"在线颜色选择器怎么用？","acceptedAnswer":{"@type":"Answer","text":"点击顶部色块拖动拾色器，或在预设色板中点选任意颜色即可。选中后 HEX/RGB/HSL/HSV/CMYK 会同步显示，点击对应复制按钮即可一键复制到剪贴板。"}},
+        {"@type":"Question","name":"HEX、RGB、HSL、HSV、CMYK 有什么区别？","acceptedAnswer":{"@type":"Answer","text":"HEX 和 RGB 直接描述红绿蓝光强度，适合屏幕显示；HSL 与 HSV 用色相/饱和度/明度描述，调色更直观；CMYK 是减色法，用于印刷。本工具支持五种格式一键互转。"}},
+        {"@type":"Question","name":"如何计算颜色对比度是否符合 WCAG 标准？","acceptedAnswer":{"@type":"Answer","text":"在对比度检查中设置前景色与背景色，工具会基于相对亮度计算比率，并标注 AA/AAA 的正常文字与大号文字是否达标（4.5:1、3:1、7:1）。"}},
+        {"@type":"Question","name":"互补色和类比色有什么区别？","acceptedAnswer":{"@type":"Answer","text":"互补色是色环上正对（相距180°）的两色，对比最强；类比色是色环上相邻（约30°）的几个颜色，更和谐柔和。"}},
+        {"@type":"Question","name":"颜色历史记录会保存吗？","acceptedAnswer":{"@type":"Answer","text":"会。选择的颜色会自动记录并保存在浏览器本地 localStorage，刷新页面后依然存在，最多保留24条，可随时清空。"}},
+        {"@type":"Question","name":"这个工具是免费的吗？数据会上传吗？","acceptedAnswer":{"@type":"Answer","text":"完全免费，零依赖纯前端实现。所有颜色计算与转换都在浏览器本地完成，不会上传到任何服务器，断网也能使用。"}}
+      ]
+    }
+  ]
+}
+</script>
+
+<script>
+/* ========= 颜色转换工具函数 ========= */
+function clamp(n,min,max){return Math.min(max,Math.max(min,n));}
+function hexToRgb(hex){
+  hex=(hex||'').replace('#','').trim();
+  if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');
+  if(!/^[0-9a-fA-F]{6}$/.test(hex))return null;
+  return{r:parseInt(hex.slice(0,2),16),g:parseInt(hex.slice(2,4),16),b:parseInt(hex.slice(4,6),16)};
+}
+function rgbToHex(r,g,b){
+  return'#'+[r,g,b].map(x=>clamp(Math.round(x),0,255).toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+function rgbToHsl(r,g,b){
+  r/=255;g/=255;b/=255;
+  const max=Math.max(r,g,b),min=Math.min(r,g,b);let h,s,l=(max+min)/2;
+  if(max===min){h=0;s=0;}
+  else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);
+    switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;default:h=(r-g)/d+4;}
+    h/=6;}
+  return{h:Math.round(h*360),s:Math.round(s*100),l:Math.round(l*100)};
+}
+function hslToRgb(h,s,l){
+  h=(((h%360)+360)%360)/360;s=clamp(s,0,100)/100;l=clamp(l,0,100)/100;
+  let r,g,b;
+  if(s===0){r=g=b=l;}
+  else{const q=l<0.5?l*(1+s):l+s-l*s;const p=2*l-q;
+    const h2=(p,q,t)=>{if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};
+    r=h2(p,q,h+1/3);g=h2(p,q,h);b=h2(p,q,h-1/3);}
+  return{r:Math.round(r*255),g:Math.round(g*255),b:Math.round(b*255)};
+}
+function rgbToHsv(r,g,b){
+  r/=255;g/=255;b/=255;
+  const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;let h;const s=max===0?0:d/max,v=max;
+  if(max===min)h=0;
+  else{switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;default:h=(r-g)/d+4;}h/=6;}
+  return{h:Math.round(h*360),s:Math.round(s*100),v:Math.round(v*100)};
+}
+function hsvToRgb(h,s,v){
+  h=(((h%360)+360)%360)/360;s=clamp(s,0,100)/100;v=clamp(v,0,100)/100;
+  let r,g,b;const i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s);
+  switch(i%6){case 0:r=v;g=t;b=p;break;case 1:r=q;g=v;b=p;break;case 2:r=p;g=v;b=t;break;case 3:r=p;g=q;b=v;break;case 4:r=t;g=p;b=v;break;default:r=v;g=p;b=q;}
+  return{r:Math.round(r*255),g:Math.round(g*255),b:Math.round(b*255)};
+}
+function rgbToCmyk(r,g,b){
+  r/=255;g/=255;b/=255;const k=1-Math.max(r,g,b);
+  if(k===1)return{c:0,m:0,y:0,k:100};
+  return{c:Math.round((1-r-k)/(1-k)*100),m:Math.round((1-g-k)/(1-k)*100),y:Math.round((1-b-k)/(1-k)*100),k:Math.round(k*100)};
+}
+function cmykToRgb(c,m,y,k){
+  c=clamp(c,0,100)/100;m=clamp(m,0,100)/100;y=clamp(y,0,100)/100;k=clamp(k,0,100)/100;
+  return{r:Math.round(255*(1-c)*(1-k)),g:Math.round(255*(1-m)*(1-k)),b:Math.round(255*(1-y)*(1-k))};
+}
+function relLuminance(r,g,b){
+  const a=[r,g,b].map(v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);});
+  return 0.2126*a[0]+0.7152*a[1]+0.0722*a[2];
+}
+function contrastRatio(c1,c2){
+  const L1=relLuminance(c1.r,c1.g,c1.b),L2=relLuminance(c2.r,c2.g,c2.b);
+  const lo=Math.min(L1,L2),hi=Math.max(L1,L2);
+  return(hi+0.05)/(lo+0.05);
+}
+function lerpColor(a,b,t){return{r:Math.round(a.r+(b.r-a.r)*t),g:Math.round(a.g+(b.g-a.g)*t),b:Math.round(a.b+(b.b-a.b)*t)};}
+function genGradient(c1,c2,steps){steps=clamp(steps,2,30);const arr=[];for(let i=0;i<steps;i++)arr.push(lerpColor(c1,c2,i/(steps-1)));return arr;}
+function rot(h,d){return(((h+d)%360)+360)%360;}
+
+/* ========= DOM ========= */
+const $=id=>document.getElementById(id);
+const preview=$('colorPreview'),colorInput=$('colorInput');
+const hexInput=$('hexInput'),rgbInput=$('rgbInput'),hslInput=$('hslInput'),hsvInput=$('hsvInput'),cmykInput=$('cmykInput');
+const historyRow=$('historyRow');
+const toast=$('toast');
+
+let state={r:6,g:182,b:212};
+let history=[];
+try{history=JSON.parse(localStorage.getItem('cp_history')||'[]');}catch(e){history=[];}
+
+/* ========= Toast / 复制 ========= */
+function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),1800);}
+function copyText(txt){
+  if(navigator.clipboard){navigator.clipboard.writeText(txt).then(()=>showToast('已复制：'+txt)).catch(()=>fallbackCopy(txt));}
+  else fallbackCopy(txt);
+}
+function fallbackCopy(txt){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('已复制：'+txt);}
+
+/* ========= 格式化 ========= */
+function fmtHex(){return rgbToHex(state.r,state.g,state.b);}
+function fmtRgb(){return 'rgb('+state.r+', '+state.g+', '+state.b+')';}
+function fmtHsl(){const h=rgbToHsl(state.r,state.g,state.b);return 'hsl('+h.h+', '+h.s+'%, '+h.l+'%)';}
+function fmtHsv(){const h=rgbToHsv(state.r,state.g,state.b);return 'hsv('+h.h+', '+h.s+'%, '+h.v+'%)';}
+function fmtCmyk(){const c=rgbToCmyk(state.r,state.g,state.b);return 'cmyk('+c.c+'%, '+c.m+'%, '+c.y+'%, '+c.k+'%)';}
+function copyFmt(t){const v={hex:fmtHex(),rgb:fmtRgb(),hsl:fmtHsl(),hsv:fmtHsv(),cmyk:fmtCmyk()}[t];copyText(v);}
+
+/* ========= 应用颜色 ========= */
+function applyColor(rgb,src){
+  state={r:clamp(Math.round(rgb.r),0,255),g:clamp(Math.round(rgb.g),0,255),b:clamp(Math.round(rgb.b),0,255)};
+  const hex=fmtHex();
+  preview.style.background=hex;
+  if(src!=='colorInput')colorInput.value=hex.toLowerCase();
+  if(src!=='hexInput')hexInput.value=hex;
+  if(src!=='rgbInput')rgbInput.value=fmtRgb();
+  if(src!=='hslInput')hslInput.value=fmtHsl();
+  if(src!=='hsvInput')hsvInput.value=fmtHsv();
+  if(src!=='cmykInput')cmykInput.value=fmtCmyk();
+  renderPalette();
+}
+
+/* ========= 预设色板 ========= */
+const presets=['#FF6B6B','#FF8E72','#FFA94D','#FFD43B','#A9E34B','#69DB7C','#38D9A9','#3BC9DB','#4DABF7','#74C0FC','#748FFC','#9775FA','#DA77F2','#F783AC','#FF6B9D','#FA5252','#E64980','#BE4BDB','#7950F2','#4C6EF5','#228BE6','#0CA678','#74B816','#F76707','#212529','#868E96','#CED4DA','#F8F9FA'];
+(function renderPresets(){
+  const box=$('presetPalette');box.innerHTML='';
+  presets.forEach(c=>{const d=document.createElement('div');d.className='swatch';d.style.background=c;d.title=c;d.onclick=()=>{applyColor(hexToRgb(c));addHistory(c);};box.appendChild(d);});
+})();
+
+/* ========= 配色方案 ========= */
+function swatch(hex,cls){const d=document.createElement('div');d.className=cls||'scheme-swatch';d.style.background=hex;const s=document.createElement('span');s.textContent=hex;d.appendChild(s);d.title='点击应用 '+hex;d.onclick=()=>{applyColor(hexToRgb(hex));addHistory(hex);};return d;}
+function renderPalette(){
+  const hsl=rgbToHsl(state.r,state.g,state.b);const h=hsl.h,s=hsl.s,l=hsl.l;
+  const mk=(hd)=>rgbToHex(...Object.values(hslToRgb(hd,s,l)));
+  const fill=(id,arr)=>{const box=$(id);box.innerHTML='';arr.forEach(c=>box.appendChild(swatch(c)));};
+  fill('palComp',[mk(h),mk(rot(h,180))]);
+  fill('palAna',[mk(rot(h,-30)),mk(h),mk(rot(h,30))]);
+  fill('palTri',[mk(h),mk(rot(h,120)),mk(rot(h,240))]);
+  fill('palSplit',[mk(h),mk(rot(h,150)),mk(rot(h,210))]);
+}
+
+/* ========= 颜色历史 ========= */
+function addHistory(hex){
+  hex=hex.toUpperCase();
+  history=history.filter(c=>c!==hex);
+  history.unshift(hex);
+  if(history.length>24)history=history.slice(0,24);
+  try{localStorage.setItem('cp_history',JSON.stringify(history));}catch(e){}
+  renderHistory();
+}
+function renderHistory(){
+  if(!history.length){historyRow.innerHTML='<span class="empty-hint">选择颜色后会自动记录在此（最多 24 条）</span>';return;}
+  historyRow.innerHTML='';
+  history.forEach(c=>{const d=document.createElement('div');d.className='history-swatch';d.style.background=c;d.title=c;d.onclick=()=>applyColor(hexToRgb(c));historyRow.appendChild(d);});
+}
+function clearHistory(){history=[];try{localStorage.removeItem('cp_history');}catch(e){}renderHistory();showToast('历史已清空');}
+
+/* ========= 输入框反向解析 ========= */
+function parseTri(text){const m=text.match(/-?\d{1,3}[\.\d]*/g);if(!m||m.length<3)return null;return[+m[0],+m[1],+m[2]];}
+hexInput.addEventListener('input',e=>{const rgb=hexToRgb(e.target.value);if(rgb)applyColor(rgb,'hexInput');});
+rgbInput.addEventListener('input',e=>{const t=parseTri(e.target.value);if(t&&t.every(v=>v>=0&&v<=255))applyColor({r:t[0],g:t[1],b:t[2]},'rgbInput');});
+hslInput.addEventListener('input',e=>{const t=parseTri(e.target.value);if(t)applyColor(hslToRgb(t[0],t[1],t[2]),'hslInput');});
+hsvInput.addEventListener('input',e=>{const t=parseTri(e.target.value);if(t)applyColor(hsvToRgb(t[0],t[1],t[2]),'hsvInput');});
+cmykInput.addEventListener('input',e=>{const m=e.target.value.match(/-?\d{1,3}[\.\d]*/g);if(m&&m.length>=4)applyColor(cmykToRgb(+m[0],+m[1],+m[2],+m[3]),'cmykInput');});
+
+colorInput.addEventListener('input',e=>{const rgb=hexToRgb(e.target.value);if(rgb)applyColor(rgb,'colorInput');});
+colorInput.addEventListener('change',e=>{addHistory(fmtHex());});
+
+/* ========= 对比度检查 ========= */
+function updateContrast(){
+  const fg=hexToRgb($('ctFg').value),bg=hexToRgb($('ctBg').value);
+  if(!fg||!bg)return;
+  const ratio=contrastRatio(fg,bg);
+  const r=Math.round(ratio*100)/100;
+  const box=$('contrastResult');
+  const badge=(ok,label)=>'<span class="badge '+(ok?'badge-pass':'badge-fail')+'">'+(ok?'✓ 通过':'✗ 未通过')+' '+label+'</span>';
+  box.innerHTML='<div class="ratio-box"><div class="ratio-num">'+r.toFixed(2)+':1</div><div class="ratio-label">对比度比率</div></div>'+
+    '<div class="badges">'+
+    badge(ratio>=4.5,'AA 正常文字')+
+    badge(ratio>=3,'AA 大号文字')+
+    badge(ratio>=7,'AAA 正常文字')+
+    badge(ratio>=4.5,'AAA 大号文字')+
+    '</div>';
+  const pv=$('contrastPreview');
+  pv.style.background=rgbToHex(bg.r,bg.g,bg.b);
+  pv.style.color=rgbToHex(fg.r,fg.g,fg.b);
+}
+function useCurrentAsFg(){$('ctFg').value=fmtHex().toLowerCase();updateContrast();showToast('已设为前景色');}
+$('ctFg').addEventListener('input',updateContrast);
+$('ctBg').addEventListener('input',updateContrast);
+
+/* ========= 渐变色 ========= */
+function updateGradient(){
+  const c1=hexToRgb($('grad1').value),c2=hexToRgb($('grad2').value);
+  if(!c1||!c2)return;
+  const steps=+$('gradSteps').value;$('gradStepsVal').textContent=steps;
+  const arr=genGradient(c1,c2,steps);
+  const hexes=arr.map(c=>rgbToHex(c.r,c.g,c.b));
+  $('gradBar').style.background='linear-gradient(90deg,'+hexes.join(',')+')';
+  const box=$('gradSwatches');box.innerHTML='';
+  hexes.forEach(h=>{const d=document.createElement('div');d.className='grad-swatch';
+    const c=document.createElement('div');c.className='gs-color';c.style.background=h;c.title='点击复制 '+h;c.onclick=()=>copyText(h);
+    const t=document.createElement('div');t.className='gs-hex';t.textContent=h;
+    d.appendChild(c);d.appendChild(t);box.appendChild(d);});
+}
+$('grad1').addEventListener('input',updateGradient);
+$('grad2').addEventListener('input',updateGradient);
+$('gradSteps').addEventListener('input',updateGradient);
+
+/* ========= 常用颜色表 ========= */
+const commonColors=[
+  ['#FF0000','红色 Red','255, 0, 0'],
+  ['#FFA500','橙色 Orange','255, 165, 0'],
+  ['#FFD700','金色 Gold','255, 215, 0'],
+  ['#FFFF00','黄色 Yellow','255, 255, 0'],
+  ['#008000','绿色 Green','0, 128, 0'],
+  ['#00FF00','亮绿 Lime','0, 255, 0'],
+  ['#00FFFF','青色 Cyan','0, 255, 255'],
+  ['#0000FF','蓝色 Blue','0, 0, 255'],
+  ['#000080','海军蓝 Navy','0, 0, 128'],
+  ['#800080','紫色 Purple','128, 0, 128'],
+  ['#FF00FF','品红 Magenta','255, 0, 255'],
+  ['#FF69B4','热粉 Hot Pink','255, 105, 180'],
+  ['#800000','栗色 Maroon','128, 0, 0'],
+  ['#808000','橄榄 Olive','128, 128, 0'],
+  ['#008080','蓝绿 Teal','0, 128, 128'],
+  ['#8B4513','鞍褐 Saddle Brown','139, 69, 19'],
+  ['#A9A9A9','深灰 Dark Gray','169, 169, 169'],
+  ['#C0C0C0','银色 Silver','192, 192, 192'],
+  ['#808080','灰色 Gray','128, 128, 128'],
+  ['#000000','黑色 Black','0, 0, 0'],
+  ['#FFFFFF','白色 White','255, 255, 255']
+];
+(function renderColorTable(){
+  const tb=$('colorTableBody');tb.innerHTML='';
+  commonColors.forEach(c=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td><div class="ct-swatch" style="background:'+c[0]+'"></div></td><td>'+c[1]+'</td><td><code>'+c[0]+'</code></td><td>rgb('+c[2]+')</td>';
+    tr.style.cursor='pointer';tr.title='点击应用此颜色';
+    tr.onclick=()=>{applyColor(hexToRgb(c[0]));addHistory(c[0]);};
+    tb.appendChild(tr);
+  });
+})();
+
+/* ========= 初始化 ========= */
+applyColor(state);
+renderHistory();
+updateContrast();
+updateGradient();
+</script>
+</body>
+</html>
