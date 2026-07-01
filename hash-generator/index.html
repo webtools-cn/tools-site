@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="免费在线Hash哈希生成器，支持MD5、SHA-1、SHA-256、SHA-384、SHA-512算法，文本哈希实时计算、文件哈希拖拽上传、HMAC密钥消息认证、哈希值对比，纯前端本地处理，数据不上传服务器。">
+<meta name="keywords" content="Hash生成器,MD5,SHA-1,SHA-256,SHA-384,SHA-512,HMAC,哈希计算,文件哈希,哈希对比,在线哈希工具,哈希校验">
+<title>在线Hash哈希生成器 - MD5/SHA-1/SHA-256/SHA-512·HMAC·文件哈希·纯前端</title>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "在线Hash哈希生成器",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Web",
+  "description": "免费在线Hash哈希生成器，支持MD5、SHA-1、SHA-256、SHA-384、SHA-512算法，文本哈希实时计算、文件哈希拖拽上传、HMAC密钥消息认证、哈希值对比，纯前端本地处理。",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "MD5和SHA-1还能用吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "MD5和SHA-1已被证明存在碰撞攻击漏洞，不应用于数字签名、证书等安全敏感场景。但在文件完整性校验、数据去重等非安全场景中仍可使用。对于安全用途，请选择SHA-256或更高版本。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "哈希值可以反推出原始数据吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不可以。哈希函数是单向函数，无法从哈希值反推出原始数据。但可以通过彩虹表或暴力破解尝试常见输入的哈希值。对于密码存储，应使用加盐哈希或专用密码哈希函数如bcrypt。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么相同文件每次哈希结果都一样？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "哈希函数是确定性算法，相同输入永远产生相同输出。这是哈希的基本特性，确保了文件完整性校验的可靠性——只要文件内容有一比特变化，哈希值就会完全不同（雪崩效应）。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "HMAC和普通哈希有什么区别？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "普通哈希不涉及密钥，任何人都可以计算。HMAC（哈希消息认证码）使用密钥对消息进行哈希，只有持有密钥的方才能计算和验证。HMAC既保证了数据完整性，又保证了消息的真实性（来自特定发送者）。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "如何验证文件下载的完整性？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "下载文件后，使用本工具计算文件的哈希值（推荐SHA-256），然后与官方提供的哈希值进行对比。如果两者一致，说明文件在传输过程中没有被篡改。本工具的哈希对比功能可以自动比较两个哈希值。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "SHA-256和SHA-512应该选哪个？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "两者都是安全的哈希算法。SHA-512在64位系统上计算速度通常更快，但生成的哈希值更长（128字符 vs 64字符）。对于大多数应用，SHA-256是推荐选择——它在安全性和性能之间取得了良好平衡，且被广泛支持。如果需要更高级别的安全裕度，可选择SHA-512。"
+      }
+    }
+  ]
+}
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+a:hover{text-decoration:underline}
+.container{max-width:900px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.nav-back a{color:#64748b}
+.nav-back a:hover{color:#94a3b8}
+.ad-placeholder{background:rgba(148,163,184,.05);border:1px dashed rgba(148,163,184,.2);border-radius:8px;text-align:center;padding:20px;color:#475569;font-size:.85rem;margin-bottom:16px}
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.tab{padding:8px 20px;background:#1e293b;color:#94a3b8;border:1px solid rgba(148,163,184,.1);border-radius:8px;cursor:pointer;font-size:.85rem;transition:all .2s}
+.tab:hover{color:#e2e8f0}
+.tab.active{background:rgba(6,182,212,.2);color:#22d3ee;border-color:rgba(6,182,212,.3)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+/* Sections */
+.input-section,.result-section,.info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.input-section h2,.result-section h2,.info-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.info-section h3{font-size:.95rem;color:#e2e8f0;margin:16px 0 8px}
+.info-section p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
+.info-section ul{list-style:none;margin-bottom:12px}
+.info-section li{color:#94a3b8;font-size:.9rem;padding:4px 0;padding-left:20px;position:relative}
+.info-section li::before{content:"•";position:absolute;left:4px;color:#06b6d4}
+.info-section code{background:rgba(6,182,212,.1);color:#22d3ee;padding:2px 6px;border-radius:3px;font-size:.85rem}
+.info-section a{color:#06b6d4}
+textarea{width:100%;min-height:120px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.9rem;resize:vertical}
+textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
+.input-group{margin-bottom:12px}
+.input-group label{display:block;font-size:.85rem;color:#94a3b8;margin-bottom:6px}
+.input-group input{width:100%;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:10px 12px;font-family:monospace;font-size:.9rem}
+.input-group input:focus{outline:none;border-color:rgba(6,182,212,.5)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
+.options{display:flex;gap:16px;align-items:center;margin:12px 0;flex-wrap:wrap}
+.options label{display:flex;align-items:center;gap:6px;font-size:.85rem;color:#94a3b8;cursor:pointer}
+.options input[type=checkbox]{accent-color:#06b6d4}
+.stats{display:flex;gap:16px;margin-top:8px;font-size:.8rem;color:#64748b}
+.stats span{background:rgba(148,163,184,.08);padding:4px 10px;border-radius:4px}
+/* Hash rows */
+.hash-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:10px 12px}
+.hash-label{min-width:72px;font-size:.85rem;font-weight:600;color:#22d3ee;flex-shrink:0}
+.hash-value{flex:1;font-family:monospace;font-size:.85rem;color:#e2e8f0;word-break:break-all;line-height:1.5}
+.hash-copy{padding:4px 12px;font-size:.8rem;background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2);border-radius:6px;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.hash-copy:hover{background:rgba(148,163,184,.2);color:#e2e8f0}
+/* Drop zone */
+.drop-zone{border:2px dashed rgba(148,163,184,.3);border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px}
+.drop-zone:hover{border-color:rgba(6,182,212,.5);background:rgba(6,182,212,.05)}
+.drop-zone.dragover{border-color:#06b6d4;background:rgba(6,182,212,.1)}
+.drop-zone-icon{font-size:2rem;margin-bottom:8px}
+.drop-zone p{color:#64748b;font-size:.9rem}
+.file-info{background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.15);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:.85rem;color:#22d3ee;word-break:break-all}
+/* Compare */
+.compare-result{text-align:center;padding:16px;border-radius:10px;margin-top:12px;font-size:1.05rem;font-weight:600}
+.compare-match{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#10b981}
+.compare-mismatch{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444}
+.compare-info{text-align:center;font-size:.8rem;color:#64748b;margin-top:8px}
+/* Table */
+.hash-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.85rem}
+.hash-table th,.hash-table td{border:1px solid rgba(148,163,184,.15);padding:8px 10px;text-align:left}
+.hash-table th{background:#0f172a;color:#22d3ee;font-weight:600}
+.hash-table td{color:#94a3b8}
+.hash-table code{background:rgba(6,182,212,.1);color:#22d3ee;padding:2px 6px;border-radius:3px;font-size:.8rem}
+/* FAQ */
+.faq-item{margin-bottom:16px}
+.faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px}
+.faq-item p{color:#94a3b8;font-size:.9rem}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#64748b;margin:0 8px}
+.footer a:hover{color:#94a3b8}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🔐 在线Hash哈希生成器</h1>
+    <div class="lang-switch">
+      <a href="../index.html" class="active">中文</a>
+      <a href="../en/hash-generator/">EN</a>
+    </div>
+  </div>
+  <p class="nav-back"><a href="../index.html">← 全部工具</a></p>
+
+  <div class="ad-placeholder">广告位 - 顶部 (728×90)</div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('text',this)">📝 文本哈希</button>
+    <button class="tab" onclick="switchTab('file',this)">📄 文件哈希</button>
+    <button class="tab" onclick="switchTab('hmac',this)">🔑 HMAC</button>
+    <button class="tab" onclick="switchTab('compare',this)">⚖️ 哈希对比</button>
+  </div>
+
+  <!-- Tab: Text Hash -->
+  <div id="tab-text" class="tab-content active">
+    <div class="input-section">
+      <h2>输入文本</h2>
+      <textarea id="textInput" placeholder="在此输入要计算哈希的文本，支持中文、Emoji等所有Unicode字符..."></textarea>
+      <div class="options">
+        <label><input type="checkbox" id="uppercaseToggle" onchange="toggleUppercase()"> 大写输出</label>
+        <label><input type="checkbox" id="liveCompute" checked> 实时计算</label>
+      </div>
+      <div class="stats" id="inputStats"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="computeTextHashes()">🔐 计算哈希</button>
+        <button class="btn btn-danger" onclick="clearText()">🗑 清空</button>
+      </div>
+    </div>
+    <div class="result-section">
+      <h2>哈希结果</h2>
+      <div class="hash-row"><div class="hash-label">MD5</div><div class="hash-value" id="text_md5">—</div><button class="hash-copy" onclick="copyHash('text_md5')">📋 复制</button></div>
+      <div class="hash-row"><div class="hash-label">SHA-1</div><div class="hash-value" id="text_sha1">—</div><button class="hash-copy" onclick="copyHash('text_sha1')">📋 复制</button></div>
+      <div class="hash-row"><div class="hash-label">SHA-256</div><div class="hash-value" id="text_sha256">—</div><button class="hash-copy" onclick="copyHash('text_sha256')">📋 复制</button></div>
+      <div class="hash-row"><div class="hash-label">SHA-384</div><div class="hash-value" id="text_sha384">—</div><button class="hash-copy" onclick="copyHash('text_sha384')">📋 复制</button></div>
+      <div class="hash-row"><div class="hash-label">SHA-512</div><div class="hash-value" id="text_sha512">—</div><button class="hash-copy" onclick="copyHash('text_sha512')">📋 复制</button></div>
+    </div>
+  </div>
+
+  <!-- Tab: File Hash -->
+  <div id="tab-file" class="tab-content">
+    <div class="input-section">
+      <h2>文件哈希计算</h2>
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-zone-icon">📁</div>
+        <p>拖拽文件到此处，或点击选择文件</p>
+        <p style="font-size:.8rem;margin-top:4px">支持任意类型文件，所有计算在浏览器本地完成</p>
+      </div>
+      <input type="file" id="fileInput" style="display:none">
+      <div class="file-info" id="fileInfo" style="display:none"></div>
+    </div>
+    <div class="result-section">
+      <h2>文件哈希结果</h2>
+      <div class="hash-row"><div class="hash-label">MD5</div><div class="hash-value" id="file_md5">—</div><button class="hash-copy" onclick="copyHash('file_md5')">📋 复制</button></div>
+      <div class="hash-row"><div class="hash-label">SHA-1</div><div class="hash-value" id="file_sha1">—</div><button class="hash-copy" onclick="copyHash('file_sha1')">📋 复制</button></div>
+      <div class="hash-row"><div class="hash-label">SHA-256</div><div class="hash-value" id="file_sha256">—</div><button class="hash-copy" onclick="copyHash('file_sha256')">📋 复制</button></div>
+      <div class="hash-row"><div class="hash-label">SHA-384</div><div class="hash-value" id="file_sha384">—</div><button class="hash-copy" onclick="copyHash('file_sha384')">📋 复制</button></div>
+      <div class="hash-row"><div class="hash-label">SHA-512</div><div class="hash-value" id="file_sha512">—</div><button class="hash-copy" onclick="copyHash('file_sha512')">📋 复制</button></div>
+    </div>
+  </div>
+
+  <!-- Tab: HMAC -->
+  <div id="tab-hmac" class="tab-content">
+    <div class="input-section">
+      <h2>HMAC 密钥消息认证码</h2>
+      <div class="input-group">
+        <label>密钥 (Secret Key)</label>
+        <input type="text" id="hmacKey" placeholder="输入HMAC密钥...">
+      </div>
+      <div class="input-group">
+        <label>消息 (Message)</label>
+        <textarea id="hmacMsg" placeholder="输入要认证的消息..." style="min-height:100px"></textarea>
+      </div>
+      <div class="options">
+        <label><input type="checkbox" id="hmacUppercase" onchange="toggleHmacUppercase()"> 大写输出</label>
+      </div>
+      <div class="stats" id="hmacStats"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="computeHMACs()">🔑 生成HMAC</button>
+        <button class="btn btn-danger" onclick="clearHMAC()">🗑 清空</button>
+      </div>
+    </div>
+    <div class="result-section">
+      <h2>HMAC 结果</h2>
+      <div class="hash-row"><div class="hash-label">HMAC-MD5</div><div class="hash-value" id="hmac_md5">—</div><button class="hash-copy" onclick="copyHash('hmac_md5')">📋 复制</button></div>
+      <div class="hash-row"><div class="hash-label">HMAC-SHA1</div><div class="hash-value" id="hmac_sha1">—</div><button class="hash-copy" onclick="copyHash('hmac_sha1')">📋 复制</button></div>
+      <div class="hash-row"><div class="hash-label">HMAC-SHA256</div><div class="hash-value" id="hmac_sha256">—</div><button class="hash-copy" onclick="copyHash('hmac_sha256')">📋 复制</button></div>
+      <div class="hash-row"><div class="hash-label">HMAC-SHA384</div><div class="hash-value" id="hmac_sha384">—</div><button class="hash-copy" onclick="copyHash('hmac_sha384')">📋 复制</button></div>
+      <div class="hash-row"><div class="hash-label">HMAC-SHA512</div><div class="hash-value" id="hmac_sha512">—</div><button class="hash-copy" onclick="copyHash('hmac_sha512')">📋 复制</button></div>
+    </div>
+  </div>
+
+  <!-- Tab: Hash Compare -->
+  <div id="tab-compare" class="tab-content">
+    <div class="input-section">
+      <h2>哈希值对比</h2>
+      <div class="input-group">
+        <label>哈希值 1</label>
+        <input type="text" id="compare1" placeholder="粘贴第一个哈希值..." oninput="autoCompare()">
+      </div>
+      <div class="input-group">
+        <label>哈希值 2</label>
+        <input type="text" id="compare2" placeholder="粘贴第二个哈希值..." oninput="autoCompare()">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="compareHashes()">⚖️ 对比</button>
+        <button class="btn btn-secondary" onclick="clearCompare()">🗑 清空</button>
+      </div>
+      <div class="compare-result" id="compareResult" style="display:none"></div>
+      <div class="compare-info" id="compareInfo"></div>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">广告位 - 中部 (728×90)</div>
+
+  <div class="info-section">
+    <h2>哈希算法知识</h2>
+
+    <h3>什么是哈希函数？</h3>
+    <p>哈希（Hash）函数是将任意长度的数据映射为固定长度摘要（Digest）的数学算法。它具有以下核心特性：</p>
+    <ul>
+      <li><strong>确定性</strong>：相同的输入永远产生相同的输出</li>
+      <li><strong>快速计算</strong>：从输入计算哈希值非常高效</li>
+      <li><strong>雪崩效应</strong>：输入的微小变化（哪怕1个比特）会导致输出完全不同</li>
+      <li><strong>单向性</strong>：无法从哈希值反推出原始数据</li>
+      <li><strong>抗碰撞性</strong>：难以找到两个不同的输入产生相同的哈希值</li>
+    </ul>
+
+    <h3>支持的哈希算法</h3>
+    <p>本工具支持以下五种哈希算法：</p>
+    <ul>
+      <li><code>MD5</code>：输出128位（32个十六进制字符），由Ronald Rivest设计，是最早广泛使用的哈希算法之一</li>
+      <li><code>SHA-1</code>：输出160位（40个十六进制字符），由NSA设计，曾用于TLS证书和Git</li>
+      <li><code>SHA-256</code>：输出256位（64个十六进制字符），SHA-2家族成员，当前最常用的安全哈希算法</li>
+      <li><code>SHA-384</code>：输出384位（96个十六进制字符），SHA-2家族成员，提供更高安全裕度</li>
+      <li><code>SHA-512</code>：输出512位（128个十六进制字符），SHA-2家族成员，在64位系统上性能优异</li>
+    </ul>
+    <p>其中 SHA-256/384/512 使用浏览器原生 <code>Web Crypto API</code>（SubtleCrypto）计算，性能优异；MD5 和 SHA-1 使用纯 JavaScript 实现。</p>
+
+    <h3>MD5 vs SHA 算法对比</h3>
+    <table class="hash-table">
+      <thead>
+        <tr><th>特性</th><th>MD5</th><th>SHA-1</th><th>SHA-256</th><th>SHA-384</th><th>SHA-512</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>摘要长度</td><td>128位 / 32字符</td><td>160位 / 40字符</td><td>256位 / 64字符</td><td>384位 / 96字符</td><td>512位 / 128字符</td></tr>
+        <tr><td>分组大小</td><td>512位</td><td>512位</td><td>512位</td><td>1024位</td><td>1024位</td></tr>
+        <tr><td>轮数</td><td>64</td><td>80</td><td>64</td><td>80</td><td>80</td></tr>
+        <tr><td>安全性</td><td>⚠️ 已破解</td><td>⚠️ 已破解</td><td>✅ 安全</td><td>✅ 安全</td><td>✅ 安全</td></tr>
+        <tr><td>碰撞攻击</td><td>可行</td><td>可行</td><td>暂无</td><td>暂无</td><td>暂无</td></tr>
+        <tr><td>推荐用途</td><td>校验/去重</td><td>校验/去重</td><td>安全用途</td><td>安全用途</td><td>安全用途</td></tr>
+      </tbody>
+    </table>
+
+    <h3>哈希的常见用途</h3>
+    <ul>
+      <li><strong>文件完整性校验</strong>：下载文件后对比哈希值，确保文件未被篡改</li>
+      <li><strong>密码存储</strong>：数据库存储密码的哈希值（需加盐），而非明文密码</li>
+      <li><strong>数字签名</strong>：对文档哈希值进行签名，保证不可抵赖性</li>
+      <li><strong>消息认证（HMAC）</strong>：使用密钥生成哈希，验证消息完整性和来源</li>
+      <li><strong>区块链</strong>：比特币使用SHA-256进行工作量证明和地址生成</li>
+      <li><strong>数据去重</strong>：通过哈希值快速判断数据是否相同</li>
+      <li><strong>Git版本控制</strong>：使用SHA-1标识每次提交和文件内容</li>
+      <li><strong>内容寻址</strong>：IPFS等系统使用哈希作为内容标识符</li>
+    </ul>
+
+    <h3>安全性说明</h3>
+    <p>MD5和SHA-1已被证明存在<strong>碰撞攻击</strong>（Collision Attack）漏洞，即可以找到两个不同的输入产生相同的哈希值。因此：</p>
+    <ul>
+      <li>❌ 不应将MD5/SHA-1用于数字签名、SSL/TLS证书、密码存储等安全敏感场景</li>
+      <li>✅ MD5/SHA-1仍可用于文件完整性校验、数据去重等非安全场景</li>
+      <li>✅ 安全用途应使用SHA-256或更高版本</li>
+      <li>⚠️ 对于密码存储，应使用专门的密码哈希函数：<code>bcrypt</code>、<code>scrypt</code>、<code>Argon2</code></li>
+      <li>⚠️ 哈希不是加密——哈希是单向的，无法解密还原原始数据</li>
+    </ul>
+    <p>本工具所有计算在浏览器本地完成，数据不上传服务器，适合处理敏感数据。</p>
+
+    <h3 style="margin-top:24px">常见问题 (FAQ)</h3>
+    <div class="faq-item">
+      <h3>MD5和SHA-1还能用吗？</h3>
+      <p>MD5和SHA-1已被证明存在碰撞攻击漏洞，不应用于数字签名、证书等安全敏感场景。但在文件完整性校验、数据去重等非安全场景中仍可使用。对于安全用途，请选择SHA-256或更高版本。</p>
+    </div>
+    <div class="faq-item">
+      <h3>哈希值可以反推出原始数据吗？</h3>
+      <p>不可以。哈希函数是单向函数，无法从哈希值反推出原始数据。但可以通过彩虹表或暴力破解尝试常见输入的哈希值。对于密码存储，应使用加盐哈希或专用密码哈希函数（如bcrypt）。</p>
+    </div>
+    <div class="faq-item">
+      <h3>为什么相同文件每次哈希结果都一样？</h3>
+      <p>哈希函数是确定性算法，相同输入永远产生相同输出。这是哈希的基本特性，确保了文件完整性校验的可靠性——只要文件内容有一比特变化，哈希值就会完全不同（雪崩效应）。</p>
+    </div>
+    <div class="faq-item">
+      <h3>HMAC和普通哈希有什么区别？</h3>
+      <p>普通哈希不涉及密钥，任何人都可以计算。HMAC（哈希消息认证码）使用密钥对消息进行哈希，只有持有密钥的方才能计算和验证。HMAC既保证了数据完整性，又保证了消息的真实性（来自特定发送者）。</p>
+    </div>
+    <div class="faq-item">
+      <h3>如何验证文件下载的完整性？</h3>
+      <p>下载文件后，使用本工具计算文件的哈希值（推荐SHA-256），然后与官方提供的哈希值进行对比。如果两者一致，说明文件在传输过程中没有被篡改。本工具的"哈希对比"功能可以自动比较两个哈希值。</p>
+    </div>
+    <div class="faq-item">
+      <h3>SHA-256和SHA-512应该选哪个？</h3>
+      <p>两者都是安全的哈希算法。SHA-512在64位系统上计算速度通常更快，但生成的哈希值更长（128字符 vs 64字符）。对于大多数应用，SHA-256是推荐选择——它在安全性和性能之间取得了良好平衡，且被广泛支持。如果需要更高级别的安全裕度，可选择SHA-512。</p>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">广告位 - 底部 (728×90)</div>
+</div>
+
+<div class="footer container">
+  <div style="margin-bottom:12px">
+    <a href="../index.html">首页</a>
+    <a href="../index.html">全部工具</a>
+    <a href="mailto:REDACTED_EMAIL">联系我们</a>
+    <a href="../en/hash-generator/">EN</a>
+  </div>
+  <p>在线Hash哈希生成器 · 纯前端本地处理 · 数据绝不上传服务器</p>
+  <p style="margin-top:4px">支持MD5/SHA-1/SHA-256/SHA-384/SHA-512 · HMAC · 文件哈希 · 哈希对比</p>
+  <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: REDACTED_EMAIL</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ==================== MD5 (纯JS实现) ==================== */
+var md5 = (function(){
+  function safeAdd(x,y){var lsw=(x&0xFFFF)+(y&0xFFFF);var msw=(x>>16)+(y>>16)+(lsw>>16);return(msw<<16)|(lsw&0xFFFF)}
+  function bitRol(num,cnt){return(num<<cnt)|(num>>>(32-cnt))}
+  function cmn(q,a,b,x,s,t){return safeAdd(bitRol(safeAdd(safeAdd(a,q),safeAdd(x,t)),s),b)}
+  function ff(a,b,c,d,x,s,t){return cmn((b&c)|((~b)&d),a,b,x,s,t)}
+  function gg(a,b,c,d,x,s,t){return cmn((b&d)|(c&(~d)),a,b,x,s,t)}
+  function hh(a,b,c,d,x,s,t){return cmn(b^c^d,a,b,x,s,t)}
+  function ii(a,b,c,d,x,s,t){return cmn(c^(b|(~d)),a,b,x,s,t)}
+  function coreMD5(x,len){
+    x[len>>5]|=0x80<<(len%32);
+    x[(((len+64)>>>9)<<4)+14]=len;
+    var a=1732584193,b=-271733879,c=-1732584194,d=271733878;
+    for(var i=0;i<x.length;i+=16){
+      var olda=a,oldb=b,oldc=c,oldd=d;
+      a=ff(a,b,c,d,x[i+0],7,-680876936);d=ff(d,a,b,c,x[i+1],12,-389564586);c=ff(c,d,a,b,x[i+2],17,606105819);b=ff(b,c,d,a,x[i+3],22,-1044525330);
+      a=ff(a,b,c,d,x[i+4],7,-176418897);d=ff(d,a,b,c,x[i+5],12,1200080426);c=ff(c,d,a,b,x[i+6],17,-1473231341);b=ff(b,c,d,a,x[i+7],22,-45705983);
+      a=ff(a,b,c,d,x[i+8],7,1770035416);d=ff(d,a,b,c,x[i+9],12,-1958414417);c=ff(c,d,a,b,x[i+10],17,-42063);b=ff(b,c,d,a,x[i+11],22,-1990404162);
+      a=ff(a,b,c,d,x[i+12],7,1804603682);d=ff(d,a,b,c,x[i+13],12,-40341101);c=ff(c,d,a,b,x[i+14],17,-1502002290);b=ff(b,c,d,a,x[i+15],22,1236535329);
+      a=gg(a,b,c,d,x[i+1],5,-165796510);d=gg(d,a,b,c,x[i+6],9,-1069501632);c=gg(c,d,a,b,x[i+11],14,643717713);b=gg(b,c,d,a,x[i+0],20,-373897302);
+      a=gg(a,b,c,d,x[i+5],5,-701558691);d=gg(d,a,b,c,x[i+10],9,38016083);c=gg(c,d,a,b,x[i+15],14,-660478335);b=gg(b,c,d,a,x[i+4],20,-405537848);
+      a=gg(a,b,c,d,x[i+9],5,568446438);d=gg(d,a,b,c,x[i+14],9,-1019803690);c=gg(c,d,a,b,x[i+3],14,-187363961);b=gg(b,c,d,a,x[i+8],20,1163531501);
+      a=gg(a,b,c,d,x[i+13],5,-1444681467);d=gg(d,a,b,c,x[i+2],9,-51403784);c=gg(c,d,a,b,x[i+7],14,1735328473);b=gg(b,c,d,a,x[i+12],20,-1926607734);
+      a=hh(a,b,c,d,x[i+5],4,-378558);d=hh(d,a,b,c,x[i+8],11,-2022574463);c=hh(c,d,a,b,x[i+11],16,1839030562);b=hh(b,c,d,a,x[i+14],23,-35309556);
+      a=hh(a,b,c,d,x[i+1],4,-1530992060);d=hh(d,a,b,c,x[i+4],11,1272893353);c=hh(c,d,a,b,x[i+7],16,-155497632);b=hh(b,c,d,a,x[i+10],23,-1094730640);
+      a=hh(a,b,c,d,x[i+13],4,681279174);d=hh(d,a,b,c,x[i+0],11,-358537222);c=hh(c,d,a,b,x[i+3],16,-722521979);b=hh(b,c,d,a,x[i+6],23,76029189);
+      a=hh(a,b,c,d,x[i+9],4,-640364487);d=hh(d,a,b,c,x[i+12],11,-421815835);c=hh(c,d,a,b,x[i+15],16,530742520);b=hh(b,c,d,a,x[i+2],23,-995338651);
+      a=ii(a,b,c,d,x[i+0],6,-198630844);d=ii(d,a,b,c,x[i+7],10,112689814);c=ii(c,d,a,b,x[i+14],15,-1416354905);b=ii(b,c,d,a,x[i+5],21,-57434055);
+      a=ii(a,b,c,d,x[i+12],6,1700485571);d=ii(d,a,b,c,x[i+3],10,-1894986606);c=ii(c,d,a,b,x[i+10],15,-1051523);b=ii(b,c,d,a,x[i+1],21,-2054922799);
+      a=ii(a,b,c,d,x[i+8],6,1873313359);d=ii(d,a,b,c,x[i+15],10,-30611744);c=ii(c,d,a,b,x[i+6],15,-1565486053);b=ii(b,c,d,a,x[i+13],21,1309151649);
+      a=ii(a,b,c,d,x[i+4],6,-145523070);d=ii(d,a,b,c,x[i+11],10,-1120210379);c=ii(c,d,a,b,x[i+2],15,718787259);b=ii(b,c,d,a,x[i+9],21,-343485551);
+      a=safeAdd(a,olda);b=safeAdd(b,oldb);c=safeAdd(c,oldc);d=safeAdd(d,oldd);
+    }
+    return[a,b,c,d];
+  }
+  function binl2hex(binarray){
+    var hexTab='0123456789abcdef';var str='';
+    for(var i=0;i<binarray.length*4;i++){
+      str+=hexTab.charAt((binarray[i>>2]>>((i%4)*8+4))&0xF)+hexTab.charAt((binarray[i>>2]>>((i%4)*8))&0xF);
+    }
+    return str;
+  }
+  function bytesToWords(bytes){
+    var words=[];var i=0;
+    for(;i+3<bytes.length;i+=4){
+      words[i>>2]=bytes[i]|(bytes[i+1]<<8)|(bytes[i+2]<<16)|(bytes[i+3]<<24);
+    }
+    if(i<bytes.length){
+      var w=0;
+      for(var j=0;i+j<bytes.length;j++){w|=bytes[i+j]<<(j*8)}
+      words[i>>2]=w;
+    }
+    return words;
+  }
+  return function(data){
+    var words=bytesToWords(data);
+    var result=coreMD5(words,data.length*8);
+    return binl2hex(result);
+  };
+})();
+
+/* ==================== SHA-1 (纯JS实现) ==================== */
+var sha1 = (function(){
+  function rotateLeft(n,s){return(n<<s)|(n>>>(32-s))}
+  function toHexStr(n){
+    var s='',v;
+    for(var i=7;i>=0;i--){v=(n>>>(i*4))&0x0f;s+=v.toString(16)}
+    return s;
+  }
+  return function(data){
+    var len=data.length;
+    var bitLen=len*8;
+    var paddedLen=len+1+8;
+    var padZeros=(64-(paddedLen%64))%64;
+    paddedLen+=padZeros;
+    var padded=new Uint8Array(paddedLen);
+    padded.set(data);
+    padded[len]=0x80;
+    var dv=new DataView(padded.buffer);
+    dv.setUint32(paddedLen-8,Math.floor(bitLen/0x100000000),false);
+    dv.setUint32(paddedLen-4,bitLen>>>0,false);
+    var H0=0x67452301,H1=0xEFCDAB89,H2=0x98BADCFE,H3=0x10325476,H4=0xC3D2E1F0;
+    for(var i=0;i<paddedLen;i+=64){
+      var w=new Array(80);
+      for(var j=0;j<16;j++){w[j]=dv.getUint32(i+j*4,false)}
+      for(var j=16;j<80;j++){w[j]=rotateLeft(w[j-3]^w[j-8]^w[j-14]^w[j-16],1)}
+      var a=H0,b=H1,c=H2,d=H3,e=H4,f,k,temp;
+      for(var j=0;j<80;j++){
+        if(j<20){f=(b&c)|((~b)&d);k=0x5A827999}
+        else if(j<40){f=b^c^d;k=0x6ED9EBA1}
+        else if(j<60){f=(b&c)|(b&d)|(c&d);k=0x8F1BBCDC}
+        else{f=b^c^d;k=0xCA62C1D6}
+        temp=(rotateLeft(a,5)+f+e+k+w[j])|0;
+        e=d;d=c;c=rotateLeft(b,30);b=a;a=temp;
+      }
+      H0=(H0+a)|0;H1=(H1+b)|0;H2=(H2+c)|0;H3=(H3+d)|0;H4=(H4+e)|0;
+    }
+    return toHexStr(H0)+toHexStr(H1)+toHexStr(H2)+toHexStr(H3)+toHexStr(H4);
+  };
+})();
+
+/* ==================== 辅助函数 ==================== */
+function bufferToHex(buffer){
+  var bytes=buffer instanceof Uint8Array?buffer:new Uint8Array(buffer);
+  var hex='';
+  for(var i=0;i<bytes.length;i++){hex+=(bytes[i]<16?'0':'')+bytes[i].toString(16)}
+  return hex;
+}
+function hexToBytes(hex){
+  var bytes=new Uint8Array(hex.length/2);
+  for(var i=0;i<hex.length;i+=2){bytes[i/2]=parseInt(hex.substr(i,2),16)}
+  return bytes;
+}
+function formatSize(bytes){
+  if(bytes<1024)return bytes+' B';
+  if(bytes<1048576)return(bytes/1024).toFixed(2)+' KB';
+  if(bytes<1073741824)return(bytes/1048576).toFixed(2)+' MB';
+  return(bytes/1073741824).toFixed(2)+' GB';
+}
+function formatHash(hash,upper){
+  return upper?hash.toUpperCase():hash;
+}
+
+var hasSubtleCrypto=(typeof crypto!=='undefined'&&crypto.subtle&&typeof crypto.subtle.digest==='function');
+
+/* 哈希函数字典 */
+var hashFns={
+  md5:function(data){return md5(data)},
+  sha1:function(data){return sha1(data)},
+  sha256:function(data){return crypto.subtle.digest('SHA-256',data).then(bufferToHex)},
+  sha384:function(data){return crypto.subtle.digest('SHA-384',data).then(bufferToHex)},
+  sha512:function(data){return crypto.subtle.digest('SHA-512',data).then(bufferToHex)}
+};
+var blockSizes={md5:64,sha1:64,sha256:64,sha384:128,sha512:128};
+
+/* HMAC 计算 */
+async function computeHMAC(hashFn,keyBytes,msgBytes,blockSize){
+  var keyData;
+  if(keyBytes.length>blockSize){
+    keyData=hexToBytes(await hashFn(keyBytes));
+  }else{
+    keyData=keyBytes;
+  }
+  var paddedKey=new Uint8Array(blockSize);
+  paddedKey.set(keyData);
+  var ipad=new Uint8Array(blockSize);
+  var opad=new Uint8Array(blockSize);
+  for(var i=0;i<blockSize;i++){ipad[i]=paddedKey[i]^0x36;opad[i]=paddedKey[i]^0x5C}
+  var innerInput=new Uint8Array(blockSize+msgBytes.length);
+  innerInput.set(ipad);
+  innerInput.set(msgBytes,blockSize);
+  var innerHash=hexToBytes(await hashFn(innerInput));
+  var outerInput=new Uint8Array(blockSize+innerHash.length);
+  outerInput.set(opad);
+  outerInput.set(innerHash,blockSize);
+  return await hashFn(outerInput);
+}
+
+/* ==================== UI 状态 ==================== */
+var uppercaseOutput=false;
+var hmacUppercaseOutput=false;
+var textComputeId=0;
+var hmacComputeId=0;
+var textHashes={};
+var hmacHashes={};
+var fileHashes={};
+var toast=document.getElementById('toast');
+
+function showToast(msg){
+  toast.textContent=msg;
+  toast.classList.add('show');
+  setTimeout(function(){toast.classList.remove('show')},2000);
+}
+
+/* ==================== Tab 切换 ==================== */
+function switchTab(name,btn){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+  document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active')});
+  btn.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+/* ==================== 文本哈希 ==================== */
+var textInput=document.getElementById('textInput');
+var inputStats=document.getElementById('inputStats');
+var liveCompute=document.getElementById('liveCompute');
+var textTimer=null;
+
+function updateInputStats(){
+  var text=textInput.value;
+  var bytes=new TextEncoder().encode(text).length;
+  inputStats.innerHTML='<span>字符数: '+text.length+'</span><span>字节数: '+bytes+'</span>';
+}
+
+function setTextHash(algo,hash){
+  textHashes[algo]=hash;
+  var el=document.getElementById('text_'+algo);
+  if(el)el.textContent=formatHash(hash,uppercaseOutput);
+}
+
+function clearTextHashes(){
+  var algos=['md5','sha1','sha256','sha384','sha512'];
+  algos.forEach(function(a){textHashes[a]='';document.getElementById('text_'+a).textContent='—'});
+}
+
+function computeTextHashes(){
+  var text=textInput.value;
+  if(!text){clearTextHashes();return}
+  var myId=++textComputeId;
+  var bytes=new TextEncoder().encode(text);
+  setTextHash('md5',md5(bytes));
+  setTextHash('sha1',sha1(bytes));
+  if(hasSubtleCrypto){
+    var asyncAlgos=[
+      {name:'SHA-256',key:'sha256'},
+      {name:'SHA-384',key:'sha384'},
+      {name:'SHA-512',key:'sha512'}
+    ];
+    asyncAlgos.forEach(function(algo){
+      crypto.subtle.digest(algo.name,bytes).then(function(hash){
+        if(myId===textComputeId){setTextHash(algo.key,bufferToHex(hash))}
+      });
+    });
+  }else{
+    setTextHash('sha256','需要HTTPS环境');
+    setTextHash('sha384','需要HTTPS环境');
+    setTextHash('sha512','需要HTTPS环境');
+  }
+}
+
+function toggleUppercase(){
+  uppercaseOutput=document.getElementById('uppercaseToggle').checked;
+  var algos=['md5','sha1','sha256','sha384','sha512'];
+  algos.forEach(function(a){
+    if(textHashes[a]){document.getElementById('text_'+a).textContent=formatHash(textHashes[a],uppercaseOutput)}
+  });
+}
+
+function clearText(){
+  textInput.value='';
+  clearTextHashes();
+  updateInputStats();
+}
+
+textInput.addEventListener('input',function(){
+  updateInputStats();
+  if(liveCompute.checked){
+    clearTimeout(textTimer);
+    textTimer=setTimeout(computeTextHashes,200);
+  }
+});
+
+/* ==================== 文件哈希 ==================== */
+var dropZone=document.getElementById('dropZone');
+var fileInput=document.getElementById('fileInput');
+var fileInfo=document.getElementById('fileInfo');
+
+function setFileHash(algo,hash){
+  fileHashes[algo]=hash;
+  var el=document.getElementById('file_'+algo);
+  if(el)el.textContent=formatHash(hash,uppercaseOutput);
+}
+
+dropZone.addEventListener('click',function(){fileInput.click()});
+dropZone.addEventListener('dragover',function(e){e.preventDefault();dropZone.classList.add('dragover')});
+dropZone.addEventListener('dragleave',function(){dropZone.classList.remove('dragover')});
+dropZone.addEventListener('drop',function(e){
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if(e.dataTransfer.files.length>0){handleFile(e.dataTransfer.files[0])}
+});
+fileInput.addEventListener('change',function(e){
+  if(e.target.files.length>0){handleFile(e.target.files[0])}
+});
+
+async function handleFile(file){
+  fileInfo.style.display='block';
+  fileInfo.textContent='📄 '+file.name+' · '+formatSize(file.size)+' · '+(file.type||'未知类型');
+  var algos=['md5','sha1','sha256','sha384','sha512'];
+  algos.forEach(function(a){setFileHash(a,'计算中...')});
+  try{
+    var buffer=await file.arrayBuffer();
+    var bytes=new Uint8Array(buffer);
+    setFileHash('md5',md5(bytes));
+    setFileHash('sha1',sha1(bytes));
+    if(hasSubtleCrypto){
+      var asyncAlgos=[
+        {name:'SHA-256',key:'sha256'},
+        {name:'SHA-384',key:'sha384'},
+        {name:'SHA-512',key:'sha512'}
+      ];
+      asyncAlgos.forEach(function(algo){
+        crypto.subtle.digest(algo.name,buffer).then(function(hash){
+          setFileHash(algo.key,bufferToHex(hash));
+        });
+      });
+    }else{
+      setFileHash('sha256','需要HTTPS环境');
+      setFileHash('sha384','需要HTTPS环境');
+      setFileHash('sha512','需要HTTPS环境');
+    }
+  }catch(e){
+    showToast('文件处理错误: '+e.message);
+    algos.forEach(function(a){setFileHash(a,'计算失败')});
+  }
+}
+
+/* ==================== HMAC ==================== */
+var hmacKey=document.getElementById('hmacKey');
+var hmacMsg=document.getElementById('hmacMsg');
+var hmacStats=document.getElementById('hmacStats');
+var hmacTimer=null;
+
+function updateHmacStats(){
+  var msg=hmacMsg.value;
+  var key=hmacKey.value;
+  var msgBytes=new TextEncoder().encode(msg).length;
+  var keyBytes=new TextEncoder().encode(key).length;
+  hmacStats.innerHTML='<span>密钥字节数: '+keyBytes+'</span><span>消息字节数: '+msgBytes+'</span>';
+}
+
+function setHMACHash(algo,hash){
+  hmacHashes[algo]=hash;
+  var el=document.getElementById('hmac_'+algo);
+  if(el)el.textContent=formatHash(hash,hmacUppercaseOutput);
+}
+
+function clearHMACHashes(){
+  var algos=['md5','sha1','sha256','sha384','sha512'];
+  algos.forEach(function(a){hmacHashes[a]='';document.getElementById('hmac_'+a).textContent='—'});
+}
+
+function computeHMACs(){
+  var key=hmacKey.value;
+  var msg=hmacMsg.value;
+  if(!msg){clearHMACHashes();return}
+  var myId=++hmacComputeId;
+  var keyBytes=new TextEncoder().encode(key);
+  var msgBytes=new TextEncoder().encode(msg);
+  var algorithms=[
+    {name:'md5',sync:true,bs:64},
+    {name:'sha1',sync:true,bs:64},
+    {name:'sha256',sync:false,bs:64},
+    {name:'sha384',sync:false,bs:128},
+    {name:'sha512',sync:false,bs:128}
+  ];
+  algorithms.forEach(function(algo){
+    if(!hasSubtleCrypto&&!algo.sync){
+      setHMACHash(algo.name,'需要HTTPS环境');
+      return;
+    }
+    computeHMAC(hashFns[algo.name],keyBytes,msgBytes,algo.bs).then(function(h){
+      if(myId===hmacComputeId){setHMACHash(algo.name,h)}
+    });
+  });
+}
+
+function toggleHmacUppercase(){
+  hmacUppercaseOutput=document.getElementById('hmacUppercase').checked;
+  var algos=['md5','sha1','sha256','sha384','sha512'];
+  algos.forEach(function(a){
+    if(hmacHashes[a]){document.getElementById('hmac_'+a).textContent=formatHash(hmacHashes[a],hmacUppercaseOutput)}
+  });
+}
+
+function clearHMAC(){
+  hmacKey.value='';
+  hmacMsg.value='';
+  clearHMACHashes();
+  updateHmacStats();
+}
+
+hmacKey.addEventListener('input',function(){
+  updateHmacStats();
+  clearTimeout(hmacTimer);
+  hmacTimer=setTimeout(computeHMACs,300);
+});
+hmacMsg.addEventListener('input',function(){
+  updateHmacStats();
+  clearTimeout(hmacTimer);
+  hmacTimer=setTimeout(computeHMACs,300);
+});
+
+/* ==================== 哈希对比 ==================== */
+var compare1=document.getElementById('compare1');
+var compare2=document.getElementById('compare2');
+var compareResult=document.getElementById('compareResult');
+var compareInfo=document.getElementById('compareInfo');
+
+function compareHashes(){
+  var h1=compare1.value.trim().toLowerCase();
+  var h2=compare2.value.trim().toLowerCase();
+  if(!h1||!h2){showToast('请输入两个哈希值');return}
+  compareResult.style.display='block';
+  if(h1===h2){
+    compareResult.className='compare-result compare-match';
+    compareResult.textContent='✓ 哈希值相同';
+  }else{
+    compareResult.className='compare-result compare-mismatch';
+    compareResult.textContent='✗ 哈希值不同';
+  }
+  compareInfo.textContent='哈希1: '+h1.length+'字符 · 哈希2: '+h2.length+'字符';
+}
+
+function autoCompare(){
+  if(compare1.value.trim()&&compare2.value.trim()){compareHashes()}
+}
+
+function clearCompare(){
+  compare1.value='';
+  compare2.value='';
+  compareResult.style.display='none';
+  compareInfo.textContent='';
+}
+
+/* ==================== 复制功能 ==================== */
+function copyHash(elementId){
+  var el=document.getElementById(elementId);
+  if(!el||!el.textContent||el.textContent==='—'||el.textContent==='计算中...'){showToast('没有结果可复制');return}
+  var text=el.textContent;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(function(){showToast('已复制到剪贴板')});
+  }else{
+    var ta=document.createElement('textarea');
+    ta.value=text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('已复制到剪贴板');
+  }
+}
+
+/* ==================== 快捷键 ==================== */
+document.addEventListener('keydown',function(e){
+  if(e.ctrlKey||e.metaKey){
+    if(e.key==='Enter'){e.preventDefault();computeTextHashes()}
+  }
+});
+
+/* ==================== 初始化 ==================== */
+updateInputStats();
+updateHmacStats();
+</script>
+</body>
+</html>
