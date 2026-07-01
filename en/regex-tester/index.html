@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Free online regex tester with real-time match highlighting, match list with capture groups, replacement preview, common regex cheat sheet and syntax reference. Pure frontend, data never leaves your browser.">
+<meta name="keywords" content="regex tester, regular expression tester, online regex, regex match, regex replace, common regex patterns, regex syntax, email regex, phone regex, URL regex, IP regex">
+<title>Online Regex Tester - Real-time Highlight · Groups · Replace · Syntax Cheat Sheet</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:920px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.nav-back a{color:#64748b}
+.nav-back a:hover{color:#94a3b8}
+.section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.regex-row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.regex-input-wrap{flex:1;min-width:220px;position:relative}
+.regex-input-wrap .prefix{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#64748b;font-family:monospace;font-size:.95rem;pointer-events:none}
+#pattern{width:100%;background:#0f172a;color:#22d3ee;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px 12px 12px 30px;font-family:monospace;font-size:.95rem}
+#pattern:focus{outline:none;border-color:rgba(6,182,212,.5)}
+.regex-suffix{display:flex;align-items:center;padding:0 12px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;color:#64748b;font-family:monospace;font-size:.95rem}
+.flags{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.flags .flags-label{font-size:.8rem;color:#64748b;margin-right:4px}
+.flag-chip{display:inline-flex;align-items:center;gap:5px;background:rgba(148,163,184,.06);border:1px solid rgba(148,163,184,.15);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:.85rem;color:#94a3b8;transition:all .15s;user-select:none}
+.flag-chip input{display:none}
+.flag-chip:hover{border-color:rgba(6,182,212,.4)}
+.flag-chip.active{background:rgba(6,182,212,.15);border-color:rgba(6,182,212,.4);color:#22d3ee}
+.flag-chip code{font-weight:700;color:inherit}
+.regex-display{margin-top:10px;font-family:monospace;font-size:.85rem;color:#64748b;word-break:break-all}
+.regex-display b{color:#22d3ee;font-weight:600}
+.error-msg{margin-top:8px;color:#f87171;font-size:.85rem;font-family:monospace;word-break:break-all}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{padding:8px 16px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
+textarea{width:100%;min-height:120px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.9rem;resize:vertical}
+textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
+.highlight-box{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.9rem;min-height:80px;white-space:pre-wrap;word-break:break-word;max-height:340px;overflow-y:auto;line-height:1.7}
+.highlight-box .ph{color:#475569}
+.highlight-box mark{background:rgba(250,204,21,.25);color:#fde047;border-radius:2px;padding:0 1px}
+.highlight-box mark.zw{display:inline-block;width:2px;height:1em;background:#fde047;vertical-align:text-bottom;margin:0 1px}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:.8rem;color:#64748b}
+.stats span{background:rgba(148,163,184,.08);padding:4px 10px;border-radius:4px}
+.stats span b{color:#22d3ee}
+.match-list{margin-top:12px;max-height:360px;overflow-y:auto}
+.match-list .empty{color:#475569;font-size:.85rem;padding:8px 0}
+.match-item{background:#0f172a;border:1px solid rgba(148,163,184,.12);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:.85rem}
+.match-item .mi-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:4px}
+.match-item .mi-idx{background:rgba(6,182,212,.2);color:#22d3ee;border-radius:4px;padding:1px 8px;font-size:.75rem;font-weight:600}
+.match-item .mi-text{color:#fde047;font-family:monospace;word-break:break-all}
+.match-item .mi-pos{color:#64748b;font-size:.78rem;margin-left:auto}
+.match-item .mi-groups{color:#94a3b8;font-size:.8rem;margin-top:4px;word-break:break-all}
+.match-item .mi-groups code{background:rgba(148,163,184,.1);padding:1px 5px;border-radius:3px;color:#cbd5e1}
+.replace-input{margin-top:12px}
+.replace-input label{font-size:.85rem;color:#94a3b8;display:block;margin-bottom:6px}
+.replace-input input{width:100%;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:10px 12px;font-family:monospace;font-size:.9rem}
+.replace-input input:focus{outline:none;border-color:rgba(6,182,212,.5)}
+.result-box{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.9rem;min-height:80px;white-space:pre-wrap;word-break:break-word;max-height:300px;overflow-y:auto}
+.cheat-table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:8px}
+.cheat-table th,.cheat-table td{padding:8px 10px;text-align:left;border-bottom:1px solid rgba(148,163,184,.1);vertical-align:top}
+.cheat-table th{color:#94a3b8;font-weight:600;font-size:.8rem}
+.cheat-table td code{background:rgba(6,182,212,.1);color:#22d3ee;padding:2px 6px;border-radius:3px;font-size:.82rem;white-space:nowrap}
+.cheat-table td.use-cell{text-align:right;white-space:nowrap}
+.cheat-table .btn-use{padding:3px 10px;font-size:.75rem}
+.syntax-block{margin-bottom:18px}
+.syntax-block h3{font-size:.95rem;color:#e2e8f0;margin:0 0 8px}
+.syntax-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px 16px}
+.syntax-grid .syn{display:flex;gap:8px;font-size:.83rem;color:#94a3b8;align-items:baseline}
+.syntax-grid .syn code{background:rgba(6,182,212,.1);color:#22d3ee;padding:1px 6px;border-radius:3px;font-size:.8rem;white-space:nowrap;flex-shrink:0}
+.faq-item{margin-bottom:16px}
+.faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px}
+.faq-item p{color:#94a3b8;font-size:.9rem}
+.faq-item code{background:rgba(6,182,212,.1);color:#22d3ee;padding:1px 5px;border-radius:3px;font-size:.83rem}
+.ad-placeholder{background:rgba(148,163,184,.05);border:1px dashed rgba(148,163,184,.2);border-radius:8px;text-align:center;padding:20px;color:#475569;font-size:.85rem;margin-bottom:16px}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#64748b;margin:0 8px}
+.footer a:hover{color:#94a3b8}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+@media(max-width:600px){.regex-suffix{display:none}.header h1{font-size:1.3rem}}
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is a regular expression and what is it used for?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A regular expression (Regex) is a compact mini-language for describing string patterns. It uses a single concise string to match, find, and replace text that follows specific rules. Regex is widely used for form validation (email, phone), data cleaning, log analysis, URL routing, and code search-and-replace."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What do the g, i, m, s, u, and y flags mean?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "g means global match (find all matches, not just the first); i means case-insensitive; m means multiline mode (^ and $ match the start and end of each line); s means dotAll mode (. also matches newlines); u means Unicode mode (handles Unicode correctly and supports \\p{...} property escapes); y means sticky match (must match consecutively starting at lastIndex). Flags can be combined, for example gi means global and case-insensitive."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why does my regex throw an Invalid regular expression error?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Common causes: 1) unbalanced parentheses or brackets, e.g. (abc missing ); 2) quantifiers in the wrong place, e.g. *+ at the start; 3) invalid backslash escapes; 4) using lookbehind (?<=) in an older browser that does not support it; 5) an invalid pattern under the u flag. This tool shows the specific reason in the error message so you can fix it."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the difference between greedy and lazy (non-greedy) matching?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "By default quantifiers are greedy and match as many characters as possible. For example, <.*> matching <a><b> will match the entire <a><b> rather than just <a>. Adding ? after a quantifier makes it lazy, matching as few characters as possible, so <.*?> matches only <a>. Supported lazy forms: *?, +?, ??, {n,m}?."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does this tool upload my data to a server?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. This tool is pure frontend, with zero dependencies and zero network requests. All regex matching, highlighting, and replacement run locally in your browser. Your text never leaves your device, it works offline, and it is safe for sensitive data."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I use capture groups ($1, $2) in a replacement?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "In the replacement string you can use special variables: $1 to $9 reference capture groups 1-9; $& references the entire match; $` references the text before the match; $' references the text after the match; $$ is a literal $. For example, the regex (\\d{4})-(\\d{2})-(\\d{2}) replaced with $3/$2/$1 turns 2024-01-15 into 15/01/2024. Named groups can be referenced with $<name>."
+      }
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🔍 Regex Tester</h1>
+    <div class="lang-switch">
+      <a href="../regex-tester/">中文</a>
+      <a href="../index.html" class="active">EN</a>
+    </div>
+  </div>
+  <p class="nav-back"><a href="../index.html">← All Tools</a></p>
+
+  <div class="ad-placeholder">Ad Space - Top (728×90)</div>
+
+  <div class="section">
+    <h2>Regular Expression</h2>
+    <div class="regex-row">
+      <div class="regex-input-wrap">
+        <span class="prefix">/</span>
+        <input id="pattern" type="text" value="(\d{4})-(\d{2})-(\d{2})" placeholder="Enter a regex pattern, e.g. \d+, [a-z]+, (\w+)@" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="regex-suffix" id="suffix">/g</div>
+      <button class="btn btn-secondary" onclick="copyRegex()">📋 Copy</button>
+    </div>
+    <div class="flags" id="flagsBox">
+      <span class="flags-label">Flags:</span>
+      <label class="flag-chip active"><input type="checkbox" value="g" checked><code>g</code> global</label>
+      <label class="flag-chip"><input type="checkbox" value="i"><code>i</code> ignore case</label>
+      <label class="flag-chip"><input type="checkbox" value="m"><code>m</code> multiline</label>
+      <label class="flag-chip"><input type="checkbox" value="s"><code>s</code> dotAll</label>
+      <label class="flag-chip"><input type="checkbox" value="u"><code>u</code> unicode</label>
+      <label class="flag-chip"><input type="checkbox" value="y"><code>y</code> sticky</label>
+    </div>
+    <div class="regex-display">Full regex: <b id="regexFull">/(\d{4})-(\d{2})-(\d{2})/g</b></div>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <div class="section">
+    <h2>Test Text</h2>
+    <textarea id="testText" placeholder="Enter the text to test against..." spellcheck="false">Project started on 2024-01-15, expected to finish 2024-12-31.
+Milestone: 2025-06-30 acceptance.
+History: 2023-09-01 initiated.</textarea>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="loadExample()">📥 Load Example</button>
+      <button class="btn btn-danger" onclick="clearAll()">🗑 Clear</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Match Highlighting</h2>
+    <div class="highlight-box" id="highlightBox"><span class="ph">Highlighted matches will appear here...</span></div>
+    <div class="stats" id="matchStats"></div>
+  </div>
+
+  <div class="section">
+    <h2>Match List <span id="matchCount" style="font-size:.8rem;color:#64748b;font-weight:400"></span></h2>
+    <div class="match-list" id="matchList"><div class="empty">No matches</div></div>
+  </div>
+
+  <div class="section">
+    <h2>Replace</h2>
+    <div class="replace-input">
+      <label>Replacement string (supports <code>$1</code>, <code>$2</code>, <code>$&</code>, <code>$&lt;name&gt;</code>)</label>
+      <input id="replaceInput" type="text" value="$3/$2/$1" placeholder="e.g. $1-$2 or $$" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="result-box" id="replaceResult" style="margin-top:12px"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="copyReplace()">📋 Copy Result</button>
+      <button class="btn btn-secondary" onclick="replaceToTest()">↑ Result to Test Text</button>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">Ad Space - Middle (728×90)</div>
+
+  <div class="section">
+    <h2>Regex Syntax Cheat Sheet</h2>
+    <div class="syntax-block">
+      <h3>Character Classes</h3>
+      <div class="syntax-grid">
+        <div class="syn"><code>.</code><span>Any character (except newline; with s flag, includes newline)</span></div>
+        <div class="syn"><code>[abc]</code><span>Character set, matches a or b or c</span></div>
+        <div class="syn"><code>[^abc]</code><span>Negated set, not a/b/c</span></div>
+        <div class="syn"><code>[a-z]</code><span>Range, a to z</span></div>
+        <div class="syn"><code>\d</code><span>Digit [0-9]</span></div>
+        <div class="syn"><code>\D</code><span>Not a digit</span></div>
+        <div class="syn"><code>\w</code><span>Word char [A-Za-z0-9_]</span></div>
+        <div class="syn"><code>\W</code><span>Not a word char</span></div>
+        <div class="syn"><code>\s</code><span>Whitespace (space/tab/newline)</span></div>
+        <div class="syn"><code>\S</code><span>Not whitespace</span></div>
+      </div>
+    </div>
+    <div class="syntax-block">
+      <h3>Anchors</h3>
+      <div class="syntax-grid">
+        <div class="syn"><code>^</code><span>Start of string (line start with m)</span></div>
+        <div class="syn"><code>$</code><span>End of string (line end with m)</span></div>
+        <div class="syn"><code>\b</code><span>Word boundary</span></div>
+        <div class="syn"><code>\B</code><span>Not a word boundary</span></div>
+      </div>
+    </div>
+    <div class="syntax-block">
+      <h3>Quantifiers</h3>
+      <div class="syntax-grid">
+        <div class="syn"><code>*</code><span>0 or more times</span></div>
+        <div class="syn"><code>+</code><span>1 or more times</span></div>
+        <div class="syn"><code>?</code><span>0 or 1 time</span></div>
+        <div class="syn"><code>{n}</code><span>Exactly n times</span></div>
+        <div class="syn"><code>{n,}</code><span>At least n times</span></div>
+        <div class="syn"><code>{n,m}</code><span>Between n and m times</span></div>
+        <div class="syn"><code>*? +? ??</code><span>Lazy (non-greedy) versions</span></div>
+      </div>
+    </div>
+    <div class="syntax-block">
+      <h3>Groups &amp; Assertions</h3>
+      <div class="syntax-grid">
+        <div class="syn"><code>(abc)</code><span>Capturing group</span></div>
+        <div class="syn"><code>(?:abc)</code><span>Non-capturing group</span></div>
+        <div class="syn"><code>(?&lt;name&gt;abc)</code><span>Named capturing group</span></div>
+        <div class="syn"><code>\1 \2</code><span>Backreference to group n</span></div>
+        <div class="syn"><code>(?=abc)</code><span>Positive lookahead</span></div>
+        <div class="syn"><code>(?!abc)</code><span>Negative lookahead</span></div>
+        <div class="syn"><code>(?&lt;=abc)</code><span>Positive lookbehind</span></div>
+        <div class="syn"><code>(?&lt;!abc)</code><span>Negative lookbehind</span></div>
+        <div class="syn"><code>a|b</code><span>Alternation, a or b</span></div>
+        <div class="syn"><code>\</code><span>Escape special characters</span></div>
+      </div>
+    </div>
+    <div class="syntax-block">
+      <h3>Replacement Variables</h3>
+      <div class="syntax-grid">
+        <div class="syn"><code>$&</code><span>The whole match</span></div>
+        <div class="syn"><code>$1 $2</code><span>The nth capture group</span></div>
+        <div class="syn"><code>$&lt;name&gt;</code><span>Named capture group</span></div>
+        <div class="syn"><code>$`</code><span>Text before the match</span></div>
+        <div class="syn"><code>$'</code><span>Text after the match</span></div>
+        <div class="syn"><code>$$</code><span>Literal $</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Common Regex Patterns</h2>
+    <table class="cheat-table" id="cheatTable">
+      <thead><tr><th>Use case</th><th>Pattern</th><th>Description</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>FAQ</h2>
+    <div class="faq-item">
+      <h3>What is a regular expression and what is it used for?</h3>
+      <p>A regular expression (Regex) is a compact mini-language for describing string patterns. It uses a single concise string to match, find, and replace text that follows specific rules. Regex is widely used for form validation (email, phone), data cleaning, log analysis, URL routing, and code search-and-replace.</p>
+    </div>
+    <div class="faq-item">
+      <h3>What do the g, i, m, s, u, and y flags mean?</h3>
+      <p><code>g</code> global (find all matches, not just the first); <code>i</code> case-insensitive; <code>m</code> multiline (<code>^</code> and <code>$</code> match each line's start/end); <code>s</code> dotAll (<code>.</code> matches newlines); <code>u</code> Unicode (handles Unicode correctly, supports <code>\p{...}</code>); <code>y</code> sticky (must match consecutively from lastIndex). Combine freely, e.g. <code>gi</code>.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Why does my regex throw an Invalid regular expression error?</h3>
+      <p>Common causes: 1) unbalanced parentheses or brackets, e.g. <code>(abc</code> missing <code>)</code>; 2) quantifiers in the wrong place, e.g. <code>*+</code> at the start; 3) invalid backslash escapes; 4) using lookbehind <code>(?&lt;=)</code> in an older browser; 5) an invalid pattern under the <code>u</code> flag. This tool shows the specific reason in the error message so you can fix it.</p>
+    </div>
+    <div class="faq-item">
+      <h3>What is the difference between greedy and lazy (non-greedy) matching?</h3>
+      <p>By default quantifiers are greedy and match as many characters as possible. <code>&lt;.*&gt;</code> matching <code>&lt;a&gt;&lt;b&gt;</code> matches the whole thing. Adding <code>?</code> makes it lazy: <code>&lt;.*?&gt;</code> matches only <code>&lt;a&gt;</code>. Supported: <code>*?</code>, <code>+?</code>, <code>??</code>, <code>{n,m}?</code>.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Does this tool upload my data to a server?</h3>
+      <p>No. This tool is pure frontend, with zero dependencies and zero network requests. All regex matching, highlighting, and replacement run locally in your browser. Your text never leaves your device, it works offline, and it is safe for sensitive data.</p>
+    </div>
+    <div class="faq-item">
+      <h3>How do I use capture groups ($1, $2) in a replacement?</h3>
+      <p>Special variables in the replacement string: <code>$1</code>–<code>$9</code> reference capture groups; <code>$&</code> the whole match; <code>$`</code> text before; <code>$'</code> text after; <code>$$</code> literal <code>$</code>. For example, regex <code>(\d{4})-(\d{2})-(\d{2})</code> replaced with <code>$3/$2/$1</code> turns 2024-01-15 into 15/01/2024. Named groups can be referenced with <code>$&lt;name&gt;</code>.</p>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">Ad Space - Bottom (728×90)</div>
+</div>
+
+<div class="footer container">
+  <div style="margin-bottom:12px">
+    <a href="../index.html">Home</a>
+    <a href="../index.html">All Tools</a>
+    <a href="mailto:REDACTED_EMAIL">Contact</a>
+  </div>
+  <p>Online Regex Tester · Pure Frontend · Data Never Leaves Your Browser</p>
+  <p style="margin-top:4px">Real-time highlight · Capture groups · Replace · Syntax cheat sheet</p>
+  <p style="margin-top:8px;color:#475569;font-size:.8rem">Feedback: REDACTED_EMAIL</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const patternInput = document.getElementById('pattern');
+const testText = document.getElementById('testText');
+const highlightBox = document.getElementById('highlightBox');
+const matchList = document.getElementById('matchList');
+const matchCount = document.getElementById('matchCount');
+const matchStats = document.getElementById('matchStats');
+const replaceInput = document.getElementById('replaceInput');
+const replaceResult = document.getElementById('replaceResult');
+const errorMsg = document.getElementById('errorMsg');
+const regexFull = document.getElementById('regexFull');
+const suffix = document.getElementById('suffix');
+const flagsBox = document.getElementById('flagsBox');
+const toast = document.getElementById('toast');
+
+const FLAG_LIST = ['g','i','m','s','u','y'];
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function getFlags() {
+  let f = '';
+  FLAG_LIST.forEach(fl => {
+    if (document.querySelector('.flag-chip input[value="' + fl + '"]').checked) f += fl;
+  });
+  return f;
+}
+
+function setFlags(str) {
+  FLAG_LIST.forEach(fl => {
+    const cb = document.querySelector('.flag-chip input[value="' + fl + '"]');
+    cb.checked = str.indexOf(fl) !== -1;
+    cb.closest('.flag-chip').classList.toggle('active', cb.checked);
+  });
+  updateFlagChips();
+}
+
+function updateFlagChips() {
+  flagsBox.querySelectorAll('.flag-chip').forEach(chip => {
+    const cb = chip.querySelector('input');
+    chip.classList.toggle('active', cb.checked);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function buildRegex() {
+  const pattern = patternInput.value;
+  if (!pattern) return null;
+  try {
+    return new RegExp(pattern, getFlags());
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+function getMatches(re, text) {
+  const matches = [];
+  if (!re.global) {
+    const m = re.exec(text);
+    if (m) {
+      matches.push({ text: m[0], index: m.index, groups: m });
+    }
+    return matches;
+  }
+  let m;
+  let guard = 0;
+  while ((m = re.exec(text)) !== null) {
+    matches.push({ text: m[0], index: m.index, groups: m });
+    if (m[0] === '') { re.lastIndex++; }
+    if (guard++ > 100000) break;
+  }
+  return matches;
+}
+
+function renderHighlight(text, matches) {
+  if (!matches.length) return escapeHtml(text) || '<span class="ph">(no matches — check your regex or text)</span>';
+  let html = '';
+  let last = 0;
+  for (const mt of matches) {
+    const start = mt.index;
+    const end = mt.index + mt.text.length;
+    if (start < last) continue;
+    html += escapeHtml(text.slice(last, start));
+    if (mt.text.length === 0) {
+      html += '<mark class="zw"></mark>';
+    } else {
+      html += '<mark>' + escapeHtml(mt.text) + '</mark>';
+    }
+    last = end;
+  }
+  html += escapeHtml(text.slice(last));
+  return html;
+}
+
+function renderMatchList(matches) {
+  if (!matches.length) {
+    matchList.innerHTML = '<div class="empty">No matches</div>';
+    return;
+  }
+  let html = '';
+  matches.forEach((mt, i) => {
+    const end = mt.index + mt.text.length;
+    let groupsHtml = '';
+    const g = mt.groups;
+    const named = g.groups || {};
+    const namedKeys = Object.keys(named);
+    const numGroups = g.length - 1;
+    if (numGroups > 0 || namedKeys.length) {
+      let parts = [];
+      for (let k = 1; k <= numGroups; k++) {
+        parts.push('<code>$' + k + '</code> = ' + escapeHtml(g[k] === undefined ? '(undefined)' : g[k]));
+      }
+      namedKeys.forEach(nk => {
+        parts.push('<code>$&lt;' + nk + '&gt;</code> = ' + escapeHtml(named[nk] === undefined ? '(undefined)' : named[nk]));
+      });
+      groupsHtml = '<div class="mi-groups">Groups: ' + parts.join(' &nbsp; ') + '</div>';
+    }
+    const textDisp = mt.text.length === 0 ? '(zero-width match)' : escapeHtml(mt.text);
+    html += '<div class="match-item">' +
+      '<div class="mi-head">' +
+        '<span class="mi-idx">#' + (i + 1) + '</span>' +
+        '<span class="mi-text">' + textDisp + '</span>' +
+        '<span class="mi-pos">pos ' + mt.index + '-' + end + ' (len ' + mt.text.length + ')</span>' +
+      '</div>' + groupsHtml + '</div>';
+  });
+  matchList.innerHTML = html;
+}
+
+function run() {
+  updateFlagChips();
+  const flagStr = getFlags();
+  suffix.textContent = '/' + flagStr;
+  regexFull.textContent = '/' + patternInput.value + '/' + flagStr;
+  errorMsg.textContent = '';
+
+  const text = testText.value;
+  const pattern = patternInput.value;
+
+  if (!pattern) {
+    highlightBox.innerHTML = escapeHtml(text) || '<span class="ph">Highlighted matches will appear here...</span>';
+    matchList.innerHTML = '<div class="empty">No matches</div>';
+    matchCount.textContent = '';
+    matchStats.innerHTML = '';
+    replaceResult.textContent = text;
+    return;
+  }
+
+  const re = buildRegex();
+  if (re && re.error) {
+    errorMsg.textContent = '⚠ Regex error: ' + re.error;
+    highlightBox.innerHTML = escapeHtml(text);
+    matchList.innerHTML = '<div class="empty">Invalid regex, cannot match</div>';
+    matchCount.textContent = '';
+    matchStats.innerHTML = '';
+    replaceResult.textContent = text;
+    return;
+  }
+
+  const matches = getMatches(re, text);
+  highlightBox.innerHTML = renderHighlight(text, matches);
+  renderMatchList(matches);
+  matchCount.textContent = '(' + matches.length + ' total)';
+
+  const totalLen = matches.reduce((s, m) => s + m.text.length, 0);
+  matchStats.innerHTML =
+    '<span>Matches: <b>' + matches.length + '</b></span>' +
+    '<span>Matched chars: <b>' + totalLen + '</b></span>' +
+    '<span>Test text length: <b>' + text.length + '</b></span>' +
+    '<span>Flags: <b>' + (flagStr || '(none)') + '</b></span>';
+
+  try {
+    const rr = text.replace(re, replaceInput.value);
+    replaceResult.textContent = rr;
+  } catch (e) {
+    replaceResult.textContent = 'Replace error: ' + e.message;
+  }
+}
+
+function copyRegex() {
+  const s = '/' + patternInput.value + '/' + getFlags();
+  copyText(s, 'Regex copied to clipboard');
+}
+
+function copyReplace() {
+  const r = replaceResult.textContent;
+  if (!r) { showToast('No result to copy'); return; }
+  copyText(r, 'Replace result copied to clipboard');
+}
+
+function copyText(text, msg) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showToast(msg)).catch(() => fallbackCopy(text, msg));
+  } else {
+    fallbackCopy(text, msg);
+  }
+}
+
+function fallbackCopy(text, msg) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showToast(msg); } catch (e) { showToast('Copy failed'); }
+  document.body.removeChild(ta);
+}
+
+function replaceToTest() {
+  const r = replaceResult.textContent;
+  if (!r) { showToast('No result'); return; }
+  testText.value = r;
+  run();
+}
+
+function clearAll() {
+  patternInput.value = '';
+  testText.value = '';
+  replaceInput.value = '';
+  setFlags('g');
+  run();
+  showToast('Cleared');
+}
+
+function loadExample() {
+  patternInput.value = '(\\d{4})-(\\d{2})-(\\d{2})';
+  setFlags('g');
+  testText.value = 'Project started on 2024-01-15, expected to finish 2024-12-31.\nMilestone: 2025-06-30 acceptance.\nHistory: 2023-09-01 initiated.';
+  replaceInput.value = '$3/$2/$1';
+  run();
+  showToast('Example loaded');
+}
+
+const CHEAT = [
+  { name: 'Email', pattern: '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$', flags: 'i', desc: 'Simple email validation' },
+  { name: 'Phone (US)', pattern: '^\\(?\\d{3}\\)?[-.\\s]?\\d{3}[-.\\s]?\\d{4}$', flags: 'g', desc: 'US phone number' },
+  { name: 'URL', pattern: '^https?://[\\w\\-]+(\\.[\\w\\-]+)+([/\\w\\-.,@?^=%&:~+#]*)?$', flags: 'i', desc: 'HTTP/HTTPS URL' },
+  { name: 'IPv4 address', pattern: '^((25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1?\\d?\\d)$', flags: 'g', desc: '0.0.0.0 - 255.255.255.255' },
+  { name: 'Date YYYY-MM-DD', pattern: '^\\d{4}-\\d{2}-\\d{2}$', flags: 'g', desc: 'Simple date format' },
+  { name: 'Time HH:mm:ss', pattern: '^([01]?\\d|2[0-3]):[0-5]\\d:[0-5]\\d$', flags: 'g', desc: '24-hour time' },
+  { name: 'ZIP code (US)', pattern: '^\\d{5}(-\\d{4})?$', flags: 'g', desc: 'US ZIP or ZIP+4' },
+  { name: 'Hex color', pattern: '^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$', flags: 'g', desc: 'HEX color value' },
+  { name: 'Integer', pattern: '^-?\\d+$', flags: 'g', desc: 'Positive or negative integer' },
+  { name: 'Decimal number', pattern: '^-?\\d+\\.\\d+$', flags: 'g', desc: 'Number with decimals' },
+  { name: 'Strong password', pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$', flags: 'g', desc: 'Min 8 chars, upper/lower/digit' },
+  { name: 'Credit card (Visa)', pattern: '^4\\d{12}(\\d{3})?$', flags: 'g', desc: 'Visa card number' }
+];
+
+function renderCheat() {
+  const tbody = document.querySelector('#cheatTable tbody');
+  let html = '';
+  CHEAT.forEach(c => {
+    html += '<tr>' +
+      '<td>' + c.name + '</td>' +
+      '<td><code>' + escapeHtml(c.pattern) + '</code></td>' +
+      '<td>' + c.desc + '</td>' +
+      '<td class="use-cell"><button class="btn btn-primary btn-use" data-p="' + escapeHtml(c.pattern) + '" data-f="' + c.flags + '">Use</button></td>' +
+      '</tr>';
+  });
+  tbody.innerHTML = html;
+  tbody.querySelectorAll('.btn-use').forEach(btn => {
+    btn.addEventListener('click', () => {
+      patternInput.value = btn.dataset.p;
+      setFlags(btn.dataset.f);
+      run();
+      patternInput.focus();
+      showToast('Pattern loaded: ' + btn.dataset.p);
+    });
+  });
+}
+
+patternInput.addEventListener('input', run);
+testText.addEventListener('input', run);
+replaceInput.addEventListener('input', run);
+flagsBox.addEventListener('change', run);
+flagsBox.addEventListener('click', (e) => {
+  if (e.target.tagName === 'INPUT') updateFlagChips();
+});
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+});
+
+renderCheat();
+run();
+</script>
+</body>
+</html>
