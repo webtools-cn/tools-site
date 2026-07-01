@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="免费在线JWT解码器，支持自动解码Header和Payload、签名显示、JSON语法高亮、过期时间检测、算法识别。纯前端本地处理，Token绝不上传服务器。">
+<meta name="keywords" content="JWT解码,JWT解析,JWT Decoder,JWT在线工具,JSON Web Token解码,JWT过期检测,JWT算法识别,Token解码,Base64URL解码,JWT调试">
+<title>在线JWT解码器 - 自动解码Header/Payload·过期检测·算法识别</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:920px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.nav-back a{color:#64748b}
+.nav-back a:hover{color:#94a3b8}
+.input-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.input-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+textarea{width:100%;min-height:120px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.85rem;resize:vertical;word-break:break-all}
+textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
+.error-msg{margin-top:12px;padding:10px 14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;color:#f87171;font-size:.85rem;display:none}
+.error-msg.show{display:block}
+.token-viz{margin-top:12px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.82rem;word-break:break-all;line-height:1.8;display:none}
+.token-viz.show{display:block}
+.token-viz .t-header{color:#22d3ee}
+.token-viz .t-payload{color:#4ade80}
+.token-viz .t-sig{color:#c084fc}
+.token-viz .t-dot{color:#64748b}
+.status-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:6px;font-size:.82rem;font-weight:600}
+.badge-alg{background:rgba(6,182,212,.15);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.badge-type{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.badge-valid{background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.3)}
+.badge-expired{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.badge-warn{background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.3)}
+.result-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.result-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.result-section h2 .label-tag{font-size:.72rem;font-weight:400;color:#64748b;background:rgba(148,163,184,.08);padding:2px 8px;border-radius:4px}
+.json-box{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:14px;font-family:monospace;font-size:.85rem;min-height:60px;white-space:pre-wrap;word-break:break-word;max-height:400px;overflow-y:auto;line-height:1.6}
+.json-box .json-key{color:#22d3ee}
+.json-box .json-string{color:#4ade80}
+.json-box .json-number{color:#fbbf24}
+.json-box .json-boolean{color:#c084fc}
+.json-box .json-null{color:#c084fc}
+.json-box .ph{color:#475569}
+.sig-box{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:14px;font-family:monospace;font-size:.82rem;word-break:break-all;color:#c084fc;min-height:40px}
+.sig-box .ph{color:#475569}
+.copy-btn{margin-top:8px}
+.claims-info{margin-top:12px;display:grid;gap:6px}
+.claim-row{display:flex;gap:10px;font-size:.82rem;align-items:baseline}
+.claim-row .ck{color:#22d3ee;font-family:monospace;min-width:50px;font-weight:600}
+.claim-row .cd{color:#64748b}
+.exp-detail{margin-top:8px;padding:10px 14px;border-radius:8px;font-size:.85rem;display:none}
+.exp-detail.show{display:block}
+.exp-detail.valid{background:rgba(74,222,128,.08);color:#4ade80;border:1px solid rgba(74,222,128,.2)}
+.exp-detail.expired{background:rgba(239,68,68,.08);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.compare-table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:12px}
+.compare-table th,.compare-table td{padding:8px 12px;text-align:left;border-bottom:1px solid rgba(148,163,184,.1)}
+.compare-table th{color:#94a3b8;font-weight:600;font-size:.8rem}
+.compare-table td{color:#cbd5e1}
+.compare-table td:first-child{color:#94a3b8;font-weight:600}
+.compare-table td code{background:rgba(6,182,212,.1);color:#22d3ee;padding:2px 6px;border-radius:3px;font-size:.8rem}
+.info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.info-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.info-section h3{font-size:.95rem;color:#e2e8f0;margin:16px 0 8px}
+.info-section p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
+.info-section code{background:rgba(6,182,212,.1);color:#22d3ee;padding:2px 6px;border-radius:3px;font-size:.85rem}
+.info-section ul{color:#94a3b8;font-size:.9rem;margin:8px 0 8px 20px}
+.info-section li{margin-bottom:4px}
+.faq-item{margin-bottom:16px}
+.faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px}
+.faq-item p{color:#94a3b8;font-size:.9rem}
+.ad-placeholder{background:rgba(148,163,184,.05);border:1px dashed rgba(148,163,184,.2);border-radius:8px;text-align:center;padding:20px;color:#475569;font-size:.85rem;margin-bottom:16px}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#64748b;margin:0 8px}
+.footer a:hover{color:#94a3b8}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+@media(max-width:600px){.header h1{font-size:1.3rem}.compare-table{font-size:.8rem}.compare-table th,.compare-table td{padding:6px 8px}}
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "JWT是什么？有什么用？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "JWT（JSON Web Token）是一种用于在网络应用间安全传输信息的开放标准（RFC 7519）。它以JSON格式编码信息，常用于身份认证、信息交换和单点登录（SSO）。服务器签发JWT后，客户端在后续请求中携带它来证明身份，无需服务器存储会话状态。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "JWT解码后能看到什么信息？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "JWT由三部分组成：Header（包含算法和类型）、Payload（包含claims声明，如用户ID、签发时间、过期时间等）和Signature（签名）。Header和Payload使用Base64URL编码，任何人都可以解码查看。因此绝不要在JWT中放置密码等敏感信息。签名部分用于验证Token未被篡改，但本工具不验证签名。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "这个JWT解码器会验证签名吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不会。本工具仅解码和展示JWT的Header和Payload内容，不验证签名的有效性。验证签名需要密钥（HS256）或公钥（RS256/ES256），而本工具是纯前端零依赖的解码工具，不接收任何密钥输入。如需验证签名，请使用jwt.io等服务或在服务端代码中验证。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "JWT的exp过期时间怎么看？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "JWT的exp字段是一个Unix时间戳（自1970年1月1日以来的秒数），表示Token的过期时间。本工具会自动检测exp字段，将其转换为可读日期，并计算剩余有效时间或已过期时间。如果Token中没有exp字段，说明该Token没有设置过期时间，这在生产环境中是不推荐的。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "HS256和RS256算法有什么区别？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "HS256是对称算法，使用同一个密钥进行签名和验证，适合单一服务场景。RS256是非对称算法，使用私钥签名、公钥验证，适合微服务架构和多方验证场景。ES256使用椭圆曲线加密，密钥更短但性能相当。选择算法时需考虑性能、密钥管理和信任模型。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "JWT安全吗？使用时有哪些注意事项？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "JWT本身是一种安全的传输机制，但使用不当会引入风险。注意事项包括：不要在Payload中存储敏感信息（Base64URL编码不等于加密）；务必使用HTTPS传输；设置合理的过期时间；不要使用alg:none；对于HS256使用足够强度的密钥；考虑实现Token刷新机制和黑名单来支持主动撤销。"
+      }
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🔑 在线JWT解码器</h1>
+    <div class="lang-switch">
+      <a href="../index.html" class="active">中文</a>
+      <a href="../en/jwt-decoder/">EN</a>
+    </div>
+  </div>
+  <p class="nav-back"><a href="../index.html">← 全部工具</a></p>
+
+  <div class="ad-placeholder">广告位 - 顶部 (728×90)</div>
+
+  <div class="input-section">
+    <h2>粘贴 JWT Token</h2>
+    <textarea id="inputText" placeholder="在此粘贴 JWT Token（格式：xxxxx.yyyyy.zzzzz）..."></textarea>
+    <div class="error-msg" id="errorMsg"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="decodeJWT()">🔓 解码</button>
+      <button class="btn btn-secondary" onclick="loadSample()">📋 加载示例</button>
+      <button class="btn btn-danger" onclick="clearAll()">🗑 清空</button>
+    </div>
+  </div>
+
+  <div class="token-viz" id="tokenViz"></div>
+
+  <div class="status-bar" id="statusBar"></div>
+
+  <div class="result-section">
+    <h2>Header <span class="label-tag">头部信息</span></h2>
+    <div class="json-box" id="headerBox"><span class="ph">Header 将显示在这里...</span></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary copy-btn" onclick="copyText('header')">📋 复制 Header</button>
+    </div>
+  </div>
+
+  <div class="result-section">
+    <h2>Payload <span class="label-tag">载荷信息</span></h2>
+    <div class="json-box" id="payloadBox"><span class="ph">Payload 将显示在这里...</span></div>
+    <div class="exp-detail" id="expDetail"></div>
+    <div class="claims-info" id="claimsInfo"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary copy-btn" onclick="copyText('payload')">📋 复制 Payload</button>
+    </div>
+  </div>
+
+  <div class="result-section">
+    <h2>Signature <span class="label-tag">签名</span></h2>
+    <div class="sig-box" id="sigBox"><span class="ph">签名将显示在这里...</span></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary copy-btn" onclick="copyText('signature')">📋 复制签名</button>
+      <button class="btn btn-secondary" onclick="copyText('all')">📋 复制全部解码结果</button>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">广告位 - 中部 (728×90)</div>
+
+  <div class="info-section">
+    <h2>JWT 结构说明</h2>
+    <p>JWT（JSON Web Token）由三部分组成，用点号 <code>.</code> 分隔，格式为 <code>Header.Payload.Signature</code></p>
+
+    <h3>1. Header（头部）</h3>
+    <p>通常包含两个字段：<code>alg</code>（签名算法，如 HS256、RS256）和 <code>typ</code>（Token 类型，通常为 JWT）。Header 使用 Base64URL 编码。</p>
+    <p>示例：<code>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9</code></p>
+
+    <h3>2. Payload（载荷）</h3>
+    <p>包含 claims（声明），即关于实体和附加数据的声明。分为三类：</p>
+    <ul>
+      <li><strong>标准声明</strong>：iss（签发者）、sub（主题）、aud（受众）、exp（过期时间）、nbf（生效时间）、iat（签发时间）、jti（唯一ID）</li>
+      <li><strong>私有声明</strong>：双方约定的自定义声明，如 name、admin</li>
+      <li><strong>公共声明</strong>：可参考 IANA JWT Registry 注册的声明名</li>
+    </ul>
+    <p>Payload 同样使用 Base64URL 编码，<strong>注意：Base64URL 编码不是加密，任何人都可以解码查看</strong></p>
+
+    <h3>3. Signature（签名）</h3>
+    <p>使用 Header 中指定的算法，对 Base64URL 编码的 Header 和 Payload 用密钥进行签名。签名用于验证 Token 未被篡改。</p>
+    <p>示例流程（HS256）：<code>HMAC-SHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), secret)</code></p>
+
+    <h3>JWT vs Session 对比</h3>
+    <table class="compare-table">
+      <thead>
+        <tr><th>特性</th><th>JWT</th><th>Session</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>存储位置</td><td>客户端（Cookie/LocalStorage）</td><td>服务端（内存/Redis）</td></tr>
+        <tr><td>状态管理</td><td>无状态，服务器不需存储</td><td>有状态，需维护会话</td></tr>
+        <tr><td>分布式扩展</td><td>天然支持，无需共享存储</td><td>需共享会话存储</td></tr>
+        <tr><td>主动撤销</td><td>较难，需黑名单机制</td><td>容易，删除即可</td></tr>
+        <tr><td>Token 大小</td><td>较大（含完整 Payload）</td><td>较小（仅 SessionID）</td></tr>
+        <tr><td>安全重点</td><td>防 XSS、防 <code>alg:none</code></td><td>防 CSRF、防固定会话</td></tr>
+        <tr><td>跨域支持</td><td>天然支持</td><td>需额外配置</td></tr>
+      </tbody>
+    </table>
+
+    <h3>JWT 安全注意事项</h3>
+    <ul>
+      <li><strong>不要存储敏感信息</strong>：Payload 可被任何人解码，切勿放入密码、身份证号等敏感数据</li>
+      <li><strong>始终使用 HTTPS</strong>：JWT 在传输中如被截获可被重放，HTTPS 是基本要求</li>
+      <li><strong>拒绝 alg:none</strong>：永远不要接受 <code>alg:none</code> 的 Token，这表示无签名验证</li>
+      <li><strong>设置合理过期时间</strong>：exp 字段不可省略，建议短期有效（15分钟~2小时）配合 Refresh Token</li>
+      <li><strong>密钥强度</strong>：HS256 密钥至少 256 位，避免使用弱密钥或硬编码密钥</li>
+      <li><strong>验证所有字段</strong>：服务端必须验证 alg、exp、iss、aud 等声明</li>
+      <li><strong>存储位置</strong>：优先存储在 HttpOnly Cookie 中，避免 XSS 攻击窃取 Token</li>
+      <li><strong>考虑撤销机制</strong>：实现 Token 黑名单或版本号机制，支持主动失效</li>
+    </ul>
+
+    <div class="faq-item">
+      <h3>JWT是什么？有什么用？</h3>
+      <p>JWT（JSON Web Token）是一种用于在网络应用间安全传输信息的开放标准（RFC 7519）。它以JSON格式编码信息，常用于身份认证、信息交换和单点登录（SSO）。服务器签发JWT后，客户端在后续请求中携带它来证明身份，无需服务器存储会话状态。</p>
+    </div>
+    <div class="faq-item">
+      <h3>JWT解码后能看到什么信息？</h3>
+      <p>JWT由三部分组成：Header（包含算法和类型）、Payload（包含claims声明，如用户ID、签发时间、过期时间等）和Signature（签名）。Header和Payload使用Base64URL编码，任何人都可以解码查看。因此绝不要在JWT中放置密码等敏感信息。签名部分用于验证Token未被篡改，但本工具不验证签名。</p>
+    </div>
+    <div class="faq-item">
+      <h3>这个JWT解码器会验证签名吗？</h3>
+      <p>不会。本工具仅解码和展示JWT的Header和Payload内容，不验证签名的有效性。验证签名需要密钥（HS256）或公钥（RS256/ES256），而本工具是纯前端零依赖的解码工具，不接收任何密钥输入。如需验证签名，请使用jwt.io等服务或在服务端代码中验证。</p>
+    </div>
+    <div class="faq-item">
+      <h3>JWT的exp过期时间怎么看？</h3>
+      <p>JWT的exp字段是一个Unix时间戳（自1970年1月1日以来的秒数），表示Token的过期时间。本工具会自动检测exp字段，将其转换为可读日期，并计算剩余有效时间或已过期时间。如果Token中没有exp字段，说明该Token没有设置过期时间，这在生产环境中是不推荐的。</p>
+    </div>
+    <div class="faq-item">
+      <h3>HS256和RS256算法有什么区别？</h3>
+      <p>HS256是对称算法，使用同一个密钥进行签名和验证，适合单一服务场景。RS256是非对称算法，使用私钥签名、公钥验证，适合微服务架构和多方验证场景。ES256使用椭圆曲线加密，密钥更短但性能相当。选择算法时需考虑性能、密钥管理和信任模型。</p>
+    </div>
+    <div class="faq-item">
+      <h3>JWT安全吗？使用时有哪些注意事项？</h3>
+      <p>JWT本身是一种安全的传输机制，但使用不当会引入风险。注意事项包括：不要在Payload中存储敏感信息（Base64URL编码不等于加密）；务必使用HTTPS传输；设置合理的过期时间；不要使用alg:none；对于HS256使用足够强度的密钥；考虑实现Token刷新机制和黑名单来支持主动撤销。</p>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">广告位 - 底部 (728×90)</div>
+</div>
+
+<div class="footer container">
+  <div style="margin-bottom:12px">
+    <a href="../index.html">首页</a>
+    <a href="../index.html">全部工具</a>
+    <a href="mailto:REDACTED_EMAIL">联系我们</a>
+    <a href="../en/jwt-decoder/">EN</a>
+  </div>
+  <p>在线JWT解码器 · 纯前端本地处理 · Token绝不上传服务器</p>
+  <p style="margin-top:4px">支持HS256/RS256/ES256等算法识别 · 过期时间检测 · JSON语法高亮</p>
+  <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: REDACTED_EMAIL</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const inputText = document.getElementById('inputText');
+const errorMsg = document.getElementById('errorMsg');
+const tokenViz = document.getElementById('tokenViz');
+const statusBar = document.getElementById('statusBar');
+const headerBox = document.getElementById('headerBox');
+const payloadBox = document.getElementById('payloadBox');
+const sigBox = document.getElementById('sigBox');
+const expDetail = document.getElementById('expDetail');
+const claimsInfo = document.getElementById('claimsInfo');
+const toast = document.getElementById('toast');
+
+let decodedData = { header: null, payload: null, signature: '' };
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function showError(msg) {
+  errorMsg.textContent = msg;
+  errorMsg.classList.add('show');
+}
+
+function hideError() {
+  errorMsg.classList.remove('show');
+}
+
+function base64UrlDecode(str) {
+  let s = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  const binary = atob(s);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+function syntaxHighlightJSON(obj) {
+  let json = JSON.stringify(obj, null, 2);
+  json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+\.?\d*([eE][+-]?\d+)?)/g, function(match) {
+    let cls = 'json-number';
+    if (/^"/.test(match)) {
+      if (/:$/.test(match)) {
+        cls = 'json-key';
+      } else {
+        cls = 'json-string';
+      }
+    } else if (/true|false/.test(match)) {
+      cls = 'json-boolean';
+    } else if (/null/.test(match)) {
+      cls = 'json-null';
+    }
+    return '<span class="' + cls + '">' + match + '</span>';
+  });
+}
+
+const algInfo = {
+  'HS256': { name: 'HMAC + SHA-256', type: '对称加密', desc: '使用共享密钥签名和验证' },
+  'HS384': { name: 'HMAC + SHA-384', type: '对称加密', desc: '使用共享密钥签名和验证' },
+  'HS512': { name: 'HMAC + SHA-512', type: '对称加密', desc: '使用共享密钥签名和验证' },
+  'RS256': { name: 'RSA + SHA-256', type: '非对称加密', desc: '私钥签名，公钥验证' },
+  'RS384': { name: 'RSA + SHA-384', type: '非对称加密', desc: '私钥签名，公钥验证' },
+  'RS512': { name: 'RSA + SHA-512', type: '非对称加密', desc: '私钥签名，公钥验证' },
+  'ES256': { name: 'ECDSA + SHA-256', type: '非对称加密', desc: '椭圆曲线签名' },
+  'ES384': { name: 'ECDSA + SHA-384', type: '非对称加密', desc: '椭圆曲线签名' },
+  'ES512': { name: 'ECDSA + SHA-512', type: '非对称加密', desc: '椭圆曲线签名' },
+  'PS256': { name: 'RSA-PSS + SHA-256', type: '非对称加密', desc: '概率性签名方案' },
+  'PS384': { name: 'RSA-PSS + SHA-384', type: '非对称加密', desc: '概率性签名方案' },
+  'PS512': { name: 'RSA-PSS + SHA-512', type: '非对称加密', desc: '概率性签名方案' },
+  'none': { name: '无签名', type: '不安全', desc: '无签名验证，禁止在生产环境使用' }
+};
+
+const claimDescriptions = {
+  'iss': '签发者（Issuer）',
+  'sub': '主题/用户ID（Subject）',
+  'aud': '受众（Audience）',
+  'exp': '过期时间（Expiration Time）',
+  'nbf': '生效时间（Not Before）',
+  'iat': '签发时间（Issued At）',
+  'jti': '唯一标识（JWT ID）',
+  'name': '用户名称',
+  'admin': '管理员权限',
+  'role': '角色',
+  'perms': '权限列表'
+};
+
+function formatTimestamp(ts) {
+  const d = new Date(ts * 1000);
+  const yyyy = d.getUTCFullYear();
+  const MM = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  const hh = String(d.getUTCHours()).padStart(2, '0');
+  const mm = String(d.getUTCMinutes()).padStart(2, '0');
+  const ss = String(d.getUTCSeconds()).padStart(2, '0');
+  return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss} UTC`;
+}
+
+function formatDuration(seconds) {
+  const abs = Math.abs(seconds);
+  const days = Math.floor(abs / 86400);
+  const hours = Math.floor((abs % 86400) / 3600);
+  const mins = Math.floor((abs % 3600) / 60);
+  const secs = Math.floor(abs % 60);
+  if (days > 0) return `${days}天 ${hours}小时 ${mins}分钟`;
+  if (hours > 0) return `${hours}小时 ${mins}分钟`;
+  if (mins > 0) return `${mins}分钟 ${secs}秒`;
+  return `${secs}秒`;
+}
+
+function decodeJWT() {
+  const token = inputText.value.trim();
+  hideError();
+  tokenViz.classList.remove('show');
+  statusBar.innerHTML = '';
+  expDetail.classList.remove('show');
+  claimsInfo.innerHTML = '';
+  headerBox.innerHTML = '<span class="ph">Header 将显示在这里...</span>';
+  payloadBox.innerHTML = '<span class="ph">Payload 将显示在这里...</span>';
+  sigBox.innerHTML = '<span class="ph">签名将显示在这里...</span>';
+  decodedData = { header: null, payload: null, signature: '' };
+
+  if (!token) {
+    showError('请输入 JWT Token');
+    return;
+  }
+
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    showError('无效的 JWT 格式：JWT 必须包含三部分（Header.Payload.Signature），用点号分隔。当前检测到 ' + parts.length + ' 部分。');
+    return;
+  }
+
+  let header, payload;
+  try {
+    header = JSON.parse(base64UrlDecode(parts[0]));
+  } catch (e) {
+    showError('Header 解码失败：' + e.message + '。请确认输入的是有效的 JWT Token。');
+    return;
+  }
+  try {
+    payload = JSON.parse(base64UrlDecode(parts[1]));
+  } catch (e) {
+    showError('Payload 解码失败：' + e.message + '。请确认输入的是有效的 JWT Token。');
+    return;
+  }
+
+  decodedData = { header: header, payload: payload, signature: parts[2] };
+
+  // Token visualization
+  tokenViz.innerHTML = '<span class="t-header">' + parts[0] + '</span><span class="t-dot">.</span><span class="t-payload">' + parts[1] + '</span><span class="t-dot">.</span><span class="t-sig">' + parts[2] + '</span>';
+  tokenViz.classList.add('show');
+
+  // Status bar
+  let badges = '';
+  const alg = header.alg || 'unknown';
+  const algData = algInfo[alg];
+  if (algData) {
+    badges += '<span class="badge badge-alg" title="' + algData.desc + '">🔐 ' + alg + ' · ' + algData.name + '</span>';
+    if (alg === 'none') {
+      badges += '<span class="badge badge-warn">⚠ 不安全</span>';
+    }
+  } else {
+    badges += '<span class="badge badge-alg">🔐 ' + alg + '</span>';
+  }
+  if (header.typ) {
+    badges += '<span class="badge badge-type">📄 ' + header.typ + '</span>';
+  }
+  // Expiration badge
+  if (payload.exp) {
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp < now) {
+      badges += '<span class="badge badge-expired">⏰ 已过期</span>';
+    } else {
+      badges += '<span class="badge badge-valid">✓ 有效</span>';
+    }
+  } else {
+    badges += '<span class="badge badge-warn">⚠ 无过期时间</span>';
+  }
+  statusBar.innerHTML = badges;
+
+  // Header
+  headerBox.innerHTML = syntaxHighlightJSON(header);
+
+  // Payload
+  payloadBox.innerHTML = syntaxHighlightJSON(payload);
+
+  // Expiration detail
+  if (payload.exp) {
+    const now = Math.floor(Date.now() / 1000);
+    const diff = payload.exp - now;
+    const expDate = formatTimestamp(payload.exp);
+    if (diff > 0) {
+      expDetail.className = 'exp-detail show valid';
+      expDetail.innerHTML = '✅ 过期时间：' + expDate + ' · 剩余有效：' + formatDuration(diff);
+    } else {
+      expDetail.className = 'exp-detail show expired';
+      expDetail.innerHTML = '❌ 过期时间：' + expDate + ' · 已过期：' + formatDuration(diff);
+    }
+  }
+
+  // Claims info
+  let claimsHtml = '';
+  const payloadKeys = Object.keys(payload);
+  let hasKnownClaims = false;
+  for (const key of payloadKeys) {
+    if (claimDescriptions[key]) {
+      hasKnownClaims = true;
+      let valDisplay = payload[key];
+      if (key === 'exp' || key === 'iat' || key === 'nbf') {
+        if (typeof valDisplay === 'number') {
+          valDisplay = valDisplay + ' → ' + formatTimestamp(valDisplay);
+        }
+      }
+      claimsHtml += '<div class="claim-row"><span class="ck">' + key + '</span><span class="cd">' + claimDescriptions[key] + ' · 当前值：' + valDisplay + '</span></div>';
+    }
+  }
+  if (hasKnownClaims) {
+    claimsInfo.innerHTML = claimsHtml;
+  }
+
+  // Signature
+  sigBox.innerHTML = '<span style="color:#64748b;font-size:.8rem">签名（Base64URL 编码）：</span><br>' + parts[2];
+}
+
+function loadSample() {
+  const header = btoa(unescape(encodeURIComponent(JSON.stringify({ alg: "HS256", typ: "JWT" })))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  const now = Math.floor(Date.now() / 1000);
+  const payloadObj = {
+    sub: "1234567890",
+    name: "John Doe",
+    admin: true,
+    iat: now - 3600,
+    exp: now + 7200
+  };
+  const payload = btoa(unescape(encodeURIComponent(JSON.stringify(payloadObj)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  const sample = header + '.' + payload + '.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+  inputText.value = sample;
+  decodeJWT();
+}
+
+function clearAll() {
+  inputText.value = '';
+  hideError();
+  tokenViz.classList.remove('show');
+  tokenViz.innerHTML = '';
+  statusBar.innerHTML = '';
+  expDetail.classList.remove('show');
+  claimsInfo.innerHTML = '';
+  headerBox.innerHTML = '<span class="ph">Header 将显示在这里...</span>';
+  payloadBox.innerHTML = '<span class="ph">Payload 将显示在这里...</span>';
+  sigBox.innerHTML = '<span class="ph">签名将显示在这里...</span>';
+  decodedData = { header: null, payload: null, signature: '' };
+}
+
+function copyText(type) {
+  let text = '';
+  if (type === 'header') {
+    if (!decodedData.header) { showToast('没有 Header 可复制'); return; }
+    text = JSON.stringify(decodedData.header, null, 2);
+  } else if (type === 'payload') {
+    if (!decodedData.payload) { showToast('没有 Payload 可复制'); return; }
+    text = JSON.stringify(decodedData.payload, null, 2);
+  } else if (type === 'signature') {
+    if (!decodedData.signature) { showToast('没有签名可复制'); return; }
+    text = decodedData.signature;
+  } else if (type === 'all') {
+    if (!decodedData.header) { showToast('没有结果可复制'); return; }
+    text = '=== Header ===\n' + JSON.stringify(decodedData.header, null, 2) +
+           '\n\n=== Payload ===\n' + JSON.stringify(decodedData.payload, null, 2) +
+           '\n\n=== Signature ===\n' + decodedData.signature;
+  }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('已复制到剪贴板');
+  }
+}
+
+// Auto-decode on input
+inputText.addEventListener('input', () => {
+  const token = inputText.value.trim();
+  if (token.split('.').length === 3 && token.length > 20) {
+    decodeJWT();
+  }
+});
+
+// Keyboard shortcut
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    decodeJWT();
+  }
+});
+</script>
+</body>
+</html>
