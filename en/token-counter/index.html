@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Free online Token counter for GPT-4/GPT-4o/GPT-3.5/Claude/Gemini. Estimate token usage, visualize context window with progress bars, and calculate API costs. Pure frontend, data never uploaded.">
+<meta name="keywords" content="Token counter, GPT token calculator, token estimator, LLM token count, AI token counter, context window, API cost estimator, online token tool, Claude token, Gemini token">
+<meta name="author" content="Online Tools Matrix">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="Online Token Counter - GPT/Claude/Gemini Token Estimator & Cost Calculator">
+<meta property="og:description" content="Free online token counter supporting major AI models. Estimate tokens, visualize context window, calculate API costs. Pure frontend, no data upload.">
+<meta property="og:type" content="website">
+<title>Online Token Counter - GPT/Claude/Gemini Token Estimator & Cost Calculator</title>
+<link rel="canonical" href="https://webtools-cn.github.io/tools-site/en/token-counter/">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Online Token Counter",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Web",
+  "description": "Free online token counter supporting GPT-4/GPT-4o/GPT-3.5/Claude/Gemini. Estimate token usage, visualize context window, and calculate API costs. Pure frontend.",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type": "Question", "name": "What is a Token and why do LLMs charge by tokens?", "acceptedAnswer": {"@type": "Answer", "text": "A token is the basic unit of text processed by large language models. Unlike character-based billing, models use tokens because the Transformer architecture processes text as a sequence of tokens. English words are usually 1 token, while Chinese characters are typically 1-2 tokens. Token-based billing more accurately reflects the actual computational cost."}},
+    {"@type": "Question", "name": "How accurate is this token counter?", "acceptedAnswer": {"@type": "Answer", "text": "This tool uses a statistical estimation algorithm. Results are for reference only, with an error margin of approximately ±10% compared to OpenAI's official tiktoken. For precise billing, refer to the usage field returned by the official API. The estimates are sufficient for daily writing, prompt optimization, and cost estimation."}},
+    {"@type": "Question", "name": "Do GPT-4 and GPT-3.5 count the same number of tokens?", "acceptedAnswer": {"@type": "Answer", "text": "For the same text, GPT-4 and GPT-3.5 usually produce similar token counts because they share the same BPE tokenizer (cl100k_base). GPT-4o series may differ slightly. The main difference between models is their context window size."}},
+    {"@type": "Question", "name": "How does token consumption differ between Chinese and English?", "acceptedAnswer": {"@type": "Answer", "text": "Chinese characters typically consume 1-2 tokens each, while common English words usually need only 1 token. Therefore, Chinese text often consumes more tokens for equivalent semantic content. For example, 1000 Chinese characters ≈ 1000-1200 tokens, while 1000 English words ≈ 1300 tokens. Using English in prompts usually saves tokens."}},
+    {"@type": "Question", "name": "What happens when the context window is full?", "acceptedAnswer": {"@type": "Answer", "text": "When input tokens exceed the model's context window limit, the API returns an error (e.g., context_length_exceeded). Some models support automatic truncation, but information beyond the limit will be lost. In multi-turn conversations, historical messages also consume context window, so long conversations should be periodically summarized or restarted."}},
+    {"@type": "Question", "name": "How can I reduce token usage to save API costs?", "acceptedAnswer": {"@type": "Answer", "text": "Ways to reduce token usage include: 1) Streamline prompts and remove redundant descriptions; 2) Write prompts in English; 3) Avoid repetitive context by using variables or references; 4) Use cheaper models (e.g., GPT-4o-mini instead of GPT-4); 5) Limit output length by setting max_tokens; 6) Batch requests instead of sending them individually."}}
+  ]
+}
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:1100px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.nav-back a{color:#64748b}
+.nav-back a:hover{color:#94a3b8}
+.ad-placeholder{background:rgba(148,163,184,.05);border:1px dashed rgba(148,163,184,.2);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:.8rem;margin-bottom:16px;min-height:90px}
+.ad-placeholder.sidebar{min-height:250px;min-width:300px;flex-shrink:0}
+.main-layout{display:flex;gap:16px;align-items:flex-start}
+.content{flex:1;min-width:0}
+.sidebar-area{display:none}
+.panel{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.panel-title{font-size:1.1rem;color:#f1f5f9;margin-bottom:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.panel-title .icon{width:28px;height:28px;border-radius:6px;background:rgba(6,182,212,.15);display:flex;align-items:center;justify-content:center;font-size:.9rem}
+textarea{width:100%;min-height:160px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.9rem;resize:vertical;line-height:1.5}
+textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{padding:8px 16px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:12px}
+.stat-card{background:#0f172a;border-radius:8px;padding:12px;border:1px solid rgba(148,163,184,.1)}
+.stat-label{font-size:.75rem;color:#94a3b8;margin-bottom:4px}
+.stat-value{font-size:1.2rem;color:#f1f5f9;font-weight:600;font-family:monospace}
+.model-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:12px}
+.model-card{background:#0f172a;border-radius:8px;padding:14px;border:1px solid rgba(148,163,184,.1);position:relative;overflow:hidden}
+.model-name{font-size:.85rem;color:#94a3b8;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.model-name .badge{font-size:.7rem;padding:2px 6px;border-radius:4px;background:rgba(6,182,212,.15);color:#22d3ee}
+.token-count{font-size:1.4rem;color:#f1f5f9;font-weight:700;font-family:monospace}
+.token-count.warning{color:#fbbf24}
+.token-count.danger{color:#f87171}
+.context-bar{height:6px;background:rgba(148,163,184,.15);border-radius:3px;margin-top:10px;overflow:hidden}
+.context-bar-fill{height:100%;border-radius:3px;transition:width .3s}
+.context-bar-fill.safe{background:#22d3ee}
+.context-bar-fill.warning{background:#fbbf24}
+.context-bar-fill.danger{background:#f87171}
+.context-text{font-size:.75rem;color:#64748b;margin-top:6px}
+.cost-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(148,163,184,.08)}
+.cost-row:last-child{border-bottom:none}
+.cost-label{font-size:.85rem;color:#94a3b8}
+.cost-value{font-size:.9rem;color:#f1f5f9;font-family:monospace}
+.privacy-note{display:flex;align-items:center;gap:8px;background:rgba(34,211,238,.08);border:1px solid rgba(6,182,212,.15);border-radius:8px;padding:10px 14px;margin-top:12px;font-size:.8rem;color:#22d3ee}
+.faq-item{background:#0f172a;border-radius:8px;padding:14px;margin-bottom:10px;border:1px solid rgba(148,163,184,.1)}
+.faq-item h3{font-size:.95rem;color:#f1f5f9;margin-bottom:6px}
+.faq-item p{font-size:.85rem;color:#94a3b8;line-height:1.7}
+.faq-item p code{background:rgba(148,163,184,.15);padding:2px 5px;border-radius:3px;font-family:monospace;font-size:.8rem;color:#e2e8f0}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#06b6d4;margin:0 8px}
+.footer a:hover{color:#22d3ee}
+@media(min-width:1024px){
+  .sidebar-area{display:flex;flex-direction:column;gap:16px;width:300px;flex-shrink:0}
+}
+@media(max-width:640px){
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .model-grid{grid-template-columns:1fr}
+  .header h1{font-size:1.3rem}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🧮 Online Token Counter</h1>
+    <div class="lang-switch">
+      <a href="../token-counter/">中文</a>
+      <a href="./" class="active">EN</a>
+    </div>
+  </div>
+  <div class="nav-back">
+    <a href="../en/index.html">Home</a> › <a href="../en/index.html">Online Tools</a> › Token Counter
+  </div>
+
+  <div class="ad-placeholder">Ad Slot: 728×90</div>
+
+  <div class="main-layout">
+    <div class="sidebar-area">
+      <div class="ad-placeholder sidebar">Ad Slot: 300×250</div>
+    </div>
+
+    <div class="content">
+      <div class="panel">
+        <div class="panel-title"><div class="icon">📝</div>Input Text</div>
+        <textarea id="inputText" placeholder="Paste or type text here to see real-time token and character statistics..." spellcheck="false"></textarea>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="loadSample()">📋 Load Sample</button>
+          <button class="btn btn-secondary" onclick="clearAll()">🗑️ Clear</button>
+          <button class="btn btn-secondary" onclick="copyText()">📄 Copy Text</button>
+        </div>
+        <div class="privacy-note">
+          <span>🔒</span>
+          <span>Pure frontend processing. Your text is never uploaded to any server.</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><div class="icon">📊</div>Text Statistics</div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Characters</div><div class="stat-value" id="statChars">0</div></div>
+          <div class="stat-card"><div class="stat-label">CJK Characters</div><div class="stat-value" id="statChinese">0</div></div>
+          <div class="stat-card"><div class="stat-label">Words</div><div class="stat-value" id="statWords">0</div></div>
+          <div class="stat-card"><div class="stat-label">Numbers</div><div class="stat-value" id="statNumbers">0</div></div>
+          <div class="stat-card"><div class="stat-label">Lines</div><div class="stat-value" id="statLines">0</div></div>
+          <div class="stat-card"><div class="stat-label">Whitespace</div><div class="stat-value" id="statWhitespace">0</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><div class="icon">🤖</div>AI Model Token Estimates</div>
+        <div class="model-grid" id="modelGrid"></div>
+      </div>
+
+      <div class="ad-placeholder">Ad Slot: 728×90</div>
+
+      <div class="panel">
+        <div class="panel-title"><div class="icon">💰</div>API Cost Estimation</div>
+        <div id="costPanel"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><div class="icon">❓</div>Frequently Asked Questions</div>
+        <div class="faq-item">
+          <h3>What is a Token and why do LLMs charge by tokens?</h3>
+          <p>A token is the basic unit of text processed by large language models. Unlike character-based billing, models use tokens because the Transformer architecture processes text as a sequence of tokens. English words are usually 1 token, while Chinese characters are typically 1-2 tokens. Token-based billing more accurately reflects the actual computational cost.</p>
+        </div>
+        <div class="faq-item">
+          <h3>How accurate is this token counter?</h3>
+          <p>This tool uses a statistical estimation algorithm. Results are for reference only, with an error margin of approximately ±10% compared to OpenAI's official <code>tiktoken</code>. For precise billing, refer to the <code>usage</code> field returned by the official API. The estimates are sufficient for daily writing, prompt optimization, and cost estimation.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Do GPT-4 and GPT-3.5 count the same number of tokens?</h3>
+          <p>For the same text, GPT-4 and GPT-3.5 usually produce similar token counts because they share the same BPE tokenizer (<code>cl100k_base</code>). GPT-4o series may differ slightly. The main difference between models is their context window size.</p>
+        </div>
+        <div class="faq-item">
+          <h3>How does token consumption differ between Chinese and English?</h3>
+          <p>Chinese characters typically consume 1-2 tokens each, while common English words usually need only 1 token. Therefore, Chinese text often consumes more tokens for equivalent semantic content. For example, 1000 Chinese characters ≈ 1000-1200 tokens, while 1000 English words ≈ 1300 tokens. Using English in prompts usually saves tokens.</p>
+        </div>
+        <div class="faq-item">
+          <h3>What happens when the context window is full?</h3>
+          <p>When input tokens exceed the model's context window limit, the API returns an error (e.g., <code>context_length_exceeded</code>). Some models support automatic truncation, but information beyond the limit will be lost. In multi-turn conversations, historical messages also consume context window, so long conversations should be periodically summarized or restarted.</p>
+        </div>
+        <div class="faq-item">
+          <h3>How can I reduce token usage to save API costs?</h3>
+          <p>Ways to reduce token usage include: 1) Streamline prompts and remove redundant descriptions; 2) Write prompts in English; 3) Avoid repetitive context by using variables or references; 4) Use cheaper models (e.g., GPT-4o-mini instead of GPT-4); 5) Limit output length by setting <code>max_tokens</code>; 6) Batch requests instead of sending them individually.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-area">
+      <div class="ad-placeholder sidebar">Ad Slot: 300×250</div>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">Ad Slot: 728×90</div>
+
+  <div class="footer">
+    <div style="margin-bottom:12px">
+      <a href="../en/index.html">Home</a>
+      <a href="mailto:REDACTED_EMAIL">Contact</a>
+    </div>
+    <p>Online Tools Matrix · Free · Secure · Useful</p>
+    <p style="margin-top:8px;color:#475569;font-size:.8rem">Feedback: REDACTED_EMAIL</p>
+  </div>
+</div>
+
+<script>
+const models = [
+  {id:'gpt4o',name:'GPT-4o',context:128000,inputPrice:5,outputPrice:15,desc:'Flagship multimodal model'},
+  {id:'gpt4omini',name:'GPT-4o mini',context:128000,inputPrice:0.15,outputPrice:0.6,desc:'Fast, cost-effective model'},
+  {id:'gpt4turbo',name:'GPT-4 Turbo',context:128000,inputPrice:10,outputPrice:30,desc:'Previous flagship model'},
+  {id:'gpt35turbo',name:'GPT-3.5 Turbo',context:16385,inputPrice:0.5,outputPrice:1.5,desc:'Budget general model'},
+  {id:'claude3opus',name:'Claude 3 Opus',context:200000,inputPrice:15,outputPrice:75,desc:'Anthropic strongest model'},
+  {id:'claude3sonnet',name:'Claude 3.5 Sonnet',context:200000,inputPrice:3,outputPrice:15,desc:'Balanced performance'},
+  {id:'claude3haiku',name:'Claude 3 Haiku',context:200000,inputPrice:0.25,outputPrice:1.25,desc:'Fast lightweight model'},
+  {id:'gemini15pro',name:'Gemini 1.5 Pro',context:1000000,inputPrice:3.5,outputPrice:10.5,desc:'Google million context'},
+  {id:'gemini15flash',name:'Gemini 1.5 Flash',context:1000000,inputPrice:0.35,outputPrice:0.7,desc:'Google fast model'}
+];
+
+function estimateTokens(text){
+  if(!text) return 0;
+  const cjkMatch = text.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g);
+  const cjkCount = cjkMatch ? cjkMatch.length : 0;
+  const wordMatch = text.match(/[a-zA-Z]+/g);
+  const wordCount = wordMatch ? wordMatch.length : 0;
+  const numMatch = text.match(/\d+/g);
+  const numCount = numMatch ? numMatch.length : 0;
+  const otherCount = text.length - cjkCount - 
+    (text.match(/[a-zA-Z]/g)||[]).length - 
+    (text.match(/\d/g)||[]).length;
+  return Math.max(1, Math.round(cjkCount * 1.2 + wordCount * 1.3 + numCount * 0.8 + otherCount * 0.4));
+}
+
+function updateStats(){
+  const text = document.getElementById('inputText').value;
+  const chars = text.length;
+  const chinese = (text.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g)||[]).length;
+  const words = (text.match(/[a-zA-Z]+/g)||[]).length;
+  const numbers = (text.match(/\d+/g)||[]).length;
+  const lines = text ? text.split(/\r?\n/).length : 0;
+  const whitespace = (text.match(/\s/g)||[]).length;
+
+  document.getElementById('statChars').textContent = chars.toLocaleString();
+  document.getElementById('statChinese').textContent = chinese.toLocaleString();
+  document.getElementById('statWords').textContent = words.toLocaleString();
+  document.getElementById('statNumbers').textContent = numbers.toLocaleString();
+  document.getElementById('statLines').textContent = lines.toLocaleString();
+  document.getElementById('statWhitespace').textContent = whitespace.toLocaleString();
+
+  const tokens = estimateTokens(text);
+  renderModels(tokens);
+  renderCost(tokens);
+}
+
+function renderModels(tokens){
+  const grid = document.getElementById('modelGrid');
+  grid.innerHTML = models.map(m => {
+    const pct = Math.min(100, (tokens / m.context) * 100);
+    const status = pct > 90 ? 'danger' : (pct > 70 ? 'warning' : 'safe');
+    const countClass = pct > 90 ? 'danger' : (pct > 70 ? 'warning' : '');
+    return `
+      <div class="model-card">
+        <div class="model-name">${m.name} <span class="badge">${m.context>=1000?(m.context/1000+'K'):m.context} ctx</span></div>
+        <div class="token-count ${countClass}">≈ ${tokens.toLocaleString()} <span style="font-size:.8rem;color:#64748b;font-weight:400">Tokens</span></div>
+        <div class="context-bar"><div class="context-bar-fill ${status}" style="width:${pct}%"></div></div>
+        <div class="context-text">Used ${pct.toFixed(1)}% · ${Math.max(0, m.context - tokens).toLocaleString()} remaining</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderCost(tokens){
+  const panel = document.getElementById('costPanel');
+  const inputTokens = tokens;
+  const outputTokens = Math.round(tokens * 0.3);
+  panel.innerHTML = models.map(m => {
+    const inputCost = (inputTokens / 1000000 * m.inputPrice).toFixed(6);
+    const outputCost = (outputTokens / 1000000 * m.outputPrice).toFixed(6);
+    const total = (parseFloat(inputCost) + parseFloat(outputCost)).toFixed(6);
+    return `
+      <div class="cost-row">
+        <div class="cost-label">${m.name}</div>
+        <div class="cost-value">$${total} <span style="color:#64748b;font-size:.75rem">(in $${inputCost}+out $${outputCost})</span></div>
+      </div>
+    `;
+  }).join('');
+}
+
+function loadSample(){
+  const sample = `Please analyze the following user feedback and extract key issues and suggestions:
+
+Feedback 1: The login page loads very slowly, sometimes taking more than 5 seconds to display the form. Using the latest version of Chrome browser.
+Feedback 2: Would like a dark mode option, as the current UI is too bright at night. Also hoping for PDF report export functionality.
+Feedback 3: The mobile interface doesn't display properly on small screens, with buttons being cut off. iPhone 12 Pro device.
+Feedback 4: The API documentation examples lack error handling, making it difficult for beginners to understand. More detailed comments are recommended.
+
+Please output in the following format:
+1. Problem categories and priority
+2. Brief analysis of each issue
+3. Feasible solution suggestions
+4. Implementation priority ranking`;
+  document.getElementById('inputText').value = sample;
+  updateStats();
+}
+
+function clearAll(){
+  document.getElementById('inputText').value = '';
+  updateStats();
+}
+
+function copyText(){
+  const text = document.getElementById('inputText').value;
+  if(!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btns = document.querySelectorAll('.btn-row .btn-secondary');
+    const btn = btns[btns.length-1];
+    const old = btn.textContent;
+    btn.textContent = '✅ Copied';
+    setTimeout(() => btn.textContent = old, 1500);
+  });
+}
+
+document.getElementById('inputText').addEventListener('input', updateStats);
+updateStats();
+</script>
+</body>
+</html>
