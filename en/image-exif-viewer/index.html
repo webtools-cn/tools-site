@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>
+window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+gtag('js',new Date());gtag('config','G-9W1157EBQV');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Free online image EXIF viewer. Pure frontend local parsing of photo metadata. View camera model, shooting time, exposure parameters, GPS coordinates, lens info. No data uploaded to server, privacy-safe.">
+<meta name="keywords" content="EXIF viewer,photo metadata viewer,online EXIF tool,camera info checker,GPS coordinate viewer,photo privacy checker,EXIF parser,image metadata extractor">
+<title>Online Image EXIF Viewer - Local Parsing · Privacy-Safe · Full Camera Params</title>
+<link rel="canonical" href="https://webtools-cn.github.io/en/image-exif-viewer/">
+<meta property="og:title" content="Online Image EXIF Viewer - Local Parsing · Privacy-Safe · Full Camera Params">
+<meta property="og:description" content="Free online image EXIF viewer. Pure frontend local parsing of photo metadata. View camera model, shooting time, exposure parameters, GPS coordinates, lens info. No data uploaded to server.">
+<meta property="og:url" content="https://webtools-cn.github.io/en/image-exif-viewer/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Online Tools Matrix">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Online Image EXIF Viewer","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","description":"Free online image EXIF viewer. Pure frontend local parsing of photo metadata. View camera model, shooting time, exposure parameters, GPS coordinates, lens info. No data uploaded to server.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is EXIF metadata?","acceptedAnswer":{"@type":"Answer","text":"EXIF (Exchangeable Image File Format) is a metadata standard embedded in JPEG, TIFF, and other image files. It records camera model, shooting time, exposure parameters, aperture, ISO, focal length, GPS coordinates, and more. It helps users understand shooting conditions and device information."}},{"@type":"Question","name":"Is it safe to upload images to this tool?","acceptedAnswer":{"@type":"Answer","text":"Absolutely safe. This tool uses pure frontend technology. All EXIF parsing happens locally in your browser. Image data is never uploaded to any server. You can use it with confidence without worrying about privacy leaks."}},{"@type":"Question","name":"Why do some photos lack GPS information?","acceptedAnswer":{"@type":"Answer","text":"GPS information requires the camera or phone to have location services enabled. Professional cameras typically lack built-in GPS unless an external GPS device is attached. Smartphone photos usually contain GPS, but some users disable location permissions for privacy."}},{"@type":"Question","name":"How do I remove EXIF data from photos?","acceptedAnswer":{"@type":"Answer","text":"You can remove EXIF metadata by taking a screenshot, re-saving the image in editing software, or using dedicated EXIF removal tools. Social media platforms typically strip GPS and other sensitive EXIF data when you upload."}},{"@type":"Question","name":"What image formats are supported?","acceptedAnswer":{"@type":"Answer","text":"This tool primarily supports JPEG/JPG (richest EXIF data), plus partial support for TIFF and WebP. PNG typically does not contain EXIF. RAW formats (CR2, NEF, ARW) need conversion to JPEG first."}},{"@type":"Question","name":"How do I read exposure parameters in EXIF?","acceptedAnswer":{"@type":"Answer","text":"Exposure time (e.g., 1/250s) is shutter speed - smaller values freeze motion. Aperture (e.g., f/2.8) controls lens opening - smaller numbers mean more light and blurrier backgrounds. ISO (e.g., ISO 800) is sensitivity - higher values work in darker conditions but add noise."}}]}
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:900px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.nav-back a{color:#64748b}
+.nav-back a:hover{color:#94a3b8}
+.drop-zone{border:2px dashed rgba(6,182,212,.3);border-radius:12px;padding:48px 24px;text-align:center;background:#1e293b;cursor:pointer;transition:all .2s;margin-bottom:16px}
+.drop-zone:hover,.drop-zone.dragover{border-color:#22d3ee;background:rgba(6,182,212,.05)}
+.drop-zone .icon{font-size:3rem;margin-bottom:12px;color:#22d3ee}
+.drop-zone p{color:#94a3b8;font-size:.95rem}
+.drop-zone .hint{color:#475569;font-size:.8rem;margin-top:8px}
+.preview-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1);display:none}
+.preview-section.active{display:block}
+.preview-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.preview-img{max-width:100%;max-height:300px;border-radius:8px;display:block;margin:0 auto}
+.image-info{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:.85rem;color:#94a3b8}
+.image-info span{background:rgba(148,163,184,.08);padding:4px 10px;border-radius:4px}
+.exif-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1);display:none}
+.exif-section.active{display:block}
+.exif-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.exif-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.exif-card{background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:12px}
+.exif-card .label{font-size:.75rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.exif-card .value{font-size:.95rem;color:#f1f5f9;word-break:break-all}
+.exif-card .value.gps{color:#22d3ee}
+.privacy-alert{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#f87171;font-size:.85rem;display:none}
+.privacy-alert.active{display:block}
+.raw-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1);display:none}
+.raw-section.active{display:block}
+.raw-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.raw-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.raw-table th{background:#0f172a;color:#94a3b8;padding:8px 12px;text-align:left;font-weight:500;border-bottom:1px solid rgba(148,163,184,.2)}
+.raw-table td{padding:8px 12px;color:#e2e8f0;border-bottom:1px solid rgba(148,163,184,.1);word-break:break-all}
+.raw-table tr:hover td{background:rgba(148,163,184,.05)}
+.info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.info-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.info-section h3{font-size:.95rem;color:#e2e8f0;margin:16px 0 8px}
+.info-section p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
+.info-section code{background:rgba(6,182,212,.1);color:#22d3ee;padding:2px 6px;border-radius:3px;font-size:.85rem}
+.ad-placeholder{background:rgba(148,163,184,.05);border:1px dashed rgba(148,163,184,.2);border-radius:8px;text-align:center;padding:20px;color:#475569;font-size:.85rem;margin-bottom:16px}
+.faq-item{margin-bottom:16px}
+.faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px}
+.faq-item p{color:#94a3b8;font-size:.9rem}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#64748b;margin:0 8px}
+.footer a:hover{color:#94a3b8}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+#fileInput{display:none}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>📷 Online Image EXIF Viewer</h1>
+    <div class="lang-switch">
+      <a href="../../image-exif-viewer/">中文</a>
+      <a href="" class="active">EN</a>
+    </div>
+  </div>
+  <p class="nav-back"><a href="../../index.html">← All Tools</a></p>
+  <div class="ad-placeholder">Ad Slot - Top (728×90)</div>
+
+  <div class="drop-zone" id="dropZone">
+    <div class="icon">📁</div>
+    <p>Click or drag and drop an image here</p>
+    <p class="hint">Supports JPEG / JPG / TIFF / WebP · Pure frontend local parsing · No server upload</p>
+  </div>
+  <input type="file" id="fileInput" accept="image/jpeg,image/jpg,image/tiff,image/webp">
+
+  <div class="privacy-alert" id="privacyAlert">
+    ⚠️ GPS location detected! Consider removing EXIF metadata before sharing this photo to protect your privacy.
+  </div>
+
+  <div class="preview-section" id="previewSection">
+    <h2>Image Preview</h2>
+    <img class="preview-img" id="previewImg" alt="Preview">
+    <div class="image-info" id="imageInfo"></div>
+  </div>
+
+  <div class="exif-section" id="exifSection">
+    <h2>Core EXIF Information</h2>
+    <div class="exif-grid" id="exifGrid"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="copyExifBtn">📋 Copy Core Info</button>
+      <button class="btn btn-secondary" id="toggleRawBtn">📋 Show/Hide All Tags</button>
+    </div>
+  </div>
+
+  <div class="raw-section" id="rawSection">
+    <h2>All EXIF Tags</h2>
+    <div style="overflow-x:auto">
+      <table class="raw-table" id="rawTable">
+        <thead><tr><th>Tag</th><th>Value</th></tr></thead>
+        <tbody id="rawTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">Ad Slot - Middle (728×90)</div>
+
+  <div class="info-section">
+    <h2>EXIF Information Guide</h2>
+    <h3>What is EXIF Metadata?</h3>
+    <p>EXIF (Exchangeable Image File Format) is a metadata standard embedded in digital image files. When you take a photo with a camera or smartphone, the device automatically writes shooting parameters, device information, and geographic location into the image file. This metadata is valuable for photo management, post-processing, copyright tracking, and photography learning.</p>
+
+    <h3>Key EXIF Parameters Explained</h3>
+    <p><strong>Exposure Time (Shutter Speed):</strong> Values like <code>1/250s</code> represent how long the shutter stays open. Smaller values freeze motion; slower speeds allow more light but require stabilization.</p>
+    <p><strong>Aperture (F-Number):</strong> Values like <code>f/2.8</code> indicate lens opening size. Lower numbers mean larger apertures, more background blur, and more light. Higher numbers provide deeper depth of field for landscapes.</p>
+    <p><strong>ISO Sensitivity:</strong> Values like <code>ISO 800</code> indicate sensor light sensitivity. Lower ISO yields cleaner images; higher ISO works in dark conditions but adds noise.</p>
+    <p><strong>Focal Length:</strong> Values like <code>50mm</code> indicate lens angle of view. Wide angle (&lt;24mm) for landscapes, standard (50mm) close to human eye, telephoto (&gt;100mm) for close-ups and distant subjects.</p>
+
+    <section class="info-section">
+      <h2>How to Use</h2>
+      <p>This EXIF viewer runs entirely in your browser. Here is a detailed guide:</p>
+      <p><strong>Upload an Image:</strong> Two methods available. Click the dashed box to open the file picker, or drag and drop an image file directly into the box. Supports JPEG, JPG, TIFF, and WebP formats. JPEG files typically contain the richest EXIF data.</p>
+      <p><strong>View Core Information:</strong> After upload, the tool parses EXIF metadata and displays key shooting parameters in the Core EXIF Information section. This includes camera brand and model, shooting date and time, image dimensions, file size, exposure time, aperture, ISO, focal length, and more. GPS coordinates are highlighted in blue when present.</p>
+      <p><strong>View All Tags:</strong> Click Show/Hide All Tags to expand a complete EXIF tag table listing every tag and its raw value for advanced analysis.</p>
+      <p><strong>Copy and Share:</strong> Click Copy Core Info to copy all EXIF parameters as text to your clipboard. Useful for sharing camera settings on photography forums, writing technical blogs, or archiving photo records.</p>
+      <p><strong>Privacy Warning:</strong> If GPS coordinates are detected, a red privacy alert appears automatically. Consider removing sensitive metadata before sharing on social media to prevent location leaks.</p>
+    </section>
+
+    <section class="info-section">
+      <h2>Use Cases</h2>
+      <p>The EXIF viewer serves multiple practical purposes:</p>
+      <p><strong>Photography Learning and Review:</strong> Aspiring photographers can study EXIF parameters from excellent photos to learn shooting techniques. Analyzing the relationship between exposure time, aperture, and ISO helps understand parameter logic for different scenarios. For example, examining a perfect star trail photo reveals the long exposure and wide aperture used.</p>
+      <p><strong>Photo Management and Archiving:</strong> For users and photographers with large photo collections, EXIF data is crucial for organization. Shooting date, camera model, and lens info enable automatic categorization and retrieval. Many photo management apps (Adobe Lightroom, digiKam) rely on EXIF metadata for intelligent organization.</p>
+      <p><strong>Privacy Security Check:</strong> Before sharing photos on social media, marketplaces, or sending to others, use this tool to check for GPS location data. Smartphone photos often record precise coordinates by default, which can leak home addresses and frequented locations. This tool helps you quickly identify and remove sensitive metadata.</p>
+    </section>
+
+    <section class="info-section">
+      <h2>Extended Knowledge</h2>
+      <p><strong>History of the EXIF Standard:</strong> The EXIF standard was established by JEITA (Japan Electronics and Information Technology Industries Association) in 1995 to standardize metadata for digital camera images. After years of iteration, the widely used version 2.3 (released 2010) added support for 3D images, stereo photos, and more shooting scenarios. All major camera manufacturers (Canon, Nikon, Sony, Fujifilm) and phone makers (Apple, Samsung, Huawei, Xiaomi) follow this standard.</p>
+      <p><strong>How GPS Information is Recorded:</strong> EXIF GPS data follows the GPS IFD specification, containing latitude, longitude, altitude, accuracy, and timestamp fields. Coordinates are stored in DMS (degrees, minutes, seconds) format; this tool converts them to decimal degrees for easier reading. Note that not all cameras support GPS recording. Professional DSLRs typically require external GPS modules, while smartphones rely on built-in positioning chips.</p>
+      <p><strong>RAW Format and EXIF:</strong> RAW files contain the camera's original sensor data (Canon CR2/CR3, Nikon NEF, Sony ARW, Fujifilm RAF). RAW files also contain complete EXIF metadata, but since RAW is each manufacturer's proprietary format, browsers cannot parse them directly. Convert RAW files to DNG or JPEG using manufacturer software or Adobe Camera RAW before using this tool.</p>
+    </section>
+
+    <div class="faq-item">
+      <h3>What is EXIF metadata?</h3>
+      <p>EXIF (Exchangeable Image File Format) is a metadata standard embedded in JPEG, TIFF, and other image files. It records camera model, shooting time, exposure parameters, aperture, ISO, focal length, GPS coordinates, and more. It helps users understand shooting conditions and device information.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Is it safe to upload images to this tool?</h3>
+      <p>Absolutely safe. This tool uses pure frontend technology. All EXIF parsing happens locally in your browser. Image data is never uploaded to any server. You can use it with confidence without worrying about privacy leaks.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Why do some photos lack GPS information?</h3>
+      <p>GPS information requires the camera or phone to have location services enabled. Professional cameras typically lack built-in GPS unless an external GPS device is attached. Smartphone photos usually contain GPS, but some users disable location permissions for privacy.</p>
+    </div>
+    <div class="faq-item">
+      <h3>How do I remove EXIF data from photos?</h3>
+      <p>You can remove EXIF metadata by taking a screenshot, re-saving the image in editing software, or using dedicated EXIF removal tools. Social media platforms typically strip GPS and other sensitive EXIF data when you upload.</p>
+    </div>
+    <div class="faq-item">
+      <h3>What image formats are supported?</h3>
+      <p>This tool primarily supports JPEG/JPG (richest EXIF data), plus partial support for TIFF and WebP. PNG typically does not contain EXIF. RAW formats (CR2, NEF, ARW) need conversion to JPEG first.</p>
+    </div>
+    <div class="faq-item">
+      <h3>How do I read exposure parameters in EXIF?</h3>
+      <p>Exposure time (e.g., 1/250s) is shutter speed - smaller values freeze motion. Aperture (e.g., f/2.8) controls lens opening - smaller numbers mean more light and blurrier backgrounds. ISO (e.g., ISO 800) is sensitivity - higher values work in darker conditions but add noise.</p>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">Ad Slot - Bottom (728×90)</div>
+</div>
+
+<div class="footer container">
+  <div style="margin-bottom:12px">
+    <a href="../../index.html">Home</a>
+    <a href="../../index.html">All Tools</a>
+    <a href="mailto:REDACTED_EMAIL">Contact</a>
+    <a href="../../image-exif-viewer/">中文</a>
+  </div>
+  <p>Online Image EXIF Viewer · Pure Frontend Local Parsing · Data Never Uploaded</p>
+  <p style="margin-top:4px">Supports JPEG / TIFF / WebP · Privacy Safety Check · Camera Settings Learning</p>
+  <p style="margin-top:8px;color:#475569;font-size:.8rem">Feedback: REDACTED_EMAIL</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const dropZone=document.getElementById('dropZone');
+const fileInput=document.getElementById('fileInput');
+const previewSection=document.getElementById('previewSection');
+const previewImg=document.getElementById('previewImg');
+const imageInfo=document.getElementById('imageInfo');
+const exifSection=document.getElementById('exifSection');
+const exifGrid=document.getElementById('exifGrid');
+const rawSection=document.getElementById('rawSection');
+const rawTableBody=document.getElementById('rawTableBody');
+const privacyAlert=document.getElementById('privacyAlert');
+const toast=document.getElementById('toast');
+let currentExif={},currentFileName='';
+
+function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2000);}
+
+dropZone.addEventListener('click',()=>fileInput.click());
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover');});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('dragover');if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0]);});
+fileInput.addEventListener('change',e=>{if(e.target.files.length)handleFile(e.target.files[0]);});
+
+function handleFile(file){
+  if(!file.type.match(/image\/(jpeg|jpg|tiff|webp)/)&&!file.name.match(/\.(jpg|jpeg|tif|tiff|webp)$/i)){showToast('Only JPEG/JPG/TIFF/WebP supported');return;}
+  currentFileName=file.name;
+  const reader=new FileReader();
+  reader.onload=e=>{const buf=e.target.result;parseImage(buf,file);};
+  reader.readAsArrayBuffer(file);
+}
+
+function parseImage(buffer,file){
+  const data=new Uint8Array(buffer);
+  const blob=new Blob([buffer],{type:file.type});
+  previewImg.src=URL.createObjectURL(blob);
+  previewSection.classList.add('active');
+  imageInfo.innerHTML=`<span>Name: ${file.name}</span><span>Size: ${formatBytes(file.size)}</span><span>Type: ${file.type||'unknown'}</span>`;
+  const exif=parseExif(data);
+  currentExif=exif;
+  renderExif(exif);
+}
+
+function formatBytes(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB';}
+
+function parseExif(data){
+  const result={};
+  if(data[0]!==0xFF||data[1]!==0xD8)return result;
+  let offset=2;
+  while(offset<data.length-1){
+    if(data[offset]!==0xFF)break;
+    const marker=data[offset+1];
+    if(marker===0xD9)break;
+    if(marker===0xD8)break;
+    if(marker===0x00){offset++;continue;}
+    if(marker>=0xD0&&marker<=0xD9){offset+=2;continue;}
+    if(marker===0x01){offset+=2;continue;}
+    if((marker>=0xD0&&marker<=0xFE)||marker===0xE0||marker===0xE1||marker===0xED||marker===0xEE){
+      const len=(data[offset+2]<<8)|data[offset+3];
+      if(marker===0xE1){
+        const seg=data.subarray(offset+2,offset+2+len);
+        if(seg[2]===0x45&&seg[3]===0x78&&seg[4]===0x69&&seg[5]===0x66){
+          parseTiff(seg,6,result);
+        }
+      }
+      offset+=2+len;
+    }else{offset+=2;}
+  }
+  return result;
+}
+
+function parseTiff(seg,startOffset,result){
+  const data=seg.subarray(startOffset);
+  if(data.length<8)return;
+  const le=data[0]===0x49&&data[1]===0x49;
+  const num=(data[4]<<8)|data[5];
+  if(num!==0x002A&&num!==0x2A00)return;
+  let ifdOffset=le?(data[8]|data[9]<<8|data[10]<<16|data[11]<<24):(data[8]<<24|data[9]<<16|data[10]<<8|data[11]);
+  readIFD(data,ifdOffset,le,result,'');
+}
+
+function readIFD(data,offset,le,result,path){
+  if(offset+2>data.length)return;
+  const numEntries=read16(data,offset,le);
+  let o=offset+2;
+  for(let i=0;i<numEntries&&o+12<=data.length;i++){
+    const tag=read16(data,o,le);
+    const type=read16(data,o+2,le);
+    const count=read32(data,o+4,le);
+    let value=readValue(data,o+8,type,count,le,path);
+    const tagName=getTagName(tag,path);
+    if(tagName)result[tagName]=value;
+    o+=12;
+  }
+  if(o+4<=data.length){
+    const nextIFD=read32(data,o,le);
+    if(nextIFD&&nextIFD<data.length&&path==='')readIFD(data,nextIFD,le,result,'thumb');
+  }
+}
+
+function read16(data,offset,le){return le?(data[offset]|data[offset+1]<<8):(data[offset]<<8|data[offset+1]);}
+function read32(data,offset,le){return le?(data[offset]|data[offset+1]<<8|data[offset+2]<<16|data[offset+3]<<24):(data[offset]<<24|data[offset+1]<<16|data[offset+2]<<8|data[offset+3]);}
+
+function readValue(data,offset,type,count,le,path){
+  const sizes=[0,1,1,2,4,8,1,1,2,4,8,4,8];
+  const totalBytes=(sizes[type]||1)*count;
+  let valOffset=offset;
+  if(totalBytes>4)valOffset=read32(data,offset,le);
+  if(valOffset>=data.length)return'';
+  switch(type){
+    case 1:case 7:
+      if(count>16)return `[${count} bytes]`;
+      return Array.from(data.subarray(valOffset,valOffset+count)).map(b=>b.toString(16).padStart(2,'0')).join(' ');
+    case 2:
+      const s=String.fromCharCode(...data.subarray(valOffset,valOffset+count));
+      return s.replace(/\0.*/,'');
+    case 3:
+      if(count===1)return read16(data,valOffset,le);
+      const shorts=[];for(let i=0;i<count&&valOffset+i*2+2<=data.length;i++)shorts.push(read16(data,valOffset+i*2,le));
+      return shorts.join(', ');
+    case 4:
+      if(count===1)return read32(data,valOffset,le);
+      const longs=[];for(let i=0;i<count&&valOffset+i*4+4<=data.length;i++)longs.push(read32(data,valOffset+i*4,le));
+      return longs.join(', ');
+    case 5:case 10:
+      if(count===1){
+        const num=read32(data,valOffset,le);
+        const den=read32(data,valOffset+4,le);
+        if(den===0)return'0';
+        return (num/den).toFixed(3);
+      }
+      const rats=[];
+      for(let i=0;i<count&&valOffset+i*8+8<=data.length;i++){
+        const num=read32(data,valOffset+i*8,le);
+        const den=read32(data,valOffset+i*8+4,le);
+        rats.push(den?(num/den).toFixed(3):'0');
+      }
+      return rats.join(', ');
+    case 9:
+      if(count===1){const v=read32(data,valOffset,le);return v>0x7FFFFFFF?(v-0x100000000):v;}
+      return '';
+    default:return'';
+  }
+}
+
+function getTagName(tag,path){
+  const tags={256:'ImageWidth',257:'ImageLength',258:'BitsPerSample',259:'Compression',262:'PhotometricInterpretation',270:'ImageDescription',271:'Make',272:'Model',273:'StripOffsets',274:'Orientation',277:'SamplesPerPixel',278:'RowsPerStrip',279:'StripByteCounts',282:'XResolution',283:'YResolution',284:'PlanarConfiguration',296:'ResolutionUnit',305:'Software',306:'DateTime',315:'Artist',33432:'Copyright',34665:'ExifIFD',34853:'GPSInfoIFD',40962:'PixelXDimension',40963:'PixelYDimension'};
+  const exifTags={33434:'ExposureTime',33437:'FNumber',34850:'ExposureProgram',34855:'ISOSpeedRatings',34864:'SensitivityType',36864:'ExifVersion',36867:'DateTimeOriginal',36868:'DateTimeDigitized',37121:'ComponentsConfiguration',37377:'ShutterSpeedValue',37378:'ApertureValue',37380:'ExposureBiasValue',37381:'MaxApertureValue',37382:'SubjectDistance',37383:'MeteringMode',37384:'LightSource',37385:'Flash',37386:'FocalLength',37396:'SubjectArea',40960:'FlashpixVersion',40961:'ColorSpace',40962:'PixelXDimension',40963:'PixelYDimension',41986:'ExposureMode',41987:'WhiteBalance',41988:'DigitalZoomRatio',41989:'FocalLengthIn35mmFilm',41990:'SceneCaptureType',41991:'GainControl',41992:'Contrast',41993:'Saturation',41994:'Sharpness',41996:'SubjectDistanceRange'};
+  const gpsTags={0:'GPSVersionID',1:'GPSLatitudeRef',2:'GPSLatitude',3:'GPSLongitudeRef',4:'GPSLongitude',5:'GPSAltitudeRef',6:'GPSAltitude',7:'GPSTimeStamp',16:'GPSImgDirection',17:'GPSImgDirectionRef',27:'GPSProcessingMethod',29:'GPSDateStamp'};
+  if(path==='exif')return exifTags[tag]||null;
+  if(path==='gps')return gpsTags[tag]||null;
+  return tags[tag]||null;
+}
+
+function renderExif(exif){
+  exifSection.classList.add('active');
+  privacyAlert.classList.remove('active');
+  const core={};
+  const niceNames={'Make':'Camera Make','Model':'Camera Model','DateTime':'Modified Time','DateTimeOriginal':'Date Taken','DateTimeDigitized':'Digitized Time','ImageWidth':'Image Width','ImageLength':'Image Height','Orientation':'Orientation','Software':'Software','ExposureTime':'Exposure Time','FNumber':'Aperture','ISOSpeedRatings':'ISO','FocalLength':'Focal Length','Flash':'Flash','MeteringMode':'Metering Mode','WhiteBalance':'White Balance','ExposureProgram':'Exposure Program','LightSource':'Light Source','ColorSpace':'Color Space','GPSLatitude':'Latitude','GPSLongitude':'Longitude','GPSAltitude':'Altitude'};
+
+  for(const[k,v]of Object.entries(exif)){
+    const nn=niceNames[k];
+    if(nn)core[nn]=formatValue(k,v);
+  }
+
+  previewImg.onload=function(){
+    if(!core['Image Width'])core['Image Width']=previewImg.naturalWidth+' px';
+    if(!core['Image Height'])core['Image Height']=previewImg.naturalHeight+' px';
+    renderGrid(core);
+  };
+  if(previewImg.complete&&previewImg.naturalWidth){
+    if(!core['Image Width'])core['Image Width']=previewImg.naturalWidth+' px';
+    if(!core['Image Height'])core['Image Height']=previewImg.naturalHeight+' px';
+    renderGrid(core);
+  }
+
+  if(exif['GPSLatitude']||exif['GPSLongitude'])privacyAlert.classList.add('active');
+
+  rawTableBody.innerHTML='';
+  const entries=Object.entries(exif).filter(([k])=>k!=='raw'&&k!=='__parsed').sort((a,b)=>a[0].localeCompare(b[0]));
+  for(const[k,v]of entries){
+    const tr=document.createElement('tr');
+    const td1=document.createElement('td');td1.textContent=k;
+    const td2=document.createElement('td');td2.textContent=String(v).substring(0,200);
+    tr.appendChild(td1);tr.appendChild(td2);
+    rawTableBody.appendChild(tr);
+  }
+  if(entries.length===0){
+    const tr=document.createElement('tr');
+    const td=document.createElement('td');td.colSpan=2;td.textContent='No EXIF data detected (may be PNG or metadata has been stripped)';
+    td.style.textAlign='center';td.style.color='#64748b';
+    tr.appendChild(td);
+    rawTableBody.appendChild(tr);
+  }
+}
+
+function renderGrid(core){
+  exifGrid.innerHTML='';
+  const order=['Camera Make','Camera Model','Date Taken','Image Width','Image Height','Exposure Time','Aperture','ISO','Focal Length','Flash','White Balance','Metering Mode','Latitude','Longitude','Altitude'];
+  const entries=[];
+  for(const k of order)if(core[k])entries.push([k,core[k]]);
+  for(const[k,v]of Object.entries(core))if(!order.includes(k))entries.push([k,v]);
+  for(const[k,v]of entries){
+    const card=document.createElement('div');card.className='exif-card';
+    const lbl=document.createElement('div');lbl.className='label';lbl.textContent=k;
+    const val=document.createElement('div');val.className='value'+(k==='Latitude'||k==='Longitude'||k==='Altitude'?' gps':'');val.textContent=v;
+    card.appendChild(lbl);card.appendChild(val);
+    exifGrid.appendChild(card);
+  }
+  if(entries.length===0){
+    exifGrid.innerHTML='<p style="color:#64748b;text-align:center;padding:20px">No EXIF metadata detected. This may be a PNG image, or EXIF data has been stripped.</p>';
+  }
+}
+
+function formatValue(key,val){
+  if(key==='ExposureTime'){
+    const num=parseFloat(val);
+    if(!isNaN(num)&&num<1)return'1/'+Math.round(1/num)+' s';
+    return num+' s';
+  }
+  if(key==='FNumber')return'f/'+parseFloat(val).toFixed(1);
+  if(key==='ISOSpeedRatings')return'ISO '+val;
+  if(key==='FocalLength')return val+' mm';
+  if(key==='Flash'){const f=parseInt(val);const modes={0:'Off',1:'Fired',2:'Forced On',3:'Forced Off',5:'Auto Fired',6:'Auto Off',9:'Fired Redeye',13:'Auto Fired Redeye',16:'On (Constant)',24:'Auto (Auto Exposure)'};return modes[f]||'Unknown ('+val+')';}
+  if(key==='WhiteBalance'){const w=parseInt(val);const modes={0:'Auto',1:'Daylight',2:'Fluorescent',3:'Tungsten',4:'Flash',5:'Cloudy',6:'Shade',7:'Custom'};return modes[w]||'Unknown ('+val+')';}
+  if(key==='MeteringMode'){const m=parseInt(val);const modes={0:'Unknown',1:'Average',2:'Center-weighted',3:'Spot',4:'Multi-spot',5:'Pattern',6:'Partial',255:'Other'};return modes[m]||'Unknown ('+val+')';}
+  if(key==='ExposureProgram'){const p=parseInt(val);const modes={0:'Not Defined',1:'Manual',2:'Program AE',3:'Aperture Priority',4:'Shutter Priority',5:'Creative',6:'Action',7:'Portrait',8:'Landscape'};return modes[p]||'Unknown ('+val+')';}
+  if(key==='Orientation'){const o=parseInt(val);const modes={1:'Normal',2:'Horizontal Flip',3:'Rotate 180°',4:'Vertical Flip',5:'Rotate 90° + Flip',6:'Rotate 90° CW',7:'Rotate 270° + Flip',8:'Rotate 90° CCW'};return modes[o]||'Unknown ('+val+')';}
+  if(key==='GPSLatitude'||key==='GPSLongitude'){
+    const parts=String(val).split(', ').map(parseFloat);
+    if(parts.length>=3)return dmsToDecimal(parts[0],parts[1],parts[2]).toFixed(6)+'°';
+    return val;
+  }
+  if(key==='GPSAltitude')return val+' m';
+  return val;
+}
+
+function dmsToDecimal(d,m,s){return d+m/60+s/3600;}
+
+function copyExifSummary(){
+  let text='[EXIF] '+currentFileName+'\n';
+  const cards=exifGrid.querySelectorAll('.exif-card');
+  for(const card of cards){
+    const k=card.querySelector('.label').textContent;
+    const v=card.querySelector('.value').textContent;
+    text+=k+': '+v+'\n';
+  }
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(()=>showToast('Copied to clipboard'));
+  }else{
+    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('Copied to clipboard');
+  }
+}
+document.getElementById('copyExifBtn').addEventListener('click',copyExifSummary);
+
+let rawVisible=false;
+document.getElementById('toggleRawBtn').addEventListener('click',()=>{
+  rawVisible=!rawVisible;
+  if(rawVisible)rawSection.classList.add('active');else rawSection.classList.remove('active');
+});
+</script>
+</body>
+</html>
