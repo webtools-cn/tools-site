@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-9W1157EBQV');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Free online image dominant color extractor. Upload any image to analyze its colors, extract dominant and accent colors, and generate a color palette instantly. Pure client-side processing — your images never leave your browser. Supports PNG, JPG, WebP, and GIF.">
+<meta name="keywords" content="image color extractor,color palette generator,dominant color,digital color analysis,palette from image,image color picker,brand color analysis,web design color tool">
+<title>Online Image Color Extractor - Generate Palettes from Any Image</title>
+<link rel="canonical" href="https://webtools-cn.github.io/en/image-color-extractor/">
+<meta property="og:title" content="Online Image Color Extractor - Generate Palettes from Any Image">
+<meta property="og:description" content="Free online image dominant color extractor. Upload any image to analyze its colors, extract dominant and accent colors, and generate a color palette instantly. Pure client-side processing.">
+<meta property="og:url" content="https://webtools-cn.github.io/en/image-color-extractor/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Online Tools Collection">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "🎨 Online Image Color Extractor",
+  "applicationCategory": "DesignApplication",
+  "operatingSystem": "Web",
+  "description": "Free online image dominant color extractor. Upload any image to analyze its colors, extract dominant and accent colors, and generate a color palette instantly.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How does the image color extraction work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The tool reads every pixel of your image using the Canvas API, quantizes the colors into clusters, and counts the frequency of each cluster. The most frequent colors become the dominant colors, while the mathematical average of all pixels becomes the average color."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are my images uploaded to a server?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. This tool processes everything locally in your browser using JavaScript. Your images are never uploaded to any server, ensuring complete privacy and data security."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What image formats are supported?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "All common image formats that your browser can decode are supported, including PNG, JPEG/JPG, GIF, WebP, and BMP. For best performance, images under 5MB are recommended."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I export the extracted colors?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Each extracted color displays HEX, RGB, and HSL values. Click any color card to copy its values to the clipboard. You can also download a palette image containing all extracted colors."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the difference between dominant and average colors?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Dominant colors are the most frequently occurring colors in the image (found through clustering), representing the visual theme. The average color is the mathematical mean of all pixels, which may be a blend that does not appear in the original image. Both are useful for different design purposes."
+      }
+    }
+  ]
+}
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:900px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.nav-back a{color:#64748b}
+.nav-back a:hover{color:#94a3b8}
+.input-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.input-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.drop-zone{border:2px dashed rgba(148,163,184,.3);border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(15,23,42,.5)}
+.drop-zone:hover,.drop-zone.dragover{border-color:#06b6d4;background:rgba(6,182,212,.05)}
+.drop-zone .icon{font-size:2.5rem;margin-bottom:12px}
+.drop-zone p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
+.drop-zone .hint{color:#64748b;font-size:.8rem}
+#fileInput{display:none}
+.preview-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1);display:none}
+.preview-section.active{display:block}
+.preview-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.preview-wrap{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.preview-img{max-width:100%;max-height:280px;border-radius:8px;border:1px solid rgba(148,163,184,.2)}
+.preview-info{flex:1;min-width:200px}
+.preview-info p{color:#94a3b8;font-size:.85rem;margin-bottom:6px}
+.preview-info span{color:#e2e8f0}
+.result-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1);display:none}
+.result-section.active{display:block}
+.result-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.color-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.color-card{background:#0f172a;border-radius:10px;overflow:hidden;border:1px solid rgba(148,163,184,.15);cursor:pointer;transition:transform .2s,border-color .2s}
+.color-card:hover{transform:translateY(-2px);border-color:rgba(6,182,212,.4)}
+.color-swatch{height:80px;width:100%;border-bottom:1px solid rgba(148,163,184,.1)}
+.color-info{padding:10px}
+.color-info .label{font-size:.75rem;color:#64748b;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.color-info .value{font-size:.85rem;color:#e2e8f0;font-family:monospace;word-break:break-all}
+.avg-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1);display:none}
+.avg-section.active{display:block}
+.avg-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.avg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.avg-card{background:#0f172a;border-radius:10px;padding:14px;border:1px solid rgba(148,163,184,.15)}
+.avg-card .swatch{height:50px;border-radius:6px;margin-bottom:10px;border:1px solid rgba(148,163,184,.1)}
+.avg-card .title{font-size:.85rem;color:#94a3b8;margin-bottom:4px}
+.avg-card .codes{font-size:.8rem;color:#e2e8f0;font-family:monospace}
+.palette-download{margin-top:16px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
+.info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.info-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.info-section h3{font-size:.95rem;color:#e2e8f0;margin:16px 0 8px}
+.info-section p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
+.info-section code{background:rgba(6,182,212,.1);color:#22d3ee;padding:2px 6px;border-radius:3px;font-size:.85rem}
+.ad-placeholder{background:rgba(148,163,184,.05);border:1px dashed rgba(148,163,184,.2);border-radius:8px;text-align:center;padding:20px;color:#475569;font-size:.85rem;margin-bottom:16px}
+.faq-item{margin-bottom:16px}
+.faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px}
+.faq-item p{color:#94a3b8;font-size:.9rem}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#64748b;margin:0 8px}
+.footer a:hover{color:#94a3b8}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+.settings{display:flex;gap:16px;align-items:center;margin:12px 0;flex-wrap:wrap}
+.settings label{display:flex;align-items:center;gap:6px;font-size:.85rem;color:#94a3b8;cursor:pointer}
+.settings input[type=range]{width:120px}
+.settings .num{display:inline-block;min-width:24px;text-align:center;color:#22d3ee;font-family:monospace}
+@media(max-width:600px){
+  .header h1{font-size:1.2rem}
+  .color-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+  .preview-wrap{flex-direction:column}
+  .preview-img{max-height:200px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🎨 Online Image Color Extractor</h1>
+    <div class="lang-switch">
+      <a href="../image-color-extractor/">中文</a>
+      <a href="index.html" class="active">EN</a>
+    </div>
+  </div>
+  <p class="nav-back"><a href="../index.html">← All Tools</a></p>
+
+  <div class="ad-placeholder">Ad Placeholder - Top (728×90)</div>
+
+  <div class="input-section">
+    <h2>Upload Image</h2>
+    <div class="drop-zone" id="dropZone">
+      <div class="icon">📁</div>
+      <p>Click or drag an image here</p>
+      <p class="hint">Supports PNG, JPG, WebP, GIF formats · Images never leave your browser</p>
+    </div>
+    <input type="file" id="fileInput" accept="image/*">
+    <div class="settings">
+      <label>Color Count: <input type="range" id="colorCount" min="3" max="12" value="6"><span class="num" id="colorCountVal">6</span></label>
+      <label>Sampling Step: <input type="range" id="sampleStep" min="1" max="10" value="3"><span class="num" id="sampleStepVal">3</span></label>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-danger" id="clearBtn" style="display:none">🗑 Clear</button>
+    </div>
+  </div>
+
+  <div class="preview-section" id="previewSection">
+    <h2>Image Preview</h2>
+    <div class="preview-wrap">
+      <img class="preview-img" id="previewImg" alt="Preview">
+      <div class="preview-info" id="previewInfo"></div>
+    </div>
+  </div>
+
+  <div class="result-section" id="resultSection">
+    <h2>Dominant Color Palette</h2>
+    <p style="color:#94a3b8;font-size:.85rem;margin-bottom:12px">Click a color card to copy its value</p>
+    <div class="color-grid" id="colorGrid"></div>
+  </div>
+
+  <div class="avg-section" id="avgSection">
+    <h2>Average Color &amp; Statistics</h2>
+    <div class="avg-grid" id="avgGrid"></div>
+    <div class="palette-download btn-row">
+      <button class="btn btn-primary" id="downloadBtn">💾 Download Palette Image</button>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">Ad Placeholder - Middle (728×90)</div>
+
+  <div class="info-section">
+    <h2>Understanding Image Color Extraction</h2>
+    <h3>What is Dominant Color Extraction?</h3>
+    <p>Dominant color extraction is a technique that analyzes the pixel color distribution of an image to automatically identify its most representative colors. It is widely used in design配色, brand analysis, image categorization, and search engine optimization. This tool uses the Canvas API to process images locally in your browser, applying color clustering algorithms to extract the most frequent colors and generate a comprehensive palette for designers and developers.</p>
+
+    <h3>How the Clustering Algorithm Works</h3>
+    <p>This tool employs a quantization-based color clustering method: it samples image pixels at a configurable step interval, quantizes each pixel's RGB values (reducing precision), counts the frequency of each quantized color, and returns the most frequent ones as dominant colors. This approach is fast and effective, making it ideal for real-time client-side processing.</p>
+
+    <section class="info-section">
+      <h2>How to Use This Tool</h2>
+      <p>This image color extraction tool is simple and intuitive. Here is a step-by-step guide:</p>
+      <p><strong>Upload an image:</strong> Click the upload area or drag and drop an image directly onto the page. The tool will automatically read the image. Supported formats include PNG, JPG, WebP, and GIF. For best performance, images under 5MB are recommended. All processing happens locally in your browser — your images are never uploaded to any server.</p>
+      <p><strong>Adjust parameters:</strong> After uploading, you can adjust the "Color Count" (3–12) and "Sampling Step" (1–10, higher values mean sparser sampling but faster processing). The default settings work well for most scenarios. Increase the color count for more detailed results or decrease the sampling step for higher precision.</p>
+      <p><strong>View results:</strong> The tool automatically generates a dominant color palette. Each color card shows a preview swatch, HEX value, RGB value, and HSL value. Click any color card to copy its values to your clipboard for use in design software or code.</p>
+      <p><strong>Download palette:</strong> Click the "Download Palette Image" button to generate an image containing all extracted colors. Save it locally for design documents, presentations, or sharing with your team.</p>
+    </section>
+
+    <section class="info-section">
+      <h2>Practical Applications</h2>
+      <p>Image color extraction has a wide range of applications in design and development:</p>
+      <p><strong>Web Design Color Schemes:</strong> Front-end developers can quickly extract dominant and accent colors from brand images or reference photos to create color schemes that match the image's style. The extracted HEX values can be used directly in CSS to ensure visual consistency.</p>
+      <p><strong>Brand Color Analysis:</strong> Designers working with brand assets need to accurately extract the primary colors from logos or promotional images. This tool identifies the dominant colors precisely, helping establish brand color guidelines and ensuring consistency across all online and offline materials.</p>
+      <p><strong>Image Search Optimization:</strong> When building image search or categorization features, dominant color is an important feature dimension. By extracting color features from images, you can implement color-based image retrieval and similar-image recommendation systems to enhance user experience.</p>
+    </section>
+
+    <section class="info-section">
+      <h2>Additional Knowledge</h2>
+      <p><strong>Color Space Basics:</strong> This tool provides colors in HEX, RGB, and HSL formats. HEX is the most common format in web design (e.g., #FF5733). RGB (Red-Green-Blue) is the color model used directly by display hardware. HSL (Hue-Saturation-Lightness) is more intuitive for humans, making it easier to adjust tone and brightness.</p>
+      <p><strong>Sampling Step Explained:</strong> The sampling step controls pixel sampling density. A step of 1 analyzes every pixel for maximum accuracy but may be slow on large images. A step of 10 samples every 10th pixel, which is much faster but may miss small color details. As a rule of thumb: use 1–2 for small images (under 500px), 3–5 for medium images (500–2000px), and 5–10 for large images (over 2000px).</p>
+      <p><strong>Related Tools:</strong> For more precise color picking, try our <a href="../color-picker/">🎨 Color Picker</a>. To create gradient color schemes, use the <a href="../gradient-generator/">🌈 Gradient Generator</a>. For complete palette generation, check out the <a href="../color-palette-generator/">🎨 Color Palette Generator</a>.</p>
+    </section>
+
+    <div class="faq-item">
+      <h3>How does the image color extraction work?</h3>
+      <p>The tool reads every pixel of your image using the Canvas API, quantizes the colors into clusters, and counts the frequency of each cluster. The most frequent colors become the dominant colors, while the mathematical average of all pixels becomes the average color.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Are my images uploaded to a server?</h3>
+      <p>No. This tool processes everything locally in your browser using JavaScript. Your images are never uploaded to any server, ensuring complete privacy and data security.</p>
+    </div>
+    <div class="faq-item">
+      <h3>What image formats are supported?</h3>
+      <p>All common image formats that your browser can decode are supported, including PNG, JPEG/JPG, GIF, WebP, and BMP. For best performance, images under 5MB are recommended.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Can I export the extracted colors?</h3>
+      <p>Yes. Each extracted color displays HEX, RGB, and HSL values. Click any color card to copy its values to the clipboard. You can also download a palette image containing all extracted colors.</p>
+    </div>
+    <div class="faq-item">
+      <h3>What is the difference between dominant and average colors?</h3>
+      <p>Dominant colors are the most frequently occurring colors in the image (found through clustering), representing the visual theme. The average color is the mathematical mean of all pixels, which may be a blend that does not appear in the original image. Both are useful for different design purposes.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Why do the extracted colors look slightly different from the image?</h3>
+      <p>The clustering algorithm merges similar nearby colors to reduce duplicates. If you feel the colors are not precise enough, try increasing the "Color Count" or decreasing the "Sampling Step" for finer results.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Can this tool handle PNG images with transparent backgrounds?</h3>
+      <p>Yes. The tool automatically ignores fully transparent pixels (alpha value of 0) and only analyzes colored pixel areas, ensuring the extracted colors are not affected by transparent backgrounds.</p>
+    </div>
+    <div class="faq-item">
+      <h3>Does a higher sampling step always produce better results?</h3>
+      <p>Not necessarily. A step of 1 analyzes every pixel for maximum accuracy but can be slow on large images. A higher step processes faster but may miss fine details. Adjust based on your image size and the level of detail you need.</p>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">Ad Placeholder - Bottom (728×90)</div>
+</div>
+
+<div class="footer container">
+  <div style="margin-bottom:12px">
+    <a href="../index.html">Home</a>
+    <a href="../index.html">All Tools</a>
+    <a href="mailto:REDACTED_EMAIL">Contact</a>
+    <a href="../image-color-extractor/">中文</a>
+  </div>
+  <p>Online Image Color Extractor · Pure client-side processing · Images never leave your browser</p>
+  <p style="margin-top:4px">Extract dominant colors · Generate palettes · Support HEX/RGB/HSL formats</p>
+  <p style="margin-top:8px;color:#475569;font-size:.8rem">Feedback: REDACTED_EMAIL</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<canvas id="hiddenCanvas" style="display:none"></canvas>
+<canvas id="paletteCanvas" style="display:none"></canvas>
+
+<script>
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const previewSection = document.getElementById('previewSection');
+const previewImg = document.getElementById('previewImg');
+const previewInfo = document.getElementById('previewInfo');
+const resultSection = document.getElementById('resultSection');
+const colorGrid = document.getElementById('colorGrid');
+const avgSection = document.getElementById('avgSection');
+const avgGrid = document.getElementById('avgGrid');
+const clearBtn = document.getElementById('clearBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const colorCount = document.getElementById('colorCount');
+const colorCountVal = document.getElementById('colorCountVal');
+const sampleStep = document.getElementById('sampleStep');
+const sampleStepVal = document.getElementById('sampleStepVal');
+const toast = document.getElementById('toast');
+const hiddenCanvas = document.getElementById('hiddenCanvas');
+const paletteCanvas = document.getElementById('paletteCanvas');
+
+let currentFile = null;
+let extractedColors = [];
+let avgColor = null;
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+colorCount.addEventListener('input', () => {
+  colorCountVal.textContent = colorCount.value;
+  if (currentFile) processImage();
+});
+sampleStep.addEventListener('input', () => {
+  sampleStepVal.textContent = sampleStep.value;
+  if (currentFile) processImage();
+});
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const files = e.dataTransfer.files;
+  if (files.length > 0) handleFile(files[0]);
+});
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files.length > 0) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  if (!file.type.startsWith('image/')) { showToast('Please upload an image file'); return; }
+  currentFile = file;
+  clearBtn.style.display = 'inline-block';
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    previewImg.src = e.target.result;
+    previewImg.onload = () => {
+      previewSection.classList.add('active');
+      previewInfo.innerHTML = `
+        <p>File: <span>${escapeHtml(file.name)}</span></p>
+        <p>Dimensions: <span>${previewImg.naturalWidth} × ${previewImg.naturalHeight}</span></p>
+        <p>Size: <span>${(file.size / 1024).toFixed(1)} KB</span></p>
+        <p>Format: <span>${file.type.replace('image/', '').toUpperCase()}</span></p>
+      `;
+      processImage();
+    };
+  };
+  reader.readAsDataURL(file);
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function processImage() {
+  const ctx = hiddenCanvas.getContext('2d');
+  const w = previewImg.naturalWidth;
+  const h = previewImg.naturalHeight;
+  hiddenCanvas.width = w;
+  hiddenCanvas.height = h;
+  ctx.drawImage(previewImg, 0, 0);
+  const step = parseInt(sampleStep.value, 10);
+  const data = ctx.getImageData(0, 0, w, h).data;
+  const freq = {};
+  let rSum = 0, gSum = 0, bSum = 0, total = 0;
+
+  for (let y = 0; y < h; y += step) {
+    for (let x = 0; x < w; x += step) {
+      const i = (y * w + x) * 4;
+      const a = data[i + 3];
+      if (a < 128) continue;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      rSum += r; gSum += g; bSum += b; total++;
+      const key = `${Math.round(r / 8) * 8},${Math.round(g / 8) * 8},${Math.round(b / 8) * 8}`;
+      freq[key] = (freq[key] || 0) + 1;
+    }
+  }
+
+  const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+  const maxColors = parseInt(colorCount.value, 10);
+  extractedColors = [];
+  for (let i = 0; i < Math.min(maxColors, sorted.length); i++) {
+    const [rgb] = sorted[i];
+    const [r, g, b] = rgb.split(',').map(Number);
+    extractedColors.push({ r, g, b });
+  }
+
+  if (total > 0) {
+    avgColor = {
+      r: Math.round(rSum / total),
+      g: Math.round(gSum / total),
+      b: Math.round(bSum / total)
+    };
+  }
+
+  renderColors();
+  renderAvg();
+  resultSection.classList.add('active');
+  avgSection.classList.add('active');
+}
+
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+  if (max === min) { h = s = 0; } else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  return `hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
+}
+
+function getContrastColor(r, g, b) {
+  const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+  return yiq >= 128 ? '#0f172a' : '#f1f5f9';
+}
+
+function renderColors() {
+  colorGrid.innerHTML = '';
+  extractedColors.forEach((c, idx) => {
+    const hex = rgbToHex(c.r, c.g, c.b);
+    const rgb = `rgb(${c.r}, ${c.g}, ${c.b})`;
+    const hsl = rgbToHsl(c.r, c.g, c.b);
+    const card = document.createElement('div');
+    card.className = 'color-card';
+    card.innerHTML = `
+      <div class="color-swatch" style="background:${hex}"></div>
+      <div class="color-info">
+        <div class="label">HEX</div>
+        <div class="value">${hex}</div>
+      </div>
+    `;
+    card.addEventListener('click', () => {
+      const text = `${hex} | ${rgb} | ${hsl}`;
+      navigator.clipboard.writeText(text).then(() => showToast(`Copied: ${hex}`)).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast(`Copied: ${hex}`);
+      });
+    });
+    colorGrid.appendChild(card);
+  });
+}
+
+function renderAvg() {
+  avgGrid.innerHTML = '';
+  if (!avgColor) return;
+  const hex = rgbToHex(avgColor.r, avgColor.g, avgColor.b);
+  const rgb = `rgb(${avgColor.r}, ${avgColor.g}, ${avgColor.b})`;
+  const hsl = rgbToHsl(avgColor.r, avgColor.g, avgColor.b);
+
+  const avgCard = document.createElement('div');
+  avgCard.className = 'avg-card';
+  avgCard.innerHTML = `
+    <div class="swatch" style="background:${hex}"></div>
+    <div class="title">Average Color</div>
+    <div class="codes">${hex}<br>${rgb}<br>${hsl}</div>
+  `;
+  avgGrid.appendChild(avgCard);
+}
+
+clearBtn.addEventListener('click', () => {
+  currentFile = null;
+  extractedColors = [];
+  avgColor = null;
+  previewImg.src = '';
+  previewSection.classList.remove('active');
+  resultSection.classList.remove('active');
+  avgSection.classList.remove('active');
+  colorGrid.innerHTML = '';
+  avgGrid.innerHTML = '';
+  clearBtn.style.display = 'none';
+  fileInput.value = '';
+  showToast('Cleared');
+});
+
+downloadBtn.addEventListener('click', () => {
+  if (extractedColors.length === 0) { showToast('Please upload an image first'); return; }
+  const pc = paletteCanvas;
+  const ctx = pc.getContext('2d');
+  const sw = 80, sh = 60, pad = 10, cols = Math.min(extractedColors.length, 6);
+  const rows = Math.ceil(extractedColors.length / cols);
+  pc.width = cols * (sw + pad) + pad;
+  pc.height = rows * (sh + pad) + pad + 30;
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, pc.width, pc.height);
+  ctx.fillStyle = '#e2e8f0';
+  ctx.font = 'bold 14px sans-serif';
+  ctx.fillText('Color Palette', pad, 20);
+  extractedColors.forEach((c, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = pad + col * (sw + pad);
+    const y = 30 + pad + row * (sh + pad);
+    ctx.fillStyle = rgbToHex(c.r, c.g, c.b);
+    ctx.fillRect(x, y, sw, sh);
+    ctx.fillStyle = getContrastColor(c.r, c.g, c.b);
+    ctx.font = '10px monospace';
+    ctx.fillText(rgbToHex(c.r, c.g, c.b), x + 4, y + sh - 6);
+  });
+  const link = document.createElement('a');
+  link.download = 'palette.png';
+  link.href = pc.toDataURL('image/png');
+  link.click();
+  showToast('Palette downloaded');
+});
+</script>
+</body>
+</html>
