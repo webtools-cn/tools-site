@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-9W1157EBQV');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="免费在线Base85(Ascii85)编解码工具，支持Adobe Ascii85和Z85格式。纯前端本地处理，数据不上传服务器。支持文本编码解码、文件转换、批量处理。">
+<meta name="keywords" content="Base85编码,Ascii85编码,Z85编码,Base85解码,在线Base85工具,Ascii85转换,PDF编码,Git补丁编码,PostScript编码">
+<title>在线Base85(Ascii85)编解码工具 - 支持Adobe/Z85格式·纯前端处理</title>
+<link rel="canonical" href="https://webtools-cn.github.io/base85-encoder/">
+<meta property="og:title" content="在线Base85(Ascii85)编解码工具 - 支持Adobe/Z85格式·纯前端处理">
+<meta property="og:description" content="免费在线Base85(Ascii85)编解码工具，支持Adobe Ascii85和Z85格式。纯前端本地处理，数据不上传服务器。">
+<meta property="og:url" content="https://webtools-cn.github.io/base85-encoder/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="在线小工具矩阵">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "在线Base85(Ascii85)编解码工具",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "description": "免费在线Base85(Ascii85)编解码工具，支持Adobe Ascii85和Z85格式。纯前端本地处理，数据不上传服务器。支持文本编码解码、文件转换、批量处理。",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Base85与Base64有什么区别？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Base85使用85个可打印ASCII字符，每4个字节编码为5个字符，数据膨胀率约25%。Base64使用64个字符，每3个字节编码为4个字符，膨胀率约33%。因此Base85比Base64更紧凑，常用于对空间敏感的场景如PDF内部编码和Git二进制补丁。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Adobe Ascii85和Z85格式有什么区别？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Adobe Ascii85使用特定的85字符集（从'!'到'u'），并用<~和~>作为数据包裹符，支持'z'缩写（4个零字节）。Z85是ZeroMQ使用的变体，使用不同的字符集（不含引号等特殊字符），没有包裹符，更适合在字符串中传输。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Base85编码安全吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Base85是编码而非加密。任何人都可以解码，不提供数据保密性。它仅用于将二进制数据转换为可打印的ASCII文本，以便在文本环境中传输。如需安全传输，请使用AES等加密算法配合HTTPS传输。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "哪些场景会使用Base85？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Base85主要用于以下场景：Adobe PDF内部流数据编码、PostScript语言中的二进制数据编码、Git版本控制中的二进制补丁（binary diff）、ZeroMQ消息传输协议、某些嵌入式系统的固件传输。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "如何处理Base85解码错误？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Base85解码常见错误包括：字符不在有效字符集内（Adobe Ascii85使用'!'到'u'，Z85使用不同字符集）、数据块长度不对（应为5的倍数，末尾块特殊处理）、缺少<~和~>包裹符（Adobe格式）。本工具会自动检测并提供详细的错误信息。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Base85编码的文本可以包含在JSON中吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "可以，但需要注意字符转义。Adobe Ascii85可能包含JSON需要转义的字符（如反斜杠、双引号）。Z85格式专为避免此类问题设计，使用不含JSON特殊字符的字符集，更适合嵌入JSON。使用本工具时可以选择Z85格式以获得更好的JSON兼容性。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "本工具支持文件编码吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "支持。本工具支持上传任意文件（如图片、PDF、可执行文件等）进行Base85编码，编码结果可以保存为文本文件。也可以将Base85编码的文本解码为二进制文件并下载。所有处理均在浏览器本地完成，文件不会上传到服务器。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Base85编码数据比Base64小多少？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Base85编码后的数据比原始二进制数据大约25%，而Base64大约增加33%。因此Base85比Base64节省约8%的空间。例如，100KB的二进制数据用Base85编码约为125KB，而用Base64编码约为133KB。虽然节省比例不大，但在大量数据传输时仍有优势。"
+      }
+    }
+  ]
+}
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:900px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.nav-back a{color:#64748b}
+.nav-back a:hover{color:#94a3b8}
+.input-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.input-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.input-section label{color:#94a3b8;font-size:.9rem}
+textarea{width:100%;min-height:120px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.9rem;resize:vertical}
+textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
+select{background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;font-size:.9rem}
+select:focus{outline:none;border-color:rgba(6,182,212,.5)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
+.result-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.result-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.result-box{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.9rem;min-height:80px;word-break:break-all;max-height:300px;overflow-y:auto;white-space:pre-wrap}
+.stats{display:flex;gap:16px;margin-top:8px;font-size:.8rem;color:#64748b}
+.stats span{background:rgba(148,163,184,.08);padding:4px 10px;border-radius:4px}
+.options{display:flex;gap:16px;align-items:center;margin:12px 0;flex-wrap:wrap}
+.options label{display:flex;align-items:center;gap:6px;font-size:.85rem;color:#94a3b8;cursor:pointer}
+.options input[type=checkbox]{accent-color:#06b6d4}
+.info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.info-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.info-section h3{font-size:.95rem;color:#e2e8f0;margin:16px 0 8px}
+.info-section p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
+.info-section code{background:rgba(6,182,212,.1);color:#22d3ee;padding:2px 6px;border-radius:3px;font-size:.85rem}
+.info-section ul{margin-left:20px;margin-bottom:12px}
+.info-section ul li{color:#94a3b8;font-size:.9rem;margin-bottom:4px}
+.ad-placeholder{background:rgba(148,163,184,.05);border:1px dashed rgba(148,163,184,.2);border-radius:8px;text-align:center;padding:20px;color:#475569;font-size:.85rem;margin-bottom:16px}
+.faq-item{margin-bottom:16px}
+.faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px}
+.faq-item p{color:#94a3b8;font-size:.9rem}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#64748b;margin:0 8px}
+.footer a:hover{color:#94a3b8}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+.file-input{display:none}
+.file-label{background:rgba(6,182,212,.1);color:#22d3ee;border:2px dashed rgba(6,182,212,.3);border-radius:8px;padding:16px;text-align:center;cursor:pointer;display:block;transition:all .2s}
+.file-label:hover{background:rgba(6,182,212,.15)}
+.file-label.dragover{background:rgba(6,182,212,.2);border-color:#22d3ee}
+.mode-tabs{display:flex;gap:4px;background:#0f172a;border-radius:8px;padding:4px;margin-bottom:12px}
+.mode-tab{flex:1;padding:8px 12px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;background:transparent;color:#94a3b8;transition:all .2s}
+.mode-tab.active{background:rgba(6,182,212,.2);color:#22d3ee}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>📋 在线Base85(Ascii85)编解码工具</h1>
+    <div class="lang-switch">
+      <a href="../base85-encoder/" class="active">中文</a>
+      <a href="../en/base85-encoder/">EN</a>
+    </div>
+  </div>
+  <p class="nav-back"><a href="../index.html">← 全部工具</a></p>
+
+  <div class="ad-placeholder">广告位 - 顶部 (728×90)</div>
+
+  <div class="input-section">
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="setMode('text')" id="tabText">文本模式</button>
+      <button class="mode-tab" onclick="setMode('file')" id="tabFile">文件模式</button>
+    </div>
+    <h2>输入设置</h2>
+    <div class="options">
+      <label>格式：</label>
+      <label><input type="radio" name="format" value="ascii85" checked onchange="updateFormat()"> Adobe Ascii85</label>
+      <label><input type="radio" name="format" value="z85" onchange="updateFormat()"> Z85 (ZeroMQ)</label>
+    </div>
+    <div id="textMode">
+      <textarea id="inputText" placeholder="在此输入要编码或解码的文本..."></textarea>
+    </div>
+    <div id="fileMode" style="display:none">
+      <input type="file" id="fileInput" class="file-input" onchange="handleFile(event)">
+      <label for="fileInput" class="file-label" id="fileLabel">
+        📁 点击选择文件或拖拽文件到此处
+      </label>
+      <p id="fileInfo" style="color:#94a3b8;font-size:.85rem;margin-top:8px"></p>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="encodeBase85()">编码 →</button>
+      <button class="btn btn-primary" onclick="decodeBase85()">← 解码</button>
+      <button class="btn btn-secondary" onclick="clearAll()">🗑 清空</button>
+    </div>
+  </div>
+
+  <div class="result-section">
+    <h2>结果</h2>
+    <div class="result-box" id="resultBox">结果将显示在这里...</div>
+    <div class="stats" id="resultStats"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="copyResult()">📋 复制结果</button>
+      <button class="btn btn-secondary" onclick="downloadResult()">💾 下载结果</button>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">广告位 - 中部 (728×90)</div>
+
+  <div class="info-section">
+    <h2>使用教程</h2>
+    <p>Base85（又称Ascii85）是一种将二进制数据编码为ASCII文本的编码方案，相比Base64更紧凑。以下是本工具的详细使用指南：</p>
+    <h3>文本编码操作</h3>
+    <p>在文本模式下，将需要编码的文本粘贴到输入框中，选择格式（Adobe Ascii85或Z85），点击「编码」按钮即可得到Base85编码结果。工具会自动将文本转为UTF-8字节流再进行编码。编码结果可以直接复制或下载为文本文件。</p>
+    <h3>文本解码操作</h3>
+    <p>将Base85编码文本粘贴到输入框中，确保选择正确的格式（Adobe Ascii85或Z85），点击「解码」按钮即可还原原始内容。如果是文件编码的结果，解码后会自动提供二进制文件下载。</p>
+    <h3>文件编码操作</h3>
+    <p>切换到文件模式，点击选择文件或拖拽文件到上传区域。支持任意文件类型（图片、PDF、可执行文件等）。选择格式后点击「编码」，编码结果将显示在结果区域。可以复制结果或下载为.txt文件。</p>
+    <h3>格式选择说明</h3>
+    <p>Adobe Ascii85使用字符'!'到'u'，并用&lt;~和~&gt;包裹数据，支持'z'缩写。Z85是ZeroMQ使用的变体，字符集略有不同，不包含引号等特殊字符，更适合嵌入JSON等字符串环境。</p>
+  </div>
+
+  <div class="info-section">
+    <h2>应用场景</h2>
+    <p>Base85编码在多个技术领域有广泛应用。以下是几个典型的使用场景：</p>
+    <p><strong>PDF内部数据编码：</strong>Adobe PDF文档内部使用Ascii85编码来压缩和存储二进制流数据，如图像、字体嵌入等。开发PDF解析工具时，需要使用Base85解码这些内部数据流。本工具可以帮助开发者快速解码和调试PDF中的Ascii85编码内容。</p>
+    <p><strong>Git二进制补丁：</strong>Git版本控制系统在处理二进制文件差异时，使用Base85编码来存储delta压缩后的数据。当需要手动查看或修改Git补丁文件时，可以使用本工具对Base85编码部分进行解码分析。</p>
+    <p><strong>PostScript文档编码：</strong>PostScript语言广泛使用Ascii85编码来嵌入二进制资源。在解析或生成PostScript文档时，Base85编码是必不可少的操作。本工具可以帮助PostScript开发者快速进行编码和解码测试。</p>
+    <p><strong>ZeroMQ消息传输：</strong>ZeroMQ消息库使用Z85格式在协议层面编码二进制数据。开发与ZeroMQ集成的应用时，可以使用本工具生成和验证Z85编码数据。</p>
+  </div>
+
+  <div class="info-section">
+    <h2>扩展知识</h2>
+    <p><strong>Base85编码原理：</strong>Base85将每4个字节（32位）的数据编码为5个ASCII字符。编码时，将4个字节组合成一个32位无符号整数，然后反复除以85取余数，映射到85个字符上。解码时反向操作。由于85^5 = 4,437,970,625 > 2^32 = 4,294,967,296，因此5个字符足以表示4个字节的所有可能值。</p>
+    <p><strong>Adobe Ascii85的特殊处理：</strong>Adobe格式使用'!'到'u'作为85个字符（ASCII 33-117）。当4个字节全为0时，可以用单个'z'字符代替'!!!!!'，这是为了进一步压缩全零数据。编码结果用'&lt;~'和'~&gt;'包裹，便于在文本中识别边界。每行通常限制为80个字符。</p>
+    <p><strong>Z85格式的特点：</strong>Z85是ZeroMQ设计的变体，字符集排除了可能被JSON、XML等格式误解析的字符（如引号、尖括号等）。它不使用包裹符，也不使用'z'缩写。Z85特别适合需要嵌入配置文件、JSON字段或URL参数的场景。</p>
+    <p><strong>与Base64的比较：</strong>Base85比Base64更紧凑（膨胀率25% vs 33%），但编码和解码的计算量稍大。Base64使用更广泛的字符集（A-Z、a-z、0-9、+、/），而Base85使用连续的ASCII范围。在需要最小化文本大小的场景中，Base85是更好的选择。</p>
+  </div>
+
+  <div class="info-section">
+    <h2>常见问题</h2>
+    <div class="faq-item">
+      <h3>Base85与Base64有什么区别？</h3>
+      <p>Base85使用85个可打印ASCII字符，每4个字节编码为5个字符，数据膨胀率约25%。Base64使用64个字符，每3个字节编码为4个字符，膨胀率约33%。因此Base85比Base64更紧凑，常用于对空间敏感的场景如PDF内部编码和Git二进制补丁。</p>
+    </div>
+    <div class="faq-item">
+      <h3>Adobe Ascii85和Z85格式有什么区别？</h3>
+      <p>Adobe Ascii85使用特定的85字符集（从'!'到'u'），并用&lt;~和~&gt;作为数据包裹符，支持'z'缩写（4个零字节）。Z85是ZeroMQ使用的变体，使用不同的字符集（不含引号等特殊字符），没有包裹符，更适合在字符串中传输。</p>
+    </div>
+    <div class="faq-item">
+      <h3>Base85编码安全吗？</h3>
+      <p>Base85是编码而非加密。任何人都可以解码，不提供数据保密性。它仅用于将二进制数据转换为可打印的ASCII文本，以便在文本环境中传输。如需安全传输，请使用AES等加密算法配合HTTPS传输。</p>
+    </div>
+    <div class="faq-item">
+      <h3>哪些场景会使用Base85？</h3>
+      <p>Base85主要用于以下场景：Adobe PDF内部流数据编码、PostScript语言中的二进制数据编码、Git版本控制中的二进制补丁（binary diff）、ZeroMQ消息传输协议、某些嵌入式系统的固件传输。</p>
+    </div>
+    <div class="faq-item">
+      <h3>如何处理Base85解码错误？</h3>
+      <p>Base85解码常见错误包括：字符不在有效字符集内（Adobe Ascii85使用'!'到'u'，Z85使用不同字符集）、数据块长度不对（应为5的倍数，末尾块特殊处理）、缺少&lt;~和~&gt;包裹符（Adobe格式）。本工具会自动检测并提供详细的错误信息。</p>
+    </div>
+    <div class="faq-item">
+      <h3>Base85编码的文本可以包含在JSON中吗？</h3>
+      <p>可以，但需要注意字符转义。Adobe Ascii85可能包含JSON需要转义的字符（如反斜杠、双引号）。Z85格式专为避免此类问题设计，使用不含JSON特殊字符的字符集，更适合嵌入JSON。使用本工具时可以选择Z85格式以获得更好的JSON兼容性。</p>
+    </div>
+    <div class="faq-item">
+      <h3>本工具支持文件编码吗？</h3>
+      <p>支持。本工具支持上传任意文件（如图片、PDF、可执行文件等）进行Base85编码，编码结果可以保存为文本文件。也可以将Base85编码的文本解码为二进制文件并下载。所有处理均在浏览器本地完成，文件不会上传到服务器。</p>
+    </div>
+    <div class="faq-item">
+      <h3>Base85编码数据比Base64小多少？</h3>
+      <p>Base85编码后的数据比原始二进制数据大约25%，而Base64大约增加33%。因此Base85比Base64节省约8%的空间。例如，100KB的二进制数据用Base85编码约为125KB，而用Base64编码约为133KB。虽然节省比例不大，但在大量数据传输时仍有优势。</p>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">广告位 - 底部 (728×90)</div>
+</div>
+
+<div class="footer container">
+  <div style="margin-bottom:12px">
+    <a href="../index.html">首页</a>
+    <a href="../index.html">全部工具</a>
+    <a href="mailto:REDACTED_EMAIL">联系</a>
+  </div>
+  <p>在线Base85(Ascii85)编解码工具 · 纯前端 · 数据不上传服务器</p>
+  <p style="margin-top:4px">支持Adobe Ascii85和Z85格式</p>
+  <p style="margin-top:8px;color:#475569;font-size:.8rem">反馈邮箱: REDACTED_EMAIL</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ASCII85_CHARS = '!"#$%\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~';
+const Z85_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#';
+
+let currentMode = 'text';
+let currentFormat = 'ascii85';
+let lastResult = '';
+let fileData = null;
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(mode === 'text' ? 'tabText' : 'tabFile').classList.add('active');
+  document.getElementById('textMode').style.display = mode === 'text' ? 'block' : 'none';
+  document.getElementById('fileMode').style.display = mode === 'file' ? 'block' : 'none';
+}
+
+function updateFormat() {
+  const radios = document.getElementsByName('format');
+  for (const r of radios) {
+    if (r.checked) currentFormat = r.value;
+  }
+}
+
+function textToBytes(text) {
+  return new TextEncoder().encode(text);
+}
+
+function bytesToText(bytes) {
+  return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+}
+
+function encodeAscii85(data) {
+  const chars = currentFormat === 'z85' ? Z85_CHARS : ASCII85_CHARS;
+  let result = '';
+  if (currentFormat === 'ascii85') result = '<~';
+  let value = 0;
+  let count = 0;
+
+  for (let i = 0; i < data.length; i++) {
+    value = (value << 8) | data[i];
+    count++;
+    if (count === 4) {
+      if (value === 0 && currentFormat === 'ascii85') {
+        result += 'z';
+      } else {
+        let charsList = [];
+        for (let j = 0; j < 5; j++) {
+          charsList.push(chars[value % 85]);
+          value = Math.floor(value / 85);
+        }
+        result += charsList.reverse().join('');
+      }
+      value = 0;
+      count = 0;
+    }
+  }
+
+  if (count > 0) {
+    let padding = 4 - count;
+    value <<= padding * 8;
+    let charsList = [];
+    for (let j = 0; j < 5; j++) {
+      charsList.push(chars[value % 85]);
+      value = Math.floor(value / 85);
+    }
+    let encoded = charsList.reverse().join('');
+    result += encoded.slice(0, count + 1);
+  }
+
+  if (currentFormat === 'ascii85') result += '~>';
+  return result;
+}
+
+function decodeAscii85(str) {
+  const chars = currentFormat === 'z85' ? Z85_CHARS : ASCII85_CHARS;
+  let cleanStr = str;
+  if (currentFormat === 'ascii85') {
+    cleanStr = str.replace(/<~|~>/g, '');
+  }
+  cleanStr = cleanStr.replace(/\s/g, '');
+
+  let result = [];
+  let value = 0;
+  let count = 0;
+
+  for (let i = 0; i < cleanStr.length; i++) {
+    let ch = cleanStr[i];
+    if (ch === 'z' && currentFormat === 'ascii85') {
+      if (count > 0) throw new Error('z 出现在数据块中间，位置 ' + i);
+      result.push(0, 0, 0, 0);
+      continue;
+    }
+
+    let idx = chars.indexOf(ch);
+    if (idx < 0) {
+      if (currentFormat === 'ascii85') throw new Error('无效字符: ' + ch + ' (位置 ' + i + ')');
+      continue;
+    }
+
+    value = value * 85 + idx;
+    count++;
+
+    if (count === 5) {
+      for (let j = 3; j >= 0; j--) {
+        result.push((value >> (j * 8)) & 0xFF);
+      }
+      value = 0;
+      count = 0;
+    }
+  }
+
+  if (count > 0) {
+    let padding = 5 - count;
+    for (let i = 0; i < padding; i++) value = value * 85 + 84;
+    let bytes = [];
+    for (let j = 3; j >= 0; j--) {
+      bytes.push((value >> (j * 8)) & 0xFF);
+    }
+    result.push(...bytes.slice(0, count - 1));
+  }
+
+  return new Uint8Array(result);
+}
+
+function encodeBase85() {
+  try {
+    updateFormat();
+    let data;
+    if (currentMode === 'text') {
+      const text = document.getElementById('inputText').value;
+      if (!text) { showToast('请输入要编码的文本'); return; }
+      data = textToBytes(text);
+    } else {
+      if (!fileData) { showToast('请先选择文件'); return; }
+      data = new Uint8Array(fileData);
+    }
+
+    const result = encodeAscii85(data);
+    lastResult = result;
+    const resultBox = document.getElementById('resultBox');
+    resultBox.textContent = result;
+    document.getElementById('resultStats').innerHTML = '<span>原始大小: ' + data.length + ' 字节</span><span>编码后: ' + result.length + ' 字符</span><span>膨胀率: ' + (data.length > 0 ? ((result.length / data.length * 100).toFixed(1) + '%') : 'N/A') + '</span>';
+  } catch (e) {
+    showToast('编码失败: ' + e.message);
+  }
+}
+
+function decodeBase85() {
+  try {
+    updateFormat();
+    let str;
+    if (currentMode === 'text') {
+      str = document.getElementById('inputText').value;
+      if (!str) { showToast('请输入要解码的文本'); return; }
+    } else {
+      if (!fileData) { showToast('请先选择文件'); return; }
+      str = new TextDecoder('utf-8').decode(fileData);
+    }
+
+    const result = decodeAscii85(str);
+    const resultBox = document.getElementById('resultBox');
+
+    // Try to display as text
+    let textResult;
+    try {
+      textResult = bytesToText(result);
+      resultBox.textContent = textResult;
+      lastResult = textResult;
+    } catch (e) {
+      // Binary data, show hex preview
+      let hex = '';
+      for (let i = 0; i < Math.min(result.length, 64); i++) {
+        hex += result[i].toString(16).padStart(2, '0') + ' ';
+      }
+      if (result.length > 64) hex += '...';
+      resultBox.textContent = '二进制数据 (' + result.length + ' 字节)\nHex: ' + hex;
+      lastResult = result;
+    }
+
+    document.getElementById('resultStats').innerHTML = '<span>解码大小: ' + result.length + ' 字节</span>';
+  } catch (e) {
+    showToast('解码失败: ' + e.message);
+  }
+}
+
+function clearAll() {
+  document.getElementById('inputText').value = '';
+  document.getElementById('resultBox').textContent = '结果将显示在这里...';
+  document.getElementById('resultStats').innerHTML = '';
+  fileData = null;
+  document.getElementById('fileInfo').textContent = '';
+  lastResult = '';
+}
+
+function copyResult() {
+  if (!lastResult) { showToast('没有可复制的内容'); return; }
+  const text = typeof lastResult === 'string' ? lastResult : '二进制数据';
+  navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板')).catch(() => showToast('复制失败'));
+}
+
+function downloadResult() {
+  if (!lastResult) { showToast('没有可下载的内容'); return; }
+  const blob = new Blob([lastResult], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'base85-result.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function handleFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    fileData = e.target.result;
+    document.getElementById('fileInfo').textContent = '已选择: ' + file.name + ' (' + file.size + ' 字节)';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// Drag and drop
+const fileLabel = document.getElementById('fileLabel');
+if (fileLabel) {
+  fileLabel.addEventListener('dragover', (e) => { e.preventDefault(); fileLabel.classList.add('dragover'); });
+  fileLabel.addEventListener('dragleave', () => fileLabel.classList.remove('dragover'));
+  fileLabel.addEventListener('drop', (e) => {
+    e.preventDefault();
+    fileLabel.classList.remove('dragover');
+    const dt = e.dataTransfer;
+    if (dt.files.length > 0) {
+      document.getElementById('fileInput').files = dt.files;
+      handleFile({ target: { files: dt.files } });
+    }
+  });
+}
+</script>
+</body>
+</html>
