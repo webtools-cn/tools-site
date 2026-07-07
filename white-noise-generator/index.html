@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="免费在线白噪音生成器，支持白噪音、粉红噪音、棕色噪音、蓝噪音等多种类型。用于专注工作、助眠放松、冥想、缓解耳鸣。纯前端Web Audio API生成，无需下载安装。">
+<meta name="keywords" content="白噪音,粉红噪音,棕色噪音,白噪音生成器,助眠,专注,冥想,噪音发生器,在线白噪音">
+<title>白噪音生成器 - 免费在线白噪音/粉红噪音/棕色噪音工具</title>
+<link rel="canonical" href="https://webtools-cn.github.io/tools-site/white-noise-generator/">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
+.container{max-width:720px;margin:0 auto;padding:24px 16px}
+h1{font-size:1.8rem;color:#f1f5f9;margin-bottom:8px;text-align:center}
+.subtitle{color:#94a3b8;text-align:center;margin-bottom:32px}
+.card{background:#1e293b;border-radius:12px;padding:32px;border:1px solid rgba(148,163,184,.1)}
+.player-area{text-align:center}
+.noise-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px}
+.noise-btn{background:#0f172a;border:2px solid rgba(148,163,184,.15);border-radius:12px;padding:20px 12px;cursor:pointer;transition:all .2s;text-align:center}
+.noise-btn:hover{border-color:rgba(6,182,212,.3)}
+.noise-btn.active{background:rgba(6,182,212,.1);border-color:#22d3ee}
+.noise-btn .emoji{font-size:2rem;margin-bottom:6px;display:block}
+.noise-btn .name{color:#f1f5f9;font-size:.95rem;font-weight:600;display:block;margin-bottom:4px}
+.noise-btn .desc{color:#64748b;font-size:.75rem;display:block}
+.controls{display:flex;flex-direction:column;align-items:center;gap:16px;margin-bottom:20px}
+.volume-control{width:100%;max-width:400px}
+.volume-control label{display:flex;justify-content:space-between;color:#94a3b8;font-size:.85rem;margin-bottom:6px}
+.volume-control input[type="range"]{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;background:#334155;outline:none}
+.volume-control input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#22d3ee;cursor:pointer;border:none}
+.volume-control input[type="range"]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#22d3ee;cursor:pointer;border:none}
+.btn-play-main{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:16px 48px;border-radius:50px;border:none;font-size:1.1rem;font-weight:700;cursor:pointer;transition:all .2s;background:#22d3ee;color:#0f172a}
+.btn-play-main:hover{background:#06b6d4}
+.btn-play-main.playing{background:#ef4444;color:#fff}
+.btn-play-main.playing:hover{background:#dc2626}
+.timer-control{display:flex;align-items:center;gap:12px;justify-content:center;margin-top:12px}
+.timer-control label{color:#94a3b8;font-size:.85rem}
+.timer-control select{background:#1e293b;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);padding:6px 12px;border-radius:6px;font-size:.85rem;outline:none}
+.status-text{color:#64748b;font-size:.85rem;margin-top:12px;min-height:1.2em}
+.spectrum{height:60px;background:#0f172a;border-radius:8px;margin-bottom:20px;border:1px solid rgba(148,163,184,.1);overflow:hidden}
+.spectrum canvas{width:100%;height:100%;display:block}
+.presets{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.preset-btn{padding:6px 14px;border-radius:20px;font-size:.8rem;background:#1e293b;border:1px solid rgba(148,163,184,.15);color:#94a3b8;cursor:pointer;transition:all .2s}
+.preset-btn:hover{border-color:rgba(6,182,212,.3);color:#22d3ee}
+.lang-nav{display:flex;justify-content:center;gap:8px;margin-bottom:24px}
+.lang-nav a{padding:6px 16px;border-radius:6px;font-size:.85rem;color:#94a3b8;border:1px solid rgba(148,163,184,.15);transition:all .2s}
+.lang-nav a.active{background:rgba(6,182,212,.15);color:#22d3ee;border-color:rgba(6,182,212,.3)}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:48px;text-align:center;color:#64748b;font-size:.85rem}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:24px}
+.feature-item{background:#0f172a;padding:16px;border-radius:8px;text-align:center}
+.feature-item .icon{font-size:1.5rem;margin-bottom:4px}
+.feature-item p{color:#94a3b8;font-size:.85rem}
+@media(max-width:480px){.noise-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="lang-nav">
+    <a href="index.html" class="active">中文</a>
+    <a href="../en/white-noise-generator/">EN</a>
+  </div>
+  <h1>🌊 白噪音生成器</h1>
+  <p class="subtitle">白噪音/粉红噪音/棕色噪音 · 纯前端生成 · 零依赖</p>
+
+  <div class="card">
+    <div class="player-area">
+
+      <div class="spectrum" id="spectrumContainer">
+        <canvas id="spectrumCanvas"></canvas>
+      </div>
+
+      <div class="noise-grid" id="noiseGrid">
+        <div class="noise-btn active" data-noise="white" onclick="selectNoise('white')">
+          <span class="emoji">🌊</span>
+          <span class="name">白噪音</span>
+          <span class="desc">White Noise</span>
+        </div>
+        <div class="noise-btn" data-noise="pink" onclick="selectNoise('pink')">
+          <span class="emoji">🌸</span>
+          <span class="name">粉红噪音</span>
+          <span class="desc">Pink Noise</span>
+        </div>
+        <div class="noise-btn" data-noise="brown" onclick="selectNoise('brown')">
+          <span class="emoji">🤎</span>
+          <span class="name">棕色噪音</span>
+          <span class="desc">Brown Noise</span>
+        </div>
+        <div class="noise-btn" data-noise="blue" onclick="selectNoise('blue')">
+          <span class="emoji">🔷</span>
+          <span class="name">蓝噪音</span>
+          <span class="desc">Blue Noise</span>
+        </div>
+        <div class="noise-btn" data-noise="violet" onclick="selectNoise('violet')">
+          <span class="emoji">🟣</span>
+          <span class="name">紫噪音</span>
+          <span class="desc">Violet Noise</span>
+        </div>
+        <div class="noise-btn" data-noise="grey" onclick="selectNoise('grey')">
+          <span class="emoji">⬜</span>
+          <span class="name">灰噪音</span>
+          <span class="desc">Grey Noise</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn-play-main" id="playBtn" onclick="togglePlay()">▶ 开始播放</button>
+        <div class="volume-control">
+          <label>
+            <span>🔊 音量</span>
+            <span id="volumeLabel">50%</span>
+          </label>
+          <input type="range" id="volumeSlider" min="0" max="100" value="50" oninput="setVolume(this.value)">
+        </div>
+      </div>
+
+      <div class="timer-control">
+        <label>⏱ 定时关闭：</label>
+        <select id="timerSelect" onchange="setTimer(this.value)">
+          <option value="0">不限时</option>
+          <option value="15">15 分钟</option>
+          <option value="30">30 分钟</option>
+          <option value="60">60 分钟</option>
+          <option value="120">2 小时</option>
+          <option value="480">8 小时（睡眠）</option>
+        </select>
+        <span class="status-text" id="timerStatus"></span>
+      </div>
+
+      <div class="presets">
+        <span class="preset-btn" onclick="applyPreset('focus')">🎯 专注模式</span>
+        <span class="preset-btn" onclick="applyPreset('sleep')">😴 睡眠模式</span>
+        <span class="preset-btn" onclick="applyPreset('study')">📚 学习模式</span>
+        <span class="preset-btn" onclick="applyPreset('relax')">🧘 放松模式</span>
+      </div>
+
+      <div class="status-text" id="statusText">选择噪音类型，点击开始播放</div>
+    </div>
+  </div>
+
+  <div class="features">
+    <div class="feature-item">
+      <div class="icon">🎵</div>
+      <p>6种噪音类型可选</p>
+    </div>
+    <div class="feature-item">
+      <div class="icon">⏱</div>
+      <p>定时关闭功能</p>
+    </div>
+    <div class="feature-item">
+      <div class="icon">📊</div>
+      <p>实时频谱可视化</p>
+    </div>
+    <div class="feature-item">
+      <div class="icon">🎯</div>
+      <p>场景预设快速切换</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>纯前端 · 零依赖 · 本地生成 · 绝不上传服务器</p>
+    <p style="margin-top:8px"><a href="../" style="color:#06b6d4">← 返回工具首页</a></p>
+  </div>
+</div>
+
+<script>
+'use strict';
+let audioCtx = null;
+let isPlaying = false;
+let currentNoise = 'white';
+let gainNode = null;
+let noiseNode = null;
+let timerTimeout = null;
+let timerEndTime = null;
+let timerInterval = null;
+let spectrumAnalyser = null;
+let spectrumAnimId = null;
+
+const sCanvas = document.getElementById('spectrumCanvas');
+const sCtx = sCanvas.getContext('2d');
+
+function resizeSCanvas() {
+  const rect = document.getElementById('spectrumContainer').getBoundingClientRect();
+  sCanvas.width = rect.width || 600;
+  sCanvas.height = 60;
+}
+resizeSCanvas();
+window.addEventListener('resize', resizeSCanvas);
+
+function whiteNoiseBuffer(length) {
+  const buf = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+  return buf;
+}
+
+function pinkNoiseBuffer(length) {
+  const buf = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+  for (let i = 0; i < length; i++) {
+    const white = Math.random() * 2 - 1;
+    b0 = 0.99886*b0 + white*0.0555179;
+    b1 = 0.99332*b1 + white*0.0750759;
+    b2 = 0.96900*b2 + white*0.1538520;
+    b3 = 0.86650*b3 + white*0.3104856;
+    b4 = 0.55000*b4 + white*0.5329522;
+    b5 = -0.7616*b5 - white*0.0168980;
+    data[i] = (b0+b1+b2+b3+b4+b5+b6+white*0.5362) * 0.11;
+    b6 = white * 0.115926;
+  }
+  return buf;
+}
+
+function brownNoiseBuffer(length) {
+  const buf = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  let lastOut = 0;
+  for (let i = 0; i < length; i++) {
+    const white = Math.random() * 2 - 1;
+    data[i] = (lastOut + 0.02 * white) / 1.02;
+    lastOut = data[i];
+    data[i] *= 3.5;
+  }
+  return buf;
+}
+
+function blueNoiseBuffer(length) {
+  const buf = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < length; i++) {
+    const white = Math.random() * 2 - 1;
+    data[i] = white - last;
+    last = white;
+  }
+  return buf;
+}
+
+function violetNoiseBuffer(length) {
+  const buf = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  let last1 = 0, last2 = 0;
+  for (let i = 0; i < length; i++) {
+    const white = Math.random() * 2 - 1;
+    data[i] = white - 2*last1 + last2;
+    last2 = last1;
+    last1 = white;
+  }
+  return buf;
+}
+
+function greyNoiseBuffer(length) {
+  const buf = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < length; i++) {
+    const w = Math.random() * 2 - 1;
+    const v = Math.random() * 2 - 1;
+    data[i] = (w + v * 0.3) * 0.85;
+  }
+  return buf;
+}
+
+function getNoiseBuffer(type) {
+  const length = audioCtx.sampleRate * 4;
+  switch(type) {
+    case 'white': return whiteNoiseBuffer(length);
+    case 'pink': return pinkNoiseBuffer(length);
+    case 'brown': return brownNoiseBuffer(length);
+    case 'blue': return blueNoiseBuffer(length);
+    case 'violet': return violetNoiseBuffer(length);
+    case 'grey': return greyNoiseBuffer(length);
+    default: return whiteNoiseBuffer(length);
+  }
+}
+
+function selectNoise(type) {
+  currentNoise = type;
+  document.querySelectorAll('.noise-btn').forEach(el => {
+    el.classList.toggle('active', el.dataset.noise === type);
+  });
+  if (isPlaying) {
+    restartNoise();
+  }
+  updateStatus();
+}
+
+function restartNoise() {
+  if (noiseNode) { noiseNode.disconnect(); noiseNode.stop(); noiseNode = null; }
+  const buf = getNoiseBuffer(currentNoise);
+  noiseNode = audioCtx.createBufferSource();
+  noiseNode.buffer = buf;
+  noiseNode.loop = true;
+  noiseNode.connect(gainNode);
+  noiseNode.start();
+}
+
+function togglePlay() {
+  const btn = document.getElementById('playBtn');
+  if (isPlaying) {
+    stop();
+  } else {
+    start();
+  }
+}
+
+function start() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  gainNode = audioCtx.createGain();
+  gainNode.gain.value = parseInt(document.getElementById('volumeSlider').value) / 100;
+
+  spectrumAnalyser = audioCtx.createAnalyser();
+  spectrumAnalyser.fftSize = 256;
+
+  const buf = getNoiseBuffer(currentNoise);
+  noiseNode = audioCtx.createBufferSource();
+  noiseNode.buffer = buf;
+  noiseNode.loop = true;
+  noiseNode.connect(gainNode);
+  gainNode.connect(spectrumAnalyser);
+  spectrumAnalyser.connect(audioCtx.destination);
+  noiseNode.start();
+
+  isPlaying = true;
+  document.getElementById('playBtn').textContent = '⏹ 停止';
+  document.getElementById('playBtn').className = 'btn-play-main playing';
+  updateStatus();
+  startSpectrum();
+}
+
+function stop() {
+  if (noiseNode) { noiseNode.stop(); noiseNode.disconnect(); noiseNode = null; }
+  if (gainNode) { gainNode.disconnect(); }
+  if (spectrumAnalyser) { spectrumAnalyser.disconnect(); }
+  if (spectrumAnimId) { cancelAnimationFrame(spectrumAnimId); spectrumAnimId = null; }
+  isPlaying = false;
+  document.getElementById('playBtn').textContent = '▶ 开始播放';
+  document.getElementById('playBtn').className = 'btn-play-main';
+  clearTimer();
+  drawStaticSpectrum();
+  updateStatus();
+}
+
+function setVolume(val) {
+  document.getElementById('volumeLabel').textContent = val + '%';
+  if (gainNode) gainNode.gain.value = val / 100;
+}
+
+function updateStatus() {
+  const statusEl = document.getElementById('statusText');
+  const names = { white:'白噪音', pink:'粉红噪音', brown:'棕色噪音', blue:'蓝噪音', violet:'紫噪音', grey:'灰噪音' };
+  if (isPlaying) {
+    statusEl.textContent = `▶ 正在播放 ${names[currentNoise] || currentNoise}`;
+  } else {
+    statusEl.textContent = `⏸ 已停止 - ${names[currentNoise] || currentNoise}`;
+  }
+}
+
+function startSpectrum() {
+  if (!spectrumAnalyser) return;
+  const bufferLength = spectrumAnalyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+
+  function draw() {
+    spectrumAnalyser.getByteFrequencyData(dataArray);
+    sCtx.fillStyle = '#0f172a';
+    sCtx.fillRect(0, 0, sCanvas.width, sCanvas.height);
+
+    const barWidth = sCanvas.width / bufferLength * 2.5;
+
+    for (let i = 0; i < bufferLength; i++) {
+      const percent = dataArray[i] / 255;
+      const barHeight = percent * sCanvas.height;
+      const x = i * barWidth;
+      const hue = 180 + percent * 60;
+      sCtx.fillStyle = `hsl(${hue}, 80%, ${50 + percent * 30}%)`;
+      sCtx.fillRect(x, sCanvas.height - barHeight, barWidth - 1, barHeight);
+    }
+    spectrumAnimId = requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function drawStaticSpectrum() {
+  if (spectrumAnimId) { cancelAnimationFrame(spectrumAnimId); spectrumAnimId = null; }
+  sCtx.fillStyle = '#0f172a';
+  sCtx.fillRect(0, 0, sCanvas.width, sCanvas.height);
+  sCtx.fillStyle = '#334155';
+  sCtx.font = '12px sans-serif';
+  sCtx.textAlign = 'center';
+  sCtx.fillText('🎵 频谱', sCanvas.width/2, sCanvas.height/2 + 4);
+}
+
+function setTimer(minutes) {
+  clearTimer();
+  if (parseInt(minutes) <= 0) {
+    document.getElementById('timerStatus').textContent = '';
+    return;
+  }
+  const ms = parseInt(minutes) * 60000;
+  timerEndTime = Date.now() + ms;
+  timerTimeout = setTimeout(() => {
+    if (isPlaying) stop();
+    document.getElementById('timerStatus').textContent = '⏰ 定时结束';
+    clearTimer();
+  }, ms);
+  timerInterval = setInterval(() => {
+    const remaining = timerEndTime - Date.now();
+    if (remaining <= 0) { clearTimer(); return; }
+    const mins = Math.floor(remaining / 60000);
+    const secs = Math.floor((remaining % 60000) / 1000);
+    document.getElementById('timerStatus').textContent = `⏱ 剩余 ${mins}:${String(secs).padStart(2,'0')}`;
+  }, 1000);
+  document.getElementById('timerStatus').textContent = `⏱ ${minutes}分钟后关闭`;
+}
+
+function clearTimer() {
+  if (timerTimeout) { clearTimeout(timerTimeout); timerTimeout = null; }
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  timerEndTime = null;
+}
+
+function applyPreset(mode) {
+  const presets = {
+    focus: { noise: 'pink', volume: 30 },
+    sleep: { noise: 'brown', volume: 40 },
+    study: { noise: 'white', volume: 25 },
+    relax: { noise: 'blue', volume: 35 }
+  };
+  const p = presets[mode];
+  if (!p) return;
+  selectNoise(p.noise);
+  document.getElementById('volumeSlider').value = p.volume;
+  setVolume(p.volume);
+  if (!isPlaying) start();
+  document.getElementById('timerSelect').value = '60';
+  setTimer(60);
+}
+
+drawStaticSpectrum();
+</script>
+</body>
+</html>
