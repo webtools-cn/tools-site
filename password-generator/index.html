@@ -93,7 +93,7 @@
       "name": "本工具支持哪些字符集？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "支持大写字母(A-Z)、小写字母(a-z)、数字(0-9)和特殊符号(!@#$%^&*等)。您可以自由组合选择，建议至少勾选三种以获得足够强度的密码。"
+        "text": "支持大写字母(A-Z)、小写字母(a-z)、数字(0-9)和特殊符号(!@#$%^&*等)。还支持自定义字符集，可输入任意允许的字符，并提供Hex、Base32等快速预设。"
       }
     }
   ]
@@ -233,6 +233,19 @@ a{color:#06b6d4;text-decoration:none}
       </div>
       <div class="option-row">
         <div class="option-label">
+          <input type="checkbox" class="checkbox-custom" id="customCharset" onchange="toggleCustomCharset()">
+          <span>自定义字符集</span>
+        </div>
+        <span class="option-desc">输入允许的字符，如 0123456789abcdef</span>
+      </div>
+      <div class="option-row" id="customCharsetRow" style="display:none">
+        <div style="width:100%">
+          <input type="text" id="customCharsetInput" placeholder="输入自定义字符，如 0123456789abcdef" style="width:100%;background:#0f172a;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-family:monospace;font-size:.9rem;outline:none" oninput="previewCharsetInfo()">
+          <div id="charsetInfo" style="font-size:.8rem;color:#64748b;margin-top:6px"></div>
+        </div>
+      </div>
+      <div class="option-row">
+        <div class="option-label">
           <input type="checkbox" class="checkbox-custom" id="excludeSimilar">
           <span>排除相似字符</span>
         </div>
@@ -244,6 +257,19 @@ a{color:#06b6d4;text-decoration:none}
           <span>排除重复字符</span>
         </div>
         <span class="option-desc">密码中不重复使用同一字符</span>
+      </div>
+      <!-- 预设模板 -->
+      <div class="option-row">
+        <div style="width:100%">
+          <span style="color:#e2e8f0;font-size:.9rem">快速预设：</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn btn-secondary" style="font-size:.75rem;padding:4px 10px" onclick="applyPreset('hex')">Hex (0-9, a-f)</button>
+            <button class="btn btn-secondary" style="font-size:.75rem;padding:4px 10px" onclick="applyPreset('hex64')">Hex 64位</button>
+            <button class="btn btn-secondary" style="font-size:.75rem;padding:4px 10px" onclick="applyPreset('base32')">Base32 (A-Z, 2-7)</button>
+            <button class="btn btn-secondary" style="font-size:.75rem;padding:4px 10px" onclick="applyPreset('numeric')">纯数字</button>
+            <button class="btn btn-secondary" style="font-size:.75rem;padding:4px 10px" onclick="applyPreset('alphanum')">字母+数字</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -329,7 +355,7 @@ a{color:#06b6d4;text-decoration:none}
     </div>
     <div class="faq-item">
       <h3>本工具支持哪些字符集？</h3>
-      <p>支持大写字母(A-Z)、小写字母(a-z)、数字(0-9)和特殊符号(!@#$%^&*等)。您可以自由组合选择，建议至少勾选三种以获得足够强度的密码。</p>
+      <p>支持大写字母(A-Z)、小写字母(a-z)、数字(0-9)和特殊符号(!@#$%^&*等)。您也可以勾选「自定义字符集」输入任意允许的字符，例如Google二次验证密钥只允许0-9和a-f（小写hex），可以在自定义字符集中输入"0123456789abcdef"并设置64位长度。还提供了快速预设按钮：Hex、Hex 64位、Base32、纯数字、字母+数字等。</p>
     </div>
   </div>
 
@@ -382,6 +408,14 @@ function updateLengthDisplay() {
 }
 
 function getCharset() {
+  // 自定义字符集优先
+  if (document.getElementById('customCharset').checked) {
+    const custom = document.getElementById('customCharsetInput').value;
+    if (!custom) return '';
+    // 去重
+    return [...new Set(custom.split(''))].join('');
+  }
+  
   let charset = '';
   if (document.getElementById('uppercase').checked) charset += CHAR_SETS.uppercase;
   if (document.getElementById('lowercase').checked) charset += CHAR_SETS.lowercase;
@@ -394,6 +428,47 @@ function getCharset() {
   }
   
   return charset;
+}
+
+function toggleCustomCharset() {
+  const checked = document.getElementById('customCharset').checked;
+  document.getElementById('customCharsetRow').style.display = checked ? 'flex' : 'none';
+  // 自定义模式时禁用其他字符集选项
+  ['uppercase','lowercase','numbers','symbols','excludeSimilar'].forEach(id => {
+    document.getElementById(id).disabled = checked;
+    document.getElementById(id).parentElement.style.opacity = checked ? '0.4' : '1';
+  });
+  if (checked) previewCharsetInfo();
+}
+
+function previewCharsetInfo() {
+  const custom = document.getElementById('customCharsetInput').value;
+  const info = document.getElementById('charsetInfo');
+  if (!custom) { info.textContent = ''; return; }
+  const unique = [...new Set(custom.split(''))];
+  const entropy = (parseInt(lengthSlider.value) * Math.log2(unique.length)).toFixed(1);
+  info.textContent = `${unique.length}种唯一字符 · ${lengthSlider.value}位密码 · 熵值≈${entropy}bit`;
+}
+
+function applyPreset(type) {
+  const presets = {
+    hex: { chars: '0123456789abcdef', length: 32, label: 'Hex (0-9, a-f)' },
+    hex64: { chars: '0123456789abcdef', length: 64, label: 'Hex 64位' },
+    base32: { chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', length: 32, label: 'Base32' },
+    numeric: { chars: '0123456789', length: 16, label: '纯数字' },
+    alphanum: { chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', length: 24, label: '字母+数字' }
+  };
+  const p = presets[type];
+  if (!p) return;
+  
+  // 启用自定义字符集模式
+  document.getElementById('customCharset').checked = true;
+  toggleCustomCharset();
+  document.getElementById('customCharsetInput').value = p.chars;
+  lengthSlider.value = p.length;
+  updateLengthDisplay();
+  previewCharsetInfo();
+  showToast(`已应用预设: ${p.label} · ${p.length}位`);
 }
 
 function generatePassword() {
