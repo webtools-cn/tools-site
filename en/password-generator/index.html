@@ -233,17 +233,43 @@ a{color:#06b6d4;text-decoration:none}
       </div>
       <div class="option-row">
         <div class="option-label">
+          <input type="checkbox" class="checkbox-custom" id="customCharset" onchange="toggleCustomCharset()">
+          <span>Custom Charset</span>
+        </div>
+        <span class="option-desc">Enter allowed characters, e.g. 0123456789abcdef</span>
+      </div>
+      <div class="option-row" id="customCharsetRow" style="display:none">
+        <div style="width:100%">
+          <input type="text" id="customCharsetInput" placeholder="Enter allowed characters, e.g. 0123456789abcdef" style="width:100%;background:#0f172a;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-family:monospace;font-size:.9rem;outline:none" oninput="previewCharsetInfo()">
+          <div id="charsetInfo" style="font-size:.8rem;color:#64748b;margin-top:6px"></div>
+        </div>
+      </div>
+      <div class="option-row">
+        <div class="option-label">
           <input type="checkbox" class="checkbox-custom" id="excludeSimilar">
-          <span>Exclude Similar</span>
+          <span>Exclude similar chars</span>
         </div>
         <span class="option-desc">Remove 0O, 1lI, etc.</span>
       </div>
       <div class="option-row">
         <div class="option-label">
           <input type="checkbox" class="checkbox-custom" id="excludeRepeat">
-          <span>No Repeat Characters</span>
+          <span>No repeat chars</span>
         </div>
         <span class="option-desc">Each char used only once</span>
+      </div>
+      <!-- Quick Presets -->
+      <div class="option-row">
+        <div style="width:100%">
+          <span style="color:#e2e8f0;font-size:.9rem">Quick Presets:</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn btn-secondary" style="font-size:.75rem;padding:4px 10px" onclick="applyPreset('hex')">Hex (0-9, a-f)</button>
+            <button class="btn btn-secondary" style="font-size:.75rem;padding:4px 10px" onclick="applyPreset('hex64')">Hex 64-bit</button>
+            <button class="btn btn-secondary" style="font-size:.75rem;padding:4px 10px" onclick="applyPreset('base32')">Base32 (A-Z, 2-7)</button>
+            <button class="btn btn-secondary" style="font-size:.75rem;padding:4px 10px" onclick="applyPreset('numeric')">Numeric only</button>
+            <button class="btn btn-secondary" style="font-size:.75rem;padding:4px 10px" onclick="applyPreset('alphanum')">Alphanumeric</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -369,6 +395,8 @@ const CHAR_SETS = {
   symbols: '!@#$%^&*()_+-=[]{}|;:,.<>?'
 };
 
+const SIMILAR_CHARS = /[0Oo1lLiI]/g;
+
 function showToast(msg) {
   toast.textContent = msg;
   toast.classList.add('show');
@@ -380,18 +408,67 @@ function updateLengthDisplay() {
 }
 
 function getCharset() {
+  // Custom charset takes priority
+  if (document.getElementById('customCharset').checked) {
+    const custom = document.getElementById('customCharsetInput').value;
+    if (!custom) return '';
+    // Deduplicate
+    return [...new Set(custom.split(''))].join('');
+  }
+
   let charset = '';
   if (document.getElementById('uppercase').checked) charset += CHAR_SETS.uppercase;
   if (document.getElementById('lowercase').checked) charset += CHAR_SETS.lowercase;
   if (document.getElementById('numbers').checked) charset += CHAR_SETS.numbers;
   if (document.getElementById('symbols').checked) charset += CHAR_SETS.symbols;
-  
+
   if (document.getElementById('excludeSimilar').checked) {
     const similar = '0Oo1lLiI';
     charset = charset.split('').filter(c => !similar.includes(c)).join('');
   }
-  
+
   return charset;
+}
+
+function toggleCustomCharset() {
+  const checked = document.getElementById('customCharset').checked;
+  document.getElementById('customCharsetRow').style.display = checked ? 'flex' : 'none';
+  // Disable other charset options in custom mode
+  ['uppercase','lowercase','numbers','symbols','excludeSimilar'].forEach(id => {
+    document.getElementById(id).disabled = checked;
+    document.getElementById(id).parentElement.style.opacity = checked ? '0.4' : '1';
+  });
+  if (checked) previewCharsetInfo();
+}
+
+function previewCharsetInfo() {
+  const custom = document.getElementById('customCharsetInput').value;
+  const info = document.getElementById('charsetInfo');
+  if (!custom) { info.textContent = ''; return; }
+  const unique = [...new Set(custom.split(''))];
+  const entropy = (parseInt(lengthSlider.value) * Math.log2(unique.length)).toFixed(1);
+  info.textContent = `${unique.length} unique chars · ${lengthSlider.value} char password · Entropy≈${entropy}bit`;
+}
+
+function applyPreset(type) {
+  const presets = {
+    hex: { chars: '0123456789abcdef', length: 32, label: 'Hex (0-9, a-f)' },
+    hex64: { chars: '0123456789abcdef', length: 64, label: 'Hex 64-bit' },
+    base32: { chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', length: 32, label: 'Base32' },
+    numeric: { chars: '0123456789', length: 16, label: 'Numeric only' },
+    alphanum: { chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', length: 24, label: 'Alphanumeric' }
+  };
+  const p = presets[type];
+  if (!p) return;
+
+  // Enable custom charset mode
+  document.getElementById('customCharset').checked = true;
+  toggleCustomCharset();
+  document.getElementById('customCharsetInput').value = p.chars;
+  lengthSlider.value = p.length;
+  updateLengthDisplay();
+  previewCharsetInfo();
+  showToast(`Preset applied: ${p.label} · ${p.length} chars`);
 }
 
 function generatePassword() {
