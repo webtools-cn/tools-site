@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-9W1157EBQV');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="免费在线签名制作工具，鼠标绘制个性签名。支持颜色和粗细调整，导出透明背景PNG。纯前端，不上传服务器。">
+<meta name="keywords" content="在线签名,签名制作,电子签名,手写签名,签名生成器,签名图片,PNG签名,在线签名字体">
+<title>在线签名制作 - 手写签名·电子签名·导出PNG</title>
+<link rel="canonical" href="https://webtools-cn.github.io/tools-site/online-signature/">
+<meta property="og:title" content="在线签名制作 - 手写签名·电子签名·导出PNG">
+<meta property="og:description" content="免费在线签名制作工具，鼠标绘制个性签名。支持颜色和粗细调整，导出透明背景PNG。纯前端，不上传服务器。">
+<meta property="og:url" content="https://webtools-cn.github.io/tools-site/online-signature/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="在线小工具矩阵">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:960px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.header h1{font-size:1.5rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.nav-back a{color:#64748b}
+.nav-back a:hover{color:#94a3b8}
+.ad-placeholder{background:rgba(148,163,184,.05);border:1px dashed rgba(148,163,184,.2);border-radius:8px;text-align:center;padding:20px;color:#475569;font-size:.85rem;margin-bottom:16px}
+.section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+.btn-success{background:rgba(74,222,128,.15);color:#4ade80;border:1px solid rgba(74,222,128,.3)}
+.btn-success:hover{background:rgba(74,222,128,.25)}
+.signature-canvas{border:2px dashed rgba(148,163,184,.3);border-radius:8px;width:100%;height:250px;cursor:crosshair;display:block;touch-action:none;background:white}
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0}
+.controls label{font-size:.85rem;color:#94a3b8}
+.color-picker{width:40px;height:40px;padding:2px;border:1px solid rgba(148,163,184,.2);border-radius:6px;background:#0f172a;cursor:pointer}
+.preview-img{max-width:100%;border-radius:8px;border:1px solid rgba(148,163,184,.15);margin-top:8px}
+@media (max-width:640px){.header{flex-direction:column;gap:12px;align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>✍️ 在线签名制作</h1>
+    <div class="lang-switch">
+      <a href="../en/online-signature/" class="active">EN</a>
+    </div>
+  </div>
+  <p class="nav-back"><a href="../">← 返回工具首页</a></p>
+  <div class="ad-placeholder">广告位（待接入）</div>
+  <div class="section">
+    <h2>✏️ 绘制签名</h2>
+    <canvas id="sigCanvas" class="signature-canvas" width="800" height="250"></canvas>
+    <div class="controls">
+      <label>笔触大小: <input type="range" id="penSize" min="1" max="10" value="3" style="vertical-align:middle;width:80px"></label>
+      <label>颜色: <input type="color" id="penColor" class="color-picker" value="#000000"></label>
+      <label>背景色: <input type="color" id="bgColor" class="color-picker" value="#ffffff"></label>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="clearSig()">清空</button>
+      <button class="btn btn-secondary" onclick="undoSig()">撤销</button>
+      <button class="btn btn-success" onclick="downloadSig()">下载签名 PNG</button>
+    </div>
+  </div>
+  <div class="section">
+    <h2>💡 使用说明</h2>
+    <ul style="color:#94a3b8;font-size:.9rem;line-height:1.8;padding-left:20px">
+      <li>使用鼠标或触控板在上方绘制区域签名。</li>
+      <li>支持调整笔触颜色和粗细，获得理想的签名效果。</li>
+      <li>点击「下载签名」可将签名保存为透明背景PNG图片。</li>
+      <li>签名纯本地处理，不会上传到任何服务器。</li>
+    </ul>
+  </div>
+  <div class="section">
+    <h2>❓ 常见问题</h2>
+    <div style="margin-bottom:12px"><strong style="color:#f1f5f9;font-size:.95rem">签名数据会上传吗？</strong><p style="color:#94a3b8;font-size:.85rem;margin-top:4px">不会。所有签名绘制和导出完全在浏览器本地完成，您的签名数据不会上传到任何服务器。</p></div>
+    <div style="margin-bottom:12px"><strong style="color:#f1f5f9;font-size:.95rem">导出的签名是什么格式？</strong><p style="color:#94a3b8;font-size:.85rem;margin-top:4px">导出为PNG格式图片，背景透明，方便叠加到各种文档上使用。</p></div>
+    <div style="margin-bottom:12px"><strong style="color:#f1f5f9;font-size:.95rem">可以在手机上使用吗？</strong><p style="color:#94a3b8;font-size:.85rem;margin-top:4px">支持触控设备，手机和平板上也可以用手指或触控笔绘制签名。</p></div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('sigCanvas');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+let paths = [];
+let currentPath = [];
+
+function resizeCanvas() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = Math.min(800, rect.width - 4);
+    const ratio = w / 800;
+    canvas.style.width = w + 'px';
+    canvas.style.height = (250 * ratio) + 'px';
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    if (e.touches) {
+        return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
+    }
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+}
+
+function startDraw(e) {
+    e.preventDefault();
+    drawing = true;
+    currentPath = [];
+    const pos = getPos(e);
+    currentPath.push(pos);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+}
+
+function draw(e) {
+    e.preventDefault();
+    if (!drawing) return;
+    const pos = getPos(e);
+    currentPath.push(pos);
+    ctx.lineWidth = document.getElementById('penSize').value;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = document.getElementById('penColor').value;
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+}
+
+function stopDraw(e) {
+    e.preventDefault();
+    if (drawing) {
+        drawing = false;
+        if (currentPath.length > 0) paths.push({ pts: currentPath.slice(), color: document.getElementById('penColor').value, size: document.getElementById('penSize').value });
+    }
+}
+
+canvas.addEventListener('mousedown', startDraw);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup', stopDraw);
+canvas.addEventListener('mouseleave', stopDraw);
+canvas.addEventListener('touchstart', startDraw, { passive: false });
+canvas.addEventListener('touchmove', draw, { passive: false });
+canvas.addEventListener('touchend', stopDraw, { passive: false });
+
+function redraw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = document.getElementById('bgColor').value;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (const p of paths) {
+        ctx.beginPath();
+        ctx.lineWidth = p.size;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = p.color;
+        ctx.moveTo(p.pts[0].x, p.pts[0].y);
+        for (let i = 1; i < p.pts.length; i++) {
+            ctx.lineTo(p.pts[i].x, p.pts[i].y);
+        }
+        ctx.stroke();
+    }
+}
+
+function clearSig() {
+    paths = [];
+    currentPath = [];
+    redraw();
+}
+
+function undoSig() {
+    paths.pop();
+    redraw();
+}
+
+function downloadSig() {
+    const bg = document.getElementById('bgColor').value;
+    // Create transparent PNG
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    // Only draw paths, no background
+    for (const p of paths) {
+        tempCtx.beginPath();
+        tempCtx.lineWidth = p.size;
+        tempCtx.lineCap = 'round';
+        tempCtx.lineJoin = 'round';
+        tempCtx.strokeStyle = p.color;
+        tempCtx.moveTo(p.pts[0].x, p.pts[0].y);
+        for (let i = 1; i < p.pts.length; i++) {
+            tempCtx.lineTo(p.pts[i].x, p.pts[i].y);
+        }
+        tempCtx.stroke();
+    }
+    const link = document.createElement('a');
+    link.download = 'signature.png';
+    link.href = tempCanvas.toDataURL('image/png');
+    link.click();
+}
+
+// Initial white bg
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+document.getElementById('penColor').addEventListener('input', () => { if (!drawing) redraw(); });
+document.getElementById('bgColor').addEventListener('input', redraw);
+document.getElementById('penSize').addEventListener('input', () => { if (!drawing) redraw(); });
+</script>
+</body>
+</html>
