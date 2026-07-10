@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Free online piano. Play virtual piano in your browser with keyboard, mouse or touch. 88-key full range, multiple tones. Pure frontend Web Audio API, no installation needed.">
+<meta name="keywords" content="online piano, virtual piano, piano online, play piano online, digital piano, piano simulator, free piano, keyboard piano">
+<title>Online Piano - Free Virtual Piano Playing Tool</title>
+<link rel="canonical" href="https://webtools-cn.github.io/tools-site/en/online-piano/">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6;min-height:100vh}
+.container{max-width:960px;margin:0 auto;padding:24px 16px}
+h1{font-size:1.8rem;color:#f1f5f9;margin-bottom:8px;text-align:center}
+.subtitle{color:#94a3b8;text-align:center;margin-bottom:32px}
+.card{background:#1e293b;border-radius:12px;padding:32px;border:1px solid rgba(148,163,184,.1);margin-bottom:24px}
+.card h2{color:#f1f5f9;margin-bottom:16px;font-size:1.2rem}
+.piano-area{text-align:center;overflow-x:auto;padding-bottom:8px}
+.piano-container{display:inline-block;position:relative;touch-action:manipulation;min-width:100%}
+.piano-keys{display:flex;position:relative;height:200px;user-select:none}
+.white-key{width:44px;height:200px;background:linear-gradient(180deg,#f8fafc 0%,#e2e8f0 100%);border:1px solid #94a3b8;border-radius:0 0 6px 6px;cursor:pointer;position:relative;flex-shrink:0;transition:background .05s;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;color:#64748b;font-size:.65rem}
+.white-key:active,.white-key.active{background:linear-gradient(180deg,#e2e8f0 0%,#cbd5e1 100%);box-shadow:inset 0 2px 4px rgba(0,0,0,.2)}
+.white-key .note-label{pointer-events:none}
+.black-keys-wrapper{position:absolute;top:0;left:0;right:0;height:120px;pointer-events:none}
+.black-key{position:absolute;width:28px;height:120px;background:linear-gradient(180deg,#1e293b 0%,#0f172a 100%);border-radius:0 0 4px 4px;cursor:pointer;pointer-events:auto;z-index:2;box-shadow:-1px -1px 2px rgba(255,255,255,.1),1px 2px 4px rgba(0,0,0,.5);transition:background .05s}
+.black-key:active,.black-key.active{background:linear-gradient(180deg,#334155 0%,#1e293b 100%);box-shadow:inset 0 2px 4px rgba(0,0,0,.4)}
+.controls{display:flex;justify-content:center;gap:16px;margin:16px 0 8px;flex-wrap:wrap;align-items:center}
+.control-group{display:flex;align-items:center;gap:8px}
+.control-group label{color:#94a3b8;font-size:.85rem}
+.control-group select{background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);padding:6px 12px;border-radius:6px;font-size:.85rem;outline:none}
+.control-group select:focus{border-color:#22d3ee}
+.volume-slider{width:100px;accent-color:#22d3ee}
+.keyboard-hint{background:#0f172a;border-radius:8px;padding:12px;margin-top:12px;display:inline-block}
+.keyboard-hint kbd{display:inline-block;background:#1e293b;border:1px solid rgba(148,163,184,.2);border-radius:4px;padding:2px 7px;font-size:.75rem;margin:2px;color:#e2e8f0;font-family:monospace}
+.keyboard-hint span{color:#64748b;font-size:.8rem}
+.octave-display{color:#22d3ee;font-size:.9rem;font-weight:600}
+.lang-nav{display:flex;justify-content:center;gap:8px;margin-bottom:24px}
+.lang-nav a{padding:6px 16px;border-radius:6px;font-size:.85rem;color:#94a3b8;border:1px solid rgba(148,163,184,.15);transition:all .2s;text-decoration:none}
+.lang-nav a.active{background:rgba(6,182,212,.15);color:#22d3ee;border-color:rgba(6,182,212,.3)}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:48px;text-align:center;color:#64748b;font-size:.85rem}
+.seo-content{background:#0f172a;border-radius:8px;padding:20px;margin-top:16px}
+.seo-content ol{color:#94a3b8;padding-left:20px;font-size:.9rem;line-height:1.8}
+.seo-content ol li{margin-bottom:4px}
+.faq-item{margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid rgba(148,163,184,.1)}
+.faq-item:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.faq-item h3{color:#f1f5f9;font-size:.95rem;margin-bottom:8px;cursor:pointer}
+.faq-item p{color:#94a3b8;font-size:.85rem;line-height:1.7}
+@media(max-width:640px){.white-key{width:36px;height:160px}.black-key{width:22px;height:96px}.piano-keys{height:160px}.container{padding:16px 8px}.card{padding:20px}}
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is the online piano free?",
+      "acceptedAnswer": {"@type":"Answer","text":"Yes, the online piano is completely free to use with no registration or login required. All features are available."}
+    },
+    {
+      "@type": "Question",
+      "name": "How do I play the online piano with my keyboard?",
+      "acceptedAnswer": {"@type":"Answer","text":"The first row of keys (QWERTY etc.) maps to white keys, and the second row (above number keys) maps to black keys. Check the keyboard mapping hint on the page for details."}
+    },
+    {
+      "@type": "Question",
+      "name": "What devices does the online piano support?",
+      "acceptedAnswer": {"@type":"Answer","text":"All devices are supported: computer keyboard, touchscreen (phone/tablet), and mouse click. Touch devices can tap the keys directly."}
+    },
+    {
+      "@type": "Question",
+      "name": "Why are some notes silent?",
+      "acceptedAnswer": {"@type":"Answer","text":"Check that: 1) Your browser is not muted; 2) The volume slider is not at minimum; 3) Some browsers require a user interaction first to enable audio."}
+    },
+    {
+      "@type": "Question",
+      "name": "Does the online piano sound like a real piano?",
+      "acceptedAnswer": {"@type":"Answer","text":"The online piano uses Web Audio API synthesis to produce near-piano sounds. While not identical to a real acoustic piano, it provides 5 different tone presets for variety."}
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Online Piano - Free Virtual Piano Playing Tool",
+  "url": "https://webtools-cn.github.io/tools-site/en/online-piano/",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "All",
+  "browserRequirements": "Requires Web Audio API",
+  "offers": {"@type":"Offer","price":"0","priceCurrency":"USD"},
+  "dateModified": "2026-07-10"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "How to Use Online Piano",
+  "step": [
+    {"@type":"HowToStep","position":1,"name":"Select a tone","text":"Choose your preferred tone from the dropdown (Piano, Electric Piano, Organ, Synth, Vibraphone)."},
+    {"@type":"HowToStep","position":2,"name":"Choose octave","text":"Use the arrow buttons or Z/X keys to switch octave range."},
+    {"@type":"HowToStep","position":3,"name":"Start playing","text":"Click with mouse, tap on touchscreen, or use your computer keyboard to play."}
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type":"ListItem","position":1,"name":"Home","item":"https://webtools-cn.github.io/tools-site/en/"},
+    {"@type":"ListItem","position":2,"name":"Online Tools","item":"https://webtools-cn.github.io/tools-site/en/"},
+    {"@type":"ListItem","position":3,"name":"Online Piano"}
+  ]
+}
+</script>
+</head>
+<body>
+<div class="container">
+<div class="lang-nav">
+<a href="/tools-site/online-piano/">🇨🇳 中文</a>
+<a href="/tools-site/en/online-piano/" class="active">🇬🇧 English</a>
+</div>
+
+<h1>🎹 Online Piano</h1>
+<p class="subtitle">Play virtual piano in your browser with keyboard, mouse, or touch</p>
+
+<div class="card">
+<div class="piano-area">
+<div class="controls">
+<div class="control-group">
+<label>🎵 Tone</label>
+<select id="toneSelect">
+<option value="piano">Piano</option>
+<option value="epiano">Electric Piano</option>
+<option value="organ">Organ</option>
+<option value="synth">Synth</option>
+<option value="vibraphone">Vibraphone</option>
+</select>
+</div>
+<div class="control-group">
+<button class="btn" onclick="changeOctave(-1)" style="background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);padding:6px 12px;border-radius:6px;cursor:pointer">⬅</button>
+<span id="octaveDisplay" class="octave-display">Octave 4</span>
+<button class="btn" onclick="changeOctave(1)" style="background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);padding:6px 12px;border-radius:6px;cursor:pointer">➡</button>
+</div>
+<div class="control-group">
+<label>🔊 Volume</label>
+<input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" value="70">
+</div>
+</div>
+
+<div class="piano-container" id="pianoContainer">
+<div class="piano-keys" id="pianoKeys"></div>
+</div>
+
+<div class="keyboard-hint">
+<span>⌨️ Keys: </span>
+<kbd>A</kbd><kbd>W</kbd><kbd>S</kbd><kbd>E</kbd><kbd>D</kbd><kbd>F</kbd><kbd>T</kbd><kbd>G</kbd><kbd>Y</kbd><kbd>H</kbd><kbd>U</kbd><kbd>J</kbd><kbd>K</kbd> ...
+<span>| Octave: </span><kbd>Z</kbd><kbd>↓</kbd><kbd>X</kbd><kbd>↑</kbd>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h2>📖 How to Use the Online Piano</h2>
+<div class="seo-content">
+<ol>
+<li><strong>Select a tone</strong> — Choose from Piano, Electric Piano, Organ, Synth, or Vibraphone</li>
+<li><strong>Adjust octave</strong> — Use arrow buttons or Z/X keys to switch between 7 octave ranges</li>
+<li><strong>Start playing</strong> — Use your computer keyboard (see key mapping), mouse click, or touch screen</li>
+<li><strong>Adjust volume</strong> — Use the volume slider to control output level</li>
+</ol>
+</div>
+</div>
+
+<div class="card">
+<h2>❓ Frequently Asked Questions</h2>
+<div class="faq-item">
+<h3>Is the online piano free?</h3>
+<p>Yes, the online piano is completely free to use with no registration or login required. All features are available at no cost.</p>
+</div>
+<div class="faq-item">
+<h3>How do I play the online piano with my keyboard?</h3>
+<p>White keys map to A S D F G H J K L etc. on your keyboard. Black keys map to W E T Y U etc. Check the keyboard mapping hint displayed below the piano keys.</p>
+</div>
+<div class="faq-item">
+<h3>What devices does the online piano support?</h3>
+<p>All main devices are supported: computer keyboard for playing, touchscreen (phone and tablet) for direct tapping, and mouse click. It works smoothly on any device.</p>
+</div>
+<div class="faq-item">
+<h3>Why are some notes silent?</h3>
+<p>Please check: 1) Is your browser muted? 2) Is the volume slider at the lowest setting? 3) Some browsers require a page interaction before enabling audio. Try refreshing the page if there's no sound.</p>
+</div>
+<div class="faq-item">
+<h3>Does the online piano sound like a real piano?</h3>
+<p>The online piano uses Web Audio API synthesis to produce near-piano sounds. While it can't match a real acoustic or high-end digital piano, it offers 5 different tone presets for a varied musical experience.</p>
+</div>
+</div>
+</div>
+
+<div class="footer">
+<p>⚡ Pure frontend Web Audio API · No install · Play instantly</p>
+<p>© 2026 WebTools - Free Online Tools Collection</p>
+</div>
+
+<!-- Feedback Widget -->
+<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
+<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
+<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 Feedback</span>
+<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
+</div>
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
+<option value="feedback">💡 Feature Suggestion</option>
+<option value="bug">🐛 Bug Report</option>
+<option value="other">💬 Other</option>
+</select>
+<textarea id="feedback-text" placeholder="Describe your suggestion or issue..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
+<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">Submit</button>
+</div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ Thank you! Submitted to GitHub Issues</div>
+</div>
+</div>
+
+<script>
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){
+const type=document.getElementById('feedback-type').value;
+const text=document.getElementById('feedback-text').value.trim();
+if(!text){alert('Please enter feedback');return;}
+const typeLabel={feedback:'💡 Feature Suggestion',bug:'🐛 Bug Report',other:'💬 Other'}[type];
+const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+const body=encodeURIComponent('**Page**: '+window.location.href+'\\n**Type**: '+typeLabel+'\\n\\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
+}
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let currentOctave = 4;
+const volumeNode = audioCtx.createGain();
+volumeNode.gain.value = 0.7;
+volumeNode.connect(audioCtx.destination);
+
+const activeNotes = {};
+
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const WHITE_KEYS = [0,2,4,5,7,9,11];
+const BLACK_KEYS = [1,3,6,8,10];
+
+const MIN_OCTAVE = 2;
+const MAX_OCTAVE = 7;
+
+function freq(note, octave) {
+const semitone = note + (octave - 4) * 12;
+return 440 * Math.pow(2, (semitone - 9) / 12);
+}
+
+const toneGenerators = {
+piano(freq, dest) {
+const osc = audioCtx.createOscillator();
+osc.type = 'triangle';
+osc.frequency.value = freq;
+const gain = audioCtx.createGain();
+gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2);
+osc.connect(gain);
+gain.connect(dest);
+osc.start();
+osc.stop(audioCtx.currentTime + 2);
+return { osc, gain };
+},
+epiano(freq, dest) {
+const osc = audioCtx.createOscillator();
+osc.type = 'sine';
+osc.frequency.value = freq;
+const gain = audioCtx.createGain();
+gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+const osc2 = audioCtx.createOscillator();
+osc2.type = 'sine';
+osc2.frequency.value = freq * 2.01;
+const gain2 = audioCtx.createGain();
+gain2.gain.setValueAtTime(0.2, audioCtx.currentTime);
+gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+osc.connect(gain);
+gain.connect(dest);
+osc2.connect(gain2);
+gain2.connect(dest);
+osc.start(); osc2.start();
+osc.stop(audioCtx.currentTime + 1.5); osc2.stop(audioCtx.currentTime + 1);
+return { osc, gain, osc2, gain2 };
+},
+organ(freq, dest) {
+const osc = audioCtx.createOscillator();
+osc.type = 'sawtooth';
+osc.frequency.value = freq;
+const gain = audioCtx.createGain();
+gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+gain.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.1);
+gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 3);
+osc.connect(gain);
+gain.connect(dest);
+osc.start();
+osc.stop(audioCtx.currentTime + 3);
+return { osc, gain };
+},
+synth(freq, dest) {
+const osc = audioCtx.createOscillator();
+osc.type = 'square';
+osc.frequency.value = freq;
+const gain = audioCtx.createGain();
+gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+const filter = audioCtx.createBiquadFilter();
+filter.type = 'lowpass';
+filter.frequency.value = 800;
+osc.connect(filter);
+filter.connect(gain);
+gain.connect(dest);
+osc.start();
+osc.stop(audioCtx.currentTime + 1);
+return { osc, gain, filter };
+},
+vibraphone(freq, dest) {
+const osc = audioCtx.createOscillator();
+osc.type = 'sine';
+osc.frequency.value = freq;
+const gain = audioCtx.createGain();
+gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2.5);
+const lfo = audioCtx.createOscillator();
+lfo.frequency.value = 5;
+const lfoGain = audioCtx.createGain();
+lfoGain.gain.value = freq * 0.003;
+lfo.connect(lfoGain);
+lfoGain.connect(osc.frequency);
+osc.connect(gain);
+gain.connect(dest);
+osc.start(); lfo.start();
+osc.stop(audioCtx.currentTime + 2.5); lfo.stop(audioCtx.currentTime + 2.5);
+return { osc, gain, lfo, lfoGain };
+}
+};
+
+function playNote(noteName, octave) {
+const noteIdx = NOTE_NAMES.indexOf(noteName);
+const key = noteName + octave;
+if (activeNotes[key]) return;
+
+const f = freq(noteIdx, octave);
+const tone = document.getElementById('toneSelect').value;
+const gen = toneGenerators[tone](f, volumeNode);
+activeNotes[key] = gen;
+
+const els = document.querySelectorAll(`[data-note="${key}"]`);
+els.forEach(el => el.classList.add('active'));
+}
+
+function stopNote(noteName, octave) {
+const key = noteName + octave;
+const gen = activeNotes[key];
+if (gen) {
+Object.keys(gen).forEach(k => {
+const node = gen[k];
+if (node && node.gain && node.gain.setValueAtTime) {
+try {
+node.gain.setValueAtTime(node.gain.value || 0.01, audioCtx.currentTime);
+node.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+} catch(e) {}
+}
+});
+setTimeout(() => {
+Object.keys(gen).forEach(k => {
+try { gen[k].stop && gen[k].stop(); } catch(e) {}
+try { gen[k].disconnect && gen[k].disconnect(); } catch(e) {}
+});
+}, 100);
+delete activeNotes[key];
+}
+const els = document.querySelectorAll(`[data-note="${key}"]`);
+els.forEach(el => el.classList.remove('active'));
+}
+
+function buildPiano() {
+const container = document.getElementById('pianoKeys');
+container.innerHTML = '';
+
+for (let o = MIN_OCTAVE; o <= MAX_OCTAVE; o++) {
+for (let wi = 0; wi < 7; wi++) {
+const noteIdx = WHITE_KEYS[wi];
+const noteName = NOTE_NAMES[noteIdx];
+const key = document.createElement('div');
+key.className = 'white-key';
+key.dataset.note = noteName + o;
+key.dataset.octave = o;
+key.innerHTML = `<span class="note-label">${noteName}${o}</span>`;
+key.addEventListener('mousedown', (e) => { e.preventDefault(); playNote(noteName, o); });
+key.addEventListener('mouseup', () => stopNote(noteName, o));
+key.addEventListener('mouseleave', () => stopNote(noteName, o));
+key.addEventListener('touchstart', (e) => { e.preventDefault(); playNote(noteName, o); }, {passive:false});
+key.addEventListener('touchend', (e) => { e.preventDefault(); stopNote(noteName, o); }, {passive:false});
+container.appendChild(key);
+}
+}
+
+const wrapper = document.createElement('div');
+wrapper.className = 'black-keys-wrapper';
+const octaveWidth = 7 * 44;
+
+for (let o = MIN_OCTAVE; o <= MAX_OCTAVE; o++) {
+const octOffset = (o - MIN_OCTAVE) * octaveWidth;
+const positions = [30, 118, 206, 294, 382];
+const blackNoteIdx = [1, 3, 6, 8, 10];
+for (let bi = 0; bi < 5; bi++) {
+const noteName = NOTE_NAMES[blackNoteIdx[bi]];
+const bk = document.createElement('div');
+bk.className = 'black-key';
+bk.style.left = (octOffset + positions[bi]) + 'px';
+bk.dataset.note = noteName + o;
+bk.dataset.octave = o;
+bk.addEventListener('mousedown', (e) => { e.preventDefault(); playNote(noteName, o); });
+bk.addEventListener('mouseup', () => stopNote(noteName, o));
+bk.addEventListener('mouseleave', () => stopNote(noteName, o));
+bk.addEventListener('touchstart', (e) => { e.preventDefault(); playNote(noteName, o); }, {passive:false});
+bk.addEventListener('touchend', (e) => { e.preventDefault(); stopNote(noteName, o); }, {passive:false});
+wrapper.appendChild(bk);
+}
+}
+container.appendChild(wrapper);
+updateOctaveDisplay();
+}
+
+const keyToNote = {
+'a': ['C',0], 'w': ['C#',0], 's': ['D',0], 'e': ['D#',0], 'd': ['E',0],
+'f': ['F',0], 't': ['F#',0], 'g': ['G',0], 'y': ['G#',0], 'h': ['A',0],
+'u': ['A#',0], 'j': ['B',0], 'k': ['C',1], 'o': ['C#',1], 'l': ['D',1],
+'p': ['D#',1], ';': ['E',1], "'": ['F',1]
+};
+
+document.addEventListener('keydown', (e) => {
+if (e.repeat) return;
+if (e.key === 'z' || e.key === 'Z') { changeOctave(-1); return; }
+if (e.key === 'x' || e.key === 'X') { changeOctave(1); return; }
+const key = e.key.toLowerCase();
+if (keyToNote[key]) {
+const [note, octOffset] = keyToNote[key];
+const oct = currentOctave + octOffset;
+if (oct >= MIN_OCTAVE && oct <= MAX_OCTAVE) {
+playNote(note, oct);
+}
+}
+});
+
+document.addEventListener('keyup', (e) => {
+const key = e.key.toLowerCase();
+if (keyToNote[key]) {
+const [note, octOffset] = keyToNote[key];
+const oct = currentOctave + octOffset;
+if (oct >= MIN_OCTAVE && oct <= MAX_OCTAVE) {
+stopNote(note, oct);
+}
+}
+});
+
+function changeOctave(delta) {
+const newOct = Math.max(MIN_OCTAVE, Math.min(MAX_OCTAVE, currentOctave + delta));
+if (newOct !== currentOctave) {
+currentOctave = newOct;
+updateOctaveDisplay();
+}
+}
+
+function updateOctaveDisplay() {
+document.getElementById('octaveDisplay').textContent = `Octave ${currentOctave}`;
+}
+
+document.getElementById('volumeSlider').addEventListener('input', (e) => {
+volumeNode.gain.value = e.target.value / 100;
+});
+
+document.getElementById('toneSelect').addEventListener('change', () => {
+Object.keys(activeNotes).forEach(k => {
+const parts = k.match(/^([A-G]#?)(\d)$/);
+if (parts) stopNote(parts[1], parseInt(parts[2]));
+});
+});
+
+buildPiano();
+</script>
+
+<!-- Related Tools -->
+<link rel="stylesheet" href="https://webtools-cn.github.io/tools-site/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://webtools-cn.github.io/tools-site/related-tools.js"></script>
+
+</body>
+</html>
