@@ -3719,7 +3719,7 @@ p.subtitle{color:#94a3b8;margin-bottom:24px}
   <div class="no-results" id="noResults" style="display:none">
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
     <p>未找到匹配的工具</p>
-  
+  </div>
     <div class="tool-card" data-cats="utility">
       <div class="icon">🔤</div>
       <h3>变位词查找器 · Anagram生成</h3>
@@ -6177,6 +6177,63 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
 }
+</script>
+<script>
+(function(){
+  var searchInput = document.getElementById('searchInput');
+  var categoryTags = document.getElementById('categoryTags');
+  var toolsGrid = document.getElementById('toolsGrid');
+  var resultCount = document.getElementById('resultCount');
+  var noResults = document.getElementById('noResults');
+  if (!searchInput || !categoryTags || !toolsGrid || !resultCount || !noResults) return;
+  var cards = Array.from(document.querySelectorAll('.tool-card'));
+  var currentCat = 'all';
+  var currentQuery = '';
+  // Map filter tag short codes to possible data-cats values on tool cards
+  var catMap = {
+    'dev': ['dev', '开发工具', '开发者工具'],
+    'utility': ['utility', '实用工具'],
+    'office': ['office', '办公工具'],
+    'health': ['health', '健康工具'],
+    'math': ['math', '数学工具']
+  };
+  function updateFilter() {
+    var q = currentQuery.toLowerCase().trim();
+    var visible = 0;
+    var allowedCats = catMap[currentCat] || [];
+    cards.forEach(function(card) {
+      var cardCat = (card.dataset.cats || '').toLowerCase();
+      var catMatch = currentCat === 'all' || allowedCats.some(function(c) { return cardCat === c.toLowerCase(); });
+      var textMatch = !q || (card.textContent || '').toLowerCase().indexOf(q) !== -1;
+      if (catMatch && textMatch) {
+        card.classList.remove('hidden');
+        visible++;
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+    if (visible === 0) {
+      noResults.style.display = 'block';
+      toolsGrid.style.display = 'none';
+    } else {
+      noResults.style.display = 'none';
+      toolsGrid.style.display = 'grid';
+    }
+    resultCount.textContent = visible > 0 ? '找到 ' + visible + ' 个工具' : '';
+  }
+  searchInput.addEventListener('input', function() {
+    currentQuery = this.value;
+    updateFilter();
+  });
+  categoryTags.addEventListener('click', function(e) {
+    var tag = e.target.closest('.category-tag');
+    if (!tag) return;
+    Array.from(categoryTags.children).forEach(function(t) { t.classList.remove('active'); });
+    tag.classList.add('active');
+    currentCat = tag.dataset.cat;
+    updateFilter();
+  });
+})();
 </script>
 </body>
 </html>
