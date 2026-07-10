@@ -139,6 +139,7 @@ def has_existing_citation(html, lang, tool_key):
     """Check if citation already exists for this tool in the HTML.
     Detection: check if the authoritative reference URLs from our citation
     are already present in the HTML (with nofollow attribute).
+    Falls back to checking question+answer text for citations without URLs.
     """
     if tool_key not in CITE_SOURCES:
         return False
@@ -153,14 +154,19 @@ def has_existing_citation(html, lang, tool_key):
         # Check that ALL unique URLs from our citation are present
         urls_found = sum(1 for url in unique_urls if url in html)
         if urls_found == len(unique_urls):
-            # ALL citation URLs found → citation already exists
             return True
         elif urls_found > 0:
-            # Some URLs found → might be partial. Check more carefully.
-            # If the specific question text AND nofollow attribute are both found
             fingerprint = faq_q[:30]
             if fingerprint in html and 'rel="nofollow"' in html:
                 return True
+    
+    # For citations without URLs (e.g., age-calculator with Gregorian calendar),
+    # check if the question text AND a unique snippet of the answer exist
+    if not unique_urls:
+        fingerprint_q = faq_q[:30]
+        fingerprint_a = faq_a[:40]
+        if fingerprint_q in html and fingerprint_a in html:
+            return True
     
     return False
 
