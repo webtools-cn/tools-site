@@ -267,8 +267,9 @@ def find_insert_position_before_footer(html):
     return None
 
 
-def add_faq_section(html, lang):
-    """Add a basic FAQ section to a tool page that doesn't have one."""
+def add_faq_section_with_citation(html, lang, cite_q, cite_a):
+    """Create a complete FAQ section (generic items + citation) for tools with none.
+    Returns the HTML with FAQ section inserted before footer."""
     cn_title = "❓ 常见问题"
     en_title = "❓ Frequently Asked Questions"
     
@@ -283,6 +284,12 @@ def add_faq_section(html, lang):
     <h3>数据会经过服务器吗？</h3>
     <p>不会。本工具是纯前端应用，所有操作都在您的浏览器中本地完成，数据绝不离开您的设备。</p>
   </div>
+    <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <h3 itemprop="name">{cite_q}</h3>
+      <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <p itemprop="text">{cite_a}</p>
+      </div>
+    </div>
 """
     else:
         faq_section = f"""
@@ -295,6 +302,12 @@ def add_faq_section(html, lang):
     <h3>Are my files uploaded to a server?</h3>
     <p>Absolutely not. This is a purely client-side application. All processing happens locally in your browser — your data never leaves your device.</p>
   </div>
+    <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <h3 itemprop="name">{cite_q}</h3>
+      <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <p itemprop="text">{cite_a}</p>
+      </div>
+    </div>
 """
     
     insert_pos = find_insert_position_before_footer(html)
@@ -334,33 +347,26 @@ def process_tool(tool_dir, langs=['cn', 'en']):
         
         faq_q, faq_a = cite_data[lang]['faq']
         
-        # Try to find FAQ section end
+        # Try to find existing FAQ section end
         insert_pos = find_faq_end_position(html)
         
-        # If no FAQ section found, create one
         if insert_pos is None:
-            print(f"  📝 No FAQ section found, creating one...")
-            new_html = add_faq_section(html, lang)
+            # No FAQ section → create one with generic items + citation in one shot
+            print(f"  📝 No FAQ section found, creating one with citation...")
+            new_html = add_faq_section_with_citation(html, lang, faq_q, faq_a)
             if new_html is None:
-                print(f"  ❌ Could not find insertion point")
+                print(f"  ❌ Could not find insertion point (footer not found)")
                 continue
-            html = new_html
-            # Re-find the insertion point (now FAQ exists)
-            insert_pos = find_faq_end_position(html)
-            if insert_pos is None:
-                print(f"  ❌ Still cannot find FAQ section after creation")
-                continue
-        
-        # Build the new FAQ item
-        faq_html = f"""
+        else:
+            # FAQ exists → add citation item at the end of FAQ section
+            faq_item_html = f"""
     <div class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
       <h3 itemprop="name">{faq_q}</h3>
       <div class="faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
         <p itemprop="text">{faq_a}</p>
       </div>
     </div>"""
-        
-        new_html = html[:insert_pos] + faq_html + html[insert_pos:]
+            new_html = html[:insert_pos] + faq_item_html + html[insert_pos:]
         
         if DRY_RUN:
             print(f"  🔍 [DRY RUN] Would add to {lang.upper()}: {faq_q[:40]}...")
