@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Free online Photo Collage Maker. Combine multiple images into beautiful grids. Adjust layout, spacing, rounded corners, and background color. 100% client-side, no upload needed.">
+<meta name="keywords" content="photo collage,collage maker,image grid,photo grid,picture collage,image combiner,photo layout,grid maker">
+<title>Photo Collage Maker - Free Online Image Grid Creator</title>
+<link rel="canonical" href="https://webtools-cn.github.io/tools-site/en/image-collage-maker/">
+<meta property="og:title" content="Photo Collage Maker - Free Online Image Grid Creator">
+<meta property="og:description" content="Free online Photo Collage Maker. Combine multiple images into beautiful grids. 100% client-side.">
+<meta property="og:url" content="https://webtools-cn.github.io/tools-site/en/image-collage-maker/">
+<meta property="og:type" content="website">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Photo Collage Maker","applicationCategory":"MultimediaApplication","operatingSystem":"Web","description":"Free online Photo Collage Maker.","offers":{"@type":"Offer","price":"0"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is the Collage Maker free?","acceptedAnswer":{"@type":"Answer","text":"Yes, completely free with no registration."}},
+{"@type":"Question","name":"Do images upload to a server?","acceptedAnswer":{"@type":"Answer","text":"No. All processing is done locally in your browser via Canvas API."}},
+{"@type":"Question","name":"How many images can I combine?","acceptedAnswer":{"@type":"Answer","text":"Up to 6 images. Grid layouts from 1x1 to 3x3 are supported."}},
+{"@type":"Question","name":"What output sizes are available?","acceptedAnswer":{"@type":"Answer","text":"Small (300px/cell), Medium (600px/cell), or Large (1000px/cell). Downloaded as PNG."}}
+]}</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:900px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.header h1{font-size:1.5rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}.nav-back a{color:#64748b}
+.section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.upload-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.upload-cell{aspect-ratio:1;background:#0f172a;border:2px dashed rgba(148,163,184,.15);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;overflow:hidden;position:relative;min-height:120px}
+.upload-cell:hover{border-color:rgba(6,182,212,.4)}
+.upload-cell.has-image{border-style:solid;border-color:rgba(6,182,212,.25)}
+.upload-cell .icon{font-size:1.5rem;color:#475569}
+.upload-cell .text{color:#475569;font-size:.7rem;margin-top:4px}
+.upload-cell img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
+.upload-cell .remove-btn{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.7);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;cursor:pointer;z-index:2;display:none;align-items:center;justify-content:center}
+.upload-cell:hover .remove-btn{display:flex}
+.upload-cell input{display:none}
+.control-row{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.control-row label{color:#94a3b8;font-size:.82rem}
+.control-row select,.control-row input[type=color],.control-row input[type=number]{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:6px 10px;color:#e2e8f0;font-size:.82rem;outline:none}
+.control-row input[type=number]{width:60px}
+.btn{padding:8px 20px;border:none;border-radius:8px;font-size:.85rem;cursor:pointer;transition:all .2s;font-weight:600}
+.btn-primary{background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 4px 15px rgba(6,182,212,.3)}
+.btn-success{background:linear-gradient(135deg,#10b981,#059669);color:#fff}
+.btn-success:hover{transform:translateY(-2px);box-shadow:0 4px 15px rgba(16,185,129,.3)}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+#collagePrev{width:100%;max-width:600px;height:auto;margin:12px auto;display:block;border-radius:8px}
+.faq-item{margin-bottom:16px;border-bottom:1px solid rgba(148,163,184,.08);padding-bottom:16px}
+.faq-item:last-child{border-bottom:none}
+.faq-item h3{color:#f1f5f9;font-size:.95rem;margin-bottom:4px}
+.faq-item p{color:#94a3b8;font-size:.85rem;margin-top:6px;line-height:1.7}
+.footer{text-align:center;color:#64748b;font-size:.85rem;margin-top:32px;padding-top:20px;border-top:1px solid rgba(148,163,184,.08)}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header"><h1>🖼️ Photo Collage Maker</h1><div class="lang-switch"><a href="../image-collage-maker/">中文</a><a href="index.html" class="active">EN</a></div></div>
+<div class="nav-back"><a href="../index.html">← Back to Home</a></div>
+<div class="section">
+<h2>Select Images (up to 6)</h2>
+<div class="upload-grid" id="uploadGrid"></div>
+<div class="control-row">
+<label>Layout:</label><select id="layoutRows" onchange="makeCollage()"><option value="1">1 Row</option><option value="2" selected>2 Rows</option><option value="3">3 Rows</option></select>
+<select id="layoutCols" onchange="makeCollage()"><option value="1">1 Col</option><option value="2" selected>2 Cols</option><option value="3">3 Cols</option></select>
+<label>Gap:</label><input type="number" id="gap" value="6" min="0" max="40" onchange="makeCollage()"><label>px</label>
+<label>Radius:</label><input type="number" id="radius" value="6" min="0" max="30" onchange="makeCollage()"><label>px</label>
+<label>BG:</label><input type="color" id="bgColor" value="#1e293b" onchange="makeCollage()">
+</div>
+<div class="control-row">
+<label>Size:</label><select id="outSize"><option value="300">Small</option><option value="600" selected>Medium</option><option value="1000">Large</option></select>
+</div>
+<div class="btn-group">
+<button class="btn btn-primary" onclick="makeCollage()">🔄 Generate Collage</button>
+<button class="btn btn-success" id="downloadCollageBtn" style="display:none" onclick="downloadCollage()">⬇️ Download PNG</button>
+</div>
+<canvas id="collagePrev" style="display:none"></canvas>
+</div>
+<div class="section"><div class="seo-content"><h2>How to Make a Photo Collage</h2>
+<ol style="padding-left:20px;margin-top:12px">
+<li style="margin-bottom:12px"><strong>Upload Images</strong><br><span style="color:#94a3b8;font-size:.9rem">Click empty cells to upload images. Up to 6 images. Click × to remove.</span></li>
+<li style="margin-bottom:12px"><strong>Customize Layout</strong><br><span style="color:#94a3b8;font-size:.9rem">Adjust rows, columns, gap spacing, corner radius, and background color.</span></li>
+<li style="margin-bottom:12px"><strong>Download</strong><br><span style="color:#94a3b8;font-size:.9rem">Choose output size and download your collage as PNG.</span></li>
+</ol></div></div>
+<div class="section">
+<h2>FAQ</h2>
+<div class="faq-item"><h3>How many images can I combine?</h3><p>Up to 6 images. Grid layouts range from 1×1 to 3×3. Only cells with images are included.</p></div>
+<div class="faq-item"><h3>Are my images uploaded to a server?</h3><p>No. All processing is done locally in your browser. Your images never leave your device.</p></div>
+<div class="faq-item"><h3>What are the output dimensions?</h3><p>Choose Small (300px/cell), Medium (600px/cell), or Large (1000px/cell). Final size = (cell size × columns + gap × (columns-1)).</p></div>
+</div>
+<div class="footer"><p>Photo Collage Maker - 100% Client-Side | <a href="../index.html">More Tools</a></p></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+const MAX_IMAGES=6;const images=new Array(MAX_IMAGES).fill(null);
+function initGrid(){const grid=document.getElementById('uploadGrid');grid.innerHTML='';for(let i=0;i<MAX_IMAGES;i++){const cell=document.createElement('div');cell.className='upload-cell';cell.id='cell-'+i;cell.innerHTML=`<div class="icon">📷</div><div class="text">Image ${i+1}</div><input type="file" accept="image/*" onchange="uploadImage(${i},this.files[0])"><button class="remove-btn" onclick="event.stopPropagation();removeImage(${i})">✕</button>`;cell.onclick=function(){this.querySelector('input').click()};grid.appendChild(cell)}}initGrid();
+function uploadImage(idx,file){if(!file||!file.type.startsWith('image/')){showToast('Please select an image');return}
+const r=new FileReader();r.onload=function(e){const img=new Image();img.onload=function(){images[idx]={img:img,dataUrl:e.target.result};const cell=document.getElementById('cell-'+idx);cell.innerHTML=`<img src="${e.target.result}"><input type="file" accept="image/*" onchange="uploadImage(${idx},this.files[0])"><button class="remove-btn" onclick="event.stopPropagation();removeImage(${idx})">✕</button>`;cell.classList.add('has-image');makeCollage()};img.src=e.target.result};r.readAsDataURL(file)}
+function removeImage(idx){images[idx]=null;const cell=document.getElementById('cell-'+idx);cell.innerHTML=`<div class="icon">📷</div><div class="text">Image ${idx+1}</div><input type="file" accept="image/*" onchange="uploadImage(${idx},this.files[0])"><button class="remove-btn" onclick="event.stopPropagation();removeImage(${idx})">✕</button>`;cell.classList.remove('has-image');makeCollage()}
+function makeCollage(){const rows=parseInt(document.getElementById('layoutRows').value);const cols=parseInt(document.getElementById('layoutCols').value);const gap=parseInt(document.getElementById('gap').value);const radius=parseInt(document.getElementById('radius').value);const bg=document.getElementById('bgColor').value;const sz=parseInt(document.getElementById('outSize').value);const valid=images.filter(i=>i!==null);if(!valid.length){document.getElementById('collagePrev').style.display='none';document.getElementById('downloadCollageBtn').style.display='none';return}
+const tc=Math.min(cols,valid.length);const tr=Math.ceil(valid.length/cols);const cw=sz*tc+gap*(tc-1);const ch=sz*tr+gap*(tr-1);const can=document.getElementById('collagePrev');can.width=cw;can.height=ch;const ctx=can.getContext('2d');ctx.fillStyle=bg;ctx.fillRect(0,0,cw,ch);valid.forEach((item,idx)=>{const col=idx%cols;const row=Math.floor(idx/cols);const x=col*(sz+gap);const y=row*(sz+gap);ctx.save();ctx.beginPath();ctx.moveTo(x+radius,y);ctx.lineTo(x+sz-radius,y);ctx.quadraticCurveTo(x+sz,y,x+sz,y+radius);ctx.lineTo(x+sz,y+sz-radius);ctx.quadraticCurveTo(x+sz,y+sz,x+sz-radius,y+sz);ctx.lineTo(x+radius,y+sz);ctx.quadraticCurveTo(x,y+sz,x,y+sz-radius);ctx.lineTo(x,y+radius);ctx.quadraticCurveTo(x,y,x+radius,y);ctx.closePath();ctx.clip();const img=item.img;const min=Math.min(img.width,img.height);const sx=img.width>img.height?(img.width-img.height)/2:0;const sy=img.height>img.width?(img.height-img.width)/2:0;ctx.drawImage(img,sx,sy,min,min,x,y,sz,sz);ctx.restore()});can.style.display='block';document.getElementById('downloadCollageBtn').style.display='inline-block'}
+function downloadCollage(){const c=document.getElementById('collagePrev');const l=document.createElement('a');l.download='collage.png';l.href=c.toDataURL('image/png');l.click();showToast('✅ Downloaded')}
+</script>
+<!-- Feedback -->
+<div id="feedback-container" style="max-width:900px;margin:0 auto;padding:0 16px 24px">
+<div style="background:#1e293b;border-radius:12px;padding:16px;border:1px solid rgba(148,163,184,.1)">
+<div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleFeedback()"><span style="color:#94a3b8;font-size:.85rem">💬 Feedback</span><span style="color:#64748b;font-size:.75rem" id="feedback-toggle">Expand</span></div>
+<div id="feedback-panel" style="display:none;margin-top:12px">
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none"><option value="feedback">💡 Feature Request</option><option value="bug">🐛 Bug Report</option><option value="other">💬 Other</option></select>
+<textarea id="feedback-text" placeholder="Describe your suggestion or issue..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span><button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">Submit</button></div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ Thanks! Submitted to GitHub Issues</div></div></div></div>
+<script>
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';document.getElementById('feedback-toggle').textContent=p.style.display==='block'?'Collapse':'Expand';}
+document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){const type=document.getElementById('feedback-type').value;const text=document.getElementById('feedback-text').value.trim();if(!text){showToast('Please enter your feedback');return;}
+const typeLabel={feedback:'💡 Feature Request',bug:'🐛 Bug Report',other:'💬 Other'}[type];const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);const body=encodeURIComponent('**Page**: '+window.location.href+'\n**Type**: '+typeLabel+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');document.getElementById('feedback-success').style.display='block';setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);}
+</script>
+<link rel="stylesheet" href="https://webtools-cn.github.io/tools-site/related-tools.css"><div id="related-tools-section" class="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div><script src="https://webtools-cn.github.io/tools-site/related-tools.js"></script>
+</body>
+</html>

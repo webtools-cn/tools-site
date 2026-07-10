@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="免费在线图片直方图分析工具。显示RGB三通道直方图、灰度直方图和图片基本信息。帮助摄影和设计人员分析图片曝光和色彩分布。纯前端处理，不上传服务器。">
+<meta name="keywords" content="图片直方图,histogram,RGB直方图,色彩分布,图片分析,曝光分析,摄影工具,图像处理,image histogram">
+<title>图片直方图分析工具 - Image Histogram Analyzer</title>
+<link rel="canonical" href="https://webtools-cn.github.io/tools-site/image-histogram/">
+<meta property="og:title" content="图片直方图分析工具 - Image Histogram Analyzer">
+<meta property="og:description" content="免费在线图片直方图分析工具。显示RGB和灰度直方图，分析图片色彩分布。纯前端处理。">
+<meta property="og:url" content="https://webtools-cn.github.io/tools-site/image-histogram/">
+<meta property="og:type" content="website">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"图片直方图分析工具","applicationCategory":"MultimediaApplication","operatingSystem":"Web","description":"免费在线图片直方图分析工具。","offers":{"@type":"Offer","price":"0"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"图片直方图工具是免费的吗？","acceptedAnswer":{"@type":"Answer","text":"是的，完全免费使用，无需注册。"}},
+{"@type":"Question","name":"图片会上传到服务器吗？","acceptedAnswer":{"@type":"Answer","text":"不会。所有分析都是通过浏览器Canvas API本地完成，图片数据不会上传。"}},
+{"@type":"Question","name":"直方图可以告诉我什么？","acceptedAnswer":{"@type":"Answer","text":"直方图显示每个亮度级别的像素数量。可以帮助你判断图片是否过曝、欠曝、对比度高低、色彩偏移等。是专业摄影和后期处理的重要参考。"}},
+{"@type":"Question","name":"支持哪些图片格式？","acceptedAnswer":{"@type":"Answer","text":"支持JPG、PNG、WebP、BMP等常见格式。"}}
+]}</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:900px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.header h1{font-size:1.5rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.nav-back a{color:#64748b}
+.section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.upload-area{background:#0f172a;border:2px dashed rgba(148,163,184,.2);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:all .3s;margin-bottom:16px}
+.upload-area:hover{border-color:rgba(6,182,212,.4)}
+.upload-area.dragover{border-color:#22d3ee;background:rgba(6,182,212,.08)}
+.upload-area input{display:none}
+.upload-area .icon{font-size:2rem;margin-bottom:6px}
+.upload-area .text{color:#94a3b8;font-size:.85rem}
+.preview-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.preview-box{flex:1;min-width:200px;background:#0f172a;border-radius:8px;padding:12px;border:1px solid rgba(148,163,184,.08)}
+.preview-box .label{color:#94a3b8;font-size:.78rem;margin-bottom:6px;text-align:center}
+.preview-box canvas#preview{width:100%;height:auto;border-radius:4px;max-height:300px;object-fit:contain}
+.hist-container{display:flex;flex-direction:column;gap:8px}
+.hist-item{display:flex;align-items:center;gap:8px}
+.hist-item .label{color:#94a3b8;font-size:.78rem;min-width:35px}
+.hist-item .bar{flex:1;height:60px;background:#0f172a;border-radius:4px;position:relative;overflow:hidden}
+.hist-item .bar canvas{position:absolute;top:0;left:0;width:100%;height:100%}
+.image-info{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;padding:10px;background:#0f172a;border-radius:8px}
+.image-info .info-item{color:#94a3b8;font-size:.82rem}
+.image-info .info-item span{color:#22d3ee}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{padding:8px 20px;border:none;border-radius:8px;font-size:.85rem;cursor:pointer;transition:all .2s;font-weight:600}
+.btn-primary{background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 4px 15px rgba(6,182,212,.3)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+.faq-item{margin-bottom:16px;border-bottom:1px solid rgba(148,163,184,.08);padding-bottom:16px}
+.faq-item:last-child{border-bottom:none}
+.faq-item h3{color:#f1f5f9;font-size:.95rem;margin-bottom:4px}
+.faq-item p{color:#94a3b8;font-size:.85rem;margin-top:6px;line-height:1.7}
+.footer{text-align:center;color:#64748b;font-size:.85rem;margin-top:32px;padding-top:20px;border-top:1px solid rgba(148,163,184,.08)}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header"><h1>📊 图片直方图分析</h1><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/image-histogram/">EN</a></div></div>
+<div class="nav-back"><a href="../index.html">← 返回首页</a></div>
+
+<div class="section">
+<h2>上传图片</h2>
+<div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event)">
+<div class="icon">📁</div>
+<div class="text">点击或拖拽图片到此处<br>支持 JPG / PNG / WebP</div>
+<input type="file" id="fileInput" accept="image/*" onchange="handleFile(this.files[0])">
+</div>
+
+<div id="analysisArea" style="display:none">
+<div class="preview-row">
+<div class="preview-box"><div class="label">原图预览</div><canvas id="preview"></canvas></div>
+</div>
+
+<div class="image-info" id="imageInfo"></div>
+
+<h2 style="margin-bottom:12px">直方图</h2>
+<div class="hist-container">
+<div class="hist-item"><div class="label">🔴 R</div><div class="bar"><canvas id="histR"></canvas></div></div>
+<div class="hist-item"><div class="label">🟢 G</div><div class="bar"><canvas id="histG"></canvas></div></div>
+<div class="hist-item"><div class="label">🔵 B</div><div class="bar"><canvas id="histB"></canvas></div></div>
+<div class="hist-item"><div class="label">⚪ 灰度</div><div class="bar"><canvas id="histGray"></canvas></div></div>
+</div>
+
+<div class="btn-group">
+<button class="btn btn-primary" onclick="analyze()">🔄 重新分析</button>
+</div>
+</div>
+</div>
+
+<div class="section">
+<div class="seo-content">
+<h2>如何使用直方图分析工具</h2>
+<ol style="padding-left:20px;margin-top:12px">
+<li style="margin-bottom:12px"><strong>上传图片</strong><br><span style="color:#94a3b8;font-size:.9rem">点击或拖拽图片到工具中，工具自动生成RGB和灰度直方图。</span></li>
+<li style="margin-bottom:12px"><strong>解读直方图</strong><br><span style="color:#94a3b8;font-size:.9rem">直方图左端代表暗部、右端代表亮部。峰值靠左表示偏暗，靠右表示偏亮，中间集中表示对比度低。</span></li>
+<li style="margin-bottom:12px"><strong>查看图片信息</strong><br><span style="color:#94a3b8;font-size:.9rem">显示图片尺寸、平均亮度、RGB通道平均值等技术参数。</span></li>
+</ol>
+</div>
+</div>
+
+<div class="section">
+<h2>常见问题</h2>
+<div class="faq-item"><h3>直方图怎么看？</h3><p>直方图的横轴是从0（全黑）到255（全白）的亮度级别，纵轴是该亮度级别的像素数量。如果左侧堆积说明偏暗（欠曝），右侧堆积说明偏亮（过曝），中间有峰说明对比度好。</p></div>
+<div class="faq-item"><h3>RGB直方图和灰度直方图有什么区别？</h3><p>RGB直方图分别显示红、绿、蓝三个通道的像素分布，帮助你分析色彩偏移。灰度直方图则是亮度信息的综合表现，用于分析曝光和对比度。</p></div>
+<div class="faq-item"><h3>图片数据安全吗？</h3><p>100%安全。所有分析都在浏览器本地完成，图片数据不会上传到任何服务器，你可以放心使用。</p></div>
+<div class="faq-item"><h3>支持什么图片格式？</h3><p>支持JPG、PNG、WebP、BMP、GIF等常见图片格式。PNG支持透明通道。</p></div>
+</div>
+
+<div class="footer"><p>图片直方图分析 - 纯前端本地处理 | <a href="../index.html">更多工具</a></p></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+let imgData = null;
+
+function handleFile(file){if(!file||!file.type.startsWith('image/')){showToast('请选择图片文件');return}
+const r=new FileReader();r.onload=function(e){const img=new Image();img.onload=function(){showPreview(img);analyzeImage(img)};img.src=e.target.result};r.readAsDataURL(file)}
+
+function handleDrop(e){e.preventDefault();document.getElementById('uploadArea').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)handleFile(f)}
+
+function showPreview(img){
+  document.getElementById('analysisArea').style.display='block';
+  const c=document.getElementById('preview');
+  c.width=img.width;c.height=img.height;
+  const ctx=c.getContext('2d');
+  ctx.drawImage(img,0,0);
+  const maxW=500;const s=Math.min(1,maxW/img.width);
+  c.style.width=(img.width*s)+'px';c.style.height=(img.height*s)+'px';
+}
+
+function analyzeImage(img){
+  const c=document.createElement('canvas');
+  c.width=img.width;c.height=img.height;
+  const ctx=c.getContext('2d');
+  ctx.drawImage(img,0,0);
+  const imageData=ctx.getImageData(0,0,c.width,c.height);
+  imgData=imageData.data;
+  
+  // Calculate histograms
+  const histR=new Uint32Array(256),histG=new Uint32Array(256),histB=new Uint32Array(256),histGray=new Uint32Array(256);
+  let total=0,rSum=0,gSum=0,bSum=0;
+  for(let i=0;i<imgData.length;i+=4){
+    const r=imgData[i],g=imgData[i+1],b=imgData[i+2];
+    histR[r]++;histG[g]++;histB[b]++;
+    const gray=Math.round(0.299*r+0.587*g+0.114*b);
+    histGray[gray]++;
+    total++;rSum+=r;gSum+=g;bSum+=b;
+  }
+  
+  // Show info
+  document.getElementById('imageInfo').innerHTML=`
+    <div class="info-item">尺寸: <span>${c.width} × ${c.height}</span></div>
+    <div class="info-item">像素: <span>${(c.width*c.height).toLocaleString()}</span></div>
+    <div class="info-item">平均亮度: <span>${Math.round((rSum+gSum+bSum)/(3*total))}</span></div>
+    <div class="info-item">R均值: <span>${Math.round(rSum/total)}</span></div>
+    <div class="info-item">G均值: <span>${Math.round(gSum/total)}</span></div>
+    <div class="info-item">B均值: <span>${Math.round(bSum/total)}</span></div>
+  `;
+  
+  drawHist('histR', histR, '#ff4444');
+  drawHist('histG', histG, '#44cc44');
+  drawHist('histB', histB, '#4488ff');
+  drawHist('histGray', histGray, '#ffffff');
+}
+
+function drawHist(canvasId, data, color){
+  const c=document.getElementById(canvasId);
+  const w=256,h=60;
+  c.width=w;c.height=h;
+  const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,w,h);
+  
+  const max=Math.max(1,...data);
+  ctx.fillStyle=color+'44';
+  ctx.strokeStyle=color;
+  ctx.lineWidth=1;
+  
+  ctx.beginPath();
+  ctx.moveTo(0,h);
+  for(let i=0;i<256;i++){
+    const barH=(data[i]/max)*h;
+    ctx.lineTo(i,h-barH);
+  }
+  ctx.lineTo(255,h);
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.beginPath();
+  for(let i=0;i<256;i++){
+    const barH=(data[i]/max)*h;
+    if(i===0) ctx.moveTo(i,h-barH);
+    else ctx.lineTo(i,h-barH);
+  }
+  ctx.stroke();
+}
+
+function analyze(){if(imgData)analyzeImage(document.getElementById('preview'))}
+</script>
+
+<!-- Feedback -->
+<div id="feedback-container" style="max-width:900px;margin:0 auto;padding:0 16px 24px">
+<div style="background:#1e293b;border-radius:12px;padding:16px;border:1px solid rgba(148,163,184,.1)">
+<div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleFeedback()"><span style="color:#94a3b8;font-size:.85rem">💬 反馈建议</span><span style="color:#64748b;font-size:.75rem" id="feedback-toggle">展开</span></div>
+<div id="feedback-panel" style="display:none;margin-top:12px">
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none"><option value="feedback">💡 功能建议</option><option value="bug">🐛 问题反馈</option><option value="other">💬 其他</option></select>
+<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span><button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button></div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div></div></div></div>
+<script>
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';document.getElementById('feedback-toggle').textContent=p.style.display==='block'?'收起':'展开';}
+document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){const type=document.getElementById('feedback-type').value;const text=document.getElementById('feedback-text').value.trim();if(!text){showToast('请输入反馈内容');return;}
+const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'[type];const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');document.getElementById('feedback-success').style.display='block';setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);}
+</script>
+<link rel="stylesheet" href="https://webtools-cn.github.io/tools-site/related-tools.css"><div id="related-tools-section" class="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div><script src="https://webtools-cn.github.io/tools-site/related-tools.js"></script>
+</body>
+</html>
