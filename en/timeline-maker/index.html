@@ -220,7 +220,7 @@ a{color:#06b6d4;text-decoration:none}
 
   <div class="section"><h2>FAQ</h2>
     <div class="faq-item"><h3>What is a timeline used for?</h3><p>A timeline is a visual tool that displays events in chronological order. Great for project milestones, historical events, personal growth journeys, product version history, and more.</p></div>
-    <div class="faq-item"><h3>Can I export as an image?</h3><p>Currently use browser screenshot function to capture the timeline. Right-click → Screenshot or use browser screenshot tools. Future versions will support direct PNG/SVG export.</p></div>
+    <div class="faq-item"><h3>Can I export as an image?</h3><p>Yes! Click the "Export as Image" button to save your timeline as a PNG image (powered by html2canvas). If the export button doesn't work, you can use your browser's screenshot tool as a fallback.</p></div>
     <div class="faq-item"><h3>Can events be reordered?</h3><p>Events are displayed in chronological order of addition. Add events in sequence for correct timeline display.</p></div>
     <div class="faq-item"><h3>Where is data stored?</h3><p>All data is stored in browser localStorage. Data persists across sessions but clearing cache will erase it.</p></div>
   </div>
@@ -236,18 +236,32 @@ function addEvent(){
   var label=document.getElementById("tlLabel").value.trim();
   var desc=document.getElementById("tlDesc").value.trim();
   var color=document.getElementById("tlColor").value;
-  if(!date||!label){toast("请填写日期和事件标题");return}
+  if(!date||!label){toast("Please fill in date and event title");return}
   events.push({id:Date.now(),date:date,label:label,desc:desc,color:color});
   document.getElementById("tlDate").value="";document.getElementById("tlLabel").value="";document.getElementById("tlDesc").value="";
-  save();toast("事件已添加")
+  save();toast("Event added")
 }
 function deleteEvent(id){events=events.filter(function(e){return e.id!==id});save()}
-function clearEvents(){if(confirm("确定清空所有事件？")){events=[];save();toast("已清空")}}
+function clearEvents(){if(confirm("Clear all events?")){events=[];save();toast("Cleared")}}
 function exportTimeline(){
   var el=document.getElementById("timelinePreview");
-  if(events.length===0){toast("请先添加事件");return}
-  // Use html2canvas if available, otherwise fallback to print screen instruction
-  toast("请截图保存（截图工具或浏览器截图）")
+  if(events.length===0){toast("Please add events first");return}
+  if(typeof html2canvas==="undefined"){
+    var s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    s.onload=function(){doExport(el)};
+    s.onerror=function(){toast("Failed to load export library. Use browser screenshot instead.")};
+    document.body.appendChild(s);
+  }else{doExport(el)}
+}
+function doExport(el){
+  html2canvas(el,{backgroundColor:"#0f172a",scale:2,useCORS:true,logging:false}).then(function(canvas){
+    var link=document.createElement("a");
+    link.download=document.getElementById("tlTitle").value.replace(/\s+/g,"-")+"-timeline.png";
+    link.href=canvas.toDataURL("image/png");
+    link.click();
+    toast("Timeline exported as image")
+  }).catch(function(){toast("Export failed. Use browser screenshot instead.")})
 }
 function render(){
   var lang=document.documentElement.lang;

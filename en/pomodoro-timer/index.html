@@ -341,6 +341,11 @@ a{color:#06b6d4;text-decoration:none}
       <label>Desktop Notifications</label>
       <input type="checkbox" id="notificationEnabled" onchange="updateSetting('notificationEnabled',this.checked);requestNotification()">
     </div>
+    <div class="setting-row" style="border-bottom:none;justify-content:flex-start;gap:8px">
+      <button class="btn btn-primary" onclick="exportData()" style="padding:8px 16px;font-size:.85rem">📤 Export Data</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('importFileInput').click()" style="padding:8px 16px;font-size:.85rem">📥 Import Data</button>
+      <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
   </div>
 
   <div class="info-section">
@@ -664,6 +669,45 @@ function updateSetting(key, value) {
     modeConfig.longBreak.minutes = settings.longBreakDuration;
     if (!isRunning) { totalTime = modeConfig[currentMode].minutes * 60; timeLeft = totalTime; updateTimerDisplay(); }
   }
+}
+function exportData() {
+  var data = {
+    settings: settings,
+    tasks: tasks,
+    stats: { pomos: completedPomos, date: new Date().toDateString() }
+  };
+  var blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'pomodoro-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Data exported');
+}
+function importData(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      if (data.settings) { settings = data.settings; saveSettings(); applySettings(); }
+      if (data.tasks) { tasks = data.tasks; saveTasks(); renderTasks(); }
+      if (data.stats && data.stats.date === new Date().toDateString()) {
+        completedPomos = data.stats.pomos || 0;
+        saveStats();
+        updateStats();
+      }
+      showToast('Data imported');
+    } catch(err) {
+      showToast('Import failed: invalid file format');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
 }
 function requestNotification() {
   if ('Notification' in window && Notification.permission === 'default') {
