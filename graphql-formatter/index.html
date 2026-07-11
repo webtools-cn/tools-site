@@ -315,12 +315,24 @@ function beautifyGQL(input, preserveComments) {
       continue;
     }
     
-    result += '  '.repeat(indent) + trimmed + '\n';
+    let openCount = (trimmed.match(/\{/g) || []).length;
+    let closeCount = (trimmed.match(/\}/g) || []).length;
     
-    // Increase indent after opening braces, decrease after closing
-    const openCount = (trimmed.match(/\{/g) || []).length;
-    const closeCount = (trimmed.match(/\}/g) || []).length;
-    indent += openCount - closeCount;
+    // Find first brace character on the line
+    let firstBrace = trimmed.match(/[{}]/);
+    
+    if (firstBrace && firstBrace[0] === '}') {
+      // Line starts with closing brace(s): decrease indent BEFORE output
+      indent = Math.max(0, indent - closeCount);
+      result += '  '.repeat(indent) + trimmed + '\n';
+      // Re-add any opening braces that came after the closing ones
+      indent += openCount;
+    } else {
+      // No leading closing braces: output then adjust
+      result += '  '.repeat(indent) + trimmed + '\n';
+      indent += openCount - closeCount;
+    }
+    
     if (indent < 0) indent = 0;
   }
   
