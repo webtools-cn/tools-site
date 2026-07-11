@@ -4,6 +4,68 @@
 
 ---
 
+## 2026-07-12 02:15 - 质量检测 + 紧急修复 + 体验评审
+
+### 🔧 已修复问题
+
+1. **首页缺失11个工具卡片**：补充了 cidr-calculator, gif-resizer, image-crop, image-flip, image-to-icon, jwt-parser, mime-type-checker, random-text-generator, regex-visualizer, screenshot-to-pdf, typescript-formatter 的首页卡片，卡片数从1154→1165，匹配实际工具数。
+
+2. **删除无效分类标签**：移除首页 `fun`（趣味娱乐）分类标签（24个卡片有 `data-cats="fun"` 但无法被分类标签筛选到）。
+
+3. **Sitemap 重新生成**：2334个URL（之前2311），覆盖完整。
+
+4. **删除空目录**：pdf-page-numbers/ 为空目录，已删除。
+
+### 📊 质检状态
+- 首页卡片：1165 ✅
+- Sitemap：2334 URLs ✅
+- 分类筛选：data-cat/data-cats 统一为英文短码 ✅
+- SEO标签：通过 ✅
+- 安全：通过 ✅
+- 功能抽样：通过 ✅
+
+### 工具体验评审（5个工具）
+
+#### 1. color-converter（颜色格式转换器）⭐⭐⭐⭐½
+- 优点：5种格式互转（HEX/RGB/HSL/HSV/CMYK）、颜色预览、相近色、历史记录、默认示例值
+- 可改进：无批量颜色处理、无透明度支持（工具自己FAQ中也承认）
+- 竞品参考：colors.muz.li 提供调色板和色值命名
+- 优先级：低
+
+#### 2. loan-calculator（贷款计算器）⭐⭐⭐
+- ⚠️ **界面混用中英文**：标题中文但表单全是英文（"Loan Amount", "Calculate", "Equal Payment"）
+- ⚠️ JS全部压缩成一行，无法维护
+- 优点：等额本息/等额本金双模式、默认值合理
+- 可改进：中文化界面、显示完整还款计划（当前仅36期）
+- 优先级：中
+
+#### 3. photo-editor（图片编辑器）⭐⭐⭐⭐
+- 优点：亮度/对比度/饱和度/模糊/6种滤镜/旋转/翻转，功能完善
+- 可改进：JS压缩成一行、模糊算法用Box Blur性能差（大图卡顿）、无撤销功能
+- 竞品参考：pixlr.com 提供图层和更多滤镜
+- 优先级：中（JS可读性）+ 低（功能增强）
+
+#### 4. ppi-calculator（PPI计算器）⭐⭐⭐⭐⭐
+- **本批次最佳工具**
+- 优点：预设设备列表（iPhone/Mac/iPad/显示器）、视距计算、Retina判断、常见设备参考表
+- 细节：输入框有默认值、单位切换（cm/inch）、清空按钮
+- 无可改进项
+
+#### 5. pdf-page-numbers — 空目录，已删除
+
+### 体验优化待办
+| 优先级 | 问题 | 工具 |
+|--------|------|------|
+| 中 | 界面中英文混用，需要统一 | loan-calculator |
+| 中 | JS压缩成一行，无法维护 | loan-calculator, photo-editor |
+| 低 | 无批量颜色处理/透明度 | color-converter |
+| 低 | 模糊算法性能差（大图） | photo-editor |
+
+### 首页优化待办（未完成）
+- 分类折叠展示：当前全量加载+48个默认显示，但无分类维度。建议改为分类折叠（每类默认6个+展开按钮），参考TinyWow
+
+---
+
 ## 2026-07-12 07:30 - 质量检测 + 体验评审
 
 ### v6 质量检测结果
