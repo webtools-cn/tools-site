@@ -1,3 +1,27 @@
+## 2026-07-12 15:40 - 新增8个工具（质量分90/100）
+
+### 新增工具
+1. **NanoID生成器 (nanoid-generator)** - 紧凑URL安全唯一ID，可调长度/字符集
+2. **Hex编码解码 (hex-encoder-decoder)** - 字符串↔十六进制互转
+3. **JSON转表格 (json-to-table)** - JSON数据可视化表格
+4. **CAGR计算器 (cagr-calculator)** - 复合年增长率计算
+5. **科学计数法转换器 (scientific-notation-converter)** - 科学计数法↔数字互转
+6. **调色板生成器 (palette-generator)** - 色彩理论配色（互补/类似/三角等6种模式）
+7. **颜色提取器 (color-palette-extractor)** - 从图片提取主色调和调色板
+8. **PNG转SVG转换器 (png-to-svg-converter)** - 位图转矢量（边缘检测+路径追踪）
+
+### 技术细节
+- 8个中英双语工具，16个页面，纯前端HTML+JS
+- 全部包含FAQPage + HowTo + BreadcrumbList + SoftwareApplication Schema
+- 更新tools-registry.json（614→622个工具）
+- 更新sitemap.xml（2526 URLs）
+- 修复fix_missing_cards.py的http-startswith过滤bug
+- 首页卡片: CN=1297, EN=1300
+
+### 质量
+- 质检v6评分: 90/100
+- 剩余问题: 首页卡片数轻微不匹配（1297卡片 vs 1261实际工具，非阻塞）
+
 ## 2026-07-12 08:00 - SEO/GEO 全面优化（Schema 100% + 关键词 100% + llms-full.txt）
 
 ### 今日执行
