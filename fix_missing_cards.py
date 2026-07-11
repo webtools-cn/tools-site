@@ -10,7 +10,7 @@ with open('index.html') as f:
 card_slugs = set()
 for m in re.finditer(r'<a href="([^"]+)/"', content):
     slug = m.group(1).strip()
-    if slug and not slug.startswith('http') and slug != 'en':
+    if slug and not (slug.startswith('http://') or slug.startswith('https://')) and slug != 'en':
         card_slugs.add(slug)
 
 # Get all tool dirs (exclude non-tool dirs)
