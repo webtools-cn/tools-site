@@ -881,12 +881,16 @@
 ### 体验优化待办
 | 优先级 | 问题 | 工具 |
 |--------|------|------|
+| 高 | 英文首页分类标签名大小写不一致（Dev Tools/Developers/development/design/Design Tools/Utility/utility） | en/index.html |
+| 中 | age:30 被推断为sbyte而非int | json-to-csharp |
+| 中 | 输入框placeholder有示例但非默认值，用户需手动粘贴 | json-to-csharp |
 | 中 | 新任务随机分配象限→应手动选择 | priority-matrix |
 | 中 | 下拉菜单英文标签混用 | priority-matrix |
 | 中 | alert→toast替代 | text-to-docx |
 | 中 | JSZip CDN→本地化 | text-to-docx |
 | 中 | 界面英文→中文化 | text-to-slug |
 | 中 | 缺少中文拼音转换 | text-to-slug |
+| 低 | EN首页部分卡片meta标签与CN不一致 | en/index.html |
 | 低 | 颜色历史不持久化 | image-color-picker |
 | 低 | 导出HTML含多余反馈代码 | markdown-preview |
 | 低 | 无品牌色收藏 | image-color-picker |
@@ -897,3 +901,29 @@
 - 质检脚本3个问题为统计口径偏差，非功能缺陷
 - 工具平均质量3.8/5 ⭐⭐⭐⭐，核心功能正常
 - 通用可改进点：alert→toast统一、中文界面一致性、CDN外链本地化
+
+---
+
+## 2026-07-12 05:57 - 质检+体验评审
+
+### 紧急问题验证
+- ✅ **#1 分类筛选**：data-cat/data-cats已统一为英文短码，浏览器实测正常（dev=452个，image=97个）
+- ✅ **#2 首页全量加载**：已有48个默认限制+「查看全部」按钮，分类筛选+搜索均正常
+
+### 体验评审（3个工具）
+| 工具 | 评分 | 问题 |
+|------|:----:|------|
+| json-to-csharp | ⭐⭐⭐⭐ | age:30推断为sbyte(非int)；placeholder无默认填充，需手动粘贴JSON |
+| mime-type-checker | ⭐⭐⭐⭐ | 功能正常，搜索响应快，可增加分类标签 |
+| css-keyframe-animation | ⭐⭐⭐⭐⭐ | 预设动画丰富，参数调节直观，复制功能正常 |
+
+### 竞品发现
+- json-to-csharp竞品（json2csharp.com）提供「粘贴URL加载JSON」+「PascalCase/camelCase切换」+「生成记录历史」
+- 建议：加一个「加载示例」按钮自动填充placeholder的JSON
+
+### 新发现
+- **EN首页分类标签名大小写不一致**（Dev Tools/Developers/development/Design Tools/design/Utility/utility）— 影响SEO和用户体验
+- 首页实际工具目录1274个，卡片1220个（部分新工具未添加卡片）— 非阻塞
+
+### 修复
+- 无代码修改（紧急问题已在上次修复，本次仅验证）
