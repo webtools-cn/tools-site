@@ -4,6 +4,32 @@
 
 ---
 
+## 2026-07-12 02:50 - 新增5个工具
+
+### 新增工具
+| # | 工具 | 功能 | 分类 |
+|---|------|------|------|
+| 1 | **SHA-1生成器** | 160位哈希，纯JS实现SHA-1算法 | 开发工具 |
+| 2 | **SHA-512生成器** | 512位哈希，Web Crypto API | 开发工具 |
+| 3 | **URL编解码工具** | encodeURIComponent/encodeURI双模式 | 开发工具 |
+| 4 | **Cron表达式解析器** | 5字段解析+下次执行预测+预设 | 开发工具 |
+| 5 | **文件校验和验证器** | MD5/SHA1/SHA256/SHA512文件哈希+对比验证 | 开发工具 |
+
+- **全部中英文双语**
+- **全部包含**: GA、FAQPage+HowTo+BreadcrumbList Schema、OG/Twitter标签、related-tools widget
+- **Git commit**: d59561eb7
+- **已push到GitHub**
+
+### 质检结果
+- v6质检自动运行，首页卡片+sitemap已自动修复
+- 质量通过
+
+### 下一步
+- 继续按growth-notes选型建议新增工具
+- 下次候选: punycode-converter, ssh-key-generator, ssl-checker, whois-lookup, mermaid-editor
+
+---
+
 ## 2026-07-12 02:15 - 质量检测 + 紧急修复 + 体验评审
 
 ### 🔧 已修复问题
