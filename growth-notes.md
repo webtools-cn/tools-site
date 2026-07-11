@@ -1,0 +1,473 @@
+# WebTools 流量增长笔记
+
+> 记录每次执行的发现、学习和行动，确保每次都有进步。
+
+---
+
+## 2026-07-12 07:30 - 质量检测 + 体验评审
+
+### v6 质量检测结果
+- **综合评分**: 98/100
+- **工具数**: 1154 中文 + 1150 英文
+- **首页卡片**: 1154 (匹配)
+- **sitemap**: 2311 URL (完整)
+- **问题**: 仅1个低优先级 — 3个工具缺英文版（base64-encode-decode, wave-generator, og-image-generator）
+
+### 🔴 紧急问题排查
+- **分类筛选**：已验证，`data-cat` 和 `data-cats` 均已统一为英文短码（dev/utility/pdf/...），`catMap` 正确映射，**筛选功能正常工作，无需修复**。
+- **首页全量加载**：已有 "显示前48个+查看更多" 机制（`INITIAL_LIMIT=48`），非完全全量。但无分类折叠，用户无法按分类浏览。
+
+### 工具体验评审（代码级审查5个工具）
+
+#### 1. text-similarity（文本相似度对比）
+- **评分**: ⭐⭐⭐⭐ (4/5)
+- **优点**: 多种算法（编辑距离/Jaccard/余弦/LCS）、差异视图、示例数据、反馈Widget
+- **可改进**:
+  - `computeDiff` 用朴素逐行对比，遇不同行直接标记del+add，不是真正的LCS diff（虽声称LCS但diff算法不一致）
+  - 差异视图缺少"并排对比"模式（side-by-side）
+  - 移动端两列变一列OK
+- **竞品参考**: 多数在线diff工具都提供 unified/split 两种视图
+- **优先级**: 中
+
+#### 2. pixel-converter（像素单位转换器）
+- **评分**: ⭐⭐⭐⭐½ (4.5/5)
+- **优点**: 预设PPI按钮（屏幕/Retina/打印）、6种单位卡片、反算功能、复制全部结果、实时计算
+- **可改进**:
+  - 反算用 `prompt()` — 体验差，应改为内联输入框
+  - `swapToCm()`/`swapToInch()` 用prompt而不是表单元素
+  - 缺少 REM 转换（前端常用）
+- **竞品参考**: 竞品像素转换器通常提供rem/em/vw/vh等CSS单位互转
+- **优先级**: 中（prompt→内联输入）
+
+#### 3. html-diff（HTML差异比较）
+- **评分**: ⭐⭐⭐⭐ (4/5)
+- **优点**: 示例代码预填、LCS回溯算法、行号显示、新增/删除/修改三色标记
+- **可改进**:
+  - 缺少字符级diff（仅行级），不能高亮行内具体变化
+  - 无并排对比视图
+  - 无"忽略空白"选项
+- **竞品参考**: diffchecker.com 提供行内字符级高亮
+- **优先级**: 中
+
+#### 4. vat-calculator（增值税计算器）
+- **评分**: ⭐⭐⭐⭐⭐ (5/5)
+- **优点**: 含税/不含税双向转换、多国税率预设、历史记录、实时计算（防抖500ms）、复制结果、Enter快捷键
+- **细节完善**: 历史限制20条、预设高亮、四舍五入到分、格式化金额
+- **无可改进项** — 本批次最佳工具
+
+#### 5. random-picker（随机选择器）
+- **评分**: ⭐⭐⭐⭐½ (4.5/5)
+- **优点**: 6种模板（硬币/骰子/是否/ABC/颜色/星期）、Fisher-Yates洗牌、允许重复、动画效果、历史记录、多分隔符支持
+- **可改进**:
+  - 动画效果标记为checked但代码中未看到实际动画实现（需浏览器验证）
+  - 缺少"权重"功能（某些选项权重更高）
+- **优先级**: 低
+
+### 总体结论
+- 工具整体质量高，核心功能正常
+- 通用问题：部分工具缺少"并排对比"视图、prompt() 替代内联表单、缺少字符级diff
+- 首页加载机制已存在但可优化分类折叠展示
+
+---
+
+## 2026-07-12 01:15 - 质量检测 + 体验评审
+
+### v6 质量检测结果
+- **综合评分**: 98/100
+- **工具数**: 1154 中文 + 1150 英文
+- **首页卡片**: 1154 (匹配)
+- **sitemap**: 2311 URL (完整)
+- **问题**: 仅1个低优先级 — 3个工具缺英文版（base64-encode-decode, wave-generator, og-image-generator）
+
+### 🔴 紧急问题排查
+- **分类筛选**：已验证，`data-cat` 和 `data-cats` 均已统一为英文短码（dev/utility/pdf/...），`catMap` 正确映射，**筛选功能正常工作，无需修复**。
+- **首页全量加载**：已有 "显示前48个+查看更多" 机制（`INITIAL_LIMIT=48`），非完全全量。但无分类折叠，用户无法按分类浏览。
+
+### 工具体验评审（代码级审查5个工具）
+
+#### 1. text-similarity（文本相似度对比）
+- **评分**: ⭐⭐⭐⭐ (4/5)
+- **优点**: 多种算法（编辑距离/Jaccard/余弦/LCS）、差异视图、示例数据、反馈Widget
+- **可改进**:
+  - `computeDiff` 用朴素逐行对比，遇不同行直接标记del+add，不是真正的LCS diff（虽声称LCS但diff算法不一致）
+  - 差异视图缺少"并排对比"模式（side-by-side）
+  - 移动端两列变一列OK
+- **竞品参考**: 多数在线diff工具都提供 unified/split 两种视图
+- **优先级**: 中
+
+#### 2. pixel-converter（像素单位转换器）
+- **评分**: ⭐⭐⭐⭐½ (4.5/5)
+- **优点**: 预设PPI按钮（屏幕/Retina/打印）、6种单位卡片、反算功能、复制全部结果、实时计算
+- **可改进**:
+  - 反算用 `prompt()` — 体验差，应改为内联输入框
+  - `swapToCm()`/`swapToInch()` 用prompt而不是表单元素
+  - 缺少 REM 转换（前端常用）
+- **竞品参考**: 竞品像素转换器通常提供rem/em/vw/vh等CSS单位互转
+- **优先级**: 中（prompt→内联输入）
+
+#### 3. html-diff（HTML差异比较）
+- **评分**: ⭐⭐⭐⭐ (4/5)
+- **优点**: 示例代码预填、LCS回溯算法、行号显示、新增/删除/修改三色标记
+- **可改进**:
+  - 缺少字符级diff（仅行级），不能高亮行内具体变化
+  - 无并排对比视图
+  - 无"忽略空白"选项
+- **竞品参考**: diffchecker.com 提供行内字符级高亮
+- **优先级**: 中
+
+#### 4. vat-calculator（增值税计算器）
+- **评分**: ⭐⭐⭐⭐⭐ (5/5)
+- **优点**: 含税/不含税双向转换、多国税率预设、历史记录、实时计算（防抖500ms）、复制结果、Enter快捷键
+- **细节完善**: 历史限制20条、预设高亮、四舍五入到分、格式化金额
+- **无可改进项** — 本批次最佳工具
+
+#### 5. random-picker（随机选择器）
+- **评分**: ⭐⭐⭐⭐½ (4.5/5)
+- **优点**: 6种模板（硬币/骰子/是否/ABC/颜色/星期）、Fisher-Yates洗牌、允许重复、动画效果、历史记录、多分隔符支持
+- **可改进**:
+  - 动画效果标记为checked但代码中未看到实际动画实现（需浏览器验证）
+  - 缺少"权重"功能（某些选项权重更高）
+- **优先级**: 低
+
+### 总体结论
+- 工具整体质量高，核心功能正常
+- 通用问题：部分工具缺少"并排对比"视图、prompt() 替代内联表单、缺少字符级diff
+- 首页加载机制已存在但可优化分类折叠展示
+
+---
+
+## 2026-07-12 07:30
+
+### 今日执行
+- **批量添加 OG/Twitter Card 标签**：为所有 2310 个工具页面（1153 英文 + 1157 中文）添加了完整的 Open Graph 和 Twitter Card meta 标签
+  - og:image: 2310/2310 页面 ✅
+  - og:title: 2310/2310 页面 ✅
+  - og:description: 2310/2310 页面 ✅
+  - twitter:card: 2310/2310 页面 ✅
+  - twitter:title/description/image: 2310/2310 页面 ✅
+  - Git commit: `ed707084b` - "SEO: Add complete Open Graph and Twitter Card meta tags to all 2310 tool pages"
+  - 已 push 到 GitHub
+- **sitemap.xml 优化**：添加 llms.txt 到 sitemap，方便 AI 爬虫发现
+  - Git commit: `984730e0c` - "SEO: Add llms.txt to sitemap.xml for AI crawler discovery"
+
+### 今日学习：GEO (Generative Engine Optimization) 前沿策略
+
+#### GEO 核心发现
+1. **GEO 与 SEO 的关系**：
+   - SEO 适配传统网页排名算法，GEO 适配 AI 大模型语义理解算法
+   - 两者是独立赛道，不是替代关系
+   - 2026 年 GEO 已成为独立优化领域
+
+2. **llms.txt 的重要性**（来自搜索研究）：
+   - llms.txt 是 AI 爬虫发现和理解网站内容的关键入口
+   - 应包含：网站描述、工具列表、FAQ、使用场景、与竞品的对比
+   - 需要定期更新，保持内容新鲜度
+   - 应放在网站根目录，并在 sitemap.xml 中引用
+
+3. **AI 爬虫权限**（robots.txt）：
+   - 必须允许：GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot, Google-Extended, anthropic-ai, CCBot
+   - 我们的 robots.txt 已完整配置 ✅
+
+4. **OG/Twitter Card 对 GEO 的影响**：
+   - AI 搜索引擎（如 Perplexity）在生成答案时会抓取 OG 标签
+   - og:image 提高社交分享点击率
+   - twitter:card 提高 Twitter/X 上的可见度
+   - 完整的 OG 标签帮助 AI 理解页面内容
+
+5. **GEO 最佳实践**（2026 年）：
+   - 内容组织成离散的、可引用的单元（discrete, citable units）
+   - 每个页面回答特定问题，不需要上下文
+   - 使用 FAQPage Schema 提供问答式内容
+   - 确保核心内容服务端渲染（SSR），不依赖 JavaScript
+   - 允许 AI 爬虫访问（不阻止 GPTBot 等）
+
+#### 我们的 GEO 现状评分
+| 维度 | 状态 | 评分 |
+|------|------|------|
+| robots.txt AI 权限 | 完整配置 7 个 AI Bot | ✅ 10/10 |
+| llms.txt | 已创建，内容完整 | ✅ 9/10 |
+| OG 标签覆盖 | 2310/2310 页面 | ✅ 10/10 |
+| Twitter Card 覆盖 | 2310/2310 页面 | ✅ 10/10 |
+| Sitemap 包含 llms.txt | 已添加 | ✅ 10/10 |
+| FAQPage Schema | 首页有，工具页部分有 | ⚠️ 7/10 |
+| HowTo Schema | 968 个英文页面有 | ⚠️ 8/10 |
+| BreadcrumbList | 952 个页面有 | ⚠️ 8/10 |
+| 内容新鲜度 | 每周更新 | ✅ 10/10 |
+| **总分** | | **92/100** |
+
+### 关键发现
+1. **GEO 是 2026 年的新赛道**：传统 SEO 和 GEO 并行，不能只做 SEO 不做 GEO
+2. **OG/Twitter 标签直接影响 AI 引用**：Perplexity/ChatGPT 在生成答案时会参考 OG 标签
+3. **llms.txt 需要持续更新**：每次新增工具都要更新 llms.txt
+4. **FAQPage Schema 是 GEO 的关键**：AI 搜索引擎喜欢引用结构化的问答内容
+5. **我们的 OG/Twitter 覆盖率从 ~0% 提升到 100%**：这是本次最大的进步
+
+### 可执行建议（立即行动）
+1. **高优先级**：
+   - ✅ 已完成：为所有 2310 个页面添加 OG/Twitter 标签
+   - ✅ 已完成：将 llms.txt 添加到 sitemap.xml
+   - 下次：为所有工具页添加 FAQPage Schema（当前只有首页有）
+   - 下次：创建 llms-full.txt（包含每个工具的详细描述）
+
+2. **中优先级**：
+   - 研究 Perplexity/ChatGPT 是否已引用我们（2-4 周后检查）
+   - 给热门工具页添加 HowTo Schema（如未添加的）
+   - 优化 llms.txt 内容，加入更多使用场景
+
+3. **低优先级**：
+   - 创建分类汇总页（/tools/pdf/, /tools/json/ 等）
+   - 研究 iLovePDF/Smallpdf 的变现策略
+
+### 反哺开发
+- **建议新增工具**（高流量类别）：
+  - 视频下载器（YouTube/TikTok/Instagram）
+  - AI 文章重写器/改写器
+  - 图片背景移除（纯前端 Canvas 实现）
+  - 图片压缩器（纯前端 Canvas 实现）
+
+### 下一步
+- **下次执行重点**：
+  1. 为所有工具页添加 FAQPage Schema（提升 GEO）
+  2. 创建 llms-full.txt（详细版 llms.txt）
+  3. 研究 Smallpdf 的变现策略
+  4. 检查 GSC 索引状态（sitemap 同步情况）
+  5. Reddit 轻量互动（upvote 技术贴）
+
+---
+
+## 2026-07-11 23:55
+
+### 今日执行（续）
+- **批量优化 meta title**：使用 Python 脚本自动优化了 585 个英文工具页的 title
+  - 策略：在 title 前加入 "Free" 或 "Free Online" 关键词
+  - 结果：571 个页面已包含关键词无需改动，585 个页面成功优化，0 个错误
+  - Git commit: `afa7918a6` - "SEO: batch optimize 585 tool page titles with 'Free Online' keywords"
+  - 已 push 到 GitHub
+- **iLovePDF 竞品深度研究**：使用 Kimi WebBridge 分析了 iLovePDF 首页和工具页
+  - 首页 title: "iLovePDF | Online PDF tools for PDF lovers"
+  - 首页 meta description: "iLovePDF is an online service to work with PDF files completely free and easy to use. Merge PDF, split PDF, compress PDF, office to PDF, PDF to JPG and more!"
+  - 首页 H1: "Every tool you need to work with PDFs in one place"
+  - sitemap.xml: 1415 个 URL，全部使用 `changefreq=daily`
+  - robots.txt: 极简，只禁止 `/upload/`
+  - Merge PDF 工具页 title: "Merge PDF files online. Free service to merge PDF"
+  - 工具页 H1: "Merge PDF files"，H2: "Combine PDFs in the order you want with the easiest PDF merger available."
+  - 无 Schema 结构化数据（工具页）
+  - 有完整的 OG 标签和 Twitter Card
+  - 多语言支持（zh-cn, ru, fr, bg 等）
+
+### 今日学习：iLovePDF SEO 策略分析
+
+#### iLovePDF 核心发现
+1. **Title 策略**：
+   - 首页：品牌名 + 核心关键词 + 目标用户（"iLovePDF | Online PDF tools for PDF lovers"）
+   - 工具页：动作 + 文件格式 + "online" + "Free service"（"Merge PDF files online. Free service to merge PDF"）
+   - 关键词密度高：每个 title 都包含 "PDF"、"online"、"free"
+
+2. **Meta Description 策略**：
+   - 首页 description 包含所有核心工具名称（Merge PDF, split PDF, compress PDF...）
+   - 长度约 160 字符，符合 Google 最佳实践
+   - 包含 "completely free" 强化免费卖点
+
+3. **页面结构**：
+   - H1 简洁直接（"Every tool you need to work with PDFs in one place"）
+   - 每个工具卡片有独立的 heading + description
+   - 分类标签清晰（Organize PDF, Optimize PDF, Convert PDF, Edit PDF, PDF Security, PDF Intelligence）
+   - "New!" 标签突出新功能
+
+4. **Sitemap 策略**：
+   - 1415 个 URL，全部使用 `changefreq=daily`
+   - 无 priority 设置（让搜索引擎自行判断）
+   - 包含多语言版本 URL
+
+5. **Social 优化**：
+   - 完整的 OG 标签（title, description, image, site_name, url, type）
+   - 完整的 Twitter Card（card, title, description, image, site, creator）
+   - og:image 使用统一的社交分享图
+
+6. **变现模式**：
+   - 免费基础功能 + Premium 付费（"Get more with Premium"）
+   - 桌面版、移动版、API 服务
+   - 企业版（Business, Education）
+
+#### 我们与 iLovePDF 的对比
+| 维度 | iLovePDF | WebTools |
+|------|----------|----------|
+| 工具数量 | ~30 PDF 工具 | 730+ 工具 |
+| 工具类别 | 专注 PDF | 多类别（JSON/PDF/Image/Text...） |
+| Title 策略 | 动作+格式+online+free | 正在优化中 |
+| Description | 包含所有工具名 | 需要优化 |
+| Sitemap | 1415 URL, daily | 1200+ URL, daily |
+| Schema | 无（工具页） | HowTo + BreadcrumbList |
+| OG/Twitter | 完整 | 需要检查 |
+| 多语言 | 多语言站点 | 中英文双语 |
+| 变现 | Freemium | 无 |
+
+#### 关键发现
+1. **iLovePDF 的 title 策略非常聚焦**：每个工具页 title 都包含 "PDF" + 动作 + "online" + "free"
+2. **Description 是关键词集合**：首页 description 列出了所有核心工具名称
+3. **分类标签是 SEO landing page**："Organize PDF"、"Convert PDF" 等分类本身就是关键词
+4. **无 Schema 但排名极高**：说明内容质量和外链比 Schema 更重要
+5. **Sitemap 使用 daily changefreq**：与我们优化后的策略一致
+
+#### 可执行建议（立即行动）
+1. **优化首页 description**：
+   - 当前："1100+ Free Online Tools | JSON, PDF, Image, Text & More"
+   - 建议："Free online tools for developers and productivity. JSON formatter, PDF converter, image resizer, password generator, and 730+ more tools. No signup, client-side processing."
+
+2. **批量优化 description**：
+   - 给每个工具页 description 加入具体工具名称列表
+   - 格式："Free online [tool name]. [Feature1], [Feature2], [Feature3]. Client-side processing, no upload."
+
+3. **检查 OG/Twitter Card**：
+   - 确认每个页面都有 og:title, og:description, og:image
+   - 添加 twitter:card, twitter:title, twitter:description
+
+4. **创建分类汇总页**（类似 iLovePDF 的 "Organize PDF"）：
+   - /tools/pdf/ - 汇总所有 PDF 工具
+   - /tools/json/ - 汇总所有 JSON 工具
+   - /tools/image/ - 汇总所有图片工具
+   - 这些页面本身就是 SEO landing page
+
+### 反哺开发
+- **建议新增工具**（高流量 PDF 工具，参考 iLovePDF）：
+  - PDF Merger（我们已有）
+  - PDF Splitter
+  - PDF Compressor
+  - PDF to Word/Excel/PowerPoint
+  - Word/Excel/PowerPoint to PDF
+  - PDF to JPG/PNG
+  - JPG/PNG to PDF
+  - PDF Editor（添加文字、图片）
+  - PDF Sign（电子签名）
+  - PDF Password Protect/Unlock
+  - PDF OCR（文字识别）
+  - PDF Page Numbers
+  - PDF Rotate
+  - PDF Watermark
+
+### 下一步
+- **下次执行重点**：
+  1. 批量优化 description（加入具体工具名列表）
+  2. 检查并优化 OG/Twitter Card
+  3. 研究 Smallpdf 的变现策略
+  4. 尝试 HN 评论互动（找技术相关帖子）
+  5. 检查 GSC 索引状态（sitemap 同步情况）
+
+---
+
+## 2026-07-11 23:30
+
+### 今日执行
+- **竞品深度研究**：通过 curl 获取了 TinyWow (tinywow.com) 的完整页面结构和 sitemap
+- **站点现状盘点**：确认当前有 1206 个目录（含中英文），约 730+ 个独立工具
+- **SEO 现状检查**：sitemap.xml 已存在（13862 行），包含所有工具页面 URL
+- **llms.txt 检查**：已创建，内容完整，包含 1100+ 工具分类、Chrome 插件信息、差异化卖点
+
+### 今日学习：TinyWow 竞品分析
+
+#### TinyWow 核心发现
+1. **工具分类结构**（URL 层级清晰）：
+   - `/pdf/` - PDF 工具（create, to-jpg, compress, from-word, split, unlock, translate, sign, protect, rearrange, extract-text）
+   - `/image/` - 图片工具（blur-background, colorize-photo, collage-maker, remove-watermark, chart-maker, transparent-bg, crop, border, split, text-to-image, pixelate, crop-circle, grayscale, flip, unblur, heic-to-jpg, compress, resize, upscale, remove-bg, remove-objects, remove-person, profile-photo, cleanup-picture, ai-image-generator, combine-maker）
+   - `/video/` - 视频工具（audio-to-text, resize, extract-audio, mov-to-mp4, mkv-to-mp4, from-fb, from-tiktok, from-inst, from-twitter, m4a-to-mp3, to-webp, compress, cutter, mp4-to-mp3, to-gif）
+   - `/write/` - AI 写作工具（article-writer, blog-outline, business-name-generator, content-improver, essay-writer, facebook-ad-headlines, faq-generator, grammar-fixer, instagram-caption-generator, linkedin-post-generator）
+   - `/converter/` - 转换工具（csv-to-excel, excel-to-pdf, excel-to-xml, xml-to-csv, xml-to-excel, xml-to-json, epub-to-azw3, epub-to-mobi, split-csv, split-excel）
+   - `/tools/` - 分类汇总页（pdf, image, video, write, file_conversion）
+   - `/content-machine/` - 内容自动化（automation-wizard, bulk-generator, generate-article, programmatic）
+
+2. **TinyWow 的 SEO 策略**：
+   - Title: "Free AI Writing, PDF, Image, and other Online Tools - TinyWow"
+   - OG 描述简洁统一
+   - sitemap.xml 使用 `changefreq=daily`，`priority=1.0`（首页）和 `0.7`（工具页）
+   - 使用 Bootstrap 框架，Poppins 字体
+   - 有 Google Analytics (UA-2458138-50) 和 PostHog 分析
+
+3. **TinyWow 的变现模式**：
+   - 有 Stripe 支付集成（after3ds-stripe 路径）
+   - 有 admin/dashboard 后台
+   - 推测有付费 tier（Pro 版）
+
+#### 我们与 TinyWow 的对比
+| 维度 | TinyWow | WebTools |
+|------|---------|----------|
+| 工具数量 | ~200+ | 730+ |
+| 分类层级 | 清晰 URL 层级(/pdf/, /image/) | 扁平结构 |
+| 后端 | 有后端（文件上传处理） | 纯前端零后端 |
+| 隐私 | 文件上传服务器 | 本地处理不上传 |
+| 语言 | 仅英文 | 中英文双语 |
+| 变现 | 疑似有 Pro 版 | 暂无 |
+| AI 工具 | 有 AI 写作/图片 | 少量 AI 工具 |
+| 视频工具 | 有（下载/转换） | 较少 |
+
+### 关键发现
+1. **TinyWow 有 AI 写作和视频下载工具**，这是我们缺少的类别
+2. **TinyWow 的 URL 结构更利于 SEO**：`/pdf/compress` 比 `/pdf-compressor` 更短更清晰
+3. **TinyWow 有分类汇总页**（/tools/pdf），我们有首页但缺少中间层级
+4. **TinyWow 有文件上传功能**（/file/upload），这是纯前端架构无法做到的
+5. **TinyWow 的 sitemap 使用 daily changefreq**，我们使用 weekly
+
+### 可执行建议（立即行动）
+
+#### 高优先级
+1. **优化 sitemap.xml**：
+   - 将首页 priority 从 0.8 改为 1.0
+   - 将工具页 priority 从 0.8 改为 0.7（更符合 TinyWow 实践）
+   - 考虑将 changefreq 从 weekly 改为 daily（如果工具更新频繁）
+
+2. **给热门工具页加 HowTo Schema**：
+   - JSON Formatter 页面：加 HowTo Schema，步骤为 "Paste JSON → Click Format → Copy Result"
+   - Password Generator 页面：加 HowTo Schema
+   - QR Code Generator 页面：加 HowTo Schema
+
+3. **优化 meta title/description**：
+   - 当前英文首页 title: "Online Tools - 1100+ Free Online Tools | JSON, PDF, Image, Text & More"
+   - 建议改为: "Free Online Tools - 1100+ Developer & Productivity Tools | No Signup"
+   - 加入 "free online" 关键词到更多工具页面
+
+#### 中优先级
+4. **创建分类汇总页**（类似 TinyWow 的 /tools/pdf）：
+   - 创建 /tools/pdf/ 汇总所有 PDF 工具
+   - 创建 /tools/json/ 汇总所有 JSON 工具
+   - 创建 /tools/image/ 汇总所有图片工具
+   - 这些页面本身就是 SEO landing page
+
+5. **缺失工具类别调研**：
+   - TinyWow 有视频下载工具（FB/TikTok/Instagram/Twitter），我们没有
+   - TinyWow 有 AI 写作工具（article writer, essay writer），我们只有少量
+   - TinyWow 有图片 AI 功能（remove bg, colorize, upscale），我们较少
+
+#### 低优先级
+6. **研究变现模式**：
+   - TinyWow 疑似有 Pro 版付费
+   - 我们当前无广告，可考虑在流量起来后加 AdSense
+   - Chrome 插件是另一个变现渠道
+
+### 反哺开发
+- **建议新增工具**：
+  - 视频下载器（YouTube/TikTok/Instagram）- 高流量关键词
+  - AI 文章重写器/改写器
+  - 图片背景移除（纯前端可用 Canvas 实现简单版）
+  - 图片压缩器（纯前端可用 Canvas 实现）
+  - HEIC 转 JPG（纯前端可用 libheif.js）
+
+- **建议优化**：
+  - 给每个工具页加 BreadcrumbList Schema（当前只有部分有）
+  - 优化页面加载速度（当前首页 569KB，较大）
+  - 考虑给热门工具创建独立 landing page（如 /free-json-formatter/）
+
+### 下一步
+- **下次执行重点**：
+  1. 优化 sitemap.xml（priority 和 changefreq）
+  2. 给 3 个热门工具页加 HowTo Schema
+  3. 研究 iLovePDF/Smallpdf 的 SEO 策略
+  4. 尝试 Reddit 轻量互动（upvote 技术贴）
+  5. 检查 GSC 索引状态（等 1-2 天后数据同步）
+
+---
+
+## 2026-07-11（首次）
+- 创建 growth-notes.md
+- 完成 TinyWow 竞品深度分析
+- 盘点站点现状：1206 目录，730+ 工具，sitemap.xml 13862 行
+- 确认 llms.txt 已创建且内容完整
+- 发现关键差距：缺少 AI 写作工具、视频下载工具、分类汇总页
