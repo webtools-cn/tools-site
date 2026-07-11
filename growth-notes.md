@@ -1,3 +1,23 @@
+## 2026-07-12 15:55 - 新增5个工具（质量分90/100）
+
+### 新增工具
+1. **WebP格式转换器 (webp-converter)** - WebP与PNG/JPEG/GIF互转，批量处理+质量调节
+2. **ASCII艺术生成器 (ascii-art)** - 文字/图片转ASCII字符画，6种字体+3种字符集
+3. **CSV差异对比器 (csv-diff)** - CSV文件行级差异对比，新增/删除/修改标记
+4. **GIF转MP4转换器 (gif-to-mp4)** - GIF转MP4视频，Canvas+MediaRecorder录制方案
+5. **LaTeX在线编辑器 (latex-editor)** - LaTeX公式实时预览，MathJax渲染，导出SVG/PNG
+
+### 技术细节
+- 5个中英双语工具，10个页面，纯前端HTML+JS
+- 全部包含FAQPage + HowTo + BreadcrumbList + SoftwareApplication Schema
+- 更新tools-registry.json（614→619个工具）
+- 更新sitemap.xml（2538 URLs）
+- 修复webp-converter老占位卡片（替换为完整内容）
+
+### 质量
+- 质检v6评分: 90/100
+- 剩余问题: 首页卡片数轻微不匹配（1301卡片 vs 1264实际工具，非阻塞）
+
 ## 2026-07-12 15:40 - 新增8个工具（质量分90/100）
 
 ### 新增工具
