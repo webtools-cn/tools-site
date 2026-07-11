@@ -8391,118 +8391,106 @@ p.subtitle{color:#94a3b8;margin-bottom:24px}
   <p style="margin-top:8px;color:#475569;font-size:.8rem">Feedback: REDACTED_EMAIL</p>
 </div>
 <script>
-(function(){
-  var searchInput = document.getElementById('searchInput');
-  var categoryTags = document.getElementById('categoryTags');
-  var toolsGrid = document.getElementById('toolsGrid');
-  var resultCount = document.getElementById('resultCount');
-  var noResults = document.getElementById('noResults');
-  var showMoreWrap = document.getElementById('showMoreWrap');
-  var showMoreBtn = document.getElementById('showMoreBtn');
-  if (!searchInput || !categoryTags || !toolsGrid || !resultCount || !noResults) return;
-  var showMoreCount = document.getElementById('showMoreCount');
-  // Move orphan cards (outside #toolsGrid) into the grid
-  var allCards = document.querySelectorAll('.tool-card');
-  for (var i = 0; i < allCards.length; i++) {
-    if (allCards[i].parentNode !== toolsGrid && toolsGrid.contains(allCards[i]) === false) {
-      toolsGrid.appendChild(allCards[i]);
-    }
-  }
-  var cards = Array.from(document.querySelectorAll('.tool-card'));
-  var currentCat = 'all';
-  var currentQuery = '';
-  var showAll = false;
-  var INITIAL_LIMIT = 48;
-
-  // Map filter tag short codes to possible data-cats values on tool cards
-  var catMap = {
-    'dev': ['dev'],
-    'utility': ['utility'],
-    'pdf': ['pdf'],
-    'image': ['image'],
-    'design': ['design'],
-    'text': ['text'],
-    'office': ['office'],
-    'security': ['security'],
-    'creative': ['creative'],
-    'calc': ['calc'],
-    'media': ['media'],
-    'health': ['health'],
-    'math': ['math'],
-    'fun': ['fun']
-  };
-
-  function updateFilter() {
-    var q = currentQuery.toLowerCase().trim();
-    var visibleCards = [];
-    cards.forEach(function(card) {
-      var catMatch = currentCat === 'all' || (catMap[currentCat] || []).some(function(c) { return (card.dataset.cats || '').toLowerCase() === c.toLowerCase(); });
-      var textMatch = !q || (card.textContent || '').toLowerCase().indexOf(q) !== -1;
-      if (catMatch && textMatch) {
-        visibleCards.push(card);
-        card.classList.remove('hidden');
-      } else {
-        card.classList.add('hidden');
+(function() {
+  function initFilter() {
+    var searchInput = document.getElementById('searchInput');
+    var categoryTags = document.getElementById('categoryTags');
+    var toolsGrid = document.getElementById('toolsGrid');
+    var resultCount = document.getElementById('resultCount');
+    var noResults = document.getElementById('noResults');
+    var showMoreWrap = document.getElementById('showMoreWrap');
+    var showMoreBtn = document.getElementById('showMoreBtn');
+    if (!searchInput || !categoryTags || !toolsGrid || !resultCount || !noResults) return;
+    var showMoreCount = document.getElementById('showMoreCount');
+    // Move orphan cards (outside #toolsGrid) into the grid
+    var allCards = document.querySelectorAll('.tool-card');
+    for (var i = 0; i < allCards.length; i++) {
+      if (allCards[i].parentNode !== toolsGrid && toolsGrid.contains(allCards[i]) === false) {
+        toolsGrid.appendChild(allCards[i]);
       }
-    });
-    // Apply limit when showing all with no search query
-    var shouldLimit = (currentCat === 'all' && !q && !showAll);
-    var totalVisible = visibleCards.length;
-    if (shouldLimit) {
-      visibleCards.forEach(function(card, i) {
-        if (i >= INITIAL_LIMIT) card.classList.add('hidden');
+    }
+    // Re-query ALL cards after moving orphans
+    var cards = Array.from(document.querySelectorAll('.tool-card'));
+    var currentCat = 'all';
+    var currentQuery = '';
+    var showAll = false;
+    var INITIAL_LIMIT = 48;
+
+    var catMap = {
+      'dev': ['dev'], 'utility': ['utility'], 'pdf': ['pdf'], 'image': ['image'],
+      'design': ['design'], 'text': ['text'], 'office': ['office'], 'security': ['security'],
+      'creative': ['creative'], 'calc': ['calc'], 'media': ['media'], 'health': ['health'],
+      'math': ['math'], 'fun': ['fun']
+    };
+
+    function updateFilter() {
+      var q = currentQuery.toLowerCase().trim();
+      var visibleCards = [];
+      cards.forEach(function(card) {
+        var catMatch = currentCat === 'all' || (catMap[currentCat] || []).some(function(c) { return (card.dataset.cats || '').toLowerCase() === c.toLowerCase(); });
+        var textMatch = !q || (card.textContent || '').toLowerCase().indexOf(q) !== -1;
+        if (catMatch && textMatch) {
+          visibleCards.push(card);
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
       });
-      var shownCount = Math.min(totalVisible, INITIAL_LIMIT);
-      if (totalVisible > INITIAL_LIMIT) {
-        showMoreWrap.style.display = 'block';
-        showMoreCount.textContent = totalVisible - INITIAL_LIMIT;
+      var shouldLimit = (currentCat === 'all' && !q && !showAll);
+      var totalVisible = visibleCards.length;
+      if (shouldLimit) {
+        visibleCards.forEach(function(card, i) {
+          if (i >= INITIAL_LIMIT) card.classList.add('hidden');
+        });
+        var shownCount = Math.min(totalVisible, INITIAL_LIMIT);
+        if (totalVisible > INITIAL_LIMIT) {
+          showMoreWrap.style.display = 'block';
+          showMoreCount.textContent = totalVisible - INITIAL_LIMIT;
+        } else {
+          showMoreWrap.style.display = 'none';
+        }
+        resultCount.textContent = 'Showing first ' + shownCount + ' of ' + totalVisible + ' tools';
       } else {
         showMoreWrap.style.display = 'none';
-      }
-      resultCount.textContent = 'Showing first ' + shownCount + ' of ' + totalVisible + ' tools';
-    } else {
-      showMoreWrap.style.display = 'none';
-      if (totalVisible === 0) {
-        resultCount.textContent = '';
-      } else {
         resultCount.textContent = totalVisible > 0 ? totalVisible + ' tool' + (totalVisible === 1 ? '' : 's') + ' found' : '';
       }
+      if (totalVisible === 0) {
+        noResults.style.display = 'block';
+        toolsGrid.style.display = 'none';
+      } else {
+        noResults.style.display = 'none';
+        toolsGrid.style.display = 'grid';
+      }
     }
-    if (totalVisible === 0) {
-      noResults.style.display = 'block';
-      toolsGrid.style.display = 'none';
-    } else {
-      noResults.style.display = 'none';
-      toolsGrid.style.display = 'grid';
-    }
-  }
 
-  // Show all button
-  if (showMoreBtn) {
-    showMoreBtn.addEventListener('click', function() {
-      showAll = true;
+    if (showMoreBtn) {
+      showMoreBtn.addEventListener('click', function() {
+        showAll = true;
+        updateFilter();
+        showMoreWrap.style.display = 'none';
+      });
+    }
+    searchInput.addEventListener('input', function() {
+      currentQuery = this.value;
+      if (currentQuery) showAll = true;
       updateFilter();
-      showMoreWrap.style.display = 'none';
     });
+    categoryTags.addEventListener('click', function(e) {
+      var tag = e.target.closest('.category-tag');
+      if (!tag) return;
+      Array.from(categoryTags.children).forEach(function(t) { t.classList.remove('active'); });
+      tag.classList.add('active');
+      currentCat = tag.dataset.cat;
+      showAll = false;
+      updateFilter();
+    });
+    updateFilter();
   }
-
-  searchInput.addEventListener('input', function() {
-    currentQuery = this.value;
-    if (currentQuery) showAll = true;
-    updateFilter();
-  });
-
-  categoryTags.addEventListener('click', function(e) {
-    var tag = e.target.closest('.category-tag');
-    if (!tag) return;
-    Array.from(categoryTags.children).forEach(function(t) { t.classList.remove('active'); });
-    tag.classList.add('active');
-    currentCat = tag.dataset.cat;
-    showAll = false;
-    updateFilter();
-  });
-
-  updateFilter();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFilter);
+  } else {
+    initFilter();
+  }
 })();
 </script>
 
