@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-9W1157EBQV');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="免费在线子网计算器，支持IPv4 CIDR子网划分。计算网络地址、广播地址、可用主机数、子网掩码。支持VLSM可变长子网掩码、超网聚合，纯前端本地处理。">
+<title>子网计算器 - 在线CIDR/IPv4子网划分工具</title>
+<link rel="canonical" href="https://webtools-cn.github.io/tools-site/subnet-calculator/">
+<meta property="og:title" content="子网计算器 - 在线CIDR/IPv4子网划分工具">
+<meta property="og:description" content="免费在线子网计算器，支持IPv4 CIDR子网划分。计算网络地址、广播地址、可用主机数、子网掩码。纯前端本地处理。">
+<meta property="og:url" content="https://webtools-cn.github.io/tools-site/subnet-calculator/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="在线小工具矩阵">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "子网计算器",
+  "description": "免费在线子网计算器，支持IPv4 CIDR子网划分。计算网络地址、广播地址、可用主机数、子网掩码。支持VLSM可变长子网掩码，纯前端本地处理，数据不上传服务器。",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Web",
+  "publisher": {
+    "@type": "Organization",
+    "name": "在线小工具矩阵",
+    "email": "REDACTED_EMAIL"
+  },
+  "author": {
+    "@type": "Organization",
+    "name": "在线小工具矩阵"
+  },
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+  {
+    "@type": "Question",
+    "name": "CIDR表示法中的/24是什么意思？",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "CIDR（无类别域间路由）中的/24表示子网掩码有24个连续的1（即255.255.255.0），代表网络部分占24位，主机部分占8位。一个/24子网可容纳254个可用主机地址（2^8-2），常用于小型企业或大型家庭的局域网。"
+    }
+  },
+  {
+    "@type": "Question",
+    "name": "为什么可用主机数是2^n-2而不是2^n？",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "每个子网中第一个地址为网络地址（主机位全0），用于标识网络本身；最后一个地址为广播地址（主机位全1），用于向该子网内所有主机发送广播包。因此实际可分配给主机的地址数需要减去这2个保留地址。例如/24子网有256个地址，可用主机数为254。"
+    }
+  },
+  {
+    "@type": "Question",
+    "name": "如何计算子网划分后每个子网的地址范围？",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "子网划分本质是从主机位中借位作为子网位。例如将/24划分为4个/26子网：从原8位主机位中借2位作为子网位（2^2=4个子网），每个子网有2^6-2=62个可用主机。子网1：0-63（网络地址0，广播地址63），子网2：64-127，以此类推。本工具可自动计算任意CIDR的划分结果，只需输入IP和掩码即可。"
+    }
+  },
+  {
+    "@type": "Question",
+    "name": "子网掩码255.255.255.0对应多少位？",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "子网掩码255.255.255.0的二进制表示为11111111.11111111.11111111.00000000，共24个连续的1，因此对应CIDR前缀长度/24。同理255.255.255.240（二进制最后4位为11110000）对应/28。本工具支持输入十进制掩码自动转换为CIDR表示，也支持输入CIDR前缀长度自动生成子网掩码。"
+    }
+  }
+]
+}
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:900px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.nav-back a{color:#64748b}
+.nav-back a:hover{color:#94a3b8}
+.tool-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.tool-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+input[type=text], input[type=number], select{width:100%;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-size:.9rem;outline:none;font-family:monospace}
+input:focus, select:focus{border-color:rgba(6,182,212,.5)}
+select{cursor:pointer}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+.btn-success{background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.25)}
+.btn-success:hover{background:rgba(34,197,94,.25)}
+.result-box{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.85rem;min-height:40px;word-break:break-all;overflow-x:auto;white-space:pre-wrap;margin-top:12px;max-height:400px;overflow-y:auto}
+.result-box.success{border-color:rgba(34,197,94,.3)}
+.result-box .label{color:#64748b;font-size:.75rem;text-transform:uppercase}
+.result-box .value{color:#22d3ee;font-size:1.1rem;font-weight:600}
+.result-box .row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(148,163,184,.05)}
+.result-box .row:last-child{border-bottom:none}
+.info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.info-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.info-section h3{font-size:.95rem;color:#e2e8f0;margin:16px 0 8px}
+.info-section p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
+.info-section ul{color:#94a3b8;font-size:.9rem;margin:8px 0 8px 20px}
+.info-section li{margin-bottom:4px}
+.faq-item{margin-bottom:16px}
+.faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px}
+.faq-item p{color:#94a3b8;font-size:.9rem}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#64748b;margin:0 8px}
+.footer a:hover{color:#94a3b8}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+.input-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.input-group{flex:1;min-width:200px}
+.input-group label{display:block;color:#94a3b8;font-size:.8rem;margin-bottom:4px}
+.input-group input{width:100%}
+.freshness-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:2px 10px;font-size:.7rem;color:#22c55e;margin-bottom:12px}
+.subnet-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:8px}
+.subnet-table th{background:#0f172a;color:#64748b;padding:8px 6px;text-align:left;border-bottom:1px solid rgba(148,163,184,.1)}
+.subnet-table td{padding:6px;border-bottom:1px solid rgba(148,163,184,.05);color:#94a3b8}
+.subnet-table tr:hover td{background:rgba(6,182,212,.05);color:#e2e8f0}
+.subnet-table .highlight{color:#22d3ee}
+.tabs{display:flex;gap:4px;background:#0f172a;border-radius:8px;padding:4px;margin-bottom:16px}
+.tab{padding:8px 16px;border-radius:5px;font-size:.85rem;cursor:pointer;color:#64748b;border:none;background:none;transition:all .2s}
+.tab.active{background:rgba(6,182,212,.15);color:#22d3ee}
+.tab:hover{color:#e2e8f0}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+  <h1>子网计算器</h1>
+  <div class="lang-switch">
+    <a href="../subnet-calculator/" class="active">中文</a>
+    <a href="../en/subnet-calculator/">EN</a>
+  </div>
+</div>
+<div class="nav-back"><a href="../">← 返回首页</a></div>
+<div class="freshness-badge">✅ 更新于 2026-07-11</div>
+
+<div class="tool-section">
+  <h2>📡 输入IP地址/CIDR</h2>
+  <div class="input-row">
+    <div class="input-group">
+      <label>IP地址</label>
+      <input type="text" id="ipInput" placeholder="例如: 192.168.1.0" value="192.168.1.0">
+    </div>
+    <div class="input-group">
+      <label>子网掩码或CIDR前缀</label>
+      <input type="text" id="maskInput" placeholder="例如: 255.255.255.0 或 /24" value="24">
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="calculate()">🔍 计算</button>
+    <button class="btn btn-secondary" onclick="clearAll()">🧹 清空</button>
+  </div>
+</div>
+
+<div id="resultSection" class="tool-section" style="display:none">
+  <h2>📊 计算结果</h2>
+  <div id="resultContent" class="result-box"></div>
+</div>
+
+<div class="tabs" id="subnetTabs">
+  <button class="tab active" data-tab="single" onclick="switchTab('single')">单个子网</button>
+  <button class="tab" data-tab="subnet" onclick="switchTab('subnet')">子网划分</button>
+  <button class="tab" data-tab="supernet" onclick="switchTab('supernet')">超网聚合</button>
+</div>
+
+<div id="singleTab" class="tool-section">
+  <h2>🔍 输入CIDR进行子网划分</h2>
+  <div class="input-row">
+    <div class="input-group">
+      <label>网络地址/CIDR</label>
+      <input type="text" id="subnetInput" placeholder="例如: 192.168.1.0/24">
+    </div>
+    <div class="input-group">
+      <label>划分为子网数</label>
+      <input type="number" id="numSubnets" placeholder="2的幂次" value="4" min="2" max="1024">
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="calculateSubnets()">📐 开始划分</button>
+  <div id="subnetResult" style="display:none;margin-top:16px">
+    <div id="subnetTableContainer"></div>
+  </div>
+</div>
+
+<div id="supernetTab" class="tool-section" style="display:none">
+  <h2>🔗 超网聚合（路由汇总）</h2>
+  <p style="color:#94a3b8;font-size:.9rem;margin-bottom:12px">输入多个子网CIDR（每行一个），自动计算最简聚合路由。</p>
+  <textarea id="supernetInput" rows="4" placeholder="每行一个CIDR&#10;例如:&#10;192.168.0.0/24&#10;192.168.1.0/24&#10;192.168.2.0/24&#10;192.168.3.0/24" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-size:.9rem;outline:none;font-family:monospace;resize:vertical;min-height:120px"></textarea>
+  <button class="btn btn-primary" onclick="calculateSupernet()">🔄 计算聚合路由</button>
+  <div id="supernetResult" style="display:none;margin-top:16px">
+    <div id="supernetResultContent" class="result-box"></div>
+  </div>
+</div>
+
+<div class="info-section">
+  <h2>📖 关于子网计算</h2>
+  <p>子网划分（Subnetting）是将一个IP网络划分为多个更小的子网的过程，用于提高IP地址利用率和网络管理效率。本工具支持：</p>
+  <ul>
+    <li><strong>CIDR计算</strong>：输入IP+掩码，一键获取网络地址、广播地址、可用主机范围</li>
+    <li><strong>子网划分</strong>：将大网段自动划分为指定数量的小子网</li>
+    <li><strong>超网聚合</strong>：将多个连续子网汇总为一条聚合路由（路由汇总）</li>
+    <li><strong>VLSM支持</strong>：支持任意长度的可变长子网掩码</li>
+  </ul>
+  <h3>常见子网掩码速查</h3>
+  <table class="subnet-table">
+    <thead><tr><th>CIDR</th><th>子网掩码</th><th>可用主机数</th><th>适用场景</th></tr></thead>
+    <tbody>
+      <tr><td class="highlight">/30</td><td>255.255.255.252</td><td>2</td><td>点对点链路</td></tr>
+      <tr><td class="highlight">/29</td><td>255.255.255.248</td><td>6</td><td>小型网络</td></tr>
+      <tr><td class="highlight">/28</td><td>255.255.255.240</td><td>14</td><td>小型子网</td></tr>
+      <tr><td class="highlight">/27</td><td>255.255.255.224</td><td>30</td><td>小型LAN</td></tr>
+      <tr><td class="highlight">/26</td><td>255.255.255.192</td><td>62</td><td>中型LAN</td></tr>
+      <tr><td class="highlight">/24</td><td>255.255.255.0</td><td>254</td><td>标准C类</td></tr>
+      <tr><td class="highlight">/23</td><td>255.255.254.0</td><td>510</td><td>超网</td></tr>
+      <tr><td class="highlight">/22</td><td>255.255.252.0</td><td>1022</td><td>超网</td></tr>
+      <tr><td class="highlight">/16</td><td>255.255.0.0</td><td>65534</td><td>标准B类</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="info-section">
+  <h2>❓ 常见问题</h2>
+  <div class="faq-item">
+    <h3>什么是CIDR？</h3>
+    <p>CIDR（无类别域间路由，Classless Inter-Domain Routing）是一种IP地址分配方法，用"/前缀长度"表示子网掩码，替代了传统的A/B/C类地址分类。例如192.168.1.0/24等同于192.168.1.0 255.255.255.0。CIDR提高了IP地址利用效率，支持VLSM和路由聚合，是现代互联网路由的基础。</p>
+  </div>
+  <div class="faq-item">
+    <h3>如何计算子网中可用主机数量？</h3>
+    <p>可用主机数 = 2^(32 - 前缀长度) - 2。减去2是因为需要保留网络地址（主机位全0）和广播地址（主机位全1）。例如/24子网：2^(32-24)-2 = 2^8-2 = 254个可用主机。/30子网：2^(32-30)-2 = 4-2 = 2个可用主机（适合点对点链路）。</p>
+  </div>
+  <div class="faq-item">
+    <h3>VLSM（可变长子网掩码）是什么？</h3>
+    <p>VLSM允许在一个主网络中使用不同长度的子网掩码，从而更灵活地分配IP地址。例如将/24网络划分为2个/25子网和2个/30子网，而不是统一使用相同大小的子网。VLSM可以显著提高IP地址利用率，是现代网络中广泛采用的技术。本工具支持任意长度的子网掩码配置。</p>
+  </div>
+  <div class="faq-item">
+    <h3>本工具的数据会上传到服务器吗？</h3>
+    <p>所有计算均在您的浏览器本地完成（使用纯JavaScript），IP地址和子网数据不会上传到任何服务器。您可以放心在离线和内网环境中使用。无需注册，无需登录，即开即用。</p>
+  </div>
+  <div class="faq-item">
+    <h3>超网聚合（Supernetting）有什么用？</h3>
+    <p>超网聚合（也称路由汇总/Route Summarization）将多个连续的子网合并为一个较大的网络，用于减少路由表中的条目数。例如将192.168.0.0/24、192.168.1.0/24、192.168.2.0/24、192.168.3.0/24四个子网聚合成192.168.0.0/22，路由表从4条减少为1条，提高路由器性能和网络稳定性。</p>
+  </div>
+</div>
+
+<div class="footer">
+  <div style="margin-bottom:12px">
+    <a href="../">首页</a>
+    <a href="../">全部工具</a>
+    <a href="mailto:REDACTED_EMAIL">联系我们</a>
+    <a href="../en/subnet-calculator/">English</a>
+  </div>
+  <p>子网计算器 · 纯前端本地处理 · 数据不上传</p>
+  <p style="margin-top:4px">免费使用 · 无需注册 · 隐私安全</p>
+  <p style="margin-top:8px;color:#475569;font-size:.8rem">反馈: REDACTED_EMAIL</p>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+var toast=document.getElementById('toast');
+function showToast(m){toast.textContent=m;toast.classList.add('show');setTimeout(function(){toast.classList.remove('show');},2000);}
+
+function ipToLong(ip){
+  var parts=ip.trim().split('.');
+  if(parts.length!==4) return -1;
+  for(var i=0;i<4;i++){
+    var n=parseInt(parts[i],10);
+    if(isNaN(n)||n<0||n>255) return -1;
+  }
+  return ((parseInt(parts[0])<<24)+(parseInt(parts[1])<<16)+(parseInt(parts[2])<<8)+parseInt(parts[3]))>>>0;
+}
+
+function longToIp(num){
+  return [(num>>>24)&255,(num>>>16)&255,(num>>>8)&255,num&255].join('.');
+}
+
+function parseMask(input){
+  input=input.trim();
+  if(input.startsWith('/')){
+    var bits=parseInt(input.substring(1),10);
+    if(isNaN(bits)||bits<0||bits>32) return -1;
+    return bits;
+  }
+  if(input.indexOf('.')>=0){
+    var n=ipToLong(input);
+    if(n===-1) return -1;
+    var bits=0,t=n;
+    for(var i=0;i<32;i++){
+      if((t&(1<<(31-i)))!==0) bits++; else break;
+    }
+    var expected=0;
+    for(var j=0;j<bits;j++) expected=(expected<<1)|1;
+    expected=expected<<(32-bits)>>>0;
+    if(expected!==n) return -1;
+    return bits;
+  }
+  var bits=parseInt(input,10);
+  if(isNaN(bits)||bits<0||bits>32) return -1;
+  return bits;
+}
+
+function cidrToMask(bits){
+  if(bits===0) return 0;
+  return (~0<<(32-bits))>>>0;
+}
+
+function calculate(){
+  var ipStr=document.getElementById('ipInput').value.trim();
+  var maskStr=document.getElementById('maskInput').value.trim();
+  var ip=ipToLong(ipStr);
+  if(ip===-1){showToast('❌ 无效的IP地址');return;}
+  var bits=parseMask(maskStr);
+  if(bits===-1){showToast('❌ 无效的子网掩码');return;}
+  var mask=cidrToMask(bits);
+  var network=ip&mask;
+  var broadcast=network|(~mask>>>0);
+  var wildcard=(~mask>>>0);
+  var usableHosts=Math.pow(2,32-bits)-2;
+  if(usableHosts<0) usableHosts=0;
+  var firstUsable=usableHosts>0?network+1:network;
+  var lastUsable=usableHosts>0?broadcast-1:broadcast;
+
+  var html='<div class="row"><span class="label">IP地址</span><span class="value">'+ipStr+'</span></div>';
+  html+='<div class="row"><span class="label">子网掩码</span><span class="value">'+longToIp(mask)+' /'+bits+'</span></div>';
+  html+='<div class="row"><span class="label">通配符掩码</span><span class="value">'+longToIp(wildcard)+'</span></div>';
+  html+='<div class="row"><span class="label">网络地址</span><span class="value">'+longToIp(network)+' /'+bits+'</span></div>';
+  html+='<div class="row"><span class="label">广播地址</span><span class="value">'+longToIp(broadcast)+'</span></div>';
+  html+='<div class="row"><span class="label">可用主机数</span><span class="value">'+usableHosts+'</span></div>';
+  if(usableHosts>0){
+    html+='<div class="row"><span class="label">可用IP范围</span><span class="value">'+longToIp(firstUsable)+' — '+longToIp(lastUsable)+'</span></div>';
+  }else{
+    html+='<div class="row"><span class="label">可用IP范围</span><span class="value">无（点对点保留地址）</span></div>';
+  }
+  html+='<div class="row"><span class="label">二进制IP</span><span class="value" style="font-size:.8rem">'+
+    ('00000000'+((ip>>>24)&255).toString(2)).slice(-8)+'.'+('00000000'+((ip>>>16)&255).toString(2)).slice(-8)+
+    '.'+('00000000'+((ip>>>8)&255).toString(2)).slice(-8)+'.'+('00000000'+(ip&255).toString(2)).slice(-8)+'</span></div>';
+  html+='<div class="row"><span class="label">二进制掩码</span><span class="value" style="font-size:.8rem">'+
+    ('00000000'+((mask>>>24)&255).toString(2)).slice(-8)+'.'+('00000000'+((mask>>>16)&255).toString(2)).slice(-8)+
+    '.'+('00000000'+((mask>>>8)&255).toString(2)).slice(-8)+'.'+('00000000'+(mask&255).toString(2)).slice(-8)+'</span></div>';
+
+  document.getElementById('resultContent').innerHTML=html;
+  document.getElementById('resultSection').style.display='block';
+  showToast('✅ 计算完成');
+}
+
+function clearAll(){
+  document.getElementById('resultSection').style.display='none';
+  document.getElementById('subnetResult').style.display='none';
+  document.getElementById('supernetResult').style.display='none';
+  document.getElementById('subnetTableContainer').innerHTML='';
+  showToast('🧹 已清空');
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelector('[data-tab="'+tab+'"]').classList.add('active');
+  document.getElementById('singleTab').style.display=tab==='single'?'block':'none';
+  document.getElementById('subnetTabs').querySelector('[data-tab="subnet"]').parentNode.style.display='none';
+  document.getElementById('subnetTabs').querySelector('[data-tab="supernet"]').parentNode.style.display='none';
+  document.getElementById('supernetTab').style.display=tab==='supernet'?'block':'none';
+  if(tab==='subnet'){document.getElementById('subnetTab').style.display='block';}
+  else if(tab==='single'){
+    document.getElementById('singleTab').style.display='block';
+  }
+}
+
+// Fix switchTab
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelector('[data-tab="'+tab+'"]').classList.add('active');
+  document.getElementById('singleTab').style.display=tab==='single'?'block':'none';
+  document.getElementById('supernetTab').style.display=tab==='supernet'?'block':'none';
+  // always show subnet tab content
+  var subnetDiv=document.getElementById('subnetTab');
+  if(subnetDiv) subnetDiv.style.display=tab==='subnet'?'block':'none';
+}
+
+function calculateSubnets(){
+  var input=document.getElementById('subnetInput').value.trim();
+  var numSubnets=parseInt(document.getElementById('numSubnets').value,10);
+  if(!input){showToast('❌ 请输入网络地址/CIDR');return;}
+  if(isNaN(numSubnets)||numSubnets<2){showToast('❌ 子网数必须≥2');return;}
+
+  var parts=input.split('/');
+  var ip=ipToLong(parts[0]);
+  if(ip===-1){showToast('❌ 无效的IP地址');return;}
+  var baseBits=parseMask('/'+parts[1]);
+  if(baseBits===-1){showToast('❌ 无效的CIDR前缀');return;}
+
+  var bitsNeeded=Math.ceil(Math.log(numSubnets)/Math.log(2));
+  var newBits=baseBits+bitsNeeded;
+  if(newBits>30){showToast('❌ 子网数太多，主机位不足');return;}
+
+  var mask=cidrToMask(baseBits);
+  var network=ip&mask;
+  var newMask=cidrToMask(newBits);
+  var subnetSize=Math.pow(2,32-newBits);
+  var actualSubnets=Math.pow(2,bitsNeeded);
+  var hostsPerSubnet=Math.pow(2,32-newBits)-2;
+
+  var html='<p style="color:#94a3b8;font-size:.85rem;margin-bottom:8px">将 <strong style="color:#22d3ee">'+parts[0]+'/'+baseBits+'</strong> 划分为 <strong style="color:#22d3ee">'+actualSubnets+'</strong> 个 /'+newBits+' 子网（每个子网 '+hostsPerSubnet+' 个可用主机）</p>';
+  html+='<table class="subnet-table"><thead><tr><th>#</th><th>子网地址</th><th>CIDR</th><th>主机范围</th><th>广播地址</th></tr></thead><tbody>';
+  for(var i=0;i<actualSubnets;i++){
+    var subnetAddr=network+i*subnetSize;
+    var brodAddr=subnetAddr+subnetSize-1;
+    var firstH=hostsPerSubnet>0?subnetAddr+1:subnetAddr;
+    var lastH=hostsPerSubnet>0?brodAddr-1:brodAddr;
+    html+='<tr><td>'+(i+1)+'</td><td class="highlight">'+longToIp(subnetAddr)+'</td><td>/'+newBits+'</td><td>'+longToIp(firstH)+' — '+longToIp(lastH)+'</td><td>'+longToIp(brodAddr)+'</td></tr>';
+  }
+  html+='</tbody></table>';
+  html+='<p style="color:#64748b;font-size:.75rem;margin-top:8px">总计: '+actualSubnets+' 个子网, 每个子网 '+hostsPerSubnet+' 个可用地址</p>';
+
+  document.getElementById('subnetTableContainer').innerHTML=html;
+  document.getElementById('subnetResult').style.display='block';
+  showToast('✅ 子网划分完成，共'+actualSubnets+'个子网');
+}
+
+function calculateSupernet(){
+  var input=document.getElementById('supernetInput').value.trim();
+  if(!input){showToast('❌ 请输入子网CIDR');return;}
+  var lines=input.split('\n').filter(function(l){return l.trim();});
+  if(lines.length<2){showToast('❌ 至少需要2个网络');return;}
+
+  var networks=[];
+  for(var i=0;i<lines.length;i++){
+    var parts=lines[i].trim().split('/');
+    if(parts.length!==2) continue;
+    var ip=ipToLong(parts[0]);
+    if(ip===-1) continue;
+    var bits=parseInt(parts[1],10);
+    if(isNaN(bits)||bits<0||bits>32) continue;
+    var mask=cidrToMask(bits);
+    networks.push({ip:ip&mask, bits:bits, mask:mask, str:longToIp(ip&mask)+'/'+bits});
+  }
+  if(networks.length<2){showToast('❌ 有效网络数量不足');return;}
+
+  networks.sort(function(a,b){return a.ip-b.ip;});
+
+  var commonNetwork=networks[0].ip;
+  var minBits=networks[0].bits;
+  for(var i=1;i<networks.length;i++){
+    commonNetwork=commonNetwork&networks[i].ip;
+    minBits=Math.min(minBits,networks[i].bits);
+  }
+
+  var bestBits=minBits;
+  var sumMask=cidrToMask(bestBits);
+  var sumNetwork=networks[0].ip&sumMask;
+
+  // Try wider masks
+  for(var bits=minBits;bits>=0;bits--){
+    var testMask=cidrToMask(bits);
+    var testNetwork=networks[0].ip&testMask;
+    var testBroadcast=testNetwork|(~testMask>>>0);
+    var allContained=true;
+    for(var i=0;i<networks.length;i++){
+      if(networks[i].ip<testNetwork||networks[i].ip>testBroadcast){
+        allContained=false;
+        break;
+      }
+    }
+    if(allContained){
+      bestBits=bits;
+      sumNetwork=testNetwork;
+      sumMask=testMask;
+    }else{
+      break;
+    }
+  }
+
+  var sumBroadcast=sumNetwork|(~sumMask>>>0);
+
+  var html='<div class="row"><span class="label">聚合路由</span><span class="value">'+longToIp(sumNetwork)+'/'+bestBits+'</span></div>';
+  html+='<div class="row"><span class="label">子网掩码</span><span class="value">'+longToIp(sumMask)+'</span></div>';
+  html+='<div class="row"><span class="label">IP范围</span><span class="value">'+longToIp(sumNetwork)+' — '+longToIp(sumBroadcast)+'</span></div>';
+  html+='<div class="row"><span class="label">包含网络数</span><span class="value">'+networks.length+'</span></div>';
+  html+='<div style="margin-top:12px;padding-top:8px;border-top:1px solid rgba(148,163,184,.1)"><span class="label">输入网络</span></div>';
+  for(var i=0;i<networks.length;i++){
+    html+='<div class="row"><span class="label" style="font-size:.75rem">'+(i+1)+'</span><span class="value" style="font-size:.85rem">'+networks[i].str+'</span></div>';
+  }
+
+  document.getElementById('supernetResultContent').innerHTML=html;
+  document.getElementById('supernetResult').style.display='block';
+  showToast('✅ 聚合完成: '+longToIp(sumNetwork)+'/'+bestBits);
+}
+
+// Auto-calculate on page load
+calculate();
+</script>
+
+<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
+<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
+<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 意见反馈</span>
+<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
+</div>
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
+<option value="feedback">💡 功能建议</option>
+<option value="bug">🐛 报告问题</option>
+<option value="other">💬 其他</option>
+</select>
+<textarea id="feedback-text" placeholder="描述您的建议或问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
+<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
+</div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢！已提交到GitHub Issues</div>
+</div>
+</div>
+<script>
+function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+document.getElementById('feedback-text')&&document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){
+var type=document.getElementById('feedback-type').value;
+var text=document.getElementById('feedback-text').value.trim();
+if(!text){alert('请输入反馈内容');return;}
+var tl={'feedback':'FEEDBACK','bug':'BUG','other':'OTHER'}[type];
+var title=encodeURIComponent(tl+' - '+window.location.pathname);
+var body=encodeURIComponent('PAGE: '+window.location.href+'\nTYPE: '+tl+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+setTimeout(function(){document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
+}
+</script>
+<!-- Related Tools -->
+<link rel="stylesheet" href="https://webtools-cn.github.io/tools-site/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">正在加载推荐工具...</div>
+</div>
+<script src="https://webtools-cn.github.io/tools-site/related-tools.js"></script>
+</body>
+</html>

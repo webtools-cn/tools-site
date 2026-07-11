@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-9W1157EBQV');
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Free online subnet calculator for IPv4 CIDR subnetting. Calculate network address, broadcast address, usable hosts, subnet mask. Supports VLSM and supernet aggregation, pure frontend processing.">
+<title>Subnet Calculator - Online CIDR IPv4 Subnetting Tool</title>
+<link rel="canonical" href="https://webtools-cn.github.io/tools-site/en/subnet-calculator/">
+<meta property="og:title" content="Subnet Calculator - Online CIDR IPv4 Subnetting Tool">
+<meta property="og:description" content="Free online subnet calculator for IPv4 CIDR subnetting. Calculate network address, broadcast address, usable hosts, subnet mask. Pure frontend, data stays in your browser.">
+<meta property="og:url" content="https://webtools-cn.github.io/tools-site/en/subnet-calculator/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Online Tools Collection">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Subnet Calculator",
+  "description": "Free online subnet calculator for IPv4 CIDR subnetting. Calculate network address, broadcast address, usable hosts, subnet mask. Supports VLSM and supernet aggregation, pure frontend processing.",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Web",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Online Tools",
+    "email": "REDACTED_EMAIL"
+  },
+  "author": {
+    "@type": "Organization",
+    "name": "Online Tools"
+  },
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+  {
+    "@type": "Question",
+    "name": "What does /24 mean in CIDR notation?",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "In CIDR (Classless Inter-Domain Routing) notation, /24 means the subnet mask has 24 consecutive 1s (255.255.255.0), indicating 24 bits for the network portion and 8 bits for hosts. A /24 subnet can accommodate 254 usable host addresses (2^8-2), commonly used for small business or large home networks."
+    }
+  },
+  {
+    "@type": "Question",
+    "name": "Why is the number of usable hosts 2^n - 2 instead of 2^n?",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Each subnet reserves two addresses: the first address is the network address (all host bits 0) which identifies the network itself, and the last address is the broadcast address (all host bits 1) used to send packets to all hosts in the subnet. So the actual assignable host addresses are 2^n - 2. For example, a /24 subnet has 256 addresses but only 254 are usable."
+    }
+  },
+  {
+    "@type": "Question",
+    "name": "How do I calculate subnets from a larger network?",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Subnetting works by borrowing bits from the host portion. For example, to divide a /24 into 4 /26 subnets: borrow 2 bits from the 8 host bits (2^2=4 subnets), each getting 2^6-2=62 usable hosts. Subnet 1 covers 0-63 (network 0, broadcast 63), subnet 2 covers 64-127, and so on. This tool automatically calculates all subnets for any CIDR prefix — just input your network address and desired subnet count."
+    }
+  },
+  {
+    "@type": "Question",
+    "name": "Can I use this tool on my mobile phone?",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes, this subnet calculator is fully responsive and works on all devices including smartphones, tablets, and desktop computers. The interface adapts to your screen size automatically. All computations run locally on your device — no data is sent to any server, making it suitable for air-gapped and internal networks."
+    }
+  },
+  {
+    "@type": "Question",
+    "name": "What is the difference between a subnet mask of 255.255.255.0 and 255.255.255.240?",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "255.255.255.0 is a /24 mask with 254 usable hosts, suitable for a small LAN. 255.255.255.240 is a /28 mask with only 14 usable hosts, used for smaller subnets. The trade-off is more subnets (16 subnets from a /24) at the cost of fewer hosts per subnet. Our tool can show you the exact breakdown for any mask value."
+    }
+  }
+]
+}
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:900px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.nav-back a{color:#64748b}
+.nav-back a:hover{color:#94a3b8}
+.tool-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.tool-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+input[type=text], input[type=number], select{width:100%;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-size:.9rem;outline:none;font-family:monospace}
+input:focus, select:focus{border-color:rgba(6,182,212,.5)}
+select{cursor:pointer}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+.btn-success{background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.25)}
+.btn-success:hover{background:rgba(34,197,94,.25)}
+.result-box{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.85rem;min-height:40px;word-break:break-all;overflow-x:auto;white-space:pre-wrap;margin-top:12px;max-height:400px;overflow-y:auto}
+.result-box.success{border-color:rgba(34,197,94,.3)}
+.result-box .label{color:#64748b;font-size:.75rem;text-transform:uppercase}
+.result-box .value{color:#22d3ee;font-size:1.1rem;font-weight:600}
+.result-box .row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(148,163,184,.05)}
+.result-box .row:last-child{border-bottom:none}
+.info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.info-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.info-section h3{font-size:.95rem;color:#e2e8f0;margin:16px 0 8px}
+.info-section p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
+.info-section ul{color:#94a3b8;font-size:.9rem;margin:8px 0 8px 20px}
+.info-section li{margin-bottom:4px}
+.faq-item{margin-bottom:16px}
+.faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px}
+.faq-item p{color:#94a3b8;font-size:.9rem}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#64748b;margin:0 8px}
+.footer a:hover{color:#94a3b8}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+.input-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.input-group{flex:1;min-width:200px}
+.input-group label{display:block;color:#94a3b8;font-size:.8rem;margin-bottom:4px}
+.input-group input{width:100%}
+.freshness-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:2px 10px;font-size:.7rem;color:#22c55e;margin-bottom:12px}
+.subnet-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:8px}
+.subnet-table th{background:#0f172a;color:#64748b;padding:8px 6px;text-align:left;border-bottom:1px solid rgba(148,163,184,.1)}
+.subnet-table td{padding:6px;border-bottom:1px solid rgba(148,163,184,.05);color:#94a3b8}
+.subnet-table tr:hover td{background:rgba(6,182,212,.05);color:#e2e8f0}
+.subnet-table .highlight{color:#22d3ee}
+.tabs{display:flex;gap:4px;background:#0f172a;border-radius:8px;padding:4px;margin-bottom:16px}
+.tab{padding:8px 16px;border-radius:5px;font-size:.85rem;cursor:pointer;color:#64748b;border:none;background:none;transition:all .2s}
+.tab.active{background:rgba(6,182,212,.15);color:#22d3ee}
+.tab:hover{color:#e2e8f0}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+  <h1>Subnet Calculator</h1>
+  <div class="lang-switch">
+    <a href="../../subnet-calculator/">中文</a>
+    <a href="../subnet-calculator/" class="active">EN</a>
+  </div>
+</div>
+<div class="nav-back"><a href="../">← Back to Home</a></div>
+<div class="freshness-badge">✅ Updated 2026-07-11</div>
+
+<div class="tool-section">
+  <h2>📡 Enter IP Address / CIDR</h2>
+  <div class="input-row">
+    <div class="input-group">
+      <label>IP Address</label>
+      <input type="text" id="ipInput" placeholder="e.g. 192.168.1.0" value="192.168.1.0">
+    </div>
+    <div class="input-group">
+      <label>Subnet Mask or CIDR Prefix</label>
+      <input type="text" id="maskInput" placeholder="e.g. 255.255.255.0 or /24" value="24">
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="calculate()">🔍 Calculate</button>
+    <button class="btn btn-secondary" onclick="clearAll()">🧹 Clear</button>
+  </div>
+</div>
+
+<div id="resultSection" class="tool-section" style="display:none">
+  <h2>📊 Results</h2>
+  <div id="resultContent" class="result-box"></div>
+</div>
+
+<div class="tabs" id="subnetTabs">
+  <button class="tab active" data-tab="single" onclick="switchTab('single')">Single Subnet</button>
+  <button class="tab" data-tab="subnet" onclick="switchTab('subnet')">Subnet Split</button>
+  <button class="tab" data-tab="supernet" onclick="switchTab('supernet')">Supernet</button>
+</div>
+
+<div id="singleTab" class="tool-section">
+  <h2>🔍 Split Network into Subnets</h2>
+  <div class="input-row">
+    <div class="input-group">
+      <label>Network Address/CIDR</label>
+      <input type="text" id="subnetInput" placeholder="e.g. 192.168.1.0/24">
+    </div>
+    <div class="input-group">
+      <label>Number of Subnets</label>
+      <input type="number" id="numSubnets" placeholder="Power of 2" value="4" min="2" max="1024">
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="calculateSubnets()">📐 Split</button>
+  <div id="subnetResult" style="display:none;margin-top:16px">
+    <div id="subnetTableContainer"></div>
+  </div>
+</div>
+
+<div id="supernetTab" class="tool-section" style="display:none">
+  <h2>🔗 Supernet / Route Summarization</h2>
+  <p style="color:#94a3b8;font-size:.9rem;margin-bottom:12px">Enter one CIDR per line. The tool will calculate the most specific aggregate route.</p>
+  <textarea id="supernetInput" rows="4" placeholder="One CIDR per line&#10;e.g.&#10;192.168.0.0/24&#10;192.168.1.0/24&#10;192.168.2.0/24&#10;192.168.3.0/24" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-size:.9rem;outline:none;font-family:monospace;resize:vertical;min-height:120px"></textarea>
+  <button class="btn btn-primary" onclick="calculateSupernet()">🔄 Calculate Supernet</button>
+  <div id="supernetResult" style="display:none;margin-top:16px">
+    <div id="supernetResultContent" class="result-box"></div>
+  </div>
+</div>
+
+<div class="info-section">
+  <h2>📖 About Subnetting</h2>
+  <p>Subnetting divides an IP network into smaller subnets to improve address utilization and network management. This tool supports:</p>
+  <ul>
+    <li><strong>CIDR Calculation</strong>: Enter IP + mask, get network/broadcast/host range instantly</li>
+    <li><strong>Subnet Splitting</strong>: Automatically split a network into N equal subnets</li>
+    <li><strong>Supernet Aggregation</strong>: Summarize multiple subnets into a single aggregate route</li>
+    <li><strong>VLSM Support</strong>: Variable-Length Subnet Masks at any prefix length</li>
+  </ul>
+  <h3>Common Subnet Mask Reference</h3>
+  <table class="subnet-table">
+    <thead><tr><th>CIDR</th><th>Subnet Mask</th><th>Usable Hosts</th><th>Use Case</th></tr></thead>
+    <tbody>
+      <tr><td class="highlight">/30</td><td>255.255.255.252</td><td>2</td><td>Point-to-Point Link</td></tr>
+      <tr><td class="highlight">/29</td><td>255.255.255.248</td><td>6</td><td>Small Network</td></tr>
+      <tr><td class="highlight">/28</td><td>255.255.255.240</td><td>14</td><td>Small Subnet</td></tr>
+      <tr><td class="highlight">/27</td><td>255.255.255.224</td><td>30</td><td>Small LAN</td></tr>
+      <tr><td class="highlight">/26</td><td>255.255.255.192</td><td>62</td><td>Medium LAN</td></tr>
+      <tr><td class="highlight">/24</td><td>255.255.255.0</td><td>254</td><td>Standard Class C</td></tr>
+      <tr><td class="highlight">/23</td><td>255.255.254.0</td><td>510</td><td>Supernet</td></tr>
+      <tr><td class="highlight">/22</td><td>255.255.252.0</td><td>1022</td><td>Supernet</td></tr>
+      <tr><td class="highlight">/16</td><td>255.255.0.0</td><td>65534</td><td>Standard Class B</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="info-section">
+  <h2>❓ Frequently Asked Questions</h2>
+  <div class="faq-item">
+    <h3>What is CIDR and why should I use it?</h3>
+    <p>CIDR (Classless Inter-Domain Routing) replaced the traditional class-based IP addressing (A/B/C classes) with a flexible prefix-length notation. Instead of being limited to /8, /16, or /24 masks, you can use any prefix from /0 to /32. This allows much more efficient IP address allocation and enables VLSM (Variable Length Subnet Masking) and route aggregation, making it fundamental to modern internet routing.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Is this tool free to use?</h3>
+    <p>Yes, this subnet calculator is completely free to use with no limitations, no registration required, and no ads. All calculations run locally in your browser using JavaScript — your IP addresses and network data never leave your device. You can use it offline and even in air-gapped or internal network environments.</p>
+  </div>
+  <div class="faq-item">
+    <h3>What is VLSM (Variable Length Subnet Mask)?</h3>
+    <p>VLSM allows using different subnet mask lengths within the same major network, enabling more flexible IP address allocation. For example, you could split a /24 into two /25 subnets (128 addresses each) and two /30 subnets (4 addresses each) for point-to-point links, rather than using equal-sized subnets. VLSM significantly improves address utilization and is widely used in enterprise networks.</p>
+  </div>
+  <div class="faq-item">
+    <h3>How does supernetting reduce routing table size?</h3>
+    <p>Supernetting (also called route summarization or aggregation) combines multiple contiguous subnets into a single, larger network. For example, instead of advertising four separate routes (192.168.0.0/24, 192.168.1.0/24, 192.168.2.0/24, 192.168.3.0/24), a router can advertise a single 192.168.0.0/22 route. This reduces routing table size, improves router performance, and increases network stability by minimizing route flapping.</p>
+  </div>
+  <div class="faq-item">
+    <h3>How is the subnet calculator different from other IP tools?</h3>
+    <p>Unlike many IP tools that require server-side processing or API calls, this subnet calculator runs entirely in your browser. There is no server upload, no API limits, and no data privacy concerns. It provides instant results for CIDR calculation, subnet splitting, and supernet aggregation in a single unified interface. It's designed for network engineers, IT administrators, students, and anyone studying for networking certifications like CCNA.</p>
+  </div>
+</div>
+
+<div class="footer">
+  <div style="margin-bottom:12px">
+    <a href="../">Home</a>
+    <a href="../">All Tools</a>
+    <a href="mailto:REDACTED_EMAIL">Contact</a>
+    <a href="../../subnet-calculator/">中文</a>
+  </div>
+  <p>Subnet Calculator · Pure Frontend · Data Never Uploaded</p>
+  <p style="margin-top:4px">Free to Use · No Registration Required · Privacy Safe</p>
+  <p style="margin-top:8px;color:#475569;font-size:.8rem">Feedback: REDACTED_EMAIL</p>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+var toast=document.getElementById('toast');
+function showToast(m){toast.textContent=m;toast.classList.add('show');setTimeout(function(){toast.classList.remove('show');},2000);}
+
+function ipToLong(ip){
+  var parts=ip.trim().split('.');
+  if(parts.length!==4) return -1;
+  for(var i=0;i<4;i++){
+    var n=parseInt(parts[i],10);
+    if(isNaN(n)||n<0||n>255) return -1;
+  }
+  return ((parseInt(parts[0])<<24)+(parseInt(parts[1])<<16)+(parseInt(parts[2])<<8)+parseInt(parts[3]))>>>0;
+}
+
+function longToIp(num){
+  return [(num>>>24)&255,(num>>>16)&255,(num>>>8)&255,num&255].join('.');
+}
+
+function parseMask(input){
+  input=input.trim();
+  if(input.startsWith('/')){
+    var bits=parseInt(input.substring(1),10);
+    if(isNaN(bits)||bits<0||bits>32) return -1;
+    return bits;
+  }
+  if(input.indexOf('.')>=0){
+    var n=ipToLong(input);
+    if(n===-1) return -1;
+    var bits=0,t=n;
+    for(var i=0;i<32;i++){
+      if((t&(1<<(31-i)))!==0) bits++; else break;
+    }
+    var expected=0;
+    for(var j=0;j<bits;j++) expected=(expected<<1)|1;
+    expected=expected<<(32-bits)>>>0;
+    if(expected!==n) return -1;
+    return bits;
+  }
+  var bits=parseInt(input,10);
+  if(isNaN(bits)||bits<0||bits>32) return -1;
+  return bits;
+}
+
+function cidrToMask(bits){
+  if(bits===0) return 0;
+  return (~0<<(32-bits))>>>0;
+}
+
+function calculate(){
+  var ipStr=document.getElementById('ipInput').value.trim();
+  var maskStr=document.getElementById('maskInput').value.trim();
+  var ip=ipToLong(ipStr);
+  if(ip===-1){showToast('❌ Invalid IP address');return;}
+  var bits=parseMask(maskStr);
+  if(bits===-1){showToast('❌ Invalid subnet mask');return;}
+  var mask=cidrToMask(bits);
+  var network=ip&mask;
+  var broadcast=network|(~mask>>>0);
+  var wildcard=(~mask>>>0);
+  var usableHosts=Math.pow(2,32-bits)-2;
+  if(usableHosts<0) usableHosts=0;
+  var firstUsable=usableHosts>0?network+1:network;
+  var lastUsable=usableHosts>0?broadcast-1:broadcast;
+
+  var html='<div class="row"><span class="label">IP Address</span><span class="value">'+ipStr+'</span></div>';
+  html+='<div class="row"><span class="label">Subnet Mask</span><span class="value">'+longToIp(mask)+' /'+bits+'</span></div>';
+  html+='<div class="row"><span class="label">Wildcard Mask</span><span class="value">'+longToIp(wildcard)+'</span></div>';
+  html+='<div class="row"><span class="label">Network Address</span><span class="value">'+longToIp(network)+' /'+bits+'</span></div>';
+  html+='<div class="row"><span class="label">Broadcast Address</span><span class="value">'+longToIp(broadcast)+'</span></div>';
+  html+='<div class="row"><span class="label">Usable Hosts</span><span class="value">'+usableHosts+'</span></div>';
+  if(usableHosts>0){
+    html+='<div class="row"><span class="label">Usable IP Range</span><span class="value">'+longToIp(firstUsable)+' — '+longToIp(lastUsable)+'</span></div>';
+  }else{
+    html+='<div class="row"><span class="label">Usable IP Range</span><span class="value">None (reserved for p2p)</span></div>';
+  }
+  html+='<div class="row"><span class="label">Binary IP</span><span class="value" style="font-size:.8rem">'+
+    ('00000000'+((ip>>>24)&255).toString(2)).slice(-8)+'.'+('00000000'+((ip>>>16)&255).toString(2)).slice(-8)+
+    '.'+('00000000'+((ip>>>8)&255).toString(2)).slice(-8)+'.'+('00000000'+(ip&255).toString(2)).slice(-8)+'</span></div>';
+  html+='<div class="row"><span class="label">Binary Mask</span><span class="value" style="font-size:.8rem">'+
+    ('00000000'+((mask>>>24)&255).toString(2)).slice(-8)+'.'+('00000000'+((mask>>>16)&255).toString(2)).slice(-8)+
+    '.'+('00000000'+((mask>>>8)&255).toString(2)).slice(-8)+'.'+('00000000'+(mask&255).toString(2)).slice(-8)+'</span></div>';
+
+  document.getElementById('resultContent').innerHTML=html;
+  document.getElementById('resultSection').style.display='block';
+  showToast('✅ Calculation complete');
+}
+
+function clearAll(){
+  document.getElementById('resultSection').style.display='none';
+  document.getElementById('subnetResult').style.display='none';
+  document.getElementById('supernetResult').style.display='none';
+  document.getElementById('subnetTableContainer').innerHTML='';
+  showToast('🧹 Cleared');
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelector('[data-tab="'+tab+'"]').classList.add('active');
+  document.getElementById('singleTab').style.display=tab==='single'?'block':'none';
+  document.getElementById('supernetTab').style.display=tab==='supernet'?'block':'none';
+}
+
+function calculateSubnets(){
+  var input=document.getElementById('subnetInput').value.trim();
+  var numSubnets=parseInt(document.getElementById('numSubnets').value,10);
+  if(!input){showToast('❌ Please enter network address/CIDR');return;}
+  if(isNaN(numSubnets)||numSubnets<2){showToast('❌ Subnet count must be >= 2');return;}
+  var parts=input.split('/');
+  var ip=ipToLong(parts[0]);
+  if(ip===-1){showToast('❌ Invalid IP address');return;}
+  var baseBits=parseMask('/'+parts[1]);
+  if(baseBits===-1){showToast('❌ Invalid CIDR prefix');return;}
+  var bitsNeeded=Math.ceil(Math.log(numSubnets)/Math.log(2));
+  var newBits=baseBits+bitsNeeded;
+  if(newBits>30){showToast('❌ Too many subnets, not enough host bits');return;}
+  var mask=cidrToMask(baseBits);
+  var network=ip&mask;
+  var subnetSize=Math.pow(2,32-newBits);
+  var actualSubnets=Math.pow(2,bitsNeeded);
+  var hostsPerSubnet=Math.pow(2,32-newBits)-2;
+  var html='<p style="color:#94a3b8;font-size:.85rem;margin-bottom:8px">Split <strong style="color:#22d3ee">'+parts[0]+'/'+baseBits+'</strong> into <strong style="color:#22d3ee">'+actualSubnets+'</strong> /'+newBits+' subnets ('+hostsPerSubnet+' usable hosts each)</p>';
+  html+='<table class="subnet-table"><thead><tr><th>#</th><th>Subnet</th><th>CIDR</th><th>Host Range</th><th>Broadcast</th></tr></thead><tbody>';
+  for(var i=0;i<actualSubnets;i++){
+    var sn=network+i*subnetSize;
+    var ba=sn+subnetSize-1;
+    var fh=hostsPerSubnet>0?sn+1:sn;
+    var lh=hostsPerSubnet>0?ba-1:ba;
+    html+='<tr><td>'+(i+1)+'</td><td class="highlight">'+longToIp(sn)+'</td><td>/'+newBits+'</td><td>'+longToIp(fh)+' — '+longToIp(lh)+'</td><td>'+longToIp(ba)+'</td></tr>';
+  }
+  html+='</tbody></table>';
+  html+='<p style="color:#64748b;font-size:.75rem;margin-top:8px">Total: '+actualSubnets+' subnets, '+hostsPerSubnet+' usable hosts each</p>';
+  document.getElementById('subnetTableContainer').innerHTML=html;
+  document.getElementById('subnetResult').style.display='block';
+  showToast('✅ Subnetting complete: '+actualSubnets+' subnets');
+}
+
+function calculateSupernet(){
+  var input=document.getElementById('supernetInput').value.trim();
+  if(!input){showToast('❌ Please enter subnet CIDRs');return;}
+  var lines=input.split('\n').filter(function(l){return l.trim();});
+  if(lines.length<2){showToast('❌ Need at least 2 networks');return;}
+  var networks=[];
+  for(var i=0;i<lines.length;i++){
+    var parts=lines[i].trim().split('/');
+    if(parts.length!==2) continue;
+    var ip=ipToLong(parts[0]);
+    if(ip===-1) continue;
+    var bits=parseInt(parts[1],10);
+    if(isNaN(bits)||bits<0||bits>32) continue;
+    var mask=cidrToMask(bits);
+    networks.push({ip:ip&mask, bits:bits, str:longToIp(ip&mask)+'/'+bits});
+  }
+  if(networks.length<2){showToast('❌ Not enough valid networks');return;}
+  networks.sort(function(a,b){return a.ip-b.ip;});
+  var minBits=networks[0].bits;
+  for(var i=1;i<networks.length;i++) minBits=Math.min(minBits,networks[i].bits);
+  var bestBits=minBits;
+  for(var bits=minBits;bits>=0;bits--){
+    var testMask=bits===0?0:(~0<<(32-bits))>>>0;
+    var testNetwork=networks[0].ip&testMask;
+    var testBroadcast=testNetwork|(~testMask>>>0);
+    var allContained=true;
+    for(var i=0;i<networks.length;i++){
+      if(networks[i].ip<testNetwork||networks[i].ip>testBroadcast){
+        allContained=false; break;
+      }
+    }
+    if(allContained){bestBits=bits;}
+    else{break;}
+  }
+  var sumMask=bestBits===0?0:(~0<<(32-bestBits))>>>0;
+  var sumNetwork=networks[0].ip&sumMask;
+  var sumBroadcast=sumNetwork|(~sumMask>>>0);
+  var html='<div class="row"><span class="label">Aggregate Route</span><span class="value">'+longToIp(sumNetwork)+'/'+bestBits+'</span></div>';
+  html+='<div class="row"><span class="label">Subnet Mask</span><span class="value">'+longToIp(sumMask)+'</span></div>';
+  html+='<div class="row"><span class="label">IP Range</span><span class="value">'+longToIp(sumNetwork)+' — '+longToIp(sumBroadcast)+'</span></div>';
+  html+='<div class="row"><span class="label">Networks Summarized</span><span class="value">'+networks.length+'</span></div>';
+  html+='<div style="margin-top:12px;padding-top:8px;border-top:1px solid rgba(148,163,184,.1)"><span class="label">Input Networks</span></div>';
+  for(var i=0;i<networks.length;i++){
+    html+='<div class="row"><span class="label" style="font-size:.75rem">'+(i+1)+'</span><span class="value" style="font-size:.85rem">'+networks[i].str+'</span></div>';
+  }
+  document.getElementById('supernetResultContent').innerHTML=html;
+  document.getElementById('supernetResult').style.display='block';
+  showToast('✅ Supernet: '+longToIp(sumNetwork)+'/'+bestBits);
+}
+
+calculate();
+</script>
+
+<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
+<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
+<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 Feedback</span>
+<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
+</div>
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
+<option value="feedback">💡 Feature</option>
+<option value="bug">🐛 Bug</option>
+<option value="other">💬 Other</option>
+</select>
+<textarea id="feedback-text" placeholder="Describe your suggestion or issue..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
+<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">Submit</button>
+</div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ Thank you! Submitted to GitHub Issues</div>
+</div>
+</div>
+<script>
+function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+document.getElementById('feedback-text')&&document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){
+var type=document.getElementById('feedback-type').value;
+var text=document.getElementById('feedback-text').value.trim();
+if(!text){alert('PLEASE_ENTER');return;}
+var tl={'feedback':'FEEDBACK','bug':'BUG','other':'OTHER'}[type];
+var title=encodeURIComponent(tl+' - '+window.location.pathname);
+var body=encodeURIComponent('PAGE: '+window.location.href+'\nTYPE: '+tl+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+setTimeout(function(){document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
+}
+</script>
+<!-- Related Tools -->
+<link rel="stylesheet" href="https://webtools-cn.github.io/tools-site/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://webtools-cn.github.io/tools-site/related-tools.js"></script>
+</body>
+</html>
