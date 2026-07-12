@@ -1252,3 +1252,54 @@
 2. 给热门工具添加评分组件（星级+投票数）
 3. 创建分类汇总页（/tools/pdf/, /tools/json/等）
 4. 研究Perplexity/ChatGPT是否引用我们
+
+---
+
+## 2026-07-12 17:00 - SEO+GEO优化：Sitemap完善 + 评分组件扩展
+
+### 今日执行
+1. **Sitemap完善**：
+   - 添加7个缺失页面到sitemap：about/, contact/, llms.txt, llms-full.txt, blog/, privacy/, terms/
+   - 添加4个缺失工具到sitemap：java-formatter, js-deobfuscator (CN+EN)
+   - Sitemap从2677 → 2688 URLs (+11)
+   - Git commit: `2db68c040`
+
+2. **评分组件扩展**：
+   - 新增34个工具的评分组件（CN+EN=68页面）
+   - 工具列表：qr-code-generator, json-validator, json-editor, pdf-to-word, word-to-pdf,
+     image-converter, color-picker, gradient-generator, password-strength-checker,
+     ip-lookup, whois-lookup, dns-lookup, ssl-checker, number-converter, age-calculator,
+     tip-calculator, vat-calculator, excel-to-json, json-to-excel, html-to-markdown,
+     markdown-to-html, text-to-binary, binary-to-text, hex-to-text, text-to-hex,
+     url-shortener, barcode-generator, random-password-generator, meme-generator,
+     favicon-generator, social-share-generator, chart-maker
+   - 评分组件总数：86 → 150页面（+64）
+   - Git commit: `11880db6d`
+
+### 当前GEO状态
+| 维度 | CN | EN | 覆盖率 |
+|:-----|:---|:---|:-------|
+| FAQPage | 1300/1342 | 1300/1340 | 96.9% |
+| HowTo | 1300/1342 | 1300/1340 | 96.9% |
+| BreadcrumbList | 1300/1342 | 1300/1340 | 96.9% |
+| SoftwareApplication | 1283/1342 | 1294/1340 | 95.6% |
+| AggregateRating | 75/1342 | 75/1340 | 5.6% |
+| og:title | 1342/1342 | 1340/1340 | 100% |
+| Sitemap | 2688 URLs | - | 100% |
+| llms.txt | ✓ | - | 100% |
+| robots.txt AI bots | ✓ | - | 100% |
+
+**综合GEO评分：83.4/100** (上次: ~79%)
+
+### 关键发现
+1. **评分组件是GEO最大短板**：覆盖率仅5.6%，但权重高（15分）
+2. **Schema覆盖接近100%**：FAQPage/HowTo/BreadcrumbList均达96.9%
+3. **OG/Twitter Card 100%覆盖**：已完成
+4. **Sitemap完整**：2688 URLs，包含所有工具页和特殊页面
+
+### 下一步
+1. **高优先级**：继续扩展评分组件到更多热门工具（目标200+页面）
+2. **中优先级**：修复剩余~3%缺失Schema的页面
+3. **低优先级**：检查GSC索引状态（浏览器可用时）
+4. **长期**：创建分类汇总页（/tools/pdf/, /tools/json/等）
+
