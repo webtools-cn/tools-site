@@ -1205,3 +1205,50 @@
 | 低 | 导出HTML含多余反馈代码 | markdown-preview |
 | 低 | 缺少常用预设组合 | area-converter |
 | 低 | 缺少预览内容自定义 | css-hover-effects |
+## 2026-07-12 16:00 - SEO+GEO 全面优化：工具注册表清理 + Sitemap完善
+
+### 今日执行
+1. **提交113个新工具**：
+   - 113个新工具目录（中英文）已push到GitHub
+   - 包含：avif-converter, broken-link-checker, chess-clock, chord-generator等
+   - Git commit: `7185af1bd`
+
+2. **Sitemap完善**：
+   - 添加llms.txt和llms-full.txt到sitemap（2644 URLs）
+   - Git commit: `d381f1b0e`
+
+3. **Tools Registry全面清理**：
+   - 从627个工具扩展到1320个（100%覆盖）
+   - 修复708个缺失的工具条目
+   - 标准化分类（utility→实用工具，developer-tools→开发工具等）
+   - 移除14个重复条目
+   - 修复34个缺失slug字段的工具
+   - 合并"开发者工具"到"开发工具"（183个）
+   - Git commits: `b437ccee6`, `a70939727`, `078c9f73a`, `801ef2243`, `5da31038c`
+
+### 当前状态
+- **总工具数**: 1320个（中英文双语 = 2640页面）
+- **Sitemap**: 2644 URLs（含llms.txt和llms-full.txt）
+- **Registry覆盖率**: 100%
+- **分类数**: 43个
+- **Git commits**: 7个
+
+### 分类分布
+| 分类 | 数量 |
+|------|------|
+| 实用工具 | 779 |
+| 开发工具 | 183 |
+| 图片工具 | 44 |
+| 设计工具 | 37 |
+| PDF工具 | 32 |
+| 文字工具 | 26 |
+| 安全工具 | 21 |
+| 创意工具 | 19 |
+| 计算工具 | 18 |
+| 办公工具 | 14 |
+
+### 下一步
+1. 检查GSC索引状态（浏览器可用时）
+2. 给热门工具添加评分组件（星级+投票数）
+3. 创建分类汇总页（/tools/pdf/, /tools/json/等）
+4. 研究Perplexity/ChatGPT是否引用我们
