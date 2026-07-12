@@ -4075,13 +4075,6 @@ p.subtitle{color:#94a3b8;margin-bottom:24px}
       <div class="tool-meta"><span>开发工具</span></div>
       <a href="subnet-calculator/">使用</a>
     </div>
-      <div class="tool-card" data-cats="text">
-      <div class="icon">🔧</div>
-      <h3>3D Text Generator</h3>
-      <p></p>
-      <div class="tool-meta"><span>文字工具</span></div>
-      <a href="3d-text-generator/">立即使用</a>
-    </div>
     <div class="tool-card" data-cats="text">
       <div class="icon">📌</div>
       <h3>Ai Sentence Rewriter</h3>
@@ -10045,6 +10038,114 @@ setTimeout(()=>{document.getElementById('feedback-success').style.display='none'
 <!-- Feedback script -->
 
 <!-- Category filter script -->
+<script>
+(function() {
+  function initFilter() {
+    var searchInput = document.getElementById('searchInput');
+    var categoryTags = document.getElementById('categoryTags');
+    var toolsGrid = document.getElementById('toolsGrid');
+    var resultCount = document.getElementById('resultCount');
+    var noResults = document.getElementById('noResults');
+    var showMoreWrap = document.getElementById('showMoreWrap');
+    var showMoreBtn = document.getElementById('showMoreBtn');
+    var showMoreCount = document.getElementById('showMoreCount');
+    if (!searchInput || !categoryTags || !toolsGrid || !resultCount || !noResults) return;
+
+    // Move all orphan cards into #toolsGrid
+    var allCards = document.querySelectorAll('.tool-card');
+    for (var i = 0; i < allCards.length; i++) {
+      if (allCards[i].parentNode !== toolsGrid && toolsGrid.contains(allCards[i]) === false) {
+        toolsGrid.appendChild(allCards[i]);
+      }
+    }
+
+    var cards = Array.from(document.querySelectorAll('.tool-card'));
+    var currentCat = 'all';
+    var currentQuery = '';
+    var showAll = false;
+    var INITIAL_LIMIT = 48;
+
+    var catMap = {
+      'dev': ['dev'], 'utility': ['utility'], 'pdf': ['pdf'], 'image': ['image'],
+      'design': ['design'], 'text': ['text'], 'office': ['office'], 'security': ['security'],
+      'creative': ['creative'], 'calc': ['calc'], 'media': ['media'], 'health': ['health'],
+      'math': ['math'], 'fun': ['fun'], 'time': ['utility'], 'converter': ['utility'],
+      'video': ['media']
+    };
+
+    function updateFilter() {
+      var q = currentQuery.toLowerCase().trim();
+      var visibleCards = [];
+      var allowedCats = catMap[currentCat] || [];
+      cards.forEach(function(card) {
+        var cardCats = (card.dataset.cats || '').toLowerCase().split(',').map(function(s) { return s.trim(); });
+        var catMatch = currentCat === 'all' || allowedCats.some(function(c) { return cardCats.indexOf(c.toLowerCase()) !== -1; });
+        var textMatch = !q || (card.textContent || '').toLowerCase().indexOf(q) !== -1;
+        if (catMatch && textMatch) {
+          visibleCards.push(card);
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+      var shouldLimit = (currentCat === 'all' && !q && !showAll);
+      var totalVisible = visibleCards.length;
+      if (shouldLimit) {
+        visibleCards.forEach(function(card, i) {
+          if (i >= INITIAL_LIMIT) card.classList.add('hidden');
+        });
+        var shownCount = Math.min(totalVisible, INITIAL_LIMIT);
+        if (totalVisible > INITIAL_LIMIT) {
+          showMoreWrap.style.display = 'block';
+          showMoreCount.textContent = totalVisible - INITIAL_LIMIT;
+        } else {
+          showMoreWrap.style.display = 'none';
+        }
+        resultCount.textContent = '显示前 ' + shownCount + ' 个工具（共 ' + totalVisible + ' 个）';
+      } else {
+        showMoreWrap.style.display = 'none';
+        resultCount.textContent = totalVisible > 0 ? '找到 ' + totalVisible + ' 个工具' : '';
+      }
+      if (totalVisible === 0) {
+        noResults.style.display = 'block';
+        toolsGrid.style.display = 'none';
+      } else {
+        noResults.style.display = 'none';
+        toolsGrid.style.display = 'grid';
+      }
+    }
+
+    if (showMoreBtn) {
+      showMoreBtn.addEventListener('click', function() {
+        showAll = true;
+        updateFilter();
+        showMoreWrap.style.display = 'none';
+      });
+    }
+    searchInput.addEventListener('input', function() {
+      currentQuery = this.value;
+      if (currentQuery) showAll = true;
+      updateFilter();
+    });
+    categoryTags.addEventListener('click', function(e) {
+      var tag = e.target.closest('.category-tag');
+      if (!tag) return;
+      Array.from(categoryTags.children).forEach(function(t) { t.classList.remove('active'); });
+      tag.classList.add('active');
+      currentCat = tag.dataset.cat;
+      showAll = false;
+      updateFilter();
+    });
+    updateFilter();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFilter);
+  } else {
+    initFilter();
+  }
+})();
+</script>
 
 <!-- Footer -->
 <div class="footer">
