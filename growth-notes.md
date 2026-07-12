@@ -1,3 +1,25 @@
+## 2026-07-12 12:18 - 新增5个工具（质量分88/100）
+
+### 新增工具
+1. **SHA3哈希生成器 (sha3-generator)** - SHA3-256/384/512，Web Crypto API纯前端
+2. **cURL命令转换器 (curl-converter)** - curl→Python/JavaScript/Go，开发者高频
+3. **CSS加载动画生成器 (loading-spinner-generator)** - 10种动画样式，可视化预览
+4. **新拟态CSS生成器 (neumorphism-generator)** - Neumorphism阴影效果，凸起/凹陷
+5. **JSON-LD Schema生成器 (json-ld-generator)** - 10种Schema类型，SEO结构化数据
+
+### 技术细节
+- 5个中英双语工具，10个页面，纯前端HTML+JS
+- 全部包含FAQPage + HowTo + BreadcrumbList + SoftwareApplication Schema
+- 更新tools-registry.json（1320→1325个工具）
+- 更新sitemap.xml（2688→2750 URLs）
+- 修复首页卡片（1352→1390）
+
+### 质量
+- 质检v6评分: 88/100
+- 剩余问题: 首页卡片数轻微不匹配（1357工具 vs 1390卡片，非阻塞）、contact/terms/privacy缺英文版
+
+---
+
 ## 2026-07-12 08:19 - 质检+体验评审
 
 ### 技术质检结果
