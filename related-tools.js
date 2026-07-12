@@ -8,8 +8,13 @@
   p = p.replace(/\/en\//g, '/');
   var slug = p.split('/').filter(Boolean).pop() || '';
   if (!slug) { s.innerHTML = ''; return; }
-  var u = 'https://webtools-cn.github.io/tools-site/related-tools.json';
-  fetch(u).then(function(r) { return r.json(); }).then(function(d) {
+  // Use relative path so it works with any domain
+  var depth = en ? '../../' : '../';
+  var u = depth + 'related-tools.json';
+  fetch(u).then(function(r) {
+    if (!r.ok) throw new Error('not found');
+    return r.json();
+  }).then(function(d) {
     var data = en ? d.en : d.cn;
     var t = data[slug];
     if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
@@ -17,7 +22,7 @@
       + (en ? '🔗 You May Also Like' : '🔗 相关工具推荐')
       + '</h3><div class="related-tools-grid">';
     t.related.forEach(function(r) {
-      var link = en ? '../en/' + r.slug + '/' : '../' + r.slug + '/';
+      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
       h += '<a href="' + link + '" class="related-tool-card">'
         + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
         + '<span class="related-tool-name">' + r.name + '</span></a>';
