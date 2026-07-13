@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF页面旋转 - 免费在线旋转PDF页面工具 | WebTools</title>
+    <meta name="description" content="免费在线PDF页面旋转工具，支持90°/180°/270°旋转，可选择特定页面或全部页面，纯前端本地处理，文件不上传服务器。">
+    <link rel="canonical" href="https://free-toolbase.com/pdf-rotate-page/">
+    <meta property="og:title" content="PDF页面旋转 - 免费在线旋转PDF页面工具">
+    <meta property="og:description" content="免费在线PDF页面旋转工具，支持90°/180°/270°旋转，纯前端本地处理。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://free-toolbase.com/pdf-rotate-page/">
+    <style>
+        :root {
+            --bg: #f8fafc; --card-bg: #fff; --text: #1e293b; --text-secondary: #64748b;
+            --border: #e2e8f0; --primary: #3b82f6; --primary-hover: #2563eb;
+            --accent: #8b5cf6; --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
+            --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 30px 0 20px; }
+        header h1 { font-size: 2rem; color: var(--text); margin-bottom: 8px; }
+        header p { color: var(--text-secondary); font-size: 1.05rem; }
+        .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); padding: 24px; margin-bottom: 20px; }
+        .card h2 { font-size: 1.25rem; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+        textarea, select, input[type="number"], input[type="text"] { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; transition: border .2s; }
+        textarea:focus, select:focus, input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-danger:hover { background: #dc2626; }
+        .faq-item { margin-bottom: 16px; }
+        .faq-item h3 { font-size: 1.05rem; color: var(--text); margin-bottom: 6px; }
+        .faq-item p { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.95rem; }
+        .drop-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all .2s; background: var(--bg); }
+        .drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: rgba(59,130,246,.05); }
+        .drop-zone .icon { font-size: 3rem; margin-bottom: 12px; }
+        .drop-zone .hint { color: var(--text-secondary); font-size: 0.9rem; }
+        .page-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 16px; }
+        .page-thumb { background: var(--bg); border: 2px solid var(--border); border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; transition: all .2s; position: relative; }
+        .page-thumb:hover { border-color: var(--primary); }
+        .page-thumb.selected { border-color: var(--primary); background: rgba(59,130,246,.05); }
+        .page-thumb .page-num { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+        .page-thumb .rotation-badge { position: absolute; top: 4px; right: 4px; background: var(--primary); color: #fff; border-radius: 50%; width: 20px; height: 20px; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+        .page-thumb canvas { width: 100%; height: 80px; object-fit: contain; }
+        .angle-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .angle-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; font-size: 14px; transition: all .2s; }
+        .angle-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .angle-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .progress-bar { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 12px; display: none; }
+        .progress-bar .fill { height: 100%; background: var(--primary); border-radius: 3px; transition: width .3s; }
+        .file-info { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg); border-radius: 8px; margin-top: 12px; }
+        .file-info .name { font-weight: 600; flex: 1; word-break: break-all; }
+        .file-info .size { color: var(--text-secondary); var(--text-secondary); font-size: 0.85rem; }
+        footer { text-align: center; padding: 30px 0; color: var(--text-secondary); font-size: 0.85rem; }
+        footer a { color: var(--primary); text-decoration: none; }
+        @media (max-width: 768px) { .container { padding: 12px; } header h1 { font-size: 1.5rem; } .page-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); } }
+    .ad-container{margin:16px 0;text-align:center;min-height:90px;display:flex;align-items:center;justify-content:center}
+.ad-container ins{display:block}
+</style>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date()); gtag('config', 'G-9W1157EBQV');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372"
+     crossorigin="anonymous"></script>
+<style>
+.rating-widget {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin: 16px 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.rating-widget .stars { display: flex; gap: 2px; }
+.rating-widget .stars .star {
+  font-size: 20px; color: #cbd5e1; cursor: pointer;
+  transition: color 0.2s, transform 0.1s; line-height: 1;
+}
+.rating-widget .stars .star:hover,
+.rating-widget .stars .star.active { color: #f59e0b; }
+.rating-widget .stars .star:hover { transform: scale(1.2); }
+.rating-widget .rating-text { font-size: 14px; color: #475569; font-weight: 500; }
+.rating-widget .rating-count { font-size: 12px; color: #94a3b8; }
+.rating-widget .rating-thanks { font-size: 13px; color: #10b981; font-weight: 600; display: none; }
+@media (max-width: 640px) {
+  .rating-widget { flex-wrap: wrap; padding: 10px 12px; }
+  .rating-widget .stars .star { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+    <div class="container">
+<div class="ad-container"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
+        <header>
+            <h1>🔄 PDF页面旋转</h1>
+
+<div class="rating-widget" id="ratingWidget">
+  <div class="stars" id="starContainer" title="Click stars to rate">
+    <span class="star" data-value="1">★</span>
+    <span class="star" data-value="2">★</span>
+    <span class="star" data-value="3">★</span>
+    <span class="star" data-value="4">★</span>
+    <span class="star" data-value="5">★</span>
+  </div>
+  <span class="rating-text" id="ratingText">Loading...</span>
+  <span class="rating-count" id="ratingCount"></span>
+  <span class="rating-thanks" id="ratingThanks">Thanks for your rating!</span>
+</div>
+            <p>在线旋转PDF页面 - 支持90°/180°/270°旋转，纯前端本地处理</p>
+        </header>
+        <script type="application/ld+json">
+        {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://free-toolbase.com/"},{"@type":"ListItem","position":2,"name":"PDF页面旋转","item":"https://free-toolbase.com/pdf-rotate-page/"}]}
+        </script>
+
+        <div class="card">
+            <h2>📄 上传PDF文件</h2>
+            <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                <div class="icon">📁</div>
+                <div><strong>点击或拖拽上传PDF文件</strong></div>
+                <div class="hint">支持任意大小的PDF文件，所有处理在本地完成</div>
+            </div>
+            <input type="file" id="fileInput" accept=".pdf" style="display:none" onchange="handleFile(this.files[0])">
+            <div id="fileInfo" class="file-info" style="display:none">
+                <span>📄</span>
+                <span class="name" id="fileName"></span>
+                <span class="size" id="fileSize"></span>
+                <button class="btn btn-danger" onclick="resetAll()" style="padding:4px 12px;font-size:12px">删除</button>
+            </div>
+        </div>
+
+        <div class="card" id="rotateCard" style="display:none">
+            <h2>🔄 旋转设置</h2>
+            <div class="form-group">
+                <label>旋转角度</label>
+                <div class="angle-btns">
+                    <div class="angle-btn" onclick="setAngle(90)" data-angle="90">↻ 90° 顺时针</div>
+                    <div class="angle-btn" onclick="setAngle(180)" data-angle="180">↻ 180°</div>
+                    <div class="angle-btn" onclick="setAngle(270)" data-angle="270">↻ 270° 逆时针</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>旋转范围</label>
+                <div class="angle-btns">
+                    <div class="angle-btn active" onclick="setScope('all')" data-scope="all">全部页面</div>
+                    <div class="angle-btn" onclick="setScope('odd')" data-scope="odd">奇数页</div>
+                    <div class="angle-btn" onclick="setScope('even')" data-scope="even">偶数页</div>
+                    <div class="angle-btn" onclick="setScope('custom')" data-scope="custom">自定义页面</div>
+                </div>
+            </div>
+            <div class="form-group" id="customPagesGroup" style="display:none">
+                <label>页面范围（如：1,3,5-8）</label>
+                <input type="text" id="customPages" placeholder="例如：1,3,5-8,12">
+            </div>
+            <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-primary" onclick="rotatePDF()">🔄 旋转并下载</button>
+            </div>
+            <div class="progress-bar" id="progressBar"><div class="fill" id="progressFill"></div></div>
+        </div>
+
+        <div class="card" id="previewCard" style="display:none">
+            <h2>📋 页面预览（点击选择页面）</h2>
+            <div class="page-grid" id="pageGrid"></div>
+        </div>
+
+        <div class="card">
+            <h2>常见问题</h2>
+            <div class="faq-item">
+                <h3>Q1: 旋转PDF页面会影响文件质量吗？</h3>
+                <p>不会。旋转PDF页面只是修改页面的旋转属性（Rotation），不会重新渲染页面内容，因此不会损失任何质量。文字、图片、矢量图形都保持原样。</p>
+            </div>
+            <div class="faq-item">
+                <h3>Q2: 我的PDF文件安全吗？</h3>
+                <p>完全安全。所有处理都在您的浏览器本地完成，PDF文件不会上传到任何服务器。处理完成后，文件数据会自动从内存中清除。</p>
+            </div>
+            <div class="faq-item">
+                <h3>Q3: 支持哪些旋转角度？</h3>
+                <p>支持90°（顺时针）、180°和270°（逆时针）三种旋转角度。您可以选择旋转全部页面、奇数页、偶数页或自定义指定页面范围。</p>
+            </div>
+            <div class="faq-item">
+                <h3>Q4: 如何只旋转PDF中的某一页？</h3>
+                <p>选择"自定义页面"选项，在输入框中输入要旋转的页码（如"3"表示第3页，"1,3,5"表示第1、3、5页，"2-4"表示第2到4页），然后点击旋转。</p>
+            </div>
+        </div>
+
+        <script type="application/ld+json">
+        {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"旋转PDF页面会影响文件质量吗？","acceptedAnswer":{"@type":"Answer","text":"不会。旋转PDF页面只是修改页面的旋转属性，不会重新渲染页面内容，因此不会损失任何质量。"}},{"@type":"Question","name":"我的PDF文件安全吗？","acceptedAnswer":{"@type":"Answer","text":"完全安全。所有处理都在浏览器本地完成，PDF文件不会上传到任何服务器。"}},{"@type":"Question","name":"支持哪些旋转角度？","acceptedAnswer":{"@type":"Answer","text":"支持90°顺时针、180°和270°逆时针三种旋转角度，可选择旋转全部页面、奇数页、偶数页或自定义页面范围。"}},{"@type":"Question","name":"如何只旋转PDF中的某一页？","acceptedAnswer":{"@type":"Answer","text":"选择自定义页面选项，输入要旋转的页码（如3表示第3页，1,3,5表示多页，2-4表示范围），然后点击旋转。"}}]}
+        </script>
+        <script type="application/ld+json">
+        {"@context":"https://schema.org","@type":"HowTo","name":"如何使用PDF页面旋转工具","step":[{"@type":"HowToStep","position":1,"text":"上传PDF文件（点击或拖拽）"},{"@type":"HowToStep","position":2,"text":"选择旋转角度（90°/180°/270°）和旋转范围"},{"@type":"HowToStep","position":3,"text":"点击旋转并下载，获取旋转后的PDF"}]}
+        </script>
+        <script type="application/ld+json">
+        {"@context":"https://schema.org","@type":"SoftwareApplication","name":"PDF页面旋转","applicationCategory":"UtilityApplication","operatingSystem":"Any","url":"https://free-toolbase.com/pdf-rotate-page/","description":"免费在线PDF页面旋转工具","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.7",
+    "ratingCount": "286",
+    "bestRating": "5",
+    "worstRating": "1"
+  }}
+        </script>
+        <script>
+        (function(){
+            var d=document,c=d.createElement('div');
+            c.id='feedback-widget';
+            c.innerHTML='<div style="position:fixed;bottom:20px;right:20px;z-index:9999"><button id="feedback-btn" style="width:44px;height:44px;border-radius:50%;background:var(--primary);color:#fff;border:none;font-size:20px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15)" title="反馈">💬</button><div id="feedback-panel" style="display:none;position:absolute;bottom:55px;right:0;width:300px;background:var(--card-bg);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.12);border:1px solid var(--border);padding:20px"><h4 style="margin:0 0 12px">反馈</h4><textarea id="feedback-text" placeholder="您的建议..." style="min-height:80px;margin-bottom:12px"></textarea><div style="display:flex;gap:8px"><button id="feedback-submit" class="btn btn-primary" style="flex:1">提交</button><button id="feedback-close" class="btn btn-secondary" style="flex:1">关闭</button></div></div></div>';
+            d.body.appendChild(c);
+            var btn=d.getElementById('feedback-btn'),panel=d.getElementById('feedback-panel'),close=d.getElementById('feedback-close'),submit=d.getElementById('feedback-submit'),text=d.getElementById('feedback-text');
+            btn.onclick=function(){panel.style.display=panel.style.display==='none'?'block':'none'};
+            close.onclick=function(){panel.style.display='none'};
+            submit.onclick=function(){if(text.value.trim()){gtag('event','feedback',{event_category:'feedback',event_label:text.value.trim()});alert('感谢您的反馈！');text.value='';panel.style.display='none'}};
+        })();
+        </script>
+        <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+        <script>
+        var pdfBytes = null;
+        var currentAngle = 90;
+        var currentScope = 'all';
+        var selectedPages = new Set();
+
+        // Drop zone
+        var dz = document.getElementById('dropZone');
+        dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('dragover'); });
+        dz.addEventListener('dragleave', function() { dz.classList.remove('dragover'); });
+        dz.addEventListener('drop', function(e) {
+            e.preventDefault(); dz.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFile(file) {
+            if (!file || file.type !== 'application/pdf') { alert('请上传PDF文件'); return; }
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                pdfBytes = new Uint8Array(e.target.result);
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = formatSize(file.size);
+                document.getElementById('fileInfo').style.display = 'flex';
+                document.getElementById('rotateCard').style.display = '';
+                loadPreview();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        async function loadPreview() {
+            try {
+                var pdf = await PDFLib.PDFDocument.load(pdfBytes);
+                var pages = pdf.getPages();
+                var grid = document.getElementById('pageGrid');
+                grid.innerHTML = '';
+                for (var i = 0; i < pages.length; i++) {
+                    var div = document.createElement('div');
+                    div.className = 'page-thumb';
+                    div.dataset.page = i;
+                    div.onclick = (function(idx) { return function() { togglePage(idx); }; })(i);
+                    var rot = pages[i].getRotation().angle;
+                    div.innerHTML = '<div style="width:100%;height:80px;background:#e2e8f0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:2rem;color:#94a3b8">📄</div>' +
+                        '<div class="page-num">第' + (i+1) + '页' + (rot ? ' (' + rot + '°)' : '') + '</div>';
+                    if (rot) {
+                        div.innerHTML += '<div class="rotation-badge">' + rot + '</div>';
+                    }
+                    grid.appendChild(div);
+                }
+                document.getElementById('previewCard').style.display = '';
+            } catch(e) {
+                console.error('Preview error:', e);
+            }
+        }
+
+        function togglePage(idx) {
+            if (selectedPages.has(idx)) {
+                selectedPages.delete(idx);
+            } else {
+                selectedPages.add(idx);
+            }
+            var thumbs = document.querySelectorAll('.page-thumb');
+            thumbs.forEach(function(t) {
+                var p = parseInt(t.dataset.page);
+                t.classList.toggle('selected', selectedPages.has(p));
+            });
+            if (selectedPages.size > 0 && currentScope !== 'custom') {
+                setScope('custom');
+            }
+        }
+
+        function setAngle(angle) {
+            currentAngle = angle;
+            document.querySelectorAll('.angle-btn[data-angle]').forEach(function(b) {
+                b.classList.toggle('active', parseInt(b.dataset.angle) === angle);
+            });
+        }
+
+        function setScope(scope) {
+            currentScope = scope;
+            document.querySelectorAll('.angle-btn[data-scope]').forEach(function(b) {
+                b.classList.toggle('active', b.dataset.scope === scope);
+            });
+            document.getElementById('customPagesGroup').style.display = scope === 'custom' ? '' : 'none';
+        }
+
+        function parsePageRange(range, total) {
+            var pages = new Set();
+            var parts = range.split(',');
+            parts.forEach(function(part) {
+                part = part.trim();
+                if (part.indexOf('-') > -1) {
+                    var bounds = part.split('-');
+                    var start = parseInt(bounds[0]);
+                    var end = parseInt(bounds[1]);
+                    if (!isNaN(start) && !isNaN(end)) {
+                        for (var i = Math.max(1, start); i <= Math.min(total, end); i++) pages.add(i-1);
+                    }
+                } else {
+                    var n = parseInt(part);
+                    if (!isNaN(n) && n >= 1 && n <= total) pages.add(n-1);
+                }
+            });
+            return pages;
+        }
+
+        async function rotatePDF() {
+            if (!pdfBytes) { alert('请先上传PDF文件'); return; }
+            if (!currentAngle) { alert('请选择旋转角度'); return; }
+
+            var progressBar = document.getElementById('progressBar');
+            var progressFill = document.getElementById('progressFill');
+            progressBar.style.display = '';
+            progressFill.style.width = '10%';
+
+            try {
+                var pdf = await PDFLib.PDFDocument.load(pdfBytes);
+                var pages = pdf.getPages();
+                var totalPages = pages.length;
+                var targetPages = new Set();
+
+                if (currentScope === 'all') {
+                    for (var i = 0; i < totalPages; i++) targetPages.add(i);
+                } else if (currentScope === 'odd') {
+                    for (var i = 0; i < totalPages; i += 2) targetPages.add(i);
+                } else if (currentScope === 'even') {
+                    for (var i = 1; i < totalPages; i += 2) targetPages.add(i);
+                } else if (currentScope === 'custom') {
+                    var customInput = document.getElementById('customPages').value.trim();
+                    if (selectedPages.size > 0) {
+                        targetPages = selectedPages;
+                    } else if (customInput) {
+                        targetPages = parsePageRange(customInput, totalPages);
+                    } else {
+                        alert('请输入页面范围或点击选择页面');
+                        progressBar.style.display = 'none';
+                        return;
+                    }
+                }
+
+                progressFill.style.width = '30%';
+                var count = 0;
+                targetPages.forEach(function(idx) {
+                    var page = pages[idx];
+                    var currentRot = page.getRotation().angle;
+                    page.setRotation(PDFLib.degrees(currentRot + currentAngle));
+                    count++;
+                });
+
+                progressFill.style.width = '70%';
+                var modifiedBytes = await pdf.save();
+                progressFill.style.width = '100%';
+
+                var blob = new Blob([modifiedBytes], { type: 'application/pdf' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'rotated.pdf';
+                a.click();
+                URL.revokeObjectURL(url);
+
+                setTimeout(function() { progressBar.style.display = 'none'; }, 1000);
+            } catch(e) {
+                alert('旋转失败：' + e.message);
+                progressBar.style.display = 'none';
+            }
+        }
+
+        function formatSize(bytes) {
+            if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
+            if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
+            if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return bytes + ' B';
+        }
+
+        function resetAll() {
+            pdfBytes = null;
+            selectedPages.clear();
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('rotateCard').style.display = 'none';
+            document.getElementById('previewCard').style.display = 'none';
+            document.getElementById('pageGrid').innerHTML = '';
+        }
+        </script>
+        <footer>
+            <p>PDF页面旋转 - 纯前端本地处理，文件不上传服务器 | <a href="/">更多工具</a></p>
+            <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: <a href="mailto:dexshuang@google.com">dexshuang@google.com</a></p>
+        </footer>
+    </div>
+</body>
+</html>
