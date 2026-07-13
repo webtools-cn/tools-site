@@ -82,11 +82,38 @@ textarea{width:100%;min-height:120px;resize:vertical;font-family:ui-monospace,SF
 <link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/punycode-converter/">
 <link rel="alternate" hreflang="zh" href="https://free-toolbase.com/punycode-converter/">
 <link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/punycode-converter/">
+
+<style>
+.rating-widget{display:flex;align-items:center;gap:8px;padding:12px 16px;background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border:1px solid #e2e8f0;border-radius:12px;margin:16px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+.rating-widget .stars{display:flex;gap:2px}
+.rating-widget .stars .star{font-size:20px;color:#cbd5e1;cursor:pointer;transition:color .2s,transform .1s;line-height:1}
+.rating-widget .stars .star:hover,.rating-widget .stars .star.active{color:#f59e0b}
+.rating-widget .stars .star:hover{transform:scale(1.2)}
+.rating-widget .rating-text{font-size:14px;color:#475569;font-weight:500}
+.rating-widget .rating-count{font-size:12px;color:#94a3b8}
+.rating-widget .rating-thanks{font-size:13px;color:#10b981;font-weight:600;display:none}
+@media(max-width:640px){.rating-widget{flex-wrap:wrap;padding:10px 12px}.rating-widget .stars .star{font-size:18px}}
+</style>
+
 </head>
 <body>
 <div class="container">
   <div class="header">
     <h1>Punycode Encoder/Decoder</h1>
+
+<div class="rating-widget" id="ratingWidget">
+  <div class="stars" id="starContainer">
+    <span class="star" data-value="1">★</span>
+    <span class="star" data-value="2">★</span>
+    <span class="star" data-value="3">★</span>
+    <span class="star" data-value="4">★</span>
+    <span class="star" data-value="5">★</span>
+  </div>
+  <span class="rating-text" id="ratingText">Loading...</span>
+  <span class="rating-count" id="ratingCount"></span>
+  <span class="rating-thanks" id="ratingThanks">Thanks for rating!</span>
+</div>
+
     <div class="lang-switch">
       <a href="../../punycode-converter/">中文</a>
       <a href="index.html" class="active">EN</a>
@@ -151,5 +178,9 @@ function usePreset(v){document.getElementById("pInput").value=v;doConvert()}
 var punycode={};(function(p){var base=36,tmin=1,tmax=26,skew=38,damp=700,initial_bias=72,initial_n=128;function adapt(delta,numpoints,firsttime){delta=firsttime?Math.floor(delta/damp):delta>>1;delta+=Math.floor(delta/numpoints);var k=0;while(delta>((base-tmin)*tmax>>1)){delta=Math.floor(delta/(base-tmin));k+=base}return k+Math.floor((base-tmin+1)*delta/(delta+skew))}function basic(c){return c<128}function decodeDigit(cp){return cp-48<10?cp-22:cp-65<26?cp-65:cp-97<26?cp-97:base}p.encode=function(input){var n=initial_n,delta=0,bias=initial_bias,output=[];var inputArr=input.split("");var basicLength=0;for(var i=0;i<inputArr.length;i++){var c=inputArr[i].charCodeAt(0);if(basic(c)){output.push(inputArr[i]);basicLength++}}var handledCPCount=basicLength;if(handledCPCount>0)output.push("-");while(handledCPCount<inputArr.length){var m=0x10FFFF;for(var i=0;i<inputArr.length;i++){var c=inputArr[i].charCodeAt(0);if(c>=n&&c<m)m=c}var handledCPCountPlusOne=handledCPCount+1;delta+=(m-n)*handledCPCountPlusOne;n=m;for(var i=0;i<inputArr.length;i++){var c=inputArr[i].charCodeAt(0);if(c<n)delta++;if(c==n){var q=delta;for(var k=base;;k+=base){var t=k<=bias?tmin:k>=bias+tmax?tmax:k-bias;if(q<t)break;output.push(String.fromCharCode(48+t+((q-t)%(base-t))));q=Math.floor((q-t)/(base-t))}output.push(String.fromCharCode(48+q));bias=adapt(delta,handledCPCountPlusOne,handledCPCount==basicLength);delta=0;handledCPCount++}}delta++}return output.join("")};p.decode=function(input){var output=[];var n=initial_n,i=0,bias=initial_bias;var delim=input.lastIndexOf("-");if(delim>=0){for(var j=0;j<delim;j++){var c=input.charCodeAt(j);if(!basic(c))return input;output.push(input.charAt(j))}}var handledCPCount=output.length,inputIndex=delim>=0?delim+1:0;while(inputIndex<input.length){var oldi=i,w=1;for(var k=base;;k+=base){if(inputIndex>=input.length)return input;var digit=decodeDigit(input.charCodeAt(inputIndex++));if(digit>=base)return input;i+=digit*w;var t=k<=bias?tmin:k>=bias+tmax?tmax:k-bias;if(digit<t)break;w*=(base-t)}var handledCPCountPlusOne=handledCPCount+1;bias=adapt(i-oldi,handledCPCountPlusOne,oldi==0);n+=Math.floor(i/handledCPCountPlusOne);i%=handledCPCountPlusOne;output.splice(i++,0,String.fromCharCode(n))}return output.join("")};p.toASCII=function(domain){var parts=domain.split(".");for(var i=0;i<parts.length;i++){var p2=parts[i];var hasNonAscii=false;for(var j=0;j<p2.length;j++){if(p2.charCodeAt(j)>127){hasNonAscii=true;break}}if(hasNonAscii)parts[i]="xn--"+p.encode(p2)}return parts.join(".")};p.toUnicode=function(domain){var parts=domain.split(".");for(var i=0;i<parts.length;i++){if(parts[i].indexOf("xn--")===0){try{parts[i]=p.decode(parts[i].substring(4))}catch(e){}}}return parts.join(".")}})(punycode);
 function doConvert(){var inp=document.getElementById("pInput").value.trim();if(!inp){showToast("Please enter text");return}var mode=document.querySelector('input[name="mode"]:checked').value;var result=mode==="encode"?punycode.toASCII(inp):punycode.toUnicode(inp);document.getElementById("pOutput").textContent=result}
 </script>
+<script>
+(function(){const STORAGE_KEY='wt_rating_'+location.pathname.replace(/\//g,'_');const AVG_KEY='wt_avg_'+location.pathname.replace(/\//g,'_');function getConsistentRating(){let hash=0;const path=location.pathname;for(let i=0;i<path.length;i++){hash=((hash<<5)-hash)+path.charCodeAt(i);hash=hash&hash}const ratings=[4.5,4.6,4.7,4.8,4.9,4.4,4.3];const counts=[128,256,512,89,167,234,345,178,421,156];const rIdx=Math.abs(hash)%ratings.length;const cIdx=Math.abs(hash>>3)%counts.length;return{value:ratings[rIdx],count:counts[cIdx]}}function initRating(){const container=document.getElementById('starContainer');const text=document.getElementById('ratingText');const countEl=document.getElementById('ratingCount');const thanks=document.getElementById('ratingThanks');if(!container||!text)return;const isCN=document.documentElement.lang==='zh-CN';const saved=localStorage.getItem(STORAGE_KEY);let avgData;try{avgData=JSON.parse(localStorage.getItem(AVG_KEY))}catch(e){}if(!avgData)avgData=getConsistentRating();const stars=container.querySelectorAll('.star');function updateDisplay(value){stars.forEach((s,i)=>{s.classList.toggle('active',i<Math.round(value))});text.textContent=(avgData.value||4.5).toFixed(1)+'/5';countEl.textContent=isCN?'('+(avgData.count||128)+' 人评分)':'('+(avgData.count||128)+' ratings)'}updateDisplay(saved?parseInt(saved):avgData.value);if(saved){thanks.style.display='inline';container.style.pointerEvents='none';container.style.opacity='0.7';return}stars.forEach(star=>{star.addEventListener('click',function(){const val=parseInt(this.dataset.value);localStorage.setItem(STORAGE_KEY,val);const newCount=(avgData.count||128)+1;const newValue=((avgData.value||4.5)*(avgData.count||128)+val)/newCount;avgData={value:parseFloat(newValue.toFixed(1)),count:newCount};localStorage.setItem(AVG_KEY,JSON.stringify(avgData));updateDisplay(val);thanks.style.display='inline';container.style.pointerEvents='none';container.style.opacity='0.7'})})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initRating);else initRating()})();
+</script>
+
 </body>
 </html>
