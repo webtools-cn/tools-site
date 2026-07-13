@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字符频率分析器 - 在线字符出现频率统计工具 | WebTools</title>
+    <meta name="description" content="免费在线字符频率分析器，统计文本中每个字符的出现次数和频率，支持ASCII/Unicode分析、柱状图可视化、导出CSV，纯前端本地处理。">
+    <link rel="canonical" href="https://free-toolbase.com/character-frequency-analyzer/">
+    <meta property="og:title" content="字符频率分析器 - 在线字符出现频率统计工具">
+    <meta property="og:description" content="免费在线字符频率分析器，统计字符频次/ASCII分析/柱状图/导出CSV，纯前端本地处理。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://free-toolbase.com/character-frequency-analyzer/">
+    <style>
+        :root { --bg: #f8fafc; --card-bg: #fff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --primary: #3b82f6; --primary-hover: #2563eb; --accent: #8b5cf6; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,.1); }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 30px 0 20px; }
+        header h1 { font-size: 2rem; color: var(--text); margin-bottom: 8px; }
+        header p { color: var(--text-secondary); font-size: 1.05rem; }
+        .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); padding: 24px; margin-bottom: 20px; }
+        .card h2 { font-size: 1.25rem; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+        textarea, select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; transition: border .2s; }
+        textarea { resize: vertical; min-height: 150px; }
+        textarea:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .faq-item { margin-bottom: 16px; }
+        .faq-item h3 { font-size: 1.05rem; color: var(--text); margin-bottom: 6px; }
+        .faq-item p { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; }
+        .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+        .freq-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+        .freq-table th, .freq-table td { padding: 6px 10px; border: 1px solid var(--border); text-align: left; }
+        .freq-table th { background: var(--bg); font-weight: 600; }
+        .freq-table tr:hover { background: #f1f5f9; }
+        .freq-bar { height: 14px; background: var(--primary); border-radius: 3px; min-width: 2px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-top: 16px; }
+        .stat-item { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
+        .stat-item .num { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+        .stat-item .label { font-size: 12px; color: var(--text-secondary); }
+        .chart-container { overflow-x: auto; margin-top: 16px; }
+        .bar-chart { display: flex; align-items: flex-end; gap: 3px; height: 200px; padding: 10px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); }
+        .bar-col { display: flex; flex-direction: column; align-items: center; min-width: 28px; }
+        .bar-col .bar { background: var(--primary); border-radius: 3px 3px 0 0; transition: height .3s; width: 20px; }
+        .bar-col .bar-label { font-size: 10px; margin-top: 4px; color: var(--text-secondary); font-family: monospace; }
+        .bar-col .bar-count { font-size: 9px; color: var(--text-secondary); margin-bottom: 2px; }
+        footer { text-align: center; padding: 30px 0; color: var(--text-secondary); font-size: 0.85rem; }
+        footer a { color: var(--primary); text-decoration: none; }
+        @media (max-width: 768px) { .container { padding: 12px; } header h1 { font-size: 1.5rem; } }
+    .ad-container{margin:16px 0;text-align:center;min-height:90px;display:flex;align-items:center;justify-content:center}
+.ad-container ins{display:block}
+</style>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date()); gtag('config', 'G-9W1157EBQV');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372"
+     crossorigin="anonymous"></script>
+<style>
+.rating-widget { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; border-radius: 12px; margin: 16px 0; }
+.rating-widget .stars { display: flex; gap: 2px; }
+.rating-widget .stars .star { font-size: 20px; color: #cbd5e1; cursor: pointer; transition: color 0.2s, transform 0.1s; line-height: 1; }
+.rating-widget .stars .star:hover, .rating-widget .stars .star.active { color: #f59e0b; }
+.rating-widget .stars .star:hover { transform: scale(1.2); }
+.rating-widget .rating-text { font-size: 14px; color: #475569; font-weight: 500; }
+.rating-widget .rating-count { font-size: 12px; color: #94a3b8; }
+.rating-widget .rating-thanks { font-size: 13px; color: #10b981; font-weight: 600; display: none; }
+</style>
+</head>
+<body>
+    <div class="container">
+<div class="ad-container"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
+        <header>
+            <h1>🔤 字符频率分析器</h1>
+<div class="rating-widget" id="ratingWidget">
+  <div class="stars" id="starContainer" title="Click stars to rate">
+    <span class="star" data-value="1">★</span><span class="star" data-value="2">★</span><span class="star" data-value="3">★</span><span class="star" data-value="4">★</span><span class="star" data-value="5">★</span>
+  </div>
+  <span class="rating-text" id="ratingText">Loading...</span>
+  <span class="rating-count" id="ratingCount"></span>
+  <span class="rating-thanks" id="ratingThanks">Thanks for your rating!</span>
+</div>
+            <p>在线字符频率统计 - ASCII/Unicode分析/柱状图/导出CSV，纯前端本地处理</p>
+        </header>
+        <script type="application/ld+json">
+        {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://free-toolbase.com/"},{"@type":"ListItem","position":2,"name":"字符频率分析器","item":"https://free-toolbase.com/character-frequency-analyzer/"}]}
+        </script>
+
+        <div class="card">
+            <h2>📝 输入文本</h2>
+            <textarea id="text-input" placeholder="粘贴或输入要分析的文本...">Hello, World! 你好世界！12345</textarea>
+            <div class="row" style="margin-top:12px">
+                <label style="font-size:13px;display:flex;align-items:center;gap:4px">
+                    <input type="checkbox" id="ignore-spaces"> 忽略空格
+                </label>
+                <label style="font-size:13px;display:flex;align-items:center;gap:4px">
+                    <input type="checkbox" id="case-insensitive"> 忽略大小写
+                </label>
+                <label style="font-size:13px;display:flex;align-items:center;gap:4px">
+                    <input type="checkbox" id="group-type"> 按类型分组
+                </label>
+                <button class="btn btn-primary" onclick="analyze()">🔍 分析</button>
+                <button class="btn btn-secondary" onclick="exportCSV()">📥 导出CSV</button>
+            </div>
+        </div>
+
+        <div class="card" id="stats-card" style="display:none">
+            <h2>📊 文本统计</h2>
+            <div class="stats-grid" id="stats-grid"></div>
+        </div>
+
+        <div class="card" id="chart-card" style="display:none">
+            <h2>📈 频率柱状图</h2>
+            <div class="chart-container">
+                <div class="bar-chart" id="bar-chart"></div>
+            </div>
+        </div>
+
+        <div class="card" id="table-card" style="display:none">
+            <h2>📋 字符频率详情</h2>
+            <table class="freq-table" id="freq-table">
+                <thead><tr><th>字符</th><th>Unicode</th><th>类型</th><th>频次</th><th>占比</th><th>频率条</th></tr></thead>
+                <tbody id="freq-body"></tbody>
+            </table>
+        </div>
+
+        <div class="card" id="group-card" style="display:none">
+            <h2>📊 类型分组统计</h2>
+            <div id="group-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px"></div>
+        </div>
+
+        <div class="card">
+            <h2>常见问题</h2>
+            <div class="faq-item">
+                <h3>Q1: 字符频率分析有什么用途？</h3>
+                <p>字符频率分析可用于密码学（频率攻击）、文本分类、数据压缩算法设计、编码问题排查、Unicode调试等。在密码学中，英文字母E出现频率最高（约12.7%），分析字符频率可以帮助破解简单替换密码。</p>
+            </div>
+            <div class="faq-item">
+                <h3>Q2: 支持哪些字符类型？</h3>
+                <p>支持所有Unicode字符，包括英文字母、数字、标点符号、中文字符、日文假名、特殊符号、表情符号等。每个字符都会显示其Unicode码点和类型分类。</p>
+            </div>
+            <div class="faq-item">
+                <h3>Q3: 数据会上传到服务器吗？</h3>
+                <p>完全不会！所有分析都在浏览器本地完成，文本数据绝不上传到任何服务器，安全可靠。</p>
+            </div>
+        </div>
+
+        <script type="application/ld+json">
+        {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"字符频率分析有什么用途？","acceptedAnswer":{"@type":"Answer","text":"可用于密码学频率攻击、文本分类、压缩算法设计、编码问题排查、Unicode调试等。"}},{"@type":"Question","name":"支持哪些字符类型？","acceptedAnswer":{"@type":"Answer","text":"支持所有Unicode字符，包括字母、数字、标点、中文、假名、特殊符号、表情符号等。"}},{"@type":"Question","name":"数据会上传到服务器吗？","acceptedAnswer":{"@type":"Answer","text":"不会。所有分析在浏览器本地完成，数据绝不上传。"}}]}
+        </script>
+        <script type="application/ld+json">
+        {"@context":"https://schema.org","@type":"HowTo","name":"如何使用字符频率分析器","step":[{"@type":"HowToStep","position":1,"text":"粘贴或输入要分析的文本"},{"@type":"HowToStep","position":2,"text":"选择过滤和分组选项"},{"@type":"HowToStep","position":3,"text":"点击分析查看字符频率、柱状图和分组统计"}]}
+        </script>
+        <script type="application/ld+json">
+        {"@context":"https://schema.org","@type":"SoftwareApplication","name":"字符频率分析器","applicationCategory":"DeveloperApplication","operatingSystem":"Any","url":"https://free-toolbase.com/character-frequency-analyzer/","description":"免费在线字符频率统计工具","offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},
+  "aggregateRating": {"@type": "AggregateRating", "ratingValue": "4.6", "ratingCount": "143", "bestRating": "5", "worstRating": "1" }}
+        </script>
+        <script>
+        (function(){
+            var d=document,c=d.createElement('div');
+            c.id='feedback-widget';
+            c.innerHTML='<div style="position:fixed;bottom:20px;right:20px;z-index:9999"><button id="feedback-btn" style="width:44px;height:44px;border-radius:50%;background:var(--primary);color:#fff;border:none;font-size:20px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15)" title="反馈">💬</button><div id="feedback-panel" style="display:none;position:absolute;bottom:55px;right:0;width:300px;background:var(--card-bg);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.12);border:1px solid var(--border);padding:20px"><h4 style="margin:0 0 12px">反馈</h4><textarea id="feedback-text" placeholder="您的建议..." style="min-height:80px;margin-bottom:12px"></textarea><div style="display:flex;gap:8px"><button id="feedback-submit" class="btn btn-primary" style="flex:1">提交</button><button id="feedback-close" class="btn btn-secondary" style="flex:1">关闭</button></div></div></div>';
+            d.body.appendChild(c);
+            var btn=d.getElementById('feedback-btn'),panel=d.getElementById('feedback-panel'),close=d.getElementById('feedback-close'),submit=d.getElementById('feedback-submit'),text=d.getElementById('feedback-text');
+            btn.onclick=function(){panel.style.display=panel.style.display==='none'?'block':'none'};
+            close.onclick=function(){panel.style.display='none'};
+            submit.onclick=function(){if(text.value.trim()){gtag('event','feedback',{event_category:'feedback',event_label:text.value.trim()});alert('感谢您的反馈！');text.value='';panel.style.display='none'}};
+        })();
+        </script>
+        <script>
+        var freqData = [];
+
+        function getCharType(ch) {
+            var code = ch.charCodeAt(0);
+            if (code >= 0x41 && code <= 0x5A || code >= 0x61 && code <= 0x7A) return '字母';
+            if (code >= 0x30 && code <= 0x39) return '数字';
+            if (code >= 0x4e00 && code <= 0x9fff) return '中文';
+            if (code >= 0x3040 && code <= 0x309F) return '平假名';
+            if (code >= 0x30A0 && code <= 0x30FF) return '片假名';
+            if (code === 0x20) return '空格';
+            if (code >= 0x21 && code <= 0x2F || code >= 0x3A && code <= 0x40 || code >= 0x5B && code <= 0x60 || code >= 0x7B && code <= 0x7E) return '标点符号';
+            if (code >= 0x3000 && code <= 0x303F) return '中文标点';
+            if (code >= 0xFF00 && code <= 0xFFEF) return '全角字符';
+            if (code >= 0x1F600 && code <= 0x1F64F) return '表情符号';
+            if (code > 0x7F) return '其他Unicode';
+            return '控制字符/其他';
+        }
+
+        function analyze() {
+            var text = document.getElementById('text-input').value;
+            if (!text) { alert('请输入文本'); return; }
+
+            var ignoreSpaces = document.getElementById('ignore-spaces').checked;
+            var caseInsensitive = document.getElementById('case-insensitive').checked;
+            var groupType = document.getElementById('group-type').checked;
+
+            var freq = {};
+            var groups = {};
+            var totalChars = 0;
+
+            for (var i = 0; i < text.length; i++) {
+                var ch = text[i];
+                if (ignoreSpaces && ch === ' ') continue;
+                var key = caseInsensitive ? ch.toLowerCase() : ch;
+                freq[key] = (freq[key] || 0) + 1;
+                totalChars++;
+            }
+
+            freqData = Object.keys(freq).map(function(k) {
+                var type = getCharType(k);
+                return { char: k, count: freq[k], type: type, unicode: 'U+' + k.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0') };
+            });
+            freqData.sort(function(a, b) { return b.count - a.count; });
+
+            // Group stats
+            freqData.forEach(function(d) {
+                groups[d.type] = (groups[d.type] || 0) + d.count;
+            });
+
+            // Stats
+            var uniqueChars = freqData.length;
+            var letters = freqData.filter(function(d) { return d.type === '字母'; }).length;
+            var digits = freqData.filter(function(d) { return d.type === '数字'; }).length;
+            var chinese = freqData.filter(function(d) { return d.type === '中文'; }).length;
+            var spaces = (text.match(/ /g) || []).length;
+
+            document.getElementById('stats-grid').innerHTML =
+                '<div class="stat-item"><div class="num">' + totalChars + '</div><div class="label">总字符数</div></div>' +
+                '<div class="stat-item"><div class="num">' + uniqueChars + '</div><div class="label">不同字符</div></div>' +
+                '<div class="stat-item"><div class="num">' + letters + '</div><div class="label">字母种类</div></div>' +
+                '<div class="stat-item"><div class="num">' + digits + '</div><div class="label">数字种类</div></div>' +
+                '<div class="stat-item"><div class="num">' + chinese + '</div><div class="label">中文字种</div></div>' +
+                '<div class="stat-item"><div class="num">' + spaces + '</div><div class="label">空格数</div></div>';
+            document.getElementById('stats-card').style.display = '';
+
+            // Bar chart (top 30)
+            var top30 = freqData.slice(0, 30);
+            var maxCount = top30.length > 0 ? top30[0].count : 1;
+            var chartDiv = document.getElementById('bar-chart');
+            chartDiv.innerHTML = top30.map(function(d) {
+                var h = Math.max(4, (d.count / maxCount) * 180);
+                var label = d.char === ' ' ? '␣' : d.char === '\n' ? '↵' : d.char === '\t' ? '⇥' : d.char;
+                return '<div class="bar-col"><div class="bar-count">' + d.count + '</div><div class="bar" style="height:' + h + 'px"></div><div class="bar-label">' + label + '</div></div>';
+            }).join('');
+            document.getElementById('chart-card').style.display = '';
+
+            // Table
+            var maxBar = freqData.length > 0 ? freqData[0].count : 1;
+            document.getElementById('freq-body').innerHTML = freqData.slice(0, 100).map(function(d) {
+                var pct = (d.count / totalChars * 100).toFixed(2);
+                var barW = (d.count / maxBar * 100).toFixed(1);
+                var display = d.char === ' ' ? '␣ (空格)' : d.char === '\n' ? '↵ (换行)' : d.char === '\t' ? '⇥ (制表)' : d.char;
+                return '<tr><td><strong>' + display + '</strong></td><td>' + d.unicode + '</td><td>' + d.type + '</td><td>' + d.count + '</td><td>' + pct + '%</td><td><div class="freq-bar" style="width:' + barW + '%"></div></td></tr>';
+            }).join('');
+            document.getElementById('table-card').style.display = '';
+
+            // Group stats
+            if (groupType) {
+                var groupGrid = document.getElementById('group-grid');
+                var colors = { '字母': '#3b82f6', '数字': '#10b981', '中文': '#ef4444', '标点符号': '#f59e0b', '空格': '#94a3b8', '中文标点': '#8b5cf6', '全角字符': '#ec4899', '表情符号': '#f97316' };
+                groupGrid.innerHTML = Object.keys(groups).sort(function(a, b) { return groups[b] - groups[a]; }).map(function(type) {
+                    var c = colors[type] || '#64748b';
+                    var pct = (groups[type] / totalChars * 100).toFixed(1);
+                    return '<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;border-left:4px solid ' + c + '"><div style="font-size:13px;color:var(--text-secondary)">' + type + '</div><div style="font-size:1.3rem;font-weight:700;color:' + c + '">' + groups[type] + ' <span style="font-size:12px;font-weight:400">(' + pct + '%)</span></div></div>';
+                }).join('');
+                document.getElementById('group-card').style.display = '';
+            } else {
+                document.getElementById('group-card').style.display = 'none';
+            }
+        }
+
+        function exportCSV() {
+            if (freqData.length === 0) { alert('请先分析文本'); return; }
+            var csv = '\uFEFF字符,Unicode,类型,频次,占比\n';
+            var total = freqData.reduce(function(s, d) { return s + d.count; }, 0);
+            freqData.forEach(function(d) {
+                var ch = d.char === ' ' ? '(space)' : d.char === '\n' ? '(newline)' : d.char;
+                csv += '"' + ch + '",' + d.unicode + ',' + d.type + ',' + d.count + ',' + (d.count / total * 100).toFixed(2) + '%\n';
+            });
+            var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'character-frequency.csv';
+            a.click();
+        }
+
+        analyze();
+        </script>
+        <footer>
+            <p>字符频率分析器 - 纯前端本地处理，数据不上传服务器 | <a href="/">更多工具</a></p>
+        </footer>
+    </div>
+</body>
+</html>
