@@ -1,3 +1,29 @@
+## 2026-07-13 13:31 - 新增9个工具（质量分88/100）
+
+### 新增工具
+1. **带宽计算器 (bandwidth-calculator)** - 计算下载时间/所需带宽/文件大小，多模式+带宽对比表
+2. **IP范围计算器 (ip-range-calculator)** - CIDR转IP范围/子网掩码/网络地址/广播地址/可用主机数
+3. **文本可读性评分 (readability-score)** - Flesch阅读轻松度/Flesch-Kincaid年级/Gunning雾/SMOG/Coleman-Liau/ARI
+4. **词频分析器 (word-frequency-analyzer)** - 中英文词频统计/词云可视化/停用词过滤/导出CSV
+5. **字符频率分析器 (character-frequency-analyzer)** - 字符频次/Unicode码点/类型分组/柱状图/导出CSV
+6. **Unicode字符查询 (unicode-lookup)** - 码点搜索/分类浏览/UTF-8/UTF-16编码/HTML实体/CSS/JS转义
+7. **INI文件编辑器 (ini-editor)** - INI配置编辑/验证/格式化/节排序/键值对管理/导出下载
+8. **玻璃拟态CSS生成器 (glassmorphism-generator)** - Glassmorphism可视化调整/6种预设/6种渐变背景/实时预览
+9. **PDF书签编辑器 (pdf-bookmark)** - PDF书签添加/编辑/删除/层级管理，pdf-lib纯前端
+
+### 技术细节
+- 9个中英双语工具，18个页面，纯前端HTML+JS
+- 全部包含FAQPage + HowTo + BreadcrumbList + SoftwareApplication Schema
+- 更新tools-registry.json（1415→1424个工具）
+- 重新生成sitemap.xml（2876 URLs）
+- Git commit: a488663dd，已push到GitHub Pages
+
+### 质量
+- 质检v6评分: 88/100
+- 剩余问题: 首页卡片数轻微不匹配（1437 vs 1436，非阻塞）、3个中文独有工具缺英文版（background-remover, json-path-tester, log-viewer）
+
+---
+
 ## 2026-07-12 16:55 - 新增7个工具（质量分88/100）
 
 ### 新增工具
