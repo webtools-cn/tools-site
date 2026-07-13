@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DMARC记录检查器 - 在线查询域名DMARC策略 | 免费DNS工具</title>
+<meta name="description" content="免费在线DMARC记录检查器，查询域名的DMARC TXT记录，验证邮件认证策略，检测DMARC配置问题，DNS over HTTPS查询。">
+<link rel="canonical" href="https://webtools-cn.github.io/tools-site/dmarc-checker/">
+<meta property="og:title" content="DMARC记录检查器 - 在线查询域名DMARC策略 | 免费工具">
+<meta property="og:description" content="免费在线DMARC记录检查器，查询域名DMARC TXT记录，验证邮件认证策略，检测配置问题。">
+<meta property="og:image" content="https://webtools-cn.github.io/tools-site/og-image.svg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="DMARC记录检查器 - 在线查询域名DMARC策略">
+<meta name="twitter:description" content="免费在线DMARC记录检查器，查询域名DMARC记录，验证邮件认证策略。">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"什么是DMARC记录？","acceptedAnswer":{"@type":"Answer","text":"DMARC（Domain-based Message Authentication, Reporting & Conformance）记录是DNS TXT记录，基于SPF和DKIM的验证结果，告诉邮件接收方如何处理未通过验证的邮件。"}},{"@type":"Question","name":"DMARC的p标签有哪些值？","acceptedAnswer":{"@type":"Answer","text":"p标签有三个值：none（仅监控，不采取行动）、quarantine（将未通过验证的邮件标记为垃圾邮件）、reject（直接拒绝未通过验证的邮件）。建议从none开始，逐步升级到reject。"}},{"@type":"Question","name":"DMARC与SPF、DKIM有什么关系？","acceptedAnswer":{"@type":"Answer","text":"DMARC建立在SPF和DKIM之上。SPF验证发送服务器IP，DKIM验证邮件签名，DMARC则定义当SPF或DKIM验证失败时的处理策略，并支持对齐检查（alignment）确保发件人域名一致。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"如何使用DMARC记录检查器","step":[{"@type":"HowToStep","name":"输入域名","text":"输入要检查的域名，如example.com"},{"@type":"HowToStep","name":"点击查询","text":"点击查询按钮，系统将查询_dmarc.domain的TXT记录"},{"@type":"HowToStep","name":"查看结果","text":"查看DMARC策略详情，包括策略模式、报告设置和潜在问题"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://webtools-cn.github.io/tools-site/"},{"@type":"ListItem","position":2,"name":"开发工具","item":"https://webtools-cn.github.io/tools-site/#dev"},{"@type":"ListItem","position":3,"name":"DMARC记录检查器"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"DMARC记录检查器","applicationCategory":"DeveloperApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#333;line-height:1.6}
+.container{max-width:900px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:1.8rem;margin-bottom:8px;background:linear-gradient(135deg,#e53935,#b71c1c);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#666;margin-bottom:24px;font-size:.95rem}
+.card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:20px}
+.input-group{display:flex;gap:10px;margin-bottom:16px}
+.input-group input{flex:1;padding:12px 16px;border:2px solid #e0e0e0;border-radius:8px;font-size:1rem;transition:border-color .3s}
+.input-group input:focus{outline:none;border-color:#e53935}
+.btn{padding:12px 24px;background:linear-gradient(135deg,#e53935,#b71c1c);color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(229,57,53,.4)}
+.btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.raw-record{background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:16px;font-family:monospace;font-size:.85rem;word-break:break-all;margin:12px 0}
+.detail-table{width:100%;border-collapse:collapse;margin:12px 0}
+.detail-table td{padding:8px 12px;border-bottom:1px solid #f0f0f0}
+.detail-table td:first-child{font-weight:600;color:#555;white-space:nowrap;width:160px}
+.policy-badge{display:inline-block;padding:4px 12px;border-radius:16px;font-size:.85rem;font-weight:600}
+.policy-none{background:#e3f2fd;color:#1565c0}
+.policy-quarantine{background:#fff3e0;color:#e65100}
+.policy-reject{background:#e8f5e9;color:#2e7d32}
+.warning{background:#fff3e0;border-left:4px solid #ff9800;padding:12px 16px;border-radius:4px;margin:8px 0;font-size:.9rem}
+.error{background:#ffebee;border-left:4px solid #f44336;padding:12px 16px;border-radius:4px;margin:8px 0;font-size:.9rem}
+.success{background:#e8f5e9;border-left:4px solid #4caf50;padding:12px 16px;border-radius:4px;margin:8px 0;font-size:.9rem}
+.info{background:#e3f2fd;border-left:4px solid #2196f3;padding:12px 16px;border-radius:4px;margin:8px 0;font-size:.9rem}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;margin-right:6px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.copy-btn{padding:4px 10px;background:#e0e0e0;border:none;border-radius:4px;cursor:pointer;font-size:.8rem;margin-left:8px}
+.copy-btn:hover{background:#d0d0d0}
+h2{font-size:1.2rem;margin:24px 0 12px;color:#333}
+.faq-item{margin-bottom:12px}
+.faq-q{font-weight:600;color:#444;margin-bottom:4px}
+.faq-a{color:#666;font-size:.9rem}
+footer{text-align:center;padding:20px;color:#999;font-size:.8rem}
+.ad-container{margin:16px 0;text-align:center;min-height:90px;display:flex;align-items:center;justify-content:center}.ad-container ins{display:block}
+</style>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="container">
+<h1>🛡️ DMARC记录检查器</h1>
+<p class="subtitle">在线查询域名DMARC记录，验证邮件认证策略，检测配置问题</p>
+<div class="ad-container"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
+
+<div class="card">
+<div class="input-group">
+<input type="text" id="domainInput" placeholder="输入域名，如 example.com" onkeydown="if(event.key==='Enter')checkDMARC()">
+<button class="btn" id="checkBtn" onclick="checkDMARC()">查询DMARC</button>
+</div>
+<div id="result"></div>
+</div>
+
+<h2>❓ 常见问题</h2>
+<div class="card">
+<div class="faq-item"><div class="faq-q">什么是DMARC记录？</div><div class="faq-a">DMARC（Domain-based Message Authentication, Reporting & Conformance）记录是DNS TXT记录，基于SPF和DKIM验证结果，告诉邮件接收方如何处理未通过验证的邮件。</div></div>
+<div class="faq-item"><div class="faq-q">DMARC的p标签有哪些值？</div><div class="faq-a">p标签有三个值：none（仅监控，不采取行动）、quarantine（将未通过验证的邮件标记为垃圾邮件）、reject（直接拒绝未通过验证的邮件）。建议从none开始逐步升级到reject。</div></div>
+<div class="faq-item"><div class="faq-q">DMARC与SPF、DKIM有什么关系？</div><div class="faq-a">DMARC建立在SPF和DKIM之上。SPF验证发送服务器IP，DKIM验证邮件签名，DMARC定义验证失败时的处理策略，并支持对齐检查确保发件人域名一致。</div></div>
+<div class="faq-item"><div class="faq-q">什么是DMARC报告？</div><div class="faq-a">DMARC报告（rua/ruf标签）让域名所有者了解谁在代表其域名发送邮件。聚合报告（rua）提供统计信息，取证报告（ruf）提供失败邮件的详细信息。</div></div>
+</div>
+
+<footer>DMARC记录检查器 - 免费在线DNS工具 | 使用DNS over HTTPS查询 | 问题反馈: <a href="mailto:dexshuang@google.com">dexshuang@google.com</a></footer>
+</div>
+
+<div id="feedback-widget"></div>
+<script src="/related-tools.js"></script>
+<script>
+const DOH_SERVERS=['https://dns.google/resolve','https://cloudflare-dns.com/dns-query','https://dns.quad9.net:5053/dns-query'];
+
+async function dnsQuery(name,type='TXT',server=0){
+  try{
+    const url=server===0?`${DOH_SERVERS[0]}?name=${encodeURIComponent(name)}&type=${type}`:
+               server===1?`${DOH_SERVERS[1]}?name=${encodeURIComponent(name)}&type=${type}&ct=application/dns-json`:
+               `${DOH_SERVERS[2]}?name=${encodeURIComponent(name)}&type=${type}`;
+    const resp=await fetch(url,{headers:server===1?{'Accept':'application/dns-json'}:{}});
+    if(!resp.ok)throw new Error('DNS query failed');
+    return await resp.json();
+  }catch(e){
+    if(server<DO_SERVERS.length-1)return dnsQuery(name,type,server+1);
+    throw e;
+  }
+}
+
+async function checkDMARC(){
+  const domain=document.getElementById('domainInput').value.trim().replace(/^https?:\/\//,'').replace(/\/.*$/,'');
+  if(!domain){alert('请输入域名');return}
+  
+  const btn=document.getElementById('checkBtn');
+  const resultDiv=document.getElementById('result');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span>查询中...';
+  resultDiv.innerHTML='';
+  
+  const dmarcDomain=`_dmarc.${domain}`;
+  
+  try{
+    const data=await dnsQuery(dmarcDomain,'TXT');
+    const txtRecords=data.Answer?data.Answer.filter(r=>r.type===16):[];
+    const dmarcRecords=txtRecords.filter(r=>r.data&&r.data.includes('v=DMARC1'));
+    
+    if(dmarcRecords.length===0){
+      resultDiv.innerHTML=`<div class="error">⚠️ 未找到DMARC记录。查询了 ${escHtml(dmarcDomain)}，该域名未配置DMARC策略。</div>
+      <div class="info">💡 建议添加DMARC记录，即使从p=none开始，也能监控邮件认证情况。</div>`;
+      btn.disabled=false;btn.textContent='查询DMARC';return;
+    }
+    
+    const recordData=dmarcRecords[0].data.replace(/^"|"$/g,'');
+    const tags=parseDMARC(recordData);
+    
+    let html=`<div class="success">✅ 找到DMARC记录</div>`;
+    html+=`<div style="margin:8px 0;color:#666">查询域名：<code>${escHtml(dmarcDomain)}</code></div>`;
+    html+=`<div class="raw-record">${escHtml(recordData)}<button class="copy-btn" onclick="copyText(this.parentElement.textContent.replace('复制','').trim())">复制</button></div>`;
+    
+    const policyLabel={'none':'仅监控','quarantine':'隔离','reject':'拒绝'};
+    const policyClass={'none':'policy-none','quarantine':'policy-quarantine','reject':'policy-reject'};
+    const pVal=tags.p||'none';
+    html+=`<div style="margin:12px 0">策略模式：<span class="policy-badge ${policyClass[pVal]||'policy-none'}">${escHtml(policyLabel[pVal]||pVal)}</span></div>`;
+    
+    html+=`<table class="detail-table">`;
+    const tagDesc={'v':'版本','p':'策略','sp':'子域策略','rua':'聚合报告地址','ruf':'取证报告地址','fo':'报告选项','ri':'报告间隔','adkim':'DKIM对齐模式','aspf':'SPF对齐模式','pct':'应用百分比','rf':'报告格式'};
+    for(const[key,value]of Object.entries(tags)){
+      const desc=tagDesc[key]||key;
+      let displayVal=value;
+      if(key==='ri'&&value)displayVal=value+'秒 ('+(value/3600).toFixed(0)+'小时)';
+      if(key==='pct'&&value)displayVal=value+'%';
+      if(key==='adkim')displayVal=value==='r'?'宽松(r)':'严格(s)';
+      if(key==='aspf')displayVal=value==='r'?'宽松(r)':'严格(s)';
+      if(key==='fo'){
+        const foMap={'0':'SPF/DKIM均失败时','1':'任一失败时','d':'DKIM失败时','s':'SPF失败时'};
+        displayVal=value.split(':').map(v=>foMap[v]||v).join(', ');
+      }
+      html+=`<tr><td>${escHtml(desc)} (${escHtml(key)})</td><td>${escHtml(displayVal)}</td></tr>`;
+    }
+    html+=`</table>`;
+    
+    const warnings=analyzeDMARC(tags);
+    if(warnings.length>0){
+      html+=`<h3 style="margin-top:16px;color:#e65100">⚠️ 检测到问题</h3>`;
+      warnings.forEach(w=>{html+=`<div class="warning">${w}</div>`});
+    }
+    
+    const recommendations=getRecommendations(tags);
+    if(recommendations.length>0){
+      html+=`<h3 style="margin-top:16px;color:#1565c0">💡 优化建议</h3>`;
+      recommendations.forEach(r=>{html+=`<div class="info">${r}</div>`});
+    }
+    
+    resultDiv.innerHTML=html;
+  }catch(e){
+    resultDiv.innerHTML=`<div class="error">❌ 查询失败：${escHtml(e.message)}</div>`;
+  }
+  
+  btn.disabled=false;btn.textContent='查询DMARC';
+}
+
+function parseDMARC(record){
+  const tags={};
+  const parts=record.split(';');
+  for(const part of parts){
+    const trimmed=part.trim();
+    if(!trimmed)continue;
+    const eqIdx=trimmed.indexOf('=');
+    if(eqIdx===-1)continue;
+    const key=trimmed.substring(0,eqIdx).trim();
+    const value=trimmed.substring(eqIdx+1).trim();
+    tags[key]=value;
+  }
+  return tags;
+}
+
+function analyzeDMARC(tags){
+  const warnings=[];
+  if(!tags.p)warnings.push('缺少策略标签p=。DMARC记录必须指定策略（none/quarantine/reject）。');
+  if(tags.p==='none')warnings.push('策略为p=none（仅监控），不会阻止未授权邮件。建议在监控一段时间后升级到p=quarantine或p=reject。');
+  if(!tags.rua)warnings.push('未配置聚合报告地址rua=。建议添加以接收邮件认证统计报告。');
+  if(tags.pct&&parseInt(tags.pct)<100)warnings.push(`应用百分比为${tags.pct}%，部分未通过验证的邮件不会被策略处理。建议逐步提升到100%。`);
+  return warnings;
+}
+
+function getRecommendations(tags){
+  const recs=[];
+  if(tags.p==='none')recs.push('当前为监控模式。建议：1)监控rua报告2-4周 → 2)升级到p=quarantine → 3)最终升级到p=reject。');
+  if(!tags.ruf)recs.push('添加取证报告地址ruf=以接收详细的失败邮件信息，帮助排查问题。');
+  if(!tags.adkim)recs.push('建议明确指定DKIM对齐模式adkim=r（宽松，默认）或adkim=s（严格）。');
+  if(!tags.aspf)recs.push('建议明确指定SPF对齐模式aspf=r（宽松，默认）或aspf=s（严格）。');
+  return recs;
+}
+
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function copyText(t){navigator.clipboard.writeText(t).then(()=>{const b=event.target;b.textContent='已复制';setTimeout(()=>b.textContent='复制',1500)})}
+</script>
+<script src="/feedback-widget.html" onerror=""></script>
+<script>fetch('/feedback-widget.html').then(r=>r.text()).then(t=>{const d=document.createElement('div');d.innerHTML=t;document.getElementById('feedback-widget').replaceWith(d.firstElementChild)}).catch(()=>{})</script>
+</body>
+</html>

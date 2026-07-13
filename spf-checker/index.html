@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPF记录检查器 - 在线查询域名SPF记录 | 免费DNS工具</title>
+<meta name="description" content="免费在线SPF记录检查器，查询域名的SPF TXT记录，验证邮件发送策略，检测SPF配置错误，支持DNS over HTTPS。">
+<link rel="canonical" href="https://webtools-cn.github.io/tools-site/spf-checker/">
+<meta property="og:title" content="SPF记录检查器 - 在线查询域名SPF记录">
+<meta property="og:description" content="免费在线SPF记录检查器，查询域名的SPF TXT记录，验证邮件发送策略，检测SPF配置错误。">
+<meta property="og:image" content="https://webtools-cn.github.io/tools-site/og-image.svg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SPF记录检查器 - 在线查询域名SPF记录">
+<meta name="twitter:description" content="免费在线SPF记录检查器，查询域名的SPF TXT记录，验证邮件发送策略。">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"什么是SPF记录？","acceptedAnswer":{"@type":"Answer","text":"SPF（Sender Policy Framework）记录是一种DNS TXT记录，用于指定哪些邮件服务器有权代表该域名发送邮件。它帮助防止垃圾邮件发送者伪造您的域名发送电子邮件。"}},{"@type":"Question","name":"SPF记录如何工作？","acceptedAnswer":{"@type":"Answer","text":"当邮件服务器收到一封邮件时，它会查询发件人域名的SPF记录，检查发送邮件的服务器IP是否在允许列表中。如果匹配则通过，不匹配则可能被标记为垃圾邮件或拒绝。"}},{"@type":"Question","name":"SPF记录的常见问题有哪些？","acceptedAnswer":{"@type":"Answer","text":"常见问题包括：1)缺少SPF记录；2)SPF记录中DNS查询超过10次限制；3)使用~all（软失败）而非-all（硬失败）；4)未包含所有合法邮件发送源；5)存在多个SPF记录。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"如何使用SPF记录检查器","step":[{"@type":"HowToStep","name":"输入域名","text":"在输入框中输入要检查的域名，例如example.com"},{"@type":"HowToStep","name":"点击查询","text":"点击查询按钮，系统将通过DNS over HTTPS查询该域名的SPF记录"},{"@type":"HowToStep","name":"查看结果","text":"查看SPF记录详情，包括所有机制、限定符和潜在问题"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://webtools-cn.github.io/tools-site/"},{"@type":"ListItem","position":2,"name":"开发工具","item":"https://webtools-cn.github.io/tools-site/#dev"},{"@type":"ListItem","position":3,"name":"SPF记录检查器"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"SPF记录检查器","applicationCategory":"DeveloperApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#333;line-height:1.6}
+.container{max-width:900px;margin:0 auto;padding:20px}
+h1{text-align:center;font-size:1.8rem;margin-bottom:8px;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;color:#666;margin-bottom:24px;font-size:.95rem}
+.card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:20px}
+.input-group{display:flex;gap:10px;margin-bottom:16px}
+.input-group input{flex:1;padding:12px 16px;border:2px solid #e0e0e0;border-radius:8px;font-size:1rem;transition:border-color .3s}
+.input-group input:focus{outline:none;border-color:#667eea}
+.btn{padding:12px 24px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(102,126,234,.4)}
+.btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.result-box{margin-top:16px}
+.raw-record{background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:16px;font-family:monospace;font-size:.9rem;word-break:break-all;margin-bottom:16px}
+.mechanism-list{list-style:none}
+.mechanism-item{display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid #f0f0f0}
+.mechanism-item:last-child{border-bottom:none}
+.qualifier{display:inline-block;width:32px;height:24px;border-radius:4px;text-align:center;line-height:24px;font-size:.8rem;color:#fff;font-weight:600;margin-right:10px;flex-shrink:0}
+.qualifier.pass{background:#4caf50}
+.qualifier.fail{background:#f44336}
+.qualifier.softfail{background:#ff9800}
+.qualifier.neutral{background:#9e9e9e}
+.mech-type{font-weight:600;color:#333;min-width:60px;margin-right:10px}
+.mech-value{color:#666;word-break:break-all}
+.warning{background:#fff3e0;border-left:4px solid #ff9800;padding:12px 16px;border-radius:4px;margin:8px 0;font-size:.9rem}
+.error{background:#ffebee;border-left:4px solid #f44336;padding:12px 16px;border-radius:4px;margin:8px 0;font-size:.9rem}
+.success{background:#e8f5e9;border-left:4px solid #4caf50;padding:12px 16px;border-radius:4px;margin:8px 0;font-size:.9rem}
+.lookup-count{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.8rem;font-weight:600;margin-left:8px}
+.lookup-count.ok{background:#e8f5e9;color:#2e7d32}
+.lookup-count.warn{background:#fff3e0;color:#e65100}
+.lookup-count.over{background:#ffebee;color:#c62828}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;margin-right:6px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.copy-btn{padding:6px 12px;background:#e0e0e0;border:none;border-radius:4px;cursor:pointer;font-size:.8rem;margin-left:8px}
+.copy-btn:hover{background:#d0d0d0}
+h2{font-size:1.2rem;margin:24px 0 12px;color:#333}
+.faq-item{margin-bottom:12px}
+.faq-q{font-weight:600;color:#444;margin-bottom:4px}
+.faq-a{color:#666;font-size:.9rem}
+footer{text-align:center;padding:20px;color:#999;font-size:.8rem}
+.ad-container{margin:16px 0;text-align:center;min-height:90px;display:flex;align-items:center;justify-content:center}.ad-container ins{display:block}
+</style>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="container">
+<h1>🛡️ SPF记录检查器</h1>
+<p class="subtitle">在线查询域名SPF记录，验证邮件发送策略，检测配置问题</p>
+<div class="ad-container"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
+
+<div class="card">
+<div class="input-group">
+<input type="text" id="domainInput" placeholder="输入域名，如 example.com" onkeydown="if(event.key==='Enter')checkSPF()">
+<button class="btn" id="checkBtn" onclick="checkSPF()">查询SPF</button>
+</div>
+<div id="result"></div>
+</div>
+
+<h2>❓ 常见问题</h2>
+<div class="card">
+<div class="faq-item"><div class="faq-q">什么是SPF记录？</div><div class="faq-a">SPF（Sender Policy Framework）记录是一种DNS TXT记录，用于指定哪些邮件服务器有权代表该域名发送邮件，帮助防止邮件伪造和垃圾邮件。</div></div>
+<div class="faq-item"><div class="faq-q">SPF记录如何工作？</div><div class="faq-a">收件服务器查询发件域名的SPF记录，检查发送服务器IP是否在允许列表中。匹配则通过，不匹配则可能被拒绝或标记为垃圾邮件。</div></div>
+<div class="faq-item"><div class="faq-q">SPF记录的常见问题有哪些？</div><div class="faq-a">常见问题包括：缺少SPF记录、DNS查询超过10次限制、使用~all而非-all、未包含所有合法发送源、存在多个SPF记录。</div></div>
+<div class="faq-item"><div class="faq-q">SPF中的限定符是什么意思？</div><div class="faq-a">+表示通过（默认），-表示失败（拒绝），~表示软失败（标记但不拒绝），?表示中性（不做判断）。建议使用-all硬失败以获得最佳保护。</div></div>
+</div>
+
+<footer>SPF记录检查器 - 免费在线DNS工具 | 使用DNS over HTTPS查询 | 问题反馈: <a href="mailto:dexshuang@google.com">dexshuang@google.com</a></footer>
+</div>
+
+<div id="feedback-widget"></div>
+<script src="/related-tools.js"></script>
+<script>
+const DOH_SERVERS=['https://dns.google/resolve','https://cloudflare-dns.com/dns-query','https://dns.quad9.net:5053/dns-query'];
+let lookupCount=0;
+
+async function dnsQuery(name,type='TXT',server=0){
+  try{
+    const url=server===0?`${DOH_SERVERS[0]}?name=${encodeURIComponent(name)}&type=${type}`:
+               server===1?`${DOH_SERVERS[1]}?name=${encodeURIComponent(name)}&type=${type}&ct=application/dns-json`:
+               `${DOH_SERVERS[2]}?name=${encodeURIComponent(name)}&type=${type}`;
+    const resp=await fetch(url,{headers:server===1?{'Accept':'application/dns-json'}:{}});
+    if(!resp.ok)throw new Error('DNS query failed');
+    return await resp.json();
+  }catch(e){
+    if(server<DOH_SERVERS.length-1)return dnsQuery(name,type,server+1);
+    throw e;
+  }
+}
+
+async function checkSPF(){
+  const domain=document.getElementById('domainInput').value.trim().replace(/^https?:\/\//,'').replace(/\/.*$/,'');
+  if(!domain){alert('请输入域名');return}
+  
+  const btn=document.getElementById('checkBtn');
+  const resultDiv=document.getElementById('result');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span>查询中...';
+  resultDiv.innerHTML='';
+  lookupCount=0;
+  
+  try{
+    const data=await dnsQuery(domain,'TXT');
+    lookupCount++;
+    const txtRecords=data.Answer?data.Answer.filter(r=>r.type===16):[];
+    const spfRecords=txtRecords.filter(r=>r.data&&r.data.includes('v=spf1'));
+    
+    if(spfRecords.length===0){
+      resultDiv.innerHTML='<div class="error">⚠️ 未找到SPF记录。该域名可能未配置SPF，建议添加以防止邮件伪造。</div>';
+      btn.disabled=false;btn.textContent='查询SPF';return;
+    }
+    
+    if(spfRecords.length>1){
+      resultDiv.innerHTML+='<div class="warning">⚠️ 检测到多个SPF记录，这可能导致验证失败。RFC 7208规定域名只能有一个SPF记录。</div>';
+    }
+    
+    const spfData=spfRecords[0].data.replace(/^"|"$/g,'');
+    const mechanisms=parseSPF(spfData);
+    
+    await resolveIncludes(mechanisms);
+    
+    let html=`<div class="success">✅ 找到SPF记录</div>`;
+    html+=`<div class="raw-record"><strong>原始记录：</strong>${escHtml(spfData)}<button class="copy-btn" onclick="copyText('${escAttr(spfData)}')">复制</button></div>`;
+    html+=`<div style="margin:8px 0">DNS查询次数：<span class="lookup-count ${lookupCount<=10?'ok':lookupCount<=14?'warn':'over'}">${lookupCount}/10</span></div>`;
+    html+=`<ul class="mechanism-list">`;
+    
+    for(const m of mechanisms){
+      const qualClass=m.qualifier==='-'?'fail':m.qualifier==='~'?'softfail':m.qualifier==='?'?'neutral':'pass';
+      const qualLabel=m.qualifier==='+'?'Pass':m.qualifier==='-'?'Fail':m.qualifier==='~'?'SoftFail':'Neutral';
+      html+=`<li class="mechanism-item"><span class="qualifier ${qualClass}">${qualLabel}</span><span class="mech-type">${escHtml(m.type)}</span><span class="mech-value">${escHtml(m.value)}</span></li>`;
+    }
+    
+    html+=`</ul>`;
+    
+    const warnings=analyzeSPF(mechanisms,lookupCount);
+    if(warnings.length>0){
+      html+=`<h3 style="margin-top:16px;color:#e65100">⚠️ 检测到问题</h3>`;
+      warnings.forEach(w=>{html+=`<div class="warning">${w}</div>`});
+    }
+    
+    resultDiv.innerHTML=html;
+  }catch(e){
+    resultDiv.innerHTML=`<div class="error">❌ 查询失败：${escHtml(e.message)}</div>`;
+  }
+  
+  btn.disabled=false;btn.textContent='查询SPF';
+}
+
+function parseSPF(record){
+  const parts=record.split(/\s+/);
+  const mechanisms=[];
+  for(const part of parts){
+    if(part==='v=spf1')continue;
+    let qualifier='+',mech=part;
+    if(['+','-','~','?'].includes(part[0])){qualifier=part[0];mech=part.substring(1)}
+    
+    let type='all',value='';
+    if(mech.startsWith('include:')){type='include';value=mech.substring(8)}
+    else if(mech.startsWith('a')){type='a';value=mech.substring(2)||'(当前域名)'}
+    else if(mech.startsWith('mx')){type='mx';value=mech.substring(3)||'(当前域名)'}
+    else if(mech.startsWith('ip4:')){type='ip4';value=mech.substring(4)}
+    else if(mech.startsWith('ip6:')){type='ip6';value=mech.substring(4)}
+    else if(mech.startsWith('ptr')){type='ptr';value=mech.substring(4)||'(当前域名)'}
+    else if(mech.startsWith('exists:')){type='exists';value=mech.substring(7)}
+    else if(mech.startsWith('redirect=')){type='redirect';value=mech.substring(9)}
+    else if(mech==='all'){type='all';value='所有其他'}
+    else{type='unknown';value=mech}
+    
+    mechanisms.push({qualifier,type,value,raw:part});
+  }
+  return mechanisms;
+}
+
+async function resolveIncludes(mechanisms){
+  for(const m of mechanisms){
+    if(m.type==='include'&&lookupCount<15){
+      try{
+        const data=await dnsQuery(m.value,'TXT');
+        lookupCount++;
+        const incRecords=data.Answer?data.Answer.filter(r=>r.type===16&&r.data&&r.data.includes('v=spf1')):[];
+        if(incRecords.length>0){
+          m.value+=` → ${incRecords[0].data.replace(/^"|"$/g,'').substring(0,80)}...`;
+        }
+      }catch(e){}
+    }
+  }
+}
+
+function analyzeSPF(mechanisms,lookups){
+  const warnings=[];
+  const allMech=mechanisms.find(m=>m.type==='all');
+  if(!allMech)warnings.push('缺少all机制。建议在SPF记录末尾添加all机制（推荐 -all）。');
+  else if(allMech.qualifier==='+')warnings.push('all机制使用+（通过），这意味着任何IP都可以代表该域名发送邮件，等同于没有SPF。建议使用 -all。');
+  else if(allMech.qualifier==='?')warnings.push('all机制使用?（中性），不会阻止未授权发送者。建议使用 -all 获得更好保护。');
+  
+  if(lookups>10)warnings.push(`DNS查询次数（${lookups}）超过RFC规定的10次限制，可能导致SPF验证失败。`);
+  
+  const includes=mechanisms.filter(m=>m.type==='include');
+  if(includes.length>5)warnings.push(`包含${includes.length}个include机制，数量较多，可能接近DNS查询限制。`);
+  
+  return warnings;
+}
+
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function escAttr(s){return s.replace(/'/g,"\\'").replace(/"/g,'\\"')}
+function copyText(t){navigator.clipboard.writeText(t).then(()=>{const b=event.target;b.textContent='已复制';setTimeout(()=>b.textContent='复制',1500)})}
+</script>
+<script src="/feedback-widget.html" onerror=""></script>
+<script>fetch('/feedback-widget.html').then(r=>r.text()).then(t=>{const d=document.createElement('div');d.innerHTML=t;document.getElementById('feedback-widget').replaceWith(d.firstElementChild)}).catch(()=>{})</script>
+</body>
+</html>
