@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cron表达式生成器 - 在线可视化Cron定时任务表达式生成工具 | WebTools</title>
+    <meta name="description" content="免费在线Cron表达式生成器，可视化生成和解析Cron定时任务表达式，支持秒/分/时/日/月/周，实时预览下次执行时间，纯前端本地计算。">
+    <link rel="canonical" href="https://free-toolbase.com/cron-generator/">
+    <meta property="og:title" content="Cron表达式生成器 - 在线可视化Cron定时任务表达式生成工具">
+    <meta property="og:description" content="免费在线Cron表达式生成器，可视化生成和解析Cron定时任务表达式，实时预览下次执行时间，纯前端本地计算。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://free-toolbase.com/cron-generator/">
+    <style>
+        :root {
+            --bg: #f8fafc; --card-bg: #fff; --text: #1e293b; --text-secondary: #64748b;
+            --border: #e2e8f0; --primary: #3b82f6; --primary-hover: #2563eb;
+            --accent: #8b5cf6; --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
+            --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 30px 0 20px; }
+        header h1 { font-size: 2rem; color: var(--text); margin-bottom: 8px; }
+        header p { color: var(--text-secondary); font-size: 1.05rem; }
+        .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); padding: 24px; margin-bottom: 20px; }
+        .card h2 { font-size: 1.25rem; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+        textarea, select, input[type="number"], input[type="text"] { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; transition: border .2s; }
+        textarea:focus, select:focus, input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .faq-item { margin-bottom: 16px; }
+        .faq-item h3 { font-size: 1.05rem; color: var(--text); margin-bottom: 6px; }
+        .faq-item p { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; }
+        .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.95rem; }
+        .cron-output { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 1.5rem; text-align: center; padding: 20px; background: linear-gradient(135deg, #eff6ff, #f0f9ff); border-radius: 8px; border: 2px solid var(--primary); margin: 16px 0; word-break: break-all; color: var(--primary); font-weight: 700; }
+        .field-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 16px; }
+        .field-group { text-align: center; }
+        .field-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; }
+        .field-group input, .field-group select { text-align: center; padding: 8px 4px; font-size: 13px; }
+        .mode-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        .mode-tab { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; font-size: 14px; font-weight: 500; transition: all .2s; }
+        .mode-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .mode-tab:hover:not(.active) { background: var(--border); }
+        .preset-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; }
+        .preset-btn { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; font-size: 13px; text-align: center; transition: all .2s; }
+        .preset-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .next-runs { margin-top: 16px; }
+        .next-runs li { padding: 6px 0; border-bottom: 1px solid var(--border); font-family: 'SF Mono', monospace; font-size: 13px; color: var(--text-secondary); }
+        .next-runs li:last-child { border-bottom: none; }
+        .desc { text-align: center; color: var(--accent); font-weight: 600; margin: 8px 0; font-size: 1.05rem; }
+        .error-msg { color: var(--danger); font-size: 13px; margin-top: 4px; }
+        footer { text-align: center; padding: 30px 0; color: var(--text-secondary); font-size: 0.85rem; }
+        footer a { color: var(--primary); text-decoration: none; }
+        @media (max-width: 768px) { .container { padding: 12px; } header h1 { font-size: 1.5rem; } .field-row { grid-template-columns: repeat(3, 1fr); } }
+    .ad-container{margin:16px 0;text-align:center;min-height:90px;display:flex;align-items:center;justify-content:center}
+.ad-container ins{display:block}
+</style>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date()); gtag('config', 'G-9W1157EBQV');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372"
+     crossorigin="anonymous"></script>
+<style>
+.rating-widget { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; border-radius: 12px; margin: 16px 0; }
+.rating-widget .stars { display: flex; gap: 2px; }
+.rating-widget .stars .star { font-size: 20px; color: #cbd5e1; cursor: pointer; transition: color 0.2s, transform 0.1s; line-height: 1; }
+.rating-widget .stars .star:hover, .rating-widget .stars .star.active { color: #f59e0b; }
+.rating-widget .stars .star:hover { transform: scale(1.2); }
+.rating-widget .rating-text { font-size: 14px; color: #475569; font-weight: 500; }
+.rating-widget .rating-count { font-size: 12px; color: #94a3b8; }
+.feedback-section { margin: 24px 0; }
+.feedback-section h3 { font-size: 1.1rem; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>⏱️ Cron表达式生成器</h1>
+        <p>可视化生成和解析Cron定时任务表达式，实时预览下次执行时间</p>
+    </header>
+
+    <div class="ad-container"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins></div>
+
+    <div class="card">
+        <h2>📝 快速预设</h2>
+        <div class="preset-grid">
+            <button class="preset-btn" onclick="setPreset('0 * * * *')">每小时</button>
+            <button class="preset-btn" onclick="setPreset('0 0 * * *')">每天零点</button>
+            <button class="preset-btn" onclick="setPreset('0 0 * * 1')">每周一</button>
+            <button class="preset-btn" onclick="setPreset('0 0 1 * *')">每月1号</button>
+            <button class="preset-btn" onclick="setPreset('*/5 * * * *')">每5分钟</button>
+            <button class="preset-btn" onclick="setPreset('*/30 * * * *')">每30分钟</button>
+            <button class="preset-btn" onclick="setPreset('0 9 * * 1-5')">工作日9点</button>
+            <button class="preset-btn" onclick="setPreset('0 0 1 1 *')">每年1月1日</button>
+            <button class="preset-btn" onclick="setPreset('0 8,18 * * *')">每天8点和18点</button>
+            <button class="preset-btn" onclick="setPreset('0 0 1,15 * *')">每月1号和15号</button>
+            <button class="preset-btn" onclick="setPreset('*/10 * * * 1-5')">工作日每10分钟</button>
+            <button class="preset-btn" onclick="setPreset('0 0 L * *')">每月最后一天</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🔧 自定义Cron表达式</h2>
+        <div class="field-row">
+            <div class="field-group">
+                <label>分钟</label>
+                <input type="text" id="f-min" value="0" oninput="updateFromFields()">
+            </div>
+            <div class="field-group">
+                <label>小时</label>
+                <input type="text" id="f-hour" value="*" oninput="updateFromFields()">
+            </div>
+            <div class="field-group">
+                <label>日</label>
+                <input type="text" id="f-day" value="*" oninput="updateFromFields()">
+            </div>
+            <div class="field-group">
+                <label>月</label>
+                <input type="text" id="f-month" value="*" oninput="updateFromFields()">
+            </div>
+            <div class="field-group">
+                <label>周</label>
+                <input type="text" id="f-dow" value="*" oninput="updateFromFields()">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>或直接输入Cron表达式</label>
+            <input type="text" id="cron-input" value="0 * * * *" oninput="updateFromInput()" placeholder="分 时 日 月 周">
+        </div>
+        <div class="cron-output" id="cron-display">0 * * * *</div>
+        <div class="desc" id="cron-desc">每小时的第0分钟执行</div>
+        <div class="row">
+            <button class="btn btn-primary" onclick="copyCron()">📋 复制表达式</button>
+            <button class="btn btn-secondary" onclick="resetCron()">🔄 重置</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📅 下次执行时间</h2>
+        <ol class="next-runs" id="next-runs">
+            <li>计算中...</li>
+        </ol>
+    </div>
+
+    <div class="card">
+        <h2>📖 Cron语法参考</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <tr style="background:var(--bg)"><th style="padding:8px;border:1px solid var(--border);text-align:left">字段</th><th style="padding:8px;border:1px solid var(--border);text-align:left">范围</th><th style="padding:8px;border:1px solid var(--border);text-align:left">特殊字符</th></tr>
+            <tr><td style="padding:8px;border:1px solid var(--border)">分钟</td><td style="padding:8px;border:1px solid var(--border)">0-59</td><td style="padding:8px;border:1px solid var(--border)">, - * /</td></tr>
+            <tr><td style="padding:8px;border:1px solid var(--border)">小时</td><td style="padding:8px;border:1px solid var(--border)">0-23</td><td style="padding:8px;border:1px solid var(--border)">, - * /</td></tr>
+            <tr><td style="padding:8px;border:1px solid var(--border)">日</td><td style="padding:8px;border:1px solid var(--border)">1-31</td><td style="padding:8px;border:1px solid var(--border)">, - * ? / L W</td></tr>
+            <tr><td style="padding:8px;border:1px solid var(--border)">月</td><td style="padding:8px;border:1px solid var(--border)">1-12</td><td style="padding:8px;border:1px solid var(--border)">, - * /</td></tr>
+            <tr><td style="padding:8px;border:1px solid var(--border)">周</td><td style="padding:8px;border:1px solid var(--border)">0-7</td><td style="padding:8px;border:1px solid var(--border)">, - * ? / L #</td></tr>
+        </table>
+        <div style="margin-top:12px;font-size:13px;color:var(--text-secondary);">
+            <strong>特殊字符：</strong><br>
+            <code>*</code> 任意值 &nbsp; <code>?</code> 不指定 &nbsp; <code>-</code> 范围 &nbsp; <code>,</code> 列表 &nbsp; <code>/</code> 步长 &nbsp; <code>L</code> 最后 &nbsp; <code>W</code> 工作日 &nbsp; <code>#</code> 第几个周几
+        </div>
+    </div>
+
+    <div class="ad-container"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins></div>
+
+    <div class="card">
+        <h2>❓ 常见问题</h2>
+        <div class="faq-item">
+            <h3>Cron表达式是什么？</h3>
+            <p>Cron表达式是Unix/Linux系统中用于配置定时任务的时间规则字符串，由5个字段组成（分 时 日 月 周），广泛用于Linux crontab、Kubernetes CronJob、Spring Boot @Scheduled等场景。</p>
+        </div>
+        <div class="faq-item">
+            <h3>0 0 * * * 和 @daily 有什么区别？</h3>
+            <p><code>0 0 * * *</code> 等同于 <code>@daily</code>，都表示每天零点执行。@daily等是部分Cron实现的快捷方式，本工具生成标准5字段表达式，兼容性更好。</p>
+        </div>
+        <div class="faq-item">
+            <h3>如何在Kubernetes中使用Cron表达式？</h3>
+            <p>在Kubernetes CronJob的spec.schedule字段中使用本工具生成的表达式，格式相同。K8s也支持6字段格式（含秒），需在前面加<code>0</code>，如<code>0 0 * * *</code>变为<code>0 0 0 * * *</code>。</p>
+        </div>
+        <div class="faq-item">
+            <h3>表达式中的?和*有什么区别？</h3>
+            <p><code>*</code>表示匹配任意值，<code>?</code>表示不指定值（仅用于日和周字段）。当日和周字段都需要匹配时，其中一个必须用<code>?</code>，因为不能同时指定日和周。</p>
+        </div>
+    </div>
+
+    <div class="feedback-section">
+        <h3>💬 评价此工具</h3>
+        <div class="rating-widget">
+            <div class="stars">
+                <span class="star" data-value="1">★</span><span class="star" data-value="2">★</span><span class="star" data-value="3">★</span><span class="star" data-value="4">★</span><span class="star" data-value="5">★</span>
+            </div>
+            <span class="rating-text">点击评分</span>
+            <span class="rating-count"></span>
+        </div>
+    </div>
+
+    <footer>
+        <p>Cron表达式生成器 - 免费在线可视化Cron定时任务表达式生成工具 | <a href="/">WebTools</a></p>
+        <p style="margin-top:4px;color:#475569;font-size:.8rem">问题反馈: <a href="mailto:dexshuang@google.com">dexshuang@google.com</a></p>
+    </footer>
+</div>
+
+<script>
+// Cron expression parser and next-run calculator
+const MONTH_NAMES = ['','1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const DOW_NAMES = ['日','一','二','三','四','五','六','日'];
+
+function parseField(field, min, max) {
+    if (field === '*' || field === '?') return null; // null means all
+    const values = new Set();
+    for (const part of field.split(',')) {
+        if (part.includes('/')) {
+            const [range, step] = part.split('/');
+            const s = step ? parseInt(step) : 1;
+            let start = min, end = max;
+            if (range !== '*') {
+                if (range.includes('-')) { [start, end] = range.split('-').map(Number); }
+                else { start = parseInt(range); end = max; }
+            }
+            for (let i = start; i <= end; i += s) values.add(i);
+        } else if (part.includes('-')) {
+            const [s, e] = part.split('-').map(Number);
+            for (let i = s; i <= e; i++) values.add(i);
+        } else if (part === 'L' || part === 'W') {
+            values.add(part);
+        } else {
+            const v = parseInt(part);
+            if (!isNaN(v)) values.add(v);
+        }
+    }
+    return values.size > 0 ? values : null;
+}
+
+function describeCron(expr) {
+    const parts = expr.trim().split(/\s+/);
+    if (parts.length < 5) return '无效的Cron表达式';
+    const [min, hour, day, month, dow] = parts;
+    let desc = [];
+    // Month
+    if (month !== '*') desc.push(month.includes(',') ? `${month.split(',').map(m=>MONTH_NAMES[parseInt(m)]||m).join('、')}` : MONTH_NAMES[parseInt(month)] || `${month}月`);
+    // Day of month
+    if (day !== '*' && day !== '?') {
+        if (day === 'L') desc.push('每月最后一天');
+        else if (day.includes(',')) desc.push(`每月${day}号`);
+        else desc.push(`每月${day}号`);
+    }
+    // Day of week
+    if (dow !== '*' && dow !== '?') {
+        if (dow.includes('-')) {
+            const [s,e] = dow.split('-').map(Number);
+            desc.push(`周${DOW_NAMES[s]}到周${DOW_NAMES[e]}`);
+        } else if (dow.includes(',')) {
+            desc.push(`周${dow.split(',').map(d=>DOW_NAMES[parseInt(d)]).join('、')}`);
+        } else desc.push(`周${DOW_NAMES[parseInt(dow)]}`);
+    }
+    // Hour
+    if (hour !== '*') {
+        if (hour.includes(',')) desc.push(`${hour.split(',').map(h=>`${h}点`).join('和')}`);
+        else if (hour.includes('/')) { const [,s] = hour.split('/'); desc.push(`每${s}小时`); }
+        else desc.push(`${hour}点`);
+    }
+    // Minute
+    if (min !== '*') {
+        if (min.includes('/')) { const [,s] = min.split('/'); desc.push(`每${s}分钟`); }
+        else desc.push(`${min}分`);
+    }
+    if (desc.length === 0) return '每分钟执行';
+    return desc.join('') + '执行';
+}
+
+function getNextRuns(expr, count = 5) {
+    const parts = expr.trim().split(/\s+/);
+    if (parts.length < 5) return ['无效的Cron表达式'];
+    const minSet = parseField(parts[0], 0, 59);
+    const hourSet = parseField(parts[1], 0, 23);
+    const daySet = parseField(parts[2], 1, 31);
+    const monthSet = parseField(parts[3], 1, 12);
+    const dowSet = parseField(parts[4], 0, 7);
+    // Merge dow 7 -> 0 (both = Sunday)
+    if (dowSet && dowSet.has(7)) { dowSet.add(0); dowSet.delete(7); }
+
+    const results = [];
+    let d = new Date();
+    d.setSeconds(0, 0);
+    d.setMinutes(d.getMinutes() + 1);
+
+    const maxIter = 525600; // 1 year of minutes
+    for (let i = 0; i < maxIter && results.length < count; i++) {
+        const m = d.getMinutes(), h = d.getHours(), day = d.getDate(), mo = d.getMonth() + 1, wd = d.getDay();
+        let match = true;
+        if (minSet && !minSet.has(m)) match = false;
+        if (hourSet && !hourSet.has(h)) match = false;
+        if (monthSet && !monthSet.has(mo)) match = false;
+        if (daySet && dowSet) {
+            // Both specified: either must match
+            if (!daySet.has(day) && !dowSet.has(wd)) match = false;
+        } else {
+            if (daySet && !daySet.has(day)) match = false;
+            if (dowSet && !dowSet.has(wd)) match = false;
+        }
+        if (match) results.push(new Date(d));
+        d.setMinutes(d.getMinutes() + 1);
+    }
+    if (results.length === 0) return ['未来一年内无匹配时间'];
+    return results.map(r => r.toLocaleString('zh-CN', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',weekday:'short'}));
+}
+
+function updateFromFields() {
+    const min = document.getElementById('f-min').value || '*';
+    const hour = document.getElementById('f-hour').value || '*';
+    const day = document.getElementById('f-day').value || '*';
+    const month = document.getElementById('f-month').value || '*';
+    const dow = document.getElementById('f-dow').value || '*';
+    const expr = `${min} ${hour} ${day} ${month} ${dow}`;
+    document.getElementById('cron-input').value = expr;
+    displayCron(expr);
+}
+
+function updateFromInput() {
+    const expr = document.getElementById('cron-input').value.trim();
+    const parts = expr.split(/\s+/);
+    if (parts.length >= 5) {
+        document.getElementById('f-min').value = parts[0];
+        document.getElementById('f-hour').value = parts[1];
+        document.getElementById('f-day').value = parts[2];
+        document.getElementById('f-month').value = parts[3];
+        document.getElementById('f-dow').value = parts[4];
+    }
+    displayCron(expr);
+}
+
+function displayCron(expr) {
+    document.getElementById('cron-display').textContent = expr;
+    document.getElementById('cron-desc').textContent = describeCron(expr);
+    const runs = getNextRuns(expr);
+    document.getElementById('next-runs').innerHTML = runs.map(r => `<li>${r}</li>`).join('');
+}
+
+function setPreset(expr) {
+    document.getElementById('cron-input').value = expr;
+    updateFromInput();
+}
+
+function resetCron() {
+    setPreset('0 * * * *');
+}
+
+function copyCron() {
+    const expr = document.getElementById('cron-display').textContent;
+    navigator.clipboard.writeText(expr).then(() => {
+        const btn = event.target.closest('.btn');
+        const orig = btn.textContent;
+        btn.textContent = '✅ 已复制';
+        setTimeout(() => btn.textContent = orig, 1500);
+    });
+}
+
+// Rating
+document.querySelectorAll('.star').forEach(star => {
+    star.addEventListener('click', function() {
+        document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+        this.classList.add('active');
+        this.previousElementSibling && [...this.parentElement.children].filter(s => s.dataset.value <= this.dataset.value).forEach(s => s.classList.add('active'));
+        document.querySelector('.rating-text').textContent = `已评 ${this.dataset.value} 星`;
+    });
+});
+
+// Init
+displayCron('0 * * * *');
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type": "Question", "name": "Cron表达式是什么？", "acceptedAnswer": {"@type": "Answer", "text": "Cron表达式是Unix/Linux系统中用于配置定时任务的时间规则字符串，由5个字段组成（分 时 日 月 周），广泛用于Linux crontab、Kubernetes CronJob、Spring Boot等场景。"}},
+    {"@type": "Question", "name": "0 0 * * * 和 @daily 有什么区别？", "acceptedAnswer": {"@type": "Answer", "text": "0 0 * * * 等同于 @daily，都表示每天零点执行。@daily等是部分Cron实现的快捷方式，标准5字段表达式兼容性更好。"}},
+    {"@type": "Question", "name": "如何在Kubernetes中使用Cron表达式？", "acceptedAnswer": {"@type": "Answer", "text": "在Kubernetes CronJob的spec.schedule字段中使用Cron表达式，格式相同。K8s也支持6字段格式（含秒），需在前面加0。"}},
+    {"@type": "Question", "name": "表达式中的?和*有什么区别？", "acceptedAnswer": {"@type": "Answer", "text": "*表示匹配任意值，?表示不指定值（仅用于日和周字段）。当日和周都需要匹配时，其中一个必须用?。"}}
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "如何使用Cron表达式生成器",
+  "step": [
+    {"@type": "HowToStep", "name": "选择预设或自定义", "text": "从常用预设中选择一个Cron表达式模板，或手动填写各字段值。"},
+    {"@type": "HowToStep", "name": "查看执行时间", "text": "查看生成的Cron表达式和下次执行时间列表，确认符合预期。"},
+    {"@type": "HowToStep", "name": "复制使用", "text": "点击复制按钮，将表达式粘贴到crontab、K8s CronJob或代码中使用。"}
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "首页", "item": "https://free-toolbase.com/"},
+    {"@type": "ListItem", "position": 2, "name": "Cron表达式生成器", "item": "https://free-toolbase.com/cron-generator/"}
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Cron表达式生成器",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Any",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}
+}
+</script>
+</body>
+</html>
