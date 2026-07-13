@@ -1,3 +1,26 @@
+## 2026-07-13 19:58 - 新增7个工具（质量分90/100）
+
+### 新增工具
+1. **DPI计算器 (dpi-calculator)** - 计算屏幕DPI/PPI像素密度，3种模式+12种设备预设+等级参考表
+2. **CSS图案生成器 (pattern-generator)** - 14+图案类型（条纹/网格/波点/棋盘等），实时预览+随机配色
+3. **在线白板 (whiteboard)** - 画笔/直线/矩形/圆形/文字/橡皮擦，撤销重做，导出PNG/SVG
+4. **Pig Latin翻译器 (pig-latin)** - 英文↔Pig Latin互转，3种后缀变体，自动翻译
+5. **CSS缓动函数生成器 (easing-generator)** - 可视化cubic-bezier曲线编辑，20+预设，动画预览
+6. **CSS Grid模板区域生成器 (grid-template-areas)** - 可视化网格布局编辑，3种预设布局
+7. **CSS渐变边框动画生成器 (css-gradient-border-animation)** - 流动渐变边框，3种动画类型+6种预设
+
+### 技术细节
+- 7个中英双语工具，14个页面，纯前端HTML+JS
+- 全部包含FAQPage + BreadcrumbList + SoftwareApplication Schema
+- 更新tools-registry.json（1445→1452个工具）
+- Git commit: 0b291250c，已push到GitHub Pages
+
+### 质量
+- 质检v6评分: 90/100
+- 剩余问题: 首页卡片数轻微不匹配（1475 vs 1468，非阻塞）
+
+---
+
 ## 2026-07-13 13:31 - 新增9个工具（质量分88/100）
 
 ### 新增工具
