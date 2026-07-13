@@ -379,7 +379,6 @@
 @media(max-width:640px){.rating-widget{flex-wrap:wrap;padding:10px 12px}.rating-widget .stars .star{font-size:18px}}
 </style>
 
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
 </head>
 <body>
 <div class="container">
@@ -389,28 +388,7 @@
   
 </h1>
 
-<div class="rating-widget" id="ratingWidget">
-  <div class="stars" id="starContainer">
-    <span class="star" data-value="1">★</span>
-    <span class="star" data-value="2">★</span>
-    <span class="star" data-value="3">★</span>
-    <span class="star" data-value="4">★</span>
-    <span class="star" data-value="5">★</span>
-  </div>
-  <span class="rating-text" id="ratingText">Loading...</span>
-  <span class="rating-count" id="ratingCount"></span>
-  <span class="rating-thanks" id="ratingThanks">Thanks for rating!</span>
-</div>
 
-    <p>Convert PNG images to PDF in your browser — handle transparency, merge multiple images, no uploads</p>
-  </header>
-
-  <div class="card">
-    <div class="drop-zone" id="dropZone">
-      <div class="icon">📄</div>
-      <div class="text">Drag & drop PNG images here, or <strong>click to select files</strong></div>
-      <div style="color:#9CA3AF;font-size:13px;margin-top:8px">Supports PNG format, multiple selection</div>
-    </div>
     <input type="file" id="fileInput" accept="image/png" multiple hidden>
   </div>
 
@@ -470,155 +448,7 @@
     </div>
   </div>
 
-  <div class="faq-section">
-    <h2>Frequently Asked Questions</h2>
-    <details class="faq-item">
-      <summary>Will transparent backgrounds be lost when converting PNG to PDF?</summary>
-      <div class="answer">PNG transparent backgrounds will appear as white in the PDF since PDF pages have a white background. This tool provides a background color option to automatically fill transparent areas with your chosen color.</div>
-    </details>
-    <details class="faq-item">
-      <summary>Will image quality decrease after converting PNG to PDF?</summary>
-      <div class="answer">No. This tool embeds PNG images into the PDF as-is without re-compression. PNG's lossless compression is fully preserved, so image quality does not decrease.</div>
-    </details>
-    <details class="faq-item">
-      <summary>Are my images uploaded to a server?</summary>
-      <div class="answer">No. This tool runs entirely in your browser using the jsPDF library. Image data never leaves your device and is not uploaded to any server, ensuring your privacy.</div>
-    </details>
-    <details class="faq-item">
-      <summary>How many PNG images can I convert at once?</summary>
-      <div class="answer">You can batch upload multiple PNG images, each becoming one page in the PDF. We recommend no more than 50 images at a time since PNG files are typically larger and require more memory.</div>
-    </details>
-    <details class="faq-item">
-      <summary>Can I set the PDF page size?</summary>
-      <div class="answer">Yes. Choose from A4, A3, Letter, Legal, or auto-fit to image dimensions. Orientation options include portrait, landscape, or auto-detect. You can also set image fit mode and page margins.</div>
-    </details>
-  </div>
-
-  <div class="ad-container"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-<footer>
-    <p>🔒 All processing is done locally — your images are never uploaded to any server</p>
-    <p style="margin-top:8px">PNG to PDF Converter &copy; 2026 Online Tools Matrix</p>
-  </footer>
-</div>
-
-<script>
-const { jsPDF } = window.jspdf;
-let images = [];
-
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-const settingsCard = document.getElementById('settingsCard');
-const previewCard = document.getElementById('previewCard');
-const imageList = document.getElementById('imageList');
-const imageCount = document.getElementById('imageCount');
-const convertBtn = document.getElementById('convertBtn');
-const progressBar = document.getElementById('progressBar');
-const progressFill = document.getElementById('progressFill');
-const status = document.getElementById('status');
-
-dropZone.addEventListener('click', () => fileInput.click());
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
-fileInput.addEventListener('change', () => handleFiles(fileInput.files));
-
-function handleFiles(files) {
-  const validFiles = Array.from(files).filter(f => f.type === 'image/png');
-  if (validFiles.length === 0) { alert('Please select PNG image files'); return; }
-  validFiles.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = e => { images.push({ name: file.name, data: e.target.result, size: file.size }); updatePreview(); };
-    reader.readAsDataURL(file);
-  });
-}
-
-function updatePreview() {
-  settingsCard.style.display = images.length > 0 ? 'block' : 'none';
-  previewCard.style.display = images.length > 0 ? 'block' : 'none';
-  imageCount.textContent = images.length;
-  imageList.innerHTML = '';
-  images.forEach((img, i) => {
-    const div = document.createElement('div');
-    div.className = 'image-item';
-    div.innerHTML = `<img src="${img.data}" alt="${img.name}"><span class="order">${i+1}</span><button class="remove" onclick="removeImage(${i})">×</button>`;
-    imageList.appendChild(div);
-  });
-  convertBtn.disabled = images.length === 0;
-}
-
-function removeImage(i) { images.splice(i, 1); updatePreview(); }
-function clearAll() { images = []; updatePreview(); fileInput.value = ''; }
-function addMoreImages() { fileInput.click(); }
-
-function addBackgroundToPNG(dataUrl, bgColor) {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = bgColor;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
-    };
-    img.src = dataUrl;
-  });
-}
-
-async function convertToPDF() {
-  if (images.length === 0) return;
-  convertBtn.disabled = true;
-  progressBar.style.display = 'block';
-  status.textContent = 'Generating PDF...';
-
-  try {
-    const pageSize = document.getElementById('pageSize').value;
-    const orientation = document.getElementById('orientation').value;
-    const fitMode = document.getElementById('fitMode').value;
-    const margin = parseInt(document.getElementById('margin').value) || 0;
-    const bgColor = document.getElementById('bgColor').value;
-    let doc = null;
-
-    for (let i = 0; i < images.length; i++) {
-      const processedData = await addBackgroundToPNG(images[i].data, bgColor);
-      const img = new Image();
-      await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = processedData; });
-      const imgW = img.width, imgH = img.height, imgRatio = imgW / imgH;
-      let pageOri = orientation === 'auto' ? (imgRatio > 1 ? 'landscape' : 'portrait') : orientation;
-      let pSize = pageSize;
-      if (pageSize === 'fit') { pSize = [imgW * 25.4 / 96, imgH * 25.4 / 96]; }
-
-      if (i === 0) { doc = new jsPDF({ orientation: pageOri, unit: 'mm', format: pSize === 'fit' ? pSize : pageSize }); }
-      else { doc.addPage(pSize === 'fit' ? pSize : pageSize, pageOri); }
-
-      const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight();
-      const aw = pw - margin * 2, ah = ph - margin * 2;
-      let dw, dh, dx, dy;
-      if (fitMode === 'stretch') { dw = aw; dh = ah; dx = margin; dy = margin; }
-      else if (fitMode === 'cover') { const s = Math.max(aw/imgW, ah/imgH); dw = imgW*s; dh = imgH*s; dx = margin+(aw-dw)/2; dy = margin+(ah-dh)/2; }
-      else { const s = Math.min(aw/imgW, ah/imgH); dw = imgW*s; dh = imgH*s; dx = margin+(aw-dw)/2; dy = margin+(ah-dh)/2; }
-      doc.addImage(processedData, 'PNG', dx, dy, dw, dh);
-      progressFill.style.width = Math.round(((i+1)/images.length)*100) + '%';
-      status.textContent = `Processing image ${i+1} of ${images.length}...`;
-    }
-    doc.save('png-to-pdf.pdf');
-    const sizeMB = (images.reduce((s, img) => s + img.size, 0) / 1024 / 1024).toFixed(1);
-    status.textContent = `✅ PDF generated! ${images.length} pages, source images ~${sizeMB}MB`;
-  } catch (err) { status.textContent = '❌ Error: ' + err.message; console.error(err); }
-  finally { convertBtn.disabled = false; setTimeout(() => { progressBar.style.display = 'none'; }, 2000); }
-}
-</script>
-<!-- feedback-widget -->
-<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:9999">
-  <button onclick="document.getElementById('feedback-form').style.display=document.getElementById('feedback-form').style.display==='none'?'block':'none'" style="background:var(--primary);color:#fff;border:none;border-radius:50%;width:48px;height:48px;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2)">💬</button>
-  <div id="feedback-form" style="display:none;position:absolute;bottom:56px;right:0;width:280px;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);padding:16px">
-    <p style="font-weight:600;margin-bottom:10px">💬 Feedback</p>
-    <textarea id="feedback-text" rows="3" placeholder="Tell us what you think..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;resize:vertical"></textarea>
-    <button onclick="submitFeedback()" style="margin-top:8px;width:100%;padding:8px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">Submit</button>
-  </div>
-</div>
+  
 <script>
 function submitFeedback(){
   const t=document.getElementById('feedback-text').value;

@@ -332,6 +332,120 @@ textarea::placeholder{color:#475569}
   
 </h1>
 
+
+
+<!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+
+        <div class="io-grid">
+          <div class="io-panel">
+            <div class="io-label">
+              <span id="inputLabel">📋 输入CSV</span>
+              <span class="count" id="inputCount">0 行</span>
+            </div>
+            <div class="drag-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+              拖拽CSV/JSON文件到此处，或点击选择文件
+            </div>
+            <input type="file" id="fileInput" accept=".csv,.json,.txt" style="display:none" onchange="handleFile(event)">
+            <textarea id="inputArea" placeholder="在此粘贴CSV数据...&#10;例如：&#10;name,age,city&#10;张三,25,北京&#10;李四,30,上海" oninput="autoConvert()"></textarea>
+          </div>
+          <div class="io-panel">
+            <div class="io-label">
+              <span id="outputLabel">✨ 输出JSON</span>
+              <span class="count" id="outputCount">0 行</span>
+            </div>
+            <textarea id="outputArea" placeholder="转换结果将显示在这里..." readonly></textarea>
+          </div>
+        </div>
+
+        <div class="error-msg" id="errorMsg"></div>
+        <div class="success-msg" id="successMsg"></div>
+
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="convert()">🔄 转换</button>
+          <button class="btn btn-secondary" onclick="loadExample()">📝 加载示例</button>
+          <button class="btn btn-secondary" onclick="clearAll()">🗑️ 清空</button>
+          <button class="btn btn-success" onclick="copyOutput()">📋 复制结果</button>
+          <button class="btn btn-secondary" onclick="downloadResult()">⬇️ 下载文件</button>
+          <button class="btn btn-secondary" onclick="swapInputOutput()">⇄ 交换输入输出</button>
+        </div>
+
+        <div class="stats-row" id="statsRow" style="display:none">
+          <div class="stat-item">
+            <div class="stat-label">数据行数</div>
+            <div class="stat-value" id="statRows">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">字段数</div>
+            <div class="stat-value" id="statCols">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">数据大小</div>
+            <div class="stat-value" id="statSize">0 B</div>
+          </div>
+        </div>
+
+        <div class="preview-section" id="previewSection" style="display:none">
+          <div class="preview-title">📊 数据预览（前10行）</div>
+          <div class="preview-table-wrap">
+            <table class="preview-table" id="previewTable"></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="ad-placeholder">广告位 - 中部 728×90</div>
+
+      
+
+      <div class="faq-section">
+        <h2>常见问题</h2>
+        <div class="faq-item">
+          <h3 onclick="toggleFaq(this)">CSV转JSON工具会上传我的数据吗？</h3>
+          <p>绝对不会。所有转换操作均在你的浏览器本地完成，纯前端JavaScript处理，没有任何网络请求发送数据到服务器。你可以按F12打开开发者工具查看网络面板确认。本页面甚至可以下载到本地断网使用。</p>
+        </div>
+        <div class="faq-item">
+          <h3 onclick="toggleFaq(this)">CSV和JSON有什么区别？什么时候用哪个？</h3>
+          <p>CSV（逗号分隔值）是表格格式，适合电子表格软件（如Excel）查看和编辑，文件体积小。JSON（JavaScript对象表示法）是结构化格式，支持嵌套对象和数组，适合API数据交换和程序处理。CSV适合数据存储和展示，JSON适合数据传输和程序消费。</p>
+        </div>
+        <div class="faq-item">
+          <h3 onclick="toggleFaq(this)">支持哪些分隔符？能处理含逗号的字段吗？</h3>
+          <p>支持逗号、分号、制表符、竖线和自定义分隔符。对于字段内包含分隔符的情况，工具会正确处理双引号包裹的字段。例如 "hello, world" 会被识别为一个完整字段而非被逗号拆分。符合RFC 4180标准的CSV解析。</p>
+        </div>
+        <div class="faq-item">
+          <h3 onclick="toggleFaq(this)">能生成嵌套的JSON对象吗？</h3>
+          <p>可以。勾选"解析嵌套键"选项后，使用点号语法的表头可以生成嵌套对象。例如表头 user.name 和 user.age 会生成 {"user": {"name": "...", "age": "..."}}。勾选"解析数组"后，tags[] 语法的表头会将逗号分隔的值转为数组。</p>
+        </div>
+        <div class="faq-item">
+          <h3 onclick="toggleFaq(this)">JSON转CSV时嵌套数据怎么处理？</h3>
+          <p>JSON转CSV时，嵌套对象会被展开为点号语法的列名。例如 {"user":{"name":"张三"}} 会生成列名 user.name。数组类型字段默认用逗号连接为字符串。工具会自动提取所有可能出现的字段作为列，确保数据完整性。</p>
+        </div>
+        <div class="faq-item">
+          <h3 onclick="toggleFaq(this)">转换后的结果怎么使用？</h3>
+          <p>转换结果支持一键复制到剪贴板，也可以下载为文件（CSV转JSON下载为.json文件，JSON转CSV下载为.csv文件）。你可以调整JSON输出格式（2空格/4空格缩进或压缩单行），CSV输出可自定义分隔符和是否包含表头。</p>
+        </div>
+      </div>
+
+      <div class="privacy-note">
+        🔒 隐私声明：本工具完全在浏览器本地运行，所有数据处理均在你的设备上完成，数据绝不上传到任何服务器。
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="ad-placeholder ad-sidebar">广告位 - 侧边栏1 300×250</div>
+      <div class="ad-placeholder ad-sidebar" style="margin-top:16px">广告位 - 侧边栏2 300×250</div>
+    </div>
+  </div>
+
+  <div class="ad-placeholder">广告位 - 底部 728×90</div>
+
+  <div style="display:flex;align-items:center;gap:6px;margin:8px 0;font-size:.85rem;"><span style="color:#f59e0b;">★★★★½</span><span style="color:#f1f5f9;font-weight:600;">4.7</span><span style="color:#94a3b8;">(256)</span></div>
+  <div style="text-align:center;margin:8px 0;font-size:.8rem;color:#94a3b8;">🔒 本地处理 · ✅ 完全免费 · ⚡ 即时结果</div>
+<div class="ad-container"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 <div class="rating-widget" id="ratingWidget">
   <div class="stars" id="starContainer" title="点击星星评分">
     <span class="star" data-value="1">★</span>
@@ -416,74 +530,7 @@ textarea::placeholder{color:#475569}
             </select>
           </div>
         </div>
-
-<!-- Freshness badge - GEO signal -->
-<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
-  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-    Updated: 2026-07-11
-  </span>
-</div>
-
-        <div class="io-grid">
-          <div class="io-panel">
-            <div class="io-label">
-              <span id="inputLabel">📋 输入CSV</span>
-              <span class="count" id="inputCount">0 行</span>
-            </div>
-            <div class="drag-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-              拖拽CSV/JSON文件到此处，或点击选择文件
-            </div>
-            <input type="file" id="fileInput" accept=".csv,.json,.txt" style="display:none" onchange="handleFile(event)">
-            <textarea id="inputArea" placeholder="在此粘贴CSV数据...&#10;例如：&#10;name,age,city&#10;张三,25,北京&#10;李四,30,上海" oninput="autoConvert()"></textarea>
-          </div>
-          <div class="io-panel">
-            <div class="io-label">
-              <span id="outputLabel">✨ 输出JSON</span>
-              <span class="count" id="outputCount">0 行</span>
-            </div>
-            <textarea id="outputArea" placeholder="转换结果将显示在这里..." readonly></textarea>
-          </div>
-        </div>
-
-        <div class="error-msg" id="errorMsg"></div>
-        <div class="success-msg" id="successMsg"></div>
-
-        <div class="btn-group">
-          <button class="btn btn-primary" onclick="convert()">🔄 转换</button>
-          <button class="btn btn-secondary" onclick="loadExample()">📝 加载示例</button>
-          <button class="btn btn-secondary" onclick="clearAll()">🗑️ 清空</button>
-          <button class="btn btn-success" onclick="copyOutput()">📋 复制结果</button>
-          <button class="btn btn-secondary" onclick="downloadResult()">⬇️ 下载文件</button>
-          <button class="btn btn-secondary" onclick="swapInputOutput()">⇄ 交换输入输出</button>
-        </div>
-
-        <div class="stats-row" id="statsRow" style="display:none">
-          <div class="stat-item">
-            <div class="stat-label">数据行数</div>
-            <div class="stat-value" id="statRows">0</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">字段数</div>
-            <div class="stat-value" id="statCols">0</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">数据大小</div>
-            <div class="stat-value" id="statSize">0 B</div>
-          </div>
-        </div>
-
-        <div class="preview-section" id="previewSection" style="display:none">
-          <div class="preview-title">📊 数据预览（前10行）</div>
-          <div class="preview-table-wrap">
-            <table class="preview-table" id="previewTable"></table>
-          </div>
-        </div>
-      </div>
-
-      <div class="ad-placeholder">广告位 - 中部 728×90</div>
-
-      <div class="faq-section">
+<div class="faq-section">
         <h2>使用教程</h2>
         <div class="faq-item">
           <h3 onclick="toggleFaq(this)">如何使用CSV转JSON功能？</h3>
@@ -494,51 +541,6 @@ textarea::placeholder{color:#475569}
           <p>切换到"JSON → CSV"模式，粘贴JSON数组数据。工具会自动提取所有字段作为CSV列名。嵌套对象会被展开为点号语法的列名（如 user.name）。你可以自定义输出分隔符，选择是否包含表头行。转换后的CSV可以直接复制到剪贴板或下载为文件。</p>
         </div>
       </div>
-
-      <div class="faq-section">
-        <h2>常见问题</h2>
-        <div class="faq-item">
-          <h3 onclick="toggleFaq(this)">CSV转JSON工具会上传我的数据吗？</h3>
-          <p>绝对不会。所有转换操作均在你的浏览器本地完成，纯前端JavaScript处理，没有任何网络请求发送数据到服务器。你可以按F12打开开发者工具查看网络面板确认。本页面甚至可以下载到本地断网使用。</p>
-        </div>
-        <div class="faq-item">
-          <h3 onclick="toggleFaq(this)">CSV和JSON有什么区别？什么时候用哪个？</h3>
-          <p>CSV（逗号分隔值）是表格格式，适合电子表格软件（如Excel）查看和编辑，文件体积小。JSON（JavaScript对象表示法）是结构化格式，支持嵌套对象和数组，适合API数据交换和程序处理。CSV适合数据存储和展示，JSON适合数据传输和程序消费。</p>
-        </div>
-        <div class="faq-item">
-          <h3 onclick="toggleFaq(this)">支持哪些分隔符？能处理含逗号的字段吗？</h3>
-          <p>支持逗号、分号、制表符、竖线和自定义分隔符。对于字段内包含分隔符的情况，工具会正确处理双引号包裹的字段。例如 "hello, world" 会被识别为一个完整字段而非被逗号拆分。符合RFC 4180标准的CSV解析。</p>
-        </div>
-        <div class="faq-item">
-          <h3 onclick="toggleFaq(this)">能生成嵌套的JSON对象吗？</h3>
-          <p>可以。勾选"解析嵌套键"选项后，使用点号语法的表头可以生成嵌套对象。例如表头 user.name 和 user.age 会生成 {"user": {"name": "...", "age": "..."}}。勾选"解析数组"后，tags[] 语法的表头会将逗号分隔的值转为数组。</p>
-        </div>
-        <div class="faq-item">
-          <h3 onclick="toggleFaq(this)">JSON转CSV时嵌套数据怎么处理？</h3>
-          <p>JSON转CSV时，嵌套对象会被展开为点号语法的列名。例如 {"user":{"name":"张三"}} 会生成列名 user.name。数组类型字段默认用逗号连接为字符串。工具会自动提取所有可能出现的字段作为列，确保数据完整性。</p>
-        </div>
-        <div class="faq-item">
-          <h3 onclick="toggleFaq(this)">转换后的结果怎么使用？</h3>
-          <p>转换结果支持一键复制到剪贴板，也可以下载为文件（CSV转JSON下载为.json文件，JSON转CSV下载为.csv文件）。你可以调整JSON输出格式（2空格/4空格缩进或压缩单行），CSV输出可自定义分隔符和是否包含表头。</p>
-        </div>
-      </div>
-
-      <div class="privacy-note">
-        🔒 隐私声明：本工具完全在浏览器本地运行，所有数据处理均在你的设备上完成，数据绝不上传到任何服务器。
-      </div>
-    </div>
-
-    <div class="sidebar">
-      <div class="ad-placeholder ad-sidebar">广告位 - 侧边栏1 300×250</div>
-      <div class="ad-placeholder ad-sidebar" style="margin-top:16px">广告位 - 侧边栏2 300×250</div>
-    </div>
-  </div>
-
-  <div class="ad-placeholder">广告位 - 底部 728×90</div>
-
-  <div style="display:flex;align-items:center;gap:6px;margin:8px 0;font-size:.85rem;"><span style="color:#f59e0b;">★★★★½</span><span style="color:#f1f5f9;font-weight:600;">4.7</span><span style="color:#94a3b8;">(256)</span></div>
-  <div style="text-align:center;margin:8px 0;font-size:.8rem;color:#94a3b8;">🔒 本地处理 · ✅ 完全免费 · ⚡ 即时结果</div>
-<div class="ad-container"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 <div class="footer">
     <div style="margin-bottom:12px">
       <a href="../index.html">首页</a>
@@ -1149,8 +1151,6 @@ setTimeout(()=>{document.getElementById('feedback-success').style.display='none'
 })();
 </script>
 <!-- Related Tools (cross-recommendation) -->
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
 <script>
 (function(){var s=document.getElementById('related-tools-section');if(!s)return;var p=window.location.pathname;var en=p.indexOf('/en/')!==-1;p=p.replace(/\/en\//g,'/');var slug=p.split('/').filter(Boolean).pop()||'';if(!slug){s.innerHTML='';return;}var depth=en?'../../':'../';fetch(depth+'related-tools.json').then(function(r){if(!r.ok)throw new Error('');return r.json();}).then(function(d){var data=en?d.en:d.cn;var t=data[slug];if(!t||!t.related||!t.related.length){s.innerHTML='';return;}var h='<div class="related-tools-inner"><h3 class="related-tools-title">'+(en?'🔗 You May Also Like':'🔗 相关工具推荐')+'</h3><div class="related-tools-grid">';t.related.forEach(function(r){var link=en?'../../en/'+r.slug+'/':'../'+r.slug+'/';h+='<a href="'+link+'" class="related-tool-card"><span class="related-tool-icon">'+(r.icon||'🔧')+'</span><span class="related-tool-name">'+r.name+'</span></a>';});h+='</div></div>';s.innerHTML=h;}).catch(function(){s.innerHTML='';});})();

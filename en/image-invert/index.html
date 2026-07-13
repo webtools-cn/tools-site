@@ -358,7 +358,6 @@
 <link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/image-invert/">
 <link rel="alternate" hreflang="zh" href="https://free-toolbase.com/image-invert/">
 <link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/image-invert/">
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
 </head>
 <body>
 <div class="container">
@@ -368,27 +367,7 @@
   
 </h1>
 
-<div class="rating-widget" id="ratingWidget">
-  <div class="stars" id="starContainer" title="Click stars to rate">
-    <span class="star" data-value="1">★</span>
-    <span class="star" data-value="2">★</span>
-    <span class="star" data-value="3">★</span>
-    <span class="star" data-value="4">★</span>
-    <span class="star" data-value="5">★</span>
-  </div>
-  <span class="rating-text" id="ratingText">Loading...</span>
-  <span class="rating-count" id="ratingCount"></span>
-  <span class="rating-thanks" id="ratingThanks">Thanks for your rating!</span>
-</div>
-    <p>Invert image colors (negative effect) with channel selection — pure browser processing, no uploads</p>
-  </header>
 
-  <div class="card">
-    <div class="drop-zone" id="dropZone">
-      <div class="icon">🔄</div>
-      <div class="text">Drag & drop an image here, or <strong>click to select</strong></div>
-      <div style="color:#9CA3AF;font-size:13px;margin-top:8px">Supports JPG/PNG/WebP/BMP/GIF</div>
-    </div>
     <input type="file" id="fileInput" accept="image/*" hidden>
   </div>
 
@@ -432,150 +411,7 @@
     </div>
   </div>
 
-  <div class="faq-section">
-    <h2>Frequently Asked Questions</h2>
-    <details class="faq-item">
-      <summary>What is image color inversion?</summary>
-      <div class="answer">Color inversion subtracts each pixel's color value from 255. White becomes black, red becomes cyan, etc. The effect is similar to a photographic negative from traditional film photography.</div>
-    </details>
-    <details class="faq-item">
-      <summary>Can color inversion be undone?</summary>
-      <div class="answer">Yes, color inversion is fully reversible — inverting an inverted image restores the original. This tool preserves your original image, so you can adjust intensity or reset at any time.</div>
-    </details>
-    <details class="faq-item">
-      <summary>Are my images uploaded to a server?</summary>
-      <div class="answer">No. This tool runs entirely in your browser using the HTML5 Canvas API. Image data never leaves your device and is not uploaded to any server, ensuring your privacy.</div>
-    </details>
-    <details class="faq-item">
-      <summary>Can I invert only specific color channels?</summary>
-      <div class="answer">Yes. This tool supports channel selection: all channels (RGB simultaneously), red only, green only, or blue only. Different channel combinations produce unique visual effects.</div>
-    </details>
-    <details class="faq-item">
-      <summary>Will color inversion affect image quality?</summary>
-      <div class="answer">Color inversion is lossless — it does not reduce image resolution or quality. Output as PNG for full quality preservation. JPEG output has minor compression loss.</div>
-    </details>
-  </div>
-
-  <div class="ad-container"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-<footer>
-    <p>🔒 All processing is done locally — your images are never uploaded to any server</p>
-    <p style="margin-top:8px">Image Color Inverter &copy; 2026 Online Tools Matrix</p>
-  </footer>
-</div>
-
-<script>
-let originalImage = null;
-let currentChannel = 'all';
-
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-const editorCard = document.getElementById('editorCard');
-const originalPreview = document.getElementById('originalPreview');
-const filteredPreview = document.getElementById('filteredPreview');
-
-dropZone.addEventListener('click', () => fileInput.click());
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
-fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
-
-function handleFile(file) {
-  if (!file || !file.type.startsWith('image/')) { alert('Please select an image file'); return; }
-  const reader = new FileReader();
-  reader.onload = e => {
-    originalImage = new Image();
-    originalImage.onload = () => {
-      editorCard.style.display = 'block';
-      originalPreview.src = e.target.result;
-      updateFilter();
-    };
-    originalImage.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-function setChannel(ch) {
-  currentChannel = ch;
-  document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  updateFilter();
-}
-
-function updateFilter() {
-  if (!originalImage) return;
-  const intensity = parseInt(document.getElementById('intensity').value);
-  document.getElementById('intensityValue').textContent = intensity + '%';
-
-  const canvas = document.createElement('canvas');
-  canvas.width = originalImage.width;
-  canvas.height = originalImage.height;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(originalImage, 0, 0);
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imageData.data;
-  const factor = intensity / 100;
-  const invertR = currentChannel === 'all' || currentChannel === 'r';
-  const invertG = currentChannel === 'all' || currentChannel === 'g';
-  const invertB = currentChannel === 'all' || currentChannel === 'b';
-
-  for (let i = 0; i < data.length; i += 4) {
-    if (invertR) data[i] = data[i] + (255 - 2 * data[i]) * factor;
-    if (invertG) data[i+1] = data[i+1] + (255 - 2 * data[i+1]) * factor;
-    if (invertB) data[i+2] = data[i+2] + (255 - 2 * data[i+2]) * factor;
-  }
-  ctx.putImageData(imageData, 0, 0);
-  filteredPreview.src = canvas.toDataURL('image/png');
-}
-
-function downloadResult() {
-  if (!originalImage) return;
-  const canvas = document.createElement('canvas');
-  canvas.width = originalImage.width;
-  canvas.height = originalImage.height;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(originalImage, 0, 0);
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imageData.data;
-  const intensity = parseInt(document.getElementById('intensity').value);
-  const factor = intensity / 100;
-  const invertR = currentChannel === 'all' || currentChannel === 'r';
-  const invertG = currentChannel === 'all' || currentChannel === 'g';
-  const invertB = currentChannel === 'all' || currentChannel === 'b';
-
-  for (let i = 0; i < data.length; i += 4) {
-    if (invertR) data[i] = data[i] + (255 - 2 * data[i]) * factor;
-    if (invertG) data[i+1] = data[i+1] + (255 - 2 * data[i+1]) * factor;
-    if (invertB) data[i+2] = data[i+2] + (255 - 2 * data[i+2]) * factor;
-  }
-  ctx.putImageData(imageData, 0, 0);
-
-  const format = document.getElementById('outputFormat').value;
-  const mimeType = format === 'jpeg' ? 'image/jpeg' : format === 'webp' ? 'image/webp' : 'image/png';
-  const quality = format === 'jpeg' ? 0.92 : undefined;
-  const ext = format === 'jpeg' ? 'jpg' : format;
-
-  const link = document.createElement('a');
-  link.download = `inverted.${ext}`;
-  link.href = canvas.toDataURL(mimeType, quality);
-  link.click();
-}
-
-function resetEditor() {
-  originalImage = null;
-  currentChannel = 'all';
-  editorCard.style.display = 'none';
-  fileInput.value = '';
-}
-</script>
-<!-- feedback-widget -->
-<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:9999">
-  <button onclick="document.getElementById('feedback-form').style.display=document.getElementById('feedback-form').style.display==='none'?'block':'none'" style="background:var(--primary);color:#fff;border:none;border-radius:50%;width:48px;height:48px;font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2)">💬</button>
-  <div id="feedback-form" style="display:none;position:absolute;bottom:56px;right:0;width:280px;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);padding:16px">
-    <p style="font-weight:600;margin-bottom:10px">💬 Feedback</p>
-    <textarea id="feedback-text" rows="3" placeholder="Tell us what you think..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:13px;resize:vertical"></textarea>
-    <button onclick="submitFeedback()" style="margin-top:8px;width:100%;padding:8px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">Submit</button>
-  </div>
-</div>
+  
 <script>
 function submitFeedback(){
   const t=document.getElementById('feedback-text').value;
