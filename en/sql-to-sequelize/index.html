@@ -114,3 +114,68 @@
   <p>SQL to Sequelize Model Converter · Pure Frontend · No Server Uploads</p>
   <p style="margin-top:8px;color:#475569;font-size:.8rem">Feedback: dexshuang@google.com</p>
 </div>
+<script>
+(function(){
+var STORAGE_KEY='sql2seq_history_en';
+var TYPE_MAP={'int':'INTEGER','integer':'INTEGER','tinyint':'INTEGER','smallint':'INTEGER','mediumint':'INTEGER','bigint':'BIGINT','float':'FLOAT','double':'DOUBLE','decimal':'DECIMAL','numeric':'DECIMAL','varchar':'STRING','char':'CHAR','text':'TEXT','tinytext':'TEXT','mediumtext':'TEXT','longtext':'TEXT','blob':'BLOB','boolean':'BOOLEAN','bool':'BOOLEAN','bit':'BOOLEAN','date':'DATEONLY','datetime':'DATE','timestamp':'DATE','time':'TIME','enum':'ENUM','json':'JSON','jsonb':'JSONB','uuid':'UUID','serial':'INTEGER','real':'REAL','double precision':'DOUBLE','character varying':'STRING','character':'CHAR'};
+function mapType(raw){var t=raw.toLowerCase().trim();if(t.match(/^varchar\(/))return'STRING';if(t.match(/^char\(/))return'CHAR';if(t.match(/^decimal\(/))return t.replace(/decimal/i,'DECIMAL');if(t.match(/^numeric\(/))return t.replace(/numeric/i,'DECIMAL');if(t.match(/^enum\(/))return'ENUM';return TYPE_MAP[t]||'STRING';}
+function parseCreateTable(sql){
+  var tm=sql.match(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"']?(\w+)[`"']?/i);if(!tm)throw new Error('No CREATE TABLE statement found');var tableName=tm[1];
+  var bm=sql.match(/CREATE\s+TABLE[^(]*\(([\s\S]+)\)(?:\s*ENGINE[\s\S]*)?$/i);if(!bm)throw new Error('Cannot parse table structure');
+  var body=bm[1];var columns=[];var fks=[];var parts=[];var depth=0;var cur='';
+  for(var i=0;i<body.length;i++){var c=body[i];if(c==='(')depth++;if(c===')')depth--;if(c===','&&depth===0){parts.push(cur.trim());cur='';}else cur+=c;}
+  if(cur.trim())parts.push(cur.trim());
+  parts.forEach(function(p){
+    if(p.match(/^\s*(PRIMARY\s+KEY|KEY|INDEX|UNIQUE|CONSTRAINT|CHECK)/i))return;
+    var fkM=p.match(/FOREIGN\s+KEY\s*\(\s*[`"']?(\w+)[`"']?\s*\)\s*REFERENCES\s+[`"']?(\w+)[`"']?\s*\(\s*[`"']?(\w+)[`"']?\s*\)/i);
+    if(fkM){fks.push({column:fkM[1],refTable:fkM[2],refColumn:fkM[3]});return;}
+    var colM=p.match(/^\s*[`"']?(\w+)[`"']?\s+([\w()]+(?:\s*\([^)]*\))?)\s*([\s\S]*)$/i);if(!colM)return;
+    var name=colM[1],type=colM[2],rest=colM[3]||'';
+    var col={name:name,type:mapType(type),primaryKey:false,autoIncrement:false,allowNull:true,defaultValue:null,unique:false};
+    if(rest.match(/\bPRIMARY\s+KEY\b/i))col.primaryKey=true;if(rest.match(/\bAUTO_INCREMENT\b/i))col.autoIncrement=true;
+    if(rest.match(/\bNOT\s+NULL\b/i))col.allowNull=false;if(rest.match(/\bUNIQUE\b/i))col.unique=true;
+    var defM=rest.match(/\bDEFAULT\s+(['"]?)([^'",\s)]+)\1/i);if(defM)col.defaultValue=defM[2];columns.push(col);
+  });return{tableName:tableName,columns:columns,fks:fks};
+}
+function singularize(s){if(s.match(/ies$/))return s.slice(0,-3)+'y';if(s.match(/ses$/))return s.slice(0,-2);if(s.match(/s$/)&&!s.match(/ss$/))return s.slice(0,-1);return s;}
+function camelize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+function generateSequelize(table){
+  var lines=[];lines.push("'use strict';");lines.push("module.exports = (sequelize, DataTypes) => {");
+  lines.push("  const "+camelize(singularize(table.tableName))+" = sequelize.define('"+camelize(singularize(table.tableName))+"', {");
+  table.columns.forEach(function(col){
+    lines.push("    "+col.name+": {");lines.push("      type: DataTypes."+col.type+",");
+    if(col.primaryKey)lines.push("      primaryKey: true,");if(col.autoIncrement)lines.push("      autoIncrement: true,");
+    if(!col.allowNull)lines.push("      allowNull: false,");
+    if(col.defaultValue!==null){var dv=col.defaultValue;if(dv.match(/^NOW\(\)$/i))lines.push("      defaultValue: DataTypes.NOW,");else if(dv.match(/^\d+$/))lines.push("      defaultValue: "+dv+",");else if(dv.match(/^(true|false)$/i))lines.push("      defaultValue: "+dv.toLowerCase()+",");else lines.push("      defaultValue: '"+dv+"',");}
+    if(col.unique)lines.push("      unique: true,");lines.push("    },");
+  });
+  lines.push("  }, {");lines.push("    tableName: '"+table.tableName+"',");lines.push("    timestamps: "+(document.getElementById('useTimestamps').checked?'true':'false')+",");
+  if(document.getElementById('useParanoid').checked)lines.push("    paranoid: true,");if(document.getElementById('useFreezeTable').checked)lines.push("    freezeTableName: true,");
+  lines.push("  });");
+  if(table.fks.length){lines.push("");table.fks.forEach(function(fk){lines.push("  "+camelize(singularize(table.tableName))+".belongsTo(models."+camelize(singularize(fk.refTable))+", { foreignKey: '"+fk.column+"' });");});}
+  lines.push("");lines.push("  return "+camelize(singularize(table.tableName))+";");lines.push("};");return lines.join('\n');
+}
+window.convert=function(){var input=document.getElementById('sqlInput').value.trim();var errorEl=document.getElementById('sqlError');if(!input){errorEl.style.display='none';document.getElementById('resultSection').style.display='none';return;}try{var table=parseCreateTable(input);var code=generateSequelize(table);document.getElementById('seqOutput').value=code;document.getElementById('resultSection').style.display='block';errorEl.style.display='none';saveHistory(input,table.tableName);}catch(e){errorEl.textContent='❌ SQL parse error: '+e.message;errorEl.style.display='block';document.getElementById('resultSection').style.display='none';}};
+window.loadExample=function(){document.getElementById('sqlInput').value="CREATE TABLE users (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  username VARCHAR(50) NOT NULL UNIQUE,\n  email VARCHAR(100) NOT NULL,\n  age INT DEFAULT 18,\n  is_active BOOLEAN DEFAULT true,\n  score DECIMAL(5,2) DEFAULT 0.00,\n  bio TEXT,\n  created_at DATETIME DEFAULT NOW(),\n  role VARCHAR(20) DEFAULT 'user'\n);";convert();};
+window.clearAll=function(){document.getElementById('sqlInput').value='';document.getElementById('seqOutput').value='';document.getElementById('sqlError').style.display='none';document.getElementById('resultSection').style.display='none';};
+window.copyResult=function(){var text=document.getElementById('seqOutput').value;if(navigator.clipboard)navigator.clipboard.writeText(text).then(showCopyMsg);};
+window.downloadResult=function(){var text=document.getElementById('seqOutput').value;var blob=new Blob([text],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='model.js';a.click();};
+window.shareLink=function(){var input=document.getElementById('sqlInput').value;var url=location.href+'?data='+encodeURIComponent(input);if(navigator.clipboard)navigator.clipboard.writeText(url).then(showCopyMsg);};
+function showCopyMsg(){var msg=document.createElement('div');msg.textContent='✓ Copied to clipboard';msg.style.cssText='position:fixed;top:20px;right:20px;background:rgba(34,197,94,.2);color:#4ade80;padding:8px 16px;border-radius:8px;font-size:.85rem;z-index:9999;border:1px solid rgba(34,197,94,.3)';document.body.appendChild(msg);setTimeout(function(){msg.remove();},2000);}
+function saveHistory(input,name){var h=[];try{h=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');}catch(e){h=[];}h.unshift({input:input.substring(0,200),name:name,time:Date.now()});if(h.length>5)h=h.slice(0,5);localStorage.setItem(STORAGE_KEY,JSON.stringify(h));renderHistory();}
+function renderHistory(){var h=[];try{h=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');}catch(e){h=[];}var el=document.getElementById('historyList');if(!h.length){el.innerHTML='<div style="color:#475569;font-size:.8rem">No history yet</div>';return;}el.innerHTML=h.map(function(hi,i){var t=new Date(hi.time).toLocaleTimeString();return '<div class="history-item" onclick="restoreHistory('+i+')">'+hi.name+' · '+t+'</div>';}).join('');}
+window.restoreHistory=function(idx){var h=[];try{h=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');}catch(e){return;}if(h[idx]){document.getElementById('sqlInput').value=h[idx].input;convert();}};
+var ta=document.getElementById('sqlInput');
+ta.addEventListener('dragover',function(e){e.preventDefault();e.stopPropagation();this.style.borderColor='rgba(6,182,212,.5)';});
+ta.addEventListener('dragleave',function(e){this.style.borderColor='';});
+ta.addEventListener('drop',function(e){e.preventDefault();e.stopPropagation();this.style.borderColor='';var file=e.dataTransfer.files[0];if(file){var reader=new FileReader();reader.onload=function(ev){ta.value=ev.target.result;convert();};reader.readAsText(file);}});
+document.addEventListener('keydown',function(e){if(e.ctrlKey&&e.key==='Enter'){convert();e.preventDefault();}if(e.ctrlKey&&e.shiftKey&&e.key==='C'){copyResult();e.preventDefault();}if(document.getElementById('resultSection').style.display!=='none')e.preventDefault();}if(e.ctrlKey&&e.shiftKey&&e.key==='X'){clearAll();e.preventDefault();}});
+var urlData=new URLSearchParams(location.search).get('data');if(urlData){try{document.getElementById('sqlInput').value=decodeURIComponent(urlData);convert();}catch(e){}}
+if(!localStorage.getItem(STORAGE_KEY))loadExample();renderHistory();
+})();
+</script>
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
+<script src="https://free-toolbase.com/related-tools.js"></script>
+</body>
+</html>
