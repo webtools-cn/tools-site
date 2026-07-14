@@ -8,7 +8,7 @@
   p = p.replace(/\/en\//g, '/');
   var slug = p.split('/').filter(Boolean).pop() || '';
   if (!slug) { s.innerHTML = ''; return; }
-  var u = 'https://webtools-cn.github.io/tools-site/related-tools.json';
+  var u = '/related-tools.json';
   fetch(u).then(function(r) { return r.json(); }).then(function(d) {
     var data = en ? d.en : d.cn;
     var t = data[slug];
