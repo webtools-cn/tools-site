@@ -23,7 +23,7 @@
 {"@type":"Question","name":"TOML验证器能做什么？","acceptedAnswer":{"@type":"Answer","text":"验证TOML文件语法是否正确，检测格式错误、类型不匹配、重复键等问题，并支持格式化美化和转换为JSON。"}},
 {"@type":"Question","name":"支持TOML 1.0规范吗？","acceptedAnswer":{"@type":"Answer","text":"支持。遵循TOML 1.0规范，包括表、内联表、数组、数组表、多行字符串等所有语法特性。"}},
 {"@type":"Question","name":"支持转换为JSON吗？","acceptedAnswer":{"@type":"Answer","text":"支持。验证通过后可一键将TOML转换为JSON格式，方便在JavaScript等环境中使用。"}},
-{"@type":"Question","name":"错误定位精确吗？","acceptedAnswer":{"@type":"Answer","text":"精确。错误提示包含行号和列号，如"第5行第12列: 无效的转义字符"。"}},
+{"@type":"Question","name":"错误定位精确吗？","acceptedAnswer":{"@type":"Answer","text":"精确。错误提示包含行号，如"第5行: 无效的转义字符"。"}},
 {"@type":"Question","name":"支持拖拽文件吗？","acceptedAnswer":{"@type":"Answer","text":"支持。可直接拖拽.toml文件到输入区域，自动读取文件内容。"}},
 {"@type":"Question","name":"数据会上传服务器吗？","acceptedAnswer":{"@type":"Answer","text":"不会。所有验证和转换在浏览器本地完成，数据不上传服务器。"}}
 ]}</script>
@@ -72,7 +72,6 @@ header h1{font-size:1.6rem;color:#e2e8f0}header h1 span{color:#06b6d4}
 .footer p{color:#64748b;font-size:.8rem;margin-top:8px}
 .result-item{padding:8px 12px;border-radius:6px;margin:4px 0;font-size:.85rem}
 .result-item.error{background:rgba(239,68,68,.12);color:#f87171;border-left:3px solid #ef4444}
-.result-item.warning{background:rgba(245,158,11,.12);color:#fbbf24;border-left:3px solid #f59e0b}
 .result-item.ok{background:rgba(16,185,129,.12);color:#34d399;border-left:3px solid #10b981}
 .tab-bar{display:flex;gap:4px;margin-bottom:14px}
 .tab-btn{padding:6px 16px;border:1px solid rgba(148,163,184,.2);border-radius:6px;background:transparent;color:#94a3b8;cursor:pointer;font-size:.85rem}
@@ -90,7 +89,7 @@ header h1{font-size:1.6rem;color:#e2e8f0}header h1 span{color:#06b6d4}
   <h2>📝 输入TOML内容</h2>
   <div class="form-group">
     <label>粘贴TOML内容或拖拽.toml文件到输入框</label>
-    <textarea id="toml-input" oninput="validateToml()" placeholder='# TOML配置文件&#10;[server]&#10;host = &quot;localhost&quot;&#10;port = 8080&#10;&#10;[database]&#10;url = &quot;postgres://localhost/mydb&quot;&#10;max_connections = 10"></textarea>
+    <textarea id="toml-input" oninput="validateToml()" placeholder="# TOML配置文件&#10;[server]&#10;host = &quot;localhost&quot;&#10;port = 8080"></textarea>
   </div>
   <div class="btn-group">
     <button class="btn btn-primary" onclick="validateToml()">🔍 验证</button>
@@ -104,13 +103,11 @@ header h1{font-size:1.6rem;color:#e2e8f0}header h1 span{color:#06b6d4}
   <div id="status" style="margin-top:8px;padding:6px 12px;border-radius:4px;font-size:.82rem;display:none"></div>
   <div id="results" style="margin-top:8px"></div>
   <div class="tab-bar" style="margin-top:14px">
-    <button class="tab-btn active" onclick="switchOutput('formatted')">格式化TOML</button>
-    <button class="tab-btn" onclick="switchOutput('json')">JSON输出</button>
+    <button class="tab-btn active" onclick="switchOutput('formatted',this)">格式化TOML</button>
+    <button class="tab-btn" onclick="switchOutput('json',this)">JSON输出</button>
   </div>
-  <div class="form-group">
-    <div class="output-area" id="output-formatted-output">验证后显示结果...</div>
-    <div class="output-area" id="json-output" style="display:none">JSON输出...</div>
-  </div>
+  <div id="formatted-output" class="output-area">验证后显示结果...</div>
+  <div id="json-output" class="output-area" style="display:none">JSON输出...</div>
 </div>
 </div><div>
   <div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div>
@@ -119,39 +116,39 @@ header h1{font-size:1.6rem;color:#e2e8f0}header h1 span{color:#06b6d4}
 <div class="ad-slot" style="margin-top:24px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 <div class="seo-content">
 <h2>TOML验证器能做什么？</h2>
-<p>TOML验证器是一款免费在线工具，帮助开发者验证TOML文件的语法正确性。自动检测格式错误、类型不匹配、重复键等问题，并提供精确的行号列号定位。同时支持格式化美化和TOML转JSON功能。所有验证在浏览器本地完成，数据绝不上传服务器。</p>
+<p>TOML验证器是一款免费在线工具，帮助开发者验证TOML文件的语法正确性。自动检测格式错误、重复键、无效值等问题，并提供格式化美化和JSON转换功能。所有验证在浏览器本地完成，数据绝不上传服务器。</p>
 <h2>核心功能</h2>
 <ul>
-  <li><strong>语法验证</strong>: 检查TOML语法是否正确，检测键值对、表、数组、字符串等格式问题</li>
-  <li><strong>错误定位</strong>: 精确到行号和列号的错误提示，如"第5行第12列: 无效的转义字符"</li>
-  <li><strong>格式化美化</strong>: 一键格式化TOML文件，统一缩进、对齐等号、整理表顺序</li>
-  <li><strong>转JSON</strong>: 验证通过后一键将TOML转换为JSON格式，方便在JavaScript中使用</li>
+  <li><strong>语法验证</strong>: 检查TOML语法是否正确，检测缺少等号、重复键、无效值等常见问题</li>
+  <li><strong>格式化美化</strong>: 一键格式化TOML文件，统一缩进和排列风格</li>
+  <li><strong>JSON转换</strong>: 将TOML转换为JSON格式，方便在JavaScript等环境中使用</li>
+  <li><strong>错误定位</strong>: 精确到行号的错误提示，快速定位问题所在</li>
   <li><strong>拖拽文件</strong>: 支持拖拽.toml文件到输入区，自动读取内容</li>
 </ul>
 <h2>使用教程</h2>
 <p>1. 在输入框粘贴TOML内容，或拖拽.toml文件</p>
-<p>2. 点击"验证"按钮，查看验证结果和错误详情</p>
-<p>3. 如有错误，根据行号列号定位并修复</p>
+<p>2. 点击"验证"按钮，查看验证结果</p>
+<p>3. 如有错误，根据行号提示修复</p>
 <p>4. 点击"格式化"美化TOML内容</p>
 <p>5. 点击"转JSON"查看JSON输出</p>
 <p>6. 复制或下载结果</p>
 <h2>应用场景</h2>
-<h3>场景1：Rust项目配置</h3>
-<p>验证Cargo.toml配置文件，确保依赖声明和项目元数据格式正确。</p>
-<h3>场景2：Python项目配置</h3>
-<p>验证pyproject.toml配置文件，检查构建系统和工具配置。</p>
-<h3>场景3：配置文件调试</h3>
-<p>当应用启动报配置错误时，用验证器快速定位TOML语法问题。</p>
-<h3>场景4：格式转换</h3>
-<p>将TOML配置转换为JSON，用于需要JSON格式的工具或API。</p>
+<h3>场景1：配置文件验证</h3>
+<p>验证Rust Cargo.toml、Python pyproject.toml等配置文件的语法正确性。</p>
+<h3>场景2：配置格式转换</h3>
+<p>将TOML配置转换为JSON，用于需要JSON格式的应用或API。</p>
+<h3>场景3：团队协作</h3>
+<p>提交配置文件前验证，确保格式正确，避免CI/CD构建失败。</p>
+<h3>场景4：学习TOML</h3>
+<p>通过实时验证学习TOML语法，理解表、数组表、内联表等概念。</p>
 <h2>扩展知识</h2>
-<p>TOML（Tom's Obvious Minimal Language）由GitHub联合创始人Tom Preston-Werner创建，是一种专为配置文件设计的格式。相比JSON，TOML更易读写，支持注释；相比YAML，TOML语法更简洁明确，避免了缩进陷阱。TOML 1.0于2021年发布，核心概念包括：键值对（key = value）、表（[table]）、内联表（{key = value}）、数组（[1, 2, 3]）、数组表（[[array]]）。TOML广泛用于Rust的Cargo.toml、Python的pyproject.toml、Hugo的config.toml等。</p>
+<p>TOML（Tom's Obvious Minimal Language）是由Tom Preston-Werner创建的配置文件格式，目标是比YAML更简单、比JSON更易读。TOML 1.0于2021年正式发布。核心概念：键值对（key = value）、表（[table]）、数组表（[[array]]）、内联表（{key = value}）。TOML支持字符串、整数、浮点数、布尔值、日期时间、数组和内联表等数据类型。与YAML相比，TOML没有缩进敏感性问题；与JSON相比，TOML支持注释且更易手写。Rust的Cargo、Python的pip和Hugo静态站点生成器都使用TOML作为配置格式。</p>
 </div>
 <div class="faq-section">
-<div class="faq-item" onclick="this.classList.toggle('open')"><h3>❓ TOML验证器能做什么？</h3><p>验证TOML语法，检测格式错误、类型不匹配、重复键等问题，支持格式化和转JSON。</p></div>
-<div class="faq-item" onclick="this.classList.toggle('open')"><h3>❓ 支持TOML 1.0规范吗？</h3><p>支持。遵循TOML 1.0规范，包括表、内联表、数组、数组表、多行字符串等。</p></div>
+<div class="faq-item" onclick="this.classList.toggle('open')"><h3>❓ TOML验证器能做什么？</h3><p>验证TOML文件语法，检测格式错误、重复键等问题，支持格式化美化和JSON转换。</p></div>
+<div class="faq-item" onclick="this.classList.toggle('open')"><h3>❓ 支持TOML 1.0规范吗？</h3><p>支持。遵循TOML 1.0规范，包括表、内联表、数组、数组表等语法特性。</p></div>
 <div class="faq-item" onclick="this.classList.toggle('open')"><h3>❓ 支持转换为JSON吗？</h3><p>支持。验证通过后可一键将TOML转换为JSON格式。</p></div>
-<div class="faq-item" onclick="this.classList.toggle('open')"><h3>❓ 错误定位精确吗？</h3><p>精确。错误提示包含行号和列号。</p></div>
+<div class="faq-item" onclick="this.classList.toggle('open')"><h3>❓ 错误定位精确吗？</h3><p>精确。错误提示包含行号，如"第5行: 无效的转义字符"。</p></div>
 <div class="faq-item" onclick="this.classList.toggle('open')"><h3>❓ 支持拖拽文件吗？</h3><p>支持。可直接拖拽.toml文件到输入区域。</p></div>
 <div class="faq-item" onclick="this.classList.toggle('open')"><h3>❓ 数据会上传服务器吗？</h3><p>不会。所有验证和转换在浏览器本地完成。</p></div>
 </div>
@@ -167,9 +164,9 @@ let lastParsed=null;
 const tomlInput=document.getElementById('toml-input');
 tomlInput.addEventListener('drop',function(e){e.preventDefault();const f=e.dataTransfer.files[0];if(f){const r=new FileReader();r.onload=function(ev){tomlInput.value=ev.target.result;validateToml();};r.readAsText(f);}});
 tomlInput.addEventListener('dragover',function(e){e.preventDefault();});
-function switchOutput(tab){
+function switchOutput(tab,btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  event.target.classList.add('active');
+  btn.classList.add('active');
   document.getElementById('formatted-output').style.display=tab==='formatted'?'block':'none';
   document.getElementById('json-output').style.display=tab==='json'?'block':'none';
 }
@@ -180,9 +177,8 @@ function parseTOML(text){
     if(!line||line.startsWith('#'))return;
     if(line.startsWith('[[')&&line.endsWith(']]')){
       const key=line.slice(2,-2).trim();
-      if(!key){errors.push({line:ln,msg:'空数组表名'});return;}
-      const parts=key.split('.');
-      let obj=result;
+      if(!key){errors.push({line:ln,msg:'第'+ln+'行: 空数组表名'});return;}
+      const parts=key.split('.');let obj=result;
       for(let i=0;i<parts.length-1;i++){if(!obj[parts[i]])obj[parts[i]]={};obj=obj[parts[i]];}
       const lastPart=parts[parts.length-1];
       if(!obj[lastPart])obj[lastPart]=[];
@@ -191,10 +187,8 @@ function parseTOML(text){
     }
     if(line.startsWith('[')&&line.endsWith(']')){
       const key=line.slice(1,-1).trim();
-      if(!key){errors.push({line:ln,msg:'空表名'});return;}
-      if(key.includes(' ')){errors.push({line:ln,msg:'表名包含空格: "'+key+'"'});return;}
-      const parts=key.split('.');
-      let obj=result;
+      if(!key){errors.push({line:ln,msg:'第'+ln+'行: 空表名'});return;}
+      const parts=key.split('.');let obj=result;
       for(const p of parts){if(!obj[p])obj[p]={};obj=obj[p];}
       currentTable=obj;currentPath=key;
       return;
@@ -271,20 +265,17 @@ function validateToml(){
 }
 function formatToml(){
   const input=tomlInput.value;if(!input.trim())return;
-  const{data,errors}=parseTOML(input);
+  const{data}=parseTOML(input);
   const formatted=formatTOMLObject(data);
   document.getElementById('formatted-output').textContent=formatted;
 }
 function formatTOMLObject(obj,prefix){
   prefix=prefix||'';
-  let result='';const tables=[];const arrayTables=[];
+  let result='';
   const keys=Object.keys(obj);
   const simpleKeys=keys.filter(k=>typeof obj[k]!=='object'||obj[k]===null);
   const complexKeys=keys.filter(k=>typeof obj[k]==='object'&&obj[k]!==null);
-  simpleKeys.forEach(k=>{
-    const v=obj[k];
-    result+=k+' = '+formatValue(v)+'\n';
-  });
+  simpleKeys.forEach(k=>{result+=k+' = '+formatValue(obj[k])+'\n';});
   complexKeys.forEach(k=>{
     const v=obj[k];
     if(Array.isArray(v)&&v.length>0&&typeof v[0]==='object'){
