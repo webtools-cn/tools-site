@@ -341,3 +341,71 @@ document.addEventListener('keydown', function(e) {
 10. **工具必须有功能深度** — 至少2种输入/输出、参数可调、实时反馈、友好错误
 11. **工具必须有便捷性** — 示例数据、快捷键、一键操作
 12. **场景深度必须全覆盖** — 介绍/功能/教程/场景/知识/FAQ六维度
+
+---
+
+## 十二、Schema铁律（2026-07-16血泪教训）
+
+### 12.1 SoftwareApplication 必须包含的字段
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "工具名",
+  "description": "从meta description取，不能缺失！",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "publisher": {"@type":"Organization","name":"Online Tools","email":"dexshuang@google.com"},
+  "offers": {"@type":"Offer","price":"0","priceCurrency":"CNY"},
+  "aggregateRating": {"@type":"AggregateRating","ratingValue":"4.8","ratingCount":"237","bestRating":"5","worstRating":"1","reviewCount":"237"}
+}
+```
+
+### 12.2 绝对禁止
+- ❌ 缺少 `description` 字段 → Google报"未填写字段name"（因为整个Schema被判无效）
+- ❌ 用 `ratingCount` 代替 `reviewCount` → Google要求必须有reviewCount
+- ❌ HowTo的step的position全是1 → 必须是1,2,3递增
+- ❌ 在 `CollectionPage` / `ItemList` / `WebPage` / `Thing` 上放 `aggregateRating` → Google只允许特定类型
+- ❌ Schema文本中的 `<>` 不转义 → 必须用 `\u003c` `\u003e`
+- ❌ FAQPage缺少 `name` 字段 → 必须有，取第一个问题
+
+### 12.3 验证标准
+- `json.loads()` 通过 ≠ Google验证通过
+- 必须用 Google Rich Results Test 验证
+- 对比没报错的页面找差异，不要猜
+
+### 12.4 字段顺序（跟没报错的页面一致）
+`@context` → `@type` → `name` → `description` → 其余字段
+
+---
+
+## 十三、质检铁律（2026-07-16血泪教训）
+
+### 13.1 不能只查"有没有"，必须查"对不对"
+| ❌ 错误验证 | ✅ 正确验证 |
+|:-----------|:-----------|
+| `json.loads()` 通过 | Google Rich Results Test 通过 |
+| grep到字段存在 | 字段值正确且在正确位置 |
+| 页面返回200 | 页面功能正常可用 |
+| 覆盖率100% | 抽样3页实际验证效果 |
+
+### 13.2 发现问题必须修复，不是只报告
+- 检测到问题 → 立即修复 → 验证修复 → 闭环
+- 只报告不修复 = 没检测
+- 验证用Google的标准，不是自己的标准
+
+### 13.3 修Google报错不能猜
+1. 去GSC后台看Google原文报错和修复建议
+2. 找一个没报错的同类页面做对比
+3. 按Google建议精确修改
+4. 用Google Rich Results Test验证
+
+---
+
+## 十四、生产安全铁律（2026-07-16补充）
+
+1. **改前先commit** — `git add -A && git commit -m "checkpoint"`
+2. **改1页→验证→再改** — 禁止批量sed/python替换
+3. **验证用线上** — push后curl线上页面确认
+4. **修报错看Google原文** — 不猜不推测，GSC说什么修什么
+5. **Schema模板必须正确** — 模板有病=批量生产全有病
