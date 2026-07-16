@@ -80,6 +80,8 @@ textarea{font-family:monospace;resize:vertical;min-height:120px}
 .stat-label{font-size:.8rem;color:#64748b;margin-top:4px}
 @media(max-width:600px){.header{flex-direction:column;align-items:flex-start}
 .ad-slot{margin:16px auto;text-align:center;max-width:960px;min-height:90px}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{min-height:250px;max-width:300px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://free-toolbase.com/en/"}, {"@type": "ListItem", "position": 2, "name": "Health Tools", "item": "https://free-toolbase.com/en/#health"}, {"@type": "ListItem", "position": 3, "name": "Recipe Nutrition Analyzer",
       "item": "https://free-toolbase.com/en/recipe-nutrition-analyzer/"
@@ -185,7 +187,7 @@ searchResults.style.display='none';
 document.addEventListener('click',function(e){if(!e.target.closest('#searchContainer')&&!e.target.closest('#foodSearch'))searchResults.style.display='none';});
 
 addBtn.addEventListener('click',function(){
-if(!selectedFood){alert('Please select a food from the suggestions');return;}
+if(!selectedFood){showToast('Please select a food from the suggestions');return;}
 var qty=parseFloat(foodQty.value)||100;
 var multiplier=qty/100;
 ingredients.push({food:selectedFood,qty:qty,multiplier:multiplier});
@@ -225,12 +227,12 @@ window.removeIngredient=function(idx){ingredients.splice(idx,1);renderIngredient
 
 document.getElementById('clearBtn').addEventListener('click',function(){ingredients=[];renderIngredients();});
 document.getElementById('saveBtn').addEventListener('click',function(){
-if(ingredients.length===0){alert('Add at least one ingredient');return;}
+if(ingredients.length===0){showToast('Add at least one ingredient');return;}
 localStorage.setItem('recipe-nutrition-data',JSON.stringify(ingredients));
-alert("✅ Recipe saved!");
+showToast("✅ Recipe saved!");
 });
 document.getElementById('exportBtn').addEventListener('click',function(){
-if(ingredients.length===0){alert('No data to export');return;}
+if(ingredients.length===0){showToast('No data to export');return;}
 var blob=new Blob([JSON.stringify(ingredients,null,2)],{type:'application/json'});
 var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='recipe-nutrition.json';a.click();
 });
@@ -255,6 +257,8 @@ try{var saved=localStorage.getItem('recipe-nutrition-data');if(saved){ingredient
 </div>
 </div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.addEventListener('DOMContentLoaded',function(){
 var ft=document.getElementById('feedback-text');
@@ -263,7 +267,7 @@ if(ft)ft.addEventListener('input',function(){document.getElementById('feedback-c
 function submitFeedback(){
 var type=document.getElementById('feedback-type').value;
 var text=document.getElementById('feedback-text').value;
-if(!text.trim()){alert('Please fill in feedback');return;}
+if(!text.trim()){showToast('Please fill in feedback');return;}
 var labels=type==='bug'?'bug':'enhancement';
 var body='## '+type+'\n\n'+text+'\n\n---\n*From: recipe-nutrition-analyzer tool*';
 fetch('https://api.github.com/repos/webtools-cn/tools-site/issues',{
@@ -275,8 +279,8 @@ document.getElementById('feedback-success').style.display='block';
 document.getElementById('feedback-text').value='';
 document.getElementById('feedback-count').textContent='0/1000';
 setTimeout(function(){document.getElementById('feedback-success').style.display='none';},3000);
-}else{alert('Submission failed, please retry');}
-}).catch(function(){alert('Network error, please retry');});
+}else{showToast('Submission failed, please retry');}
+}).catch(function(){showToast('Network error, please retry');});
 }
 </script>
 <link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
@@ -284,5 +288,6 @@ setTimeout(function(){document.getElementById('feedback-success').style.display=
   <div class="related-tools-loading">Loading related tools...</div>
 </div>
 <script src="https://free-toolbase.com/related-tools.js"></script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

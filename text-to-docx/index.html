@@ -68,6 +68,8 @@ a{color:#06b6d4;text-decoration:none}
 .footer a{color:#64748b}
 .footer a:hover{color:#94a3b8}
 @media(max-width:600px){.header h1{font-size:1.2rem}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://free-toolbase.com/"}, {"@type": "ListItem", "position": 2, "name": "在线工具", "item": "https://free-toolbase.com/#online-tools"}, {"@type": "ListItem", "position": 3, "name": "在线文本转Word工具",
@@ -146,7 +148,7 @@ var ERR_EMPTY='请输入文本内容';
 var IMG_LBL='图片';
 var db=null;
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
-function gen(){var t=i.value;if(!t.trim()){alert(ERR_EMPTY);return}var lines=t.split('
+function gen(){var t=i.value;if(!t.trim()){showToast(ERR_EMPTY);return}var lines=t.split('
 ');var bx='';var inUl=false;for(var li=0;li<lines.length;li++){var line=lines[li];var tr=line.trim();if(!tr){if(inUl){bx+='</w:p>';inUl=false}bx+='<w:p><w:pPr><w:spacing w:after="120"/></w:pPr></w:p>';continue}if(tr.startsWith('# ')){bx+='<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="32"/></w:rPr><w:t xml:space="preserve">'+esc(tr.substring(2))+'</w:t></w:r></w:p>';continue}if(tr.startsWith('## ')){bx+='<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t xml:space="preserve">'+esc(tr.substring(3))+'</w:t></w:r></w:p>';continue}if(tr.startsWith('### ')){bx+='<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">'+esc(tr.substring(4))+'</w:t></w:r></w:p>';continue}if(tr.startsWith('- ')||tr.startsWith('* ')){if(!inUl){bx+='<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr>';inUl=true}else{bx+='<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr>'}bx+='<w:r><w:rPr><w:sz w:val="'+sz.value+'"/></w:rPr><w:t xml:space="preserve">'+esc(tr.substring(2))+'</w:t></w:r></w:p>';continue}if(inUl){inUl=false}bx+='<w:p><w:pPr><w:spacing w:after="120"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="'+f.value+'" w:hAnsi="'+f.value+'"/><w:sz w:val="'+sz.value+'"/></w:rPr><w:t xml:space="preserve">'+esc(tr)+'</w:t></w:r></w:p>'}var xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
 <w:body>
@@ -156,7 +158,8 @@ function gen(){var t=i.value;if(!t.trim()){alert(ERR_EMPTY);return}var lines=t.s
 g.addEventListener('click',gen);
 d.addEventListener('click',function(){if(db){var u=URL.createObjectURL(db);var a=document.createElement('a');a.href=u;a.download='document.docx';a.click();URL.revokeObjectURL(u)}});
 p.addEventListener('click',function(){var w=window.open('','_blank');w.document.write('<html><head><title>Preview</title><style>body{font-family:Arial,sans-serif;padding:40px;line-height:1.6}</style></head><body>'+i.value.replace(/
-/g,'<br>').replace(/^# (.*)$/gm,'<h1>$1</h1>').replace(/^## (.*)$/gm,'<h2>$1</h2>').replace(/^### (.*)$/gm,'<h3>$1</h3>').replace(/^- (.*)$/gm,'<li>$1</li>')+'</body></html>');w.document.close()});
+/g,'<br>').replace(/^# (.*)$/gm,'<h1>$1</h1>').replace(/^## (.*)$/gm,'<h2>$1</h2>').replace(/^### (.*)$/gm,'<h3>$1</h3>').replace(/^- (.*)$/gm,'<li>$1</li>')+'<div class="toast" id="toast"></div>
+</body></html>');w.document.close()});
 })();
 </script>
 </div>
@@ -231,6 +234,8 @@ p.addEventListener('click',function(){var w=window.open('','_blank');w.document.
 </div>
 </div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.addEventListener('DOMContentLoaded',function(){var ft=document.getElementById('feedback-text');if(ft)ft.addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';})});
 function submitFeedback(){

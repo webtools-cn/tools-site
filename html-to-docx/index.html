@@ -68,6 +68,8 @@ a{color:#06b6d4;text-decoration:none}
 .footer a{color:#64748b}
 .footer a:hover{color:#94a3b8}
 @media(max-width:600px){.header h1{font-size:1.2rem}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://free-toolbase.com/"}, {"@type": "ListItem", "position": 2, "name": "在线工具", "item": "https://free-toolbase.com/#online-tools"}, {"@type": "ListItem", "position": 3, "name": "在线HTML转Word工具",
@@ -137,7 +139,7 @@ var IMG_LBL='图片';
 var db=null;
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 function conv(n,b){if(n.nodeType===3){var t=n.textContent.trim();if(t)b+='<w:r><w:t xml:space="preserve">'+esc(t)+'</w:t></w:r>';return b}if(n.nodeType!==1)return b;var tag=n.tagName.toLowerCase();if(tag==='h1'){b+='<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>';for(var c of n.childNodes)b=conv(c,b);b+='</w:p>'}else if(tag==='h2'){b+='<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr>';for(var c of n.childNodes)b=conv(c,b);b+='</w:p>'}else if(tag==='h3'){b+='<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr>';for(var c of n.childNodes)b=conv(c,b);b+='</w:p>'}else if(tag==='p'){b+='<w:p><w:pPr><w:spacing w:after="120"/></w:pPr>';for(var c of n.childNodes)b=conv(c,b);b+='</w:p>'}else if(tag==='strong'||tag==='b'){b+='<w:r><w:rPr><w:b/></w:rPr>';for(var c of n.childNodes)b=conv(c,b);b+='</w:r>'}else if(tag==='em'||tag==='i'){b+='<w:r><w:rPr><w:i/></w:rPr>';for(var c of n.childNodes)b=conv(c,b);b+='</w:r>'}else if(tag==='ul'){for(var c of n.childNodes){if(c.nodeType===1&&c.tagName.toLowerCase()==='li'){b+='<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr>';for(var cc of c.childNodes)b=conv(cc,b);b+='</w:p>'}}}else if(tag==='ol'){var idx=1;for(var c of n.childNodes){if(c.nodeType===1&&c.tagName.toLowerCase()==='li'){b+='<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="2"/></w:numPr></w:pPr>';for(var cc of c.childNodes)b=conv(cc,b);b+='</w:p>';idx++}}}else if(tag==='table'){b+='<w:tbl>';for(var r of n.childNodes){if(r.nodeType!==1)continue;if(r.tagName.toLowerCase()==='tr'){b+='<w:tr>';for(var td of r.childNodes){if(td.nodeType!==1)continue;b+='<w:tc><w:p>';for(var tc of td.childNodes)b=conv(tc,b);b+='</w:p></w:tc>'}b+='</w:tr>'}}b+='</w:tbl>'}else if(tag==='a'){b+='<w:r><w:rPr><w:u w:val="single"/><w:color w:val="0563C1"/></w:rPr><w:t xml:space="preserve">'+esc(n.textContent||n.getAttribute('href')||'')+'</w:t></w:r>'}else if(tag==='br'){b+='<w:br/>'}else if(tag==='img'){b+='<w:r><w:t>['+IMG_LBL+': '+esc(n.getAttribute('alt')||'')+']</w:t></w:r>'}else if(tag==='div'||tag==='span'||tag==='section'||tag==='article'){for(var c of n.childNodes)b=conv(c,b)}else{b+='<w:p>';for(var c of n.childNodes)b=conv(c,b);b+='</w:p>'}return b}
-function gen(){var h=i.value;if(!h.trim()){alert(ERR_EMPTY);return}var td=document.createElement('div');td.innerHTML=h;var bx='';for(var c of td.childNodes)bx=conv(c,bx);var xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+function gen(){var h=i.value;if(!h.trim()){showToast(ERR_EMPTY);return}var td=document.createElement('div');td.innerHTML=h;var bx='';for(var c of td.childNodes)bx=conv(c,bx);var xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
 <w:body>
 '+bx+'
@@ -221,6 +223,8 @@ d.addEventListener('click',function(){if(db){var u=URL.createObjectURL(db);var a
 </div>
 </div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.addEventListener('DOMContentLoaded',function(){var ft=document.getElementById('feedback-text');if(ft)ft.addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';})});
 function submitFeedback(){
@@ -235,5 +239,6 @@ document.getElementById('feedback-success').style.display='block';
 setTimeout(function(){document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
 }
 </script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

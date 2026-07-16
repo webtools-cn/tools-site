@@ -99,6 +99,8 @@ input,textarea,select{font-family:inherit}
 .crop-rect{border:2px dashed #ef4444;background:rgba(239,68,68,.08);position:absolute}
 .page-info{color:#94a3b8;font-size:.85rem;margin-bottom:8px;text-align:center}
 @media(max-width:600px){.header h1{font-size:1.2rem}.crop-controls{grid-template-columns:1fr 1fr}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 <script type="application/ld+json">
 {
@@ -218,6 +220,8 @@ document.getElementById('feedback-success').style.display='block';
 setTimeout(function(){document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);}
 </script>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function(){
 var dropZone=document.getElementById('dropZone');
 var fileInput=document.getElementById('fileInput');
@@ -260,7 +264,7 @@ cropSection.style.display='block';
 document.getElementById('prevPageBtn').style.display='inline-block';
 document.getElementById('nextPageBtn').style.display='inline-block';
 renderPreview();
-}).catch(function(err){alert('Failed to load PDF: '+(err.message||'File may be corrupted'));});
+}).catch(function(err){showToast('Failed to load PDF: '+(err.message||'File may be corrupted'));});
 }
 function renderPreview(){
 if(!pdfDoc)return;
@@ -310,7 +314,7 @@ progressFill.style.width='0%';
 progressText.textContent='Cropping PDF...';
 try{
 var PDFLib=window['PDFLib'];
-if(!PDFLib){alert('pdf-lib library failed to load. Check your internet connection.');cropBtn.disabled=false;return;}
+if(!PDFLib){showToast('pdf-lib library failed to load. Check your internet connection.');cropBtn.disabled=false;return;}
 var top=parseInt(document.getElementById('cropTop').value)||0;
 var bottom=parseInt(document.getElementById('cropBottom').value)||0;
 var left=parseInt(document.getElementById('cropLeft').value)||0;
@@ -335,10 +339,11 @@ progressText.textContent='Complete!';
 resultSection.style.display='block';
 resultSection.innerHTML='<div style="padding:16px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;margin-bottom:12px"><span style="color:#22c55e">✅ Cropped! Processed '+pages.length+' pages</span></div><div style="text-align:center"><a class="btn btn-primary" href="'+url+'" download="cropped_'+(currentFile?currentFile.name:'output.pdf')+'" style="display:inline-block;padding:12px 32px;font-size:1rem">⬇️ Download Cropped PDF</a></div>';
 progressContainer.style.display='none';
-}catch(err){alert('Crop failed: '+(err.message||'Unknown error'));progressContainer.style.display='none';}
+}catch(err){showToast('Crop failed: '+(err.message||'Unknown error'));progressContainer.style.display='none';}
 cropBtn.disabled=false;
 };
 })();
 </script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

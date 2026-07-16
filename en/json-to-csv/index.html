@@ -181,6 +181,8 @@ table.data td{color:#cbd5e1}
 .footer a:hover{color:#94a3b8}
 @media(max-width:600px){.row{flex-direction:column}.grid-cols-3{grid-template-columns:1fr}
 .ad-slot{margin:16px auto;text-align:center;max-width:960px;min-height:90px}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{min-height:250px;max-width:300px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 
 <script type="application/ld+json">
@@ -245,15 +247,17 @@ table.data td{color:#cbd5e1}
   <p style="margin-top:8px">&copy; 2025 Online Tools Matrix &middot; Free Online Tools &middot; Pure Frontend</p>
 </div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function(){
 
 (function(){var app=document.getElementById('app');
 app.innerHTML='<div class="input-section"><h2>\uD83D\uDCE5 Input JSON</h2><textarea id="jsonInput" rows="8" placeholder=\'[{"name":"John","age":28,"city":"New York"}]\'>[{"name":"John","age":28,"city":"New York"},{"name":"Jane","age":32,"city":"London"}]</textarea><div class="options"><label>Delimiter: <select id="csvDelimiter" style="width:auto;display:inline-block;padding:4px 8px;margin-left:6px;margin-bottom:0"><option value=",">Comma (,)</option><option value="\t">Tab</option><option value=";">Semicolon (;)</option></select></label><label><input type="checkbox" id="includeHeader" checked> Header</label></div><div class="btn-row"><button class="btn btn-primary" id="convertBtn">Convert</button><button class="btn btn-success" id="downloadCsv">Download CSV</button></div></div><div class="result-section" id="csvResult"><h2>\uD83D\uDCE4 CSV Output</h2><div id="csvOutput" class="result-box"></div><h2 style="margin-top:16px">\uD83D\uDC41\uFE0F Preview</h2><div id="csvPreview" class="table-wrap"></div></div>';
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function convert(){var jsonStr=document.getElementById('jsonInput').value.trim();var delim=document.getElementById('csvDelimiter').value;var hasH=document.getElementById('includeHeader').checked;var rs=document.getElementById('csvResult');try{var data=JSON.parse(jsonStr);if(!Array.isArray(data)||data.length===0){alert('JSON must be a non-empty array');return;}var keys=Object.keys(data[0]);var csv='';if(hasH)csv+=keys.join(delim)+'\n';for(var i=0;i<data.length;i++){var row=data[i];var vals=keys.map(function(k){var v=row[k];if(v===null||v===undefined)return '';v=String(v);if(v.includes(delim)||v.includes('"')||v.includes('\n'))v='"'+v.replace(/"/g,'""')+'"';return v;});csv+=vals.join(delim)+'\n';}
-document.getElementById('csvOutput').textContent=csv;var ph='<table class="data"><thead><tr>';for(var i=0;i<keys.length;i++)ph+='<th>'+esc(keys[i])+'</th>';ph+='</tr></thead><tbody>';for(var i=0;i<Math.min(data.length,20);i++){ph+='<tr>';for(var j=0;j<keys.length;j++)ph+='<td>'+esc(String(data[i][keys[j]]||''))+'</td>';ph+='</tr>';}if(data.length>20)ph+='<tr><td colspan="'+keys.length+'" style="color:#64748b;text-align:center">... '+data.length+' rows, showing first 20</td></tr>';ph+='</tbody></table>';document.getElementById('csvPreview').innerHTML=ph;rs.classList.add('show');}catch(e){alert('JSON error: '+e.message);}}
+function convert(){var jsonStr=document.getElementById('jsonInput').value.trim();var delim=document.getElementById('csvDelimiter').value;var hasH=document.getElementById('includeHeader').checked;var rs=document.getElementById('csvResult');try{var data=JSON.parse(jsonStr);if(!Array.isArray(data)||data.length===0){showToast('JSON must be a non-empty array');return;}var keys=Object.keys(data[0]);var csv='';if(hasH)csv+=keys.join(delim)+'\n';for(var i=0;i<data.length;i++){var row=data[i];var vals=keys.map(function(k){var v=row[k];if(v===null||v===undefined)return '';v=String(v);if(v.includes(delim)||v.includes('"')||v.includes('\n'))v='"'+v.replace(/"/g,'""')+'"';return v;});csv+=vals.join(delim)+'\n';}
+document.getElementById('csvOutput').textContent=csv;var ph='<table class="data"><thead><tr>';for(var i=0;i<keys.length;i++)ph+='<th>'+esc(keys[i])+'</th>';ph+='</tr></thead><tbody>';for(var i=0;i<Math.min(data.length,20);i++){ph+='<tr>';for(var j=0;j<keys.length;j++)ph+='<td>'+esc(String(data[i][keys[j]]||''))+'</td>';ph+='</tr>';}if(data.length>20)ph+='<tr><td colspan="'+keys.length+'" style="color:#64748b;text-align:center">... '+data.length+' rows, showing first 20</td></tr>';ph+='</tbody></table>';document.getElementById('csvPreview').innerHTML=ph;rs.classList.add('show');}catch(e){showToast('JSON error: '+e.message);}}
 document.getElementById('convertBtn').addEventListener('click',convert);
-document.getElementById('downloadCsv').addEventListener('click',function(){var csv=document.getElementById('csvOutput').textContent;if(!csv){alert('Convert first');return;}var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.csv';a.click();URL.revokeObjectURL(a.href);});
+document.getElementById('downloadCsv').addEventListener('click',function(){var csv=document.getElementById('csvOutput').textContent;if(!csv){showToast('Convert first');return;}var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.csv';a.click();URL.revokeObjectURL(a.href);});
 convert();})();
 
 })();
@@ -265,5 +269,6 @@ convert();})();
 </div>
 <script src="https://free-toolbase.com/related-tools.js"></script>
 
+<div class="toast" id="toast"></div>
 </body>
 </html>

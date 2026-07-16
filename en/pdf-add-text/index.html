@@ -64,6 +64,8 @@ footer a{color:var(--primary);text-decoration:none}
 .faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:8px}
 .faq-item h3::before{content:'Q';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(6,182,212,.15);color:#22d3ee;font-size:.7rem;font-weight:700;flex-shrink:0}
 .faq-item p{color:#94a3b8;font-size:.88rem;line-height:1.6;padding-left:30px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
 
@@ -250,7 +252,7 @@ async function handleFile(e){
         document.getElementById('posY').value=Math.floor(pdfDoc.getPage(0).getHeight()-50);
         currentPage=1;
         renderPreview();
-    }catch(err){alert('Failed to read PDF: '+err.message)}
+    }catch(err){showToast('Failed to read PDF: '+err.message)}
 }
 
 async function renderPreview(){
@@ -295,11 +297,11 @@ function getTargetPages(){
 }
 
 async function addTextToPdf(){
-    if(!pdfDoc)return alert('Please upload a PDF file first');
+    if(!pdfDoc)return showToast('Please upload a PDF file first');
     try{
         const newDoc=await PDFDocument.load(pdfBytes);
         const text=document.getElementById('textContent').value;
-        if(!text.trim()){alert('Please enter text content');return}
+        if(!text.trim()){showToast('Please enter text content');return}
         const size=parseFloat(document.getElementById('fontSize').value)||24;
         const colorHex=document.getElementById('fontColor').value;
         const opacity=parseFloat(document.getElementById('opacity').value)||0.5;
@@ -329,11 +331,11 @@ async function addTextToPdf(){
         pdfJsDoc=await pdfjsLib.getDocument({data:modifiedPdfBytes.slice(0)}).promise;
         await renderPreview();
         document.getElementById('downloadBtn').style.display='inline-flex';
-    }catch(err){alert('Failed to add text: '+err.message)}
+    }catch(err){showToast('Failed to add text: '+err.message)}
 }
 
 function downloadPdf(){
-    if(!modifiedPdfBytes)return alert('Please add text first');
+    if(!modifiedPdfBytes)return showToast('Please add text first');
     const blob=new Blob([modifiedPdfBytes],{type:'application/pdf'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=url;a.download='annotated.pdf';a.click();
@@ -376,6 +378,8 @@ function resetAll(){
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function() {
   'use strict';
   var s = document.getElementById('related-tools-section');
@@ -408,5 +412,6 @@ function resetAll(){
   }).catch(function() { s.innerHTML = ''; });
 })();
 </script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

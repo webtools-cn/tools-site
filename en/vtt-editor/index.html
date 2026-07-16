@@ -64,6 +64,8 @@
 .faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:8px}
 .faq-item h3::before{content:'Q';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(6,182,212,.15);color:#22d3ee;font-size:.7rem;font-weight:700;flex-shrink:0}
 .faq-item p{color:#94a3b8;font-size:.88rem;line-height:1.6;padding-left:30px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
     <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
@@ -175,7 +177,7 @@
     function formatDuration(ms){var s=Math.floor(ms/1000);var h=Math.floor(s/3600);s%=3600;var m=Math.floor(s/60);s%=60;return pad(h)+':'+pad(m)+':'+pad(s)}
 
     function handleFile(file) {
-        if(!file||!file.name.toLowerCase().endsWith('.vtt')){alert('Please select a VTT file');return}
+        if(!file||!file.name.toLowerCase().endsWith('.vtt')){showToast('Please select a VTT file');return}
         var reader=new FileReader();
         reader.onload=function(e){subtitles=parseVTT(e.target.result);renderEditor();gtag('event','upload_vtt',{event_category:'vtt_editor'})};
         reader.readAsText(file);
@@ -210,12 +212,12 @@
     function addSubtitle(){var lastEnd=subtitles.length>0?subtitles[subtitles.length-1].end+500:0;subtitles.push({start:lastEnd,end:lastEnd+3000,text:''});renderList();updateStats()}
     function removeSubtitle(idx){subtitles.splice(idx,1);renderList();updateStats()}
     function clearAll(){if(!confirm('Clear all subtitles?'))return;subtitles=[];renderList();updateStats()}
-    function applyTimeOffset(){var offset=parseFloat(document.getElementById('timeOffset').value)*1000;if(isNaN(offset)){alert('Please enter a valid number');return}for(var i=0;i<subtitles.length;i++){subtitles[i].start=Math.max(0,subtitles[i].start+offset);subtitles[i].end=Math.max(0,subtitles[i].end+offset)}renderList();updateStats();gtag('event','apply_offset',{event_category:'vtt_editor',value:offset})}
-    function applyTimeScale(){var scale=parseFloat(document.getElementById('timeScale').value);if(isNaN(scale)||scale<=0){alert('Please enter a valid scale factor');return}for(var i=0;i<subtitles.length;i++){subtitles[i].start=Math.round(subtitles[i].start*scale);subtitles[i].end=Math.round(subtitles[i].end*scale)}renderList();updateStats();gtag('event','apply_scale',{event_category:'vtt_editor',value:scale})}
+    function applyTimeOffset(){var offset=parseFloat(document.getElementById('timeOffset').value)*1000;if(isNaN(offset)){showToast('Please enter a valid number');return}for(var i=0;i<subtitles.length;i++){subtitles[i].start=Math.max(0,subtitles[i].start+offset);subtitles[i].end=Math.max(0,subtitles[i].end+offset)}renderList();updateStats();gtag('event','apply_offset',{event_category:'vtt_editor',value:offset})}
+    function applyTimeScale(){var scale=parseFloat(document.getElementById('timeScale').value);if(isNaN(scale)||scale<=0){showToast('Please enter a valid scale factor');return}for(var i=0;i<subtitles.length;i++){subtitles[i].start=Math.round(subtitles[i].start*scale);subtitles[i].end=Math.round(subtitles[i].end*scale)}renderList();updateStats();gtag('event','apply_scale',{event_category:'vtt_editor',value:scale})}
     function generateVTT(){var lines=['WEBVTT',''];for(var i=0;i<subtitles.length;i++){var s=subtitles[i];lines.push(msToTimeVTT(s.start)+' --> '+msToTimeVTT(s.end));lines.push(s.text);lines.push('')}return lines.join('\n')}
     function generateSRT(){var lines=[];for(var i=0;i<subtitles.length;i++){var s=subtitles[i];lines.push(i+1);lines.push(msToTimeSRT(s.start)+' --> '+msToTimeSRT(s.end));lines.push(s.text);lines.push('')}return lines.join('\n')}
-    function downloadVTT(){if(subtitles.length===0){alert('No subtitle content');return}var blob=new Blob([generateVTT()],{type:'text/vtt;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='subtitles.vtt';a.click();URL.revokeObjectURL(url);gtag('event','download_vtt',{event_category:'vtt_editor'})}
-    function downloadSRT(){if(subtitles.length===0){alert('No subtitle content');return}var blob=new Blob([generateSRT()],{type:'text/plain;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='subtitles.srt';a.click();URL.revokeObjectURL(url);gtag('event','download_srt',{event_category:'vtt_editor'})}
+    function downloadVTT(){if(subtitles.length===0){showToast('No subtitle content');return}var blob=new Blob([generateVTT()],{type:'text/vtt;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='subtitles.vtt';a.click();URL.revokeObjectURL(url);gtag('event','download_vtt',{event_category:'vtt_editor'})}
+    function downloadSRT(){if(subtitles.length===0){showToast('No subtitle content');return}var blob=new Blob([generateSRT()],{type:'text/plain;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='subtitles.srt';a.click();URL.revokeObjectURL(url);gtag('event','download_srt',{event_category:'vtt_editor'})}
     </script>
 </div>
   <div class="info-section faq-section">
@@ -262,6 +264,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function() {
   'use strict';
   var s = document.getElementById('related-tools-section');
@@ -294,5 +298,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   }).catch(function() { s.innerHTML = ''; });
 })();
 </script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

@@ -176,6 +176,8 @@ input[type=file]{display:none}
 .footer a:hover{color:#94a3b8}
 @media(max-width:600px){.row{flex-direction:column}
 .ad-slot{margin:16px auto;text-align:center;max-width:960px;min-height:90px}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{min-height:250px;max-width:300px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 
 <script type="application/ld+json">
@@ -268,7 +270,7 @@ var sourceImage=null,sourceDataUrl=null;
 function setStatus(msg,isError){document.getElementById('statusBar').innerHTML='<span>'+(isError?'❌ ':'📌 ')+msg+'</span>';}
 function resetUI(){sourceImage=null;sourceDataUrl=null;document.getElementById('optionsSection').style.display='none';document.getElementById('resultSection').classList.remove('show');document.getElementById('fileInput').value='';setStatus('Please upload an image');}
 function loadImage(file){setStatus('Loading...');var reader=new FileReader();reader.onload=function(e){sourceDataUrl=e.target.result;var img=new Image();img.onload=function(){sourceImage=img;document.getElementById('optionsSection').style.display='block';setStatus('Loaded: '+img.width+'×'+img.height+(img.width<32?' (Note: small image, may appear blurry when enlarged)':''));};img.src=sourceDataUrl;};reader.readAsDataURL(file);}
-function generateICO(){if(!sourceImage){setStatus('Please upload an image first',true);return;}var checks=document.querySelectorAll('#optionsSection input[type=checkbox]:checked');if(checks.length===0){alert('Select at least one size');return;}var sizes=[];checks.forEach(function(c){sizes.push(parseInt(c.value));});sizes.sort(function(a,b){return a-b;});var previewArea=document.getElementById('previewArea');previewArea.innerHTML='';var canvases=[];for(var i=0;i<sizes.length;i++){var s=sizes[i];var canvas=document.createElement('canvas');canvas.width=s;canvas.height=s;var ctx=canvas.getContext('2d');ctx.clearRect(0,0,s,s);ctx.drawImage(sourceImage,0,0,s,s);canvases.push({canvas:canvas,size:s});var item=document.createElement('div');item.className='preview-item';var c=document.createElement('canvas');c.width=s;c.height=s;c.getContext('2d').drawImage(sourceImage,0,0,s,s);c.style.width=s*2+'px';c.style.height=s*2+'px';c.style.imageRendering='pixelated';item.appendChild(c);item.innerHTML+='<div class="size">'+s+'×'+s+'</div>';previewArea.appendChild(item);}var sizeStr=sizes.join('×');var html='<code>&lt;link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="'+sizeStr+'"&gt;</code>';document.getElementById('htmlCode').innerHTML=html;window._icoCanvases=canvases;document.getElementById('resultSection').classList.add('show');}
+function generateICO(){if(!sourceImage){setStatus('Please upload an image first',true);return;}var checks=document.querySelectorAll('#optionsSection input[type=checkbox]:checked');if(checks.length===0){showToast('Select at least one size');return;}var sizes=[];checks.forEach(function(c){sizes.push(parseInt(c.value));});sizes.sort(function(a,b){return a-b;});var previewArea=document.getElementById('previewArea');previewArea.innerHTML='';var canvases=[];for(var i=0;i<sizes.length;i++){var s=sizes[i];var canvas=document.createElement('canvas');canvas.width=s;canvas.height=s;var ctx=canvas.getContext('2d');ctx.clearRect(0,0,s,s);ctx.drawImage(sourceImage,0,0,s,s);canvases.push({canvas:canvas,size:s});var item=document.createElement('div');item.className='preview-item';var c=document.createElement('canvas');c.width=s;c.height=s;c.getContext('2d').drawImage(sourceImage,0,0,s,s);c.style.width=s*2+'px';c.style.height=s*2+'px';c.style.imageRendering='pixelated';item.appendChild(c);item.innerHTML+='<div class="size">'+s+'×'+s+'</div>';previewArea.appendChild(item);}var sizeStr=sizes.join('×');var html='<code>&lt;link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="'+sizeStr+'"&gt;</code>';document.getElementById('htmlCode').innerHTML=html;window._icoCanvases=canvases;document.getElementById('resultSection').classList.add('show');}
 function downloadICO(){if(!window._icoCanvases||window._icoCanvases.length===0)return;var entryCount=window._icoCanvases.length;var iconDir=[0,0,entryCount,0].map(function(v){return String.fromCharCode(v&0xff,(v>>8)&0xff,(v>>16)&0xff,(v>>24)&0xff);}).join('');var offset=6+entryCount*16;var entries=[];var imageData=[];for(var i=0;i<entryCount;i++){var can=window._icoCanvases[i];var w=can.size>=256?0:can.size;var h=can.size>=256?0:can.size;var ctx=can.canvas.getContext('2d');var imgData=ctx.getImageData(0,0,can.size,can.size);var pixels=[];for(var p=0;p<imgData.data.length;p+=4){pixels.push(imgData.data[p],imgData.data[p+1],imgData.data[p+2],imgData.data[p+3]);}var andMaskSize=Math.ceil(can.size/8)*can.size;var andMask=new Array(andMaskSize).fill(0);var xorSize=can.size*can.size*4;var xorData=new Array(xorSize);for(var p=0;p<pixels.length;p+=4){xorData[p]=pixels[p+2];xorData[p+1]=pixels[p+1];xorData[p+2]=pixels[p];xorData[p+3]=pixels[p+3];}var biSize=40,biPlanes=1,biBitCount=32,biCompression=0;var infoHeader=[biSize,can.size,can.size*2,biPlanes,biBitCount,biCompression,0,0,0,0,0].map(function(v){return String.fromCharCode(v&0xff,(v>>8)&0xff,(v>>16)&0xff,(v>>24)&0xff);}).join('');var xorBytes=xorData.map(function(v){return String.fromCharCode(v);}).join('');var andBytes=andMask.map(function(v){return String.fromCharCode(v);}).join('');var imgBytes=infoHeader+xorBytes+andBytes;var entry=[w,h,0,0,1,32].map(function(v){return String.fromCharCode(v&0xff,(v>>8)&0xff,(v>>16)&0xff,(v>>24)&0xff);}).join('');entry=entry.slice(0,12)+String.fromCharCode(offset&0xff,(offset>>8)&0xff,(offset>>16)&0xff,(offset>>24)&0xff)+String.fromCharCode(imgBytes.length&0xff,(imgBytes.length>>8)&0xff,(imgBytes.length>>16)&0xff,(imgBytes.length>>24)&0xff);entries.push(entry);imageData.push(imgBytes);offset+=imgBytes.length;}var icoData=iconDir+entries.join('')+imageData.join('');var blob=new Blob([icoData],{type:'image/x-icon'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='favicon.ico';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);}
 function copyHtml(){var text=document.getElementById('htmlCode').textContent;if(!text)return;navigator.clipboard.writeText(text).then(function(){var btn=document.getElementById('copyPreviewBtn');btn.textContent='✅ Copied!';setTimeout(function(){btn.textContent='📋 Copy HTML Code';},2000);});}
 })();
@@ -290,6 +292,8 @@ function copyHtml(){var text=document.getElementById('htmlCode').textContent;if(
 </div>
 </div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.addEventListener('DOMContentLoaded',function(){
 var ft=document.getElementById('feedback-text');
@@ -310,8 +314,8 @@ document.getElementById('feedback-success').style.display='block';
 document.getElementById('feedback-text').value='';
 document.getElementById('feedback-count').textContent='0/1000';
 setTimeout(function(){document.getElementById('feedback-success').style.display='none';},3000);
-}else{alert('Submission failed. Please try again.');}
-}).catch(function(){alert('Network error. Please try again.');});
+}else{showToast('Submission failed. Please try again.');}
+}).catch(function(){showToast('Network error. Please try again.');});
 }
 </script>
 <!-- Related Tools (cross-recommendation) -->
@@ -321,5 +325,6 @@ setTimeout(function(){document.getElementById('feedback-success').style.display=
 </div>
 <script src="https://free-toolbase.com/related-tools.js"></script>
 
+<div class="toast" id="toast"></div>
 </body>
 </html>

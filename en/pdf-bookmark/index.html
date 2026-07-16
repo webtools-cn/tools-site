@@ -63,6 +63,8 @@
 .faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:8px}
 .faq-item h3::before{content:'Q';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(6,182,212,.15);color:#22d3ee;font-size:.7rem;font-weight:700;flex-shrink:0}
 .faq-item p{color:#94a3b8;font-size:.88rem;line-height:1.6;padding-left:30px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
     <script>
@@ -218,7 +220,7 @@
                 bookmarks = [];
                 renderBookmarks();
             } catch(e) {
-                alert('无法加载PDF: ' + e.message);
+                showToast('无法加载PDF: ' + e.message);
             }
         }
 
@@ -227,8 +229,8 @@
             var page = parseInt(document.getElementById('bm-page').value);
             var level = parseInt(document.getElementById('bm-level').value);
 
-            if (!title) { alert('请输入书签标题'); return; }
-            if (!page || page < 1) { alert('请输入有效页码'); return; }
+            if (!title) { showToast('请输入书签标题'); return; }
+            if (!page || page < 1) { showToast('请输入有效页码'); return; }
 
             bookmarks.push({ title: title, page: page, level: level });
             bookmarks.sort(function(a, b) { return a.page - b.page || a.level - b.level; });
@@ -265,8 +267,8 @@
         }
 
         async function applyBookmarks() {
-            if (!pdfDoc) { alert('请先上传PDF文件'); return; }
-            if (bookmarks.length === 0) { alert('请先添加书签'); return; }
+            if (!pdfDoc) { showToast('请先上传PDF文件'); return; }
+            if (bookmarks.length === 0) { showToast('请先添加书签'); return; }
 
             try {
                 // Build outline tree
@@ -320,13 +322,13 @@
 
                 gtag('event', 'download', { event_category: 'pdf-bookmark' });
             } catch(e) {
-                alert('应用书签失败: ' + e.message);
+                showToast('应用书签失败: ' + e.message);
                 console.error(e);
             }
         }
 
         function loadSampleBookmarks() {
-            if (!pdfDoc) { alert('请先上传PDF文件'); return; }
+            if (!pdfDoc) { showToast('请先上传PDF文件'); return; }
             var pageCount = pdfDoc.getPageCount();
             bookmarks = [
                 { title: '目录', page: 1, level: 0 },
@@ -388,6 +390,8 @@
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function() {
   'use strict';
   var s = document.getElementById('related-tools-section');
@@ -420,5 +424,6 @@
   }).catch(function() { s.innerHTML = ''; });
 })();
 </script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

@@ -64,6 +64,8 @@
 .faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:8px}
 .faq-item h3::before{content:'Q';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(6,182,212,.15);color:#22d3ee;font-size:.7rem;font-weight:700;flex-shrink:0}
 .faq-item p{color:#94a3b8;font-size:.88rem;line-height:1.6;padding-left:30px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
     <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
@@ -179,7 +181,7 @@
     }
 
     function handleFile(file) {
-        if (!file || !file.name.toLowerCase().endsWith('.srt')) { alert('Please select an SRT file'); return; }
+        if (!file || !file.name.toLowerCase().endsWith('.srt')) { showToast('Please select an SRT file'); return; }
         var reader = new FileReader();
         reader.onload = function(e) {
             subtitles = parseSRT(e.target.result);
@@ -273,7 +275,7 @@
 
     function applyTimeOffset() {
         var offset = parseFloat(document.getElementById('timeOffset').value) * 1000;
-        if (isNaN(offset)) { alert('Please enter a valid number of seconds'); return; }
+        if (isNaN(offset)) { showToast('Please enter a valid number of seconds'); return; }
         for (var i = 0; i < subtitles.length; i++) {
             subtitles[i].start = Math.max(0, subtitles[i].start + offset);
             subtitles[i].end = Math.max(0, subtitles[i].end + offset);
@@ -285,7 +287,7 @@
 
     function applyTimeScale() {
         var scale = parseFloat(document.getElementById('timeScale').value);
-        if (isNaN(scale) || scale <= 0) { alert('Please enter a valid scale factor'); return; }
+        if (isNaN(scale) || scale <= 0) { showToast('Please enter a valid scale factor'); return; }
         for (var i = 0; i < subtitles.length; i++) {
             subtitles[i].start = Math.round(subtitles[i].start * scale);
             subtitles[i].end = Math.round(subtitles[i].end * scale);
@@ -319,7 +321,7 @@
     }
 
     function downloadSRT() {
-        if (subtitles.length === 0) { alert('No subtitle content'); return; }
+        if (subtitles.length === 0) { showToast('No subtitle content'); return; }
         var blob = new Blob([generateSRT()], { type: 'text/plain;charset=utf-8' });
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a'); a.href = url; a.download = 'subtitles.srt'; a.click();
@@ -328,7 +330,7 @@
     }
 
     function downloadVTT() {
-        if (subtitles.length === 0) { alert('No subtitle content'); return; }
+        if (subtitles.length === 0) { showToast('No subtitle content'); return; }
         var blob = new Blob([generateVTT()], { type: 'text/vtt;charset=utf-8' });
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a'); a.href = url; a.download = 'subtitles.vtt'; a.click();
@@ -377,6 +379,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function() {
   'use strict';
   var s = document.getElementById('related-tools-section');
@@ -409,5 +413,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   }).catch(function() { s.innerHTML = ''; });
 })();
 </script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

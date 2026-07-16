@@ -80,6 +80,8 @@ textarea{font-family:monospace;resize:vertical;min-height:120px}
 .stat-label{font-size:.8rem;color:#64748b;margin-top:4px}
 @media(max-width:600px){.header{flex-direction:column;align-items:flex-start}
 .ad-slot{margin:16px auto;text-align:center;max-width:960px;min-height:90px}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{min-height:250px;max-width:300px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://free-toolbase.com/en/"}, {"@type": "ListItem", "position": 2, "name": "Developer Tools", "item": "https://free-toolbase.com/en/#developer-tools"}, {"@type": "ListItem", "position": 3, "name": "Code Snippet Manager",
       "item": "https://free-toolbase.com/en/code-snippet-manager/"
@@ -208,7 +210,7 @@ var title=document.getElementById('editTitle').value.trim();
 var lang=document.getElementById('editLang').value;
 var code=document.getElementById('editCode').value;
 var tags=document.getElementById('editTags').value.trim();
-if(!title){alert("Please enter a title.");return;}
+if(!title){showToast("Please enter a title.");return;}
 if(editingId){
 var idx=snippets.findIndex(function(x){return x.id===editingId;});
 if(idx!==-1){snippets[idx]={id:editingId,title:lang,code:code,tags:tags};}
@@ -225,7 +227,7 @@ document.getElementById('cancelBtn').addEventListener('click',function(){documen
 document.getElementById('searchInput').addEventListener('input',renderSnippets);
 
 document.getElementById('exportBtn').addEventListener('click',function(){
-if(snippets.length===0){alert('No snippets to export');return;}
+if(snippets.length===0){showToast('No snippets to export');return;}
 var blob=new Blob([JSON.stringify(snippets,null,2)],{type:'application/json'});
 var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='code-snippets.json';a.click();
 });
@@ -236,7 +238,7 @@ input.onchange=function(e){
 var file=e.target.files[0];if(!file)return;
 var reader=new FileReader();
 reader.onload=function(ev){
-try{var data=JSON.parse(ev.target.result);if(Array.isArray(data)){snippets=snippets.concat(data);saveSnippets();renderSnippets();alert("Snippets imported successfully!");}else{alert("Invalid format");}}catch(ex){alert("Invalid JSON");}
+try{var data=JSON.parse(ev.target.result);if(Array.isArray(data)){snippets=snippets.concat(data);saveSnippets();renderSnippets();showToast("Snippets imported successfully!");}else{showToast("Invalid format");}}catch(ex){showToast("Invalid JSON");}
 };
 reader.readAsText(file);
 };
@@ -263,6 +265,8 @@ renderSnippets();
 </div>
 </div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.addEventListener('DOMContentLoaded',function(){
 var ft=document.getElementById('feedback-text');
@@ -271,7 +275,7 @@ if(ft)ft.addEventListener('input',function(){document.getElementById('feedback-c
 function submitFeedback(){
 var type=document.getElementById('feedback-type').value;
 var text=document.getElementById('feedback-text').value;
-if(!text.trim()){alert('Please fill in feedback');return;}
+if(!text.trim()){showToast('Please fill in feedback');return;}
 var labels=type==='bug'?'bug':'enhancement';
 var body='## '+type+'\n\n'+text+'\n\n---\n*From: code-snippet-manager tool*';
 fetch('https://api.github.com/repos/webtools-cn/tools-site/issues',{
@@ -283,8 +287,8 @@ document.getElementById('feedback-success').style.display='block';
 document.getElementById('feedback-text').value='';
 document.getElementById('feedback-count').textContent='0/1000';
 setTimeout(function(){document.getElementById('feedback-success').style.display='none';},3000);
-}else{alert('Submission failed, please retry');}
-}).catch(function(){alert('Network error, please retry');});
+}else{showToast('Submission failed, please retry');}
+}).catch(function(){showToast('Network error, please retry');});
 }
 </script>
 <link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
@@ -292,5 +296,6 @@ setTimeout(function(){document.getElementById('feedback-success').style.display=
   <div class="related-tools-loading">Loading related tools...</div>
 </div>
 <script src="https://free-toolbase.com/related-tools.js"></script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

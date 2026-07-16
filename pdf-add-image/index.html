@@ -54,6 +54,8 @@ footer a{color:var(--primary);text-decoration:none}
 
 
 
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
 
@@ -183,7 +185,7 @@ async function handleFile(e){
         document.getElementById('imageSettings').style.display='block';
         document.getElementById('previewCard').style.display='block';
         currentPage=1;renderPreview();
-    }catch(err){alert('PDF读取失败: '+err.message)}
+    }catch(err){showToast('PDF读取失败: '+err.message)}
 }
 
 async function renderPreview(){
@@ -201,9 +203,9 @@ function prevPage(){if(currentPage>1){currentPage--;renderPreview()}}
 function nextPage(){if(currentPage<totalPages){currentPage++;renderPreview()}}
 
 async function addImageToPdf(){
-    if(!pdfDoc)return alert('请先上传PDF文件');
+    if(!pdfDoc)return showToast('请先上传PDF文件');
     const imgFile=document.getElementById('imageInput').files[0];
-    if(!imgFile){alert('请选择图片文件');return}
+    if(!imgFile){showToast('请选择图片文件');return}
     try{
         const newDoc=await PDFDocument.load(pdfBytes);
         const imgBytes=await imgFile.arrayBuffer();
@@ -230,11 +232,11 @@ async function addImageToPdf(){
         pdfJsDoc=await pdfjsLib.getDocument({data:modifiedPdfBytes.slice(0)}).promise;
         await renderPreview();
         document.getElementById('downloadBtn').style.display='inline-flex';
-    }catch(err){alert('添加图片失败: '+err.message)}
+    }catch(err){showToast('添加图片失败: '+err.message)}
 }
 
 function downloadPdf(){
-    if(!modifiedPdfBytes)return alert('请先添加图片');
+    if(!modifiedPdfBytes)return showToast('请先添加图片');
     const blob=new Blob([modifiedPdfBytes],{type:'application/pdf'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=url;a.download='pdf-with-image.pdf';a.click();
@@ -297,6 +299,8 @@ function resetAll(){
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function() {
   'use strict';
   var s = document.getElementById('related-tools-section');
@@ -329,5 +333,6 @@ function resetAll(){
   }).catch(function() { s.innerHTML = ''; });
 })();
 </script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

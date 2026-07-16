@@ -59,6 +59,8 @@ footer a{color:var(--primary);text-decoration:none}
 
 
 
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
 
@@ -189,6 +191,8 @@ footer a{color:var(--primary);text-decoration:none}
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 let pdfBytes=null,modifiedPdfBytes=null,pdfDoc=null,pdfJsDoc=null,currentPage=1,totalPages=0;
@@ -217,7 +221,7 @@ async function handleFile(e){
         document.getElementById('posY').value=Math.floor(pdfDoc.getPage(0).getHeight()-50);
         currentPage=1;
         renderPreview();
-    }catch(err){alert('PDF文件读取失败: '+err.message)}
+    }catch(err){showToast('PDF文件读取失败: '+err.message)}
 }
 
 async function renderPreview(){
@@ -262,11 +266,11 @@ function getTargetPages(){
 }
 
 async function addTextToPdf(){
-    if(!pdfDoc)return alert('请先上传PDF文件');
+    if(!pdfDoc)return showToast('请先上传PDF文件');
     try{
         const newDoc=await PDFDocument.load(pdfBytes);
         const text=document.getElementById('textContent').value;
-        if(!text.trim()){alert('请输入文字内容');return}
+        if(!text.trim()){showToast('请输入文字内容');return}
         const size=parseFloat(document.getElementById('fontSize').value)||24;
         const colorHex=document.getElementById('fontColor').value;
         const opacity=parseFloat(document.getElementById('opacity').value)||0.5;
@@ -296,11 +300,11 @@ async function addTextToPdf(){
         pdfJsDoc=await pdfjsLib.getDocument({data:modifiedPdfBytes.slice(0)}).promise;
         await renderPreview();
         document.getElementById('downloadBtn').style.display='inline-flex';
-    }catch(err){alert('添加文字失败: '+err.message)}
+    }catch(err){showToast('添加文字失败: '+err.message)}
 }
 
 function downloadPdf(){
-    if(!modifiedPdfBytes)return alert('请先添加文字');
+    if(!modifiedPdfBytes)return showToast('请先添加文字');
     const blob=new Blob([modifiedPdfBytes],{type:'application/pdf'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=url;a.download='annotated.pdf';a.click();
@@ -366,5 +370,6 @@ function resetAll(){
   </div>
 
 
+<div class="toast" id="toast"></div>
 </body>
 </html>

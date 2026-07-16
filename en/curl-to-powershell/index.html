@@ -63,6 +63,8 @@ a{color:#06b6d4;text-decoration:none}
 .footer a{color:#64748b}
 @media(max-width:600px){.header h1{font-size:1.2rem}}
 
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页" if is_cn else "Home","item":"https://free-toolbase.com/"},{"@type":"ListItem","position":2,"name":"在线工具" if is_cn else "Online Tools","item":"https://free-toolbase.com/#online-tools"},{"@type":"ListItem","position":3,"name":"Curl to PowerShell Converter",
       "item": "https://free-toolbase.com/en/curl-to-powershell/"
@@ -135,7 +137,7 @@ a{color:#06b6d4;text-decoration:none}
 var i=document.getElementById("curlInput"),b=document.getElementById("convertBtn"),c=document.getElementById("clearBtn"),s=document.getElementById("sampleBtn"),r=document.getElementById("result"),o=document.getElementById("codeOutput"),cb=document.getElementById("copyBtn"),db=document.getElementById("downloadBtn"),e=document.getElementById("errorMsg"),rm=document.getElementById("reqMethod"),ru=document.getElementById("reqUrl"),ot=document.getElementById("outputType");
 function pC(s){var r={m:"GET",u:"",h:{},d:null};var c=s.trim();if(!c.toLowerCase().startsWith("curl"))return null;c=c.replace(/^curl\s+/i,"").replace(/\\n/g," ").replace(/\r\n/g," ").replace(/\\s*/g," ");var t=[],cur="",sD=0,dD=0;for(var j=0;j<c.length;j++){var ch=c[j];if(ch==="'"&&!dD){sD=!sD;continue}if(ch=='"'&&!sD){dD=!dD;continue}if(ch==" "&&!sD&&!dD){if(cur){t.push(cur);cur=""}}else{cur+=ch}}if(cur)t.push(cur);var idx=0;var n=function(){return idx<t.length?t[idx++]:null};while(idx<t.length){var tok=n();if(!tok)break;if(tok==="-X"||tok==="--request"){r.m=n()||"GET"}else if(tok==="-H"||tok==="--header"){var h=n()||"";var ci=h.indexOf(":");if(ci>0){r.h[h.substring(0,ci).trim()]=h.substring(ci+1).trim()}}else if(tok==="-d"||tok==="--data"||tok==="--data-raw"||tok==="--data-binary"){r.d=n()||"";if(r.m==="GET")r.m="POST"}else if(tok==="-u"||tok==="--user"){n()}else if(!tok.startsWith("-")){r.u=tok}}if(r.d&&!r.h["Content-Type"]&&!r.h["content-type"]){if(r.d.startsWith("{")||r.d.startsWith("["))r.h["Content-Type"]="application/json";else if(r.d.includes("="))r.h["Content-Type"]="application/x-www-form-urlencoded"}return r}
 function genPS(p,type){var ps="";var m=p.m.toUpperCase();if(type==="restmethod"){ps+="$headers = @{";var hk=Object.keys(p.h);hk.forEach(function(k,i){ps+="\n    '"+k.replace(/'/g,"''")+"' = '"+p.h[k].replace(/'/g,"''")+"'"});ps+="\n}\n";if(m!=="GET"){ps+="\n$body = ";if(p.d){ps+="'"+p.d.replace(/'/g,"''")+"'"}else{ps+="$null"}ps+="\n"}ps+="\n$response = Invoke-RestMethod -Uri '"+p.u+"' -Method "+m;if(hk.length>0)ps+=" -Headers $headers";if(p.d&&m!=="GET")ps+=" -Body $body";ps+="\n$response | ConvertTo-Json -Depth 10\n"}else{ps+="$headers = @{";var hk=Object.keys(p.h);hk.forEach(function(k,i){ps+="\n    '"+k.replace(/'/g,"''")+"' = '"+p.h[k].replace(/'/g,"''")+"'"});ps+="\n}\n";ps+="\n$response = Invoke-WebRequest -Uri '"+p.u+"' -Method "+m;if(hk.length>0)ps+=" -Headers $headers";if(p.d&&m!=="GET")ps+=" -Body '"+p.d.replace(/'/g,"''")+"'";ps+="\n$response.Content\n"}return ps}
-function dv(){var cu=i.value.trim();if(!cu){alert("Please enter a cURL command");return}var p=pC(cu);if(!p||!p.u){e.style.display="block";e.textContent="Error: Cannot parse cURL command";r.style.display="none";return}e.style.display="none";var ps=genPS(p,ot.value);o.textContent=ps;rm.textContent=p.m;ru.textContent=p.u;r.style.display="block"}
+function dv(){var cu=i.value.trim();if(!cu){showToast("Please enter a cURL command");return}var p=pC(cu);if(!p||!p.u){e.style.display="block";e.textContent="Error: Cannot parse cURL command";r.style.display="none";return}e.style.display="none";var ps=genPS(p,ot.value);o.textContent=ps;rm.textContent=p.m;ru.textContent=p.u;r.style.display="block"}
 b.addEventListener("click",dv);c.addEventListener("click",function(){i.value="";r.style.display="none";e.style.display="none"});
 s.addEventListener("click",function(){i.value='curl -X POST https://jsonplaceholder.typicode.com/posts -H "Content-Type: application/json" -d \'{"title":"Hello","body":"World","userId":1}\''});
 cb.addEventListener("click",function(){navigator.clipboard.writeText(o.textContent).then(function(){cb.textContent="\u2705 Copied";setTimeout(function(){cb.textContent="\ud83d\udccb Copy"},2000)})});
@@ -216,6 +218,8 @@ db.addEventListener("click",function(){var b=new Blob([o.textContent],{type:"tex
 </div>
 </div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.addEventListener('DOMContentLoaded',function(){var ft=document.getElementById('feedback-text');if(ft)ft.addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';})});
 function submitFeedback(){
@@ -230,5 +234,6 @@ document.getElementById('feedback-success').style.display='block';
 setTimeout(function(){document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
 }
 </script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

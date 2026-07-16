@@ -172,6 +172,8 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 .footer a:hover{color:#94a3b8}
 @media(max-width:600px){.row{flex-direction:column}}
 .ad-slot{margin:16px auto;text-align:center;max-width:960px;min-height:90px}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{min-height:250px;max-width:300px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 <script type="application/ld+json">
 {
@@ -265,6 +267,8 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <p style="margin-top:8px">&copy; 2025 Online Tools Matrix &middot; Free Online Tools &middot; Zero Backend</p>
 </div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function(){
 var app=document.getElementById('app');
 app.innerHTML='<div class="input-section"><h2>📋 Input CSV Data</h2><div class="row"><div class="field"><label>Table Name</label><input type="text" id="tblName" value="my_table" placeholder="e.g. users"></div><div class="field"><label>Delimiter</label><select id="delimiter"><option value=",">Comma (,)</option><option value="\t">Tab</option><option value=";">Semicolon (;)</option><option value="|">Pipe (|)</option></select></div></div><div class="options"><label><input type="checkbox" id="optCreate" checked> Include CREATE TABLE</label><label><input type="checkbox" id="optDrop" checked> DROP TABLE IF EXISTS</label><label><input type="checkbox" id="optTransaction"> Wrap with BEGIN/COMMIT</label></div><textarea id="csvInput" rows="10" placeholder="name,age,email\\nAlice,30,alice@example.com\\nBob,25,bob@example.com\\nCharlie,35,charlie@example.com"></textarea><div class="btn-row"><button class="btn btn-primary" id="genSql">🚀 Generate SQL</button><button class="btn btn-secondary" id="uploadCsv">📂 Upload CSV</button><input type="file" id="csvFile" accept=".csv,.txt" style="display:none"><button class="btn btn-success" id="copySql">📋 Copy SQL</button><button class="btn btn-secondary" id="downloadSql">⬇️ Download SQL</button></div></div><div class="result-section" id="result"><h2>📄 SQL Output</h2><div class="result-box" id="sqlOutput"></div><div class="options"><label><input type="checkbox" id="optWrap"> Word wrap</label></div></div>';
@@ -274,9 +278,9 @@ function quoteVal(v){if(v===null||v===undefined||v==='NULL')return 'NULL';if(v==
 function guessType(v){if(v===null||v===undefined||v==='')return 'TEXT';if(/^[+-]?\d+$/.test(v)&&isFinite(v)){var n=Number(v);if(Math.abs(n)<2147483648)return 'INTEGER';return 'BIGINT'}if(/^[+-]?\d+\.\d+$/.test(v)&&isFinite(v))return 'NUMERIC';if(/^\d{4}-\d{2}-\d{2}/.test(v))return 'DATE';if(/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(v))return 'TIMESTAMP';return 'TEXT'}
 function parseCSV(text,delim){var rows=[],cur=[],field='',inQ=false;delim=delim||',';for(var i=0;i<text.length;i++){var c=text[i];if(inQ){if(c=='"'){if(i+1<text.length&&text[i+1]=='"'){field+='"';i++}else{inQ=false}}else{field+=c}}else{if(c=='"'){if(field.length===0&&cur.length===0&&rows.length===0){inQ=true}else if(field.length===0){inQ=true}else{field+=c}}else if(c===delim){cur.push(field);field=''}else if(c==='\n'||(c==='\r'&&text[i+1]==='\n')){if(c==='\r')i++;cur.push(field);field='';if(cur.length>0&&!(cur.length===1&&cur[0]===''))rows.push(cur);cur=[]}else if(c==='\r'){cur.push(field);field='';if(cur.length>0&&!(cur.length===1&&cur[0]===''))rows.push(cur);cur=[]}else{field+=c}}}if(field||cur.length>0){cur.push(field);if(cur.length>0&&!(cur.length===1&&cur[0]===''))rows.push(cur)}return rows}
 document.getElementById('genSql').addEventListener('click',function(){
-var csv=document.getElementById('csvInput').value.trim();if(!csv){alert('Please enter CSV data');return}
+var csv=document.getElementById('csvInput').value.trim();if(!csv){showToast('Please enter CSV data');return}
 var delim=document.getElementById('delimiter').value;var tbl=document.getElementById('tblName').value.trim()||'my_table'
-var rows=parseCSV(csv,delim);if(rows.length<2){alert('Need at least header row and one data row');return}
+var rows=parseCSV(csv,delim);if(rows.length<2){showToast('Need at least header row and one data row');return}
 var headers=rows[0];var data=rows.slice(1);var sqlLines=[]
 if(document.getElementById('optDrop').checked){sqlLines.push('DROP TABLE IF EXISTS '+tbl+';')}
 if(document.getElementById('optCreate').checked){var colDefs=headers.map(function(h,i){var types=data.map(function(r){return r[i]||''});var bestType='TEXT';types.forEach(function(v){var t=guessType(v);if(t==='TIMESTAMP')bestType='TIMESTAMP';else if(t==='DATE'&&bestType!=='TIMESTAMP')bestType='DATE';else if(t==='NUMERIC'&&bestType!=='DATE'&&bestType!=='TIMESTAMP')bestType='NUMERIC';else if(t==='BIGINT'&&bestType!=='NUMERIC'&&bestType!=='DATE'&&bestType!=='TIMESTAMP')bestType='BIGINT';else if(t==='INTEGER'&&bestType!=='BIGINT'&&bestType!=='NUMERIC'&&bestType!=='DATE'&&bestType!=='TIMESTAMP')bestType='INTEGER'});var colName=h.replace(/[^a-zA-Z0-9_]/g,'_');return colName+' '+bestType});sqlLines.push('CREATE TABLE '+tbl+' (');colDefs.forEach(function(c,i){sqlLines[sqlLines.length-1]+=(i===0?'':'  ')+c+(i<colDefs.length-1?',':'')});sqlLines[sqlLines.length-1]+='\n);')}
@@ -285,8 +289,8 @@ data.forEach(function(row){
 var vals=headers.map(function(h,i){return quoteVal(row[i]!==undefined?row[i]:'')});sqlLines.push('INSERT INTO '+tbl+' ('+headers.join(', ')+') VALUES ('+vals.join(', ')+');')})
 if(document.getElementById('optTransaction').checked){sqlLines.push('COMMIT;')}
 var sql=sqlLines.join('\n');document.getElementById('sqlOutput').textContent=sql;document.getElementById('result').classList.add('show')})
-document.getElementById('copySql').addEventListener('click',function(){var sql=document.getElementById('sqlOutput').textContent;if(!sql){alert('Generate SQL first');return}navigator.clipboard.writeText(sql).then(function(){alert('SQL copied!')}).catch(function(){})})
-document.getElementById('downloadSql').addEventListener('click',function(){var sql=document.getElementById('sqlOutput').textContent;if(!sql){alert('Generate SQL first');return}var blob=new Blob([sql],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(document.getElementById('tblName').value.trim()||'data')+'.sql';a.click();URL.revokeObjectURL(a.href)})
+document.getElementById('copySql').addEventListener('click',function(){var sql=document.getElementById('sqlOutput').textContent;if(!sql){showToast('Generate SQL first');return}navigator.clipboard.writeText(sql).then(function(){showToast('SQL copied!')}).catch(function(){})})
+document.getElementById('downloadSql').addEventListener('click',function(){var sql=document.getElementById('sqlOutput').textContent;if(!sql){showToast('Generate SQL first');return}var blob=new Blob([sql],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(document.getElementById('tblName').value.trim()||'data')+'.sql';a.click();URL.revokeObjectURL(a.href)})
 document.getElementById('uploadCsv').addEventListener('click',function(){document.getElementById('csvFile').click()})
 document.getElementById('csvFile').addEventListener('change',function(e){var file=e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){document.getElementById('csvInput').value=ev.target.result};reader.readAsText(file)})
 document.getElementById('optWrap').addEventListener('change',function(){var box=document.getElementById('sqlOutput');box.style.whiteSpace=this.checked?'pre-wrap':'pre'})
@@ -298,5 +302,6 @@ document.getElementById('optWrap').addEventListener('change',function(){var box=
   <div class="related-tools-loading">Loading related tools...</div>
 </div>
 <script src="https://free-toolbase.com/related-tools.js"></script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

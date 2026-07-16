@@ -29,6 +29,8 @@
 <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f7fa;color:#e2e8f0;line-height:1.6}.container{max-width:900px;margin:0 auto;padding:20px}.header{text-align:center;padding:30px 0 20px}.header h1{font-size:1.6em;color:#f1f5f9;margin-bottom:8px}.header p{color:#94a3b8;font-size:.95em}.tool-card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:20px}.config-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:center}.config-row label{font-size:.85em;font-weight:600;min-width:60px}.config-row input,.config-row select{padding:8px 12px;border:2px solid #e0e0e0;border-radius:8px;font-size:.9em}.config-row input:focus,.config-row select:focus{outline:none;border-color:#4a90d9}.field-selector{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}.field-chip{padding:6px 12px;border:1px solid #d0d5dd;border-radius:20px;cursor:pointer;font-size:.8em;transition:.2s;background:#fff}.field-chip.selected{background:#4a90d9;color:#fff;border-color:#4a90d9}.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.85em;font-weight:600;transition:.2s}.btn-primary{background:#4a90d9;color:#fff}.btn-primary:hover{background:#357abd}.btn-outline{background:#fff;border:2px solid #4a90d9;color:#4a90d9}.btn-outline:hover{background:#f0f4ff}.output-area{background:#fafbfc;border:2px solid #e0e0e0;border-radius:10px;padding:12px;min-height:200px;max-height:500px;overflow:auto;font-family:'Courier New',monospace;font-size:.85em;white-space:pre-wrap;word-break:break-all}.table-view{width:100%;border-collapse:collapse;font-size:.85em}.table-view th,.table-view td{border:1px solid #ddd;padding:6px 10px;text-align:left}.table-view th{background:#f0f4ff;position:sticky;top:0}.faq-section{margin-top:30px}.faq-section h2{font-size:1.3em;margin-bottom:16px;color:#f1f5f9}.faq-item{background:#fff;border-radius:10px;padding:16px 20px;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,.04)}.faq-item h3{font-size:1em;margin-bottom:6px;color:#e2e8f0}.faq-item p{font-size:.9em;color:#94a3b8}#feedback-root{margin-top:30px}@media(max-width:600px){.container{padding:12px}.header h1{font-size:1.3em}}
 
 
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 <style>
 .rating-widget {
@@ -140,11 +142,11 @@ function genJob(){return pick(['Software Engineer','Product Manager','UX Designe
 const generators={name:genName,email:genEmail,phone:genPhone,address:genAddress,date:genDate,number:()=>rand(1,99999),text:genText,uuid:genUUID,url:genURL,ip:genIP,bool:()=>Math.random()>0.5,color:genColor,company:genCompany,job:genJob};
 const fieldLabels={name:'Name',email:'Email',phone:'Phone',address:'Address',date:'Date',number:'Number',text:'Text',uuid:'UUID',url:'URL',ip:'IP',bool:'Boolean',color:'Color',company:'Company',job:'Job'};
 function getSelectedFields(){return Array.from(document.querySelectorAll('.field-chip.selected')).map(c=>c.dataset.field);}
-function generateData(){const f=getSelectedFields();if(!f.length){alert('Please select at least one field');return[];}const n=parseInt(document.getElementById('countInput').value)||10;const d=[];for(let i=0;i<n;i++){const r={};f.forEach(x=>{r[x]=generators[x]();});d.push(r);}return d;}
+function generateData(){const f=getSelectedFields();if(!f.length){showToast('Please select at least one field');return[];}const n=parseInt(document.getElementById('countInput').value)||10;const d=[];for(let i=0;i<n;i++){const r={};f.forEach(x=>{r[x]=generators[x]();});d.push(r);}return d;}
 function formatOutput(d){const f=getSelectedFields(),fmt=document.getElementById('formatSelect').value;if(fmt==='json')return JSON.stringify(d,null,2);if(fmt==='csv'){const h=f.map(x=>fieldLabels[x]||x).join(',');return h+'\n'+d.map(r=>f.map(x=>{const v=r[x];return typeof v==='string'&&v.includes(',')?`"${v}"`:v;}).join(',')).join('\n');}if(fmt==='sql'){const t='test_data',c=f.join(',');return`INSERT INTO ${t} (${c}) VALUES\n`+d.map(r=>'('+f.map(x=>{const v=r[x];return typeof v==='string'?`'${v.replace(/'/g,"''")}'`:v;}).join(',')+')').join(',\n')+';';}if(fmt==='table'){let h='<table class="table-view"><thead><tr>';f.forEach(x=>h+=`<th>${fieldLabels[x]||x}</th>`);h+='</tr></thead><tbody>';d.forEach(r=>{h+='<tr>';f.forEach(x=>{const v=r[x];h+=`<td>${typeof v==='boolean'?(v?'Yes':'No'):v}</td>`;});h+='</tr>';});return h+='</tbody></table>';}return JSON.stringify(d,null,2);}
 function renderOutput(){const d=generateData();if(!d.length)return;const o=formatOutput(d),el=document.getElementById('output');if(document.getElementById('formatSelect').value==='table')el.innerHTML=o;else el.textContent=o;}
 document.getElementById('genBtn').addEventListener('click',renderOutput);
-document.getElementById('copyBtn').addEventListener('click',()=>{const t=document.getElementById('output').textContent;if(t&&t!=='Click Generate to create test data...')navigator.clipboard.writeText(t).then(()=>alert('✅ Copied!'));});
+document.getElementById('copyBtn').addEventListener('click',()=>{const t=document.getElementById('output').textContent;if(t&&t!=='Click Generate to create test data...')navigator.clipboard.writeText(t).then(()=>showToast('✅ Copied!'));});
 document.getElementById('downloadBtn').addEventListener('click',()=>{const d=generateData();if(!d.length)return;const fmt=document.getElementById('formatSelect').value;let c='',ext='json';if(fmt==='json'){c=JSON.stringify(d,null,2);ext='json';}else if(fmt==='csv'){c=formatOutput(d);ext='csv';}else if(fmt==='sql'){c=formatOutput(d);ext='sql';}const b=new Blob([c],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`test-data.${ext}`;a.click();});
 document.querySelectorAll('.field-chip').forEach(x=>x.addEventListener('click',function(){this.classList.toggle('selected');}));
 document.getElementById('formatSelect').addEventListener('change',()=>renderOutput());
@@ -290,6 +292,8 @@ renderOutput();
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function() {
   'use strict';
   var s = document.getElementById('related-tools-section');
@@ -322,5 +326,6 @@ renderOutput();
   }).catch(function() { s.innerHTML = ''; });
 })();
 </script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

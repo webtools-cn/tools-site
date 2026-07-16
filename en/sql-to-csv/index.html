@@ -164,6 +164,8 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 .footer a:hover{color:#94a3b8}
 @media(max-width:600px){.row{flex-direction:column}}
 .ad-slot{margin:16px auto;text-align:center;max-width:960px;min-height:90px}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{min-height:250px;max-width:300px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 <script type="application/ld+json">
 {
@@ -257,20 +259,22 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <p style="margin-top:8px">&copy; 2025 Online Tools Matrix &middot; Free Online Tools &middot; Zero Backend</p>
 </div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function(){
 var app=document.getElementById('app');
 app.innerHTML='<div class="input-section"><h2>📝 Input SQL INSERT Statements</h2><div class="row"><div class="field"><label>Delimiter</label><select id="delimiter"><option value=",">Comma (,)</option><option value="\t">Tab</option><option value=";">Semicolon (;)</option></select></div></div><div class="options"><label><input type="checkbox" id="optHeader" checked> Include header row</label><label><input type="checkbox" id="optTrim"> Trim whitespace</label></div><textarea id="sqlInput" rows="10" placeholder="INSERT INTO users (name, age, email) VALUES (\\'Alice\\', 30, \\'alice@example.com\\');\\nINSERT INTO users (name, age, email) VALUES (\\'Bob\\', 25, \\'bob@example.com\\');"></textarea><div class="btn-row"><button class="btn btn-primary" id="convSql">🔄 Convert to CSV</button><button class="btn btn-success" id="copyCsv">📋 Copy CSV</button><button class="btn btn-secondary" id="downloadCsv">⬇️ Download CSV</button></div></div><div class="result-section" id="result"><h2>📄 CSV Output</h2><div class="result-box" id="csvOutput"></div><div class="options"><label><input type="checkbox" id="optWrap"> Word wrap</label></div></div>';
 function escCsv(v){if(v===null||v===undefined)return '';v=String(v);if(v.includes(',')||v.includes('"')||v.includes('\n')||v.includes('\r')){return '"'+v.replace(/"/g,'""')+'"'}return v}
 function parseSqlInsert(sql){var rows=[];var cleaned=sql.replace(/--.*$/gm,'').replace(/\/\*[\s\S]*?\*\//g,'').trim();var insertRegex=/INSERT\s+(?:INTO\s+)?(?:`?(\w+)`?\.)?`?(\w+)`?\s*(?:\(([^)]*)\))?\s*VALUES\s*(.*?)(?:;\s*|$)/gmis;var match;while((match=insertRegex.exec(cleaned))!==null){var valsStr=match[4].trim();var cols=(match[3]||'').split(',').map(function(c){return c.trim().replace(/[`"']/g,'')}).filter(function(c){return c});var valGroups=[];var depth=0;var cur='';for(var i=0;i<valsStr.length;i++){var c=valsStr[i];if(c=='('&&depth===0&&cur.trim().length===0){depth=1;cur=''}else if(c=='('&&depth>0){depth++;cur+=c}else if(c==')'&&depth>1){depth--;cur+=c}else if(c==')'&&depth===1){valGroups.push(cur);cur='';depth=0}else if(depth>0){cur+=c}}valGroups.forEach(function(g){var vals=[];var d=0;var f='';var inStr=false;var strChar=null;for(var i=0;i<g.length;i++){var c=g[i];if(inStr){if(c===strChar){if(i+1<g.length&&g[i+1]===strChar){f+=strChar;i++}else{inStr=false;strChar=null}}else{f+=c}}else{if(c==="'"||c==='"'){inStr=true;strChar=c}else if(c==','){vals.push(f.trim());f=''}else if(c!==' '||f.length>0){f+=c}}}if(f.trim())vals.push(f.trim());if(cols.length===0&&vals.length>0){for(var j=0;j<vals.length;j++)cols.push('col'+(j+1))}var row={};cols.forEach(function(col,i){row[col]=vals[i]!==undefined?vals[i]:''});rows.push(row)});cleaned=cleaned.slice(match.index+match[0].length)}return rows}
 document.getElementById('convSql').addEventListener('click',function(){
-var sql=document.getElementById('sqlInput').value.trim();if(!sql){alert('Please enter SQL statements');return}
-var delim=document.getElementById('delimiter').value;var rows=parseSqlInsert(sql);if(rows.length===0){alert('No INSERT statements found');return}
+var sql=document.getElementById('sqlInput').value.trim();if(!sql){showToast('Please enter SQL statements');return}
+var delim=document.getElementById('delimiter').value;var rows=parseSqlInsert(sql);if(rows.length===0){showToast('No INSERT statements found');return}
 var headers=Object.keys(rows[0]);var lines=[]
 if(document.getElementById('optHeader').checked){lines.push(headers.join(delim))}
 rows.forEach(function(row){var vals=headers.map(function(h){return escCsv(row[h]!==undefined?row[h]:'')});if(document.getElementById('optTrim').checked){vals=vals.map(function(v){return v.trim()?'"'+v.replace(/^"|"$/g,'').trim()+'"':v})};lines.push(vals.join(delim))})
 document.getElementById('csvOutput').textContent=lines.join('\n');document.getElementById('result').classList.add('show')})
-document.getElementById('copyCsv').addEventListener('click',function(){var csv=document.getElementById('csvOutput').textContent;if(!csv){alert('Convert SQL first');return}navigator.clipboard.writeText(csv).then(function(){alert('CSV copied!')}).catch(function(){})})
-document.getElementById('downloadCsv').addEventListener('click',function(){var csv=document.getElementById('csvOutput').textContent;if(!csv){alert('Convert SQL first');return}var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='output.csv';a.click();URL.revokeObjectURL(a.href)})
+document.getElementById('copyCsv').addEventListener('click',function(){var csv=document.getElementById('csvOutput').textContent;if(!csv){showToast('Convert SQL first');return}navigator.clipboard.writeText(csv).then(function(){showToast('CSV copied!')}).catch(function(){})})
+document.getElementById('downloadCsv').addEventListener('click',function(){var csv=document.getElementById('csvOutput').textContent;if(!csv){showToast('Convert SQL first');return}var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='output.csv';a.click();URL.revokeObjectURL(a.href)})
 document.getElementById('optWrap').addEventListener('change',function(){var box=document.getElementById('csvOutput');box.style.whiteSpace=this.checked?'pre-wrap':'pre'})
 })();
 </script>
@@ -280,5 +284,6 @@ document.getElementById('optWrap').addEventListener('change',function(){var box=
   <div class="related-tools-loading">Loading related tools...</div>
 </div>
 <script src="https://free-toolbase.com/related-tools.js"></script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

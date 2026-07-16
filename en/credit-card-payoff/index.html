@@ -181,6 +181,8 @@ table.data td{color:#cbd5e1}
 .footer a:hover{color:#94a3b8}
 @media(max-width:600px){.row{flex-direction:column}.grid-cols-2,.grid-cols-3{grid-template-columns:1fr}
 .ad-slot{margin:16px auto;text-align:center;max-width:960px;min-height:90px}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{min-height:250px;max-width:300px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 
 <script type="application/ld+json">
@@ -245,10 +247,12 @@ table.data td{color:#cbd5e1}
   <p style="margin-top:8px">&copy; 2025 Online Tools Matrix &middot; Free Online Tools &middot; Pure Frontend</p>
 </div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function(){
 (function(){var app=document.getElementById('app');
 app.innerHTML='<div class="input-section"><h2>💳 Credit Card Details</h2><div class="row"><div class="field"><label>Balance ($)</label><input type="number" id="balance" value="5000"></div><div class="field"><label>APR (%)</label><input type="number" id="apr" value="18" step="0.1"></div></div><div class="row"><div class="field"><label>Min Payment (%)</label><input type="number" id="minPct" value="2" step="0.5"></div><div class="field"><label>Extra Payment ($/mo)</label><input type="number" id="extraPay" value="100"></div></div><div class="btn-row"><button class="btn btn-primary" id="calcBtn">Calculate</button></div></div><div class="result-section" id="resultSection"><h2>📊 Results</h2><div class="grid grid-cols-2" id="summaryCards"></div><h2 style="margin-top:16px">📅 Comparison</h2><div class="table-wrap"><table class="data"><thead><tr><th>Strategy</th><th>Payoff Time</th><th>Total Interest</th><th>Total Paid</th></tr></thead><tbody id="comparisonTable"></tbody></table></div><h2 style="margin-top:16px">💡 Tips</h2><div id="tips" style="color:#94a3b8;font-size:.85rem"></div></div>';
-function calc(){var bal=parseFloat(document.getElementById('balance').value)||0,apr=parseFloat(document.getElementById('apr').value)||0,minPct=parseFloat(document.getElementById('minPct').value)||2,extra=parseFloat(document.getElementById('extraPay').value)||0;var rs=document.getElementById('resultSection');if(bal<=0||apr<0){alert('Enter valid values');return;}var mr=apr/100/12;var minPay=Math.max(bal*minPct/100,25);function payoff(pmt){var b=bal,m=0,ti=0;while(b>0&&m<600){m++;var i=b*mr;ti+=i;var actual=Math.min(pmt,b+i);b=b+i-actual;if(b<=0)break;if(pmt<=i&&b>=bal){return{months:999,interest:Infinity,total:Infinity};}}return{months:m,interest:ti,total:bal+ti};}
+function calc(){var bal=parseFloat(document.getElementById('balance').value)||0,apr=parseFloat(document.getElementById('apr').value)||0,minPct=parseFloat(document.getElementById('minPct').value)||2,extra=parseFloat(document.getElementById('extraPay').value)||0;var rs=document.getElementById('resultSection');if(bal<=0||apr<0){showToast('Enter valid values');return;}var mr=apr/100/12;var minPay=Math.max(bal*minPct/100,25);function payoff(pmt){var b=bal,m=0,ti=0;while(b>0&&m<600){m++;var i=b*mr;ti+=i;var actual=Math.min(pmt,b+i);b=b+i-actual;if(b<=0)break;if(pmt<=i&&b>=bal){return{months:999,interest:Infinity,total:Infinity};}}return{months:m,interest:ti,total:bal+ti};}
 var minResult=payoff(minPay);var extraResult=payoff(minPay+extra);var halfResult=payoff(bal/24+extra);var fullResult=payoff(bal+extra);
 document.getElementById('summaryCards').innerHTML='<div style="background:#0f172a;border-radius:8px;padding:16px;text-align:center"><div style="color:#64748b;font-size:.8rem">Current Balance</div><div style="color:#f1f5f9;font-size:1.4rem;font-weight:700;margin-top:4px">$'+bal.toFixed(2)+'</div></div><div style="background:#0f172a;border-radius:8px;padding:16px;text-align:center"><div style="color:#64748b;font-size:.8rem">Min Monthly Payment</div><div style="color:#22d3ee;font-size:1.4rem;font-weight:700;margin-top:4px">$'+minPay.toFixed(2)+'</div></div><div style="background:#0f172a;border-radius:8px;padding:16px;text-align:center"><div style="color:#64748b;font-size:.8rem">APR</div><div style="color:#f87171;font-size:1.4rem;font-weight:700;margin-top:4px">'+apr+'%</div></div><div style="background:#0f172a;border-radius:8px;padding:16px;text-align:center"><div style="color:#64748b;font-size:.8rem">Min Payoff Time</div><div style="color:#fbbf24;font-size:1.4rem;font-weight:700;margin-top:4px">'+(minResult.months>=999?'30+ yrs':Math.ceil(minResult.months/12)+'yr '+Math.ceil(minResult.months%12)+'mo')+'</div></div>';
 var tbody=document.getElementById('comparisonTable');var rows=[{name:'Minimum Only',r:minResult},{name:'Min + Extra $'+extra.toFixed(0),r:extraResult},{name:'Half Balance/mo',r:halfResult},{name:'Full Balance 1mo',r:fullResult}];tbody.innerHTML=rows.map(function(x){var r=x.r;return '<tr><td>'+x.name+'</td><td>'+(r.months>=999?'30+ yrs':Math.ceil(r.months/12)+'yr '+Math.ceil(r.months%12)+'mo')+'</td><td>$'+(r.interest===Infinity?'∞':r.interest.toFixed(2))+'</td><td>$'+(r.total===Infinity?'∞':r.total.toFixed(2))+'</td></tr>';}).join('');
@@ -265,5 +269,6 @@ document.getElementById('calcBtn').addEventListener('click',calc);calc();})();
 </div>
 <script src="https://free-toolbase.com/related-tools.js"></script>
 
+<div class="toast" id="toast"></div>
 </body>
 </html>

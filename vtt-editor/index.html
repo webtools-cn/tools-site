@@ -57,7 +57,9 @@
         footer a { color: var(--primary); text-decoration: none; }
         @media (max-width: 768px) { .container { padding: 12px; } header h1 { font-size: 1.5rem; } .subtitle-item { grid-template-columns: 40px 1fr 120px 60px; font-size: 12px; } }
         
-    </style>
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+</style>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
     <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
 <style>
@@ -168,7 +170,7 @@
     function formatDuration(ms){var s=Math.floor(ms/1000);var h=Math.floor(s/3600);s%=3600;var m=Math.floor(s/60);s%=60;return pad(h)+':'+pad(m)+':'+pad(s)}
 
     function handleFile(file) {
-        if(!file||!file.name.toLowerCase().endsWith('.vtt')){alert('请选择VTT文件');return}
+        if(!file||!file.name.toLowerCase().endsWith('.vtt')){showToast('请选择VTT文件');return}
         var reader=new FileReader();
         reader.onload=function(e){subtitles=parseVTT(e.target.result);renderEditor();gtag('event','upload_vtt',{event_category:'vtt_editor'})};
         reader.readAsText(file);
@@ -203,17 +205,19 @@
     function addSubtitle(){var lastEnd=subtitles.length>0?subtitles[subtitles.length-1].end+500:0;subtitles.push({start:lastEnd,end:lastEnd+3000,text:''});renderList();updateStats()}
     function removeSubtitle(idx){subtitles.splice(idx,1);renderList();updateStats()}
     function clearAll(){if(!confirm('确定清空所有字幕？'))return;subtitles=[];renderList();updateStats()}
-    function applyTimeOffset(){var offset=parseFloat(document.getElementById('timeOffset').value)*1000;if(isNaN(offset)){alert('请输入有效的秒数');return}for(var i=0;i<subtitles.length;i++){subtitles[i].start=Math.max(0,subtitles[i].start+offset);subtitles[i].end=Math.max(0,subtitles[i].end+offset)}renderList();updateStats();gtag('event','apply_offset',{event_category:'vtt_editor',value:offset})}
-    function applyTimeScale(){var scale=parseFloat(document.getElementById('timeScale').value);if(isNaN(scale)||scale<=0){alert('请输入有效的倍率');return}for(var i=0;i<subtitles.length;i++){subtitles[i].start=Math.round(subtitles[i].start*scale);subtitles[i].end=Math.round(subtitles[i].end*scale)}renderList();updateStats();gtag('event','apply_scale',{event_category:'vtt_editor',value:scale})}
+    function applyTimeOffset(){var offset=parseFloat(document.getElementById('timeOffset').value)*1000;if(isNaN(offset)){showToast('请输入有效的秒数');return}for(var i=0;i<subtitles.length;i++){subtitles[i].start=Math.max(0,subtitles[i].start+offset);subtitles[i].end=Math.max(0,subtitles[i].end+offset)}renderList();updateStats();gtag('event','apply_offset',{event_category:'vtt_editor',value:offset})}
+    function applyTimeScale(){var scale=parseFloat(document.getElementById('timeScale').value);if(isNaN(scale)||scale<=0){showToast('请输入有效的倍率');return}for(var i=0;i<subtitles.length;i++){subtitles[i].start=Math.round(subtitles[i].start*scale);subtitles[i].end=Math.round(subtitles[i].end*scale)}renderList();updateStats();gtag('event','apply_scale',{event_category:'vtt_editor',value:scale})}
     function generateVTT(){var lines=['WEBVTT',''];for(var i=0;i<subtitles.length;i++){var s=subtitles[i];lines.push(msToTimeVTT(s.start)+' --> '+msToTimeVTT(s.end));lines.push(s.text);lines.push('')}return lines.join('\n')}
     function generateSRT(){var lines=[];for(var i=0;i<subtitles.length;i++){var s=subtitles[i];lines.push(i+1);lines.push(msToTimeSRT(s.start)+' --> '+msToTimeSRT(s.end));lines.push(s.text);lines.push('')}return lines.join('\n')}
-    function downloadVTT(){if(subtitles.length===0){alert('没有字幕内容');return}var blob=new Blob([generateVTT()],{type:'text/vtt;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='subtitles.vtt';a.click();URL.revokeObjectURL(url);gtag('event','download_vtt',{event_category:'vtt_editor'})}
-    function downloadSRT(){if(subtitles.length===0){alert('没有字幕内容');return}var blob=new Blob([generateSRT()],{type:'text/plain;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='subtitles.srt';a.click();URL.revokeObjectURL(url);gtag('event','download_srt',{event_category:'vtt_editor'})}
+    function downloadVTT(){if(subtitles.length===0){showToast('没有字幕内容');return}var blob=new Blob([generateVTT()],{type:'text/vtt;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='subtitles.vtt';a.click();URL.revokeObjectURL(url);gtag('event','download_vtt',{event_category:'vtt_editor'})}
+    function downloadSRT(){if(subtitles.length===0){showToast('没有字幕内容');return}var blob=new Blob([generateSRT()],{type:'text/plain;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='subtitles.srt';a.click();URL.revokeObjectURL(url);gtag('event','download_srt',{event_category:'vtt_editor'})}
     </script>
 </div>
 
 <footer><p>&copy; 2026 WebTools - 免费在线工具站 | <a href="https://free-toolbase.com/privacy/">隐私政策</a> | <a href="https://free-toolbase.com/terms/">服务条款</a></p> · 问题反馈: dexshuang@google.com</footer>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function(){var SK='wt_rating_'+location.pathname.replace(/\//g,'_'),AK='wt_avg_'+location.pathname.replace(/\//g,'_');
 function gr(){var h=0,p=location.pathname;for(var i=0;i<p.length;i++){h=((h<<5)-h)+p.charCodeAt(i);h=h&h}var rv=[4.5,4.6,4.7,4.8,4.9,4.4,4.3],cv=[128,256,512,89,167,234,345,178,421,156];return{value:rv[Math.abs(h)%rv.length],count:cv[Math.abs(h>>3)%cv.length]}}
 function ir(){var sc=document.getElementById('starContainer'),tx=document.getElementById('ratingText'),ce=document.getElementById('ratingCount'),th=document.getElementById('ratingThanks');if(!sc||!tx)return;var sv=localStorage.getItem(SK),ad;try{ad=JSON.parse(localStorage.getItem(AK))}catch(e){}if(!ad)ad=gr();var ss=sc.querySelectorAll('.star');
@@ -250,5 +254,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   </div>
 
 
+<div class="toast" id="toast"></div>
 </body>
 </html>

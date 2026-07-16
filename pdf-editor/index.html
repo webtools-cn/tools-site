@@ -131,6 +131,8 @@ footer{text-align:center;padding:30px;color:#94a3b8;font-size:0.85em}
 
 
 
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 <style>
 .rating-widget {
@@ -248,7 +250,7 @@ var mergePDFName='';
 
 function handleFile(file){
   if(!file||file.type!=='application/pdf'){document.getElementById('status')&&(document.getElementById('status').textContent='请选择PDF文件',document.getElementById('status').style.color='#ef4444');return;}
-  if(file.size>50*1024*1024){alert('文件超过50MB限制');return;}
+  if(file.size>50*1024*1024){showToast('文件超过50MB限制');return;}
   var reader=new FileReader();
   reader.onload=function(e){
     currentPDFBytes=new Uint8Array(e.target.result);
@@ -315,7 +317,7 @@ function downloadPDF(pdfBytes,name){
 }
 
 async function addTextToPDF(){
-  if(!currentPDFBytes){alert('请先上传PDF');return;}
+  if(!currentPDFBytes){showToast('请先上传PDF');return;}
   var text=document.getElementById('textContent').value;
   var size=parseInt(document.getElementById('fontSize').value);
   var color=document.getElementById('textColor').value;
@@ -325,18 +327,18 @@ async function addTextToPDF(){
   try{
     var doc=await PDFLib.PDFDocument.load(currentPDFBytes);
     var pages=doc.getPages();
-    if(pageNum<0||pageNum>=pages.length){alert('页码超出范围 (1-'+pages.length+')');return;}
+    if(pageNum<0||pageNum>=pages.length){showToast('页码超出范围 (1-'+pages.length+')');return;}
     var page=pages[pageNum];
     var r=parseInt(color.slice(1,3),16)/255,g=parseInt(color.slice(3,5),16)/255,b=parseInt(color.slice(5,7),16)/255;
     page.drawText(text,{x:x,y:y,size:size,color:PDFLib.rgb(r,g,b)});
     var pdfBytes=await doc.save();
     downloadPDF(pdfBytes,currentPDFName+'-edited');
-  }catch(e){alert('处理失败: '+e.message);console.error(e);}
+  }catch(e){showToast('处理失败: '+e.message);console.error(e);}
 }
 
 async function mergePDFs(){
-  if(!currentPDFBytes){alert('请先上传第一个PDF');return;}
-  if(!mergePDFBytes){alert('请上传第二个PDF');return;}
+  if(!currentPDFBytes){showToast('请先上传第一个PDF');return;}
+  if(!mergePDFBytes){showToast('请上传第二个PDF');return;}
   try{
     var mergedDoc=await PDFLib.PDFDocument.create();
     var doc1=await PDFLib.PDFDocument.load(currentPDFBytes);
@@ -347,29 +349,29 @@ async function mergePDFs(){
     copiedPages2.forEach(function(p){mergedDoc.addPage(p);});
     var pdfBytes=await mergedDoc.save();
     downloadPDF(pdfBytes,'merged-document');
-  }catch(e){alert('合并失败: '+e.message);}
+  }catch(e){showToast('合并失败: '+e.message);}
 }
 
 async function extractPages(){
-  if(!currentPDFBytes){alert('请先上传PDF');return;}
+  if(!currentPDFBytes){showToast('请先上传PDF');return;}
   var rangeStr=document.getElementById('extractPages').value.trim();
   var indices=parsePageRange(rangeStr);
-  if(indices.length===0){alert('请输入有效的页码范围');return;}
+  if(indices.length===0){showToast('请输入有效的页码范围');return;}
   try{
     var srcDoc=await PDFLib.PDFDocument.load(currentPDFBytes);
     var totalPages=srcDoc.getPageCount();
     indices=indices.filter(function(i){return i>=0&&i<totalPages;});
-    if(indices.length===0){alert('页码范围超出总页数 ('+totalPages+')');return;}
+    if(indices.length===0){showToast('页码范围超出总页数 ('+totalPages+')');return;}
     var newDoc=await PDFLib.PDFDocument.create();
     var copiedPages=await newDoc.copyPages(srcDoc,indices);
     copiedPages.forEach(function(p){newDoc.addPage(p);});
     var pdfBytes=await newDoc.save();
     downloadPDF(pdfBytes,currentPDFName+'-extracted');
-  }catch(e){alert('提取失败: '+e.message);}
+  }catch(e){showToast('提取失败: '+e.message);}
 }
 
 async function rotatePages(){
-  if(!currentPDFBytes){alert('请先上传PDF');return;}
+  if(!currentPDFBytes){showToast('请先上传PDF');return;}
   var angle=parseInt(document.getElementById('rotateAngle').value);
   var pageNum=parseInt(document.getElementById('rotatePage').value);
   try{
@@ -378,12 +380,12 @@ async function rotatePages(){
     if(pageNum===0){
       pages.forEach(function(p){p.setRotation(PDFLib.degrees(angle));});
     }else{
-      if(pageNum<1||pageNum>pages.length){alert('页码超出范围');return;}
+      if(pageNum<1||pageNum>pages.length){showToast('页码超出范围');return;}
       pages[pageNum-1].setRotation(PDFLib.degrees(angle));
     }
     var pdfBytes=await doc.save();
     downloadPDF(pdfBytes,currentPDFName+'-rotated');
-  }catch(e){alert('旋转失败: '+e.message);}
+  }catch(e){showToast('旋转失败: '+e.message);}
 }
 
 function parsePageRange(str){
@@ -469,6 +471,8 @@ dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('d
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function() {
   'use strict';
   var s = document.getElementById('related-tools-section');
@@ -501,5 +505,6 @@ dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('d
   }).catch(function() { s.innerHTML = ''; });
 })();
 </script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

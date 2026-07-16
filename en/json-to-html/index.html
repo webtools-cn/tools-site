@@ -165,6 +165,8 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 .footer a:hover{color:#94a3b8}
 @media(max-width:600px){.table-preview{font-size:.75rem}}
 .ad-slot{margin:16px auto;text-align:center;max-width:960px;min-height:90px}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{min-height:250px;max-width:300px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 <script type="application/ld+json">
 {
@@ -252,13 +254,15 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <p style="margin-top:8px">&copy; 2025 Online Tools Matrix &middot; Free Online Tools &middot; Zero Backend</p>
 </div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function(){
 var app=document.getElementById('app');
 app.innerHTML='<div class="input-section"><h2>📝 Enter JSON</h2><textarea id="jsonInput" rows="10" placeholder=\'[{"name":"Alice","age":30,"email":"alice@example.com"},{"name":"Bob","age":25,"email":"bob@example.com"}]\'></textarea><div class="options"><label><input type="checkbox" id="optFlatten" checked> Flatten nested objects</label><label><input type="checkbox" id="optNull"> Show NULL values</label></div><div class="btn-row"><button class="btn btn-primary" id="convertBtn">🔄 Convert to HTML Table</button><button class="btn btn-success" id="copyHtml">📋 Copy HTML Code</button><button class="btn btn-secondary" id="dlHtml">⬇️ Download HTML</button></div></div><div class="result-section" id="result"><h2>👁️ Table Preview</h2><div class="table-preview" id="tablePreview"></div><h2 style="margin-top:16px">📄 HTML Code</h2><div class="result-box" id="htmlOutput"></div></div>';
 function flatten(obj,prefix,res){res=res||{};if(typeof obj==='object'&&obj!==null&&!Array.isArray(obj)){for(var k in obj){if(obj.hasOwnProperty(k)){var key=prefix?prefix+'.'+k:k;if(typeof obj[k]==='object'&&obj[k]!==null&&!Array.isArray(obj[k])){flatten(obj[k],key,res)}else{res[key]=obj[k]}}}}else{res[prefix||'value']=obj}return res}
 document.getElementById('convertBtn').addEventListener('click',function(){
-var input=document.getElementById('jsonInput').value.trim();if(!input){alert('Please enter JSON data');return}
-var data;try{data=JSON.parse(input)}catch(e){alert('Invalid JSON: '+e.message);return}
+var input=document.getElementById('jsonInput').value.trim();if(!input){showToast('Please enter JSON data');return}
+var data;try{data=JSON.parse(input)}catch(e){showToast('Invalid JSON: '+e.message);return}
 var rows=[];if(Array.isArray(data)){rows=data.map(function(item){if(document.getElementById('optFlatten').checked&&typeof item==='object'&&item!==null){return flatten(item)}return item})}else if(typeof data==='object'&&data!==null){rows=[document.getElementById('optFlatten').checked?flatten(data):data]}else{rows=[{value:data}]}
 var headers=[];rows.forEach(function(row){for(var k in row){if(row.hasOwnProperty(k)&&headers.indexOf(k)===-1)headers.push(k)}});
 var showNull=document.getElementById('optNull').checked;
@@ -268,11 +272,12 @@ html+='</tr>\n</thead>\n<tbody>\n';
 rows.forEach(function(row,i){var bg=i%2===0?'background:rgba(148,163,184,.03)':'';html+='<tr style="'+bg+'">';headers.forEach(function(h){var v=row[h];if(v===undefined||v===null){v=showNull?'NULL':''}else if(typeof v==='object'){v=JSON.stringify(v)}else{v=String(v)}html+='<td style="padding:10px 12px;border:1px solid rgba(148,163,184,.1);color:#cbd5e1">'+v+'</td>'});html+='</tr>\n'});
 html+='</tbody>\n</table>';
 document.getElementById('tablePreview').innerHTML=html;
-var fullHtml='<!DOCTYPE html>\n<html>\n<head><meta charset="UTF-8"><title>JSON Table</title></head>\n<body style="background:#0f172a;padding:20px">\n'+html+'\n</body>\n</html>';
+var fullHtml='<!DOCTYPE html>\n<html>\n<head><meta charset="UTF-8"><title>JSON Table</title></head>\n<body style="background:#0f172a;padding:20px">\n'+html+'\n<div class="toast" id="toast"></div>
+</body>\n</html>';
 document.getElementById('htmlOutput').textContent=fullHtml;
 document.getElementById('result').classList.add('show')});
-document.getElementById('copyHtml').addEventListener('click',function(){var html=document.getElementById('htmlOutput').textContent;if(!html){alert('Convert JSON first');return}navigator.clipboard.writeText(html).then(function(){alert('HTML code copied!')}).catch(function(){})});
-document.getElementById('dlHtml').addEventListener('click',function(){var html=document.getElementById('htmlOutput').textContent;if(!html){alert('Convert JSON first');return}var blob=new Blob([html],{type:'text/html'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='json-table.html';a.click();URL.revokeObjectURL(a.href)});
+document.getElementById('copyHtml').addEventListener('click',function(){var html=document.getElementById('htmlOutput').textContent;if(!html){showToast('Convert JSON first');return}navigator.clipboard.writeText(html).then(function(){showToast('HTML code copied!')}).catch(function(){})});
+document.getElementById('dlHtml').addEventListener('click',function(){var html=document.getElementById('htmlOutput').textContent;if(!html){showToast('Convert JSON first');return}var blob=new Blob([html],{type:'text/html'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='json-table.html';a.click();URL.revokeObjectURL(a.href)});
 })();
 </script>
 <!-- Related Tools (cross-recommendation) -->

@@ -63,6 +63,8 @@ a{color:#06b6d4;text-decoration:none}
 .footer a{color:#64748b}
 @media(max-width:600px){.header h1{font-size:1.2rem}}
 
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页" if is_cn else "Home","item":"https://free-toolbase.com/"},{"@type":"ListItem","position":2,"name":"在线工具" if is_cn else "Online Tools","item":"https://free-toolbase.com/#online-tools"},{"@type":"ListItem","position":3,"name":"CSV to YAML Converter",
       "item": "https://free-toolbase.com/en/csv-to-yaml/"
@@ -141,7 +143,7 @@ a{color:#06b6d4;text-decoration:none}
 var inp=document.getElementById("csvInput"),btn=document.getElementById("convertBtn"),clr=document.getElementById("clearBtn"),smp=document.getElementById("sampleBtn"),res=document.getElementById("result"),out=document.getElementById("output"),cpy=document.getElementById("copyBtn"),dwn=document.getElementById("downloadBtn"),err=document.getElementById("errorMsg"),rc=document.getElementById("rowCount"),inpDel=document.getElementById("inputDelimiter"),indentSel=document.getElementById("indentSize"),firstRow=document.getElementById("firstRowAsKeys");
 function parseLine(l,sep){var r=[],c="",q=false;for(var i=0;i<l.length;i++){var ch=l[i];if(q){if(ch=='"'){if(i+1<l.length&&l[i+1]=='"'){c+='"';i++}else{q=false}}else{c+=ch}}else if(ch=='"'){q=true}else if(ch===sep){r.push(c);c=""}else{c+=ch}}r.push(c);return r}
 function yamlEscape(v){if(v===null||v===undefined)return "null";var s=String(v);if(s==="")return "''";if(/[\[\]{}:#,|>\n]/.test(s)||/^\s/.test(s)||/\s$/.test(s))return "'"+s.replace(/'/g,"''")+"'";return s;}
-function process(){var text=inp.value.trim();if(!text){alert("Please enter CSV data");return}var sep=inpDel.value;var lines=text.split("\n").filter(function(l){return l.trim()});if(lines.length<1){err.style.display="block";err.textContent="Error: CSV data is empty";res.style.display="none";return}err.style.display="none";var indent=indentSel.value;var indentStr=indent==="tab"?"\t":Array(parseInt(indent)+1).join(" ");var rows=lines.map(function(l){return parseLine(l,sep)});var headers;var dataStart=0;if(firstRow.checked){headers=rows[0];dataStart=1}else{headers=rows[0].map(function(_,i){return "field_"+(i+1)});dataStart=0}var yl=[];for(var i=dataStart;i<rows.length;i++){yl.push("-");for(var j=0;j<headers.length;j++){var val=j<rows[i].length?rows[i][j]:"";yl.push(indentStr+headers[j]+": "+yamlEscape(val))}}out.textContent=yl.join("\n");rc.textContent=rows.length-dataStart;res.style.display="block";}
+function process(){var text=inp.value.trim();if(!text){showToast("Please enter CSV data");return}var sep=inpDel.value;var lines=text.split("\n").filter(function(l){return l.trim()});if(lines.length<1){err.style.display="block";err.textContent="Error: CSV data is empty";res.style.display="none";return}err.style.display="none";var indent=indentSel.value;var indentStr=indent==="tab"?"\t":Array(parseInt(indent)+1).join(" ");var rows=lines.map(function(l){return parseLine(l,sep)});var headers;var dataStart=0;if(firstRow.checked){headers=rows[0];dataStart=1}else{headers=rows[0].map(function(_,i){return "field_"+(i+1)});dataStart=0}var yl=[];for(var i=dataStart;i<rows.length;i++){yl.push("-");for(var j=0;j<headers.length;j++){var val=j<rows[i].length?rows[i][j]:"";yl.push(indentStr+headers[j]+": "+yamlEscape(val))}}out.textContent=yl.join("\n");rc.textContent=rows.length-dataStart;res.style.display="block";}
 btn.addEventListener("click",process);
 clr.addEventListener("click",function(){inp.value="";res.style.display="none";err.style.display="none"});
 smp.addEventListener("click",function(){inp.value="name,age,city,role\nAlice,30,New York,Engineer\nBob,25,London,Designer\nCharlie,35,Tokyo,Manager"});
@@ -223,6 +225,8 @@ dwn.addEventListener("click",function(){var b=new Blob([out.textContent],{type:"
 </div>
 </div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.addEventListener('DOMContentLoaded',function(){var ft=document.getElementById('feedback-text');if(ft)ft.addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';})});
 function submitFeedback(){
@@ -237,5 +241,6 @@ document.getElementById('feedback-success').style.display='block';
 setTimeout(function(){document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
 }
 </script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

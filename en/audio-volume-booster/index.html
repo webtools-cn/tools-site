@@ -182,6 +182,8 @@ a{color:#06b6d4;text-decoration:none}
 .footer a:hover{color:#94a3b8}
 @media(max-width:600px){.file-info{flex-direction:column;gap:6px;align-items:flex-start}
 .ad-slot{margin:16px auto;text-align:center;max-width:960px;min-height:90px}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{min-height:250px;max-width:300px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 
 <script type="application/ld+json">
@@ -325,7 +327,7 @@ function formatSize(bytes){if(bytes<1024)return bytes+'B';if(bytes<1048576)retur
 function formatTime(sec){var m=Math.floor(sec/60);var s=Math.floor(sec%60);return m+':'+s.toString().padStart(2,'0');}
 
 function handleFile(file){
-  if(!file.type.startsWith('audio/')){alert('Please select an audio file');return;}
+  if(!file.type.startsWith('audio/')){showToast('Please select an audio file');return;}
   originalName=file.name.replace(/\.[^.]+$/,'');
   var ext=file.name.split('.').pop().toLowerCase();
   if(['mp3','wav','ogg','m4a','aac','flac','webm'].includes(ext))currentFormat=ext;else currentFormat='wav';
@@ -341,7 +343,7 @@ function handleFile(file){
       playTime.textContent='0:00 / '+formatTime(buffer.duration);
       downloadBtn.disabled=false;
       updateBoostDisplay();
-    },function(){alert('Could not decode this audio file. Please check the format.');});
+    },function(){showToast('Could not decode this audio file. Please check the format.');});
   };
   reader.readAsArrayBuffer(file);
 }
@@ -395,7 +397,7 @@ playBtn.addEventListener('click',function(){
 });
 
 downloadBtn.addEventListener('click',function(){
-  if(!rawBuffer){alert('Please upload an audio file first');return;}
+  if(!rawBuffer){showToast('Please upload an audio file first');return;}
   downloadBtn.disabled=true;
   downloadBtn.textContent='⏳ Processing...';
   var boost=parseInt(boostSlider.value)/100;
@@ -417,7 +419,7 @@ downloadBtn.addEventListener('click',function(){
     downloadBtn.disabled=false;
     downloadBtn.textContent='📥 Download Boosted Audio';
   }).catch(function(err){
-    alert('Processing failed: '+err.message);
+    showToast('Processing failed: '+err.message);
     downloadBtn.disabled=false;
     downloadBtn.textContent='📥 Download Boosted Audio';
   });
@@ -453,6 +455,8 @@ window.addEventListener('beforeunload',function(){if(audioCtx)audioCtx.close();}
 })();
 </script>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function(){var s=document.createElement('script');s.src='/tools-site/libs/feedback.js';document.body.appendChild(s);})();
 </script>
 <!-- Related Tools (cross-recommendation) -->
@@ -462,5 +466,6 @@ window.addEventListener('beforeunload',function(){if(audioCtx)audioCtx.close();}
 </div>
 <script src="https://free-toolbase.com/related-tools.js"></script>
 
+<div class="toast" id="toast"></div>
 </body>
 </html>

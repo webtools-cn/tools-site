@@ -77,6 +77,8 @@ h2{font-size:1.2rem;margin:24px 0 12px;color:#e2e8f0}
 .faq-a{color:#94a3b8;font-size:.9rem}
 footer{text-align:center;padding:20px;color:#999;font-size:.8rem}
 
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js" defer></script>
 <script src="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
@@ -154,7 +156,7 @@ let isSelecting=false,selStart=null,selEnd=null;
 let keywords=[];
 
 function handleFile(file){
-  if(!file||file.type!=='application/pdf'){alert('请上传PDF文件');return}
+  if(!file||file.type!=='application/pdf'){showToast('请上传PDF文件');return}
   const reader=new FileReader();
   reader.onload=async e=>{
     pdfBytes=new Uint8Array(e.target.result);
@@ -166,7 +168,7 @@ function handleFile(file){
       document.getElementById('uploadArea').style.display='none';
       document.getElementById('editorPanel').style.display='block';
       renderPage();
-    }catch(err){alert('PDF加载失败：'+err.message)}
+    }catch(err){showToast('PDF加载失败：'+err.message)}
   };
   reader.readAsArrayBuffer(file);
 }
@@ -297,7 +299,7 @@ function clearAllRedactions(){
 }
 
 async function redactByKeywords(){
-  if(keywords.length===0){alert('请先添加关键词');return}
+  if(keywords.length===0){showToast('请先添加关键词');return}
   const btn=event.target;
   btn.disabled=true;btn.textContent='查找中...';
   
@@ -324,15 +326,15 @@ async function redactByKeywords(){
   if(found>0){
     renderPage();
     updateManualList();
-    alert(`找到 ${found} 处匹配，已添加涂黑区域`);
+    showToast(`找到 ${found} 处匹配，已添加涂黑区域`);
   }else{
-    alert('未找到匹配内容');
+    showToast('未找到匹配内容');
   }
 }
 
 async function downloadRedacted(){
   const hasRedactions=Object.keys(redactions).length>0;
-  if(!hasRedactions){alert('请先添加涂黑区域');return}
+  if(!hasRedactions){showToast('请先添加涂黑区域');return}
   
   const btn=event.target;
   btn.disabled=true;btn.textContent='处理中...';
@@ -369,7 +371,7 @@ async function downloadRedacted(){
     a.href=url;a.download='redacted.pdf';
     a.click();URL.revokeObjectURL(url);
   }catch(e){
-    alert('处理失败：'+e.message);
+    showToast('处理失败：'+e.message);
   }
   btn.disabled=false;btn.textContent='⬇ 下载涂黑PDF';
 }
@@ -407,7 +409,10 @@ uploadArea.addEventListener('drop',e=>{e.preventDefault();uploadArea.classList.r
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function(){var s=document.getElementById('related-tools-section');if(!s)return;var p=window.location.pathname;var en=p.indexOf('/en/')!==-1;p=p.replace(/\/en\//g,'/');var slug=p.split('/').filter(Boolean).pop()||'';if(!slug){s.innerHTML='';return;}var depth=en?'../../':'../';fetch(depth+'related-tools.json').then(function(r){if(!r.ok)throw new Error('');return r.json();}).then(function(d){var data=en?d.en:d.cn;var t=data[slug];if(!t||!t.related||!t.related.length){s.innerHTML='';return;}var h='<div class="related-tools-inner"><h3 class="related-tools-title">'+(en?'🔗 You May Also Like':'🔗 相关工具推荐')+'</h3><div class="related-tools-grid">';t.related.forEach(function(r){var link=en?'../../en/'+r.slug+'/':'../'+r.slug+'/';h+='<a href="'+link+'" class="related-tool-card"><span class="related-tool-icon">'+(r.icon||'🔧')+'</span><span class="related-tool-name">'+r.name+'</span></a>';});h+='</div></div>';s.innerHTML=h;}).catch(function(){s.innerHTML='';});})();
 </script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

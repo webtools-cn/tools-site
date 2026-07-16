@@ -52,6 +52,8 @@
 .faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:8px}
 .faq-item h3::before{content:'Q';display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(6,182,212,.15);color:#22d3ee;font-size:.7rem;font-weight:700;flex-shrink:0}
 .faq-item p{color:#94a3b8;font-size:.88rem;line-height:1.6;padding-left:30px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
     <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-9W1157EBQV');</script>
@@ -169,11 +171,11 @@
             }
         }
         function getTypeInfo(obj) { if (obj === null) return 'null'; if (Array.isArray(obj)) return 'array, ' + obj.length + ' items'; if (typeof obj === 'object') return 'object, ' + Object.keys(obj).length + ' keys'; return typeof obj; }
-        function formatYAML() { var input = document.getElementById('yamlInput').value.trim(); if (!input) return; try { var obj = jsyaml.load(input); document.getElementById('yamlInput').value = jsyaml.dump(obj, { indent: 2, lineWidth: 120, noRefs: true }); validateYAML(); } catch(e) { alert('Cannot format: ' + e.message); } }
-        function convertToJSON() { var input = document.getElementById('yamlInput').value.trim(); if (!input) return; try { var obj = jsyaml.load(input); lastOutput = JSON.stringify(obj, null, 2); document.getElementById('outputCard').style.display = ''; document.getElementById('outputArea').textContent = lastOutput; } catch(e) { alert('YAML parse failed: ' + e.message); } }
+        function formatYAML() { var input = document.getElementById('yamlInput').value.trim(); if (!input) return; try { var obj = jsyaml.load(input); document.getElementById('yamlInput').value = jsyaml.dump(obj, { indent: 2, lineWidth: 120, noRefs: true }); validateYAML(); } catch(e) { showToast('Cannot format: ' + e.message); } }
+        function convertToJSON() { var input = document.getElementById('yamlInput').value.trim(); if (!input) return; try { var obj = jsyaml.load(input); lastOutput = JSON.stringify(obj, null, 2); document.getElementById('outputCard').style.display = ''; document.getElementById('outputArea').textContent = lastOutput; } catch(e) { showToast('YAML parse failed: ' + e.message); } }
         function loadExample() { document.getElementById('yamlInput').value = '# Application Config\nname: WebTools\nversion: 2.0.0\ndescription: Free online tool suite\n\n# Server config\nserver:\n  host: 0.0.0.0\n  port: 8080\n  debug: false\n\n# Database config\ndatabase:\n  driver: postgresql\n  host: localhost\n  port: 5432\n  name: webtools_db\n  pool:\n    min: 5\n    max: 20\n\n# Features\nfeatures:\n  - yaml-validation\n  - auto-format\n  - json-conversion\n  - syntax-highlighting\n\n# Environment\nenv:\n  NODE_ENV: production\n  LOG_LEVEL: info'; validateYAML(); }
         function clearAll() { document.getElementById('yamlInput').value = ''; document.getElementById('statusCard').style.display = 'none'; document.getElementById('outputCard').style.display = 'none'; }
-        function copyOutput() { navigator.clipboard.writeText(document.getElementById('outputArea').textContent).then(function() { alert('Copied to clipboard'); }); }
+        function copyOutput() { navigator.clipboard.writeText(document.getElementById('outputArea').textContent).then(function() { showToast('Copied to clipboard'); }); }
         function downloadOutput() { var blob = new Blob([document.getElementById('outputArea').textContent], { type: 'application/json' }); var url = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = 'output.json'; a.click(); URL.revokeObjectURL(url); }
         function escapeHtml(str) { return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
         </script>
@@ -210,6 +212,8 @@
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function() {
   'use strict';
   var s = document.getElementById('related-tools-section');
@@ -242,5 +246,6 @@
   }).catch(function() { s.innerHTML = ''; });
 })();
 </script>
+<div class="toast" id="toast"></div>
 </body>
 </html>

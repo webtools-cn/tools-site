@@ -74,6 +74,8 @@ h2{font-size:1.2rem;margin:24px 0 12px;color:#e2e8f0}
 .faq-a{color:#94a3b8;font-size:.9rem}
 footer{text-align:center;padding:20px;color:#999;font-size:.8rem}
 
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
@@ -186,13 +188,13 @@ function handleFile(file){
 
 function parseCSV(){
   const raw=document.getElementById('csvInput').value.trim();
-  if(!raw){alert('请输入CSV数据');return}
+  if(!raw){showToast('请输入CSV数据');return}
   
   const delimSel=document.getElementById('delimiter').value;
   let delim=delimSel==='auto'?detectDelimiter(raw):delimSel==='\\t'?'\t':delimSel;
   
   const lines=raw.split('\n').filter(l=>l.trim());
-  if(lines.length<2){alert('CSV数据至少需要标题行和一行数据');return}
+  if(lines.length<2){showToast('CSV数据至少需要标题行和一行数据');return}
   
   headers=parseLine(lines[0],delim);
   csvData=lines.slice(1).map(l=>parseLine(l,delim)).filter(row=>row.length>=2);
@@ -259,7 +261,7 @@ function convertToGeoJSON(){
   const latIdx=parseInt(document.getElementById('latCol').value);
   const lngIdx=parseInt(document.getElementById('lngCol').value);
   
-  if(latIdx===lngIdx){alert('纬度和经度不能选择同一列');return}
+  if(latIdx===lngIdx){showToast('纬度和经度不能选择同一列');return}
   
   const features=[];
   let skipped=0;
@@ -367,7 +369,10 @@ document.getElementById('csvInput').addEventListener('input',()=>{
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
 <script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
 (function(){var s=document.getElementById('related-tools-section');if(!s)return;var p=window.location.pathname;var en=p.indexOf('/en/')!==-1;p=p.replace(/\/en\//g,'/');var slug=p.split('/').filter(Boolean).pop()||'';if(!slug){s.innerHTML='';return;}var depth=en?'../../':'../';fetch(depth+'related-tools.json').then(function(r){if(!r.ok)throw new Error('');return r.json();}).then(function(d){var data=en?d.en:d.cn;var t=data[slug];if(!t||!t.related||!t.related.length){s.innerHTML='';return;}var h='<div class="related-tools-inner"><h3 class="related-tools-title">'+(en?'🔗 You May Also Like':'🔗 相关工具推荐')+'</h3><div class="related-tools-grid">';t.related.forEach(function(r){var link=en?'../../en/'+r.slug+'/':'../'+r.slug+'/';h+='<a href="'+link+'" class="related-tool-card"><span class="related-tool-icon">'+(r.icon||'🔧')+'</span><span class="related-tool-name">'+r.name+'</span></a>';});h+='</div></div>';s.innerHTML=h;}).catch(function(){s.innerHTML='';});})();
 </script>
+<div class="toast" id="toast"></div>
 </body>
 </html>
