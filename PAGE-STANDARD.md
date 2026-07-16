@@ -634,3 +634,65 @@ document.addEventListener('keydown', function(e) {
 - 不赶进度，该逐页就逐页
 - 不走过场，该深度就深度
 - 质量不过的页面宁可不上线
+
+---
+
+## 十九、流量三入口（2026-07-16，站点盘活的根本）
+
+### 19.1 三大流量入口，一个都不能出问题
+
+| 入口 | 职责 | 当前状态 | 风险 |
+|:-----|:-----|:---------|:-----|
+| **社区发帖** | Reddit/HN引入即时流量 | 断了，没人跟进回复 | 流量为0 |
+| **SEO** | Google搜索自然流量 | Schema报错130+、sitemap格式问题 | Google不收录/不展示 |
+| **GEO** | AI搜索引擎推荐流量 | 未验证，可能有潜在问题 | AI不推荐 |
+
+**三个入口 = 站点的命脉。任何一个出问题 = 流量断一条腿。**
+
+### 19.2 SEO铁律
+
+**收录是前提，不收录=不存在**
+- sitemap.xml必须有效（单根urlset、无重复、XML格式正确）
+- Schema必须Google验证通过（Rich Results Test 0错误）
+- robots.txt必须允许Googlebot
+- 每个页面必须可被Google抓取（返回200、无重定向循环）
+- CNAME必须指向正确（free-toolbase.com → GitHub Pages）
+- HTTPS必须正常（无混合内容）
+
+**常见致命问题**
+- ❌ sitemap有多个urlset根 → Google解析失败 → 不收录
+- ❌ Schema报错 → Google不展示富媒体结果 → 点击率低
+- ❌ HTML标签未闭合 → Google解析异常 → 降权
+- ❌ 页面返回404/5xx → Google标记为不可抓取 → 去索引
+
+### 19.3 GEO铁律（AI搜索引擎优化）
+
+**GEO = 让ChatGPT/Claude/Gemini/Perplexity推荐你的工具**
+- llms.txt 和 llms-full.txt 必须维护，包含所有工具
+- 每个工具页面必须有清晰的description和用途说明
+- 页面内容要AI可解析：结构化、语义清晰、无JS渲染依赖
+- 工具分类和标签要准确，AI按语义匹配推荐
+- 定期检查：用ChatGPT/Claude搜索"online XX tool"看是否推荐我们
+
+**GEO潜在问题（待验证）**
+- [ ] llms.txt是否完整覆盖所有工具
+- [ ] AI搜索"free online json formatter"是否推荐我们
+- [ ] AI搜索"在线XX工具"是否推荐我们
+- [ ] 页面内容AI是否可解析（纯JS渲染的内容AI看不到）
+
+### 19.4 社区发帖铁律
+
+**不能断，不能敷衍**
+- 每次运行必须发帖或回复
+- 之前发的帖子有人回复必须跟进
+- 新站(free-toolbase.com)优先推广
+- 发帖记录存入 .gsc-data/community-posts.json
+
+### 19.5 流量入口巡检（调度中枢每次必查）
+
+```
+1. SEO健康：sitemap有效？Schema报错数？收录数？
+2. GEO健康：llms.txt完整？AI搜索能找到我们？
+3. 社区健康：最近3天有没有发帖？有没有未回复的评论？
+4. 发现问题 → 立即修复 → 验证 → 闭环
+```
