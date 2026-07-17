@@ -42,7 +42,7 @@ def head_start(title, desc, keywords, canonical, og_title, og_desc, og_url, sche
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{site_name}">
 <script type="application/ld+json">{{"@context":"https://schema.org","@type":"SoftwareApplication","name":"{schema_name}","applicationCategory":"DeveloperApplication","operatingSystem":"Web","publisher":{{"@type":"Organization","name":"Online Tools","email":"dexshuang@google.com"}},"author":{{"@type":"Organization","name":"Online Tools"}},"dateModified":"{DATE}","description":"{schema_desc}","offers":{{"@type":"Offer","price":"0","priceCurrency":"CNY"}}}}</script>
-<script type="application/ld+json">{{"@context":"https://schema.org","@type":"FAQPage","mainEntity":{faq_json}}}</script>
+<script type="application/ld+json">{{"@context":"https://schema.org","@type":"FAQPage","name":"{schema_name}","mainEntity":{faq_json}}}</script>
 <script type="application/ld+json">{{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{{"@type":"ListItem","position":1,"name":"首页","item":"https://free-toolbase.com/"}},{{"@type":"ListItem","position":2,"name":"{breadcrumb_name}","item":"https://free-toolbase.com/#online-tools"}},{{"@type":"ListItem","position":3,"name":"{schema_name}","item":"{canonical}"}}]}}</script>
 <style>{CSS}</style>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
