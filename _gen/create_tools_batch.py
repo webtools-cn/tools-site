@@ -16,7 +16,7 @@ def make_schema_software(name, desc, rating_count=312):
         "operatingSystem":"Web",
         "publisher":{"@type":"Organization","name":"Online Tools","email":"dexshuang@google.com"},
         "offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},
-        "aggregateRating":{"@type":"AggregateRating","ratingValue":"4.8","ratingCount":str(rating_count),"bestRating":"5","worstRating":"1","reviewCount":str(rating_count)}
+        "aggregateRating":{"@type":"AggregateRating","name":name+" Rating","ratingValue":4.8,"reviewCount":rating_count,"bestRating":5,"worstRating":1}
     }, ensure_ascii=False)
 
 def make_schema_faq(name, faqs):
