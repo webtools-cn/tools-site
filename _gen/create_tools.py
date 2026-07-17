@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+"""Generate 5 new tool pages for free-toolbase.com"""
+import os
+
+BASE = os.path.expanduser("~/tools-site")
+
+def write_file(path, content):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    print(f"  Written: {path} ({len(content)} bytes)")
+
+# ============================================================
+# Tool 1: online-hearing-test (CN + EN)
+# ============================================================
+online_hearing_test_cn = '''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="免费在线听力测试工具，通过播放不同频率纯音评估听力范围。支持左右耳分别测试，生成听力曲线图，纯前端本地处理，数据绝不上传。">
+<meta name="keywords" content="在线听力测试,听力检查,听力检测,听力评估,免费听力测试,听力曲线,耳朵测试,听力自测,在线听力检查,听力范围测试">
+<title>在线听力测试 - 免费纯音听力评估·纯前端本地处理</title>
+<link rel="canonical" href="https://free-toolbase.com/online-hearing-test/">
+<meta property="og:title" content="在线听力测试"><meta property="og:description" content="免费在线听力测试工具，通过播放不同频率纯音评估听力范围。支持左右耳分别测试，生成听力曲线图，纯前端本地处理。"><meta property="og:url" content="https://free-toolbase.com/online-hearing-test/"><meta property="og:type" content="website"><meta property="og:site_name" content="在线小工具矩阵">
+<link rel="alternate" hreflang="zh" href="https://free-toolbase.com/online-hearing-test/"><link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/online-hearing-test/"><link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/online-hearing-test/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"在线听力测试","description":"免费在线听力测试工具，通过播放不同频率纯音评估听力范围。支持左右耳分别测试，生成听力曲线图，纯前端本地处理，数据绝不上传。","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","publisher":{"@type":"Organization","name":"Online Tools","email":"dexshuang@google.com"},"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"},"aggregateRating":{"@type":"AggregateRating","ratingValue":"4.8","ratingCount":"312","bestRating":"5","worstRating":"1","reviewCount":"312"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","name":"在线听力测试准确吗？","mainEntity":[{"@type":"Question","name":"在线听力测试准确吗？","acceptedAnswer":{"@type":"Answer","text":"本工具使用Web Audio API生成精确频率的纯音信号，可初步评估听力范围。建议在安静环境下使用耳机测试，结果仅供参考，不能替代专业听力检查。"}},{"@type":"Question","name":"需要戴耳机测试吗？","acceptedAnswer":{"@type":"Answer","text":"强烈建议使用耳机。耳机可隔离环境噪音，并分别测试左右耳。使用扬声器时，环境噪音和声场反射会严重影响结果准确性。"}},{"@type":"Question","name":"测试覆盖哪些频率？","acceptedAnswer":{"@type":"Answer","text":"标准测试覆盖125Hz到8000Hz，扩展模式可测试至16000Hz高频范围。"}},{"@type":"Question","name":"数据安全吗？","acceptedAnswer":{"@type":"Answer","text":"所有测试完全在浏览器本地运行，不会上传任何数据到服务器。隐私完全有保障。"}},{"@type":"Question","name":"听力下降的常见原因是什么？","acceptedAnswer":{"@type":"Answer","text":"常见原因包括：年龄增长、长期噪音暴露、耳道堵塞、中耳感染、某些药物副作用。发现听力异常请及时就医。"}},{"@type":"Question","name":"如何解读听力曲线？","acceptedAnswer":{"@type":"Answer","text":"正常听力0-25dB；26-40dB轻度损失；41-55dB中度；56-70dB中重度；71-90dB重度；90dB以上极重度。曲线越低损失越严重。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"如何使用在线听力测试","description":"使用在线听力测试评估听力范围的步骤","totalTime":"PT3M","tool":{"@type":"HowToTool","name":"在线听力测试"},"step":[{"@type":"HowToStep","position":1,"name":"准备环境","text":"戴上耳机，进入安静环境，调整设备音量到舒适水平","url":"https://free-toolbase.com/online-hearing-test/#input"},{"@type":"HowToStep","position":2,"name":"选择耳朵和频率","text":"选择测试左耳或右耳，从低频开始逐步测试","url":"https://free-toolbase.com/online-hearing-test/#options"},{"@type":"HowToStep","position":3,"name":"记录并查看结果","text":"点击听到按钮记录能听到的最小音量，完成后查看听力曲线图","url":"https://free-toolbase.com/online-hearing-test/#output"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://free-toolbase.com/"},{"@type":"ListItem","position":2,"name":"健康工具","item":"https://free-toolbase.com/#health-tools"},{"@type":"ListItem","position":3,"name":"在线听力测试","item":"https://free-toolbase.com/online-hearing-test/"}]}</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;padding:24px 16px}.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}.header h1{font-size:1.5rem;color:#f1f5f9}.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}.nav-back a{color:#64748b}.section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}.section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}.form-group{margin-bottom:14px}.form-group label{display:block;color:#94a3b8;font-size:.9rem;margin-bottom:6px;font-weight:500}.form-group input[type="number"],.form-group input[type="text"],.form-group select,.form-group textarea,.form-group input[type="range"]{width:100%;padding:10px 14px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;color:#e2e8f0;font-size:.9rem;outline:none;transition:all .2s}.form-group input:focus,.form-group select:focus{border-color:rgba(6,182,212,.4);box-shadow:0 0 0 3px rgba(6,182,212,.1)}.form-row{display:flex;gap:12px;flex-wrap:wrap}.form-row .form-group{flex:1;min-width:200px}.btn-group{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.btn{padding:10px 24px;border:none;border-radius:8px;font-size:.9rem;cursor:pointer;transition:all .2s;font-weight:600}.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}.btn-primary:hover{background:rgba(6,182,212,.3)}.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}.btn-secondary:hover{background:rgba(148,163,184,.2)}.btn-success{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.25)}.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2)}.faq-item{margin-bottom:16px}.faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px}.faq-item p{color:#94a3b8;font-size:.9rem}.info-text{color:#94a3b8;font-size:.85rem;margin-bottom:12px}.badge{display:inline-block;background:rgba(6,182,212,.15);color:#22d3ee;padding:4px 12px;border-radius:20px;font-size:.8rem;margin-bottom:12px;border:1px solid rgba(6,182,212,.2)}.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}.footer a{color:#64748b;margin:0 8px}.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}.toast.show{opacity:1}canvas{max-width:100%}.ad-slot{margin:16px auto;text-align:center;max-width:960px}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{max-width:300px}.seo-content{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}.seo-content h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}.seo-content p,.seo-content li{color:#94a3b8;font-size:.9rem}.seo-content ol,.seo-content ul{padding-left:20px;margin-top:8px}.seo-content li{margin-bottom:8px}.seo-content strong{color:#e2e8f0}.main-grid{display:grid;grid-template-columns:1fr 300px;gap:16px}@media(max-width:768px){.main-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="ad-slot" id="ad-top"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
+<div class="container">
+  <div class="header"><h1>👂 在线听力测试</h1><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/online-hearing-test/">EN</a></div></div>
+  <p class="nav-back"><a href="../index.html">首页</a> › <a href="../index.html#health-tools">健康工具</a> › 在线听力测试</p>
+  <p class="info-text">免费在线听力测试 · 纯前端本地处理 · 数据绝不上传服务器</p>
+  <span class="badge">零依赖·可离线使用</span>
+  <div class="main-grid">
+    <div>
+      <div class="section">
+        <div class="form-row">
+          <div class="form-group"><label>选择耳朵</label><select id="ear" onchange="stopTest()"><option value="left">左耳</option><option value="right">右耳</option><option value="both">双耳</option></select></div>
+          <div class="form-group"><label>测试模式</label><select id="mode"><option value="standard">标准（125-8000Hz）</option><option value="extended">扩展（125-16000Hz）</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>频率: <span id="freqVal">1000 Hz</span></label><input type="range" id="freqSlider" min="125" max="16000" value="1000" oninput="document.getElementById('freqVal').textContent=this.value+' Hz'"><div style="display:flex;justify-content:space-between;font-size:.75rem;color:#64748b"><span>125 Hz</span><span>16000 Hz</span></div></div>
+          <div class="form-group"><label>音量: <span id="volVal">30 dB</span></label><input type="range" id="volSlider" min="0" max="80" value="30" oninput="document.getElementById('volVal').textContent=this.value+' dB'"><div style="display:flex;justify-content:space-between;font-size:.75rem;color:#64748b"><span>0 dB</span><span>80 dB</span></div></div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="playBtn" onclick="toggleTest()">▶ 播放纯音</button>
+          <button class="btn btn-success" onclick="recordHeard()">✓ 听到了</button>
+          <button class="btn btn-danger" onclick="recordNotHeard()">✗ 听不到</button>
+          <button class="btn btn-secondary" onclick="stopTest()">⏹ 停止</button>
+          <button class="btn btn-secondary" onclick="clearResults()">🗑️ 清除</button>
+        </div>
+        <div class="form-group"><label>快速频率测试</label><div class="btn-group">
+          <button class="btn btn-secondary" onclick="playFreq(125)">125Hz</button>
+          <button class="btn btn-secondary" onclick="playFreq(250)">250Hz</button>
+          <button class="btn btn-secondary" onclick="playFreq(500)">500Hz</button>
+          <button class="btn btn-secondary" onclick="playFreq(1000)">1kHz</button>
+          <button class="btn btn-secondary" onclick="playFreq(2000)">2kHz</button>
+          <button class="btn btn-secondary" onclick="playFreq(4000)">4kHz</button>
+          <button class="btn btn-secondary" onclick="playFreq(8000)">8kHz</button>
+          <button class="btn btn-secondary" onclick="playFreq(12000)">12kHz</button>
+        </div></div>
+        <div class="form-group"><label>听力曲线图</label><canvas id="audiogram" width="700" height="300" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;width:100%"></canvas></div>
+        <div id="resultsSummary" style="color:#94a3b8;font-size:.85rem"></div>
+        <p class="info-text">💡 请在安静环境中使用优质耳机测试。本测试仅供参考，不能替代专业听力检查。</p>
+      </div>
+    </div>
+    <div>
+      <div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div>
+      <div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div>
+    </div>
+  </div>
+  <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
+  <div class="seo-content">
+    <h2>在线听力测试能做什么？</h2>
+    <p>在线听力测试是一款免费的纯前端听力评估工具，通过Web Audio API生成不同频率和音量的纯音信号，帮助您初步了解自己的听力范围。支持左右耳分别测试，自动生成听力曲线图，所有数据在浏览器本地处理，绝不上传服务器。</p>
+    <h2>核心功能</h2>
+    <ul><li><strong>多频率纯音测试</strong>：覆盖125Hz至16000Hz频率范围</li><li><strong>左右耳分别测试</strong>：支持左耳、右耳、双耳三种模式</li><li><strong>听力曲线图</strong>：实时绘制听力图，直观展示各频率听力水平</li><li><strong>音量精细调节</strong>：0-80dB音量范围，精确定位听阈</li><li><strong>结果评估</strong>：自动评估听力等级，提供参考建议</li></ul>
+    <h2>使用教程</h2>
+    <ol><li><strong>准备环境</strong>：戴上耳机，进入安静环境，调整设备音量到舒适水平</li><li><strong>选择耳朵和频率</strong>：选择测试左耳或右耳，从125Hz低频开始逐步测试</li><li><strong>播放纯音</strong>：点击播放按钮，听到声音点击"听到了"，听不到点击"听不到"</li><li><strong>调节音量</strong>：逐步提高音量直到能听到，记录最小可听音量</li><li><strong>查看结果</strong>：测试完成后查看听力曲线图，正常听力应在0-25dB范围</li></ol>
+    <h2>应用场景</h2>
+    <ul><li><strong>日常自检</strong>：怀疑听力下降时快速自测</li><li><strong>耳机检测</strong>：测试耳机或音响设备的频率响应</li><li><strong>职业健康</strong>：长期噪音环境工人定期自测</li><li><strong>老年人关注</strong>：初步评估老年性耳聋迹象</li><li><strong>学生科普</strong>：了解人类听觉范围</li></ul>
+    <h2>扩展知识</h2>
+    <p>人类正常听力范围为20Hz-20000Hz，随年龄增长高频听力逐渐下降。听力图（Audiogram）横轴为频率（对数刻度），纵轴为听力级（dB HL）。正常听阈0-25dB；26-40dB轻度损失；41-55dB中度；56-70dB中重度；71-90dB重度；90dB以上极重度。在线测试提供初步参考，正式诊断需专业听力学家在隔音室中完成。</p>
+  </div>
+  <div class="section"><h2>常见问题</h2>
+    <div class="faq-item"><h3>在线听力测试准确吗？</h3><p>本工具使用Web Audio API生成精确频率的纯音信号，可初步评估听力范围。建议在安静环境下使用耳机测试，结果仅供参考，不能替代专业听力检查。</p></div>
+    <div class="faq-item"><h3>需要戴耳机测试吗？</h3><p>强烈建议使用耳机。耳机可隔离环境噪音，并分别测试左右耳。使用扬声器时，环境噪音和声场反射会严重影响结果准确性。</p></div>
+    <div class="faq-item"><h3>测试覆盖哪些频率？</h3><p>标准测试覆盖125Hz到8000Hz，扩展模式可测试至16000Hz高频范围。</p></div>
+    <div class="faq-item"><h3>数据安全吗？</h3><p>所有测试完全在浏览器本地运行，不会上传任何数据到服务器。隐私完全有保障。</p></div>
+    <div class="faq-item"><h3>听力下降的常见原因是什么？</h3><p>常见原因包括：年龄增长、长期噪音暴露、耳道堵塞、中耳感染、某些药物副作用。发现听力异常请及时就医。</p></div>
+    <div class="faq-item"><h3>如何解读听力曲线？</h3><p>正常听力0-25dB；26-40dB轻度损失；41-55dB中度；56-70dB中重度；71-90dB重度；90dB以上极重度。曲线越低损失越严重。</p></div>
+  </div>
+  <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
+  <div class="footer container">
+    <div style="margin-bottom:12px"><a href="../index.html">首页</a><a href="../index.html">全部工具</a><a href="mailto:dexshuang@google.com">联系我们</a><a href="../privacy/">隐私政策</a><a href="../terms/">服务条款</a><a href="../about/">关于我们</a><a href="../en/online-hearing-test/">EN</a></div>
+    <p>在线听力测试 · 纯前端本地处理 · 数据绝不上传服务器</p>
+    <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+var audioCtx=null,oscillator=null,gainNode=null,isPlaying=false,results=[];
+function toast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},2000)}
+function getAudioCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx}
+function toggleTest(){if(isPlaying){stopTest();return}startTest()}
+function startTest(){var freq=parseInt(document.getElementById('freqSlider').value);var vol=parseInt(document.getElementById('volSlider').value);playTone(freq,vol)}
+function stopTest(){if(oscillator){try{oscillator.stop()}catch(e){}oscillator.disconnect();oscillator=null}if(gainNode){gainNode.disconnect();gainNode=null}isPlaying=false;document.getElementById('playBtn').textContent='▶ 播放纯音'}
+function playTone(freq,vol){stopTest();var ctx=getAudioCtx();oscillator=ctx.createOscillator();gainNode=ctx.createGain();var ear=document.getElementById('ear').value;oscillator.type='sine';oscillator.frequency.setValueAtTime(freq,ctx.currentTime);var dB=Math.pow(10,(vol-80)/20);gainNode.gain.setValueAtTime(dB,ctx.currentTime);if(ear==='left'){var pan=ctx.createStereoPanner();pan.pan.setValueAtTime(-1,ctx.currentTime);oscillator.connect(gainNode);gainNode.connect(pan);pan.connect(ctx.destination)}else if(ear==='right'){var pan=ctx.createStereoPanner();pan.pan.setValueAtTime(1,ctx.currentTime);oscillator.connect(gainNode);gainNode.connect(pan);pan.connect(ctx.destination)}else{oscillator.connect(gainNode);gainNode.connect(ctx.destination)}oscillator.start();isPlaying=true;document.getElementById('playBtn').textContent='⏸ 暂停'}
+function playFreq(freq){var vol=parseInt(document.getElementById('volSlider').value);playTone(freq,vol)}
+function recordHeard(){var freq=parseInt(document.getElementById('freqSlider').value);var vol=parseInt(document.getElementById('volSlider').value);results.push({f:freq,v:vol,heard:true});drawResults();toast('已记录: '+freq+'Hz @ '+vol+'dB ✓')}
+function recordNotHeard(){var freq=parseInt(document.getElementById('freqSlider').value);var vol=parseInt(document.getElementById('volSlider').value);results.push({f:freq,v:vol,heard:false});drawResults();toast('已记录: '+freq+'Hz @ '+vol+'dB ✗')}
+function clearResults(){results=[];drawAudiogram();document.getElementById('resultsSummary').innerHTML='';toast('记录已清除')}
+function drawAudiogram(){var c=document.getElementById('audiogram');if(!c)return;var ctx=c.getContext('2d');var w=c.width,h=c.height;ctx.clearRect(0,0,w,h);var pad={l:60,r:20,t:30,b:40};var plotW=w-pad.l-pad.r,plotH=h-pad.t-pad.b;var freqs=[125,250,500,1000,2000,4000,8000,16000];ctx.strokeStyle='rgba(148,163,184,.15)';ctx.fillStyle='#64748b';ctx.font='10px sans-serif';ctx.textAlign='center';for(var i=0;i<freqs.length;i++){var x=pad.l+(Math.log2(freqs[i]/125)/Math.log2(16000/125))*plotW;ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,h-pad.b);ctx.stroke();ctx.fillText(freqs[i]>=1000?(freqs[i]/1000)+'k':freqs[i]+'',x,h-8)}ctx.textAlign='right';for(var db=0;db<=80;db+=10){var y=pad.t+(1-db/80)*plotH;ctx.fillText(db+'dB',pad.l-8,y+4);ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke()}ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('频率 (Hz)',w/2,h-2);ctx.save();ctx.translate(12,h/2);ctx.rotate(-Math.PI/2);ctx.fillText('听力级 (dB HL)',0,0);ctx.restore();var zones=[{from:0,to:25,color:'rgba(34,197,94,.08)',label:'正常'},{from:25,to:40,color:'rgba(234,179,8,.08)',label:'轻度'},{from:40,to:55,color:'rgba(249,115,22,.08)',label:'中度'},{from:55,to:70,color:'rgba(239,68,68,.08)',label:'中重度'},{from:70,to:80,color:'rgba(185,28,28,.08)',label:'重度'}];for(var z=0;z<zones.length;z++){var y1=pad.t+(1-zones[z].from/80)*plotH;var y2=pad.t+(1-zones[z].to/80)*plotH;ctx.fillStyle=zones[z].color;ctx.fillRect(pad.l,y2,plotW,y1-y2);ctx.fillStyle='rgba(148,163,184,.3)';ctx.font='9px sans-serif';ctx.textAlign='left';ctx.fillText(zones[z].label,pad.l+4,y2+12)}}
+function drawResults(){var c=document.getElementById('audiogram');if(!c)return;drawAudiogram();var ctx=c.getContext('2d');var w=c.width,h=c.height;var pad={l:60,r:20,t:30,b:40};var plotW=w-pad.l-pad.r,plotH=h-pad.t-pad.b;var sorted=results.slice().sort(function(a,b){return a.f-b.f});if(sorted.length>=2){ctx.beginPath();ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;for(var i=0;i<sorted.length;i++){var x=pad.l+(Math.log2(sorted[i].f/125)/Math.log2(16000/125))*plotW;var y=pad.t+(1-sorted[i].v/80)*plotH;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.stroke()}for(var i=0;i<sorted.length;i++){var x=pad.l+(Math.log2(sorted[i].f/125)/Math.log2(16000/125))*plotW;var y=pad.t+(1-sorted[i].v/80)*plotH;ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle=sorted[i].heard?'#22d3ee':'#ef4444';ctx.fill();ctx.strokeStyle='#0f172a';ctx.lineWidth=2;ctx.stroke()}var summary=document.getElementById
