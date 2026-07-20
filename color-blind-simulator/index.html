@@ -149,155 +149,27 @@ input[type="file"]{display:none}
 </div>
 </div>
 <div class="faq-section">
-    <h2>常见问题 (FAQ)</h2>
-    <div class="faq-item">
+    <h2>常见问题 (FAQ)</h2><div class="faq-item">
       <h3>这个色盲模拟器准确吗？</h3>
       <p>基于Brettel-Vienot-Mollon色觉模型算法模拟，可近似色觉障碍者看到的颜色。但每个人的色觉障碍程度不同，模拟仅供参考。</p>
     </div>
-    <div class="faq-item">
+<div class="faq-item">
       <h3>支持哪些色盲类型？</h3>
       <p>支持红绿色盲（Protanopia/Deuteranopia，最常见）、蓝黄色盲（Tritanopia，罕见）和全色盲（Achromatopsia，极罕见）。</p>
     </div>
-    <div class="faq-item">
+<div class="faq-item">
       <h3>可以用来测试网页的无障碍性吗？</h3>
       <p>可以。上传网页截图，切换不同色盲模式查看对比度是否足够。是检查色彩无障碍设计的好工具。</p>
     </div>
-    <div class="faq-item">
+<div class="faq-item">
       <h3>我的图片会被上传吗？</h3>
       <p>不会。所有处理在浏览器本地完成，图片不会离开您的设备。</p>
     </div>
-    <div class="faq-item">
+<div class="faq-item">
       <h3>在手机上能用吗？</h3>
       <p>可以。完全响应式设计，支持手机、平板和电脑。</p>
     </div>
-  </div>
-<div class="footer"><p><a href="mailto:dexshuang@google.com">联系我们</a> · 在线小工具矩阵 - 免费实用的网页工具集合</p><p style="margin-top:8px"><a href="../privacy-policy/">隐私政策</a> · <a href="../terms-of-service/">使用条款</a></p>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p></div>
-</div>
-
-<script>function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});function submitFeedback(){var t=document.getElementById('feedback-text').value.trim();if(!t)return;document.getElementById('feedback-success').style.display='block';setTimeout(function(){document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);}</script>
-
-<script>
-(function(){
-  var imgInput=document.getElementById('imgInput'),uploadZone=document.getElementById('uploadZone');
-  var settingsSection=document.getElementById('settingsSection');
-  var typeOptions=document.getElementById('typeOptions'),compareSection=document.getElementById('compareSection');
-  var originalImg=document.getElementById('originalImg'),simulatedCanvas=document.getElementById('simulatedCanvas');
-  var applyBtn=document.getElementById('applyBtn'),resetBtn=document.getElementById('resetBtn');
-  var currentType='protanopia',selectedImage=null;
-
-  typeOptions.addEventListener('click',function(e){
-    var opt=e.target.closest('.type-opt');if(!opt)return;
-    document.querySelectorAll('.type-opt').forEach(function(o){o.classList.remove('active');});
-    opt.classList.add('active');currentType=opt.dataset.type;
-    if(selectedImage) simulate();
-  });
-
-  uploadZone.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('dragover');});
-  uploadZone.addEventListener('dragleave',function(e){e.preventDefault();this.classList.remove('dragover');});
-  uploadZone.addEventListener('drop',function(e){e.preventDefault();this.classList.remove('dragover');if(e.dataTransfer.files.length>0)loadImage(e.dataTransfer.files[0]);});
-  imgInput.addEventListener('change',function(){if(this.files.length>0)loadImage(this.files[0]);});
-
-  function loadImage(file){
-    if(!file.type.match(/image\//)){showToast('请选择图片文件！');return;}
-    var reader=new FileReader();reader.onload=function(e){
-      selectedImage=e.target.result;
-      var img=new Image();img.onload=function(){
-        var maxW=450,maxH=400;
-        var w=img.width,h=img.height;
-        if(w>maxW){h=h*maxW/w;w=maxW;}
-        if(h>maxH){w=w*maxH/h;h=maxH;}
-        simulatedCanvas.width=w;simulatedCanvas.height=h;
-        originalImg.src=selectedImage;settingsSection.style.display='block';simulate();
-      };img.src=selectedImage;
-    };reader.readAsDataURL(file);
-  }
-
-  resetBtn.addEventListener('click',function(){selectedImage=null;settingsSection.style.display='none';imgInput.value='';});
-
-  applyBtn.addEventListener('click',function(){if(selectedImage) simulate();});
-
-  function simulate(){
-    var img=new Image();img.onload=function(){
-      simulatedCanvas.width=simulatedCanvas.width;simulatedCanvas.height=simulatedCanvas.height;
-      var ctx=simulatedCanvas.getContext('2d');ctx.drawImage(img,0,0,simulatedCanvas.width,simulatedCanvas.height);
-      var imageData=ctx.getImageData(0,0,simulatedCanvas.width,simulatedCanvas.height);
-      var data=imageData.data;
-      // Brettel-Vienot-Mollon simulation matrices
-      var matrices={
-        protanopia: [0.567,0.433,0, 0.558,0.442,0, 0,0.242,0.758],
-        deuteranopia: [0.625,0.375,0, 0.7,0.3,0, 0,0.3,0.7],
-        tritanopia: [0.95,0.05,0, 0,0.433,0.567, 0,0.475,0.525],
-        achromatopsia: [0.299,0.587,0.114, 0.299,0.587,0.114, 0.299,0.587,0.114]
-      };
-      var m=matrices[currentType];
-      for(var i=0;i<data.length;i+=4){
-        var r=data[i]/255,g=data[i+1]/255,b=data[i+2]/255;
-        // Linearize
-        r=r<=0.04045?r/12.92:Math.pow((r+0.055)/1.055,2.4);
-        g=g<=0.04045?g/12.92:Math.pow((g+0.055)/1.055,2.4);
-        b=b<=0.04045?b/12.92:Math.pow((b+0.055)/1.055,2.4);
-        var r2=r*m[0]+g*m[1]+b*m[2];
-        var g2=r*m[3]+g*m[4]+b*m[5];
-        var b2=r*m[6]+g*m[7]+b*m[8];
-        // Gamma encode
-        r2=r2<=0.0031308?12.92*r2:1.055*Math.pow(r2,1/2.4)-0.055;
-        g2=g2<=0.0031308?12.92*g2:1.055*Math.pow(g2,1/2.4)-0.055;
-        b2=b2<=0.0031308?12.92*b2:1.055*Math.pow(b2,1/2.4)-0.055;
-        data[i]=Math.max(0,Math.min(255,Math.round(r2*255)));
-        data[i+1]=Math.max(0,Math.min(255,Math.round(g2*255)));
-        data[i+2]=Math.max(0,Math.min(255,Math.round(b2*255)));
-      }
-      ctx.putImageData(imageData,0,0);
-    };img.src=selectedImage;
-  }
-})();
-</script>
-
-  
-
-<script>
-(function(){const STORAGE_KEY='wt_rating_'+location.pathname.replace(/\//g,'_');const AVG_KEY='wt_avg_'+location.pathname.replace(/\//g,'_');function getConsistentRating(){let hash=0;const path=location.pathname;for(let i=0;i<path.length;i++){hash=((hash<<5)-hash)+path.charCodeAt(i);hash=hash&hash}const ratings=[4.5,4.6,4.7,4.8,4.9,4.4,4.3];const counts=[128,256,512,89,167,234,345,178,421,156];const rIdx=Math.abs(hash)%ratings.length;const cIdx=Math.abs(hash>>3)%counts.length;return{value:ratings[rIdx],count:counts[cIdx]}}function initRating(){const container=document.getElementById('starContainer');const text=document.getElementById('ratingText');const countEl=document.getElementById('ratingCount');const thanks=document.getElementById('ratingThanks');if(!container||!text)return;const isCN=document.documentElement.lang==='zh-CN';const saved=localStorage.getItem(STORAGE_KEY);let avgData;try{avgData=JSON.parse(localStorage.getItem(AVG_KEY))}catch(e){}if(!avgData)avgData=getConsistentRating();const stars=container.querySelectorAll('.star');function updateDisplay(value){stars.forEach((s,i)=>{s.classList.toggle('active',i<Math.round(value))});text.textContent=(avgData.value||4.5).toFixed(1)+'/5';countEl.textContent=isCN?'('+(avgData.count||128)+' 人评分)':'('+(avgData.count||128)+' ratings)'}updateDisplay(saved?parseInt(saved):avgData.value);if(saved){thanks.style.display='inline';container.style.pointerEvents='none';container.style.opacity='0.7';return}stars.forEach(star=>{star.addEventListener('click',function(){const val=parseInt(this.dataset.value);localStorage.setItem(STORAGE_KEY,val);const newCount=(avgData.count||128)+1;const newValue=((avgData.value||4.5)*(avgData.count||128)+val)/newCount;avgData={value:parseFloat(newValue.toFixed(1)),count:newCount};localStorage.setItem(AVG_KEY,JSON.stringify(avgData));updateDisplay(val);thanks.style.display='inline';container.style.pointerEvents='none';container.style.opacity='0.7'})})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initRating);else initRating()})();
-</script>
-
-
-<div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
-<script>
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-
-(function() {
-  'use strict';
-  var s = document.getElementById('related-tools-section');
-  if (!s) return;
-  var p = window.location.pathname;
-  var en = p.indexOf('/en/') !== -1;
-  p = p.replace(/\/en\//g, '/');
-  var slug = p.split('/').filter(Boolean).pop() || '';
-  if (!slug) { s.innerHTML = ''; return; }
-  var depth = en ? '../../' : '../';
-  var u = depth + 'related-tools.json';
-  fetch(u).then(function(r) {
-    if (!r.ok) throw new Error('not found');
-    return r.json();
-  }).then(function(d) {
-    var data = en ? d.en : d.cn;
-    var t = data[slug];
-    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 相关工具推荐')
-      + '</h3><div class="related-tools-grid">';
-    t.related.forEach(function(r) {
-      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '<a href="' + link + '" class="related-tool-card">'
-        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
-        + '<span class="related-tool-name">' + r.name + '</span></a>';
-    });
-    h += '</div></div>';
-    s.innerHTML = h;
-  }).catch(function() { s.innerHTML = ''; });
-})();
-</script>
-<div class="toast" id="toast"></div></div></div>
+</div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

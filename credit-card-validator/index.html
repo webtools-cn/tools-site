@@ -162,321 +162,35 @@
     </ol>
   </div>
 
-    <h2>常见问题</h2>
-    <div class="faq-item">
+    <h2>常见问题</h2><div class="faq-item">
       <h3>Luhn算法是什么？</h3>
       <p>Luhn算法（又称模10算法）是一种简单的校验和公式，用于验证各种身份识别号码，如信用卡号。它不是加密算法，仅用于检测输入错误（如输错一位数字）。大多数主流卡组织（Visa、Mastercard、Amex等）都使用Luhn算法验证卡号的有效性。</p>
     </div>
-    <div class="faq-item">
+<div class="faq-item">
       <h3>这个工具会保存我的信用卡号吗？</h3>
       <p>不会。本工具是纯前端实现，所有计算都在您的浏览器中完成，信用卡号不会上传到任何服务器。您可以放心使用。</p>
     </div>
-    <div class="faq-item">
+<div class="faq-item">
       <h3>生成的测试卡号可以在真实交易中用吗？</h3>
       <p>不可以。本工具生成的测试卡号仅用于开发调试和测试目的。它们虽然通过Luhn算法验证，但不会被任何银行或支付机构发行，无法通过真实的支付验证。</p>
     </div>
-    <div class="faq-item">
+<div class="faq-item">
       <h3>支持哪些信用卡类型？</h3>
       <p>目前支持识别和验证Visa、Mastercard、American Express (Amex)、Discover、JCB、Diners Club、银联(UnionPay)等主流卡组织。部分卡种的BIN号（发卡行识别码）可能因地区发行而有差异。</p>
     </div>
-    <div class="faq-item">
+<div class="faq-item">
       <h3>校验通过就意味着卡号是真实的吗？</h3>
       <p>不一定。Luhn校验只验证卡号的格式是否正确，无法确认该卡是否真实存在、是否过期、是否有足够余额、是否被冻结等。真实的卡有效性需要通过发卡行或支付网关验证。</p>
     </div>
-    <div class="faq-item">
+<div class="faq-item">
       <h3>为什么输入的卡号被识别为未知类型？</h3>
       <p>信用卡类型的识别依赖于卡号开头的BIN号（Bank Identification Number）。如果输入的卡号属于小众卡组织或新型卡产品，其BIN号可能不在我们的数据库中。这种情况下，只要Luhn校验通过，卡号格式仍然是有效的。</p>
     </div>
-    <div class="faq-item">
+<div class="faq-item">
       <h3>Luhn算法能检测哪些错误？</h3>
       <p>Luhn算法可以检测出绝大多数单数字输入错误（如把3输成8）和大多数相邻数字换位错误（如把12输成21）。但它不能检测所有错误组合，例如把09输成90就无法检测。因此它只是一种辅助校验手段，不能替代完整的验证流程。</p>
     </div>
-  </div>
-
-  <div class="footer">
-    <div style="margin-bottom:12px">
-      <a href="../index.html">首页</a>
-      <a href="../index.html">全部工具</a>
-      <a href="mailto:dexshuang@google.com">联系我们</a>
-      <a href="../en/credit-card-validator/">EN</a>
-    </div>
-    <p>在线信用卡号校验工具 &middot; 纯前端本地处理 &middot; 数据绝不上传服务器</p>
-    <p style="margin-top:4px">Luhn算法验证 &middot; 卡类型自动识别 &middot; 测试卡号生成</p>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
-  </div>
 </div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-const cardInput = document.getElementById('cardInput');
-const cardIcon = document.getElementById('cardIcon');
-const toast = document.getElementById('toast');
-const resultArea = document.getElementById('resultArea');
-const cardInfo = document.getElementById('cardInfo');
-const luhnDetail = document.getElementById('luhnDetail');
-
-function showToast(msg) {
-  toast.textContent = msg;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2000);
-}
-
-function getCardType(num) {
-  const n = num.replace(/\s/g, '');
-  if (/^4/.test(n)) return { name: 'Visa', icon: '💳', color: '#1a1f71' };
-  if (/^5[1-5]|^222[1-9]|^2[3-7]/.test(n)) return { name: 'Mastercard', icon: '💳', color: '#eb001b' };
-  if (/^3[47]/.test(n)) return { name: 'American Express', icon: '💳', color: '#2e77bc' };
-  if (/^6(?:011|4[4-9]|5)/.test(n)) return { name: 'Discover', icon: '💳', color: '#ff6000' };
-  if (/^35(?:28|29|[3-8])/.test(n)) return { name: 'JCB', icon: '💳', color: '#0066b3' };
-  if (/^62/.test(n)) return { name: 'UnionPay (银联)', icon: '💳', color: '#c00' };
-  if (/^3(?:0[0-5]|6|8)/.test(n)) return { name: 'Diners Club', icon: '💳', color: '#0069aa' };
-  return { name: '未知', icon: '💳', color: '#64748b' };
-}
-
-function luhnCheck(num) {
-  const digits = num.replace(/\D/g, '').split('').map(Number);
-  if (digits.length < 13) return { valid: false, sum: 0, steps: [] };
-  let sum = 0;
-  let alternate = false;
-  const steps = [];
-  for (let i = digits.length - 1; i >= 0; i--) {
-    let n = digits[i];
-    if (alternate) {
-      n *= 2;
-      if (n > 9) n -= 9;
-    }
-    sum += n;
-    alternate = !alternate;
-  }
-  return { valid: sum % 10 === 0, sum: sum };
-}
-
-function getCardLengthInfo(type) {
-  const info = {
-    'Visa': '13, 16, 或 19 位',
-    'Mastercard': '16 位',
-    'American Express': '15 位',
-    'Discover': '16 位',
-    'JCB': '16 位',
-    'UnionPay (银联)': '16-19 位',
-    'Diners Club': '14 位'
-  };
-  return info[type] || '13-19 位';
-}
-
-function validateCard() {
-  const raw = cardInput.value.trim();
-  const num = raw.replace(/\s/g, '');
-  if (!num) { showToast('请输入信用卡号'); return; }
-  if (!/^\d{13,19}$/.test(num)) {
-    showToast('请输入有效的13-19位数字卡号');
-    return;
-  }
-  
-  const cardType = getCardType(num);
-  const luhn = luhnCheck(num);
-  const isValid = luhn.valid;
-  
-  resultArea.style.display = 'block';
-  cardInfo.innerHTML = `
-    <div class="card-info-item">
-      <label>卡类型</label>
-      <div class="value" style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:1.3rem;">${cardType.icon}</span>
-        <span>${cardType.name}</span>
-      </div>
-    </div>
-    <div class="card-info-item">
-      <label>卡号长度</label>
-      <div class="value">${num.length} 位</div>
-    </div>
-    <div class="card-info-item">
-      <label>标准长度</label>
-      <div class="value">${getCardLengthInfo(cardType.name)}</div>
-    </div>
-    <div class="card-info-item">
-      <label>Luhn校验</label>
-      <div class="value ${isValid ? 'valid' : 'invalid'}">${isValid ? '✅ 通过' : '❌ 失败'}</div>
-    </div>
-  `;
-  
-  let stepHtml = '<h3 style="color:#f1f5f9;font-size:1rem;margin-bottom:8px;">Luhn校验计算过程</h3>';
-  stepHtml += '<div class="luhn-steps">';
-  const digits = num.split('').map(Number);
-  stepHtml += '<div class="step"><span class="step-label">原始数字：</span><span class="step-value">' + num + '</span></div>';
-  
-  let processed = [];
-  let alternate = false;
-  for (let i = digits.length - 1; i >= 0; i--) {
-    let n = digits[i];
-    if (alternate) {
-      let doubled = n * 2;
-      let result = doubled > 9 ? doubled - 9 : doubled;
-      processed.unshift(`${n}&times;2=${doubled}${doubled > 9 ? '→' + result : ''}`);
-    } else {
-      processed.unshift(n.toString());
-    }
-    alternate = !alternate;
-  }
-  stepHtml += '<div class="step"><span class="step-label">处理规则：</span><span class="step-value">从右往左，偶数位&times;2（>9则-9）</span></div>';
-  stepHtml += '<div class="step"><span class="step-label">处理后：</span><span class="step-value">' + processed.join(' ') + '</span></div>';
-  stepHtml += '<div class="step"><span class="step-label">校验和：</span><span class="step-value highlight">' + luhn.sum + '</span></div>';
-  stepHtml += '<div class="step"><span class="step-label">余数：</span><span class="step-value">' + (luhn.sum % 10) + ' (模10)</span></div>';
-  stepHtml += '<div class="step"><span class="step-label">结果：</span><span class="step-value ' + (isValid ? 'valid' : 'invalid') + '">' + (isValid ? '通过校验' : '校验失败') + '</span></div>';
-  stepHtml += '</div>';
-  
-  luhnDetail.innerHTML = stepHtml;
-}
-
-function clearInput() {
-  cardInput.value = '';
-  resultArea.style.display = 'none';
-  cardIcon.textContent = '💳';
-}
-
-cardInput.addEventListener('input', function() {
-  let val = this.value;
-  const autoFormat = document.getElementById('autoFormat').checked;
-  const num = val.replace(/\s/g, '');
-  
-  if (num.length > 0) {
-    const type = getCardType(num);
-    cardIcon.textContent = type.icon;
-  } else {
-    cardIcon.textContent = '💳';
-  }
-  
-  if (autoFormat) {
-    const clean = val.replace(/\s/g, '').replace(/\D/g, '');
-    if (clean.length > 0) {
-      const formatted = clean.replace(/(.{4})/g, '$1 ').trim();
-      if (this.value !== formatted) {
-        this.value = formatted;
-      }
-    }
-  }
-  
-  if (document.getElementById('autoValidate').checked && num.length >= 13) {
-    validateCard();
-  }
-});
-
-function generateTestCard(type) {
-  let prefix, length;
-  switch(type) {
-    case 'visa':
-      prefix = '4';
-      length = 16;
-      break;
-    case 'mastercard':
-      prefix = '5' + (Math.floor(Math.random() * 5) + 1);
-      length = 16;
-      break;
-    case 'amex':
-      prefix = '3' + (Math.random() < 0.5 ? '4' : '7');
-      length = 15;
-      break;
-    case 'discover':
-      prefix = '6011';
-      length = 16;
-      break;
-    case 'jcb':
-      prefix = '35' + (Math.floor(Math.random() * 80) + 28);
-      length = 16;
-      break;
-    case 'unionpay':
-      prefix = '62';
-      length = 16;
-      break;
-    default:
-      prefix = '4';
-      length = 16;
-  }
-  
-  const remaining = length - prefix.length - 1;
-  let cardNum = prefix;
-  for (let i = 0; i < remaining; i++) {
-    cardNum += Math.floor(Math.random() * 10);
-  }
-  
-  // Calculate Luhn check digit
-  let sum = 0;
-  let alternate = true;
-  for (let i = cardNum.length - 1; i >= 0; i--) {
-    let n = parseInt(cardNum[i]);
-    if (alternate) {
-      n *= 2;
-      if (n > 9) n -= 9;
-    }
-    sum += n;
-    alternate = !alternate;
-  }
-  const checkDigit = (10 - (sum % 10)) % 10;
-  cardNum += checkDigit;
-  
-  const formatted = cardNum.replace(/(.{4})/g, '$1 ').trim();
-  const container = document.getElementById('generatedCards');
-  const cardDiv = document.createElement('div');
-  cardDiv.className = 'generated-card';
-  cardDiv.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <span style="color:#64748b;font-size:.85rem;">${type.toUpperCase()} · ${length}位</span>
-      <span class="copy-icon" onclick="copyToClipboard('${cardNum}', this)">复制</span>
-    </div>
-    <div style="font-size:1.2rem;letter-spacing:2px;">${formatted}</div>
-  `;
-  container.insertBefore(cardDiv, container.firstChild);
-  if (container.children.length > 6) {
-    container.removeChild(container.lastChild);
-  }
-}
-
-function copyToClipboard(text, el) {
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(() => {
-      el.textContent = '已复制';
-      setTimeout(() => el.textContent = '复制', 1500);
-    });
-  } else {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    el.textContent = '已复制';
-    setTimeout(() => el.textContent = '复制', 1500);
-  }
-}
-
-// 快捷键
-document.addEventListener('keydown', (e) => {
-  if (e.ctrlKey || e.metaKey) {
-    if (e.key === 'Enter') { e.preventDefault(); validateCard(); }
-  }
-});
-</script>
-
-<!-- 反馈收集 -->
-<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
-<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
-<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
-<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
-</div>
-<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
-<option value="feedback">💡 功能建议</option>
-<option value="bug">🐛 问题反馈</option>
-<option value="other">💬 其他</option>
-</select>
-<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
-<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
-</div>
-<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
 </div>
 </div>
 <script>
