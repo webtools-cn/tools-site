@@ -260,7 +260,7 @@ class ToolPageBuilder:
 <script type="application/ld+json">{schema_faq_json}</script>
 <script type="application/ld+json">{schema_how}</script>
 <script type="application/ld+json">{schema_bc}</script>
-<style>{CSS_UNIFIED}{custom_css}</style>
+<style>{custom_css if custom_css.strip().startswith('*{box-sizing') else CSS_UNIFIED + custom_css}</style>
 </head>
 <body>
 {AD_TOP}
@@ -438,13 +438,32 @@ class PageExtractor:
             result['tool_js'] = ''
         
         # 7. 提取自定义CSS
-        style_match = re.search(r'<style>(.*?)</style>', html_content, re.S|re.I)
+        style_match = re.search(r'<style[^>]*>(.*?)</style>', html_content, re.S|re.I)
         if style_match:
             css = style_match.group(1)
-            # 去掉统一CSS部分
-            if len(css) > len(CSS_UNIFIED):
-                result['custom_css'] = css[len(CSS_UNIFIED):]
+            # normalize后匹配统一CSS前缀，找到分割点
+            css_norm = re.sub(r'\s+', '', css)
+            unified_norm = re.sub(r'\s+', '', CSS_UNIFIED)
+            if css_norm.startswith(unified_norm):
+                # 逐字符扫描原始css，跳过空白差异，找到统一CSS结束位置
+                ui = 0  # unified_norm的索引
+                end_pos = 0  # 原始css中统一CSS结束的位置
+                for ci in range(len(css)):
+                    if ui >= len(unified_norm):
+                        end_pos = ci
+                        break
+                    if css[ci].isspace():
+                        continue
+                    if css[ci] == unified_norm[ui]:
+                        ui += 1
+                    else:
+                        break
+                if ui >= len(unified_norm):
+                    result['custom_css'] = css[end_pos:]
+                else:
+                    result['custom_css'] = css
             else:
+                # 原页面CSS不以统一CSS开头，保留全部
                 result['custom_css'] = css
         else:
             result['custom_css'] = ''
