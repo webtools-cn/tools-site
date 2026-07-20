@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-9W1157EBQV');</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="免费在线LLM参数调节器，可视化调节Temperature、Top-P、Top-K、Frequency Penalty等参数，实时预览参数对生成结果的影响。纯前端本地处理。">
+<meta name="keywords" content="LLM参数调节,Temperature,Top-P,Top-K,Frequency Penalty,大语言模型参数,AI生成参数,模型调参">
+<title>LLM参数调节器 - Temperature·Top-P·Top-K可视化调节·实时预览</title>
+<link rel="canonical" href="https://free-toolbase.com/llm-parameter-playground/">
+<meta property="og:title" content="LLM参数调节器 - Temperature·Top-P·Top-K可视化调节·实时预览">
+<meta property="og:description" content="免费在线LLM参数调节器，可视化调节Temperature、Top-P、Top-K、Frequency Penalty等参数，实时预览参数对生成结果的影响。纯前端本地处理。">
+<meta property="og:url" content="https://free-toolbase.com/llm-parameter-playground/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="在线工具集">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "LLM参数调节器", "description": "免费在线LLM参数调节器，可视化调节Temperature、Top-P、Top-K、Frequency Penalty等参数，实时预览参数对生成结果的影响。纯前端本地处理。", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Web", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "在线工具集", "email": "dexshuang@google.com"}, "author": {"@type": "Organization", "name": "在线工具集"}, "dateModified": "2026-07-20"}</script>
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "name": "什么是LLM参数?",
+  "mainEntity": [
+    {"@type": "Question", "name": "什么是Temperature参数?", "acceptedAnswer": {"@type": "Answer", "text": "Temperature控制AI输出的随机性。值越低(如0.1)输出越确定和保守，值越高(如1.5)输出越随机和创意。0表示总是选概率最高的token，1是默认值，大于1则更加随机。"}},
+    {"@type": "Question", "name": "Top-P和Top-K有什么区别?", "acceptedAnswer": {"@type": "Answer", "text": "Top-P(核采样)选择累积概率达到P的最小token集合，动态调整候选数量。Top-K固定选择概率最高的K个token。Top-P更灵活，当分布集中时候选少，分布分散时候选多。Top-K则始终固定K个。两者可以同时使用，取交集。"}},
+    {"@type": "Question", "name": "Frequency Penalty和Presence Penalty有什么区别?", "acceptedAnswer": {"@type": "Answer", "text": "Frequency Penalty根据token已出现的次数按比例惩罚，出现越多惩罚越大，减少重复。Presence Penalty只要token出现过就施加固定惩罚，鼓励引入新话题。两者常配合使用，减少重复同时增加多样性。"}},
+    {"@type": "Question", "name": "如何选择合适的参数组合?", "acceptedAnswer": {"@type": "Answer", "text": "代码生成：Temperature 0-0.2, Top-P 0.9；创意写作：Temperature 0.7-1.0, Top-P 0.9-0.95；头脑风暴：Temperature 1.0-1.5, Top-P 0.95；事实问答：Temperature 0, Top-P 1。Penalty参数通常0-1之间，根据重复程度调整。"}},
+    {"@type": "Question", "name": "数据会上传到服务器吗?", "acceptedAnswer": {"@type": "Answer", "text": "不会。所有参数调节和可视化都在浏览器本地完成，不发送任何数据到服务器。"}}
+  ]
+}</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:960px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.tool-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.tool-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+textarea,input[type=text],input[type=number],select{width:100%;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-size:.9rem;outline:none;font-family:inherit}
+textarea:focus,input:focus{border-color:rgba(6,182,212,.5)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+.param-group{margin-bottom:20px}
+.param-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.param-name{color:#e2e8f0;font-size:.95rem;font-weight:600}
+.param-value{color:#22d3ee;font-size:1.1rem;font-weight:700;min-width:50px;text-align:right}
+.param-desc{color:#64748b;font-size:.8rem;margin-bottom:4px}
+input[type=range]{-webkit-appearance:none;width:100%;height:8px;background:#1e293b;border-radius:4px;outline:none;margin:8px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;background:#06b6d4;border-radius:50%;cursor:pointer;box-shadow:0 2px 6px rgba(6,182,212,.3)}
+.range-labels{display:flex;justify-content:space-between;font-size:.75rem;color:#475569}
+.preset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:12px}
+.preset-btn{background:rgba(148,163,184,.08);color:#94a3b8;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:10px;text-align:center;cursor:pointer;transition:all .2s;font-size:.8rem}
+.preset-btn:hover{background:rgba(6,182,212,.1);border-color:rgba(6,182,212,.3);color:#22d3ee}
+.preset-btn .preset-name{font-weight:600;margin-bottom:2px}
+.preset-btn .preset-desc{font-size:.7rem;color:#64748b}
+.viz-canvas{background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px;margin-top:12px;overflow:hidden}
+.info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.info-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.info-section h3{font-size:.95rem;color:#e2e8f0;margin:16px 0 8px}
+.info-section p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
+.info-section ul,.info-section ol{color:#94a3b8;font-size:.9rem;margin:8px 0 8px 20px}
+.faq-item{margin-bottom:16px}
+.faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px}
+.faq-item p{color:#94a3b8;font-size:.9rem}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#64748b;margin:0 8px}
+.ad-slot{margin:16px auto;text-align:center;max-width:960px;min-height:90px}
+.ad-slot:empty{display:none}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+</style>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<link rel="alternate" hreflang="zh" href="https://free-toolbase.com/llm-parameter-playground/">
+<link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/llm-parameter-playground/">
+<link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/llm-parameter-playground/">
+</head>
+<body>
+<div class="ad-slot" id="ad-top"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
+<div class="container">
+<div class="header">
+<h1>🎛️ LLM参数调节器</h1>
+<div class="lang-switch"><a href="/">🏠 首页</a><a href="/llm-parameter-playground/" class="active">中文</a><a href="/en/llm-parameter-playground/">EN</a></div>
+</div>
+<div class="nav-back"><a href="/">首页</a> › <a href="/#ai">AI工具</a> › LLM参数调节器</div>
+
+<div class="tool-section">
+<h2>🎯 快速预设</h2>
+<div class="preset-grid">
+<div class="preset-btn" onclick="applyPreset('code')"><div class="preset-name">💻 代码生成</div><div class="preset-desc">T:0.1 P0.9</div></div>
+<div class="preset-btn" onclick="applyPreset('creative')"><div class="preset-name">✍️ 创意写作</div><div class="preset-desc">T0.8 P0.92</div></div>
+<div class="preset-btn" onclick="applyPreset('brainstorm')"><div class="preset-name">💡 头脑风暴</div><div class="preset-desc">T1.2 P0.95</div></div>
+<div class="preset-btn" onclick="applyPreset('factual')"><div class="preset-name">📚 事实问答</div><div class="preset-desc">T0 P1.0</div></div>
+<div class="preset-btn" onclick="applyPreset('chat')"><div class="preset-name">💬 对话聊天</div><div class="preset-desc">T0.7 P0.9</div></div>
+<div class="preset-btn" onclick="applyPreset('analysis')"><div class="preset-name">📊 数据分析</div><div class="preset-desc">T0.2 P0.85</div></div>
+</div>
+</div>
+
+<div class="tool-section">
+<h2>🎛️ 参数调节</h2>
+
+<div class="param-group">
+<div class="param-header"><span class="param-name">🌡️ Temperature</span><span class="param-value" id="temp-val">0.70</span></div>
+<div class="param-desc">控制输出随机性。低=确定保守，高=随机创意</div>
+<input type="range" id="temperature" min="0" max="2" step="0.05" value="0.7" oninput="updateParam()">
+<div class="range-labels"><span>0 (确定)</span><span>1 (默认)</span><span>2 (极随机)</span></div>
+</div>
+
+<div class="param-group">
+<div class="param-header"><span class="param-name">🎯 Top-P (核采样)</span><span class="param-value" id="topp-val">0.90</span></div>
+<div class="param-desc">选择累积概率达到P的最小token集合。0.1=极少候选，1.0=全部候选</div>
+<input type="range" id="top-p" min="0" max="1" step="0.05" value="0.9" oninput="updateParam()">
+<div class="range-labels"><span>0 (极严格)</span><span>0.9 (推荐)</span><span>1.0 (全部)</span></div>
+</div>
+
+<div class="param-group">
+<div class="param-header"><span class="param-name">🔢 Top-K</span><span class="param-value" id="topk-val">0 (禁用)</span></div>
+<div class="param-desc">限制候选token数量。0=禁用(不限)，1=贪心，40=常见值</div>
+<input type="range" id="top-k" min="0" max="100" step="1" value="0" oninput="updateParam()">
+<div class="range-labels"><span>0 (禁用)</span><span>40</span><span>100</span></div>
+</div>
+
+<div class="param-group">
+<div class="param-header"><span class="param-name">📉 Frequency Penalty</span><span class="param-value" id="freq-val">0.00</span></div>
+<div class="param-desc">按已出现次数惩罚token，减少重复用词。正值=减少重复</div>
+<input type="range" id="freq-penalty" min="-2" max="2" step="0.1" value="0" oninput="updateParam()">
+<div class="range-labels"><span>-2 (鼓励重复)</span><span>0 (默认)</span><span>2 (强惩罚)</span></div>
+</div>
+
+<div class="param-group">
+<div class="param-header"><span class="param-name">📈 Presence Penalty</span><span class="param-value" id="pres-val">0.00</span></div>
+<div class="param-desc">对已出现的token施加固定惩罚，鼓励引入新话题。正值=增加多样性</div>
+<input type="range" id="pres-penalty" min="-2" max="2" step="0.1" value="0" oninput="updateParam()">
+<div class="range-labels"><span>-2 (鼓励复用)</span><span>0 (默认)</span><span>2 (强惩罚)</span></div>
+</div>
+
+<div class="param-group">
+<div class="param-header"><span class="param-name">📏 Max Tokens</span><span class="param-value" id="maxtok-val">2048</span></div>
+<div class="param-desc">生成最大token数量</div>
+<input type="range" id="max-tokens" min="1" max="8192" step="1" value="2048" oninput="updateParam()">
+<div class="range-labels"><span>1</span><span>2048</span><span>8192</span></div>
+</div>
+
+<div class="btn-row">
+<button class="btn btn-primary" onclick="generateConfig()">📋 生成API配置</button>
+<button class="btn btn-secondary" onclick="copyConfig()">📄 复制JSON</button>
+<button class="btn btn-secondary" onclick="resetParams()">🔄 重置默认</button>
+</div>
+</div>
+
+<div class="tool-section">
+<h2>📊 概率分布可视化</h2>
+<p style="color:#94a3b8;font-size:.9rem;margin-bottom:12px">模拟Temperature和Top-P对token概率分布的影响</p>
+<div class="viz-canvas"><canvas id="dist-canvas" width="900" height="300"></canvas></div>
+</div>
+
+<div id="config-section" style="display:none">
+<div class="tool-section">
+<h2>📋 API配置</h2>
+<div id="config-output" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:16px;font-family:monospace;font-size:.85rem;white-space:pre-wrap;overflow-x:auto;color:#22d3ee"></div>
+</div>
+</div>
+
+<div class="ad-slot" style="margin-top:24px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
+
+<div class="info-section">
+<h2>📖 LLM参数详解</h2>
+<h3>Temperature</h3>
+<p>Temperature控制softmax输出分布的"锐度"。T→0时分布趋向one-hot(总是选最高概率)，T→∞时趋向均匀分布。实际效果：低Temperature适合需要确定性的任务(代码、数学)，高Temperature适合创意任务(写作、头脑风暴)。</p>
+<h3>Top-P (核采样/Nucleus Sampling)</h3>
+<p>Top-P按累积概率筛选候选token。例如Top-P=0.9时，从概率最高的token开始累加，直到总和达到0.9，只从这些token中采样。比Top-K更灵活：当模型很确定时候选少，不确定时候选多。</p>
+<h3>Top-K</h3>
+<p>Top-K固定保留概率最高的K个token。K=1等价于贪心解码，K=40是常见默认值。与Top-P可以同时使用，取两者交集。</p>
+<h3>Frequency/Presence Penalty</h3>
+<p>两者都基于已生成token施加惩罚，但方式不同：Frequency Penalty按出现次数线性增加惩罚(出现3次惩罚3倍)，Presence Penalty只要出现过就施加固定惩罚(出现1次和10次惩罚相同)。</p>
+</div>
+
+<div class="info-section">
+<h2>❓ 常见问题</h2>
+<div class="faq-item"><h3>什么是Temperature参数?</h3><p>Temperature控制AI输出的随机性。值越低(如0.1)输出越确定和保守，值越高(如1.5)输出越随机和创意。0表示总是选概率最高的token，1是默认值。</p></div>
+<div class="faq-item"><h3>Top-P和Top-K有什么区别?</h3><p>Top-P(核采样)选择累积概率达到P的最小token集合，动态调整候选数量。Top-K固定选择概率最高的K个token。Top-P更灵活，两者可以同时使用。</p></div>
+<div class="faq-item"><h3>Frequency Penalty和Presence Penalty有什么区别?</h3><p>Frequency Penalty根据token已出现的次数按比例惩罚，出现越多惩罚越大。Presence Penalty只要token出现过就施加固定惩罚，鼓励引入新话题。</p></div>
+<div class="faq-item"><h3>如何选择合适的参数组合?</h3><p>代码生成：Temperature 0-0.2, Top-P 0.9；创意写作：Temperature 0.7-1.0, Top-P 0.9-0.95；头脑风暴：Temperature 1.0-1.5, Top-P 0.95；事实问答：Temperature 0, Top-P 1。</p></div>
+<div class="faq-item"><h3>数据会上传到服务器吗?</h3><p>不会。所有参数调节和可视化都在浏览器本地完成，不发送任何数据到服务器。</p></div>
+</div>
+
+<div class="footer container">
+<div style="margin-bottom:12px">
+<a href="/">首页</a><a href="/">全部工具</a><a href="mailto:dexshuang@google.com">联系我们</a><a href="/privacy/">隐私政策</a><a href="/terms/">服务条款</a><a href="/about/">关于我们</a><a href="/en/llm-parameter-playground/">EN</a>
+</div>
+<p>LLM参数调节器 · 纯前端本地处理 · 数据绝不上传服务器</p>
+<p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
+</div>
+</div>
+
+<script>
+function updateParam() {
+  const temp = parseFloat(document.getElementById('temperature').value);
+  const topp = parseFloat(document.getElementById('top-p').value);
+  const topk = parseInt(document.getElementById('top-k').value);
+  const freq = parseFloat(document.getElementById('freq-penalty').value);
+  const pres = parseFloat(document.getElementById('pres-penalty').value);
+  const maxtok = parseInt(document.getElementById('max-tokens').value);
+  document.getElementById('temp-val').textContent = temp.toFixed(2);
+  document.getElementById('topp-val').textContent = topp.toFixed(2);
+  document.getElementById('topk-val').textContent = topk === 0 ? '0 (禁用)' : topk;
+  document.getElementById('freq-val').textContent = freq.toFixed(2);
+  document.getElementById('pres-val').textContent = pres.toFixed(2);
+  document.getElementById('maxtok-val').textContent = maxtok;
+  drawDistribution(temp, topp);
+}
+
+function applyPreset(name) {
+  const presets = {
+    code: {temp:0.1, topp:0.9, topk:0, freq:0, pres:0, maxtok:2048},
+    creative: {temp:0.8, topp:0.92, topk:0, freq:0.3, pres:0.2, maxtok:4096},
+    brainstorm: {temp:1.2, topp:0.95, topk:0, freq:0.5, pres:0.5, maxtok:2048},
+    factual: {temp:0, topp:1.0, topk:0, freq:0, pres:0, maxtok:1024},
+    chat: {temp:0.7, topp:0.9, topk:0, freq:0.3, pres:0.1, maxtok:2048},
+    analysis: {temp:0.2, topp:0.85, topk:0, freq:0.1, pres:0, maxtok:4096}
+  };
+  const p = presets[name];
+  if (!p) return;
+  document.getElementById('temperature').value = p.temp;
+  document.getElementById('top-p').value = p.topp;
+  document.getElementById('top-k').value = p.topk;
+  document.getElementById('freq-penalty').value = p.freq;
+  document.getElementById('pres-penalty').value = p.pres;
+  document.getElementById('max-tokens').value = p.maxtok;
+  updateParam();
+  showToast('已应用预设: ' + name);
+}
+
+function resetParams() {
+  applyPreset('chat');
+}
+
+function drawDistribution(temp, topp) {
+  const canvas = document.getElementById('dist-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.parentElement.clientWidth - 2;
+  const H = canvas.height = 280;
+  ctx.clearRect(0, 0, W, H);
+
+  const tokens = ['AI','the','is','a','and','of','to','in','for','on','with','as','by','at','an','be','or','not','this','that'];
+  const rawProbs = [0.15, 0.12, 0.10, 0.08, 0.07, 0.06, 0.05, 0.04, 0.04, 0.03, 0.03, 0.03, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02];
+
+  const t = Math.max(temp, 0.01);
+  const logits = rawProbs.map(p => Math.log(Math.max(p, 1e-10)));
+  const scaledLogits = logits.map(l => l / t);
+  const maxLogit = Math.max(...scaledLogits);
+  const expLogits = scaledLogits.map(l => Math.exp(l - maxLogit));
+  const sumExp = expLogits.reduce((a, b) => a + b, 0);
+  const temperedProbs = expLogits.map(e => e / sumExp);
+
+  let cumProb = 0;
+  const toppIdx = temperedProbs.findIndex((p, i) => {
+    cumProb += p;
+    return cumProb >= topp;
+  });
+
+  const barW = (W - 60) / tokens.length;
+  const maxProb = Math.max(...temperedProbs);
+  const barMaxH = H - 60;
+
+  ctx.fillStyle = '#64748b';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+
+  for (let i = 0; i < tokens.length; i++) {
+    const x = 40 + i * barW;
+    const h = (temperedProbs[i] / maxProb) * barMaxH;
+    const y = H - 30 - h;
+
+    if (i <= toppIdx) {
+      const grad = ctx.createLinearGradient(x, y, x, H - 30);
+      grad.addColorStop(0, 'rgba(6,182,212,0.8)');
+      grad.addColorStop(1, 'rgba(6,182,212,0.2)');
+      ctx.fillStyle = grad;
+    } else {
+      ctx.fillStyle = 'rgba(100,116,139,0.3)';
+    }
+    ctx.fillRect(x + 2, y, barW - 4, h);
+
+    ctx.fillStyle = i <= toppIdx ? '#22d3ee' : '#475569';
+    ctx.fillText(tokens[i], x + barW / 2, H - 14);
+
+    if (temperedProbs[i] > 0.01) {
+      ctx.fillStyle = i <= toppIdx ? '#e2e8f0' : '#475569';
+      ctx.font = '9px sans-serif';
+      ctx.fillText((temperedProbs[i] * 100).toFixed(1) + '%', x + barW / 2, y - 4);
+      ctx.font = '11px sans-serif';
+    }
+  }
+
+  if (toppIdx >= 0 && toppIdx < tokens.length - 1) {
+    const cutoffX = 40 + (toppIdx + 1) * barW;
+    ctx.strokeStyle = 'rgba(239,68,68,0.6)';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(cutoffX, 10);
+    ctx.lineTo(cutoffX, H - 30);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#f87171';
+    ctx.font = '10px sans-serif';
+    ctx.fillText('Top-P截止', cutoffX + 30, 20);
+  }
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('T=' + temp.toFixed(2) + '  Top-P=' + topp.toFixed(2), 10, 16);
+}
+
+function generateConfig() {
+  const temp = parseFloat(document.getElementById('temperature').value);
+  const topp = parseFloat(document.getElementById('top-p').value);
+  const topk = parseInt(document.getElementById('top-k').value);
+  const freq = parseFloat(document.getElementById('freq-penalty').value);
+  const pres = parseFloat(document.getElementById('pres-penalty').value);
+  const maxtok = parseInt(document.getElementById('max-tokens').value);
+
+  const config = {
+    model: "gpt-4",
+    temperature: temp,
+    top_p: topp,
+    max_tokens: maxtok,
+    frequency_penalty: freq,
+    presence_penalty: pres
+  };
+  if (topk > 0) config.top_k = topk;
+
+  const output = `// OpenAI API 调用示例
+const response = await openai.chat.completions.create(${JSON.stringify(config, null, 2).replace('"model"', 'model').replace('"temperature"', 'temperature').replace('"top_p"', 'top_p').replace('"max_tokens"', 'max_tokens').replace('"frequency_penalty"', 'frequency_penalty').replace('"presence_penalty"', 'presence_penalty').replace('"top_k"', 'top_k')});
+
+// Python 示例
+# response = client.chat.completions.create(
+${Object.entries(config).map(([k,v]) => `#   ${k}=${typeof v==='string'?`"${v}"`:v},`).join('\n')}
+# )`;
+
+  document.getElementById('config-section').style.display = 'block';
+  document.getElementById('config-output').textContent = JSON.stringify(config, null, 2);
+}
+
+function copyConfig() {
+  const text = document.getElementById('config-output')?.textContent;
+  if (text) navigator.clipboard.writeText(text).then(() => showToast('已复制配置'));
+}
+
+function showToast(msg){const t=document.getElementById('toast')||(()=>{const d=document.createElement('div');d.id='toast';d.className='toast';document.body.appendChild(d);return d;})();t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+
+window.addEventListener('load', () => { updateParam(); });
+window.addEventListener('resize', () => { updateParam(); });
+document.addEventListener('keydown', function(e) { if(e.ctrlKey && e.key==='Enter') { generateConfig(); e.preventDefault(); } });
+</script>
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
+<script src="https://free-toolbase.com/related-tools.js"></script>
+<div class="ad-slot" style="margin-top:24px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
+</body>
+</html>

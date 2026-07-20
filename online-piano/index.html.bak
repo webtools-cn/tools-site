@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="免费在线钢琴，浏览器直接弹奏。支持键盘/鼠标/触屏操作，88键全音域，多种音色选择。纯前端Web Audio API合成，无需安装任何软件。">
+<meta name="keywords" content="在线钢琴,虚拟钢琴,钢琴模拟器,在线弹钢琴,电子钢琴,网上钢琴,钢琴键盘,免费钢琴">
+<title>在线钢琴 - 免费虚拟钢琴弹奏工具</title>
+<link rel="canonical" href="https://free-toolbase.com/online-piano/">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
+.container{max-width:960px;margin:0 auto;padding:24px 16px}
+h1{font-size:1.8rem;color:#f1f5f9;margin-bottom:8px;text-align:center}
+.subtitle{color:#94a3b8;text-align:center;margin-bottom:32px}
+.card{background:#1e293b;border-radius:12px;padding:32px;border:1px solid rgba(148,163,184,.1);margin-bottom:24px}
+.card h2{color:#f1f5f9;margin-bottom:16px;font-size:1.2rem}
+.piano-area{text-align:center;overflow-x:auto;padding-bottom:8px}
+.piano-container{display:inline-block;position:relative;touch-action:manipulation;min-width:100%}
+.piano-keys{display:flex;position:relative;height:200px;user-select:none}
+.white-key{width:44px;height:200px;background:linear-gradient(180deg,#f8fafc 0%,#e2e8f0 100%);border:1px solid #94a3b8;border-radius:0 0 6px 6px;cursor:pointer;position:relative;flex-shrink:0;transition:background .05s;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;color:#64748b;font-size:.65rem}
+.white-key:active,.white-key.active{background:linear-gradient(180deg,#e2e8f0 0%,#cbd5e1 100%);box-shadow:inset 0 2px 4px rgba(0,0,0,.2)}
+.white-key .note-label{pointer-events:none}
+.black-keys-wrapper{position:absolute;top:0;left:0;right:0;height:120px;pointer-events:none}
+.black-key{position:absolute;width:28px;height:120px;background:linear-gradient(180deg,#1e293b 0%,#0f172a 100%);border-radius:0 0 4px 4px;cursor:pointer;pointer-events:auto;z-index:2;box-shadow:-1px -1px 2px rgba(255,255,255,.1),1px 2px 4px rgba(0,0,0,.5);transition:background .05s}
+.black-key:active,.black-key.active{background:linear-gradient(180deg,#334155 0%,#1e293b 100%);box-shadow:inset 0 2px 4px rgba(0,0,0,.4)}
+.controls{display:flex;justify-content:center;gap:16px;margin:16px 0 8px;flex-wrap:wrap;align-items:center}
+.control-group{display:flex;align-items:center;gap:8px}
+.control-group label{color:#94a3b8;font-size:.85rem}
+.control-group select{background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);padding:6px 12px;border-radius:6px;font-size:.85rem;outline:none}
+.control-group select:focus{border-color:#22d3ee}
+.volume-slider{width:100px;accent-color:#22d3ee}
+.keyboard-hint{background:#0f172a;border-radius:8px;padding:12px;margin-top:12px;display:inline-block}
+.keyboard-hint kbd{display:inline-block;background:#1e293b;border:1px solid rgba(148,163,184,.2);border-radius:4px;padding:2px 7px;font-size:.75rem;margin:2px;color:#e2e8f0;font-family:monospace}
+.keyboard-hint span{color:#64748b;font-size:.8rem}
+.octave-display{color:#22d3ee;font-size:.9rem;font-weight:600}
+.lang-nav{display:flex;justify-content:center;gap:8px;margin-bottom:24px}
+.lang-nav a{padding:6px 16px;border-radius:6px;font-size:.85rem;color:#94a3b8;border:1px solid rgba(148,163,184,.15);transition:all .2s;text-decoration:none}
+.lang-nav a.active{background:rgba(6,182,212,.15);color:#22d3ee;border-color:rgba(6,182,212,.3)}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:48px;text-align:center;color:#64748b;font-size:.85rem}
+.seo-content{background:#0f172a;border-radius:8px;padding:20px;margin-top:16px}
+.seo-content ol{color:#94a3b8;padding-left:20px;font-size:.9rem;line-height:1.8}
+.seo-content ol li{margin-bottom:4px}
+.faq-item{margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid rgba(148,163,184,.1)}
+.faq-item:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.faq-item h3{color:#f1f5f9;font-size:.95rem;margin-bottom:8px;cursor:pointer}
+.faq-item p{color:#94a3b8;font-size:.85rem;line-height:1.7}
+@media(max-width:640px){.white-key{width:36px;height:160px}.black-key{width:22px;height:96px}.piano-keys{height:160px}.container{padding:16px 8px}.card{padding:20px}}
+</style>
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "name": "在线钢琴是免费的吗？",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "在线钢琴是免费的吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "是的，在线钢琴完全免费使用，无需注册，无需登录，所有功能都可以直接使用。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "如何用键盘弹奏在线钢琴？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "键盘第一排（QWERTY等）对应白键，第二排（数字键上方的字母）对应黑键。您也可以在页面上查看键盘映射提示。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "在线钢琴支持哪些设备？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "支持所有设备：电脑键盘、触屏设备（手机/平板）、鼠标点击都可以演奏。触屏设备上可以直接触摸按键弹奏。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么有些音符没有声音？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "请确保浏览器没有静音，并且音量滑块不是最低。在线钢琴使用Web Audio API合成声音，需要浏览器支持AudioContext。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "在线钢琴的音质和真实钢琴一样吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "在线钢琴使用Web Audio API合成声音，提供接近真实钢琴的音色。但受限于浏览器音频能力，音质与专业数字钢琴或真实钢琴有一定差距。我们提供多种音色预设供选择。"
+      }
+    }
+  ]
+}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "在线钢琴 - 免费虚拟钢琴弹奏工具", "description": "免费在线钢琴，浏览器直接弹奏。支持键盘/鼠标/触屏操作，88键全音域，多种音色选择。纯前端Web Audio API合成，无需安装任何软件。", "url": "https://free-toolbase.com/online-piano/", "applicationCategory": "GameApplication", "operatingSystem": "All", "browserRequirements": "Requires Web Audio API", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "dateModified": "2026-07-10", "publisher": {"@type": "Organization", "name": "Online Tools", "email": "dexshuang@google.com"}, "author": {"@type": "Organization", "name": "Online Tools"}}</script>
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "如何使用在线钢琴",
+  "step": [
+    {
+      "@type": "HowToStep",
+      "position": 1,
+      "name": "选择音色",
+      "text": "在下拉菜单中选择喜欢的音色（钢琴、电钢琴、风琴等）。"
+    },
+    {
+      "@type": "HowToStep",
+      "position": 2,
+      "name": "选择八度",
+      "text": "使用上下按钮或键盘Z/X切换八度范围。"
+    },
+    {
+      "@type": "HowToStep",
+      "position": 3,
+      "name": "开始弹奏",
+      "text": "用鼠标点击琴键、触摸屏触摸，或使用电脑键盘弹奏。"
+    }
+  ]
+}</script>
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "首页",
+      "item": "https://free-toolbase.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "在线工具",
+      "item": "https://free-toolbase.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "在线钢琴",
+      "item": "https://free-toolbase.com/online-piano/"
+    }
+  ],
+  "name": "在线钢琴"
+}</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372"
+     crossorigin="anonymous"></script>
+
+<link rel="alternate" hreflang="zh" href="https://free-toolbase.com/online-piano/">
+<link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/online-piano/">
+<link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/online-piano/">
+</head>
+<body>
+<div class="container">
+<div class="lang-nav">
+<a href="/tools-site/online-piano/" class="active">🇨🇳 中文</a>
+<a href="/tools-site/en/online-piano/">🇬🇧 English</a>
+</div>
+
+<h1>🎹 在线钢琴</h1>
+<div class="lang-switch" style="position:absolute;top:24px;right:16px;display:flex;gap:8px"><a href="./" style="color:#22d3ee;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #22d3ee;text-decoration:none">中文</a><a href="../en/online-piano/" style="color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #334155;text-decoration:none">EN</a></div>
+<p class="subtitle">浏览器直接弹奏虚拟钢琴，支持键盘/鼠标/触屏操作</p>
+
+<!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+
+<div class="card">
+<div class="piano-area">
+<div class="controls">
+<div class="control-group">
+<label>🎵 音色</label>
+<select id="toneSelect">
+<option value="piano">钢琴</option>
+<option value="epiano">电钢琴</option>
+<option value="organ">风琴</option>
+<option value="synth">合成器</option>
+<option value="vibraphone">颤音琴</option>
+</select>
+</div>
+<div class="control-group">
+<button class="btn" onclick="changeOctave(-1)" style="background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);padding:6px 12px;border-radius:6px;cursor:pointer">⬅</button>
+<span id="octaveDisplay" class="octave-display">八度 4</span>
+<button class="btn" onclick="changeOctave(1)" style="background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);padding:6px 12px;border-radius:6px;cursor:pointer">➡</button>
+</div>
+<div class="control-group">
+<label>🔊 音量</label>
+<input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" value="70">
+</div>
+</div>
+
+<div class="piano-container" id="pianoContainer">
+<div class="piano-keys" id="pianoKeys"></div>
+</div>
+
+<div class="keyboard-hint">
+<span>⌨️ 键盘映射：</span>
+<kbd>A</kbd><kbd>W</kbd><kbd>S</kbd><kbd>E</kbd><kbd>D</kbd><kbd>F</kbd><kbd>T</kbd><kbd>G</kbd><kbd>Y</kbd><kbd>H</kbd><kbd>U</kbd><kbd>J</kbd><kbd>K</kbd> ...
+<span>| 八度: </span><kbd>Z</kbd><kbd>↓</kbd><kbd>X</kbd><kbd>↑</kbd>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h2>📖 如何使用在线钢琴</h2>
+<div class="seo-content">
+<ol>
+<li><strong>选择音色</strong> — 从下拉菜单中选择钢琴、电钢琴、风琴、合成器或颤音琴音色</li>
+<li><strong>调整八度</strong> — 使用⬅➡按钮或键盘Z/X键切换八度范围（共7个八度）</li>
+<li><strong>开始弹奏</strong> — 电脑键盘（见键盘映射提示）、鼠标点击琴键、或触屏触摸弹奏</li>
+<li><strong>调节音量</strong> — 使用音量滑块调整输出音量大小</li>
+</ol>
+</div>
+</div>
+
+<div class="card">
+<h2>❓ 常见问题</h2>
+<div class="faq-item">
+<h3>在线钢琴是免费的吗？</h3>
+<p>是的，在线钢琴完全免费使用，无需注册，无需登录，所有功能都可以直接使用。</p>
+</div>
+<div class="faq-item">
+<h3>如何用键盘弹奏在线钢琴？</h3>
+<p>键盘按键映射：白键对应A S D F G H J K L等字母键，黑键对应W E T Y U等按键。页面上的键盘映射提示区域显示了具体映射关系。</p>
+</div>
+<div class="faq-item">
+<h3>在线钢琴支持哪些设备？</h3>
+<p>支持所有主流设备：电脑键盘弹奏、触屏设备（手机和平板）直接触摸琴键、鼠标点击琴键演奏。无论什么设备都能流畅使用。</p>
+</div>
+<div class="faq-item">
+<h3>为什么有些音符没有声音？</h3>
+<p>请检查：1）浏览器是否静音；2）音量滑块是否调至最低；3）某些浏览器需要用户先与页面交互一次才能启用音频。如果仍然没有声音，请尝试刷新页面。</p>
+</div>
+<div class="faq-item">
+<h3>在线钢琴的音质和真实钢琴一样吗？</h3>
+<p>在线钢琴使用Web Audio API合成声音，提供接近真实钢琴的音色体验。受限于浏览器音频处理能力，音质与专业数字钢琴或真实钢琴有一定差距。我们提供5种音色预设供您选择。</p>
+</div>
+</div>
+</div>
+
+<div class="footer">
+<p>⚡ 纯前端Web Audio API合成 · 无需安装 · 即开即用</p>
+<p>© 2026 WebTools - 免费在线工具集</p>
+</div>
+
+<!-- 反馈收集 -->
+<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
+<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
+<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
+<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
+</div>
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
+<option value="feedback">💡 功能建议</option>
+<option value="bug">🐛 问题反馈</option>
+<option value="other">💬 其他</option>
+</select>
+<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
+<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
+</div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
+</div>
+</div>
+
+<script>
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){
+const type=document.getElementById('feedback-type').value;
+const text=document.getElementById('feedback-text').value.trim();
+if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
+const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
+const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+const body=encodeURIComponent('**页面**: '+window.location.href+'\\n**类型**: '+typeLabel+'\\n\\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
+}
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let currentOctave = 4;
+const volumeNode = audioCtx.createGain();
+volumeNode.gain.value = 0.7;
+volumeNode.connect(audioCtx.destination);
+
+const activeNotes = {};
+
+// Note definitions: 12 semitones per octave starting from C
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const WHITE_KEYS = [0,2,4,5,7,9,11]; // C D E F G A B positions within octave
+const BLACK_KEYS = [1,3,6,8,10]; // C# D# F# G# A#
+
+// Octave range: 2 to 7
+const MIN_OCTAVE = 2;
+const MAX_OCTAVE = 7;
+
+function freq(note, octave) {
+const semitone = note + (octave - 4) * 12;
+return 440 * Math.pow(2, (semitone - 9) / 12);
+}
+
+// Tone generators
+const toneGenerators = {
+piano(freq, dest) {
+const osc = audioCtx.createOscillator();
+osc.type = 'triangle';
+osc.frequency.value = freq;
+const gain = audioCtx.createGain();
+gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2);
+osc.connect(gain);
+gain.connect(dest);
+osc.start();
+osc.stop(audioCtx.currentTime + 2);
+return { osc, gain };
+},
+epiano(freq, dest) {
+const osc = audioCtx.createOscillator();
+osc.type = 'sine';
+osc.frequency.value = freq;
+const gain = audioCtx.createGain();
+gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+const osc2 = audioCtx.createOscillator();
+osc2.type = 'sine';
+osc2.frequency.value = freq * 2.01;
+const gain2 = audioCtx.createGain();
+gain2.gain.setValueAtTime(0.2, audioCtx.currentTime);
+gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+osc.connect(gain);
+gain.connect(dest);
+osc2.connect(gain2);
+gain2.connect(dest);
+osc.start(); osc2.start();
+osc.stop(audioCtx.currentTime + 1.5); osc2.stop(audioCtx.currentTime + 1);
+return { osc, gain, osc2, gain2 };
+},
+organ(freq, dest) {
+const osc = audioCtx.createOscillator();
+osc.type = 'sawtooth';
+osc.frequency.value = freq;
+const gain = audioCtx.createGain();
+gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+gain.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.1);
+gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 3);
+osc.connect(gain);
+gain.connect(dest);
+osc.start();
+osc.stop(audioCtx.currentTime + 3);
+return { osc, gain };
+},
+synth(freq, dest) {
+const osc = audioCtx.createOscillator();
+osc.type = 'square';
+osc.frequency.value = freq;
+const gain = audioCtx.createGain();
+gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+const filter = audioCtx.createBiquadFilter();
+filter.type = 'lowpass';
+filter.frequency.value = 800;
+osc.connect(filter);
+filter.connect(gain);
+gain.connect(dest);
+osc.start();
+osc.stop(audioCtx.currentTime + 1);
+return { osc, gain, filter };
+},
+vibraphone(freq, dest) {
+const osc = audioCtx.createOscillator();
+osc.type = 'sine';
+osc.frequency.value = freq;
+const gain = audioCtx.createGain();
+gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2.5);
+const lfo = audioCtx.createOscillator();
+lfo.frequency.value = 5;
+const lfoGain = audioCtx.createGain();
+lfoGain.gain.value = freq * 0.003;
+lfo.connect(lfoGain);
+lfoGain.connect(osc.frequency);
+osc.connect(gain);
+gain.connect(dest);
+osc.start(); lfo.start();
+osc.stop(audioCtx.currentTime + 2.5); lfo.stop(audioCtx.currentTime + 2.5);
+return { osc, gain, lfo, lfoGain };
+}
+};
+
+function playNote(noteName, octave) {
+const noteIdx = NOTE_NAMES.indexOf(noteName);
+const key = noteName + octave;
+if (activeNotes[key]) return;
+
+const f = freq(noteIdx, octave);
+const tone = document.getElementById('toneSelect').value;
+const gen = toneGenerators[tone](f, volumeNode);
+activeNotes[key] = gen;
+
+// Visual feedback
+const els = document.querySelectorAll(`[data-note="${key}"]`);
+els.forEach(el => el.classList.add('active'));
+}
+
+function stopNote(noteName, octave) {
+const key = noteName + octave;
+const gen = activeNotes[key];
+if (gen) {
+// Fade out
+Object.keys(gen).forEach(k => {
+const node = gen[k];
+if (node && node.gain && node.gain.setValueAtTime) {
+try {
+node.gain.setValueAtTime(node.gain.value || 0.01, audioCtx.currentTime);
+node.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+} catch(e) {}
+}
+});
+setTimeout(() => {
+Object.keys(gen).forEach(k => {
+try { gen[k].stop && gen[k].stop(); } catch(e) {}
+try { gen[k].disconnect && gen[k].disconnect(); } catch(e) {}
+});
+}, 100);
+delete activeNotes[key];
+}
+const els = document.querySelectorAll(`[data-note="${key}"]`);
+els.forEach(el => el.classList.remove('active'));
+}
+
+function buildPiano() {
+const container = document.getElementById('pianoKeys');
+container.innerHTML = '';
+const totalKeys = (MAX_OCTAVE - MIN_OCTAVE + 1) * 7; // 7 white keys per octave
+
+for (let o = MIN_OCTAVE; o <= MAX_OCTAVE; o++) {
+for (let wi = 0; wi < 7; wi++) {
+const noteIdx = WHITE_KEYS[wi];
+const noteName = NOTE_NAMES[noteIdx];
+const key = document.createElement('div');
+key.className = 'white-key';
+key.dataset.note = noteName + o;
+key.dataset.octave = o;
+key.innerHTML = `<span class="note-label">${noteName}${o}</span>`;
+key.addEventListener('mousedown', (e) => { e.preventDefault(); playNote(noteName, o); });
+key.addEventListener('mouseup', () => stopNote(noteName, o));
+key.addEventListener('mouseleave', () => stopNote(noteName, o));
+key.addEventListener('touchstart', (e) => { e.preventDefault(); playNote(noteName, o); }, {passive:false});
+key.addEventListener('touchend', (e) => { e.preventDefault(); stopNote(noteName, o); }, {passive:false});
+container.appendChild(key);
+}
+}
+
+// Black keys overlay
+const wrapper = document.createElement('div');
+wrapper.className = 'black-keys-wrapper';
+const octaveWidth = 7 * 44; // 7 white keys * width
+
+for (let o = MIN_OCTAVE; o <= MAX_OCTAVE; o++) {
+const octOffset = (o - MIN_OCTAVE) * octaveWidth;
+// Black key positions relative to octave
+// C# after C (pos 44-14=30), D# after D (pos 88+44-14=118), etc.
+const positions = [30, 118, 206, 294, 382]; // px offset for each black key within an octave
+const blackNoteIdx = [1, 3, 6, 8, 10]; // C# D# F# G# A#
+for (let bi = 0; bi < 5; bi++) {
+const noteName = NOTE_NAMES[blackNoteIdx[bi]];
+const bk = document.createElement('div');
+bk.className = 'black-key';
+bk.style.left = (octOffset + positions[bi]) + 'px';
+bk.dataset.note = noteName + o;
+bk.dataset.octave = o;
+bk.addEventListener('mousedown', (e) => { e.preventDefault(); playNote(noteName, o); });
+bk.addEventListener('mouseup', () => stopNote(noteName, o));
+bk.addEventListener('mouseleave', () => stopNote(noteName, o));
+bk.addEventListener('touchstart', (e) => { e.preventDefault(); playNote(noteName, o); }, {passive:false});
+bk.addEventListener('touchend', (e) => { e.preventDefault(); stopNote(noteName, o); }, {passive:false});
+wrapper.appendChild(bk);
+}
+}
+container.appendChild(wrapper);
+updateOctaveDisplay();
+}
+
+// Keyboard mapping
+const keyToNote = {
+'a': ['C',0], 'w': ['C#',0], 's': ['D',0], 'e': ['D#',0], 'd': ['E',0],
+'f': ['F',0], 't': ['F#',0], 'g': ['G',0], 'y': ['G#',0], 'h': ['A',0],
+'u': ['A#',0], 'j': ['B',0], 'k': ['C',1], 'o': ['C#',1], 'l': ['D',1],
+'p': ['D#',1], ';': ['E',1], "'": ['F',1]
+};
+
+document.addEventListener('keydown', (e) => {
+if (e.repeat) return;
+if (e.key === 'z' || e.key === 'Z') { changeOctave(-1); return; }
+if (e.key === 'x' || e.key === 'X') { changeOctave(1); return; }
+const key = e.key.toLowerCase();
+if (keyToNote[key]) {
+const [note, octOffset] = keyToNote[key];
+const oct = currentOctave + octOffset;
+if (oct >= MIN_OCTAVE && oct <= MAX_OCTAVE) {
+playNote(note, oct);
+}
+}
+});
+
+document.addEventListener('keyup', (e) => {
+const key = e.key.toLowerCase();
+if (keyToNote[key]) {
+const [note, octOffset] = keyToNote[key];
+const oct = currentOctave + octOffset;
+if (oct >= MIN_OCTAVE && oct <= MAX_OCTAVE) {
+stopNote(note, oct);
+}
+}
+});
+
+function changeOctave(delta) {
+const newOct = Math.max(MIN_OCTAVE, Math.min(MAX_OCTAVE, currentOctave + delta));
+if (newOct !== currentOctave) {
+currentOctave = newOct;
+updateOctaveDisplay();
+}
+}
+
+function updateOctaveDisplay() {
+document.getElementById('octaveDisplay').textContent = `八度 ${currentOctave}`;
+}
+
+document.getElementById('volumeSlider').addEventListener('input', (e) => {
+volumeNode.gain.value = e.target.value / 100;
+});
+
+document.getElementById('toneSelect').addEventListener('change', () => {
+// Stop all active notes when changing tone
+Object.keys(activeNotes).forEach(k => {
+const parts = k.match(/^([A-G]#?)(\d)$/);
+if (parts) stopNote(parts[1], parseInt(parts[2]));
+});
+});
+
+buildPiano();
+</script>
+
+<!-- Related Tools -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">加载相关工具中...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script>
+
+<div class="ad-container" style="text-align:center;margin:1rem 0">
+<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins>
+</div>
+<div class="ad-container" style="text-align:center;margin:1rem 0">
+<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins>
+</div>
+<div class="ad-container" style="text-align:center;margin:1rem 0">
+<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins>
+</div>
+<div class="ad-container" style="text-align:center;margin:1rem 0">
+<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins>
+</div>
+<div class="ad-container" style="text-align:center;margin:1rem 0">
+<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins>
+</div>
+</body>
+</html>

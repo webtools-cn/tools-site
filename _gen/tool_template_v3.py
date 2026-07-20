@@ -351,32 +351,40 @@ class PageExtractor:
         body = body_match.group(1) if body_match else html_content
         
         # 5. 找到工具HTML区域
-        # 策略：找到ad-top结束位置到footer开始位置之间的内容
+        # 策略1：找到ad-slot#ad-top结束位置
         ad_top_match = re.search(r'<div class="ad-slot" id="ad-top">.*?</div>\s*', body, re.S|re.I)
+        # 策略2：如果没有ad-slot，找ad-container（旧版页面）
+        if not ad_top_match:
+            ad_top_match = re.search(r'<div class="ad-container"[^>]*>.*?</div>\s*', body, re.S|re.I)
+        
         tool_start = ad_top_match.end() if ad_top_match else 0
         
+        # 找到footer开始位置
         footer_match = re.search(r'<(div class="footer|footer)', body, re.S|re.I)
         tool_end = footer_match.start() if footer_match else len(body)
         
         if tool_start > 0 and tool_end > tool_start:
             middle = body[tool_start:tool_end]
             
+            # 去掉所有广告位（ad-slot和ad-container）
+            middle = re.sub(r'<div class="ad-slot[^"]*"[^>]*>.*?</div>\s*', '', middle, flags=re.S|re.I)
+            middle = re.sub(r'<div class="ad-container"[^>]*>.*?</div>\s*', '', middle, flags=re.S|re.I)
+            
             # 去掉container开始标签
             middle = re.sub(r'^\s*<div class="container">\s*', '', middle, count=1)
             # 去掉container结束标签
             middle = re.sub(r'\s*</div>\s*$', '', middle, count=1)
             
-            # 去掉header区域
+            # 去掉header区域（多种格式）
             middle = re.sub(r'<div class="header">.*?</div>\s*<p class="nav-back">.*?</p>\s*', '', middle, count=1, flags=re.S|re.I)
+            middle = re.sub(r'<header>.*?</header>\s*', '', middle, count=1, flags=re.S|re.I)
             
-            # 去掉hero区域（如果有）
+            # 去掉hero区域
             middle = re.sub(r'<div class="hero">.*?</div>\s*', '', middle, count=1, flags=re.S|re.I)
             
-            # 去掉breadcrumb（如果有）
+            # 去掉breadcrumb
             middle = re.sub(r'<p class="nav-back">.*?</p>\s*', '', middle, count=1, flags=re.S|re.I)
-            
-            # 去掉广告位
-            middle = re.sub(r'<div class="ad-slot[^"]*"[^>]*>.*?</div>\s*', '', middle, flags=re.S|re.I)
+            middle = re.sub(r'<div class="nav-back">.*?</div>\s*', '', middle, count=1, flags=re.S|re.I)
             
             # 去掉SEO内容
             seo_match = re.search(r'<div class="seo-content">(.*?)</div>', middle, re.S|re.I)
@@ -389,10 +397,36 @@ class PageExtractor:
                 result['faq_html'] = faq_match.group(1)
                 middle = re.sub(r'<div class="section">\s*<h2>.*?</h2>\s*.*?</div>\s*</div>\s*', '', middle, count=1, flags=re.S|re.I)
             
+            # 去掉feedback-widget
+            middle = re.sub(r'<div class="feedback-widget">.*?</div>\s*', '', middle, flags=re.S|re.I)
+            
+            # 去掉related-tools
+            middle = re.sub(r'<div class="related-tools">.*?</div>\s*', '', middle, flags=re.S|re.I)
+            
+            # 去掉toast
+            middle = re.sub(r'<div class="toast"[^>]*>.*?</div>\s*', '', middle, flags=re.S|re.I)
+            
             # 剩下的就是工具HTML
             result['tool_html'] = middle.strip()
         else:
-            result['tool_html'] = ''
+            # 如果找不到ad-top和footer，尝试从h1和第一个ad-container之间提取
+            h1_end = re.search(r'</h1>', body, re.I)
+            if h1_end:
+                after_h1 = body[h1_end.end():]
+                ad_match = re.search(r'<div class="ad-container"[^>]*>.*?</div>', after_h1, re.S|re.I)
+                if ad_match:
+                    tool_html = after_h1[:ad_match.start()]
+                    # 清理
+                    tool_html = re.sub(r'<div class="lang-switch".*?</div>\s*', '', tool_html, count=1, flags=re.S|re.I)
+                    tool_html = re.sub(r'<div class="star-rating".*?</div>\s*', '', tool_html, count=1, flags=re.S|re.I)
+                    tool_html = re.sub(r'<div class="trust-signals".*?</div>\s*', '', tool_html, count=1, flags=re.S|re.I)
+                    tool_html = re.sub(r'<div class="nav-back">.*?</div>\s*', '', tool_html, count=1, flags=re.S|re.I)
+                    tool_html = re.sub(r'<p class="nav-back">.*?</p>\s*', '', tool_html, count=1, flags=re.S|re.I)
+                    result['tool_html'] = tool_html.strip()
+                else:
+                    result['tool_html'] = ''
+            else:
+                result['tool_html'] = ''
             result['seo'] = ''
         
         # 6. 提取工具JS（最后一个script标签）
