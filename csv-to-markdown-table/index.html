@@ -38,6 +38,7 @@
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线CSV转Markdown表格</p>
 <div class="hero"><p>免费在线CSV转Markdown表格转换器，快速生成GitHub风格表格。纯前端，数据不上传。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
+<div><div class="section"><div class="main-grid">
 <div><div class="section"></div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
@@ -46,109 +47,11 @@
     Updated: 2026-07-11
   </span>
 </div>
-  <div class="ad-slot" style="margin:16px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
   <div id="app"></div>
-  <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
   <div class="info-section" id="usage">
     <h2>使用说明</h2>
     <div id="usageContent"></div>
-  </div>
-</div>
-<div class="footer">
-  <a href="../index.html">全部工具</a> | <a href="../blog/">博客</a> | <a href="../en/index.html">English</a>
-  <p style="margin-top:8px">&copy; 2025 在线小工具矩阵 &middot; 免费在线工具 &middot; 纯前端零后端</p>
-</div>
-<script>
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-
-
-(function(){
-var app=document.getElementById('app');
-app.innerHTML='<div class="input-section"><h2>📄 输入CSV数据</h2><textarea id="csvInput" rows="10" spellcheck="false" placeholder="粘贴CSV数据...\n\n例如：\nName,Age,City\nAlice,28,New York\nBob,35,London\nCharlie,22,Tokyo"></textarea><div class="row"><div class="field"><label>分隔符</label><select id="delimiter"><option value=",">逗号 (,)</option><option value="\t">制表符 (Tab)</option><option value=";">分号 (;)</option><option value="|">竖线 (|)</option></select></div><div class="field"><label>文本对其</label><select id="alignment"><option value="left">左对齐</option><option value="center">居中对齐</option><option value="right">右对齐</option></select></div></div><div class="options"><label><input type="checkbox" id="hasHeader" checked> 首行为表头</label></div><div class="btn-row"><button class="btn btn-primary" id="convertBtn">📊 转换为Markdown</button></div></div><div class="result-section" id="resultSection"><h2>预览</h2><div id="previewBox" style="margin-bottom:12px;overflow-x:auto"></div><h2>📋 Markdown代码</h2><div class="btn-row"><button class="btn btn-success" id="copyBtn">📋 复制Markdown</button></div><textarea id="mdOutput" rows="10" readonly style="width:100%;padding:10px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;font-size:.85rem;font-family:monospace;resize:vertical" spellcheck="false"></textarea></div>';
-document.getElementById('usageContent').innerHTML='<p>输入CSV格式的数据，指定分隔符，点击"转换为Markdown"生成GitHub风格的Markdown表格。</p><p>支持自定义分隔符（逗号、制表符、分号、竖线），选择首行是否作为表头，调整文本对齐方式。</p>';
-
-function escapeMd(text) {
-  return String(text).replace(/\|/g,'\\|').replace(/\n/g,'<br>');
-}
-
-function convert() {
-  var csv = document.getElementById('csvInput').value.trim();
-  if (!csv) { showToast('请输入CSV数据'); return; }
-  var delim = document.getElementById('delimiter').value;
-  if (delim === '\\t') delim = '\\t';
-  var alignment = document.getElementById('alignment').value;
-  var hasHeader = document.getElementById('hasHeader').checked;
-
-  var lines = csv.split(/\r?\n/).filter(function(l){return l.trim();});
-  if (lines.length < 1) { showToast('至少需要一行数据'); return; }
-
-  var rows = lines.map(function(l){
-    var parts = [];
-    var current = '';
-    var inQuotes = false;
-    for (var i = 0; i < l.length; i++) {
-      var c = l[i];
-      if (c === '"') { inQuotes = !inQuotes; }
-      else if (c === delim && !inQuotes) { parts.push(current); current = ''; }
-      else { current += c; }
-    }
-    parts.push(current);
-    return parts.map(function(p){return p.trim();});
-  });
-
-  var maxCols = 0;
-  rows.forEach(function(r){if (r.length > maxCols) maxCols = r.length;});
-  rows = rows.map(function(r){while (r.length < maxCols) r.push(''); return r;});
-
-  var alignChar = {left:':---',center:':---:',right:'---:'};
-  var md = '';
-
-  // Header row
-  md += '| ' + rows[0].join(' | ') + ' |\n';
-  // Separator row
-  md += '| ' + rows[0].map(function(){return alignChar[alignment] || ':---';}).join(' | ') + ' |\n';
-  // Data rows
-  var startRow = hasHeader ? 1 : 0;
-  for (var i = startRow; i < rows.length; i++) {
-    md += '| ' + rows[i].join(' | ') + ' |\n';
-  }
-
-  document.getElementById('mdOutput').value = md;
-
-  // Preview
-  var previewHtml = '<table style="border-collapse:collapse;font-size:.85rem;width:100%">';
-  for (var i = 0; i < rows.length; i++) {
-    previewHtml += '<tr>';
-    var tag = (i === 0 && hasHeader) ? 'th' : 'td';
-    for (var j = 0; j < rows[i].length; j++) {
-      var alignStyle = '';
-      if (i === 0 && hasHeader) { alignStyle = 'text-align:' + alignment; }
-      else if (alignment === 'center') { alignStyle = 'text-align:center'; }
-      else if (alignment === 'right') { alignStyle = 'text-align:right'; }
-      previewHtml += '<' + tag + ' style="border:1px solid rgba(148,163,184,.3);padding:6px 10px;' + alignStyle + '">' + escapeMd(rows[i][j]) + '</' + tag + '>';
-    }
-    previewHtml += '</tr>';
-  }
-  previewHtml += '</table>';
-  document.getElementById('previewBox').innerHTML = previewHtml;
-  document.getElementById('resultSection').classList.add('show');
-}
-
-document.getElementById('convertBtn').addEventListener('click', convert);
-document.getElementById('copyBtn').addEventListener('click', function(){
-  navigator.clipboard.writeText(document.getElementById('mdOutput').value).then(function(){showToast('Markdown代码已复制！');});
-});
-})();
-
-</script>
-<!-- Related Tools (cross-recommendation) -->
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section">
-  <div class="related-tools-loading">Loading related tools...</div>
-</div>
-<script src="https://free-toolbase.com/related-tools.js"></script>
-
-<div class="toast" id="toast"></div></div></div>
+  </div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -171,6 +74,9 @@ document.getElementById('copyBtn').addEventListener('click', function(){
 </div>
 <div class="toast" id="toast"></div>
 <script>
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
@@ -254,6 +160,7 @@ document.getElementById('copyBtn').addEventListener('click', function(){
   navigator.clipboard.writeText(document.getElementById('mdOutput').value).then(function(){showToast('Markdown代码已复制！');});
 });
 })();
+
 
 
 </script>

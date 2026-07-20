@@ -34,6 +34,7 @@
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; Base64转文件解码器</p>
 <div class="hero"><p>免费在线Base64转文件解码器，将Base64编码字符串还原为原始文件（图片、PDF、音频等）。纯浏览器端处理，不上传服务器。自动检测MIME类型。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
+<div><div class="section"><div class="main-grid">
 <div><div class="section"></div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
@@ -42,8 +43,6 @@
     Updated: 2026-07-11
   </span>
 </div>
-  <div class="ad-slot" style="margin:16px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-
   <div class="input-section">
     <h2>粘贴Base64字符串</h2>
     <label for="base64Input">Base64编码字符串（带或不带 data URI 前缀）：</label>
@@ -83,8 +82,6 @@
     <div class="file-info" id="fileInfo"></div>
   </div>
 
-  <div class="ad-slot" ><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-
   <div class="info-section">
     <h2>关于Base64转文件解码器</h2>
     <p>这款<strong>免费的Base64转文件解码器</strong>将Base64编码的字符串还原为原始二进制文件。无论您需要从CSS data URI中提取图片、解码Base64编码的PDF，还是转换任何Base64数据，此工具都能在浏览器本地完成全部处理。</p>
@@ -116,154 +113,7 @@
     <h3>为什么解码后的文件看起来损坏了？</h3>
     <p>通常是因为Base64字符串不完整或包含无效字符。请确保复制完整的Base64字符串，没有截断。另请验证MIME类型是否正确——PNG被解码为JPEG会显示为损坏。</p>
     <h3>最大Base64字符串大小是多少？</h3>
-    <p>取决于浏览器和设备内存。大多数浏览器可处理最大50MB的Base64字符串（解码后约37MB）。超大文件可能导致浏览器变慢或内存不足错误。</p>
-  </div>
-
-  <div class="footer">
-    <a href="../">首页</a>
-    <a href="../privacy-policy/">隐私政策</a>
-    <a href="../about/">关于我们</a>
-  </div>
-</div>
-
-<script>
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-
-(function(){
-  const base64Input = document.getElementById('base64Input');
-  const mimeType = document.getElementById('mimeType');
-  const filename = document.getElementById('filename');
-  const detectedInfo = document.getElementById('detectedInfo');
-  const decodeBtn = document.getElementById('decodeBtn');
-  const downloadBtn = document.getElementById('downloadBtn');
-  const clearBtn = document.getElementById('clearBtn');
-  const resultSection = document.getElementById('resultSection');
-  const previewBox = document.getElementById('previewBox');
-  const fileInfo = document.getElementById('fileInfo');
-
-  let decodedBlob = null;
-  let decodedExt = 'bin';
-
-  const extMap = {
-    'image/png':'png','image/jpeg':'jpg','image/gif':'gif','image/svg+xml':'svg',
-    'image/webp':'webp','image/x-icon':'ico','image/bmp':'bmp',
-    'application/pdf':'pdf','audio/mpeg':'mp3','audio/wav':'wav','audio/ogg':'ogg',
-    'video/mp4':'mp4','video/webm':'webm','application/json':'json',
-    'text/plain':'txt','text/html':'html','text/css':'css','text/csv':'csv',
-    'application/xml':'xml','application/zip':'zip','application/gzip':'gz',
-    'application/octet-stream':'bin'
-  };
-
-  base64Input.addEventListener('input', function() {
-    const val = this.value.trim();
-    if (val.startsWith('data:')) {
-      const match = val.match(/^data:([^;]+);base64,/);
-      if (match) {
-        const detectedMime = match[1];
-        detectedInfo.textContent = '🔍 自动检测到: ' + detectedMime;
-        detectedInfo.classList.add('show');
-        mimeType.value = 'auto';
-        const ext = extMap[detectedMime] || 'bin';
-        filename.placeholder = 'download.' + ext;
-      }
-    } else {
-      detectedInfo.classList.remove('show');
-      filename.placeholder = 'download';
-    }
-  });
-
-  decodeBtn.addEventListener('click', function() {
-    const val = base64Input.value.trim();
-    if (!val) { showToast('请粘贴Base64字符串'); return; }
-    try {
-      let base64Data = val;
-      let detectedMime = null;
-
-      if (val.startsWith('data:')) {
-        const match = val.match(/^data:([^;]+);base64,(.*)$/s);
-        if (match) {
-          detectedMime = match[1];
-          base64Data = match[2];
-        }
-      }
-
-      const selectedMime = mimeType.value === 'auto' ? detectedMime : mimeType.value;
-      const finalMime = selectedMime || 'application/octet-stream';
-      decodedExt = extMap[finalMime] || 'bin';
-
-      const binaryStr = atob(base64Data.replace(/\s/g, ''));
-      const bytes = new Uint8Array(binaryStr.length);
-      for (let i = 0; i < binaryStr.length; i++) {
-        bytes[i] = binaryStr.charCodeAt(i);
-      }
-
-      decodedBlob = new Blob([bytes], {type: finalMime});
-      const sizeStr = decodedBlob.size < 1024 ? decodedBlob.size + ' B' :
-        decodedBlob.size < 1048576 ? (decodedBlob.size/1024).toFixed(1) + ' KB' :
-        (decodedBlob.size/1048576).toFixed(1) + ' MB';
-
-      previewBox.innerHTML = '';
-      if (finalMime.startsWith('image/')) {
-        const img = document.createElement('img');
-        img.src = URL.createObjectURL(decodedBlob);
-        previewBox.appendChild(img);
-      } else if (finalMime === 'application/pdf') {
-        previewBox.innerHTML = '<div class="file-icon">📄</div>';
-      } else if (finalMime.startsWith('audio/')) {
-        previewBox.innerHTML = '<div class="file-icon">🎵</div>';
-        const audio = document.createElement('audio');
-        audio.controls = true;
-        audio.src = URL.createObjectURL(decodedBlob);
-        previewBox.appendChild(audio);
-      } else if (finalMime.startsWith('video/')) {
-        previewBox.innerHTML = '<div class="file-icon">🎬</div>';
-        const video = document.createElement('video');
-        video.controls = true;
-        video.src = URL.createObjectURL(decodedBlob);
-        video.style.maxWidth = '100%';
-        video.style.maxHeight = '300px';
-        previewBox.appendChild(video);
-      } else {
-        previewBox.innerHTML = '<div class="file-icon">📁</div>';
-      }
-
-      fileInfo.innerHTML = '类型: <span>' + finalMime + '</span> | 大小: <span>' + sizeStr + '</span> | 扩展名: <span>.' + decodedExt + '</span>';
-      resultSection.classList.add('show');
-      downloadBtn.style.display = 'inline-block';
-    } catch(err) {
-      showToast('解码错误: ' + err.message + '\n\n请确保输入的是有效的Base64字符串。');
-    }
-  });
-
-  downloadBtn.addEventListener('click', function() {
-    if (!decodedBlob) return;
-    const name = filename.value.trim() || 'download';
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(decodedBlob);
-    a.download = name.endsWith('.' + decodedExt) ? name : name + '.' + decodedExt;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  });
-
-  clearBtn.addEventListener('click', function() {
-    base64Input.value = '';
-    decodedBlob = null;
-    resultSection.classList.remove('show');
-    downloadBtn.style.display = 'none';
-    detectedInfo.classList.remove('show');
-    filename.value = '';
-    filename.placeholder = 'download';
-    mimeType.value = 'auto';
-  });
-})();
-</script>
-
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section">
-  <div class="related-tools-loading">正在加载相关工具...</div>
-</div>
-<script src="https://free-toolbase.com/related-tools.js"></script>
-<div class="toast" id="toast"></div></div></div>
+    <p>取决于浏览器和设备内存。大多数浏览器可处理最大50MB的Base64字符串（解码后约37MB）。超大文件可能导致浏览器变慢或内存不足错误。</p></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -286,6 +136,9 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 </div>
 <div class="toast" id="toast"></div>
 <script>
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
@@ -418,6 +271,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
     mimeType.value = 'auto';
   });
 })();
+
 
 </script>
 </body>

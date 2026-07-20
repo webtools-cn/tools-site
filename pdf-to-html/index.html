@@ -39,6 +39,7 @@
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; PDF转HTML</p>
 <div class="hero"><p>免费在线PDF转HTML工具。快速将PDF文件转换为HTML网页格式，保留文本内容和基本排版。纯前端处理，无需上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
+<div><div class="section"><div class="main-grid">
 <div><div class="section"></div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
@@ -47,9 +48,7 @@
     Updated: 2026-07-11
   </span>
 </div>
-  <div class="ad-slot" style="margin:16px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
   <div id="app"></div>
-  <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
   <div class="info-section" id="usage">
     <h2>使用说明</h2>
     <div id="usageContent">
@@ -82,141 +81,7 @@
 <a href="../html-to-pdf/" class="pdf-related-link"><span class="pdf-related-icon">🌐</span><span class="pdf-related-label">HTML转PDF</span><span class="pdf-related-desc">将网页转换为PDF格式</span></a>
 <a href="../image-to-pdf/" class="pdf-related-link"><span class="pdf-related-icon">🖼️</span><span class="pdf-related-label">图片转PDF</span><span class="pdf-related-desc">将图片转换为PDF文件</span></a>
 <a href="../markdown-to-pdf/" class="pdf-related-link"><span class="pdf-related-icon">📝</span><span class="pdf-related-label">Markdown转PDF</span><span class="pdf-related-desc">将Markdown文件转换为PDF</span></a>
-</div>
-</div>
-
-<div class="footer">
-  <a href="../index.html">全部工具</a> | <a href="../blog/">博客</a> | <a href="../en/index.html">English</a>
-  <p style="margin-top:8px">&copy; 2025 在线小工具矩阵 &middot; 免费在线工具 &middot; 纯前端零后端</p>
-</div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script>
-(function(){
-var app=document.getElementById('app');
-var html='<div class="input-section" id="uploadSection"><h2>📤 上传PDF文件</h2><div class="upload-area" id="dropZone"><div class="icon">📁</div><p style="color:#94a3b8;margin-bottom:4px"><strong>点击选择文件</strong> 或拖拽PDF到此处</p><p class="hint">支持 .pdf 文件，最大50MB</p></div><input type="file" id="fileInput" accept=".pdf"><div class="status-bar" id="statusBar"><span>📌 请上传PDF文件</span></div></div><div class="input-section" id="optionsSection" style="display:none"><h2>⚙️ 转换选项</h2><div class="row"><div class="field"><label>页面范围</label><select id="pageRange"><option value="all">全部页面</option><option value="current">当前页</option><option value="custom">自定义范围</option></select></div><div class="field" id="pageNumField" style="display:none"><label>页码（可多选，如 1,3,5-8）</label><input type="text" id="pageNumInput" placeholder="1,3,5-8"></div></div><div class="options"><label><input type="checkbox" id="preserveLinks" checked> 保留超链接</label><label><input type="checkbox" id="mergeBlankLines" checked> 合并连续空行</label><label><input type="checkbox" id="addPageMarkers"> 添加页码标记</label></div><div class="btn-row"><button class="btn btn-primary" id="convertBtn">🔄 转换为HTML</button><button class="btn btn-secondary" id="clearBtn">🗑️ 清除重新选择</button></div></div><div class="result-section" id="resultSection"><h2>📋 转换结果</h2><div class="status-bar"><span id="pageInfo">共 0 页 | 已处理 0 页</span></div><div class="btn-row" style="margin-bottom:12px"><button class="btn btn-success" id="downloadBtn">💾 下载HTML文件</button><button class="btn btn-secondary" id="copyBtn">📋 复制HTML代码</button></div><label>HTML预览</label><div class="result-box" id="previewBox" style="max-height:400px;overflow-y:auto;white-space:normal;font-family:inherit"></div><label style="margin-top:12px">HTML源代码</label><textarea id="outputText" readonly></textarea></div>';
-app.innerHTML=html;
-
-var pdfDoc=null,pdfData=null,fileName='';
-
-document.getElementById('dropZone').addEventListener('click',function(){document.getElementById('fileInput').click();});
-document.getElementById('dropZone').addEventListener('dragover',function(e){e.preventDefault();this.classList.add('dragover');});
-document.getElementById('dropZone').addEventListener('dragleave',function(){this.classList.remove('dragover');});
-document.getElementById('dropZone').addEventListener('drop',function(e){e.preventDefault();this.classList.remove('dragover');var f=e.dataTransfer.files[0];if(f&&f.type==='application/pdf')loadPDF(f);else setStatus('❌ 请上传PDF文件',true);});
-document.getElementById('fileInput').addEventListener('change',function(){if(this.files[0])loadPDF(this.files[0]);});
-
-document.getElementById('pageRange').addEventListener('change',function(){
-  document.getElementById('pageNumField').style.display=this.value==='custom'?'block':'none';
-});
-document.getElementById('clearBtn').addEventListener('click',function(){resetUI();});
-document.getElementById('convertBtn').addEventListener('click',convertToHtml);
-document.getElementById('downloadBtn').addEventListener('click',downloadHtml);
-document.getElementById('copyBtn').addEventListener('click',copyHtml);
-
-function setStatus(msg,isError){
-  var sb=document.getElementById('statusBar');
-  sb.innerHTML='<span>'+(isError?'❌ ':'📌 ')+msg+'</span>';
-}
-
-function resetUI(){
-  pdfDoc=null;pdfData=null;fileName='';
-  document.getElementById('optionsSection').style.display='none';
-  document.getElementById('resultSection').classList.remove('show');
-  document.getElementById('fileInput').value='';
-  setStatus('📌 请上传PDF文件');
-}
-
-function loadPDF(file){
-  if(file.size>50*1024*1024){setStatus('文件超过50MB限制，请压缩后重试',true);return;}
-  fileName=file.name.replace(/\.pdf$/i,'');
-  setStatus('⏳ 正在加载PDF...');
-  var reader=new FileReader();
-  reader.onload=function(e){
-    pdfData=e.target.result;
-    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    pdfjsLib.getDocument({data:pdfData}).promise.then(function(doc){
-      pdfDoc=doc;
-      document.getElementById('optionsSection').style.display='block';
-      var total=doc.numPages;
-      setStatus('✅ 已加载：'+fileName+'.pdf（共 '+total+' 页）');
-    }).catch(function(err){
-      setStatus('❌ PDF加载失败：'+err.message,true);
-    });
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function convertToHtml(){
-  if(!pdfDoc){setStatus('❌ 请先上传PDF文件',true);return;}
-  var range=document.getElementById('pageRange').value;
-  var pages=[];
-  if(range==='all'){
-    for(var i=1;i<=pdfDoc.numPages;i++)pages.push(i);
-  }else if(range==='current'){
-    pages.push(1);
-  }else{
-    var input=document.getElementById('pageNumInput').value;
-    var parts=input.split(',');
-    for(var p=0;p<parts.length;p++){
-      var part=parts[p].trim();
-      if(part.indexOf('-')>0){
-        var r=part.split('-');
-        var start=parseInt(r[0]),end=parseInt(r[1]);
-        for(var s=start;s<=end;s++)if(s>0&&s<=pdfDoc.numPages)pages.push(s);
-      }else{
-        var n=parseInt(part);
-        if(n>0&&n<=pdfDoc.numPages)pages.push(n);
-      }
-    }
-  }
-  if(pages.length===0){setStatus('❌ 请选择有效的页面范围',true);return;}
-  
-  var preserveLinks=document.getElementById('preserveLinks').checked;
-  var mergeBlank=document.getElementById('mergeBlankLines').checked;
-  var addMarkers=document.getElementById('addPageMarkers').checked;
-  
-  setStatus('⏳ 正在转换...（0/'+pages.length+'页）');
-  document.getElementById('resultSection').classList.remove('show');
-  
-  var htmlParts=[];
-  htmlParts.push('<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>'+fileName+' - PDF转HTML</title><style>body{font-family:sans-serif;line-height:1.6;max-width:800px;margin:0 auto;padding:20px;color:#e2e8f0}h1,h2,h3{color:#222}p{margin:0 0 1em 0}.page-marker{background:#f0f0f0;padding:4px 8px;font-size:.8rem;color:#94a3b8;margin:16px 0 8px 0;border-radius:4px}</style>
-<script type="application/ld+json">{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    {
-      "@type": "ListItem",
-      "position": 1,
-      "name": "首页",
-      "item": "https://free-toolbase.com/"
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "name": "PDF工具",
-      "item": "https://free-toolbase.com/#pdf-tools"
-    },
-    {
-      "@type": "ListItem",
-      "position": 3,
-      "name": "PDF转HTML",
-      "item": "https://free-toolbase.com/pdf-to-html/"
-    }
-  ],
-  "name": "PDF转HTML"
-}</script>
-</head><body>');
-  if(addMarkers)htmlParts.push('<h1>'+fileName+'</h1>');
-  
-  var completed=0;
-  
-  function processPage(idx){
-    if(idx>=pages.length){
-      htmlParts.push('<!-- Related Tools (cross-recommendation) -->
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section">
-  <div class="related-tools-loading">Loading related tools...</div>
-</div>
-<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
+</div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -239,6 +104,9 @@ function convertToHtml(){
 </div>
 <div class="toast" id="toast"></div>
 <script>
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
@@ -355,6 +223,7 @@ function convertToHtml(){
   ],
   "name": "PDF转HTML"
 }
+
 </script>
 </body>
 </html>

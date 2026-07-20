@@ -42,6 +42,7 @@
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 音频音量增强器</p>
 <div class="hero"><p>免费在线音频音量增强器。一键放大音频文件音量，支持MP3/WAV/OGG/M4A格式，最大可提升至500%。纯前端本地处理，不上传服务器，隐私安全。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
+<div><div class="section"><div class="main-grid">
 <div><div class="section"></div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
@@ -50,7 +51,6 @@
     Updated: 2026-07-11
   </span>
 </div>
-  <div class="ad-slot" style="margin:16px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
   <div class="section">
     <div class="upload-zone" id="uploadZone">
       <div class="icon">🎵</div>
@@ -85,7 +85,6 @@
       <div id="processingMsg" style="display:none;text-align:center;padding:20px;color:#22d3ee">⏳ 正在处理音频，请稍候...</div>
     </div>
   </div>
-  <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
   <div class="info-section" id="usage">
     <h2>使用说明</h2>
     <div>
@@ -99,216 +98,7 @@
         <li>🔒 纯前端本地处理，数据不上传</li>
       </ul>
     </div>
-  </div>
-</div>
-<div class="footer">
-  <a href="../index.html">全部工具</a> | <a href="../blog/">博客</a> | <a href="../en/index.html">English</a>
-  <p style="margin-top:8px">&copy; 2025 在线小工具矩阵 &middot; 免费在线工具 &middot; 纯前端零后端</p>
-</div>
-<div id="feedback-root"></div>
-<script>
-(function(){'use strict';
-var audioCtx=null;
-var sourceBuffer=null;
-var rawBuffer=null;
-var gainNode=null;
-var sourceNode=null;
-var isPlaying=false;
-var audioUrl=null;
-var originalName='';
-var currentFormat='wav';
-
-function getAudioContext(){if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();return audioCtx;}
-
-var uploadZone=document.getElementById('uploadZone');
-var fileInput=document.getElementById('fileInput');
-var controlsArea=document.getElementById('controlsArea');
-var fileName=document.getElementById('fileName');
-var fileSize=document.getElementById('fileSize');
-var boostSlider=document.getElementById('boostSlider');
-var boostVal=document.getElementById('boostVal');
-var boostLabel=document.getElementById('boostLabel');
-var playBtn=document.getElementById('playBtn');
-var playTime=document.getElementById('playTime');
-var progressFill=document.getElementById('progressFill');
-var downloadBtn=document.getElementById('downloadBtn');
-var volumeWarning=document.getElementById('volumeWarning');
-var processingMsg=document.getElementById('processingMsg');
-
-uploadZone.addEventListener('click',function(){fileInput.click();});
-uploadZone.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('dragover');});
-uploadZone.addEventListener('dragleave',function(){this.classList.remove('dragover');});
-uploadZone.addEventListener('drop',function(e){e.preventDefault();this.classList.remove('dragover');if(e.dataTransfer.files.length>0)handleFile(e.dataTransfer.files[0]);});
-fileInput.addEventListener('change',function(){if(this.files.length>0)handleFile(this.files[0]);});
-
-function formatSize(bytes){if(bytes<1024)return bytes+'B';if(bytes<1048576)return (bytes/1024).toFixed(1)+'KB';return (bytes/1048576).toFixed(1)+'MB';}
-function formatTime(sec){var m=Math.floor(sec/60);var s=Math.floor(sec%60);return m+':'+s.toString().padStart(2,'0');}
-
-function handleFile(file){
-  if(!file.type.startsWith('audio/')){showToast('请选择音频文件');return;}
-  originalName=file.name.replace(/\.[^.]+$/,'');
-  var ext=file.name.split('.').pop().toLowerCase();
-  if(ext==='mp3'||ext==='wav'||ext==='ogg'||ext==='m4a'||ext==='aac'||ext==='flac'||ext==='webm'){currentFormat=ext;}
-  else{currentFormat='wav';}
-  fileName.textContent=file.name;
-  fileSize.textContent=formatSize(file.size);
-  controlsArea.style.display='block';
-  stopPlayback();
-  var reader=new FileReader();
-  reader.onload=function(e){
-    audioUrl=e.target.result;
-    var ctx=getAudioContext();
-    ctx.decodeAudioData(e.target.result,function(buffer){
-      rawBuffer=buffer;
-      sourceBuffer=buffer;
-      playTime.textContent='0:00 / '+formatTime(buffer.duration);
-      downloadBtn.disabled=false;
-      updateBoostDisplay();
-    },function(){showToast('无法解码此音频文件，请确认文件格式正确');});
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function stopPlayback(){
-  if(sourceNode){try{sourceNode.stop();}catch(e){}sourceNode=null;}
-  isPlaying=false;
-  playBtn.textContent='▶ 预览';
-  progressFill.style.width='0%';
-}
-
-function updateBoostDisplay(){
-  var val=parseInt(boostSlider.value);
-  boostVal.textContent=val+'%';
-  boostLabel.textContent=val+'%';
-  if(val>200)volumeWarning.style.display='block';else volumeWarning.style.display='none';
-}
-
-boostSlider.addEventListener('input',function(){
-  updateBoostDisplay();
-  if(isPlaying&&gainNode)gainNode.gain.value=parseInt(this.value)/100;
-});
-
-playBtn.addEventListener('click',function(){
-  if(isPlaying){stopPlayback();return;}
-  if(!rawBuffer)return;
-  var ctx=getAudioContext();
-  if(ctx.state==='suspended')ctx.resume();
-  stopPlayback();
-  sourceNode=ctx.createBufferSource();
-  sourceNode.buffer=rawBuffer;
-  gainNode=ctx.createGain();
-  gainNode.gain.value=parseInt(boostSlider.value)/100;
-  sourceNode.connect(gainNode);
-  gainNode.connect(ctx.destination);
-  sourceNode.start(0);
-  isPlaying=true;
-  playBtn.textContent='⏸ 暂停';
-  var startTime=ctx.currentTime;
-  var duration=rawBuffer.duration;
-  function updateTime(){
-    if(!isPlaying)return;
-    var elapsed=ctx.currentTime-startTime;
-    if(elapsed>=duration){stopPlayback();playTime.textContent=formatTime(duration)+' / '+formatTime(duration);return;}
-    playTime.textContent=formatTime(elapsed)+' / '+formatTime(duration);
-    progressFill.style.width=Math.min(100,(elapsed/duration)*100)+'%';
-    requestAnimationFrame(updateTime);
-  }
-  updateTime();
-  sourceNode.onended=function(){stopPlayback();playTime.textContent='0:00 / '+formatTime(duration);};
-});
-
-downloadBtn.addEventListener('click',function(){
-  if(!rawBuffer){showToast('请先上传音频文件');return;}
-  downloadBtn.disabled=true;
-  downloadBtn.textContent='⏳ 处理中...';
-  var boost=parseInt(boostSlider.value)/100;
-  var ctx=getAudioContext();
-  var offlineCtx=new OfflineAudioContext(rawBuffer.numberOfChannels,rawBuffer.length,rawBuffer.sampleRate);
-  var bufferSource=offlineCtx.createBufferSource();
-  bufferSource.buffer=rawBuffer;
-  var gain=offlineCtx.createGain();
-  gain.gain.value=boost;
-  bufferSource.connect(gain);
-  gain.connect(offlineCtx.destination);
-  bufferSource.start(0);
-  offlineCtx.startRendering().then(function(renderedBuffer){
-    var wavBlob=audioBufferToWav(renderedBuffer);
-    var url=URL.createObjectURL(wavBlob);
-    var a=document.createElement('a');
-    a.href=url;
-    a.download=originalName+'_enhanced.'+currentFormat;
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    setTimeout(function(){URL.revokeObjectURL(url);},5000);
-    downloadBtn.disabled=false;
-    downloadBtn.textContent='📥 下载增强音频';
-  }).catch(function(err){
-    showToast('处理失败: '+err.message);
-    downloadBtn.disabled=false;
-    downloadBtn.textContent='📥 下载增强音频';
-  });
-});
-
-function audioBufferToWav(buffer){
-  var numChannels=buffer.numberOfChannels;
-  var sampleRate=buffer.sampleRate;
-  var format=1;
-  var bitDepth=16;
-  var interleaved;
-  if(numChannels===2){
-    var l=buffer.getChannelData(0);var r=buffer.getChannelData(1);
-    interleaved=new Float32Array(l.length+r.length);
-    for(var i=0;i<l.length;i++){interleaved[i*2]=l[i];interleaved[i*2+1]=r[i];}
-  }else{
-    interleaved=buffer.getChannelData(0);
-  }
-  var dataLength=interleaved.length*(bitDepth/8);
-  var headerLength=44;
-  var totalLength=headerLength+dataLength;
-  var arrayBuffer=new ArrayBuffer(totalLength);
-  var view=new DataView(arrayBuffer);
-  writeString(view,0,'RIFF');
-  view.setUint32(4,totalLength-8,true);
-  writeString(view,8,'WAVE');
-  writeString(view,12,'fmt ');
-  view.setUint32(16,16,true);
-  view.setUint16(20,format,true);
-  view.setUint16(22,numChannels,true);
-  view.setUint32(24,sampleRate,true);
-  view.setUint32(28,sampleRate*numChannels*(bitDepth/8),true);
-  view.setUint16(32,numChannels*(bitDepth/8),true);
-  view.setUint16(34,bitDepth,true);
-  writeString(view,36,'data');
-  view.setUint32(40,dataLength,true);
-  var offset=44;
-  for(var i=0;i<interleaved.length;i++){
-    var s=Math.max(-1,Math.min(1,interleaved[i]));
-    s=s<0?s*0x8000:s*0x7FFF;
-    view.setInt16(offset,s,true);
-    offset+=2;
-  }
-  return new Blob([arrayBuffer],{type:'audio/wav'});
-}
-
-function writeString(view,offset,string){
-  for(var i=0;i<string.length;i++){view.setUint8(offset+i,string.charCodeAt(i));}
-}
-
-window.addEventListener('beforeunload',function(){if(audioCtx)audioCtx.close();});
-})();
-</script>
-<script>
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-
-(function(){var s=document.createElement('script');s.src='/tools-site/libs/feedback.js';document.body.appendChild(s);})();
-</script>
-<!-- Related Tools (cross-recommendation) -->
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section">
-  <div class="related-tools-loading">Loading related tools...</div>
-</div>
-<script src="https://free-toolbase.com/related-tools.js"></script>
-
-<div class="toast" id="toast"></div></div></div>
+  </div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -334,9 +124,13 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 
 (function(){var s=document.createElement('script');s.src='/tools-site/libs/feedback.js';document.body.appendChild(s);})();
+
 
 </script>
 </body>

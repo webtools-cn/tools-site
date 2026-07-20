@@ -32,6 +32,7 @@
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; EXIF信息查看器</p>
 <div class="hero"><p>免费在线EXIF信息查看器，读取JPEG/PNG/WebP图片中的元数据。查看相机型号、拍摄参数、GPS位置、时间日期等信息。纯浏览器端处理，不上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
+<div><div class="section"><div class="main-grid">
 <div><div class="section"></div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
@@ -40,8 +41,6 @@
     Updated: 2026-07-11
   </span>
 </div>
-  <div class="ad-slot" style="margin:16px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-
   <div class="upload-section">
     <div class="upload-zone" id="dropZone">
       <div class="upload-zone-icon">📷</div>
@@ -55,8 +54,6 @@
   <div class="results-section" id="resultsSection">
     <div class="exif-grid" id="exifGrid"></div>
   </div>
-
-  <div class="ad-slot" ><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 
   <div class="info-section">
     <h2>关于EXIF信息查看器</h2>
@@ -90,282 +87,7 @@
     <h2>反馈建议 💬</h2>
     <p style="color:#94a3b8;font-size:.9rem;margin-bottom:12px">发现bug或有功能建议？请告诉我们。</p>
     <textarea id="feedbackText" placeholder="描述您的问题或建议..."></textarea>
-    <button class="btn btn-primary" onclick="window.open('https://github.com/webtools-cn/tools-site/issues/new?body='+encodeURIComponent(document.getElementById('feedbackText').value),'_blank')">提交反馈</button>
-  </div>
-
-  <div class="footer">
-    <a href="../">首页</a>
-    <a href="../privacy-policy/">隐私政策</a>
-    <a href="../about/">关于我们</a>
-  </div>
-</div>
-
-<script>
-(function(){
-  const dropZone = document.getElementById('dropZone');
-  const fileInput = document.getElementById('fileInput');
-  const statusBar = document.getElementById('statusBar');
-  const resultsSection = document.getElementById('resultsSection');
-  const exifGrid = document.getElementById('exifGrid');
-
-  function showStatus(msg, type) {
-    statusBar.className = 'status-bar ' + type;
-    statusBar.textContent = msg;
-  }
-  function hideStatus() { statusBar.className = 'status-bar'; statusBar.textContent = ''; }
-
-  dropZone.addEventListener('click', function() { fileInput.click(); });
-  dropZone.addEventListener('dragover', function(e) {
-    e.preventDefault(); dropZone.classList.add('dragover');
-  });
-  dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('dragover'); });
-  dropZone.addEventListener('drop', function(e) {
-    e.preventDefault(); dropZone.classList.remove('dragover');
-    if (e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
-  });
-  fileInput.addEventListener('change', function() {
-    if (this.files.length > 0) processFile(this.files[0]);
-  });
-
-  function processFile(file) {
-    if (!file.type.match(/^image\/(jpeg|png|webp)$/)) {
-      showStatus('请上传JPEG、PNG或WebP格式的图片', 'error');
-      return;
-    }
-    hideStatus();
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const dataUrl = e.target.result;
-      parseExif(dataUrl, file);
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function parseExif(dataUrl, file) {
-    exifGrid.innerHTML = '';
-    resultsSection.classList.remove('show');
-
-    try {
-      const exifData = readExifFromDataUrl(dataUrl);
-      const output = [];
-
-      // Basic file info
-      output.push({section: '📄 文件信息', items: [
-        {key: '文件名', value: file.name},
-        {key: '文件大小', value: formatFileSize(file.size)},
-        {key: '文件类型', value: file.type},
-      ]});
-
-      // EXIF data sections
-      if (exifData.image) {
-        output.push({section: '🖼️ 图片信息', items: exifData.image});
-      }
-      if (exifData.camera) {
-        output.push({section: '📷 相机信息', items: exifData.camera});
-      }
-      if (exifData.shot) {
-        output.push({section: '⚙️ 拍摄参数', items: exifData.shot});
-      }
-      if (exifData.gps) {
-        output.push({section: '📍 GPS信息', items: exifData.gps});
-      }
-
-      if (output.length <= 1) {
-        output.push({section: 'ℹ️ 提示', items: [
-          {key: '状态', value: '该图片不包含EXIF元数据，仅有基本文件信息。社交媒体下载或经过压缩处理的图片通常会丢失EXIF数据。'}
-        ]});
-      }
-
-      renderExif(output);
-      resultsSection.classList.add('show');
-
-      const totalFields = output.reduce(function(sum, s) { return sum + s.items.length; }, 0);
-      showStatus('成功读取 ' + output.length + ' 个分类，共 ' + totalFields + ' 个字段', 'success');
-    } catch(e) {
-      showStatus('读取EXIF数据出错：' + e.message, 'error');
-    }
-  }
-
-  function readExifFromDataUrl(dataUrl) {
-    const result = {image: [], camera: [], shot: [], gps: []};
-    const base64 = dataUrl.split(',')[1];
-    const bytes = atob(base64);
-    const view = new DataView(new ArrayBuffer(bytes.length));
-    for (let i = 0; i < bytes.length; i++) view.setUint8(i, bytes.charCodeAt(i));
-
-    // Check JPEG SOI
-    if (view.getUint16(0, false) !== 0xFFD8) {
-      // Not JPEG, return basic info only
-      return result;
-    }
-
-    let offset = 2;
-    while (offset < view.byteLength - 1) {
-      if (view.getUint8(offset) !== 0xFF) { offset++; continue; }
-      const marker = view.getUint8(offset + 1);
-      if (marker === 0xD9) break; // EOI
-      if (marker === 0xE1) { // APP1 - EXIF
-        const length = view.getUint16(offset + 2, false);
-        if (length >= 8) {
-          try { parseExifApp1(view, offset + 4, length, result); } catch(e) {}
-        }
-        offset += 2 + length;
-      } else {
-        const segLength = view.getUint16(offset + 2, false);
-        offset += 2 + (segLength > 0 ? segLength : 0);
-      }
-    }
-
-    return result;
-  }
-
-  function parseExifApp1(view, offset, length, result) {
-    // Check EXIF header
-    let str = '';
-    for (let i = 0; i < 6; i++) str += String.fromCharCode(view.getUint8(offset + i));
-    if (str !== 'Exif\0\0') return;
-
-    const tiffOffset = offset + 6;
-    const littleEndian = view.getUint16(tiffOffset, false) === 0x4949; // II vs MM
-    const ifd0Offset = view.getUint32(tiffOffset + 4, littleEndian);
-
-    // Parse IFD0
-    parseIFD(view, tiffOffset + ifd0Offset, littleEndian, result, 0, tiffOffset);
-  }
-
-  function parseIFD(view, offset, littleEndian, result, depth, tiffOffset) {
-    if (depth > 2) return;
-    const entries = view.getUint16(offset, littleEndian);
-
-    for (let i = 0; i < entries; i++) {
-      const entryOffset = offset + 2 + i * 12;
-      const tag = view.getUint16(entryOffset, littleEndian);
-      const type = view.getUint16(entryOffset + 2, littleEndian);
-      const count = view.getUint32(entryOffset + 4, littleEndian);
-      const valueOffset = entryOffset + 8;
-
-      let value;
-      if (type === 2) { // ASCII
-        const dataOffset = count <= 4 ? valueOffset : view.getUint32(valueOffset, littleEndian);
-        let str = '';
-        const absOffset = tiffOffset + dataOffset;
-        for (let j = 0; j < count - 1; j++) {
-          const c = view.getUint8(absOffset + j);
-          if (c >= 32 && c < 127) str += String.fromCharCode(c);
-          else break;
-        }
-        value = str.trim();
-      } else if (type === 3) { // SHORT (16-bit)
-        if (count === 1) value = view.getUint16(valueOffset, littleEndian);
-        else { value = []; for (let j = 0; j < Math.min(count, 4); j++) value.push(view.getUint16(valueOffset + j*2, littleEndian)); value = value.join(', '); }
-      } else if (type === 4) { // LONG (32-bit)
-        if (count === 1) value = view.getUint32(valueOffset, littleEndian);
-        else { value = []; for (let j = 0; j < Math.min(count, 2); j++) value.push(view.getUint32(valueOffset + j*4, littleEndian)); value = value.join(', '); }
-      } else if (type === 5) { // RATIONAL
-        const numOffset = tiffOffset + view.getUint32(valueOffset, littleEndian);
-        const denOffset = tiffOffset + view.getUint32(valueOffset + 4, littleEndian);
-        const num = view.getUint32(numOffset, littleEndian);
-        const den = view.getUint32(denOffset, littleEndian);
-        value = den !== 0 ? (num / den).toFixed(2) : '0';
-      } else if (type === 7) { // UNDEFINED (bytes)
-        if (count <= 4) {
-          let bytes = [];
-          for (let j = 0; j < count; j++) bytes.push(view.getUint8(valueOffset + j));
-          value = bytes.join(' ');
-        } else {
-          const dataOffset = view.getUint32(valueOffset, littleEndian);
-          value = '[' + count + ' bytes]';
-        }
-      }
-
-      if (value !== undefined) {
-        addExifTag(tag, value, result);
-      }
-    }
-
-    // Next IFD
-    const nextOffset = view.getUint32(offset + 2 + entries * 12, littleEndian);
-    if (nextOffset !== 0 && depth === 0) {
-      parseIFD(view, tiffOffset + nextOffset, littleEndian, result, depth + 1, tiffOffset);
-    }
-  }
-
-  function addExifTag(tag, value, result) {
-    const tags = {
-      0x010F: {k: '相机型号', s: 'camera'},
-      0x0110: {k: '相机固件', s: 'camera'},
-      0x010E: {k: '图片描述', s: 'image'},
-      0x0112: {k: '方向', s: 'image'},
-      0x0132: {k: '拍摄时间', s: 'image'},
-      0x0102: {k: '像素宽度', s: 'image'},
-      0x0103: {k: '像素高度', s: 'image'},
-      0xA002: {k: '像素宽度(EXIF)', s: 'image'},
-      0xA003: {k: '像素高度(EXIF)', s: 'image'},
-      0x8298: {k: '版权信息', s: 'image'},
-      0x920A: {k: '焦距', s: 'shot'},
-      0x9209: {k: '闪光灯', s: 'shot'},
-      0x829A: {k: '曝光时间', s: 'shot'},
-      0x829D: {k: '光圈值', s: 'shot'},
-      0x8827: {k: 'ISO感光度', s: 'shot'},
-      0x9204: {k: '曝光补偿', s: 'shot'},
-      0x9205: {k: '测光模式', s: 'shot'},
-      0xA217: {k: '拍摄模式', s: 'shot'},
-      0xA210: {k: '场景类型', s: 'shot'},
-      0xA20E: {k: '白平衡', s: 'shot'},
-      0xA401: {k: '自定义渲染', s: 'shot'},
-      0x9207: {k: '曝光模式', s: 'shot'},
-      0x9208: {k: '白平衡', s: 'shot'},
-      0x9003: {k: '原始时间', s: 'image'},
-      0x9004: {k: '数字化时间', s: 'image'},
-      0x0001: {k: 'GPS纬度参考', s: 'gps'},
-      0x0002: {k: 'GPS纬度', s: 'gps'},
-      0x0003: {k: 'GPS经度参考', s: 'gps'},
-      0x0004: {k: 'GPS经度', s: 'gps'},
-      0x0005: {k: 'GPS高度参考', s: 'gps'},
-      0x0006: {k: 'GPS高度', s: 'gps'},
-      0x0007: {k: 'GPS时间戳', s: 'gps'}
-    };
-
-    const tagInfo = tags[tag];
-    if (!tagInfo) return;
-    if (tag >= 0x0001 && tag <= 0x0007) {
-      // GPS sub-IFD tags - handled via sub-IFD
-      return;
-    }
-    if (tagInfo.s === 'image') {
-      result.image.push({key: tagInfo.k, value: String(value)});
-    } else if (tagInfo.s === 'camera') {
-      result.camera.push({key: tagInfo.k, value: String(value)});
-    } else if (tagInfo.s === 'shot') {
-      result.shot.push({key: tagInfo.k, value: String(value)});
-    }
-  }
-
-  function renderExif(sections) {
-    exifGrid.innerHTML = '';
-    sections.forEach(function(section) {
-      const card = document.createElement('div');
-      card.className = 'exif-card full';
-      let html = '<h3>'+section.section+'</h3>';
-      section.items.forEach(function(item) {
-        let val = String(item.value);
-        if (item.key.indexOf('纬度') !== -1 || item.key.indexOf('经度') !== -1 || item.key === 'GPS Lat' || item.key === 'GPS Lng') {
-          val = '<a href="https://www.google.com/maps?q='+encodeURIComponent(item.value)+'" target="_blank" rel="noopener">'+item.value+' 🗺️</a>';
-        }
-        html += '<div class="exif-item"><span class="key">'+item.key+'</span><span class="value">'+val+'</span></div>';
-      });
-      card.innerHTML = html;
-      exifGrid.appendChild(card);
-    });
-  }
-
-  function formatFileSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1048576).toFixed(1) + ' MB';
-  }
-})();
-</script></div></div>
+    <button class="btn btn-primary" onclick="window.open('https://github.com/webtools-cn/tools-site/issues/new?body='+encodeURIComponent(document.getElementById('feedbackText').value),'_blank')">提交反馈</button></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -388,6 +110,9 @@
 </div>
 <div class="toast" id="toast"></div>
 <script>
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
@@ -655,6 +380,7 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
     return (bytes / 1048576).toFixed(1) + ' MB';
   }
 })();
+
 
 </script>
 </body>

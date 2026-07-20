@@ -37,6 +37,7 @@
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; WebP转PNG转换器</p>
 <div class="hero"><p>在线WebP转PNG转换器，免费将WebP图片转换为PNG或JPG格式。完全浏览器端处理，无需上传文件。支持批量转换，高质量输出，保护您的隐私安全。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
+<div><div class="section"><div class="main-grid">
 <div><div class="section"></div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
@@ -45,8 +46,6 @@
     Updated: 2026-07-11
   </span>
 </div>
-  <div class="ad-slot" style="margin:16px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-
   <div class="upload-section">
     <div class="upload-zone" id="dropZone">
       <div class="upload-zone-icon">🖼️</div>
@@ -77,8 +76,6 @@
   <div class="results-section" id="resultsSection">
     <div class="preview-grid" id="previewGrid"></div>
   </div>
-
-  <div class="ad-slot" ><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 
   <div class="info-section">
     <h2>关于WebP转PNG转换器</h2>
@@ -111,230 +108,7 @@
     <h3>转换后图片质量会下降吗？</h3>
     <p>转换为PNG时是无损的，不会产生任何质量损失。转换为JPG时，您可以调节质量设置（默认为90%），在文件大小和图片质量之间取得平衡。</p>
     <h3>文件大小或数量有限制吗？</h3>
-    <p>由于所有处理都在本地，限制取决于您设备的可用内存。大多数50MB以内的图片均可正常处理。超大图片的批量转换受限于浏览器内存。</p>
-  </div>
-
-  <div class="footer">
-    <a href="../">首页</a>
-    <a href="../privacy-policy/">隐私政策</a>
-    <a href="../about/">关于我们</a>
-  </div>
-</div>
-
-<script>
-(function(){
-  const dropZone = document.getElementById('dropZone');
-  const fileInput = document.getElementById('fileInput');
-  const outputFormat = document.getElementById('outputFormat');
-  const qualitySlider = document.getElementById('qualitySlider');
-  const qualityVal = document.getElementById('qualityVal');
-  const qualityRow = document.getElementById('qualityRow');
-  const convertBtn = document.getElementById('convertBtn');
-  const clearBtn = document.getElementById('clearBtn');
-  const downloadAllBtn = document.getElementById('downloadAllBtn');
-  const previewGrid = document.getElementById('previewGrid');
-  const resultsSection = document.getElementById('resultsSection');
-  const statusBar = document.getElementById('statusBar');
-
-  let files = [];
-  let results = [];
-
-  function showStatus(msg, type) {
-    statusBar.className = 'status-bar ' + type;
-    statusBar.textContent = msg;
-  }
-  function hideStatus() { statusBar.className = 'status-bar'; statusBar.textContent = ''; }
-
-  qualitySlider.addEventListener('input', function() {
-    qualityVal.textContent = this.value;
-  });
-
-  outputFormat.addEventListener('change', function() {
-    qualityRow.style.display = this.value === 'jpeg' ? 'flex' : 'none';
-  });
-
-  dropZone.addEventListener('click', function() { fileInput.click(); });
-
-  dropZone.addEventListener('dragover', function(e) {
-    e.preventDefault(); dropZone.classList.add('dragover');
-  });
-  dropZone.addEventListener('dragleave', function() {
-    dropZone.classList.remove('dragover');
-  });
-  dropZone.addEventListener('drop', function(e) {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-    handleFiles(e.dataTransfer.files);
-  });
-  fileInput.addEventListener('change', function() {
-    handleFiles(this.files);
-    this.value = '';
-  });
-
-  function handleFiles(newFiles) {
-    const webpFiles = [];
-    for (let i = 0; i < newFiles.length; i++) {
-      const f = newFiles[i];
-      if (f.type === 'image/webp' || f.name.toLowerCase().endsWith('.webp')) {
-        webpFiles.push(f);
-      }
-    }
-    if (webpFiles.length === 0) {
-      showStatus('请选择WebP格式的图片文件（.webp）', 'error');
-      return;
-    }
-    files = files.concat(webpFiles);
-    showStatus('已添加 ' + webpFiles.length + ' 个WebP文件，共 ' + files.length + ' 个', 'info');
-    convertBtn.disabled = false;
-    clearBtn.disabled = false;
-  }
-
-  convertBtn.addEventListener('click', function() {
-    if (files.length === 0) return;
-    convertFiles();
-  });
-
-  clearBtn.addEventListener('click', function() {
-    files = [];
-    results = [];
-    previewGrid.innerHTML = '';
-    resultsSection.classList.remove('show');
-    convertBtn.disabled = true;
-    clearBtn.disabled = true;
-    downloadAllBtn.style.display = 'none';
-    hideStatus();
-  });
-
-  async function convertFiles() {
-    const format = outputFormat.value;
-    const quality = parseInt(qualitySlider.value) / 100;
-    results = [];
-    convertBtn.disabled = true;
-    showStatus('正在转换 ' + files.length + ' 个文件...', 'info');
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      try {
-        const dataUrl = await convertOneFile(file, format, quality);
-        results.push({ name: file.name.replace(/\.webp$/i, '.' + format), dataUrl: dataUrl, size: dataUrl.length });
-      } catch(err) {
-        showStatus('转换失败 ' + file.name + ': ' + err.message, 'error');
-        results.push({ name: file.name.replace(/\.webp$/i, '.' + format), error: err.message });
-      }
-    }
-
-    renderResults();
-    convertBtn.disabled = false;
-    downloadAllBtn.style.display = results.length > 1 ? 'inline-block' : 'none';
-    const successCount = results.filter(r => !r.error).length;
-    showStatus('✅ 成功转换 ' + successCount + '/' + files.length + ' 个文件', 'success');
-  }
-
-  function convertOneFile(file, format, quality) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = function() {
-        try {
-          URL.revokeObjectURL(url);
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          const ctx = canvas.getContext('2d');
-          if (format === 'jpeg') {
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-          }
-          ctx.drawImage(img, 0, 0);
-          const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
-          const dataUrl = canvas.toDataURL(mimeType, quality);
-          resolve(dataUrl);
-        } catch(err) { reject(err); }
-      };
-      img.onerror = function() {
-        URL.revokeObjectURL(url);
-        reject(new Error('图片解码失败，请确保文件是有效的WebP格式'));
-      };
-      img.src = url;
-    });
-  }
-
-  function renderResults() {
-    previewGrid.innerHTML = '';
-    resultsSection.classList.add('show');
-    results.forEach(function(r) {
-      const card = document.createElement('div');
-      card.className = 'preview-card';
-      if (r.error) {
-        card.innerHTML = '<div style="color:#ef4444;padding:40px 0">❌ 转换失败<br><span style="font-size:.8rem">' + r.error + '</span></div><div class="name">' + r.name + '</div>';
-      } else {
-        card.innerHTML = '<img src="' + r.dataUrl + '" alt="' + r.name + '"><div class="name">' + r.name + '</div><div class="size">约' + formatSize(r.size) + '</div><button class="btn btn-primary download-btn" data-url="' + r.dataUrl + '" data-name="' + r.name + '">⬇ 下载</button>';
-      }
-      previewGrid.appendChild(card);
-    });
-    document.querySelectorAll('.download-btn').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        const a = document.createElement('a');
-        a.href = this.dataset.url;
-        a.download = this.dataset.name;
-        a.click();
-      });
-    });
-  }
-
-  function formatSize(bytes) {
-    const b = bytes * 0.75;
-    if (b < 1024) return Math.round(b) + ' B';
-    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
-    return (b / 1048576).toFixed(1) + ' MB';
-  }
-
-  downloadAllBtn.addEventListener('click', function() {
-    const valid = results.filter(r => !r.error);
-    if (valid.length === 0) return;
-    if (valid.length === 1) {
-      const a = document.createElement('a');
-      a.href = valid[0].dataUrl;
-      a.download = valid[0].name;
-      a.click();
-      return;
-    }
-    showStatus('请从上方卡片中单独下载文件', 'info');
-  });
-  qualityRow.style.display = 'none';
-})();
-</script>
-
-<!-- Feedback Widget -->
-<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
-<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
-<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈</span><button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button></div>
-<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none"><option value="feedback">💡 功能建议</option><option value="bug">🐛 报告问题</option><option value="other">💬 其他</option></select>
-<textarea id="feedback-text" placeholder="描述您的建议或问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span><button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button></div>
-<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
-</div>
-</div>
-<script>
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const text=document.getElementById('feedback-text').value.trim();
-if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 报告问题',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\\n**类型**: '+typeLabel+'\\n\\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);}
-</script>
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section">
-  <div class="related-tools-loading">Loading related tools...</div>
-</div>
-<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
+    <p>由于所有处理都在本地，限制取决于您设备的可用内存。大多数50MB以内的图片均可正常处理。超大图片的批量转换受限于浏览器内存。</p></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -360,6 +134,9 @@ setTimeout(()=>{document.getElementById('feedback-success').style.display='none'
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
 function submitFeedback(){
@@ -372,6 +149,7 @@ const body=encodeURIComponent('**页面**: '+window.location.href+'\\n**类型**
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
 document.getElementById('feedback-success').style.display='block';
 setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);}
+
 
 </script>
 </body>

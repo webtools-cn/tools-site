@@ -46,6 +46,7 @@
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线日记本</p>
 <div class="hero"><p>免费在线日记本，每日心情记录工具。支持Markdown格式、情绪标签、搜索历史、密码保护。纯前端本地存储，数据不上传服务器，隐私安全。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
+<div><div class="section"><div class="main-grid">
 <div><div class="section"></div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
@@ -54,7 +55,6 @@
     Updated: 2026-07-11
   </span>
 </div>
-  <div class="ad-slot" style="margin:16px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
   <div class="section">
     <div class="toolbar">
       <div class="date-nav">
@@ -81,15 +81,6 @@
       <button class="btn" id="exportBtn" style="background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)">📥 导出</button>
     </div>
   </div>
-  <div class="section">
-    <h2>📖 日记列表</h2>
-    <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="搜索日记内容或关键词...">
-      <button class="btn btn-primary" id="searchBtn">🔍 搜索</button>
-    </div>
-    <div id="journalList" class="journal-list"></div>
-  </div>
-  <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
   <div class="info-section" id="usage">
     <h2>使用说明</h2>
     <div id="usageContent">
@@ -105,163 +96,7 @@
         <li>🔒 纯本地存储：不上传服务器，保护隐私</li>
       </ul>
     </div>
-  </div>
-</div>
-<div class="footer">
-  <a href="../index.html">全部工具</a> | <a href="../blog/">博客</a> | <a href="../en/index.html">English</a>
-  <p style="margin-top:8px">&copy; 2025 在线小工具矩阵 &middot; 免费在线工具 &middot; 纯前端零后端</p>
-</div>
-<!-- 反馈组件 -->
-<div id="feedback-root"></div>
-<script>
-(function(){'use strict';
-var STORAGE_KEY='dj_entries';
-var currentDate=new Date();
-function formatDate(d){return d.getFullYear()+'-'+(d.getMonth()+1).toString().padStart(2,'0')+'-'+d.getDate().toString().padStart(2,'0');}
-function parseDate(str){var p=str.split('-');return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));}
-function getEntries(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||{};}catch(e){return {};}}
-function saveEntries(entries){localStorage.setItem(STORAGE_KEY,JSON.stringify(entries));}
-function renderDate(){document.getElementById('dateDisplay').textContent=formatDate(currentDate);}
-function getEntryForDate(dateStr){var entries=getEntries();return entries[dateStr]||null;}
-function renderEditor(){var dateStr=formatDate(currentDate);var entry=getEntryForDate(dateStr);var contentEl=document.getElementById('journalContent');var moodBtns=document.querySelectorAll('.mood-btn');
-  moodBtns.forEach(function(b){b.classList.remove('active');});
-  if(entry){
-    contentEl.value=entry.content||'';
-    if(entry.mood){
-      moodBtns.forEach(function(b){if(b.dataset.mood===entry.mood)b.classList.add('active');});
-    }
-  }else{
-    contentEl.value='';
-  }
-}
-function renderList(filter){
-  var entries=getEntries();
-  var dateKeys=Object.keys(entries).sort().reverse();
-  var listEl=document.getElementById('journalList');
-  if(dateKeys.length===0){
-    listEl.innerHTML='<div class="empty-state">📝 还没有日记，开始写第一篇吧！</div>';
-    return;
-  }
-  var html='';
-  dateKeys.forEach(function(dateStr){
-    var entry=entries[dateStr];
-    var content=(entry.content||'').trim();
-    var mood=entry.mood||'';
-    if(filter){
-      if(!content.toLowerCase().includes(filter.toLowerCase()))return;
-    }
-    var preview=content.replace(/[#*`\[\]()>|~_\-]/g,'').substring(0,120);
-    if(content.length>120)preview+='...';
-    html+='<div class="journal-entry" data-date="'+dateStr+'">';
-    html+='<div><span class="entry-date">'+dateStr+'</span><span class="entry-mood">'+mood+'</span></div>';
-    html+='<div class="entry-preview">'+escapeHtml(preview)+'</div>';
-    html+='<div class="entry-actions"><button class="view-entry-btn">查看</button><button class="delete-entry-btn">🗑️</button></div>';
-    html+='</div>';
-  });
-  if(!html){listEl.innerHTML='<div class="empty-state">🔍 未找到匹配的日记</div>';return;}
-  listEl.innerHTML=html;
-  listEl.querySelectorAll('.view-entry-btn').forEach(function(btn){
-    btn.addEventListener('click',function(){
-      var dateStr=this.closest('.journal-entry').dataset.date;
-      currentDate=parseDate(dateStr);
-      renderDate();
-      renderEditor();
-      renderList();
-    });
-  });
-  listEl.querySelectorAll('.delete-entry-btn').forEach(function(btn){
-    btn.addEventListener('click',function(e){
-      e.stopPropagation();
-      if(!confirm('确定删除这篇日记？'))return;
-      var dateStr=this.closest('.journal-entry').dataset.date;
-      var entries=getEntries();
-      delete entries[dateStr];
-      saveEntries(entries);
-      renderEditor();
-      renderList();
-    });
-  });
-}
-function escapeHtml(str){
-  var div=document.createElement('div');
-  div.textContent=str;
-  return div.innerHTML;
-}
-document.getElementById('saveBtn').addEventListener('click',function(){
-  var dateStr=formatDate(currentDate);
-  var content=document.getElementById('journalContent').value.trim();
-  if(!content){showToast('请填写日记内容');return;}
-  var activeMood=document.querySelector('.mood-btn.active');
-  var mood=activeMood?activeMood.dataset.mood:'';
-  var entries=getEntries();
-  entries[dateStr]={content:content,mood:mood,updated:new Date().toISOString()};
-  saveEntries(entries);
-  renderEditor();
-  renderList();
-  var orig=this.textContent;
-  this.textContent='✅ 已保存';
-  var self=this;
-  setTimeout(function(){self.textContent=orig;},1500);
-});
-document.getElementById('exportBtn').addEventListener('click',function(){
-  var entries=getEntries();
-  var keys=Object.keys(entries);
-  if(keys.length===0){showToast('暂无日记可导出');return;}
-  var data=JSON.stringify(entries,null,2);
-  var blob=new Blob([data],{type:'application/json'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url;a.download='daily-journal-backup-'+formatDate(new Date())+'.json';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-});
-document.getElementById('prevDayBtn').addEventListener('click',function(){
-  currentDate.setDate(currentDate.getDate()-1);
-  renderDate();renderEditor();
-});
-document.getElementById('nextDayBtn').addEventListener('click',function(){
-  currentDate.setDate(currentDate.getDate()+1);
-  renderDate();renderEditor();
-});
-document.getElementById('todayBtn').addEventListener('click',function(){
-  currentDate=new Date();
-  renderDate();renderEditor();
-});
-document.querySelectorAll('.mood-btn').forEach(function(btn){
-  btn.addEventListener('click',function(){
-    document.querySelectorAll('.mood-btn').forEach(function(b){b.classList.remove('active');});
-    this.classList.add('active');
-  });
-});
-document.getElementById('searchBtn').addEventListener('click',function(){
-  var query=document.getElementById('searchInput').value.trim();
-  renderList(query||null);
-});
-document.getElementById('searchInput').addEventListener('keyup',function(e){
-  if(e.key==='Enter'){
-    var query=this.value.trim();
-    renderList(query||null);
-  }
-});
-// init
-renderDate();
-renderEditor();
-renderList();
-})();
-</script>
-<script>
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-
-(function(){var s=document.createElement('script');s.src='/tools-site/libs/feedback.js';document.body.appendChild(s);})();
-</script>
-<!-- Related Tools (cross-recommendation) -->
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section">
-  <div class="related-tools-loading">Loading related tools...</div>
-</div>
-<script src="https://free-toolbase.com/related-tools.js"></script>
-
-<div class="toast" id="toast"></div></div></div>
+  </div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -287,9 +122,13 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 
 (function(){var s=document.createElement('script');s.src='/tools-site/libs/feedback.js';document.body.appendChild(s);})();
+
 
 </script>
 </body>
