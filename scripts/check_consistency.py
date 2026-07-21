@@ -86,6 +86,10 @@ for d in sorted(os.listdir('.')):
         tool_issues.append('NO_SHOWTOAST')
     if 'function copyText' not in content:
         tool_issues.append('NO_COPYTEXT')
+    if 'adsbygoogle' not in content and 'pagead2.googlesyndication.com' not in content:
+        tool_issues.append('NO_ADSENSE')
+    if 'ad-slot' not in content and 'ad-container' not in content:
+        tool_issues.append('NO_AD_SLOT')
     if tool_issues:
         structure_issues.append({'tool': d, 'issues': tool_issues})
 
