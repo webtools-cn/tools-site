@@ -409,22 +409,30 @@ class PageExtractor:
             # 剩下的就是工具HTML
             result['tool_html'] = middle.strip()
         else:
-            # 如果找不到ad-top和footer，尝试从h1和第一个ad-container之间提取
+            # Fallback: 从h1到footer之间提取
             h1_end = re.search(r'</h1>', body, re.I)
             if h1_end:
                 after_h1 = body[h1_end.end():]
-                ad_match = re.search(r'<div class="ad-container"[^>]*>.*?</div>', after_h1, re.S|re.I)
-                if ad_match:
-                    tool_html = after_h1[:ad_match.start()]
-                    # 清理
-                    tool_html = re.sub(r'<div class="lang-switch".*?</div>\s*', '', tool_html, count=1, flags=re.S|re.I)
-                    tool_html = re.sub(r'<div class="star-rating".*?</div>\s*', '', tool_html, count=1, flags=re.S|re.I)
-                    tool_html = re.sub(r'<div class="trust-signals".*?</div>\s*', '', tool_html, count=1, flags=re.S|re.I)
-                    tool_html = re.sub(r'<div class="nav-back">.*?</div>\s*', '', tool_html, count=1, flags=re.S|re.I)
-                    tool_html = re.sub(r'<p class="nav-back">.*?</p>\s*', '', tool_html, count=1, flags=re.S|re.I)
-                    result['tool_html'] = tool_html.strip()
+                # 找footer（多种格式）
+                footer_match = re.search(r'<footer|<div class="footer|<div class="section"\s*>\s*<h2>常见问题', after_h1, re.I)
+                if footer_match:
+                    tool_html = after_h1[:footer_match.start()]
                 else:
-                    result['tool_html'] = ''
+                    tool_html = after_h1
+                # 清理非工具内容
+                tool_html = re.sub(r'<div class="lang-switch".*?</div>\s*', '', tool_html, count=1, flags=re.S|re.I)
+                tool_html = re.sub(r'<div class="star-rating".*?</div>\s*', '', tool_html, count=1, flags=re.S|re.I)
+                tool_html = re.sub(r'<div class="trust-signals".*?</div>\s*', '', tool_html, count=1, flags=re.S|re.I)
+                tool_html = re.sub(r'<div class="nav-back">.*?</div>\s*', '', tool_html, count=1, flags=re.S|re.I)
+                tool_html = re.sub(r'<p class="nav-back">.*?</p>\s*', '', tool_html, count=1, flags=re.S|re.I)
+                tool_html = re.sub(r'<div class="ad-slot[^"]*"[^>]*>.*?</div>\s*', '', tool_html, flags=re.S|re.I)
+                tool_html = re.sub(r'<div class="ad-container"[^>]*>.*?</div>\s*', '', tool_html, flags=re.S|re.I)
+                tool_html = re.sub(r'<div class="seo-content">.*?</div>\s*', '', tool_html, count=1, flags=re.S|re.I)
+                tool_html = re.sub(r'<div class="section">\s*<h2>.*?</h2>\s*.*?</div>\s*</div>\s*', '', tool_html, count=1, flags=re.S|re.I)
+                tool_html = re.sub(r'<div class="feedback-widget">.*?</div>\s*', '', tool_html, flags=re.S|re.I)
+                tool_html = re.sub(r'<div class="related-tools">.*?</div>\s*', '', tool_html, flags=re.S|re.I)
+                tool_html = re.sub(r'<div class="toast"[^>]*>.*?</div>\s*', '', tool_html, flags=re.S|re.I)
+                result['tool_html'] = tool_html.strip()
             else:
                 result['tool_html'] = ''
             result['seo'] = ''
