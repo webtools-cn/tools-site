@@ -1,58 +1,132 @@
 #!/usr/bin/env python3
-"""Fix JS syntax errors in tool index.html files by analyzing the extracted JS."""
-
+"""Fix JS syntax errors in tool HTML files by extracting, checking, and applying fixes."""
 import subprocess
+import re
 import sys
 import os
-import re
-
-os.chdir('/home/chison/tools-site')
 
 TOOLS = [
-    "pdf-page-extractor", "pdf-to-excel", "pdf-to-html", "pdf-to-jpg", "pdf-to-ppt",
-    "piano-keyboard", "pie-chart-maker", "privacy-policy-generator", "properties-to-yaml",
-    "quiz-generator", "radar-chart-maker", "random-password-generator", "receipt-generator",
-    "regex-character-class-generator", "regex-cheatsheet", "rot13-converter",
-    "scatter-plot-maker", "schema-generator", "seo-meta-generator", "shopping-list-generator",
-    "sitemap-validator", "snake-game", "social-share-link-generator", "spectrum-analyzer",
-    "sql-migration-generator", "sql-to-csv", "sql-to-json", "sql-to-kysely", "sql-to-prisma",
-    "svg-color-changer", "svg-to-data-uri", "swot-analysis-generator", "tdee-calculator",
-    "terms-generator", "text-diff-checker", "text-normalizer", "text-palindrome-checker",
-    "text-readability-analyzer", "text-sentiment-analyzer", "text-to-braille", "tic-tac-toe",
-    "tsv-to-csv", "unique-id-generator", "username-generator", "video-compress",
-    "vite-config-generator", "whois-lookup", "word-search-generator", "word-to-pdf",
-    "workout-generator", "yes-no-generator"
+    "apache-config-generator", "api-response-mocker", "bar-chart-maker",
+    "bic-checker", "business-name-generator", "character-frequency",
+    "code-diff", "color-namer", "cron-expression-parser",
+    "css-hover-animation-effects", "css-hover-effects",
+    "css-keyframe-animation-generator", "css-to-js", "csv-to-sql",
+    "curl-to-python", "daily-affirmation-generator", "dns-record-comparator",
+    "dockerfile-formatter", "dockerfile-linter", "editorconfig-generator"
 ]
 
-def check_js(tool):
-    """Extract JS and check syntax, return (ok, error_message)."""
-    js_path = f"/tmp/{tool}.js"
-    html_path = f"{tool}/index.html"
-    subprocess.run(["python3", "scripts/extract_js.py", html_path, "-o", js_path], 
-                   capture_output=True)
-    # Actually the script prints to stdout
-    with open(js_path, 'w') as f:
-        result = subprocess.run(["python3", "scripts/extract_js.py", html_path], 
-                              capture_output=True, text=True)
+BASE = "/home/chison/tools-site"
+
+def extract_js(tool):
+    """Extract JS from HTML file."""
+    path = f"{BASE}/{tool}/index.html"
+    result = subprocess.run(
+        ["python3", f"{BASE}/scripts/extract_js.py", path],
+        capture_output=True, text=True
+    )
+    tmp = f"/tmp/{tool}.js"
+    with open(tmp, 'w') as f:
         f.write(result.stdout)
-    
-    result = subprocess.run(["node", "-c", js_path], capture_output=True, text=True)
-    if result.returncode == 0:
-        return True, ""
-    return False, result.stderr.strip()
+    return tmp
 
-# First pass: identify all broken tools
-broken = []
-ok_tools = []
+def check_js(tmp_path):
+    """Check JS syntax with node -c."""
+    result = subprocess.run(
+        ["node", "-c", tmp_path],
+        capture_output=True, text=True
+    )
+    return result.returncode, result.stderr
+
+def get_error_info(stderr):
+    """Parse node error to get line number and error type."""
+    m = re.search(r':(\d+)\n.*SyntaxError: (.+)', stderr)
+    if m:
+        return int(m.group(1)), m.group(2)
+    return None, None
+
+def read_html(tool):
+    path = f"{BASE}/{tool}/index.html"
+    with open(path, 'r') as f:
+        return f.read()
+
+def write_html(tool, content):
+    path = f"{BASE}/{tool}/index.html"
+    with open(path, 'w') as f:
+        f.write(content)
+
+def verify(tool):
+    tmp = extract_js(tool)
+    rc, err = check_js(tmp)
+    return rc == 0, err
+
+# Process each tool
+results = {}
 for tool in TOOLS:
-    ok, err = check_js(tool)
-    if ok:
-        ok_tools.append(tool)
-    else:
-        broken.append((tool, err))
-        print(f"ERR: {tool}")
+    print(f"\n{'='*60}")
+    print(f"Processing: {tool}")
+    
+    # Extract and check
+    tmp = extract_js(tool)
+    rc, err = check_js(tmp)
+    if rc == 0:
+        print(f"  Already OK!")
+        results[tool] = "OK"
+        continue
+    
+    line_no, error_type = get_error_info(err)
+    print(f"  Error at line {line_no}: {error_type}")
+    
+    # Read the extracted JS to see the problematic line
+    with open(tmp, 'r') as f:
+        js_lines = f.readlines()
+    if line_no and line_no <= len(js_lines):
+        print(f"  JS line: {js_lines[line_no-1][:120]}...")
+    
+    # Read the HTML
+    html = read_html(tool)
+    
+    # Try automated fixes based on error type
+    fixed = False
+    
+    if tool == "apache-config-generator":
+        # Invalid regular expression flags - regex in template literal
+        # The issue is proxyUrl.replace(/^https?:\/\/... inside a template literal
+        # Need to escape the backslashes properly or use a different approach
+        old = "proxyUrl.replace(/^https?:\\\\/\\\\//,'')"
+        new = "proxyUrl.replace(/^https?:[\\\\/\\\\/]/,'')"
+        if old in html:
+            html = html.replace(old, new)
+            write_html(tool, html)
+            ok, e = verify(tool)
+            if ok:
+                print(f"  FIXED!")
+                results[tool] = "FIXED"
+                fixed = True
+            else:
+                print(f"  Still broken: {e}")
+                # Revert and try different fix
+                html = html.replace(new, old)
+    
+    if not fixed and tool == "apache-config-generator":
+        # Try replacing the entire problematic section with simpler code
+        old = """if(proxyWs)cfg+=`  RewriteEngine On\\n  RewriteCond %{HTTP:Upgrade} =websocket [NC]\\n  RewriteRule /(.*) ws://${proxyUrl.replace(/^https?:\\\\/\\\\//,'')}/$1 [P,L]\\n`;"""
+        new = """if(proxyWs){var _pUrl=proxyUrl.replace(/^https?:\\/\\//,'');cfg+=`  RewriteEngine On\\n  RewriteCond %{HTTP:Upgrade} =websocket [NC]\\n  RewriteRule /(.*) ws://${_pUrl}/$1 [P,L]\\n`;}"""
+        if old in html:
+            html = html.replace(old, new)
+            write_html(tool, html)
+            ok, e = verify(tool)
+            if ok:
+                print(f"  FIXED with approach 2!")
+                results[tool] = "FIXED"
+                fixed = True
+            else:
+                print(f"  Still broken: {e}")
+    
+    if not fixed:
+        print(f"  NEEDS MANUAL FIX")
+        results[tool] = f"MANUAL: {error_type}"
 
-print(f"\n{len(ok_tools)} OK, {len(broken)} broken")
-for tool, err in broken:
-    print(f"\n=== {tool} ===")
-    print(err)
+print(f"\n\n{'='*60}")
+print("SUMMARY:")
+for tool, status in results.items():
+    print(f"  {tool}: {status}")

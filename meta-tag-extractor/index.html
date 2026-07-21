@@ -218,7 +218,7 @@ function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.c
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
 (function(){
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/\x3C/g,'&lt;').replace(/>/g,'&gt;');}
 var allMetas=[];
 
 window.extract=function(){
@@ -230,7 +230,7 @@ window.extract=function(){
 
   // Title
   var title=doc.querySelector('title');
-  if(title)allMetas.push({group:'基础',name:'<title>',value:title.textContent.trim()});
+  if(title)allMetas.push({group:'基础',name:'\x3Ctitle>',value:title.textContent.trim()});
 
   // Meta tags
   doc.querySelectorAll('meta').forEach(function(meta){
@@ -248,12 +248,12 @@ window.extract=function(){
   doc.querySelectorAll('link').forEach(function(link){
     var rel=link.getAttribute('rel')||'';
     var href=link.getAttribute('href')||'';
-    if(rel)allMetas.push({group:'Link',name:'<link rel="'+rel+'">',value:href});
+    if(rel)allMetas.push({group:'Link',name:'\x3Clink rel="'+rel+'">',value:href});
   });
 
   // Base
   var base=doc.querySelector('base');
-  if(base)allMetas.push({group:'基础',name:'<base>',value:base.getAttribute('href')||''});
+  if(base)allMetas.push({group:'基础',name:'\x3Cbase>',value:base.getAttribute('href')||''});
 
   // Group and display
   var groups={};
@@ -267,9 +267,9 @@ window.extract=function(){
   var twCount=(groups['Twitter Card']||[]).length;
 
   document.getElementById('stats').innerHTML=
-    '<div class="stat-item"><span class="stat-label">标签总数</span><span class="stat-value">'+totalMetas+'</span></div>'+
-    '<div class="stat-item"><span class="stat-label">OG标签</span><span class="stat-value" style="color:#10b981">'+ogCount+'</span></div>'+
-    '<div class="stat-item"><span class="stat-label">Twitter标签</span><span class="stat-value" style="color:#06b6d4">'+twCount+'</span></div>';
+    '\x3Cdiv class="stat-item">\x3Cspan class="stat-label">标签总数\x3C/span>\x3Cspan class="stat-value">'+totalMetas+'\x3C/span>\x3C/div>'+
+    '\x3Cdiv class="stat-item">\x3Cspan class="stat-label">OG标签\x3C/span>\x3Cspan class="stat-value" style="color:#10b981">'+ogCount+'\x3C/span>\x3C/div>'+
+    '\x3Cdiv class="stat-item">\x3Cspan class="stat-label">Twitter标签\x3C/span>\x3Cspan class="stat-value" style="color:#06b6d4">'+twCount+'\x3C/span>\x3C/div>';
 
   // SEO Score
   var checks=[];
@@ -296,9 +296,9 @@ window.extract=function(){
   var charset=doc.querySelector('meta[charset]')||doc.querySelector('meta[http-equiv="Content-Type"]');if(charset){checks.push({pass:true,msg:'Charset已声明'});score+=10;}else{checks.push({pass:false,msg:'缺少Charset声明'});}
 
   var scoreColor=score>=80?'#10b981':score>=50?'#f59e0b':'#ef4444';
-  var scoreHtml='<div class="seo-score-circle" style="background:rgba('+hexToRgb(scoreColor)+',.15);color:'+scoreColor+';border:3px solid '+scoreColor+'">'+score+'</div><div class="seo-checks">';
-  checks.forEach(function(c){var icon=c.pass===true?'✅':c.pass==='warn'?'⚠️':'❌';var cls=c.pass===true?'pass':c.pass==='warn'?'warn':'fail';scoreHtml+='<div class="seo-check '+cls+'">'+icon+' '+esc(c.msg)+'</div>';});
-  scoreHtml+='</div>';
+  var scoreHtml='\x3Cdiv class="seo-score-circle" style="background:rgba('+hexToRgb(scoreColor)+',.15);color:'+scoreColor+';border:3px solid '+scoreColor+'">'+score+'\x3C/div>\x3Cdiv class="seo-checks">';
+  checks.forEach(function(c){var icon=c.pass===true?'✅':c.pass==='warn'?'⚠️':'❌';var cls=c.pass===true?'pass':c.pass==='warn'?'warn':'fail';scoreHtml+='\x3Cdiv class="seo-check '+cls+'">'+icon+' '+esc(c.msg)+'\x3C/div>';});
+  scoreHtml+='\x3C/div>';
   document.getElementById('seoScore').innerHTML=scoreHtml;
 
   // Meta groups
@@ -306,13 +306,13 @@ window.extract=function(){
   var groupsHtml='';
   groupOrder.forEach(function(g){
     if(!groups[g])return;
-    groupsHtml+='<div class="meta-group"><div class="meta-group-title">'+esc(g)+' ('+groups[g].length+')</div>';
+    groupsHtml+='\x3Cdiv class="meta-group">\x3Cdiv class="meta-group-title">'+esc(g)+' ('+groups[g].length+')\x3C/div>';
     groups[g].forEach(function(m){
       var valCls=m.value?'':'empty';
       var valDisplay=m.value?esc(m.value):'(空)';
-      groupsHtml+='<div class="meta-item"><span class="meta-name">'+esc(m.name)+'</span><span class="meta-value '+valCls+'">'+valDisplay+'</span></div>';
+      groupsHtml+='\x3Cdiv class="meta-item">\x3Cspan class="meta-name">'+esc(m.name)+'\x3C/span>\x3Cspan class="meta-value '+valCls+'">'+valDisplay+'\x3C/span>\x3C/div>';
     });
-    groupsHtml+='</div>';
+    groupsHtml+='\x3C/div>';
   });
   document.getElementById('metaGroups').innerHTML=groupsHtml;
   document.getElementById('resultSection').style.display='block';
@@ -320,7 +320,7 @@ window.extract=function(){
 
 function hexToRgb(hex){var r=parseInt(hex.slice(1,3),16);var g=parseInt(hex.slice(3,5),16);var b=parseInt(hex.slice(5,7),16);return r+','+g+','+b;}
 
-function showError(msg){document.getElementById('resultSection').style.display='block';document.getElementById('stats').innerHTML='<div style="color:#fca5a5;font-size:.85rem;padding:12px">❌ '+esc(msg)+'</div>';document.getElementById('metaGroups').innerHTML='';document.getElementById('seoScore').innerHTML='';}
+function showError(msg){document.getElementById('resultSection').style.display='block';document.getElementById('stats').innerHTML='\x3Cdiv style="color:#fca5a5;font-size:.85rem;padding:12px">❌ '+esc(msg)+'\x3C/div>';document.getElementById('metaGroups').innerHTML='';document.getElementById('seoScore').innerHTML='';}
 
 window.fetchURL=function(){
   var url=document.getElementById('urlInput').value.trim();
@@ -330,7 +330,7 @@ window.fetchURL=function(){
 };
 
 window.loadExample=function(){
-  document.getElementById('htmlInput').value='<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <meta name="description" content="这是一个示例网站的描述文本，用于展示Meta标签提取工具的功能。">\n  <meta name="keywords" content="示例,测试,meta标签">\n  <meta name="author" content="张三">\n  <meta name="robots" content="index, follow">\n  <title>示例网站 - 展示Meta标签</title>\n  <meta property="og:title" content="示例网站">\n  <meta property="og:description" content="这是一个示例网站的OG描述">\n  <meta property="og:image" content="https://example.com/image.jpg">\n  <meta property="og:url" content="https://example.com">\n  <meta property="og:type" content="website">\n  <meta name="twitter:card" content="summary_large_image">\n  <meta name="twitter:title" content="示例网站">\n  <meta name="twitter:description" content="Twitter Card描述">\n  <link rel="canonical" href="https://example.com">\n</head>';
+  document.getElementById('htmlInput').value='\x3Chead>\n  \x3Cmeta charset="UTF-8">\n  \x3Cmeta name="viewport" content="width=device-width, initial-scale=1.0">\n  \x3Cmeta name="description" content="这是一个示例网站的描述文本，用于展示Meta标签提取工具的功能。">\n  \x3Cmeta name="keywords" content="示例,测试,meta标签">\n  \x3Cmeta name="author" content="张三">\n  \x3Cmeta name="robots" content="index, follow">\n  \x3Ctitle>示例网站 - 展示Meta标签\x3C/title>\n  \x3Cmeta property="og:title" content="示例网站">\n  \x3Cmeta property="og:description" content="这是一个示例网站的OG描述">\n  \x3Cmeta property="og:image" content="https://example.com/image.jpg">\n  \x3Cmeta property="og:url" content="https://example.com">\n  \x3Cmeta property="og:type" content="website">\n  \x3Cmeta name="twitter:card" content="summary_large_image">\n  \x3Cmeta name="twitter:title" content="示例网站">\n  \x3Cmeta name="twitter:description" content="Twitter Card描述">\n  \x3Clink rel="canonical" href="https://example.com">\n\x3C/head>';
   extract();
 };
 

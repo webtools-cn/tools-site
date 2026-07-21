@@ -243,7 +243,7 @@ var db=null;
 var historyData=[];
 try{historyData=JSON.parse(localStorage.getItem('sql_playground_history')||'[]');}catch(e){}
 
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/\x3C/g,'&lt;').replace(/>/g,'&gt;');}
 
 function initDB(){
   if(db){try{db.close();}catch(e){}}
@@ -317,9 +317,9 @@ window.loadExample=function(name){
 };
 
 window.runSQL=function(){
-  if(!sqlLoaded){document.getElementById('resultTable').innerHTML='<div class="loading">正在加载SQL引擎...</div>';document.getElementById('resultSection').style.display='block';return;}
+  if(!sqlLoaded){document.getElementById('resultTable').innerHTML='\x3Cdiv class="loading">正在加载SQL引擎...\x3C/div>';document.getElementById('resultSection').style.display='block';return;}
   var sql=document.getElementById('sqlInput').value.trim();
-  if(!sql){document.getElementById('resultTable').innerHTML='<div class="error-msg">请输入SQL语句</div>';document.getElementById('resultSection').style.display='block';return;}
+  if(!sql){document.getElementById('resultTable').innerHTML='\x3Cdiv class="error-msg">请输入SQL语句\x3C/div>';document.getElementById('resultSection').style.display='block';return;}
 
   var startTime=performance.now();
   try{
@@ -333,8 +333,8 @@ window.runSQL=function(){
         if(r.length>0)lastResult=r[r.length-1];
       }
       catch(e){
-        document.getElementById('statusBar').innerHTML='<span class="status-err">❌ 执行失败</span><span>'+esc(e.message)+'</span>';
-        document.getElementById('resultTable').innerHTML='<div class="error-msg">'+esc(e.message)+'</div>';
+        document.getElementById('statusBar').innerHTML='\x3Cspan class="status-err">❌ 执行失败\x3C/span>\x3Cspan>'+esc(e.message)+'\x3C/span>';
+        document.getElementById('resultTable').innerHTML='\x3Cdiv class="error-msg">'+esc(e.message)+'\x3C/div>';
         document.getElementById('resultSection').style.display='block';
         return;
       }
@@ -342,26 +342,26 @@ window.runSQL=function(){
 
     if(lastResult&&lastResult.columns&&lastResult.values){
       var elapsed=(performance.now()-startTime).toFixed(1);
-      var html='<table class="result-table"><tr>';
-      lastResult.columns.forEach(function(col){html+='<th>'+esc(col)+'</th>';});
-      html+='</tr>';
+      var html='\x3Ctable class="result-table">\x3Ctr>';
+      lastResult.columns.forEach(function(col){html+='\x3Cth>'+esc(col)+'\x3C/th>';});
+      html+='\x3C/tr>';
       lastResult.values.forEach(function(row){
-        html+='<tr>';row.forEach(function(val){html+='<td>'+(val===null?'<span style="color:#64748b">NULL</span>':esc(String(val)))+'</td>';});
-        html+='</tr>';
+        html+='\x3Ctr>';row.forEach(function(val){html+='\x3Ctd>'+(val===null?'\x3Cspan style="color:#64748b">NULL\x3C/span>':esc(String(val)))+'\x3C/td>';});
+        html+='\x3C/tr>';
       });
-      html+='</table>';
+      html+='\x3C/table>';
       document.getElementById('resultTable').innerHTML=html;
-      document.getElementById('statusBar').innerHTML='<span class="status-ok">✓ 执行成功</span><span>'+lastResult.values.length+' 行 · '+elapsed+'ms</span>';
+      document.getElementById('statusBar').innerHTML='\x3Cspan class="status-ok">✓ 执行成功\x3C/span>\x3Cspan>'+lastResult.values.length+' 行 · '+elapsed+'ms\x3C/span>';
     }else{
       var elapsed=(performance.now()-startTime).toFixed(1);
-      document.getElementById('resultTable').innerHTML='<div style="color:#94a3b8;padding:12px;text-align:center">语句执行成功（无返回结果）</div>';
-      document.getElementById('statusBar').innerHTML='<span class="status-ok">✓ 执行成功</span><span>'+elapsed+'ms</span>';
+      document.getElementById('resultTable').innerHTML='\x3Cdiv style="color:#94a3b8;padding:12px;text-align:center">语句执行成功（无返回结果）\x3C/div>';
+      document.getElementById('statusBar').innerHTML='\x3Cspan class="status-ok">✓ 执行成功\x3C/span>\x3Cspan>'+elapsed+'ms\x3C/span>';
     }
     updateSchema();
     saveHistory(sql);
   }catch(e){
-    document.getElementById('statusBar').innerHTML='<span class="status-err">❌ 执行失败</span>';
-    document.getElementById('resultTable').innerHTML='<div class="error-msg">'+esc(e.message)+'</div>';
+    document.getElementById('statusBar').innerHTML='\x3Cspan class="status-err">❌ 执行失败\x3C/span>';
+    document.getElementById('resultTable').innerHTML='\x3Cdiv class="error-msg">'+esc(e.message)+'\x3C/div>';
   }
   document.getElementById('resultSection').style.display='block';
 };
@@ -375,15 +375,15 @@ function updateSchema(){
       tables[0].values.forEach(function(row){
         var tableName=row[0];
         var cols=db.exec("PRAGMA table_info("+tableName+")");
-        html+='<div class="schema-item"><span class="table-name">'+esc(tableName)+'</span>';
+        html+='\x3Cdiv class="schema-item">\x3Cspan class="table-name">'+esc(tableName)+'\x3C/span>';
         if(cols.length>0&&cols[0].values){
           var colList=cols[0].values.map(function(c){return c[1]+' '+c[2];}).join(', ');
-          html+='<div class="col-list">'+esc(colList)+'</div>';
+          html+='\x3Cdiv class="col-list">'+esc(colList)+'\x3C/div>';
         }
-        html+='</div>';
+        html+='\x3C/div>';
       });
     }else{
-      html='<span style="color:#64748b;font-size:.85rem">暂无表，请加载示例或创建表</span>';
+      html='\x3Cspan style="color:#64748b;font-size:.85rem">暂无表，请加载示例或创建表\x3C/span>';
     }
     document.getElementById('schemaList').innerHTML=html;
   }catch(e){}
@@ -447,9 +447,9 @@ function saveHistory(sql){
 
 function renderHistory(){
   var el=document.getElementById('historyList');
-  if(!historyData.length){el.innerHTML='<span style="color:#64748b;font-size:.85rem">暂无记录</span>';return;}
+  if(!historyData.length){el.innerHTML='\x3Cspan style="color:#64748b;font-size:.85rem">暂无记录\x3C/span>';return;}
   el.innerHTML=historyData.map(function(h){
-    return '<div class="history-item" onclick="document.getElementById(\'sqlInput\').value=\''+h.replace(/'/g,"\\'").replace(/\n/g,'\\n')+'\';runSQL();">'+esc(h.substring(0,80))+'</div>';
+    return '\x3Cdiv class="history-item" onclick="document.getElementById(\'sqlInput\').value=\''+h.replace(/'/g,"\\'").replace(/\n/g,'\\n')+'\';runSQL();">'+esc(h.substring(0,80))+'\x3C/div>';
   }).join('');
 }
 

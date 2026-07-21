@@ -100,25 +100,25 @@
 async function checkSupport(){
 var status=document.getElementById('supportStatus');
 if(!navigator.gpu){
-status.innerHTML='<div class="result-box"><div class="result-value danger">❌ 你的浏览器不支持WebGPU</div></div><div class="result-box"><div class="result-value" style="font-size:.85rem">请使用Chrome 113+、Edge 113+或其他支持WebGPU的浏览器。</div></div>';
+status.innerHTML='\x3Cdiv class="result-box">\x3Cdiv class="result-value danger">❌ 你的浏览器不支持WebGPU\x3C/div>\x3C/div>\x3Cdiv class="result-box">\x3Cdiv class="result-value" style="font-size:.85rem">请使用Chrome 113+、Edge 113+或其他支持WebGPU的浏览器。\x3C/div>\x3C/div>';
 return;
 }
 var adapter=await navigator.gpu.requestAdapter();
 if(!adapter){
-status.innerHTML='<div class="result-box"><div class="result-value danger">❌ 无法获取GPU适配器</div></div>';
+status.innerHTML='\x3Cdiv class="result-box">\x3Cdiv class="result-value danger">❌ 无法获取GPU适配器\x3C/div>\x3C/div>';
 return;
 }
-status.innerHTML='<div class="result-box"><div class="result-value success">✅ 你的浏览器支持WebGPU</div></div>';
+status.innerHTML='\x3Cdiv class="result-box">\x3Cdiv class="result-value success">✅ 你的浏览器支持WebGPU\x3C/div>\x3C/div>';
 document.getElementById('devicePanel').style.display='block';
 document.getElementById('benchPanel').style.display='block';
 var info=document.getElementById('deviceInfo');
 var features=Array.from(adapter.features||[]).join(', ')||'无';
 var limits=adapter.limits;
-info.innerHTML='<div class="result-box"><div class="result-label">GPU供应商</div><div class="result-value info">'+(adapter.info?.vendor||'未知')+'</div></div>';
-info.innerHTML+='<div class="result-box"><div class="result-label">GPU架构</div><div class="result-value info">'+(adapter.info?.architecture||'未知')+'</div></div>';
-info.innerHTML+='<div class="result-box"><div class="result-label">GPU设备</div><div class="result-value info">'+(adapter.info?.device||'未知')+'</div></div>';
-info.innerHTML+='<div class="result-box"><div class="result-label">最大缓冲区大小</div><div class="result-value info">'+(limits.maxBufferSize/(1024*1024*1024)).toFixed(2)+' GB</div></div>';
-info.innerHTML+='<div class="result-box"><div class="result-label">最大存储缓冲区大小</div><div class="result-value info">'+(limits.maxStorageBufferBindingSize/(1024*1024)).toFixed(2)+' MB</div></div>';
+info.innerHTML='\x3Cdiv class="result-box">\x3Cdiv class="result-label">GPU供应商\x3C/div>\x3Cdiv class="result-value info">'+(adapter.info?.vendor||'未知')+'\x3C/div>\x3C/div>';
+info.innerHTML+='\x3Cdiv class="result-box">\x3Cdiv class="result-label">GPU架构\x3C/div>\x3Cdiv class="result-value info">'+(adapter.info?.architecture||'未知')+'\x3C/div>\x3C/div>';
+info.innerHTML+='\x3Cdiv class="result-box">\x3Cdiv class="result-label">GPU设备\x3C/div>\x3Cdiv class="result-value info">'+(adapter.info?.device||'未知')+'\x3C/div>\x3C/div>';
+info.innerHTML+='\x3Cdiv class="result-box">\x3Cdiv class="result-label">最大缓冲区大小\x3C/div>\x3Cdiv class="result-value info">'+(limits.maxBufferSize/(1024*1024*1024)).toFixed(2)+' GB\x3C/div>\x3C/div>';
+info.innerHTML+='\x3Cdiv class="result-box">\x3Cdiv class="result-label">最大存储缓冲区大小\x3C/div>\x3Cdiv class="result-value info">'+(limits.maxStorageBufferBindingSize/(1024*1024)).toFixed(2)+' MB\x3C/div>\x3C/div>';
 }
 window.runBenchmark=async function(){
 var resultPanel=document.getElementById('resultPanel');
@@ -132,7 +132,7 @@ var adapter=await navigator.gpu.requestAdapter();
 var device=await adapter.requestDevice();
 var computeScore=0,renderScore=0,memScore=0;
 // Compute test
-var computeShader=device.createShaderModule({code:'@compute @workgroup_size(64) fn main(@builtin(global_invocation_id) id: vec3<u32>){var s: f32=0.0;for(var i=0u;i<1000u;i++){s+=f32(id.x+i)*f32(id.y+i);}storage[id.x]=s;}'});
+var computeShader=device.createShaderModule({code:'@compute @workgroup_size(64) fn main(@builtin(global_invocation_id) id: vec3\x3Cu32>){var s: f32=0.0;for(var i=0u;i<1000u;i++){s+=f32(id.x+i)*f32(id.y+i);}storage[id.x]=s;}'});
 var buf=device.createBuffer({size:1024*64,usage:GPUBufferUsage.STORAGE|GPUBufferUsage.COPY_SRC});
 var readBuf=device.createBuffer({size:1024*64,usage:GPUBufferUsage.MAP_READ|GPUBufferUsage.COPY_DST});
 var start=performance.now();
@@ -181,14 +181,14 @@ await device.queue.onSubmittedWorkDone();
 var memTime=performance.now()-start;
 memScore=Math.round(10000/(memTime/5));
 var total=Math.round(computeScore*0.4+renderScore*0.35+memScore*0.25);
-scoreEl.innerHTML='<span style="color:#22d3ee">'+total+'</span>';
-details.innerHTML='<div class="result-box"><div class="result-label">计算性能</div><div class="result-value info">'+computeScore+' 分 <span style="color:#64748b;font-size:.75rem">('+computeTime.toFixed(0)+'ms)</span></div><div class="progress-bar"><div class="progress-fill" style="width:'+Math.min(computeScore/100,100)+'%;background:#22d3ee"></div></div></div>';
-details.innerHTML+='<div class="result-box"><div class="result-label">渲染性能</div><div class="result-value info">'+renderScore+' 分 <span style="color:#64748b;font-size:.75rem">('+(renderTime||0).toFixed(0)+'ms)</span></div><div class="progress-bar"><div class="progress-fill" style="width:'+Math.min(renderScore/100,100)+'%;background:#10b981"></div></div></div>';
-details.innerHTML+='<div class="result-box"><div class="result-label">内存带宽</div><div class="result-value info">'+memScore+' 分 <span style="color:#64748b;font-size:.75rem">('+memTime.toFixed(0)+'ms)</span></div><div class="progress-bar"><div class="progress-fill" style="width:'+Math.min(memScore/100,100)+'%;background:#facc15"></div></div></div>';
+scoreEl.innerHTML='\x3Cspan style="color:#22d3ee">'+total+'\x3C/span>';
+details.innerHTML='\x3Cdiv class="result-box">\x3Cdiv class="result-label">计算性能\x3C/div>\x3Cdiv class="result-value info">'+computeScore+' 分 \x3Cspan style="color:#64748b;font-size:.75rem">('+computeTime.toFixed(0)+'ms)\x3C/span>\x3C/div>\x3Cdiv class="progress-bar">\x3Cdiv class="progress-fill" style="width:'+Math.min(computeScore/100,100)+'%;background:#22d3ee">\x3C/div>\x3C/div>\x3C/div>';
+details.innerHTML+='\x3Cdiv class="result-box">\x3Cdiv class="result-label">渲染性能\x3C/div>\x3Cdiv class="result-value info">'+renderScore+' 分 \x3Cspan style="color:#64748b;font-size:.75rem">('+(renderTime||0).toFixed(0)+'ms)\x3C/span>\x3C/div>\x3Cdiv class="progress-bar">\x3Cdiv class="progress-fill" style="width:'+Math.min(renderScore/100,100)+'%;background:#10b981">\x3C/div>\x3C/div>\x3C/div>';
+details.innerHTML+='\x3Cdiv class="result-box">\x3Cdiv class="result-label">内存带宽\x3C/div>\x3Cdiv class="result-value info">'+memScore+' 分 \x3Cspan style="color:#64748b;font-size:.75rem">('+memTime.toFixed(0)+'ms)\x3C/span>\x3C/div>\x3Cdiv class="progress-bar">\x3Cdiv class="progress-fill" style="width:'+Math.min(memScore/100,100)+'%;background:#facc15">\x3C/div>\x3C/div>\x3C/div>';
 device.destroy();
 }catch(e){
-scoreEl.innerHTML='<span style="color:#f87171">测试失败</span>';
-details.innerHTML='<div class="result-box"><div class="result-value danger">'+e.message+'</div></div>';
+scoreEl.innerHTML='\x3Cspan style="color:#f87171">测试失败\x3C/span>';
+details.innerHTML='\x3Cdiv class="result-box">\x3Cdiv class="result-value danger">'+e.message+'\x3C/div>\x3C/div>';
 }
 };
 checkSupport();

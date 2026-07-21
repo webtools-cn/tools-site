@@ -1,33 +1,25 @@
 #!/bin/bash
-cd /home/chison/tools-site
-
+# Batch check all 47 tools for JS syntax errors
 TOOLS=(
-pdf-page-extractor pdf-to-excel pdf-to-html pdf-to-jpg pdf-to-ppt piano-keyboard
-pie-chart-maker privacy-policy-generator properties-to-yaml quiz-generator
-radar-chart-maker random-password-generator receipt-generator
-regex-character-class-generator regex-cheatsheet rot13-converter
-scatter-plot-maker schema-generator seo-meta-generator shopping-list-generator
-sitemap-validator snake-game social-share-link-generator spectrum-analyzer
-sql-migration-generator sql-to-csv sql-to-json sql-to-kysely sql-to-prisma
-svg-color-changer svg-to-data-uri swot-analysis-generator tdee-calculator
-terms-generator text-diff-checker text-normalizer text-palindrome-checker
-text-readability-analyzer text-sentiment-analyzer text-to-braille tic-tac-toe
-tsv-to-csv unique-id-generator username-generator video-compress
-vite-config-generator whois-lookup word-search-generator word-to-pdf
-workout-generator yes-no-generator
+  acronym-generator ai-tool-calling-tester apache-config-generator api-response-mocker
+  api-tester audio-speed-changer bar-chart-maker base64-decode base64-encode
+  beat-maker bic-checker bmr-calculator bracket-matcher business-name-generator
+  character-frequency code-diff color-name color-namer cors-test
+  cron-expression-parser css-grid-generator css-grid-template-areas css-hover-animation-effects
+  css-hover-effects css-keyframe-animation-generator css-to-inline-styles css-to-js
+  css-units-converter csv-join csv-to-sql curl-converter curl-to-javascript
+  curl-to-php curl-to-python cursive-text-generator daily-affirmation-generator
+  daily-planner days-between-dates decimal-to-hex diff-checker dns-record-comparator
+  dockerfile-formatter dockerfile-linter donut-chart-maker drawing-tool
+  editorconfig-generator emoji-meaning-finder
 )
 
 for tool in "${TOOLS[@]}"; do
-    html="$tool/index.html"
-    if [ ! -f "$html" ]; then
-        echo "SKIP: $tool - no index.html"
-        continue
-    fi
-    python3 scripts/extract_js.py "$html" > "/tmp/${tool}.js" 2>/dev/null
-    result=$(node -c "/tmp/${tool}.js" 2>&1)
-    if [ $? -eq 0 ]; then
-        echo "OK: $tool"
-    else
-        echo "ERR: $tool - $result"
-    fi
+  python3 scripts/extract_js.py "$tool/index.html" > "/tmp/${tool}.js" 2>/dev/null
+  result=$(node -c "/tmp/${tool}.js" 2>&1)
+  if [ $? -ne 0 ]; then
+    echo "FAIL: $tool - $result"
+  else
+    echo "OK: $tool"
+  fi
 done
