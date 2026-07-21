@@ -71,7 +71,168 @@ h1{text-align:center;font-size:2rem;margin:20px 0;color:#1a1a2e}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; JSON转Rust</p>
 <div class="hero"><p>免费在线JSON转Rust工具。将JSON数据转换为Rust结构体定义，支持serde序列化/反序列化、Option类型、嵌套结构。纯前端处理，适合Rust开发者。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🦀 JSON 转 Rust 结构体</h1>
+<div class="lang-switch" style="position:absolute;top:24px;right:16px;display:flex;gap:8px"><a href="./" style="color:#22d3ee;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #22d3ee;text-decoration:none">中文</a><a href="../en/json-to-rust/" style="color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #334155;text-decoration:none">EN</a></div>
+  <p style="text-align:center;color:#888;margin-bottom:24px;font-size:0.95rem">JSON → Rust Struct · serde支持 · Option · 嵌套结构</p>
+
+  <div class="card">
+    <div class="card-title">📥 输入JSON</div>
+    <div class="preset-btns">
+      <button class="preset-btn" onclick="loadExample('config')">配置</button>
+      <button class="preset-btn" onclick="loadExample('api')">API响应</button>
+      <button class="preset-btn" onclick="loadExample('nested')">嵌套</button>
+    </div>
+    <div class="form-group">
+      <textarea id="jsonInput" placeholder='{
+  "name": "myapp",
+  "version": "1.0.0",
+  "debug": false
+}'></textarea>
+    </div>
+    <div class="options-row">
+      <label><input type="checkbox" id="useSnakeCase" checked> snake_case 字段</label>
+      <label><input type="checkbox" id="useCamelCase" checked> #[serde(rename_all = "camelCase")]</label>
+      <label><input type="checkbox" id="useOptionAll"> 所有字段都 Option</label>
+      <label><input type="checkbox" id="useDefaults"> #[serde(default)]</label>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="generateRust()">🚀 生成 Rust 代码</button>
+      <button class="btn btn-outline" onclick="clearAll()">🗑️ 清空</button>
+    </div>
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💻 生成的Rust代码</div>
+    <div class="code-wrapper">
+      <button class="copy-btn" onclick="copyCode()">📋 复制</button>
+      <div class="code-output" id="codeOutput">// 输入JSON后点击"生成 Rust 代码"</div>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <h2>❓ 常见问题</h2>
+    <div class="faq-item open">
+      <div class="faq-q" onclick="toggleFaq(this)">生成的Rust代码需要哪些依赖？<span class="arrow">▼</span></div>
+      <div class="faq-a"><p>需要在Cargo.toml中添加serde和serde_json依赖：serde = { version = "1", features = ["derive"] } 和 serde_json = "1"。工具生成的#[derive(Serialize, Deserialize)]注解直接使用这两个库。</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">JSON数据安全吗？<span class="arrow">▼</span></div>
+      <div class="faq-a"><p>完全安全。所有处理在浏览器本地完成，数据不上传服务器。可放心处理敏感数据。</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">camelCase和snake_case怎么选择？<span class="arrow">▼</span></div>
+      <div class="faq-a"><p>建议勾选snake_case生成Rust风格的字段名（如user_name），并勾选camelCase自动添加#[serde(rename_all = "camelCase")]注解。这样Rust代码使用snake_case风格，但JSON序列化/反序列化时自动映射到JavaScript风格的camelCase字段名。</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">如何处理可空字段？<span class="arrow">▼</span></div>
+      <div class="faq-a"><p>工具会自动将JSON中的null值字段映射为Option<T>类型。您也可以勾选"所有字段都Option"强制所有字段为可空类型。建议配合#[serde(default)]使用，使缺失字段也能正常反序列化。</p></div>
+    </div>
+  </div>
+
+  <div class="card" style="background:#f8f9fc;margin-top:20px">
+    <p style="font-size:0.85rem;color:#888;text-align:center">💡 所有处理在浏览器本地完成。生成的Rust代码可直接用于项目。</p>
+  </div>
+</div>
+
+<script>
+(function(){var s=document.createElement('script');s.src='/tools-site/feedback-widget.html';s.onload=function(){if(window.initFeedback)initFeedback('json-to-rust')};document.body.appendChild(s)})();
+
+function toggleFaq(el){var item=el.parentElement;item.classList.toggle('open')}
+
+function toSnakeCase(s){return s.replace(/([A-Z])/g,'_$1').toLowerCase().replace(/^_/,'')}
+function toPascalCase(s){return s.replace(/[^a-zA-Z0-9]/g,' ').replace(/\s+(.)/g,function(_,c){return c.toUpperCase()}).replace(/\s/g,'').replace(/^./,function(c){return c.toUpperCase()})}
+function toRustType(value,jsonKey,optionAll){
+  if(value===null||value===undefined){return 'Option<serde_json::Value>'}
+  if(typeof value==='string'){return optionAll?'Option<String>':'String'}
+  if(typeof value==='boolean'){return optionAll?'Option<bool>':'bool'}
+  if(typeof value==='number'){if(Number.isInteger(value))return optionAll?'Option<i64>':'i64';return optionAll?'Option<f64>':'f64'}
+  if(Array.isArray(value)){
+    if(value.length===0)return 'Option<Vec<serde_json::Value>>';
+    const itemType=toRustType(value[0],jsonKey,optionAll);
+    const inner=itemType.replace('Option<','').replace('>','');
+    return optionAll?'Option<Vec<'+inner+'>>':'Vec<'+inner+'>';
+  }
+  if(typeof value==='object'&&value!==null){
+    const name=toPascalCase(jsonKey);
+    return optionAll?'Option<'+name+'>':name;
+  }
+  return 'serde_json::Value';
+}
+
+let generatedCode='';
+
+function generateRust(){
+  const input=document.getElementById('jsonInput').value.trim();
+  const errorBox=document.getElementById('errorBox');
+  if(!input){errorBox.style.display='block';errorBox.textContent='请输入JSON数据';return}
+  let data;
+  try{data=JSON.parse(input)}catch(e){errorBox.style.display='block';errorBox.textContent='JSON格式错误: '+e.message;return}
+  errorBox.style.display='none';
+  
+  const useSnake=document.getElementById('useSnakeCase').checked;
+  const useCamel=document.getElementById('useCamelCase').checked;
+  const useOptionAll=document.getElementById('useOptionAll').checked;
+  const useDefaults=document.getElementById('useDefaults').checked;
+  
+  const structs={};
+  
+  function analyze(obj,name,structs,useOptionAll){
+    if(obj===null||obj===undefined||typeof obj!=='object'||Array.isArray(obj)){
+      if(Array.isArray(obj)&&obj.length>0&&typeof obj[0]==='object'&&obj[0]!==null)analyze(obj[0],name+'Item',structs,useOptionAll);
+      return;
+    }
+    if(structs[name])return;
+    structs[name]={fields:[]};
+    const keys=Object.keys(obj);
+    keys.forEach(function(key){
+      const val=obj[key];
+      let rustType=toRustType(val,key,useOptionAll);
+      
+      if(typeof val==='object'&&val!==null&&!Array.isArray(val)){const className=toPascalCase(key);analyze(val,className,structs,useOptionAll)}
+      if(Array.isArray(val)&&val.length>0&&typeof val[0]==='object'&&val[0]!==null){const itemType=toPascalCase(key)+'Item';analyze(val[0],itemType,structs,useOptionAll)}
+      
+      const fieldName=useSnake?toSnakeCase(key):key;
+      const isOptional=val===null||val===undefined||useOptionAll;
+      structs[name].fields.push({jsonKey:key,fieldName:fieldName,rustType:rustType,isOptional:isOptional});
+    });
+  }
+  
+  const rootName='Root';
+  analyze(data,rootName,structs,useOptionAll);
+  
+  let code='use serde::{Deserialize, Serialize};\nuse serde_json;\n\n';
+  
+  const names=Object.keys(structs);
+  names.forEach(function(name){
+    const s=structs[name];
+    code+='#[derive(Debug, Clone, Serialize, Deserialize)]\n';
+    if(useCamel){code+='#[serde(rename_all = "camelCase")]\n'}
+    code+='pub struct '+name+' {\n';
+    s.fields.forEach(function(f){
+      let attrs='';
+      if(useDefaults&&f.isOptional)attrs+='#[serde(default)] ';
+      if(f.jsonKey!==f.fieldName&&!useCamel)attrs+='#[serde(rename = "'+f.jsonKey+'")] ';
+      code+='  '+attrs+'pub '+f.fieldName+': '+f.rustType+',\n';
+    });
+    code+='}\n\n';
+  });
+  
+  document.getElementById('codeOutput').textContent=code;
+  generatedCode=code;
+}
+
+function copyCode(){if(!generatedCode){showToast('请先生成代码');return}navigator.clipboard.writeText(generatedCode).then(function(){showToast('已复制到剪贴板')}).catch(function(){showToast('复制失败')})}
+
+function clearAll(){document.getElementById('jsonInput').value='';document.getElementById('codeOutput').textContent='// 输入JSON后点击"生成 Rust 代码"';document.getElementById('errorBox').style.display='none';generatedCode=''}
+
+function loadExample(type){
+  const ex={'config':JSON.stringify({name:"myapp",version:"1.0.0",debug:false,port:8080,host:"localhost",database:{host:"db.local",port:5432,name:"myapp_db",pool_size:10},logging:{level:"info",file:"/var/log/myapp.log",rotation:"daily"}},null,2),'api':JSON.stringify({success:true,data:{id:"usr_123",username:"alice",email:"alice@example.com",profile:{display_name:"Alice Chen",avatar_url:"https://example.com/avatar.png",join_date:"2026-01-15"},roles:["admin","editor"],permissions:{can_read:true,can_write:true,can_delete:false}},pagination:{page:1,per_page:20,total:156}},null,2),'nested':JSON.stringify({project:{name:"rust-web-app",version:"0.2.0",dependencies:[{name:"serde",version:"1.0"},{name:"tokio",version:"1.35"}],build:{target:"x86_64-unknown-linux-gnu",features:["full"]},authors:["alice@example.com"],metadata:{stars:42,license:"MIT",repository:{url:"https://github.com/example/rust-web-app",private:false}}}},null,2)};
+  document.getElementById('jsonInput').value=ex[type]||'';showToast('已加载示例: '+type);
+}
+
+function showToast(msg){const t=document.createElement('div');t.className='toast show';t.textContent=msg;t.style.cssText='position:fixed;bottom:80px;right:20px;background:#333;color:#fff;padding:10px 20px;border-radius:8px;font-size:0.85rem;z-index:9999;opacity:1;transition:opacity .3s';document.body.appendChild(t);setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},300)},2000)}
+</script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -192,7 +353,7 @@ function loadExample(type){
   document.getElementById('jsonInput').value=ex[type]||'';showToast('已加载示例: '+type);
 }
 
-
+function showToast(msg){const t=document.createElement('div');t.className='toast show';t.textContent=msg;t.style.cssText='position:fixed;bottom:80px;right:20px;background:#333;color:#fff;padding:10px 20px;border-radius:8px;font-size:0.85rem;z-index:9999;opacity:1;transition:opacity .3s';document.body.appendChild(t);setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},300)},2000)}
 
 </script>
 </body>

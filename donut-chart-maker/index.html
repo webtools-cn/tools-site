@@ -69,7 +69,208 @@ table.data-table td input{width:100%;padding:4px 6px;background:#0f172a;color:#e
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线环形图生成器</p>
 <div class="hero"><p>免费在线环形图生成器，支持自定义数据、颜色和内圈大小。Canvas纯前端渲染，一键导出PNG图片，数据不上传服务器。适合占比分析。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🍩 环形图生成器<span class="freshness-badge">🆕 2026</span></h1>
+  <div class="lang-switch">
+    <a href="/donut-chart-maker/" class="active">中文</a>
+    <a href="/en/donut-chart-maker/">EN</a>
+  </div>
+</div>
+
+<div class="section" id="input">
+<h2>📊 数据输入</h2>
+<table class="data-table" id="dataTable">
+  <thead><tr><th>标签</th><th>数值</th><th>颜色</th><th>操作</th></tr></thead>
+  <tbody id="dataBody"></tbody>
+</table>
+<div class="btn-row">
+  <button class="btn btn-primary" onclick="addRow()">+ 添加数据</button>
+  <button class="btn btn-secondary" onclick="resetData()">重置示例</button>
+</div>
+</div>
+
+<div class="section" id="options">
+<h2>⚙️ 图表选项</h2>
+<div class="input-row">
+  <div class="input-group">
+    <label>图表标题</label>
+    <input type="text" id="chartTitle" value="数据占比分析" oninput="drawDonut()">
+  </div>
+  <div class="input-group" style="max-width:150px">
+    <label>内圈大小 (%)</label>
+    <input type="range" id="innerRadius" min="20" max="80" value="55" oninput="drawDonut();document.getElementById('innerVal').textContent=this.value+'%'">
+    <span id="innerVal" style="color:#94a3b8;font-size:.8rem">55%</span>
+  </div>
+</div>
+<div class="input-row">
+  <div class="input-group" style="max-width:120px">
+    <label><input type="checkbox" id="showPercent" checked onchange="drawDonut()"> 显示百分比</label>
+  </div>
+  <div class="input-group" style="max-width:120px">
+    <label><input type="checkbox" id="showLegend" checked onchange="drawDonut()"> 显示图例</label>
+  </div>
+  <div class="input-group" style="max-width:120px">
+    <label><input type="checkbox" id="showValues" checked onchange="drawDonut()"> 显示数值</label>
+  </div>
+</div>
+</div>
+
+<div class="section" id="output">
+<h2>📈 环形图预览</h2>
+<div class="canvas-wrap">
+  <canvas id="donutCanvas" width="600" height="500"></canvas>
+</div>
+<div class="btn-row">
+  <button class="btn btn-success" onclick="exportPNG()">📥 导出PNG</button>
+</div>
+</div>
+</div>
+
+<script>
+const defaultColors = ['#06b6d4','#8b5cf6','#f59e0b','#10b981','#ef4444','#ec4899','#3b82f6','#f97316','#14b8a6','#a855f7'];
+const defaultData = [
+  {label:'产品A',value:35,color:'#06b6d4'},
+  {label:'产品B',value:25,color:'#8b5cf6'},
+  {label:'产品C',value:20,color:'#f59e0b'},
+  {label:'产品D',value:12,color:'#10b981'},
+  {label:'其他',value:8,color:'#ef4444'}
+];
+
+function initTable(){
+  const body=document.getElementById('dataBody');
+  body.innerHTML='';
+  defaultData.forEach((d,i)=>addRow(d.label,d.value,d.color));
+}
+
+function addRow(label='',value='',color=''){
+  const body=document.getElementById('dataBody');
+  const idx=body.children.length;
+  const c=color||defaultColors[idx%defaultColors.length];
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td><input type="text" value="${label}" oninput="drawDonut()" placeholder="标签"></td>
+    <td><input type="number" value="${value}" oninput="drawDonut()" placeholder="0" min="0"></td>
+    <td><input type="color" value="${c}" class="color-picker-inline" oninput="drawDonut()"></td>
+    <td><button class="btn btn-secondary" style="padding:4px 10px;font-size:.75rem" onclick="this.closest('tr').remove();drawDonut()">删除</button></td>`;
+  body.appendChild(tr);
+  drawDonut();
+}
+
+function resetData(){
+  document.getElementById('dataBody').innerHTML='';
+  defaultData.forEach(d=>addRow(d.label,d.value,d.color));
+}
+
+function getData(){
+  const rows=document.querySelectorAll('#dataBody tr');
+  const labels=[],values=[],colors=[];
+  rows.forEach(tr=>{
+    const inputs=tr.querySelectorAll('input');
+    const l=inputs[0].value||'未命名';
+    const v=parseFloat(inputs[1].value)||0;
+    const c=inputs[2].value||'#06b6d4';
+    if(v>0){labels.push(l);values.push(v);colors.push(c);}
+  });
+  return{labels,values,colors};
+}
+
+function drawDonut(){
+  const canvas=document.getElementById('donutCanvas');
+  const ctx=canvas.getContext('2d');
+  const dpr=2;
+  canvas.width=600*dpr;canvas.height=500*dpr;
+  canvas.style.width='600px';canvas.style.height='500px';
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,600,500);
+
+  const data=getData();
+  const total=data.values.reduce((a,b)=>a+b,0);
+  if(total===0){ctx.fillStyle='#94a3b8';ctx.font='16px sans-serif';ctx.textAlign='center';ctx.fillText('请输入数据',300,250);return;}
+
+  const title=document.getElementById('chartTitle').value;
+  const innerPct=parseInt(document.getElementById('innerRadius').value)/100;
+  const showPct=document.getElementById('showPercent').checked;
+  const showLeg=document.getElementById('showLegend').checked;
+  const showVal=document.getElementById('showValues').checked;
+
+  const cx=showLeg?220:300, cy=260;
+  const outerR=Math.min(cx-40,cy-60,180);
+  const innerR=outerR*innerPct;
+
+  // Title
+  ctx.fillStyle='#1e293b';ctx.font='bold 16px sans-serif';ctx.textAlign='center';
+  ctx.fillText(title,300,30);
+
+  // Draw segments
+  let startAngle=-Math.PI/2;
+  data.values.forEach((val,i)=>{
+    const sliceAngle=(val/total)*Math.PI*2;
+    const endAngle=startAngle+sliceAngle;
+
+    ctx.beginPath();
+    ctx.arc(cx,cy,outerR,startAngle,endAngle);
+    ctx.arc(cx,cy,innerR,endAngle,startAngle,true);
+    ctx.closePath();
+    ctx.fillStyle=data.colors[i];
+    ctx.fill();
+
+    // Segment border
+    ctx.strokeStyle='white';ctx.lineWidth=2;ctx.stroke();
+
+    // Label on segment
+    if(showPct||showVal){
+      const midAngle=startAngle+sliceAngle/2;
+      const labelR=(outerR+innerR)/2;
+      const lx=cx+Math.cos(midAngle)*labelR;
+      const ly=cy+Math.sin(midAngle)*labelR;
+      const pct=((val/total)*100).toFixed(1);
+      ctx.fillStyle='white';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      let txt='';
+      if(showPct&&showVal) txt=`${pct}%\n${val}`;
+      else if(showPct) txt=pct+'%';
+      else txt=String(val);
+      const lines=txt.split('\n');
+      lines.forEach((line,li)=>{ctx.fillText(line,lx,ly+(li-lines.length/2+0.5)*14);});
+    }
+
+    startAngle=endAngle;
+  });
+
+  // Center text
+  ctx.fillStyle='#334155';ctx.font='bold 24px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(total,cx,cy-6);
+  ctx.fillStyle='#64748b';ctx.font='12px sans-serif';
+  ctx.fillText('总计',cx,cy+14);
+
+  // Legend
+  if(showLeg){
+    const lx=440,ly=80;
+    ctx.font='12px sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
+    data.labels.forEach((label,i)=>{
+      const y=ly+i*22;
+      ctx.fillStyle=data.colors[i];
+      ctx.fillRect(lx,y-6,12,12);
+      ctx.fillStyle='#475569';
+      const pct=((data.values[i]/total)*100).toFixed(1);
+      ctx.fillText(`${label} (${pct}%)`,lx+18,y);
+    });
+  }
+}
+
+function exportPNG(){
+  const canvas=document.getElementById('donutCanvas');
+  const link=document.createElement('a');
+  link.download='donut-chart.png';
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+}
+
+initTable();
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

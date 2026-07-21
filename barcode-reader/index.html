@@ -80,7 +80,207 @@ table.data-table th{background:#0f172a;color:#94a3b8;font-weight:500}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线条形码阅读器</p>
 <div class="hero"><p>免费在线条形码阅读器，上传图片识别条形码和二维码。支持QR Code、Code 128、Code 39等多种格式。纯前端解码，不上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>📱 条形码阅读器</h1>
+    <div class="lang-switch">
+      <a href="index.html" class="active">中文</a>
+      <a href="../en/barcode-reader/" class="active">EN</a>
+    </div>
+  </div>
+  <!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+  <div id="app">
+</div>
+<div class="section">
+  <h2>🔍 识别结果</h2>
+  <div id="brLoading" style="display:none;text-align:center;padding:20px;color:#94a3b8">
+    <div style="font-size:2rem;margin-bottom:8px">⏳</div>
+    <div>正在解码...</div>
+  </div>
+  <div id="brResult" class="preview-wrap" style="min-height:60px">
+    <p style="color:#475569;padding:20px;text-align:center">上传或拍摄条码图片以开始识别</p>
+  </div>
+</div>
+<div class="section">
+  <h2>📋 支持的条码格式</h2>
+  <div style="color:#94a3b8;font-size:.85rem;line-height:1.8;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
+    <span>✓ QR Code</span>
+    <span>✓ Code 128</span>
+    <span>✓ Code 39</span>
+    <span>✓ EAN-13</span>
+    <span>✓ EAN-8</span>
+    <span>✓ UPC-A</span>
+    <span>✓ UPC-E</span>
+    <span>✓ Data Matrix</span>
+    <span>✓ PDF417</span>
+    <span>✓ Aztec</span>
+    <span>✓ Codabar</span>
+    <span>✓ ITF</span>
+  </div>
+</div>
+<div class="section">
+  <h2>💡 使用说明</h2>
+  <ul style="color:#94a3b8;font-size:.9rem;line-height:1.8;padding-left:20px">
+    <li>上传包含条形码或二维码的图片，或使用摄像头拍摄</li>
+    <li>工具将自动检测并解码图片中的条码</li>
+    <li>支持QR Code、Code 128、EAN-13等十余种格式</li>
+    <li>纯前端解码，图片不会上传到服务器</li>
+    <li>提示：确保条码清晰、光照充足以获得最佳识别效果</li>
+  </ul>
+</div>
+<script>
+(function(){
+const fileInput = document.getElementById('brFileInput');
+const cameraBtn = document.getElementById('brCameraBtn');
+const cameraContainer = document.getElementById('brCameraContainer');
+const video = document.getElementById('brVideo');
+const captureBtn = document.getElementById('brCaptureBtn');
+const resultDiv = document.getElementById('brResult');
+const loadingDiv = document.getElementById('brLoading');
+
+let stream = null;
+
+// ZXing decoder
+let decoder = null;
+try {
+  // Try native BarcodeDetector first
+  if ('BarcodeDetector' in window) {
+    decoder = new BarcodeDetector({formats: ['qr_code','code_128','code_39','ean_13','ean_8','upc_a','upc_e','data_matrix','pdf417','aztec','codabar','itf']});
+  }
+} catch(e) {}
+
+async function decodeImage(img) {
+  loadingDiv.style.display = 'block';
+  resultDiv.innerHTML = '';
+  
+  try {
+    if (decoder && decoder.detect) {
+      const codes = await decoder.detect(img);
+      if (codes.length > 0) {
+        let html = '<h3 style="color:#4ade80;margin-bottom:12px">' + 
+          '✅ 成功识别 ' + codes.length + ' 个条码' + '</h3>';
+        codes.forEach((c, i) => {
+          html += '<div style="background:#0f172a;border-radius:8px;padding:12px;margin-bottom:8px">';
+          html += '<div style="color:#94a3b8;font-size:.8rem">' + c.format + '</div>';
+          html += '<div style="color:#22d3ee;font-size:1.1rem;font-family:monospace;word-break:break-all;margin-top:4px">' + c.rawValue + '</div>';
+          html += '</div>';
+        });
+        resultDiv.innerHTML = html;
+      } else {
+        resultDiv.innerHTML = '<p style="color:#f87171;text-align:center;padding:20px">❌ 未检测到条码，请尝试更清晰的图片</p>';
+      }
+    } else {
+      // Fallback: use ZXing-wasm or just show guidance
+      resultDiv.innerHTML = '<p style="color:#fbbf24;text-align:center;padding:20px">⚠️ 您的浏览器不支持原生条码检测，请使用Chrome或Edge浏览器</p>';
+      // Load ZXing CDN dynamically - use a simple canvas-based approach
+      await loadZXingFallback(img);
+    }
+  } catch(e) {
+    resultDiv.innerHTML = '<p style="color:#f87171;text-align:center;padding:20px">❌ 解码失败: ' + e.message + '</p>';
+  }
+  loadingDiv.style.display = 'none';
+}
+
+async function loadZXingFallback(img) {
+  // Use a simplified JS barcode scanner approach
+  // Load ZXing library dynamically
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/@zxing/library@0.20.0/umd/index.js';
+    script.onload = function() {
+      try {
+        const codeReader = new ZXing.BrowserQRCodeReader();
+        codeReader.decodeFromImage(img).then(result => {
+          let html = '<h3 style="color:#4ade80;margin-bottom:12px">✅ 识别成功</h3>';
+          html += '<div style="background:#0f172a;border-radius:8px;padding:12px">';
+          html += '<div style="color:#94a3b8;font-size:.8rem">QR Code</div>';
+          html += '<div style="color:#22d3ee;font-size:1.1rem;font-family:monospace;word-break:break-all;margin-top:4px">' + result.text + '</div>';
+          html += '</div>';
+          resultDiv.innerHTML = html;
+          resolve();
+        }).catch(err => {
+          resultDiv.innerHTML = '<p style="color:#f87171;text-align:center;padding:20px">❌ 解码失败，请确保图片包含清晰的条码 (' + err.message + ')</p>';
+          resolve();
+        });
+      } catch(e) {
+        resultDiv.innerHTML = '<p style="color:#f87171;text-align:center;padding:20px">❌ 加载解码库失败</p>';
+        resolve();
+      }
+    };
+    script.onerror = function() {
+      resultDiv.innerHTML = '<p style="color:#fbbf24;text-align:center;padding:20px">⚠️ 无法加载解码库，请检查网络连接或使用Chrome/Edge浏览器</p>';
+      resolve();
+    };
+    document.head.appendChild(script);
+  });
+}
+
+fileInput.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const img = new Image();
+  img.onload = function() { decodeImage(img); };
+  img.src = URL.createObjectURL(file);
+});
+
+cameraBtn.addEventListener('click', function() {
+  cameraContainer.style.display = 'block';
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}}).then(function(s) {
+      stream = s;
+      video.srcObject = s;
+    }).catch(function() {
+      cameraContainer.style.display = 'none';
+      resultDiv.innerHTML = '<p style="color:#f87171;text-align:center;padding:20px">❌ 无法访问摄像头</p>';
+    });
+  }
+});
+
+captureBtn.addEventListener('click', function() {
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const img = new Image();
+  img.onload = function() { decodeImage(img); };
+  img.src = canvas.toDataURL('image/jpeg');
+});
+
+// Clean up
+window.addEventListener('beforeunload', function() {
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+  }
+});
+})();
+</script>
+</div>
+</div>
+<script>
+(function(){
+const app = document.getElementById('app');
+const isCN = true;
+
+// barcode-reader - 条形码阅读器
+const slug = 'barcode-reader';
+
+function renderApp() {
+  renderbarcodeReader();
+}
+
+renderbarcodeReader();
+})();
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

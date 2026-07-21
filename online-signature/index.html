@@ -62,11 +62,198 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线签名制作</p>
 <div class="hero"><p>免费在线签名制作工具，鼠标绘制个性签名。支持颜色和粗细调整，导出透明背景PNG。纯前端，不上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>✍️ 在线签名制作</h1>
+    <div class="lang-switch">
+      <a href="index.html" class="active">中文</a>
+      <a href="../en/online-signature/" class="active">EN</a>
+    </div>
+  </div>
+  <!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+  <div class="section">
+    <h2>💡 使用说明</h2>
+    <ul style="color:#94a3b8;font-size:.9rem;line-height:1.8;padding-left:20px">
+      <li>使用鼠标或触控板在上方绘制区域签名。</li>
+      <li>支持调整笔触颜色和粗细，获得理想的签名效果。</li>
+      <li>点击「下载签名」可将签名保存为透明背景PNG图片。</li>
+      <li>签名纯本地处理，不会上传到任何服务器。</li>
+    </ul>
+  </div>
+  <div class="section">
+
+  <h2>❓ 常见问题</h2>
+    <div style="margin-bottom:12px"><strong style="color:#f1f5f9;font-size:.95rem">签名数据会上传吗？</strong><p style="color:#94a3b8;font-size:.85rem;margin-top:4px">不会。所有签名绘制和导出完全在浏览器本地完成，您的签名数据不会上传到任何服务器。</p></div>
+    <div style="margin-bottom:12px"><strong style="color:#f1f5f9;font-size:.95rem">导出的签名是什么格式？</strong><p style="color:#94a3b8;font-size:.85rem;margin-top:4px">导出为PNG格式图片，背景透明，方便叠加到各种文档上使用。</p></div>
+    <div style="margin-bottom:12px"><strong style="color:#f1f5f9;font-size:.95rem">可以在手机上使用吗？</strong><p style="color:#94a3b8;font-size:.85rem;margin-top:4px">支持触控设备，手机和平板上也可以用手指或触控笔绘制签名。</p></div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('sigCanvas');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+let paths = [];
+let currentPath = [];
+
+function resizeCanvas() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = Math.min(800, rect.width - 4);
+    const ratio = w / 800;
+    canvas.style.width = w + 'px';
+    canvas.style.height = (250 * ratio) + 'px';
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    if (e.touches) {
+        return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
+    }
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+}
+
+function startDraw(e) {
+    e.preventDefault();
+    drawing = true;
+    currentPath = [];
+    const pos = getPos(e);
+    currentPath.push(pos);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+}
+
+function draw(e) {
+    e.preventDefault();
+    if (!drawing) return;
+    const pos = getPos(e);
+    currentPath.push(pos);
+    ctx.lineWidth = document.getElementById('penSize').value;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = document.getElementById('penColor').value;
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+}
+
+function stopDraw(e) {
+    e.preventDefault();
+    if (drawing) {
+        drawing = false;
+        if (currentPath.length > 0) paths.push({ pts: currentPath.slice(), color: document.getElementById('penColor').value, size: document.getElementById('penSize').value });
+    }
+}
+
+canvas.addEventListener('mousedown', startDraw);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup', stopDraw);
+canvas.addEventListener('mouseleave', stopDraw);
+canvas.addEventListener('touchstart', startDraw, { passive: false });
+canvas.addEventListener('touchmove', draw, { passive: false });
+canvas.addEventListener('touchend', stopDraw, { passive: false });
+
+function redraw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = document.getElementById('bgColor').value;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (const p of paths) {
+        ctx.beginPath();
+        ctx.lineWidth = p.size;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = p.color;
+        ctx.moveTo(p.pts[0].x, p.pts[0].y);
+        for (let i = 1; i < p.pts.length; i++) {
+            ctx.lineTo(p.pts[i].x, p.pts[i].y);
+        }
+        ctx.stroke();
+    }
+}
+
+function clearSig() {
+    paths = [];
+    currentPath = [];
+    redraw();
+}
+
+function undoSig() {
+    paths.pop();
+    redraw();
+}
+
+function downloadSig() {
+    const bg = document.getElementById('bgColor').value;
+    // Create transparent PNG
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    // Only draw paths, no background
+    for (const p of paths) {
+        tempCtx.beginPath();
+        tempCtx.lineWidth = p.size;
+        tempCtx.lineCap = 'round';
+        tempCtx.lineJoin = 'round';
+        tempCtx.strokeStyle = p.color;
+        tempCtx.moveTo(p.pts[0].x, p.pts[0].y);
+        for (let i = 1; i < p.pts.length; i++) {
+            tempCtx.lineTo(p.pts[i].x, p.pts[i].y);
+        }
+        tempCtx.stroke();
+    }
+    const link = document.createElement('a');
+    link.download = 'signature.png';
+    link.href = tempCanvas.toDataURL('image/png');
+    link.click();
+}
+
+// Initial white bg
+ctx.fillStyle = '#ffffff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+document.getElementById('penColor').addEventListener('input', () => { if (!drawing) redraw(); });
+document.getElementById('bgColor').addEventListener('input', redraw);
+document.getElementById('penSize').addEventListener('input', () => { if (!drawing) redraw(); });
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-<div class="seo-content"></div>
+<div class="seo-content">
+    <h2>如何使用在线签名制作</h2>
+    <p>使用在线签名制作非常简单，只需三个步骤：</p>
+    <ol style="padding-left:20px;margin-top:12px">
+
+      <li style="margin-bottom:16px">
+        <strong>输入内容</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">在工具的输入区域输入或粘贴您的内容。工具支持标准的输入格式，所有处理都在您的浏览器本地完成。</span>
+      </li>
+
+      <li style="margin-bottom:16px">
+        <strong>配置并处理</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">根据需要调整设置来自定义输出，然后点击主要操作按钮处理内容。结果即时显示，无需等待服务器。</span>
+      </li>
+
+      <li style="margin-bottom:16px">
+        <strong>复制或下载结果</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">使用"复制"按钮将结果复制到剪贴板，或使用"下载"保存为文件。您的数据不会离开您的设备。</span>
+      </li>
+
+    </ol>
+  </div>
 <div class="section"><h2>常见问题</h2></div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 </div>

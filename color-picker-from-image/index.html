@@ -84,7 +84,12 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 图片取色器</p>
 <div class="hero"><p>免费在线图片取色器，上传图片获取其中任意位置的颜色值。支持HEX、RGB、HSL格式，实时预览。完全浏览器端处理，无需上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div>
+<div><div class="section"><h1>图片取色器</h1>
+    <div class="lang-switch">
+      <a href="index.html" class="active">中文</a>
+      <a href="../en/color-picker-from-image/">EN</a>
+    </div>
+  </div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -92,8 +97,6 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
     Updated: 2026-07-11
   </span>
 </div>
-  <div class="ad-slot" style="margin:16px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-
   <div class="upload-section">
     <div class="upload-zone" id="dropZone">
       <div class="upload-zone-icon">🎨</div>
@@ -126,8 +129,6 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
     </div>
   </div>
 
-  <div class="ad-slot" ><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-
   <div class="info-section">
     <h2>关于图片取色器</h2>
     <p>这款<strong>免费的图片取色器</strong>可以让您从上传的图片中提取任意像素点的颜色值。只需点击图片上的任意位置，即可获取该点的HEX、RGB和HSL颜色值。所有处理都在您的浏览器中完成，无需上传文件到服务器。</p>
@@ -158,172 +159,7 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
     <h2>反馈建议 💬</h2>
     <p style="color:#94a3b8;font-size:.9rem;margin-bottom:12px">发现bug或有功能建议？请告诉我们。</p>
     <textarea id="feedbackText" placeholder="描述您的问题或建议..."></textarea>
-    <button class="btn btn-primary" onclick="window.open('https://github.com/webtools-cn/tools-site/issues/new?body='+encodeURIComponent(document.getElementById('feedbackText').value),'_blank')">提交反馈</button>
-  </div>
-
-  <div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/color-picker-from-image/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div>
-</div>
-
-<script>
-(function(){
-  const dropZone = document.getElementById('dropZone');
-  const fileInput = document.getElementById('fileInput');
-  const statusBar = document.getElementById('statusBar');
-  const mainSection = document.getElementById('mainSection');
-  const mainImage = document.getElementById('mainImage');
-  const imageArea = document.getElementById('imageArea');
-  const colorSwatch = document.getElementById('colorSwatch');
-  const hexValue = document.getElementById('hexValue');
-  const rgbValue = document.getElementById('rgbValue');
-  const hslValue = document.getElementById('hslValue');
-  const historyColors = document.getElementById('historyColors');
-
-  let canvas = null;
-  let ctx = null;
-  let history = [];
-
-  function showStatus(msg, type) {
-    statusBar.className = 'status-bar ' + type;
-    statusBar.textContent = msg;
-    setTimeout(function() { statusBar.className = 'status-bar'; }, 3000);
-  }
-
-  dropZone.addEventListener('click', function() { fileInput.click(); });
-  dropZone.addEventListener('dragover', function(e) {
-    e.preventDefault(); dropZone.classList.add('dragover');
-  });
-  dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('dragover'); });
-  dropZone.addEventListener('drop', function(e) {
-    e.preventDefault(); dropZone.classList.remove('dragover');
-    if (e.dataTransfer.files.length > 0) loadImage(e.dataTransfer.files[0]);
-  });
-  fileInput.addEventListener('change', function() {
-    if (this.files.length > 0) loadImage(this.files[0]);
-  });
-
-  function loadImage(file) {
-    if (!file.type.match(/^image\//)) {
-      showStatus('请上传图片文件', 'error');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      mainImage.onload = function() {
-        setupCanvas();
-        mainSection.classList.add('show');
-        showStatus('图片已加载，点击图片取色', 'success');
-      };
-      mainImage.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function setupCanvas() {
-    canvas = document.createElement('canvas');
-    canvas.width = mainImage.naturalWidth;
-    canvas.height = mainImage.naturalHeight;
-    ctx = canvas.getContext('2d');
-    ctx.drawImage(mainImage, 0, 0);
-  }
-
-  imageArea.addEventListener('mousemove', function(e) {
-    if (!canvas || !ctx) return;
-    const rect = imageArea.getBoundingClientRect();
-    const imgRect = mainImage.getBoundingClientRect();
-    const scaleX = canvas.width / imgRect.width;
-    const scaleY = canvas.height / imgRect.height;
-    const x = Math.round((e.clientX - imgRect.left) * scaleX);
-    const y = Math.round((e.clientY - imgRect.top) * scaleY);
-    if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
-      const pixel = ctx.getImageData(x, y, 1, 1).data;
-      updateColor(pixel[0], pixel[1], pixel[2]);
-    }
-  });
-
-  imageArea.addEventListener('click', function(e) {
-    if (!canvas || !ctx) return;
-    const rect = imageArea.getBoundingClientRect();
-    const imgRect = mainImage.getBoundingClientRect();
-    const scaleX = canvas.width / imgRect.width;
-    const scaleY = canvas.height / imgRect.height;
-    const x = Math.round((e.clientX - imgRect.left) * scaleX);
-    const y = Math.round((e.clientY - imgRect.top) * scaleY);
-    if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
-      const pixel = ctx.getImageData(x, y, 1, 1).data;
-      const hex = rgbToHex(pixel[0], pixel[1], pixel[2]);
-      if (history.indexOf(hex) === -1) {
-        history.unshift(hex);
-        if (history.length > 24) history.pop();
-        renderHistory();
-      }
-    }
-  });
-
-  function updateColor(r, g, b) {
-    const hex = rgbToHex(r, g, b);
-    const rgb = 'rgb(' + r + ',' + g + ',' + b + ')';
-    const hsl = rgbToHsl(r, g, b);
-    colorSwatch.style.backgroundColor = hex;
-    hexValue.textContent = hex;
-    rgbValue.textContent = rgb;
-    hslValue.textContent = hsl;
-  }
-
-  function rgbToHex(r, g, b) {
-    return '#' + [r, g, b].map(function(c) {
-      return ('0' + c.toString(16)).slice(-2);
-    }).join('');
-  }
-
-  function rgbToHsl(r, g, b) {
-    r /= 255; g /= 255; b /= 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    let h, s, l = (max + min) / 2;
-    if (max === min) { h = s = 0; }
-    else {
-      const d = max - min;
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-      switch (max) {
-        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-        case g: h = ((b - r) / d + 2) / 6; break;
-        case b: h = ((r - g) / d + 4) / 6; break;
-      }
-    }
-    return 'hsl(' + Math.round(h * 360) + ',' + Math.round(s * 100) + '%,' + Math.round(l * 100) + '%)';
-  }
-
-  window.copyVal = function(id) {
-    const el = document.getElementById(id);
-    const val = el.textContent;
-    if (val === '—') return;
-    navigator.clipboard.writeText(val).then(function() {
-      showStatus('已复制: ' + val, 'success');
-    }).catch(function() {
-      const ta = document.createElement('textarea');
-      ta.value = val; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-      showStatus('已复制: ' + val, 'success');
-    });
-  };
-
-  function renderHistory() {
-    historyColors.innerHTML = '';
-    history.forEach(function(hex) {
-      const item = document.createElement('div');
-      item.className = 'history-item';
-      item.innerHTML = '<div class="swatch" style="background:'+hex+'"></div><span class="code">'+hex+'</span>';
-      item.addEventListener('click', function() {
-        navigator.clipboard.writeText(hex).then(function() {
-          showStatus('已复制: ' + hex, 'success');
-        });
-      });
-      historyColors.appendChild(item);
-    });
-  }
-})();
-</script></div></div>
+    <button class="btn btn-primary" onclick="window.open('https://github.com/webtools-cn/tools-site/issues/new?body='+encodeURIComponent(document.getElementById('feedbackText').value),'_blank')">提交反馈</button></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

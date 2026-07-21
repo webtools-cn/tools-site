@@ -89,7 +89,427 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线CSS容器查询生成器</p>
 <div class="hero"><p>免费在线CSS容器查询(@container)生成器，可视化构建响应式容器查询。支持container-type、container-name、断点设置，实时预览容器尺寸变化效果。一键复制CSS代码，纯前端本地处理。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>📦 CSS 容器查询生成器</h1>
+    <div class="lang-switch">
+      <a href="index.html" class="active">中文</a>
+      <a href="../en/css-container-query/">EN</a>
+    </div>
+  </div>
+  <!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <h2>⚙️ 容器设置</h2>
+      <div class="option-group">
+        <label>Container Name</label>
+        <input type="text" id="containerName" value="card-container">
+      </div>
+      <div class="option-group">
+        <label>Container Type</label>
+        <select id="containerType">
+          <option value="inline-size">inline-size（推荐）</option>
+          <option value="size">size</option>
+          <option value="normal">normal（仅样式查询）</option>
+        </select>
+      </div>
+
+      <h2 style="margin-top:16px">📏 断点设置</h2>
+      <div class="indicator-label"><span>窄</span><span>宽</span></div>
+      <input type="range" id="containerWidth" min="180" max="700" value="400" style="width:100%">
+      <div class="range-value">当前容器宽度: <span id="widthDisplay">400</span>px</div>
+      <div class="breakpoint-list" id="breakpointList"></div>
+      <button class="add-bp-btn" onclick="addBreakpoint()">＋ 添加断点</button>
+
+      <h2 style="margin-top:16px">🎨 断点样式</h2>
+      <div id="bpStyles"></div>
+    </div>
+
+    <div class="main-area">
+      <div class="preview-section">
+        <h2>👁️ 实时预览</h2>
+        <div class="indicator-label">
+          <span id="bpIndicator"></span>
+        </div>
+        <div class="preview-indicator"><div class="indicator-bar" id="indicatorBar" style="width:57%"></div></div>
+        <div class="preview-wrap" id="previewWrap">
+          <div class="preview-container" id="previewContainer">
+            <div class="demo-card">
+              <div class="demo-title" id="demoTitle">产品卡片标题</div>
+              <div class="demo-desc" id="demoDesc">这是一张响应式产品卡片，容器宽度变化时自动调整布局。</div>
+              <div class="demo-meta" id="demoMeta">
+                <span>标签一</span>
+                <span>标签二</span>
+                <span>标签三</span>
+              </div>
+              <div><span class="demo-btn" id="demoBtn">查看详情</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="preview-size"><span id="currentWidth">400</span>px</div>
+      </div>
+
+      <div class="code-box">
+        <h2>📄 CSS 代码</h2>
+        <div class="clearfix">
+          <button class="copy-btn" onclick="copyCode()">📋 复制代码</button>
+        </div>
+        <pre id="cssOutput">/* 容器查询 CSS 将在此显示 */</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var breakpoints = [];
+var bpIdCounter = 0;
+var activeBpIndex = -1;
+
+var defaultBps = [
+  {id: ++bpIdCounter, name:'移动端', minWidth:0, maxWidth:320, bgColor:'#1e293b', textColor:'#94a3b8', fontSize:'14', layout:'single', showMeta:false, showBtn:true},
+  {id: ++bpIdCounter, name:'平板', minWidth:321, maxWidth:480, bgColor:'#1e293b', textColor:'#e2e8f0', fontSize:'15', layout:'single', showMeta:true, showBtn:true},
+  {id: ++bpIdCounter, name:'桌面', minWidth:481, maxWidth:700, bgColor:'#1e293b', textColor:'#f1f5f9', fontSize:'16', layout:'horizontal', showMeta:true, showBtn:true}
+];
+
+function init() {
+  breakpoints = JSON.parse(JSON.stringify(defaultBps));
+  renderBreakpoints();
+  renderBpStyles();
+  updatePreview();
+}
+
+function renderBreakpoints() {
+  var list = document.getElementById('breakpointList');
+  list.innerHTML = '';
+  for (var i = 0; i < breakpoints.length; i++) {
+    var bp = breakpoints[i];
+    var div = document.createElement('div');
+    div.className = 'breakpoint-item';
+    div.innerHTML = '<div class="bp-color" style="background:' + bp.bgColor + '"></div>' +
+      '<div class="bp-info"><strong>' + bp.name + '</strong><br><small>' + bp.minWidth + 'px ~ ' + (bp.maxWidth >= 9999 ? '∞' : bp.maxWidth + 'px') + '</small></div>' +
+      '<button class="bp-del" onclick="removeBreakpoint(' + bp.id + ')" title="删除断点">✕</button>';
+    list.appendChild(div);
+  }
+}
+
+function renderBpStyles() {
+  var container = document.getElementById('bpStyles');
+  container.innerHTML = '';
+  for (var i = 0; i < breakpoints.length; i++) {
+    var bp = breakpoints[i];
+    var activeClass = (i === activeBpIndex) ? ' active' : '';
+    var div = document.createElement('div');
+    div.style.cssText = 'background:#0f172a;border:1px solid rgba(148,163,184,.08);border-radius:6px;padding:10px;margin-bottom:8px' + (i === activeBpIndex ? ';border-color:rgba(6,182,212,.3)' : '');
+    div.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+        '<b style="font-size:.82rem;color:' + (i === activeBpIndex ? '#22d3ee' : '#e2e8f0') + '">' + bp.name + '</b>' +
+        '<span style="font-size:.7rem;color:#64748b">' + bp.minWidth + 'px ~ ' + (bp.maxWidth >= 9999 ? '∞' : bp.maxWidth + 'px') + '</span>' +
+      '</div>' +
+      '<div class="option-group" style="margin-bottom:6px"><label>背景色</label><input type="color" id="bpBg_' + bp.id + '" value="' + bp.bgColor + '" onchange="updateBpStyle(' + bp.id + ')"></div>' +
+      '<div class="option-group" style="margin-bottom:6px"><label>文字色</label><input type="color" id="bpText_' + bp.id + '" value="' + bp.textColor + '" onchange="updateBpStyle(' + bp.id + ')"></div>' +
+      '<div class="option-row" style="margin-bottom:4px">' +
+        '<button class="toggle-btn' + (bp.layout === 'single' ? ' active' : '') + '" onclick="setBpLayout(' + bp.id + ',\'single\')">单列</button>' +
+        '<button class="toggle-btn' + (bp.layout === 'horizontal' ? ' active' : '') + '" onclick="setBpLayout(' + bp.id + ',\'horizontal\')">横排</button>' +
+      '</div>' +
+      '<div class="option-row" style="margin-bottom:4px">' +
+        '<label style="font-size:.75rem;color:#94a3b8;display:flex;align-items:center;gap:4px"><input type="checkbox" ' + (bp.showMeta ? 'checked' : '') + ' onchange="setBpMeta(' + bp.id + ',this.checked)"> 显示标签</label>' +
+        '<label style="font-size:.75rem;color:#94a3b8;display:flex;align-items:center;gap:4px"><input type="checkbox" ' + (bp.showBtn ? 'checked' : '') + ' onchange="setBpBtn(' + bp.id + ',this.checked)"> 显示按钮</label>' +
+      '</div>' +
+      '<div class="option-group" style="margin-bottom:0"><label>字号: ' + bp.fontSize + 'px</label><input type="range" min="12" max="24" value="' + bp.fontSize + '" oninput="setBpFontSize(' + bp.id + ',this.value)"></div>';
+    container.appendChild(div);
+  }
+}
+
+function addBreakpoint() {
+  var maxW = 0;
+  for (var i = 0; i < breakpoints.length; i++) {
+    if (breakpoints[i].maxWidth > maxW) maxW = breakpoints[i].maxWidth;
+  }
+  var newBp = {
+    id: ++bpIdCounter,
+    name: '断点 ' + (breakpoints.length + 1),
+    minWidth: maxW + 1,
+    maxWidth: maxW + 200,
+    bgColor: '#1e293b',
+    textColor: '#e2e8f0',
+    fontSize: '15',
+    layout: 'single',
+    showMeta: true,
+    showBtn: true
+  };
+  breakpoints.push(newBp);
+  renderBreakpoints();
+  renderBpStyles();
+  updatePreview();
+}
+
+function removeBreakpoint(id) {
+  if (breakpoints.length <= 1) return;
+  breakpoints = breakpoints.filter(function(b) { return b.id !== id; });
+  renderBreakpoints();
+  renderBpStyles();
+  updatePreview();
+}
+
+function updateBpStyle(id) {
+  var bg = document.getElementById('bpBg_' + id);
+  var txt = document.getElementById('bpText_' + id);
+  for (var i = 0; i < breakpoints.length; i++) {
+    if (breakpoints[i].id === id) {
+      if (bg) breakpoints[i].bgColor = bg.value;
+      if (txt) breakpoints[i].textColor = txt.value;
+      break;
+    }
+  }
+  renderBreakpoints();
+  renderBpStyles();
+  updatePreview();
+}
+
+function setBpLayout(id, layout) {
+  for (var i = 0; i < breakpoints.length; i++) {
+    if (breakpoints[i].id === id) {
+      breakpoints[i].layout = layout;
+      break;
+    }
+  }
+  renderBpStyles();
+  updatePreview();
+}
+
+function setBpMeta(id, val) {
+  for (var i = 0; i < breakpoints.length; i++) {
+    if (breakpoints[i].id === id) {
+      breakpoints[i].showMeta = val;
+      break;
+    }
+  }
+  updatePreview();
+}
+
+function setBpBtn(id, val) {
+  for (var i = 0; i < breakpoints.length; i++) {
+    if (breakpoints[i].id === id) {
+      breakpoints[i].showBtn = val;
+      break;
+    }
+  }
+  updatePreview();
+}
+
+function setBpFontSize(id, val) {
+  for (var i = 0; i < breakpoints.length; i++) {
+    if (breakpoints[i].id === id) {
+      breakpoints[i].fontSize = val;
+      break;
+    }
+  }
+  renderBpStyles();
+  updatePreview();
+}
+
+function getActiveBpIndex(width) {
+  for (var i = 0; i < breakpoints.length; i++) {
+    if (width >= breakpoints[i].minWidth && width <= breakpoints[i].maxWidth) {
+      return i;
+    }
+  }
+  return breakpoints.length - 1;
+}
+
+function updatePreview() {
+  var width = parseInt(document.getElementById('containerWidth').value);
+  document.getElementById('widthDisplay').textContent = width;
+  document.getElementById('currentWidth').textContent = width;
+
+  var wrap = document.getElementById('previewWrap');
+  wrap.style.width = width + 'px';
+
+  var idx = getActiveBpIndex(width);
+  activeBpIndex = idx;
+  var bp = breakpoints[idx];
+
+  // Apply styles to demo elements
+  var container = document.getElementById('previewContainer');
+  var title = document.getElementById('demoTitle');
+  var desc = document.getElementById('demoDesc');
+  var meta = document.getElementById('demoMeta');
+  var btn = document.getElementById('demoBtn');
+
+  container.style.background = 'rgba(6,182,212,.05)';
+  title.style.color = bp.textColor;
+  title.style.fontSize = bp.fontSize + 'px';
+  desc.style.color = bp.textColor;
+  desc.style.opacity = '0.8';
+  desc.style.fontSize = (parseInt(bp.fontSize) - 2) + 'px';
+
+  meta.style.display = bp.showMeta ? 'flex' : 'none';
+  btn.style.display = bp.showBtn ? 'inline-block' : 'none';
+
+  var demoCard = container.querySelector('.demo-card');
+  demoCard.style.background = bp.bgColor;
+  demoCard.style.borderColor = 'rgba(148,163,184,.1)';
+
+  if (bp.layout === 'horizontal') {
+    demoCard.style.display = 'flex';
+    demoCard.style.flexWrap = 'wrap';
+    demoCard.style.alignItems = 'center';
+    demoCard.style.gap = '12px';
+    title.style.flex = '1';
+    title.style.marginBottom = '0';
+    desc.style.width = '100%';
+    meta.style.width = '100%';
+    btn.style.marginLeft = 'auto';
+  } else {
+    demoCard.style.display = 'block';
+    title.style.flex = '';
+    title.style.marginBottom = '6px';
+    desc.style.width = '';
+    meta.style.width = '';
+    btn.style.marginLeft = '';
+  }
+
+  // Indicator
+  var pct = ((width - 180) / (700 - 180)) * 100;
+  document.getElementById('indicatorBar').style.width = pct + '%';
+  document.getElementById('bpIndicator').textContent = '当前: ' + bp.name;
+
+  renderBpStyles();
+  generateCode();
+}
+
+function generateCode() {
+  var name = document.getElementById('containerName').value || 'card-container';
+  var type = document.getElementById('containerType').value;
+
+  var html = '/* Container */\n';
+  html += '.card-wrapper {\n  container-name: ' + name + ';\n  container-type: ' + type + ';\n}\n\n';
+  html += '/* Child element */\n';
+  html += '.card {\n  /* 基础样式 */\n  background: #1e293b;\n  border-radius: 8px;\n  padding: 12px;\n}\n\n';
+
+  var sorted = breakpoints.slice().sort(function(a, b) { return a.minWidth - b.minWidth; });
+
+  for (var i = 0; i < sorted.length; i++) {
+    var bp = sorted[i];
+    var isFirst = (i === 0);
+    var isLast = (i === sorted.length - 1);
+
+    html += '@container ' + name + ' ';
+
+    if (isFirst && isLast) {
+      html += '(min-width: ' + bp.minWidth + 'px) {\n';
+    } else if (isFirst) {
+      html += '(max-width: ' + bp.maxWidth + 'px) {\n';
+    } else if (isLast) {
+      html += '(min-width: ' + bp.minWidth + 'px) {\n';
+    } else {
+      html += '(' + bp.minWidth + 'px <= width <= ' + bp.maxWidth + 'px) {\n';
+    }
+
+    html += '  .card {\n';
+    html += '    background: ' + bp.bgColor + ';\n';
+    html += '    color: ' + bp.textColor + ';\n';
+    html += '    font-size: ' + bp.fontSize + 'px;\n';
+    if (bp.layout === 'horizontal') {
+      html += '    display: flex;\n    flex-wrap: wrap;\n    align-items: center;\n    gap: 12px;\n';
+    }
+    if (!bp.showMeta) {
+      html += '    .card-meta { display: none; }\n';
+    }
+    if (!bp.showBtn) {
+      html += '    .card-btn { display: none; }\n';
+    }
+    html += '  }\n';
+    html += '  .card-title { font-size: ' + bp.fontSize + 'px; }\n';
+    html += '}\n\n';
+  }
+
+  document.getElementById('cssOutput').textContent = html;
+}
+
+function copyCode() {
+  var code = document.getElementById('cssOutput').textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(function() {
+      var btn = document.querySelector('.copy-btn');
+      btn.textContent = '✅ 已复制';
+      setTimeout(function() { btn.textContent = '📋 复制代码'; }, 2000);
+    }).catch(function() {
+      fallbackCopy(code);
+    });
+  } else {
+    fallbackCopy(code);
+  }
+}
+
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
+  var btn = document.querySelector('.copy-btn');
+  btn.textContent = '✅ 已复制';
+  setTimeout(function() { btn.textContent = '📋 复制代码'; }, 2000);
+}
+
+document.getElementById('containerWidth').addEventListener('input', updatePreview);
+document.getElementById('containerName').addEventListener('input', updatePreview);
+document.getElementById('containerType').addEventListener('change', updatePreview);
+
+init();
+</script>
+
+<!-- 反馈收集 -->
+<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
+<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
+<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
+<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
+</div>
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
+<option value="feedback">💡 功能建议</option>
+<option value="bug">🐛 问题反馈</option>
+<option value="other">💬 其他</option>
+</select>
+<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
+<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
+</div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
+</div>
+</div>
+<script>
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){
+const type=document.getElementById('feedback-type').value;
+const text=document.getElementById('feedback-text').value.trim();
+if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
+const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
+const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
+}
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

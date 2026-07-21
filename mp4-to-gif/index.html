@@ -87,7 +87,12 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; MP4转GIF转换器</p>
 <div class="hero"><p>免费在线MP4转GIF转换器，将MP4视频片段转为GIF动图。支持裁剪片段、调整帧率和尺寸。纯前端Canvas处理，数据不上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><div class="input-section">
+<div><div class="section"><h1>🎞️ MP4转GIF转换器
+  
+</h1>
+
+
+  <div class="input-section">
     <h2>📤 上传视频</h2>
     <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-7l5-5 5 5m-5-5v12" stroke-width="2"/></svg>
@@ -142,120 +147,7 @@ a{color:#06b6d4;text-decoration:none}
   <span class="rating-thanks" id="ratingThanks">感谢您的评分！</span>
 </div>
 
-    </div>
-<div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/mp4-to-gif/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div><span class="rating-count" id="ratingCount">4.5 (156票)</span></div>
-    <p style="margin-top:8px">© 2026 WebTools. 所有工具免费使用，数据不上传服务器。</p>
-  </div>
-  <div class="toast" id="toast"></div>
-</div>
-<script>
-let videoFile=null,gifBlob=null,videoDuration=0;
-const uz=document.getElementById('uploadZone');
-if(uz){['dragover','dragenter'].forEach(e=>{uz.addEventListener(e,ev=>{ev.preventDefault();uz.classList.add('dragover')})});['dragleave','drop'].forEach(e=>{uz.addEventListener(e,ev=>{ev.preventDefault();uz.classList.remove('dragover')})});uz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)handleVideo(f)});}
-function handleVideo(file){
-  if(!file||!file.type.startsWith('video/')){showToast('⚠️ 请选择视频文件');return}
-  if(file.size>200*1024*1024){showToast('⚠️ 文件不能超过200MB');return}
-  videoFile=file;const url=URL.createObjectURL(file);const v=document.getElementById('srcVideo');
-  v.src=url;v.style.display='block';
-  v.onloadedmetadata=()=>{videoDuration=v.duration||0;const maxDur=Math.min(videoDuration,30);
-    document.getElementById('startTime').max=maxDur;document.getElementById('endTime').max=maxDur;
-    document.getElementById('endTime').value=Math.min(5,maxDur);updateTimeLabels();};
-  document.getElementById('videoInfo').style.display='block';document.getElementById('convertBtn').disabled=false;
-  document.getElementById('gifResult').style.display='none';showToast('✅ 视频已加载');
-}
-function updateTimeLabels(){document.getElementById('startLabel').textContent=document.getElementById('startTime').value+'s';document.getElementById('endLabel').textContent=document.getElementById('endTime').value+'s';}
-async function convertToGIF(){
-  if(!videoFile){showToast('请先上传视频');return}
-  const status=document.getElementById('gifResult');status.style.display='block';document.getElementById('sizeCompare').textContent='⏳ 转换中...';
-  const v=document.getElementById('srcVideo');const fps=parseInt(document.getElementById('fps').value);
-  const startT=parseFloat(document.getElementById('startTime').value);const endT=parseFloat(document.getElementById('endTime').value);
-  const duration=endT-startT;if(duration<=0){showToast('结束时间必须大于起始时间');return}
-  const totalFrames=Math.ceil(duration*fps);if(totalFrames>600){showToast('帧数过多，请减少时长或降低帧率');return}
-  v.currentTime=startT;await v.play();await new Promise(r=>{v.onseeked=r;if(v.currentTime>=startT-.1)r()});
-  const origW=v.videoWidth,origH=v.videoHeight,widthSel=document.getElementById('width').value;
-  const outW=widthSel==='original'?origW:parseInt(widthSel),outH=Math.round(outW*(origH/origW));
-  const colorBits=parseInt(document.getElementById('colors').value);
-  const canvas=document.createElement('canvas');canvas.width=outW;canvas.height=outH;const ctx=canvas.getContext('2d');
-  const gif=new GIF({workers:2,quality:10,width:outW,height:outH,workerScript:'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js'});
-  gif.on('finished',blob=>{gifBlob=blob;const url=URL.createObjectURL(blob);document.getElementById('gifImg').src=url;
-    const reduction=((1-blob.size/videoFile.size)*100).toFixed(0);
-    document.getElementById('sizeCompare').innerHTML=`原始视频: ${(videoFile.size/1024/1024).toFixed(1)}MB → GIF: ${(blob.size/1024/1024).toFixed(1)}MB <span style="color:${reduction>0?'#4ade80':'#f87171'}">${reduction>0?'↓':'↑'}${Math.abs(reduction)}%</span>`;
-    showToast('✅ 转换完成');});gif.on('progress',p=>{document.getElementById('sizeCompare').textContent=`⏳ 转换中... ${Math.round(p*100)}%`;});
-  const frameDelay=1000/fps;for(let i=0;i<totalFrames;i++){v.currentTime=startT+i/fps;await new Promise(r=>{v.onseeked=r});ctx.drawImage(v,0,0,outW,outH);gif.addFrame(ctx,{copy:true,delay:frameDelay});}
-  v.pause();gif.render();
-}
-function downloadGIF(){if(!gifBlob){showToast('请先转换');return}const url=URL.createObjectURL(gifBlob);const a=document.createElement('a');a.href=url;a.download=(videoFile.name||'video').replace(/\.[^.]+$/,'.gif');a.click();URL.revokeObjectURL(url);showToast('✅ 已下载');}
-function resetAll(){videoFile=null;gifBlob=null;document.getElementById('fileInput').value='';document.getElementById('srcVideo').style.display='none';document.getElementById('gifResult').style.display='none';document.getElementById('videoInfo').style.display='none';document.getElementById('convertBtn').disabled=true;}
-function rate(v){const stars=document.querySelectorAll('#stars span');stars.forEach((s,i)=>{s.textContent=i<v?'★':'☆';s.className=i<v?'active':''});document.getElementById('ratingCount').textContent=`4.5 (${156+v}票)`;}
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-</script>
-<script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
-<script>
-(function() {
-  const STORAGE_KEY = 'wt_rating_' + location.pathname.replace(/\//g, '_');
-  const AVG_KEY = 'wt_avg_' + location.pathname.replace(/\//g, '_');
-  function getConsistentRating() {
-    let hash = 0;
-    const path = location.pathname;
-    for (let i = 0; i < path.length; i++) { hash = ((hash << 5) - hash) + path.charCodeAt(i); hash = hash & hash; }
-    const ratings = [4.5, 4.6, 4.7, 4.8, 4.9, 4.4, 4.3];
-    const counts = [128, 256, 512, 89, 167, 234, 345, 178, 421, 156];
-    const rIdx = Math.abs(hash) % ratings.length;
-    const cIdx = Math.abs(hash >> 3) % counts.length;
-    return { value: ratings[rIdx], count: counts[cIdx] };
-  }
-  function initRating() {
-    const container = document.getElementById('starContainer');
-    const text = document.getElementById('ratingText');
-    const countEl = document.getElementById('ratingCount');
-    const thanks = document.getElementById('ratingThanks');
-    if (!container || !text) return;
-    const isCN = document.documentElement.lang === 'zh-CN';
-    const saved = localStorage.getItem(STORAGE_KEY);
-    let avgData;
-    try { avgData = JSON.parse(localStorage.getItem(AVG_KEY)); } catch(e) {}
-    if (!avgData) avgData = getConsistentRating();
-    const stars = container.querySelectorAll('.star');
-    function updateDisplay(value) {
-      stars.forEach((s, i) => { s.classList.toggle('active', i < Math.round(value)); });
-      text.textContent = (avgData.value || 4.5).toFixed(1) + '/5';
-      countEl.textContent = isCN ? '(' + (avgData.count || 128) + ' 人评分)' : '(' + (avgData.count || 128) + ' ratings)';
-    }
-    updateDisplay(saved ? parseInt(saved) : avgData.value);
-    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
-    stars.forEach(star => {
-      star.addEventListener('click', function() {
-        const val = parseInt(this.dataset.value);
-        localStorage.setItem(STORAGE_KEY, val);
-        updateDisplay(val);
-        thanks.style.display = 'inline';
-        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
-        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
-        current.count = (current.count || 128) + 1;
-        localStorage.setItem(AVG_KEY, JSON.stringify(current));
-      });
-      star.addEventListener('mouseenter', function() {
-        const val = parseInt(this.dataset.value);
-        stars.forEach((s, i) => s.classList.toggle('active', i < val));
-      });
-    });
-    container.addEventListener('mouseleave', function() { updateDisplay(saved ? parseInt(saved) : avgData.value); });
-  }
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initRating); }
-  else { initRating(); }
-})();
-</script>
-
-  <div class="faq-section">
-    <h2>常见问题 (FAQ)</h2>
-
-
-
-</div>
-  </div></div></div>
+    <div class="lang-switch"><a href="#" class="active">中文</a><a href="../../en/mp4-to-gif/">English</a></div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

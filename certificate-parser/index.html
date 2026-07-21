@@ -82,7 +82,11 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; SSL证书解析器</p>
 <div class="hero"><p>免费在线SSL/TLS证书解析器，粘贴PEM格式证书即可解析。显示颁发者、主题、有效期、SAN域名、密钥算法等关键信息。纯前端本地处理，证书数据不上传。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><div class="rating-widget" id="ratingWidget">
+<div><div class="section"><h1>🔒 SSL证书解析器
+  
+</h1>
+
+<div class="rating-widget" id="ratingWidget">
   <div class="stars" id="starContainer" title="Click stars to rate">
     <span class="star" data-value="1">★</span>
     <span class="star" data-value="2">★</span>
@@ -94,7 +98,8 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
   <span class="rating-count" id="ratingCount"></span>
   <span class="rating-thanks" id="ratingThanks">Thanks for your rating!</span>
 </div>
-    </div>
+    <div class="lang-switch"><a href="./" class="active">中文</a><a href="../en/certificate-parser/">EN</a></div>
+  </div>
   <div style="display:flex;align-items:center;gap:6px;margin:8px 0;font-size:.85rem;"><span style="color:#f59e0b;">★★★★½</span><span style="color:#f1f5f9;font-weight:600;">4.7</span><span style="color:#94a3b8;">(256)</span></div>
   <div style="text-align:center;margin:8px 0;font-size:.8rem;color:#94a3b8;">🔒 本地处理 · ✅ 完全免费 · ⚡ 即时结果</div>
 
@@ -105,8 +110,6 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
       Updated: 2026-07-12
     </span>
   </div>
-  <div class="ad-slot" style="margin:16px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-
   <div class="input-section">
     <h2>📜 粘贴PEM格式证书</h2>
     <textarea id="certInput" placeholder="-----BEGIN CERTIFICATE-----
@@ -124,8 +127,6 @@ MIID... (Base64编码的证书)
     <h2>📋 证书信息</h2>
     <table class="cert-table" id="certTable"></table>
   </div>
-
-  <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 
   <div class="info-section">
     <h2>📘 使用说明</h2>
@@ -152,208 +153,7 @@ MIID... (Base64编码的证书)
       <h3>支持什么格式？为什么解析失败？</h3>
       <p>支持PEM格式（-----BEGIN CERTIFICATE-----）。常见失败原因：1) 粘贴了PKCS#12(.pfx/.p12)格式——需先用openssl pkcs12转换；2) 证书链中包含多个证书——只粘贴第一个（服务器证书）；3) 复制时包含了多余空格或换行。</p>
     </div>
-  </div>
-</div>
-
-
-<div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/certificate-parser/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div>
-
-<script>
-(function(){
-  function base64ToArrayBuffer(b64){
-    b64=b64.replace(/\s/g,'');
-    var binary=atob(b64);
-    var bytes=new Uint8Array(binary.length);
-    for(var i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
-    return bytes.buffer;
-  }
-
-  function parseCert(pem){
-    // Extract base64 content
-    var b64=pem.replace(/-----BEGIN CERTIFICATE-----/,'').replace(/-----END CERTIFICATE-----/,'').replace(/\s/g,'');
-    if(!b64){throw new Error('无效的PEM格式，请确保包含-----BEGIN CERTIFICATE-----和-----END CERTIFICATE-----');}
-    
-    var der=base64ToArrayBuffer(b64);
-    // Use Web Crypto API
-    return crypto.subtle.importKey('spki',der,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},true,['verify']).then(function(key){
-      return crypto.subtle.exportKey('jwk',key);
-    }).catch(function(){
-      // Fallback: try basic ASN.1 parsing
-      return parseBasicASN1(der);
-    });
-  }
-
-  function parseBasicASN1(derBuffer){
-    var bytes=new Uint8Array(derBuffer);
-    var result={};
-    
-    // Simple TLV decoder
-    function readLength(pos){
-      var len=bytes[pos];
-      if(len<128)return {length:len,offset:pos+1};
-      var numBytes=len&0x7F;
-      var val=0;
-      for(var i=0;i<numBytes;i++)val=(val<<8)|bytes[pos+1+i];
-      return {length:val,offset:pos+1+numBytes};
-    }
-
-    function findOID(start,end,target){
-      for(var i=start;i<end-10;i++){
-        if(bytes[i]===0x06){
-          var lenInfo=readLength(i+1);
-          var oidEnd=lenInfo.offset+lenInfo.length;
-          if(oidEnd>end)continue;
-          var oid=bytesToOID(bytes,lenInfo.offset,lenInfo.length);
-          if(oid===target)return i;
-          i=oidEnd-1;
-        }
-      }
-      return -1;
-    }
-
-    function bytesToOID(bytes,start,len){
-      var parts=[];
-      parts.push(Math.floor(bytes[start]/40));
-      parts.push(bytes[start]%40);
-      var val=0;
-      for(var i=start+1;i<start+len;i++){
-        val=(val<<7)|(bytes[i]&0x7F);
-        if(!(bytes[i]&0x80)){parts.push(val);val=0;}
-      }
-      return parts.join('.');
-    }
-
-    function extractString(pos,type){
-      var lenInfo=readLength(pos+1);
-      var strBytes=bytes.slice(lenInfo.offset,lenInfo.offset+lenInfo.length);
-      if(type===0x0C||type===0x13){ // UTF8String or PrintableString
-        return new TextDecoder().decode(strBytes);
-      }
-      return Array.from(strBytes).map(function(b){return b.toString(16).padStart(2,'0');}).join(':');
-    }
-
-    try{
-      // Find common OIDs
-      var cnPos=findOID(0,bytes.length,'2.5.4.3');
-      var orgPos=findOID(0,bytes.length,'2.5.4.10');
-      var countryPos=findOID(0,bytes.length,'2.5.4.6');
-      
-      if(cnPos>=0)result.subjectCN=extractString(cnPos,0x0C);
-      if(orgPos>=0)result.subjectOrg=extractString(orgPos,0x0C);
-      if(countryPos>=0)result.subjectCountry=extractString(countryPos,0x13);
-    }catch(e){}
-
-    return result;
-  }
-
-  function displayResult(data){
-    var table=document.getElementById('certTable');
-    var expiryInfo='';
-    if(data.notAfter){
-      var expiry=new Date(data.notAfter);
-      var now=new Date();
-      var daysLeft=Math.ceil((expiry-now)/(86400000));
-      var badge='';
-      if(daysLeft<0)badge='<span class="status-badge status-expired">已过期</span>';
-      else if(daysLeft<30)badge='<span class="status-badge status-warn">'+daysLeft+'天后到期</span>';
-      else badge='<span class="status-badge status-valid">有效（'+daysLeft+'天）</span>';
-      expiryInfo=expiry.toLocaleDateString('zh-CN')+' '+badge;
-    }
-
-    var rows=[
-      ['主题 CN',data.subjectCN||'未知'],
-      ['组织',data.subjectOrg||'未知'],
-      ['有效期至',expiryInfo||'未知'],
-      ['密钥算法',data.keyAlgorithm||'未知'],
-      ['密钥长度',data.keySize?data.keySize+' bits':'未知']
-    ];
-
-    table.innerHTML=rows.map(function(r){
-      return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>';
-    }).join('');
-    document.getElementById('resultSection').style.display='block';
-  }
-
-  function parseFullCert(pem){
-    var errorArea=document.getElementById('errorArea');
-    errorArea.innerHTML='';
-    
-    try{
-      var b64=pem.replace(/-----BEGIN CERTIFICATE-----/,'').replace(/-----END CERTIFICATE-----/,'').replace(/\s/g,'');
-      if(!b64){throw new Error('无效的PEM格式');}
-      
-      var der=base64ToArrayBuffer(b64);
-      var bytes=new Uint8Array(der);
-      
-      // Use Web Crypto API for certificate parsing
-      var certData={};
-      
-      // Parse via SubtleCrypto
-      crypto.subtle.importKey('spki',der,{name:'RSASSA-PKCS1-v1_5',hash:{name:'SHA-256'}},true,['verify'])
-        .then(function(key){
-          return crypto.subtle.exportKey('jwk',key);
-        })
-        .then(function(jwk){
-          certData.keyAlgorithm=jwk.kty||'RSA';
-          certData.keySize=jwk.n?base64ToArrayBuffer(jwk.n.replace(/-/g,'+').replace(/_/g,'/')).byteLength*8:0;
-          displayResult(certData);
-        })
-        .catch(function(e){
-          // Fallback: basic info from raw bytes
-          certData.subjectCN='解析失败 - 请检查证书格式';
-          certData.error=e.message;
-          displayResult(certData);
-          errorArea.innerHTML='<div class="error-msg">⚠️ 完整解析失败: '+e.message+'。部分信息可能不可用。请确认证书格式正确（PEM格式，以-----BEGIN CERTIFICATE-----开头）。</div>';
-        });
-      
-      // Also try basic parsing for text fields
-      var basicInfo=parseBasicASN1(der);
-      if(basicInfo.subjectCN)certData.subjectCN=basicInfo.subjectCN;
-      if(basicInfo.subjectOrg)certData.subjectOrg=basicInfo.subjectOrg;
-      
-    }catch(e){
-      errorArea.innerHTML='<div class="error-msg">⚠️ 解析错误: '+e.message+'</div>';
-    }
-  }
-
-  document.getElementById('parseBtn').addEventListener('click',function(){
-    var pem=document.getElementById('certInput').value.trim();
-    if(!pem){
-      document.getElementById('errorArea').innerHTML='<div class="error-msg">请粘贴PEM格式证书</div>';
-      return;
-    }
-    parseFullCert(pem);
-  });
-
-  document.getElementById('loadExampleBtn').addEventListener('click',function(){
-    // Load a sample self-signed cert (example)
-    document.getElementById('certInput').value='-----BEGIN CERTIFICATE-----\nMIICWzCCAcSgAwIBAgIJAJQ8xGqN0zKtMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV\nBAYTAkNOMQ8wDQYDVQQIDAZHdWFuZzExEjAQBgNVBAcMCVNpY2h1YW4xETAPBgNV\nBAoMCEV4YW1wbGUwHhcNMjQwMTAxMDAwMDAwWhcNMjUwMTAxMDAwMDAwWjBFMQsw\nCQYDVQQGEwJDTjEPMA0GA1UECAwGR3Vhbmd6MRIwEAYDVQQHDAlTaWNodWFuMREw\nDwYDVQQKDAhFeGFtcGxlMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDJ5mTT\nkKCfHe+8cHh7r1X0gkIoZ2fJKXQpBWW5pLGqJMwILKF7Jjq2LpVJXP5GQ0Aa9XhF\nmLKFVnQ6kQgGZkKj1jK8XpVGHJqMHS6Hc0VHapb9dGcKcZGp2WkO/YGMUHjGGCVL\nj2kFgQqOJj9ZVHXy2qkIQmXXgCnVx0WZCBinQIDAQABo1AwTjAdBgNVHQ4EFgQU\nLHKglII0rFsFgL7Jl6PCCFkXCBQwHwYDVR0jBBgwFoAULHKglII0rFsFgL7Jl6PC\nCFkXCBQwDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOBgQBiL8JZHrN0CqRI\nK2PHkmEt5BGhDJUHZJhHOTqAGVjAKkkRbRnMgQCQXqFHnEFnQEjKKVGmOGQGGHtD\nsQBOM0pGIdrBpVRPEPdKJPgQKNYYO/ZYLtCkA4TACUKRhVUYMCBQYBKjDKZDDKEL\nKuHMPMROXkYRV6lBYAqFZNQaMqHjPw==\n-----END CERTIFICATE-----';
-    parseFullCert(document.getElementById('certInput').value);
-  });
-
-  document.getElementById('clearBtn').addEventListener('click',function(){
-    document.getElementById('certInput').value='';
-    document.getElementById('resultSection').style.display='none';
-    document.getElementById('errorArea').innerHTML='';
-  });
-
-  // Feedback widget
-  (function(){
-    var fb=document.createElement('div');
-    fb.style.cssText='position:fixed;bottom:24px;right:24px;z-index:9999;background:#1e293b;border-radius:12px;padding:12px 16px;border:1px solid rgba(148,163,184,.2);box-shadow:0 8px 32px rgba(0,0,0,.4);display:flex;gap:10px;align-items:center;font-size:.85rem';
-    fb.innerHTML='<span style="color:#94a3b8">👍 工具好用吗？</span><button style="background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.2);border-radius:6px;padding:4px 12px;cursor:pointer;font-size:.8rem" onclick="this.parentElement.innerHTML=\'<span style=color:#4ade80>✓ 感谢反馈！</span>\'">👍 好用</button><button style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:4px 12px;cursor:pointer;font-size:.8rem" onclick="this.parentElement.innerHTML=\'<span style=color:#f87171>感谢反馈，我们会改进</span>\'">👎 待改进</button>';
-    document.body.appendChild(fb);
-  })();
-})();
-</script>
-
-<div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
-<script>
-(function(){var s=document.getElementById('related-tools-section');if(!s)return;var p=window.location.pathname;var en=p.indexOf('/en/')!==-1;p=p.replace(/\/en\//g,'/');var slug=p.split('/').filter(Boolean).pop()||'';if(!slug){s.innerHTML='';return;}var depth=en?'../../':'../';fetch(depth+'related-tools.json').then(function(r){if(!r.ok)throw new Error('');return r.json();}).then(function(d){var data=en?d.en:d.cn;var t=data[slug];if(!t||!t.related||!t.related.length){s.innerHTML='';return;}var h='<div class="related-tools-inner"><h3 class="related-tools-title">'+(en?'🔗 You May Also Like':'🔗 相关工具推荐')+'</h3><div class="related-tools-grid">';t.related.forEach(function(r){var link=en?'../../en/'+r.slug+'/':'../'+r.slug+'/';h+='<a href="'+link+'" class="related-tool-card"><span class="related-tool-icon">'+(r.icon||'🔧')+'</span><span class="related-tool-name">'+r.name+'</span></a>';});h+='</div></div>';s.innerHTML=h;}).catch(function(){s.innerHTML='';});})();
-</script></div></div>
+  </div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

@@ -77,7 +77,266 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线数字金额转大写</p>
 <div class="hero"><p>免费在线数字金额转大写工具，支持阿拉伯数字快速转换为中文大写金额。自动处理元角分、零位优化，适合发票、合同、财务报销等场景。纯前端本地处理，数据不上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🔢 数字金额转大写</h1>
+    <div class="lang-switch">
+      <a href="index.html" class="active">中文</a>
+      <a href="../en/number-to-words/index.html">EN</a>
+    </div>
+  </div>
+  <!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+
+  <div class="card">
+    <h2>📝 输入金额</h2>
+    <div class="form-group">
+      <label for="amountInput">输入数字金额（支持最多两位小数）</label>
+      <input type="text" id="amountInput" placeholder="例如：12345.67" inputmode="decimal" autocomplete="off">
+    </div>
+    <div class="quick-btns">
+      <button class="quick-btn" onclick="setAmount('100')">¥100</button>
+      <button class="quick-btn" onclick="setAmount('10086')">¥10,086</button>
+      <button class="quick-btn" onclick="setAmount('1234567.89')">¥1,234,567.89</button>
+      <button class="quick-btn" onclick="setAmount('100200.03')">¥100,200.03</button>
+      <button class="quick-btn" onclick="setAmount('0.01')">¥0.01</button>
+      <button class="quick-btn" onclick="setAmount('999999999999.99')">最大金额</button>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="convert()">🔄 转换</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('amountInput').value='';clearResult()">清空</button>
+    </div>
+    <div class="result-label">中文大写金额：</div>
+    <div class="result-box" id="resultBox">
+      <span class="placeholder" id="placeholder">输入金额后点击「转换」查看大写结果</span>
+      <span id="resultText" style="display:none"></span>
+    </div>
+    <div style="margin-top:10px;text-align:right">
+      <button class="copy-btn" id="copyBtn" style="display:none" onclick="copyResult()">📋 复制</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📖 大写金额示例</h2>
+    <div class="example-block">
+      <div class="example-row"><span class="num">¥100.00</span><span class="cn">壹佰元整</span></div>
+      <div class="example-row"><span class="num">¥1,008.60</span><span class="cn">壹仟零捌元陆角</span></div>
+      <div class="example-row"><span class="num">¥10,000.00</span><span class="cn">壹万元整</span></div>
+      <div class="example-row"><span class="num">¥100,200.03</span><span class="cn">壹拾万零贰佰元零叁分</span></div>
+      <div class="example-row"><span class="num">¥1,234,567.89</span><span class="cn">壹佰贰拾叁万肆仟伍佰陆拾柒元捌角玖分</span></div>
+      <div class="example-row"><span class="num">¥0.08</span><span class="cn">捌分</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>💡 大写金额知识</h2>
+    <div class="knowledge-grid">
+      <div class="knowledge-item"><h4>大写数字</h4><p>壹、贰、叁、肆、伍、陆、柒、捌、玖、拾、佰、仟、万、亿</p></div>
+      <div class="knowledge-item"><h4>金额单位</h4><p>元（圆）、角、分、整（正）。无角无分时末尾加「整」</p></div>
+      <div class="knowledge-item"><h4>零的规则</h4><p>中间连续多个零只写一个「零」，元位为零且角分不为零时写「零」</p></div>
+      <div class="knowledge-item"><h4>法律依据</h4><p>《中国人民银行法》《票据法》规定财务凭证须同时填写大写小写</p></div>
+    </div>
+  </div>
+</div>
+<script>
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show')},2000);
+}
+
+function setAmount(v){
+  document.getElementById('amountInput').value=v;
+  convert();
+}
+
+function clearResult(){
+  document.getElementById('resultText').style.display='none';
+  document.getElementById('placeholder').style.display='inline';
+  document.getElementById('copyBtn').style.display='none';
+}
+
+// 核心转换函数：数字转中文大写金额
+function numToChinese(numStr){
+  var digits=['零','壹','贰','叁','肆','伍','陆','柒','捌','玖'];
+  var radices=['','拾','佰','仟'];
+  var bigRadices=['','万','亿','万亿'];
+
+  // 检查合法数字
+  if(!/^\d+(\.\d{1,2})?$/.test(numStr)) return null;
+
+  var parts=numStr.split('.');
+  var integerPart=parts[0].replace(/^0+/, '') || '0';
+  var decimalPart=parts.length>1?parts[1].replace(/0+$/,''):'';
+
+  if(integerPart==='0' && !decimalPart) return '零元整';
+
+  // 去除整数部分前导零
+  var zeroCount=0;
+  var result='';
+  var intLen=integerPart.length;
+  var pos;
+
+  // 处理整数部分
+  if(integerPart!=='0'){
+    for(var i=0;i<intLen;i++){
+      var p=intLen-i-1;
+      var d=parseInt(integerPart[i]);
+      var quotient=Math.floor(p/4);
+      var modulus=p%4;
+
+      if(d===0){
+        zeroCount++;
+      } else {
+        if(zeroCount>0){
+          result+='零';
+        }
+        zeroCount=0;
+        result+=digits[d]+radices[modulus];
+      }
+
+      if(modulus===0 && zeroCount<4){
+        result+=bigRadices[quotient];
+        zeroCount=0;
+      }
+    }
+    result+='元';
+  } else {
+    // 整数部分为0
+    if(decimalPart){
+      // 只有角分，不加元
+    } else {
+      return '零元整';
+    }
+  }
+
+  // 处理小数部分
+  if(decimalPart){
+    if(decimalPart.length>=1 && decimalPart[0]!=='0'){
+      result+=digits[parseInt(decimalPart[0])]+'角';
+    } else if(decimalPart.length>=1 && decimalPart[0]==='0' && integerPart!=='0'){
+      result+='零';
+    }
+
+    if(decimalPart.length>=2 && decimalPart[1]!=='0'){
+      result+=digits[parseInt(decimalPart[1])]+'分';
+    }
+
+    // 如果只有分没有角
+    if(decimalPart.length===2 && decimalPart[0]==='0' && decimalPart[1]!=='0' && integerPart==='0'){
+      result=digits[parseInt(decimalPart[1])]+'分';
+    }
+    if(decimalPart.length===1 && decimalPart[0]!=='0' && integerPart==='0'){
+      result=digits[parseInt(decimalPart[0])]+'角';
+    }
+  } else {
+    result+='整';
+  }
+
+  // 特殊情况：零元零角零分
+  if(result==='零元零角零分'||result==='零元零角'||result==='零元') result='零元整';
+
+  return result;
+}
+
+function convert(){
+  var input=document.getElementById('amountInput').value.trim();
+  if(!input){
+    showToast('请输入数字金额');
+    return;
+  }
+
+  // 清理格式（去除逗号、空格、人民币符号）
+  var clean=input.replace(/[,，¥$￥\s]/g,'');
+  
+  var result=numToChinese(clean);
+  if(result===null){
+    showToast('请输入有效数字（最多两位小数）');
+    return;
+  }
+
+  document.getElementById('placeholder').style.display='none';
+  var rt=document.getElementById('resultText');
+  rt.textContent=result;
+  rt.style.display='inline';
+  document.getElementById('copyBtn').style.display='inline-block';
+  document.getElementById('resultBox').appendChild(rt);
+}
+
+function copyResult(){
+  var text=document.getElementById('resultText').textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){
+      showToast('已复制: '+text);
+    }).catch(function(){
+      fallbackCopy(text);
+    });
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text){
+  var ta=document.createElement('textarea');
+  ta.value=text;
+  ta.style.position='fixed';ta.style.left='-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try{document.execCommand('copy');showToast('已复制: '+text);}catch(e){showToast('复制失败，请手动复制');}
+  document.body.removeChild(ta);
+}
+
+// Enter键触发转换
+document.getElementById('amountInput').addEventListener('keydown',function(e){
+  if(e.key==='Enter') convert();
+});
+</script>
+
+<!-- 反馈收集 -->
+<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
+<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
+<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
+<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
+</div>
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
+<option value="feedback">💡 功能建议</option>
+<option value="bug">🐛 问题反馈</option>
+<option value="other">💬 其他</option>
+</select>
+<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
+<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
+</div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
+</div>
+</div>
+<script>
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){
+const type=document.getElementById('feedback-type').value;
+const text=document.getElementById('feedback-text').value.trim();
+if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
+const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
+const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
+}
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

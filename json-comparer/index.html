@@ -95,7 +95,413 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; JSON对比工具</p>
 <div class="hero"><p>免费在线JSON对比工具，快速比较两个JSON对象的差异。支持格式化对比、树形视图、差异高亮显示。纯前端处理，不上传服务器，保护数据隐私。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🔍 JSON对比工具</h1></div>
+<div class="lang-switch">
+      <a href="index.html" class="active">中文</a><a href="/en/json-comparer/" >EN</a>
+    </div>
+</div>
+<!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+
+<div class="editor-grid">
+<div class="card" style="margin:0">
+<h2>📥 原始JSON</h2>
+<div class="editor-box">
+<div class="editor-header">
+<label>输入原始JSON</label>
+<span class="status" id="statusLeft">等待输入</span>
+</div>
+<textarea class="json-editor" id="jsonLeft" placeholder="粘贴左侧JSON..."></textarea>
+</div>
+</div>
+
+<div class="card" style="margin:0">
+<h2>📥 比较JSON</h2>
+<div class="editor-box">
+<div class="editor-header">
+<label>输入比较JSON</label>
+<span class="status" id="statusRight">等待输入</span>
+</div>
+<textarea class="json-editor" id="jsonRight" placeholder="粘贴右侧JSON..."></textarea>
+</div>
+</div>
+</div>
+
+<div class="controls">
+<button class="btn btn-primary" onclick="compare()">⚡ 比较差异</button>
+<button class="btn btn-secondary" onclick="formatLeft()">📐 格式化左侧</button>
+<button class="btn btn-secondary" onclick="formatRight()">📐 格式化右侧</button>
+<button class="btn btn-warning" onclick="swapSides()">🔄 交换对比</button>
+<button class="btn btn-secondary" onclick="clearAll()">🗑️ 清空</button>
+<div class="example-btns" style="margin-left:auto">
+<button class="example-btn" onclick="loadExample(1)">示例1: 简单对象</button>
+<button class="example-btn" onclick="loadExample(2)">示例2: 嵌套对象</button>
+<button class="example-btn" onclick="loadExample(3)">示例3: 数组对比</button>
+</div>
+</div>
+
+<div class="card">
+<h2>📊 对比结果</h2>
+<div class="diff-container">
+<div class="diff-header">
+<label>差异视图</label>
+<span class="diff-stats" id="diffStats">无差异数据</span>
+</div>
+<div class="diff-viewer" id="diffViewer">
+<div class="diff-pane" id="diffLeft"><div class="diff-empty">点击"比较差异"查看结果</div></div>
+<div class="diff-pane" id="diffRight"><div class="diff-empty">点击"比较差异"查看结果</div></div>
+</div>
+</div>
+</div>
+
+</div>
+
+<div class="copy-toast" id="copyToast">✅ 已复制到剪贴板</div>
+
+<script>
+let leftJson = null;
+let rightJson = null;
+
+function parseJSON(input, side) {
+  try {
+    const parsed = JSON.parse(input);
+    if (side === 'left') {
+      leftJson = parsed;
+      document.getElementById('statusLeft').textContent = '✅ 格式正确';
+      document.getElementById('jsonLeft').classList.remove('error');
+    } else {
+      rightJson = parsed;
+      document.getElementById('statusRight').textContent = '✅ 格式正确';
+      document.getElementById('jsonRight').classList.remove('error');
+    }
+    return parsed;
+  } catch(e) {
+    if (side === 'left') {
+      document.getElementById('statusLeft').textContent = '❌ ' + e.message;
+      document.getElementById('jsonLeft').classList.add('error');
+    } else {
+      document.getElementById('statusRight').textContent = '❌ ' + e.message;
+      document.getElementById('jsonRight').classList.add('error');
+    }
+    return null;
+  }
+}
+
+function compare() {
+  const leftText = document.getElementById('jsonLeft').value;
+  const rightText = document.getElementById('jsonRight').value;
+  
+  if (!leftText.trim() || !rightText.trim()) {
+    document.getElementById('diffViewer').innerHTML = '<div class="diff-pane" id="diffLeft"><div class="diff-empty">请同时输入两侧JSON</div></div><div class="diff-pane" id="diffRight"><div class="diff-empty">请同时输入两侧JSON</div></div>';
+    return;
+  }
+  
+  const left = parseJSON(leftText, 'left');
+  const right = parseJSON(rightText, 'right');
+  
+  if (!left || !right) {
+    document.getElementById('diffViewer').innerHTML = '<div class="diff-pane" id="diffLeft"><div class="diff-empty">JSON格式有误，请修正</div></div><div class="diff-pane" id="diffRight"><div class="diff-empty">JSON格式有误，请修正</div></div>';
+    return;
+  }
+  
+  const result = diffObjects(left, right);
+  renderDiff(result);
+}
+
+function diffObjects(left, right, path = '') {
+  const result = [];
+  
+  // Check for added/removed keys
+  const allKeys = new Set([...Object.keys(left || {}), ...Object.keys(right || {})]);
+  
+  if (Array.isArray(left) && Array.isArray(right)) {
+    // Array comparison
+    const maxLen = Math.max(left.length, right.length);
+    for (let i = 0; i < maxLen; i++) {
+      const keyPath = path ? path + '.' + i : '' + i;
+      if (i >= left.length) {
+        result.push({ type: 'added', path: keyPath, leftVal: undefined, rightVal: right[i] });
+      } else if (i >= right.length) {
+        result.push({ type: 'removed', path: keyPath, leftVal: left[i], rightVal: undefined });
+      } else if (typeof left[i] === 'object' && left[i] !== null && typeof right[i] === 'object' && right[i] !== null) {
+        result.push(...diffObjects(left[i], right[i], keyPath));
+      } else if (left[i] !== right[i]) {
+        result.push({ type: 'changed', path: keyPath, leftVal: left[i], rightVal: right[i] });
+      }
+    }
+    return result;
+  }
+  
+  if (typeof left === 'object' && left !== null && typeof right === 'object' && right !== null) {
+    for (const key of allKeys) {
+      const keyPath = path ? path + '.' + key : key;
+      if (!(key in left)) {
+        result.push({ type: 'added', path: keyPath, leftVal: undefined, rightVal: right[key] });
+      } else if (!(key in right)) {
+        result.push({ type: 'removed', path: keyPath, leftVal: left[key], rightVal: undefined });
+      } else if (typeof left[key] === 'object' && left[key] !== null && typeof right[key] === 'object' && right[key] !== null) {
+        result.push(...diffObjects(left[key], right[key], keyPath));
+      } else if (left[key] !== right[key]) {
+        result.push({ type: 'changed', path: keyPath, leftVal: left[key], rightVal: right[key] });
+      }
+    }
+    return result;
+  }
+  
+  return result;
+}
+
+function renderDiff(diffs) {
+  const leftPane = document.getElementById('diffLeft');
+  const rightPane = document.getElementById('diffRight');
+  
+  // Format both JSONs
+  let leftStr, rightStr;
+  try {
+    leftStr = JSON.stringify(leftJson, null, 2);
+    rightStr = JSON.stringify(rightJson, null, 2);
+  } catch(e) {
+    leftPane.innerHTML = '<div class="diff-empty">格式化错误</div>';
+    rightPane.innerHTML = '<div class="diff-empty">格式化错误</div>';
+    return;
+  }
+  
+  const leftLines = leftStr.split('\n');
+  const rightLines = rightStr.split('\n');
+  
+  // Mark lines that contain differences
+  const diffPaths = new Set();
+  const diffMap = {};
+  for (const d of diffs) {
+    diffPaths.add(d.path);
+    diffMap[d.path] = d.type;
+  }
+  
+  let leftHtml = '', rightHtml = '';
+  let added = 0, removed = 0, changed = 0;
+  
+  // Simple line-by-line matching approach
+  const maxLines = Math.max(leftLines.length, rightLines.length);
+  
+  for (let i = 0; i < maxLines; i++) {
+    let leftClass = 'normal', rightClass = 'normal';
+    let leftLine = leftLines[i] || '', rightLine = rightLines[i] || '';
+    
+    // Find if this line relates to a diff
+    // Look through diffs to match line content
+    for (const d of diffs) {
+      const leftVal = d.leftVal !== undefined ? JSON.stringify(d.leftVal) : '';
+      const rightVal = d.rightVal !== undefined ? JSON.stringify(d.rightVal) : '';
+      
+      if (leftLine.includes(leftVal) && leftVal && i >= 0) {
+        leftClass = d.type;
+        if (d.type === 'added') added++;
+        else if (d.type === 'removed') removed++;
+        else if (d.type === 'changed') changed++;
+      }
+      if (rightLine.includes(rightVal) && rightVal && i >= 0) {
+        rightClass = d.type;
+      }
+    }
+    
+    leftHtml += `<div class="diff-line ${leftClass}"><span class="ln">${i+1}</span><span class="content">${escapeHtml(leftLine)}</span></div>`;
+    rightHtml += `<div class="diff-line ${rightClass}"><span class="ln">${i+1}</span><span class="content">${escapeHtml(rightLine)}</span></div>`;
+  }
+  
+  // If we didn't match any lines via content, use a simpler approach
+  if (added === 0 && removed === 0 && changed === 0 && diffs.length > 0) {
+    // Fallback: color entire sections
+    leftHtml = '';
+    rightHtml = '';
+    for (let i = 0; i < maxLines; i++) {
+      const leftLine = leftLines[i] || '';
+      const rightLine = rightLines[i] || '';
+      let lc = 'normal', rc = 'normal';
+      
+      if (leftLine !== rightLine) {
+        if (!rightLine) { lc = 'removed'; removed++; }
+        else if (!leftLine) { rc = 'added'; added++; }
+        else { lc = 'changed'; rc = 'changed'; changed++; }
+      }
+      
+      leftHtml += `<div class="diff-line ${lc}"><span class="ln">${i+1}</span><span class="content">${escapeHtml(leftLine)}</span></div>`;
+      rightHtml += `<div class="diff-line ${rc}"><span class="ln">${i+1}</span><span class="content">${escapeHtml(rightLine)}</span></div>`;
+    }
+  }
+  
+  leftPane.innerHTML = leftHtml;
+  rightPane.innerHTML = rightHtml;
+  
+  const total = diffs.length;
+  document.getElementById('diffStats').innerHTML = 
+    `<span class="added">+${added} 新增</span> · <span class="removed">-${removed} 删除</span> · <span class="changed">~${changed} 修改</span> · 共 ${total} 处差异`;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function formatLeft() {
+  formatSide('left');
+}
+
+function formatRight() {
+  formatSide('right');
+}
+
+function formatSide(side) {
+  const el = document.getElementById('json' + side.charAt(0).toUpperCase() + side.slice(1));
+  try {
+    const parsed = JSON.parse(el.value);
+    el.value = JSON.stringify(parsed, null, 2);
+    if (side === 'left') {
+      document.getElementById('statusLeft').textContent = '✅ 已格式化';
+      document.getElementById('jsonLeft').classList.remove('error');
+      leftJson = parsed;
+    } else {
+      document.getElementById('statusRight').textContent = '✅ 已格式化';
+      document.getElementById('jsonRight').classList.remove('error');
+      rightJson = parsed;
+    }
+  } catch(e) {
+    if (side === 'left') {
+      document.getElementById('statusLeft').textContent = '❌ 格式化失败';
+    } else {
+      document.getElementById('statusRight').textContent = '❌ 格式化失败';
+    }
+  }
+}
+
+function swapSides() {
+  const left = document.getElementById('jsonLeft');
+  const right = document.getElementById('jsonRight');
+  const temp = left.value;
+  left.value = right.value;
+  right.value = temp;
+  [leftJson, rightJson] = [rightJson, leftJson];
+  compare();
+}
+
+function clearAll() {
+  document.getElementById('jsonLeft').value = '';
+  document.getElementById('jsonRight').value = '';
+  document.getElementById('statusLeft').textContent = '等待输入';
+  document.getElementById('statusRight').textContent = '等待输入';
+  document.getElementById('jsonLeft').classList.remove('error');
+  document.getElementById('jsonRight').classList.remove('error');
+  document.getElementById('diffLeft').innerHTML = '<div class="diff-empty">点击"比较差异"查看结果</div>';
+  document.getElementById('diffRight').innerHTML = '<div class="diff-empty">点击"比较差异"查看结果</div>';
+  document.getElementById('diffStats').textContent = '无差异数据';
+  leftJson = null;
+  rightJson = null;
+}
+
+function loadExample(n) {
+  const examples = {
+    1: {
+      left: JSON.stringify({"name":"张三","age":25,"email":"zhang@example.com","city":"北京"}, null, 2),
+      right: JSON.stringify({"name":"张三","age":26,"email":"zhang@newdomain.com","country":"中国"}, null, 2)
+    },
+    2: {
+      left: JSON.stringify({
+        "user": {
+          "id": 1,
+          "name": "Alice",
+          "address": {
+            "city": "New York",
+            "zip": "10001"
+          }
+        },
+        "active": true
+      }, null, 2),
+      right: JSON.stringify({
+        "user": {
+          "id": 1,
+          "name": "Alice",
+          "address": {
+            "city": "San Francisco",
+            "zip": "94102",
+            "state": "CA"
+          }
+        },
+        "active": false
+      }, null, 2)
+    },
+    3: {
+      left: JSON.stringify({
+        "users": [
+          {"id": 1, "name": "Alice"},
+          {"id": 2, "name": "Bob"},
+          {"id": 3, "name": "Charlie"}
+        ],
+        "count": 3
+      }, null, 2),
+      right: JSON.stringify({
+        "users": [
+          {"id": 1, "name": "Alice"},
+          {"id": 2, "name": "Robert"},
+          {"id": 4, "name": "Diana"}
+        ],
+        "count": 3,
+        "page": 1
+      }, null, 2)
+    }
+  };
+  
+  const ex = examples[n] || examples[1];
+  document.getElementById('jsonLeft').value = ex.left;
+  document.getElementById('jsonRight').value = ex.right;
+  compare();
+}
+</script>
+
+<!-- 反馈收集 -->
+<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
+<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
+<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
+<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
+</div>
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
+<option value="feedback">💡 功能建议</option>
+<option value="bug">🐛 问题反馈</option>
+<option value="other">💬 其他</option>
+</select>
+<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
+<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
+</div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
+</div>
+</div>
+<script>
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){
+const type=document.getElementById('feedback-type').value;
+const text=document.getElementById('feedback-text').value.trim();
+if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
+const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
+const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
+}
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

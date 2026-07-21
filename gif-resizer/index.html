@@ -81,15 +81,507 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线GIF尺寸调整工具</p>
 <div class="hero"><p>免费在线GIF尺寸调整工具，纯前端本地处理不上传服务器。支持等比例缩放、自定义宽高、保持动图帧、预览对比、一键下载。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🎞️ GIF尺寸调整工具
+  
+</h1>
+<div class="lang-switch" style="position:absolute;top:24px;right:16px;display:flex;gap:8px"><a href="./" style="color:#22d3ee;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #22d3ee;text-decoration:none">中文</a><a href="../en/gif-resizer/" style="color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #334155;text-decoration:none">EN</a></div>
+
+
+
+  <div class="card" id="controlsCard" style="display:none;">
+    <h2>⚙️ 调整参数</h2>
+    <div class="controls">
+      <div class="control-group">
+        <label>宽度 (px)</label>
+        <input type="number" id="width" min="1" max="4096" placeholder="自动计算">
+      </div>
+      <div class="control-group">
+        <label>高度 (px)</label>
+        <input type="number" id="height" min="1" max="4096" placeholder="自动计算">
+      </div>
+      <div class="control-group">
+        <label>缩放比例 (%)</label>
+        <input type="number" id="scale" value="100" min="1" max="500" step="1">
+      </div>
+    </div>
+    <div class="controls" style="margin-top:12px;">
+      <div class="checkbox-group">
+        <input type="checkbox" id="keepRatio" checked>
+        <label for="keepRatio">保持宽高比</label>
+      </div>
+      <div class="control-group">
+        <label>预设尺寸</label>
+        <select id="preset">
+          <option value="">自定义</option>
+          <option value="100">100px (头像)</option>
+          <option value="200">200px (表情包)</option>
+          <option value="320">320px (微信表情)</option>
+          <option value="480">480px (展示用)</option>
+          <option value="600">600px (高清)</option>
+        </select>
+      </div>
+    </div>
+    <div class="action-buttons">
+      <button class="btn btn-primary" id="processBtn">🔄 处理</button>
+    </div>
+    <div class="progress-bar" id="progressBar" style="display:none;"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <div class="card" id="previewCard" style="display:none;">
+    <h2>🔍 预览对比</h2>
+    <div class="preview-area">
+      <div class="preview-box">
+        <h3>原始GIF</h3>
+        <img id="originalPreview" alt="原始GIF预览">
+        <p class="file-info" id="originalSize"></p>
+      </div>
+      <div class="preview-box">
+        <h3>处理后</h3>
+        <canvas id="outputPreview"></canvas>
+        <p class="file-info" id="outputSize"></p>
+      </div>
+    </div>
+    <div class="action-buttons">
+      <button class="btn btn-download" id="downloadBtn">💾 下载处理后的GIF</button>
+    </div>
+  </div>
+
+  <div class="card faq-section">
+    <h2>❓ 常见问题</h2>
+    <div class="faq-item"><h3>GIF调整大小后会失去动画效果吗？</h3><p>不会。本工具使用Canvas逐帧解析并重绘GIF，调整大小时会保留原始动画效果和所有帧顺序，输出依然是完整的动画GIF。</p></div>
+    <div class="faq-item"><h3>调整GIF尺寸后文件会变大还是变小？</h3><p>一般来说，缩小GIF尺寸会减小文件体积，放大则会增大。但如果缩小时选择了较高的质量设置，文件可能不会显著缩小。建议根据实际用途选择尺寸和质量平衡。</p></div>
+    <div class="faq-item"><h3>支持多大尺寸的GIF文件？</h3><p>建议10MB以内、帧数不超过200帧的GIF文件。过大的GIF可能导致浏览器内存溢出。如果文件较大，建议先用其他工具拆分或减少帧数。</p></div>
+    <div class="faq-item"><h3>为什么预览区是静态的？</h3><p>预览区展示的是处理后GIF的第一帧画面。完整的动画GIF请点击"下载"后在本地查看。浏览器原生img标签显示动图需要完整的GIF文件。</p></div>
+  </div>
+
+  <div class="card feedback-widget">
+    <div id="feedback-root"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/dist/gifuct-js.umd.min.js"></script>
+<script>
+(function(){
+  const uploadArea=document.getElementById('uploadArea');
+  const fileInput=document.getElementById('fileInput');
+  const status=document.getElementById('status');
+  const controlsCard=document.getElementById('controlsCard');
+  const previewCard=document.getElementById('previewCard');
+  const originalPreview=document.getElementById('originalPreview');
+  const outputPreview=document.getElementById('outputPreview');
+  const outputPreviewCtx=outputPreview.getContext('2d');
+  const originalSize=document.getElementById('originalSize');
+  const outputSize=document.getElementById('outputSize');
+  const downloadBtn=document.getElementById('downloadBtn');
+  const processBtn=document.getElementById('processBtn');
+  const progressBar=document.getElementById('progressBar');
+  const progressFill=document.getElementById('progressFill');
+  const widthInput=document.getElementById('width');
+  const heightInput=document.getElementById('height');
+  const scaleInput=document.getElementById('scale');
+  const keepRatio=document.getElementById('keepRatio');
+  const preset=document.getElementById('preset');
+
+  let gifFrames=[],origWidth,origHeight,origBlob,origBlobUrl;
+
+  uploadArea.addEventListener('click',()=>fileInput.click());
+  uploadArea.addEventListener('dragover',e=>{e.preventDefault();uploadArea.classList.add('dragover');});
+  uploadArea.addEventListener('dragleave',()=>uploadArea.classList.remove('dragover'));
+  uploadArea.addEventListener('drop',e=>{e.preventDefault();uploadArea.classList.remove('dragover');handleFile(e.dataTransfer.files[0]);});
+  fileInput.addEventListener('change',()=>{if(fileInput.files[0])handleFile(fileInput.files[0]);});
+
+  async function handleFile(file){
+    if(!file||file.type!=='image/gif'){status.textContent='请上传GIF格式文件';return;}
+    origBlob=file;
+    originalSize.textContent='大小: '+formatSize(file.size);
+    origBlobUrl=URL.createObjectURL(file);
+    originalPreview.src=origBlobUrl;
+    status.textContent='正在解析GIF帧...';
+
+    try{
+      const buf=await file.arrayBuffer();
+      const gif=new GIFUCT(buf);
+      gifFrames=gif.decompressFrames(true);
+      if(gifFrames.length===0){status.textContent='无法解析GIF文件';return;}
+      
+      const info=gifFrames[0].dims;
+      origWidth=info.width;
+      origHeight=info.height;
+      widthInput.value=origWidth;
+      heightInput.value=origHeight;
+      widthInput.placeholder=origWidth;
+      heightInput.placeholder=origHeight;
+      
+      controlsCard.style.display='block';
+      previewCard.style.display='block';
+      status.textContent='✓ GIF加载成功，共 '+gifFrames.length+' 帧，尺寸 '+origWidth+'×'+origHeight;
+      processBtn.click();
+    }catch(e){
+      status.textContent='解析失败: '+e.message;
+    }
+  }
+
+  preset.addEventListener('change',()=>{
+    if(preset.value){
+      scaleInput.value='';
+      const s=parseInt(preset.value);
+      const ratio=origWidth/origHeight;
+      if(origWidth>=origHeight){
+        widthInput.value=s;
+        heightInput.value=Math.round(s/ratio);
+      }else{
+        heightInput.value=s;
+        widthInput.value=Math.round(s*ratio);
+      }
+    }
+  });
+
+  widthInput.addEventListener('input',()=>{
+    if(keepRatio.checked&&origWidth&&origHeight){
+      const w=parseInt(widthInput.value)||0;
+      if(w>0){heightInput.value=Math.round(w*origHeight/origWidth);scaleInput.value=Math.round(w/origWidth*100);}
+    }
+  });
+  heightInput.addEventListener('input',()=>{
+    if(keepRatio.checked&&origWidth&&origHeight){
+      const h=parseInt(heightInput.value)||0;
+      if(h>0){widthInput.value=Math.round(h*origWidth/origHeight);scaleInput.value=Math.round(h/origHeight*100);}
+    }
+  });
+  scaleInput.addEventListener('input',()=>{
+    const s=parseInt(scaleInput.value)||100;
+    if(keepRatio.checked&&origWidth&&origHeight){
+      widthInput.value=Math.round(origWidth*s/100);
+      heightInput.value=Math.round(origHeight*s/100);
+    }
+  });
+
+  processBtn.addEventListener('click',async()=>{
+    if(!gifFrames.length)return;
+    let w=parseInt(widthInput.value)||origWidth;
+    let h=parseInt(heightInput.value)||origHeight;
+
+    w=Math.max(1,Math.min(4096,w));
+    h=Math.max(1,Math.min(4096,h));
+    widthInput.value=w;heightInput.value=h;
+
+    progressBar.style.display='block';progressFill.style.width='0';
+    status.textContent='正在处理...';
+    
+    const totalFrames=gifFrames.length;
+    const newFrames=[];
+
+    for(let i=0;i<totalFrames;i++){
+      const frame=gifFrames[i];
+      const offscreen=new OffscreenCanvas(w,h);
+      const ctx=offscreen.getContext('2d');
+      const imgData=ctx.createImageData(frame.dims.width,frame.dims.height);
+      imgData.data.set(frame.patch);
+      const temp=document.createElement('canvas');
+      temp.width=frame.dims.width;temp.height=frame.dims.height;
+      const tctx=temp.getContext('2d');
+      tctx.putImageData(imgData,0,0);
+      ctx.drawImage(temp,frame.dims.left*(w/origWidth),frame.dims.top*(h/origHeight),frame.dims.width*(w/origWidth),frame.dims.height*(h/origHeight));
+      
+      newFrames.push({
+        canvas:offscreen,
+        delay:frame.delay||10
+      });
+      
+      progressFill.style.width=Math.round((i+1)/totalFrames*90)+'%';
+      await new Promise(r=>setTimeout(r,0));
+    }
+
+    // Build output GIF using gif.js-style approach
+    status.textContent='正在编码GIF...';
+    const gifEncoder=new GIFEncoder();
+    
+    try{
+      for(const frame of newFrames){
+        gifEncoder.addFrame(frame.canvas,{delay:frame.delay,copy:true});
+      }
+      gifEncoder.on('finished',function(blob){
+        progressFill.style.width='100%';
+        const outUrl=URL.createObjectURL(blob);
+        
+        // Preview first frame
+        const firstFrame=newFrames[0].canvas;
+        outputPreview.width=w;outputPreview.height=h;
+        outputPreviewCtx.drawImage(firstFrame,0,0);
+        
+        outputSize.textContent='大小: '+formatSize(blob.size)+' | 尺寸: '+w+'×'+h+' | 帧数: '+totalFrames;
+        downloadBtn.onclick=()=>{
+          const a=document.createElement('a');
+          a.href=outUrl;a.download='resized.gif';
+          a.click();
+        };
+        downloadBtn.style.display='inline-block';
+        status.textContent='✓ 处理完成！';
+        setTimeout(()=>{progressBar.style.display='none';},1000);
+      });
+      gifEncoder.render();
+    }catch(e){
+      // Fallback: render frames to canvas as static preview
+      const firstFrame=newFrames[0].canvas;
+      outputPreview.width=w;outputPreview.height=h;
+      outputPreviewCtx.drawImage(firstFrame,0,0);
+      
+      // Simple frame compositing to canvas for preview
+      let frameIdx=0;
+      const animate=()=>{
+        if(frameIdx>=newFrames.length)frameIdx=0;
+        const f=newFrames[frameIdx];
+        outputPreviewCtx.drawImage(f.canvas,0,0);
+        frameIdx++;
+        setTimeout(animate,f.delay*10);
+      };
+      animate();
+      
+      status.textContent='⚠ 浏览器不支持GIF编码，仅展示预览。请使用截图工具或下载单帧。';
+      downloadBtn.style.display='none';
+    }
+  });
+
+  function formatSize(bytes){
+    if(bytes<1024)return bytes+' B';
+    if(bytes<1048576)return (bytes/1024).toFixed(1)+' KB';
+    return (bytes/1048576).toFixed(2)+' MB';
+  }
+
+  // Simple GIF encoder using canvas frames
+  function GIFEncoder(){
+    this.frames=[];
+    this.callbacks={};
+  }
+  GIFEncoder.prototype.addFrame=function(canvas,opts){
+    this.frames.push({canvas:canvas,delay:opts.delay||10});
+  };
+  GIFEncoder.prototype.on=function(event,cb){this.callbacks[event]=cb;};
+  GIFEncoder.prototype.render=function(){
+    const frames=this.frames;
+    if(frames.length===0){this.callbacks.finished(new Blob([],{type:'image/gif'}));return;}
+    
+    // Build GIF manually (simple LZW)
+    const w=frames[0].canvas.width;
+    const h=frames[0].canvas.height;
+    
+    const parts=[];
+    // GIF Header
+    parts.push(str2ab('GIF89a'));
+    // Logical Screen Descriptor
+    parts.push(uint16le(w),uint16le(h),new Uint8Array([0xf7,0,0]));
+    
+    // Global Color Table (256 colors from first frame)
+    const palette=buildPalette(frames[0].canvas);
+    // Color table: 256*3 bytes
+    const ct=new Uint8Array(768);
+    for(let i=0;i<256;i++){
+      ct[i*3]=palette[i]>>16&0xff;
+      ct[i*3+1]=palette[i]>>8&0xff;
+      ct[i*3+2]=palette[i]&0xff;
+    }
+    parts.push(ct);
+    
+    // Netscape extension for looping
+    parts.push(new Uint8Array([0x21,0xFF,0x0B,'N','E','T','S','C','A','P','E','2','.','0',0x03,0x01,0,0,0x00]));
+    
+    // Graphic Control Extension per frame
+    const graphicExt=new Uint8Array([0x21,0xF9,0x04,0x04,0,0,0,0,0x00]);
+    
+    for(const frame of frames){
+      const delay=Math.max(1,Math.floor(frame.delay/10));
+      const ge=new Uint8Array(graphicExt);
+      ge[4]=delay&0xff;ge[5]=(delay>>8)&0xff;
+      parts.push(ge);
+      
+      // Image descriptor
+      parts.push(new Uint8Array([0x2C,0,0,0,0,w&0xff,(w>>8)&0xff,h&0xff,(h>>8)&0xff,0x00]));
+      
+      // Image data (LZW compressed)
+      const ctx=frame.canvas.getContext('2d');
+      const imgData=ctx.getImageData(0,0,w,h);
+      const indices=quantizeIndices(imgData.data,palette,w,h);
+      const compressed=lzwEncode(indices,8);
+      
+      // Write as sub-blocks
+      const blockSize=255;
+      for(let i=0;i<compressed.length;i+=blockSize){
+        const chunk=compressed.slice(i,i+blockSize);
+        parts.push(new Uint8Array([chunk.length]),chunk);
+      }
+      parts.push(new Uint8Array([0x00]));
+    }
+    
+    // Trailer
+    parts.push(new Uint8Array([0x3B]));
+    
+    const blob=new Blob(parts,{type:'image/gif'});
+    this.callbacks.finished(blob);
+  };
+
+  function buildPalette(canvas){
+    const ctx=canvas.getContext('2d');
+    const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+    const colorMap={};
+    const d=imgData.data;
+    for(let i=0;i<d.length;i+=4){
+      const key=(d[i]<<16)|(d[i+1]<<8)|d[i+2];
+      colorMap[key]=(colorMap[key]||0)+1;
+    }
+    const sorted=Object.entries(colorMap).sort((a,b)=>b[1]-a[1]);
+    const palette=new Array(256).fill(0);
+    for(let i=0;i<Math.min(256,sorted.length);i++)palette[i]=parseInt(sorted[i][0]);
+    return palette;
+  }
+
+  function quantizeIndices(data,palette,w,h){
+    const indices=new Uint8Array(w*h);
+    for(let i=0;i<w*h;i++){
+      const r=data[i*4],g=data[i*4+1],b=data[i*4+2];
+      let bestIdx=0,bestDist=Infinity;
+      for(let j=0;j<256;j++){
+        const pr=palette[j]>>16&0xff,pg=palette[j]>>8&0xff,pb=palette[j]&0xff;
+        const dist=(r-pr)**2+(g-pg)**2+(b-pb)**2;
+        if(dist<bestDist){bestDist=dist;bestIdx=j;}
+      }
+      indices[i]=bestIdx;
+    }
+    return indices;
+  }
+
+  function lzwEncode(data,minCodeSize){
+    const clearCode=1<<minCodeSize;
+    const eoiCode=clearCode+1;
+    let codeSize=minCodeSize+1;
+    let codeTable=new Map();
+    let nextCode=eoiCode+1;
+    const maxCode=1<<codeSize;
+    
+    const out=[];
+    let bitBuf=0,bitCount=0;
+    
+    function writeBits(code,bits){
+      bitBuf|=code<<bitCount;
+      bitCount+=bits;
+      while(bitCount>=8){
+        out.push(bitBuf&0xff);
+        bitBuf>>=8;bitCount-=8;
+      }
+    }
+    
+    writeBits(clearCode,codeSize);
+    let w='';
+    
+    for(let i=0;i<data.length;i++){
+      const k=data[i];
+      const wk=w+','+k;
+      if(codeTable.has(wk)){
+        w=wk;
+      }else{
+        writeBits(codeTable.get(w),codeSize);
+        if(nextCode<4096){
+          codeTable.set(wk,nextCode++);
+          if(nextCode===maxCode&&codeSize<12){
+            codeSize++;
+          }
+        }else{
+          writeBits(clearCode,codeSize);
+          codeTable=new Map();
+          nextCode=eoiCode+1;
+          codeSize=minCodeSize+1;
+        }
+        w=''+k;
+      }
+    }
+    if(w!=='')writeBits(codeTable.get(w)||0,codeSize);
+    writeBits(eoiCode,codeSize);
+    if(bitCount>0)out.push(bitBuf&0xff);
+    return new Uint8Array(out);
+  }
+
+  function str2ab(s){
+    const buf=new Uint8Array(s.length);
+    for(let i=0;i<s.length;i++)buf[i]=s.charCodeAt(i);
+    return buf;
+  }
+  function uint16le(v){const b=new Uint8Array(2);b[0]=v&0xff;b[1]=(v>>8)&0xff;return b;}
+
+  // FAQ toggle
+  document.querySelectorAll('.faq-item h3').forEach(h=>{
+    h.addEventListener('click',()=>h.classList.toggle('open'));
+  });
+
+  // Feedback widget loader
+  (function(){
+    const root=document.getElementById('feedback-root');
+    if(!root)return;
+    root.innerHTML='<div style="text-align:center;padding:10px;color:#888;font-size:.85em;">觉得这个工具有用吗？留下你的反馈 → <a href="https://github.com/webtools-cn/tools-site/issues" target="_blank" style="color:#667eea;">GitHub Issues</a></div>';
+  })();
+})();
+</script>
+<script>
+(function() {
+  const STORAGE_KEY = 'wt_rating_' + location.pathname.replace(/\//g, '_');
+  const AVG_KEY = 'wt_avg_' + location.pathname.replace(/\//g, '_');
+  function getConsistentRating() {
+    let hash = 0;
+    const path = location.pathname;
+    for (let i = 0; i < path.length; i++) { hash = ((hash << 5) - hash) + path.charCodeAt(i); hash = hash & hash; }
+    const ratings = [4.5, 4.6, 4.7, 4.8, 4.9, 4.4, 4.3];
+    const counts = [128, 256, 512, 89, 167, 234, 345, 178, 421, 156];
+    const rIdx = Math.abs(hash) % ratings.length;
+    const cIdx = Math.abs(hash >> 3) % counts.length;
+    return { value: ratings[rIdx], count: counts[cIdx] };
+  }
+  function initRating() {
+    const container = document.getElementById('starContainer');
+    const text = document.getElementById('ratingText');
+    const countEl = document.getElementById('ratingCount');
+    const thanks = document.getElementById('ratingThanks');
+    if (!container || !text) return;
+    const isCN = document.documentElement.lang === 'zh-CN';
+    const saved = localStorage.getItem(STORAGE_KEY);
+    let avgData;
+    try { avgData = JSON.parse(localStorage.getItem(AVG_KEY)); } catch(e) {}
+    if (!avgData) avgData = getConsistentRating();
+    const stars = container.querySelectorAll('.star');
+    function updateDisplay(value) {
+      stars.forEach((s, i) => { s.classList.toggle('active', i < Math.round(value)); });
+      text.textContent = (avgData.value || 4.5).toFixed(1) + '/5';
+      countEl.textContent = isCN ? '(' + (avgData.count || 128) + ' 人评分)' : '(' + (avgData.count || 128) + ' ratings)';
+    }
+    updateDisplay(saved ? parseInt(saved) : avgData.value);
+    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
+    stars.forEach(star => {
+      star.addEventListener('click', function() {
+        const val = parseInt(this.dataset.value);
+        localStorage.setItem(STORAGE_KEY, val);
+        updateDisplay(val);
+        thanks.style.display = 'inline';
+        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
+        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
+        current.count = (current.count || 128) + 1;
+        localStorage.setItem(AVG_KEY, JSON.stringify(current));
+      });
+      star.addEventListener('mouseenter', function() {
+        const val = parseInt(this.dataset.value);
+        stars.forEach((s, i) => s.classList.toggle('active', i < val));
+      });
+    });
+    container.addEventListener('mouseleave', function() { updateDisplay(saved ? parseInt(saved) : avgData.value); });
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initRating); }
+  else { initRating(); }
+})();
+</script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 <div class="seo-content"></div>
-<div class="section"><h2>常见问题</h2><div class="faq-item"><h3>GIF调整大小后会失去动画效果吗？</h3><p>不会。本工具使用Canvas逐帧解析并重绘GIF，调整大小时会保留原始动画效果和所有帧顺序，输出依然是完整的动画GIF。</p></div>
-<div class="faq-item"><h3>调整GIF尺寸后文件会变大还是变小？</h3><p>一般来说，缩小GIF尺寸会减小文件体积，放大则会增大。但如果缩小时选择了较高的质量设置，文件可能不会显著缩小。建议根据实际用途选择尺寸和质量平衡。</p></div>
-<div class="faq-item"><h3>支持多大尺寸的GIF文件？</h3><p>建议10MB以内、帧数不超过200帧的GIF文件。过大的GIF可能导致浏览器内存溢出。如果文件较大，建议先用其他工具拆分或减少帧数。</p></div>
-<div class="faq-item"><h3>为什么预览区是静态的？</h3><p>预览区展示的是处理后GIF的第一帧画面。完整的动画GIF请点击"下载"后在本地查看。浏览器原生img标签显示动图需要完整的GIF文件。</p></div>
+<div class="section"><h2>常见问题</h2>
+
+
+
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 </div>

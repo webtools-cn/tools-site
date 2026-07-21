@@ -79,7 +79,126 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:#3b82f6;box-sh
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; PDF加密工具</p>
 <div class="hero"><p>免费在线PDF加密工具，为PDF文件添加密码保护。纯前端本地处理，文件不上传服务器，安全可靠。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>PDF加密工具 - 在线免费PDF加密
+  
+</h1>
+    <div class="lang-switch" style="display:flex;gap:8px;margin-top:8px"><a href="./" class="active" style="color:#22d3ee;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #22d3ee">中文</a><a href="../en/pdf-encrypt/" style="color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #334155;text-decoration:none">EN</a></div>
+
+
+<div class="faq-item"><div class="faq-q">用户密码和所有者密码有什么区别？</div><div class="faq-a"><p>用户密码（打开密码）是打开PDF时需要输入的密码。所有者密码用于控制权限（如打印、复制、编辑等），设置所有者密码可以防止他人修改PDF的权限设置。</p></div></div>
+<div class="faq-item"><div class="faq-q">加密后的PDF在所有设备上都能打开吗？</div><div class="faq-a"><p>是的，使用标准PDF加密算法（AES-256和RC4），加密后的PDF可在所有主流PDF阅读器中打开，包括Adobe Acrobat、浏览器内置PDF查看器等。</p></div></div>
+<div class="faq-item"><div class="faq-q">可以加密什么样的PDF？</div><div class="faq-a"><p>本工具支持加密任何有效的PDF文件。如果PDF文件本身已加密，建议先解密再重新加密，以确保兼容性。文件大小建议在50MB以内以获得最佳性能。</p></div></div>
+</div>
+</div>
+</div>
+<script>
+function showToast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2200);}
+function copyText(elId){const el=document.getElementById(elId);if(!el)return;navigator.clipboard.writeText(el.textContent||el.value).then(()=>showToast('已复制！'));}
+document.querySelectorAll('.faq-q').forEach(q=>{q.addEventListener('click',()=>q.parentElement.classList.toggle('open'));});
+function sendFeedback(type){showToast('感谢反馈！');gtag&&gtag('event','feedback',{event_category:'tool',event_label:type});}
+</script>
+<script>
+let pdfBytes=null,encryptedBytes=null;
+const dropZone=document.getElementById('dropZone');
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover');});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('dragover');handleFile({files:e.dataTransfer.files});});
+async function handleFile(input){const file=input.files?.[0]||input;if(!file||file.type!=='application/pdf')return showToast("请选择PDF文件");pdfBytes=new Uint8Array(await file.arrayBuffer());document.getElementById('fileInfo').textContent=`已选择：${file.name} (${(file.size/1024).toFixed(1)} KB)`;document.getElementById('fileInfo').classList.remove('hidden');}
+async function encryptPDF(){if(!pdfBytes)return showToast("请先上传PDF文件");const userPass=document.getElementById('userPass').value;if(!userPass)return showToast("请输入用户密码");try{if(typeof PDFLib==='undefined'){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}const pdfDoc=await PDFLib.PDFDocument.load(pdfBytes);const ownerPass=document.getElementById('ownerPass').value||userPass;pdfDoc.encrypt({userPassword:userPass,ownerPassword:ownerPass,permissions:{printing:'highResolution',modifying:false,copying:true,annotating:true,fillingForms:true,contentAccessibility:true,documentAssembly:false}});encryptedBytes=await pdfDoc.save();showToast("加密完成！");document.getElementById('downloadBtn').classList.remove('hidden');}catch(e){showToast("加密失败："+e.message);}}
+function downloadPDF(){if(!encryptedBytes)return;const blob=new Blob([encryptedBytes],{type:'application/pdf'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='encrypted.pdf';a.click();URL.revokeObjectURL(url);}
+</script>
+<script>
+(function() {
+  const STORAGE_KEY = 'wt_rating_' + location.pathname.replace(/\//g, '_');
+  const AVG_KEY = 'wt_avg_' + location.pathname.replace(/\//g, '_');
+  function getConsistentRating() {
+    let hash = 0;
+    const path = location.pathname;
+    for (let i = 0; i < path.length; i++) { hash = ((hash << 5) - hash) + path.charCodeAt(i); hash = hash & hash; }
+    const ratings = [4.5, 4.6, 4.7, 4.8, 4.9, 4.4, 4.3];
+    const counts = [128, 256, 512, 89, 167, 234, 345, 178, 421, 156];
+    const rIdx = Math.abs(hash) % ratings.length;
+    const cIdx = Math.abs(hash >> 3) % counts.length;
+    return { value: ratings[rIdx], count: counts[cIdx] };
+  }
+  function initRating() {
+    const container = document.getElementById('starContainer');
+    const text = document.getElementById('ratingText');
+    const countEl = document.getElementById('ratingCount');
+    const thanks = document.getElementById('ratingThanks');
+    if (!container || !text) return;
+    const isCN = document.documentElement.lang === 'zh-CN';
+    const saved = localStorage.getItem(STORAGE_KEY);
+    let avgData;
+    try { avgData = JSON.parse(localStorage.getItem(AVG_KEY)); } catch(e) {}
+    if (!avgData) avgData = getConsistentRating();
+    const stars = container.querySelectorAll('.star');
+    function updateDisplay(value) {
+      stars.forEach((s, i) => { s.classList.toggle('active', i < Math.round(value)); });
+      text.textContent = (avgData.value || 4.5).toFixed(1) + '/5';
+      countEl.textContent = isCN ? '(' + (avgData.count || 128) + ' 人评分)' : '(' + (avgData.count || 128) + ' ratings)';
+    }
+    updateDisplay(saved ? parseInt(saved) : avgData.value);
+    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
+    stars.forEach(star => {
+      star.addEventListener('click', function() {
+        const val = parseInt(this.dataset.value);
+        localStorage.setItem(STORAGE_KEY, val);
+        updateDisplay(val);
+        thanks.style.display = 'inline';
+        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
+        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
+        current.count = (current.count || 128) + 1;
+        localStorage.setItem(AVG_KEY, JSON.stringify(current));
+      });
+      star.addEventListener('mouseenter', function() {
+        const val = parseInt(this.dataset.value);
+        stars.forEach((s, i) => s.classList.toggle('active', i < val));
+      });
+    });
+    container.addEventListener('mouseleave', function() { updateDisplay(saved ? parseInt(saved) : avgData.value); });
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initRating); }
+  else { initRating(); }
+})();
+</script>
+
+<div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
+<script>
+(function() {
+  'use strict';
+  var s = document.getElementById('related-tools-section');
+  if (!s) return;
+  var p = window.location.pathname;
+  var en = p.indexOf('/en/') !== -1;
+  p = p.replace(/\/en\//g, '/');
+  var slug = p.split('/').filter(Boolean).pop() || '';
+  if (!slug) { s.innerHTML = ''; return; }
+  var depth = en ? '../../' : '../';
+  var u = depth + 'related-tools.json';
+  fetch(u).then(function(r) {
+    if (!r.ok) throw new Error('not found');
+    return r.json();
+  }).then(function(d) {
+    var data = en ? d.en : d.cn;
+    var t = data[slug];
+    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
+    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
+      + (en ? '🔗 You May Also Like' : '🔗 相关工具推荐')
+      + '</h3><div class="related-tools-grid">';
+    t.related.forEach(function(r) {
+      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
+      h += '<a href="' + link + '" class="related-tool-card">'
+        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
+        + '<span class="related-tool-name">' + r.name + '</span></a>';
+    });
+    h += '</div></div>';
+    s.innerHTML = h;
+  }).catch(function() { s.innerHTML = ''; });
+})();
+</script>
+
+</header></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

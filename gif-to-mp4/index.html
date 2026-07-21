@@ -95,7 +95,13 @@ textarea:focus,.text-input:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; GIF转MP4转换器</p>
 <div class="hero"><p>免费在线GIF转MP4转换器，将GIF动图转换为MP4视频格式。支持调整帧率、质量和尺寸，文件体积可减少90%以上。纯前端FFmpeg.wasm处理，数据不上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><!-- PLACEHOLDER: Tool-specific HTML + JS will be injected here -->
+<div><div class="section"><h1>🎬 GIF转MP4转换器
+  
+</h1>
+
+
+  
+  <!-- PLACEHOLDER: Tool-specific HTML + JS will be injected here -->
     <div class="input-section">
     <h2>📤 上传GIF</h2>
     <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
@@ -182,122 +188,11 @@ textarea:focus,.text-input:focus{outline:none;border-color:rgba(6,182,212,.5)}
   <span class="rating-thanks" id="ratingThanks">感谢您的评分！</span>
 </div>
 
-    </div>
-<div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/gif-to-mp4/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div>
-  <div class="toast" id="toast"></div>
-</div>
-<script>
-let gifFile=null,mp4Blob=null;
-const uz=document.getElementById('uploadZone');
-if(uz){
-  ['dragover','dragenter'].forEach(e=>{uz.addEventListener(e,ev=>{ev.preventDefault();uz.classList.add('dragover')})});
-  ['dragleave','drop'].forEach(e=>{uz.addEventListener(e,ev=>{ev.preventDefault();uz.classList.remove('dragover')})});
-  uz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)handleGIF(f)});
-}
-
-function handleGIF(file){
-  if(!file||!file.type.includes('gif')){showToast('⚠️ 请选择GIF文件');return}
-  if(file.size>50*1024*1024){showToast('⚠️ 文件不能超过50MB');return}
-  gifFile=file;
-  
-  const reader=new FileReader();
-  reader.onload=function(e){
-    document.getElementById('gifImg').src=e.target.result;
-    document.getElementById('gifImg').style.display='block';
-  };
-  reader.readAsDataURL(file);
-  
-  document.getElementById('gifInfo').style.display='block';
-  document.getElementById('convertBtn').disabled=false;
-  document.getElementById('mp4Result').style.display='none';
-  showToast('✅ GIF已加载 ('+(file.size/1024).toFixed(1)+'KB)');
-}
-
-function convertToMP4(){
-  if(!gifFile){showToast('请先上传GIF');return}
-  
-  const fps=parseInt(document.getElementById('fps').value);
-  const quality=parseFloat(document.getElementById('quality').value);
-  const status=document.getElementById('mp4Result');
-  status.style.display='block';
-  document.getElementById('sizeCompare').textContent='⏳ 转换中...';
-  
-  // Canvas-based conversion: extract frames from GIF and create MP4-like webm
-  const reader=new FileReader();
-  reader.onload=function(e){
-    const img=new Image();
-    img.onload=function(){
-      const canvas=document.createElement('canvas');
-      canvas.width=img.width;canvas.height=img.height;
-      const ctx=canvas.getContext('2d');
-      ctx.drawImage(img,0,0);
-      
-      // Since browser can't read GIF frames easily, use MediaRecorder approach
-      // Strategy: create a canvas animation from the GIF display, record with MediaRecorder
-      const stream=canvas.captureStream(fps);
-      const chunks=[];
-      const recorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9',videoBitsPerSecond:Math.floor(quality*5000000)});
-      
-      recorder.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data)};
-      recorder.onstop=()=>{
-        mp4Blob=new Blob(chunks,{type:'video/webm'});
-        const url=URL.createObjectURL(mp4Blob);
-        const video=document.getElementById('mp4Video');
-        video.src=url;
-        video.style.display='block';
-        
-        const reduction=((1-mp4Blob.size/gifFile.size)*100).toFixed(0);
-        document.getElementById('sizeCompare').innerHTML=
-          `原始GIF: ${(gifFile.size/1024).toFixed(1)}KB → MP4: ${(mp4Blob.size/1024).toFixed(1)}KB `+
-          `<span style="color:${reduction>0?'#4ade80':'#f87171'}">${reduction>0?'↓':'↑'}${Math.abs(reduction)}%</span>`;
-        showToast('✅ 转换完成');
-      };
-      
-      recorder.start();
-      
-      // Draw the GIF image repeatedly for a short duration to capture
-      let frame=0;
-      const maxFrames=fps*3; // record 3 seconds
-      const drawInterval=setInterval(()=>{
-        if(frame>=maxFrames){clearInterval(drawInterval);recorder.stop();return}
-        // Re-read GIF each time (browser handles frame display internally)
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        const dataUrl=e.target.result;
-        const frameImg=new Image();
-        frameImg.onload=function(){ctx.drawImage(frameImg,0,0)};
-        frameImg.src=dataUrl;
-        frame++;
-      },1000/fps);
-    };
-    img.src=e.target.result;
-  };
-  reader.readAsDataURL(gifFile);
-}
-
-function downloadMP4(){
-  if(!mp4Blob){showToast('请先转换');return}
-  const url=URL.createObjectURL(mp4Blob);
-  const a=document.createElement('a');a.href=url;
-  a.download=gifFile.name.replace(/\.gif$/i,'.webm');
-  a.click();URL.revokeObjectURL(url);
-  showToast('✅ 已下载');
-}
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-</script>
-<script>
-(function(){const STORAGE_KEY='wt_rating_'+location.pathname.replace(/\//g,'_');const AVG_KEY='wt_avg_'+location.pathname.replace(/\//g,'_');function getConsistentRating(){let hash=0;const path=location.pathname;for(let i=0;i<path.length;i++){hash=((hash<<5)-hash)+path.charCodeAt(i);hash=hash&hash}const ratings=[4.5,4.6,4.7,4.8,4.9,4.4,4.3];const counts=[128,256,512,89,167,234,345,178,421,156];const rIdx=Math.abs(hash)%ratings.length;const cIdx=Math.abs(hash>>3)%counts.length;return{value:ratings[rIdx],count:counts[cIdx]}}function initRating(){const container=document.getElementById('starContainer');const text=document.getElementById('ratingText');const countEl=document.getElementById('ratingCount');const thanks=document.getElementById('ratingThanks');if(!container||!text)return;const isCN=document.documentElement.lang==='zh-CN';const saved=localStorage.getItem(STORAGE_KEY);let avgData;try{avgData=JSON.parse(localStorage.getItem(AVG_KEY))}catch(e){}if(!avgData)avgData=getConsistentRating();const stars=container.querySelectorAll('.star');function updateDisplay(value){stars.forEach((s,i)=>{s.classList.toggle('active',i<Math.round(value))});text.textContent=(avgData.value||4.5).toFixed(1)+'/5';countEl.textContent=isCN?'('+(avgData.count||128)+' 人评分)':'('+(avgData.count||128)+' ratings)'}updateDisplay(saved?parseInt(saved):avgData.value);if(saved){thanks.style.display='inline';container.style.pointerEvents='none';container.style.opacity='0.7';return}stars.forEach(star=>{star.addEventListener('click',function(){const val=parseInt(this.dataset.value);localStorage.setItem(STORAGE_KEY,val);const newCount=(avgData.count||128)+1;const newValue=((avgData.value||4.5)*(avgData.count||128)+val)/newCount;avgData={value:parseFloat(newValue.toFixed(1)),count:newCount};localStorage.setItem(AVG_KEY,JSON.stringify(avgData));updateDisplay(val);thanks.style.display='inline';container.style.pointerEvents='none';container.style.opacity='0.7'})})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initRating);else initRating()})();
-</script>
-
-
-  <div class="faq-section">
-    <h2>常见问题 (FAQ)</h2>
-
-
-
-</div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
+    <div class="lang-switch">
+      <a href="#" class="active">中文</a>
+      <a href="../../en/gif-to-mp4/">English</a>
+    </div></div></div>
+<div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 <div class="seo-content"></div>

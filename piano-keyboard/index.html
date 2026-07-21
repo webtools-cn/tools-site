@@ -71,7 +71,349 @@ h1{text-align:center;font-size:1.8rem;margin-bottom:8px;background:linear-gradie
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线钢琴键盘</p>
 <div class="hero"><p>免费在线钢琴键盘，支持鼠标和键盘演奏，包含88键全音域、延音踏板和多种音色，纯前端运行无需下载。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🎹 在线钢琴键盘</h1>
+<div class="lang-switch" style="position:absolute;top:24px;right:16px;display:flex;gap:8px"><a href="./" style="color:#22d3ee;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #22d3ee;text-decoration:none">中文</a><a href="../en/piano-keyboard/" style="color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #334155;text-decoration:none">EN</a></div>
+<p class="subtitle">支持鼠标/键盘演奏，88键全音域，多种音色和延音踏板</p>
+
+<div class="controls">
+<label>音色：</label>
+<select id="toneSelect">
+<option value="piano">钢琴</option>
+<option value="epiano">电钢琴</option>
+<option value="organ">风琴</option>
+<option value="synth">合成器</option>
+</select>
+<label>音量：</label>
+<input type="range" id="volumeSlider" min="0" max="100" value="60">
+<span id="volumeLabel" style="color:#94a3b8;font-size:.8rem">60%</span>
+<button id="sustainBtn" onclick="toggleSustain()">延音踏板: 关</button>
+<button id="showLabels" onclick="toggleLabels()">键位提示</button>
+</div>
+
+<div class="piano-wrapper">
+<div class="piano" id="piano"></div>
+</div>
+
+<div class="sustain-indicator" id="sustainIndicator">延音踏板: 关闭（按空格键切换）</div>
+
+<div class="record-controls">
+<button class="rec-btn" id="recBtn" onclick="toggleRecord()">⏺ 录制</button>
+<button class="rec-btn" id="playBtn" onclick="playRecording()">▶ 回放</button>
+<button class="rec-btn" onclick="clearRecording()">🗑 清除</button>
+</div>
+
+<div class="faq-section">
+<h2 style="font-size:1.3rem;margin-bottom:12px;color:#f1f5f9">常见问题</h2>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">在线钢琴需要下载安装吗？</div>
+<div class="faq-a">不需要。本钢琴是纯网页工具，打开浏览器即可弹奏，无需下载任何软件或插件。</div>
+</div>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">如何用电脑键盘弹钢琴？</div>
+<div class="faq-a">使用键盘上的字母键对应钢琴键位：下排Z-M对应低音区白键，上排A-L对应中音区白键，数字键1-0对应高音区白键。黑键通过对应的字母/数字上方的符号键触发。</div>
+</div>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">支持哪些音色？</div>
+<div class="faq-a">支持钢琴、电钢琴、风琴、合成器四种音色，通过Web Audio API合成，无需加载音频文件。</div>
+</div>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">音质如何？</div>
+<div class="faq-a">使用Web Audio API的振荡器合成音色，支持延音踏板和音量控制。虽然不及专业采样音源，但足以满足日常练习和娱乐需求。</div>
+</div>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">手机上可以使用吗？</div>
+<div class="faq-a">可以。支持触摸操作，直接点击琴键即可弹奏。建议横屏使用以获得更好的体验。</div>
+</div>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">支持录制和回放吗？</div>
+<div class="faq-a">支持。点击录制按钮开始录制，弹奏完成后点击停止，然后可以回放您的演奏。录制数据保存在浏览器本地。</div>
+</div>
+</div>
+</div>
+
+<!-- Feedback -->
+<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
+<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
+<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
+<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
+</div>
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
+<option value="feedback">💡 功能建议</option>
+<option value="bug">🐛 问题反馈</option>
+<option value="other">💬 其他</option>
+</select>
+<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
+<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
+</div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
+</div>
+</div>
+<script>
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){
+const type=document.getElementById('feedback-type').value;
+const text=document.getElementById('feedback-text').value.trim();
+if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
+const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
+const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
+}
+</script>
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script>
+
+<script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
+let audioCtx = null;
+let sustainOn = false;
+let showKeyLabels = false;
+let activeOscillators = {};
+let recording = [];
+let isRecording = false;
+let recordStart = 0;
+
+const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+// Build 3 octaves: C3 to B5 (36 notes)
+const startMidi = 48; // C3
+const endMidi = 83;   // B5
+const whiteNotes = [];
+const blackNotes = [];
+
+for (let midi = startMidi; midi <= endMidi; midi++) {
+  const noteIndex = midi % 12;
+  const octave = Math.floor(midi / 12) - 1;
+  const name = noteNames[noteIndex] + octave;
+  const freq = 440 * Math.pow(2, (midi - 69) / 12);
+  const isBlack = [1,3,6,8,10].includes(noteIndex);
+  if (isBlack ? blackNotes.push({midi, name, freq, noteIndex}) : whiteNotes.push({midi, name, freq, noteIndex});
+}
+
+// Keyboard mapping
+const keyMap = {
+  'z':48,'s':49,'x':50,'d':51,'c':52,'v':53,'g':54,'b':55,'h':56,'n':57,'j':58,'m':59,
+  'q':60,'2':61,'w':62,'3':63,'e':64,'r':65,'5':66,'t':67,'6':68,'y':69,'7':70,'u':71,
+  'i':72,'9':73,'o':74,'0':75,'p':76,'[':77,'=':78,']':79
+};
+
+const keyLabels = {};
+Object.entries(keyMap).forEach(([k,m]) => {
+  const ni = m % 12;
+  const oct = Math.floor(m / 12) - 1;
+  keyLabels[m] = k.toUpperCase();
+});
+
+function buildPiano() {
+  const piano = document.getElementById('piano');
+  piano.innerHTML = '';
+  let whiteIndex = 0;
+  
+  for (let midi = startMidi; midi <= endMidi; midi++) {
+    const noteIndex = midi % 12;
+    const isBlack = [1,3,6,8,10].includes(noteIndex);
+    const freq = 440 * Math.pow(2, (midi - 69) / 12);
+    
+    if (!isBlack) {
+      const key = document.createElement('div');
+      key.className = 'key white-key';
+      key.dataset.midi = midi;
+      key.dataset.freq = freq;
+      const label = document.createElement('span');
+      label.className = 'key-label';
+      label.textContent = keyLabels[midi] || '';
+      label.style.display = showKeyLabels ? 'block' : 'none';
+      key.appendChild(label);
+      key.addEventListener('mousedown', () => playNote(midi, freq));
+      key.addEventListener('mouseup', () => stopNote(midi));
+      key.addEventListener('mouseleave', () => stopNote(midi));
+      key.addEventListener('touchstart', (e) => { e.preventDefault(); playNote(midi, freq); });
+      key.addEventListener('touchend', (e) => { e.preventDefault(); stopNote(midi); });
+      piano.appendChild(key);
+      whiteIndex++;
+    } else {
+      const key = document.createElement('div');
+      key.className = 'key black-key';
+      key.dataset.midi = midi;
+      key.dataset.freq = freq;
+      key.style.left = (whiteIndex * 36 - 11) + 'px';
+      const label = document.createElement('span');
+      label.className = 'key-label';
+      label.textContent = keyLabels[midi] || '';
+      label.style.display = showKeyLabels ? 'block' : 'none';
+      key.appendChild(label);
+      key.addEventListener('mousedown', () => playNote(midi, freq));
+      key.addEventListener('mouseup', () => stopNote(midi));
+      key.addEventListener('mouseleave', () => stopNote(midi));
+      key.addEventListener('touchstart', (e) => { e.preventDefault(); playNote(midi, freq); });
+      key.addEventListener('touchend', (e) => { e.preventDefault(); stopNote(midi); });
+      piano.appendChild(key);
+    }
+  }
+}
+
+function getToneConfig() {
+  const tone = document.getElementById('toneSelect').value;
+  switch(tone) {
+    case 'piano': return {type:'triangle', attack:0.005, decay:0.3, sustain:0.2, release:0.8};
+    case 'epiano': return {type:'sine', attack:0.01, decay:0.2, sustain:0.3, release:0.5};
+    case 'organ': return {type:'square', attack:0.05, decay:0.1, sustain:0.8, release:0.1};
+    case 'synth': return {type:'sawtooth', attack:0.01, decay:0.1, sustain:0.5, release:0.3};
+    default: return {type:'triangle', attack:0.005, decay:0.3, sustain:0.2, release:0.8};
+  }
+}
+
+function playNote(midi, freq) {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (activeOscillators[midi]) return;
+  
+  const config = getToneConfig();
+  const vol = document.getElementById('volumeSlider').value / 100;
+  
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+  
+  osc.type = config.type;
+  osc.frequency.value = freq;
+  filter.type = 'lowpass';
+  filter.frequency.value = 4000;
+  
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(vol * 0.4, audioCtx.currentTime + config.attack);
+  gain.gain.linearRampToValueAtTime(vol * 0.4 * config.sustain, audioCtx.currentTime + config.attack + config.decay);
+  
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  
+  activeOscillators[midi] = {osc, gain, filter, config};
+  
+  // Visual feedback
+  const keyEl = document.querySelector(`[data-midi="${midi}"]`);
+  if (keyEl) keyEl.classList.add('pressed');
+  
+  // Recording
+  if (isRecording) {
+    recording.push({type:'on', midi, freq, time: Date.now() - recordStart});
+  }
+}
+
+function stopNote(midi) {
+  if (!activeOscillators[midi]) return;
+  const {osc, gain, config} = activeOscillators[midi];
+  
+  if (sustainOn) return; // Don't stop if sustain is on
+  
+  const releaseTime = config.release;
+  gain.gain.cancelScheduledValues(audioCtx.currentTime);
+  gain.gain.setValueAtTime(gain.gain.value, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + releaseTime);
+  osc.stop(audioCtx.currentTime + releaseTime);
+  
+  delete activeOscillators[midi];
+  
+  const keyEl = document.querySelector(`[data-midi="${midi}"]`);
+  if (keyEl) keyEl.classList.remove('pressed');
+  
+  if (isRecording) {
+    recording.push({type:'off', midi, time: Date.now() - recordStart});
+  }
+}
+
+function toggleSustain() {
+  sustainOn = !sustainOn;
+  const btn = document.getElementById('sustainBtn');
+  const ind = document.getElementById('sustainIndicator');
+  btn.textContent = '延音踏板: ' + (sustainOn ? '开' : '关');
+  btn.classList.toggle('active', sustainOn);
+  ind.textContent = '延音踏板: ' + (sustainOn ? '开启' : '关闭（按空格键切换）');
+  ind.classList.toggle('active', sustainOn);
+  
+  if (!sustainOn) {
+    // Release all sustained notes
+    Object.keys(activeOscillators).forEach(midi => stopNote(parseInt(midi)));
+  }
+}
+
+function toggleLabels() {
+  showKeyLabels = !showKeyLabels;
+  document.getElementById('showLabels').classList.toggle('active', showKeyLabels);
+  document.querySelectorAll('.key-label').forEach(l => l.style.display = showKeyLabels ? 'block' : 'none');
+}
+
+function toggleRecord() {
+  isRecording = !isRecording;
+  const btn = document.getElementById('recBtn');
+  if (isRecording) {
+    recording = [];
+    recordStart = Date.now();
+    btn.textContent = '⏹ 停止录制';
+    btn.classList.add('recording');
+  } else {
+    btn.textContent = '⏺ 录制';
+    btn.classList.remove('recording');
+  }
+}
+
+function playRecording() {
+  if (recording.length === 0) { showToast('没有录制内容'); return; }
+  recording.forEach(event => {
+    setTimeout(() => {
+      if (event.type === 'on') playNote(event.midi, event.freq);
+      else stopNote(event.midi);
+    }, event.time);
+  });
+}
+
+function clearRecording() {
+  recording = [];
+  isRecording = false;
+  document.getElementById('recBtn').textContent = '⏺ 录制';
+  document.getElementById('recBtn').classList.remove('recording');
+}
+
+// Keyboard input
+const pressedKeys = new Set();
+document.addEventListener('keydown', (e) => {
+  if (e.repeat) return;
+  const key = e.key.toLowerCase();
+  if (key === ' ') { e.preventDefault(); toggleSustain(); return; }
+  if (keyMap[key] !== undefined && !pressedKeys.has(key)) {
+    pressedKeys.add(key);
+    const midi = keyMap[key];
+    const freq = 440 * Math.pow(2, (midi - 69) / 12);
+    playNote(midi, freq);
+  }
+});
+
+document.addEventListener('keyup', (e) => {
+  const key = e.key.toLowerCase();
+  if (keyMap[key] !== undefined) {
+    pressedKeys.delete(key);
+    stopNote(keyMap[key]);
+  }
+});
+
+document.getElementById('volumeSlider').addEventListener('input', function() {
+  document.getElementById('volumeLabel').textContent = this.value + '%';
+});
+
+buildPiano();
+</script>
+<div class="toast" id="toast"></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -97,7 +439,7 @@ h1{text-align:center;font-size:1.8rem;margin-bottom:8px;background:linear-gradie
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 
 let audioCtx = null;
 let sustainOn = false;

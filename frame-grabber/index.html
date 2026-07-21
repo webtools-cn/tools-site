@@ -86,7 +86,9 @@ input:focus,select:focus{border-color:rgba(6,182,212,.5)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 视频截帧工具</p>
 <div class="hero"><p>免费在线视频截帧工具，从视频中提取指定帧画面为图片。支持逐帧浏览、时间轴拖拽、批量截取。纯前端本地处理，视频不上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div>
+<div><div class="section"><h1>🎬 视频截帧工具</h1>
+<div class="lang-switch"><a href="/tools-site/">🏠 首页</a><a href="/tools-site/frame-grabber/" class="active">中文</a><a href="/tools-site/en/frame-grabber/">EN</a></div>
+</div>
 <div class="tool-section">
 <h2>🎬 视频截帧工具</h2>
 <p style="color:#94a3b8;font-size:.9rem;margin-bottom:12px">从视频中提取指定帧画面为图片，支持逐帧浏览和批量截取。纯前端处理，视频不上传。</p>
@@ -154,180 +156,7 @@ input:focus,select:focus{border-color:rgba(6,182,212,.5)}
 <textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span><button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer">提交</button></div>
 <div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
-</div>
-</div>
-
-<div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/frame-grabber/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div>
-</div>
-
-<script>
-const video = document.getElementById('video-player');
-const timeline = document.getElementById('timeline');
-const timeDisplay = document.getElementById('time-display');
-let frames = [];
-let isPlaying = false;
-
-document.getElementById('video-file').addEventListener('change', function(e) {
-  if (this.files.length > 0) {
-    const url = URL.createObjectURL(this.files[0]);
-    video.src = url;
-    video.load();
-    document.getElementById('video-area').style.display = 'block';
-    document.getElementById('drop-zone').style.display = 'none';
-  }
-});
-
-const dropZone = document.getElementById('drop-zone');
-dropZone.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', function() { this.classList.remove('dragover'); });
-dropZone.addEventListener('drop', function(e) {
-  e.preventDefault();
-  this.classList.remove('dragover');
-  if (e.dataTransfer.files.length > 0) {
-    const file = e.dataTransfer.files[0];
-    if (file.type.startsWith('video/')) {
-      const url = URL.createObjectURL(file);
-      video.src = url;
-      video.load();
-      document.getElementById('video-area').style.display = 'block';
-      this.style.display = 'none';
-    }
-  }
-});
-
-video.addEventListener('loadedmetadata', function() {
-  timeline.max = Math.floor(video.duration * 1000);
-  updateTimeDisplay();
-});
-
-video.addEventListener('timeupdate', function() {
-  if (!video.duration) return;
-  timeline.value = Math.floor(video.currentTime * 1000);
-  updateTimeDisplay();
-});
-
-timeline.addEventListener('input', function() {
-  video.currentTime = this.value / 1000;
-  updateTimeDisplay();
-});
-
-function updateTimeDisplay() {
-  const cur = formatTime(video.currentTime);
-  const dur = formatTime(video.duration || 0);
-  timeDisplay.textContent = cur + ' / ' + dur;
-}
-
-function formatTime(s) {
-  const m = Math.floor(s / 60);
-  const sec = (s % 60).toFixed(3);
-  return m + ':' + (sec < 10 ? '0' : '') + sec;
-}
-
-function togglePlay() {
-  if (video.paused) {
-    video.play();
-    isPlaying = true;
-    document.getElementById('play-btn').textContent = '⏸ 暂停';
-  } else {
-    video.pause();
-    isPlaying = false;
-    document.getElementById('play-btn').textContent = '▶️ 播放';
-  }
-}
-
-function skipFrame(dir) {
-  video.pause();
-  isPlaying = false;
-  document.getElementById('play-btn').textContent = '▶️ 播放';
-  const fps = 30;
-  const frameDur = 1 / fps;
-  video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + dir * frameDur));
-}
-
-function captureFrame() {
-  if (!video.videoWidth) { showToast('请先加载视频'); return; }
-  const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0);
-  const dataUrl = canvas.toDataURL('image/png');
-  const time = video.currentTime;
-  frames.push({ time: time, dataUrl: dataUrl });
-  renderFrames();
-  showToast('已截取帧 @ ' + formatTime(time));
-}
-
-async function batchCapture() {
-  if (!video.duration) { showToast('请先加载视频'); return; }
-  const interval = parseFloat(document.getElementById('batch-interval').value) || 1;
-  video.pause();
-  isPlaying = false;
-  document.getElementById('play-btn').textContent = '▶️ 播放';
-  
-  const duration = video.duration;
-  let t = 0;
-  while (t < duration) {
-    video.currentTime = t;
-    await new Promise(function(resolve) {
-      video.onseeked = function() {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        frames.push({ time: t, dataUrl: canvas.toDataURL('image/png') });
-        resolve();
-      };
-    });
-    t += interval;
-  }
-  renderFrames();
-  showToast('批量截取完成，共 ' + frames.length + ' 帧');
-}
-
-function renderFrames() {
-  const grid = document.getElementById('frames-grid');
-  grid.innerHTML = frames.map(function(f, i) {
-    return '<div class="frame-thumb" onclick="downloadFrame(' + i + ')">' +
-      '<img src="' + f.dataUrl + '" alt="Frame at ' + formatTime(f.time) + '">' +
-      '<div class="frame-info">' + formatTime(f.time) + ' | 点击下载</div></div>';
-  }).join('');
-}
-
-function downloadFrame(idx) {
-  const f = frames[idx];
-  const a = document.createElement('a');
-  a.href = f.dataUrl;
-  a.download = 'frame_' + formatTime(f.time).replace(/:/g, '-').replace(/\./g, '_') + '.png';
-  a.click();
-}
-
-function clearFrames() {
-  frames = [];
-  renderFrames();
-}
-
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-document.getElementById('feedback-text')?.addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const text=document.getElementById('feedback-text').value.trim();
-if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\\n**类型**: '+typeLabel+'\\n\\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
-}
-function showToast(msg){const t=document.getElementById('toast')||(()=>{const d=document.createElement('div');d.id='toast';d.className='toast';document.body.appendChild(d);return d;})();t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
-</script>
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
-<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
+</div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -517,7 +346,7 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
 }
-
+function showToast(msg){const t=document.getElementById('toast')||(()=>{const d=document.createElement('div');d.id='toast';d.className='toast';document.body.appendChild(d);return d;})();t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
 
 </script>
 </body>

@@ -121,7 +121,12 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线文本转摩斯密码</p>
 <div class="hero"><p>免费在线文本转摩斯密码转换器，将文字转换为摩尔斯电码。支持音频播放和闪光模拟，纯前端处理。学习摩斯密码的必备工具。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div>
+<div><div class="section"><h1>🔊 文本转摩斯密码</h1>
+    <div class="lang-switch">
+      <a href="../text-to-morse/" class="active">中文</a>
+      <a href="../en/text-to-morse/">EN</a>
+    </div>
+  </div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -190,187 +195,7 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 <h3>❓ 除了音频还有别的输出方式吗？</h3>
 <p>除了音频播放，本工具还提供闪光信号模拟功能，通过屏幕闪烁模拟摩斯密码的光信号。同时支持一键复制摩斯密码结果，方便在其他地方使用或分享。</p>
 </div>
-</div>
-</div>
-
-<div class="footer container">
-  <div style="margin-bottom:12px">
-    <a href="../index.html">首页</a>
-    <a href="../index.html">全部工具</a>
-    <a href="mailto:dexshuang@google.com">联系我们</a>
-    <a href="../en/text-to-morse/">EN</a>
-  </div>
-  <p>文本转摩斯密码 · 纯前端本地计算 · 数据绝不上传服务器</p>
-  <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-
-const el = id => document.getElementById(id);
-const toast = el('toast');
-function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2500); }
-
-const MORSE_CODE = {
-  'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
-  'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
-  'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.',
-  'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
-  'Y': '-.--', 'Z': '--..',
-  '0': '-----', '1': '.----', '2': '..---', '3': '...--', '4': '....-',
-  '5': '.....', '6': '-....', '7': '--...', '8': '---..', '9': '----.',
-  '.': '.-.-.-', ',': '--..--', '?': '..--..', '!': '-.-.--',
-  ':': '---...', ';': '-.-.-.', '"': '.-..-.', '(': '-.--.', ')': '-.--.-',
-  '&': '.-...', '@': '.--.-.', ' ': '/'
-};
-const REVERSE_MORSE = {};
-Object.keys(MORSE_CODE).forEach(k => { if(k !== ' ') REVERSE_MORSE[MORSE_CODE[k]] = k; });
-
-let morseText = '';
-let audioCtx = null;
-
-function convertToMorse() {
-  const input = el('textInput').value.toUpperCase().trim();
-  if(!input) { showToast('请输入文本'); return; }
-  
-  morseText = input.split('').map(c => MORSE_CODE[c] || '?').join(' ');
-  el('morseOutput').textContent = morseText;
-  el('resultSection').classList.add('show');
-  
-  const legend = el('morseLegend');
-  legend.style.display = 'block';
-  legend.innerHTML = '<h3 style="color:#94a3b8;font-size:.85rem;margin-bottom:6px">字符对照</h3>';
-  input.split('').forEach(c => {
-    if(MORSE_CODE[c]) {
-      legend.innerHTML += '<span style="display:inline-block;margin:2px 6px;font-size:.85rem">' + c + ' → <code style="background:rgba(6,182,212,.1);color:#22d3ee;padding:1px 4px;border-radius:3px">' + MORSE_CODE[c] + '</code></span>';
-    }
-  });
-}
-
-function playMorse() {
-  if(!morseText) return;
-  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  
-  const wpm = parseInt(el('speedSlider').value);
-  const dotDuration = 60.0 / (50 * wpm);
-  const freq = 700;
-  const sampleRate = audioCtx.sampleRate;
-  
-  const chars = morseText.split(' ');
-  let totalDuration = 0;
-  const events = [];
-  
-  chars.forEach((code, idx) => {
-    if(code === '/') {
-      totalDuration += dotDuration * 7;
-      return;
-    }
-    code.split('').forEach(sym => {
-      const dur = sym === '.' ? dotDuration : dotDuration * 3;
-      events.push({start: totalDuration, dur: dur});
-      totalDuration += dur + dotDuration;
-    });
-    totalDuration += dotDuration * 2;
-  });
-  
-  const totalSamples = Math.ceil(totalDuration * sampleRate) + 44100;
-  const buffer = audioCtx.createBuffer(1, totalSamples, sampleRate);
-  const data = buffer.getChannelData(0);
-  
-  events.forEach(e => {
-    const startSample = Math.floor(e.start * sampleRate);
-    const durSamples = Math.floor(e.dur * sampleRate);
-    for(let i = 0; i < durSamples && startSample + i < totalSamples; i++) {
-      const t = i / sampleRate;
-      data[startSample + i] = Math.sin(2 * Math.PI * freq * t) * 0.3;
-    }
-  });
-  
-  const source = audioCtx.createBufferSource();
-  source.buffer = buffer;
-  source.connect(audioCtx.destination);
-  source.start();
-}
-
-function flashMorse() {
-  if(!morseText) return;
-  const wpm = parseInt(el('speedSlider').value);
-  const dotDuration = 60.0 / (50 * wpm);
-  
-  const body = document.body;
-  const originalBg = '#0f172a';
-  const chars = morseText.split(' ');
-  let time = 0;
-  
-  chars.forEach((code) => {
-    if(code === '/') { time += dotDuration * 7; return; }
-    code.split('').forEach(sym => {
-      const dur = sym === '.' ? dotDuration : dotDuration * 3;
-      setTimeout(() => { body.style.backgroundColor = '#22d3ee'; }, time * 1000);
-      setTimeout(() => { body.style.backgroundColor = originalBg; }, (time + dur) * 1000);
-      time += dur + dotDuration;
-    });
-    time += dotDuration * 2;
-  });
-  
-  showToast('闪光信号已启动');
-}
-
-function copyResult() {
-  navigator.clipboard.writeText(el('morseOutput').textContent).then(() => showToast('已复制!'));
-}
-
-function clearInput() {
-  el('textInput').value = '';
-  el('resultSection').classList.remove('show');
-  el('morseLegend').style.display = 'none';
-}
-
-</script>
-
-<!-- Feedback widget -->
-<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
-<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s">💬</button>
-<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
-<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
-</div>
-<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
-<option value="feedback">💡 功能建议</option>
-<option value="bug">🐛 问题反馈</option>
-<option value="other">💬 其他</option>
-</select>
-<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
-<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s">提交</button>
-</div>
-<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
-</div>
-</div>
-<script>
-function toggleFeedback(){const p=document.getElementById("feedback-panel");p.style.display=p.style.display==="none"?"block":"none";}
-document.getElementById("feedback-text").addEventListener("input",function(){document.getElementById("feedback-count").textContent=this.value.length+"/1000";});
-function submitFeedback(){
-const type=document.getElementById("feedback-type").value;
-const text=document.getElementById("feedback-text").value.trim();
-if(!text){showToast("请输入反馈内容");return;}
-const typeLabel={feedback:"💡 功能建议",bug:"🐛 问题反馈",other:"💬 其他"}[type];
-const title=encodeURIComponent(typeLabel+" - "+window.location.pathname);
-const body=encodeURIComponent("**页面**: "+window.location.href+"\n**类型**: "+typeLabel+"\n\n"+text);
-window.open("https://github.com/webtools-cn/tools-site/issues/new?title="+title+"&body="+body,"_blank");
-document.getElementById("feedback-success").style.display="block";
-setTimeout(function(){document.getElementById("feedback-success").style.display="none";toggleFeedback();document.getElementById("feedback-text").value="";document.getElementById("feedback-count").textContent="0/1000";},3000);
-}
-</script>
-<!-- Related Tools -->
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section">
-  <div class="related-tools-loading">Loading related tools...</div>
-</div>
-<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
+</div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

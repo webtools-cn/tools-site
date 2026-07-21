@@ -82,7 +82,12 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线时钟</p>
 <div class="hero"><p>免费在线时钟工具，支持模拟时钟和数字时钟双模式显示，可查看世界各时区时间。纯前端本地处理，实时更新。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div>
+<div><div class="section"><h1>在线时钟</h1>
+    <div class="lang-switch">
+      <a href="index.html" class="active">中文</a>
+      <a href="../en/online-clock/">EN</a>
+    </div>
+  </div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -90,8 +95,6 @@ a{color:#06b6d4;text-decoration:none}
     Updated: 2026-07-11
   </span>
 </div>
-
-  <div class="ad-slot" style="margin:16px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 
   <div class="input-section">
     <div class="btn-row" id="modeBtns" style="margin-top:0">
@@ -159,215 +162,7 @@ a{color:#06b6d4;text-decoration:none}
       <li><strong>学习辅助：</strong>桌面上课时间显示</li>
       <li><strong>国际会议：</strong>快速切换查看各地时间</li>
       <li><strong>全屏展示：</strong>大屏信息展示时使用</li>
-    </ul>
-  </div>
-
-  <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-
-  <div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/online-clock/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div>
-</div>
-<script>
-(function(){
-  var analogSection = document.getElementById('analogSection');
-  var digitalSection = document.getElementById('digitalSection');
-  var digiTime = document.getElementById('digiTime');
-  var digiSeconds = document.getElementById('digiSeconds');
-  var dateDisplay = document.getElementById('dateDisplay');
-  var analogClock = document.getElementById('analogClock');
-  var tzSelect = document.getElementById('tzSelect');
-  var worldClocks = document.getElementById('worldClocks');
-  var modeBtns = document.querySelectorAll('#modeBtns .btn');
-  var currentMode = 'analog';
-  var animFrame = null;
-
-  // Build analog clock marks
-  function buildClockMarks() {
-    for (var i = 0; i < 60; i++) {
-      var mark = document.createElement('div');
-      mark.className = 'mark' + (i % 5 === 0 ? ' major' : '');
-      var angle = i * 6;
-      mark.style.transform = 'rotate(' + angle + 'deg)';
-      analogClock.appendChild(mark);
-    }
-    // Add hands
-    var hands = '<div class="hand hand-hour" id="handHour"></div>' +
-      '<div class="hand hand-minute" id="handMinute"></div>' +
-      '<div class="hand hand-second" id="handSecond"></div>' +
-      '<div class="center-dot"></div>';
-    analogClock.insertAdjacentHTML('beforeend', hands);
-  }
-  buildClockMarks();
-
-  var handHour = document.getElementById('handHour');
-  var handMinute = document.getElementById('handMinute');
-  var handSecond = document.getElementById('handSecond');
-
-  function getTimeForZone(tz) {
-    var now = new Date();
-    if (tz === 'local') return now;
-    try {
-      var options = {timeZone: tz, hour12: false};
-      var str = now.toLocaleString('zh-CN', options);
-      var parts = str.split(/[\s\/:]/).filter(Boolean);
-      // Parse the localized string
-      var dateParts = parts[0].split('/');
-      var timeParts = str.match(/(\d{1,2}):(\d{2}):(\d{2})/);
-      if (timeParts) {
-        var d = new Date();
-        // Can't reliably set timezone, use approximation
-        var utc = now.getTime() + now.getTimezoneOffset() * 60000;
-        try {
-          var offset = Intl.DateTimeFormat('zh-CN', {timeZone: tz, timeZoneName: 'short'}).formatToParts(now);
-          return new Date(utc);
-        } catch(e) {}
-      }
-    } catch(e) {}
-    return now;
-  }
-
-  function getOffset(tz) {
-    if (tz === 'local') return 0;
-    try {
-      var now = new Date();
-      var local = now.getTime();
-      var tzTime = new Date(now.toLocaleString('en-US', {timeZone: tz}));
-      return (tzTime.getTime() - local) / 60000;
-    } catch(e) { return 0; }
-  }
-
-  function updateClock() {
-    var tz = tzSelect.value;
-    var now = new Date();
-    var offset = getOffset(tz);
-    var tzNow = new Date(now.getTime() + offset * 60000 + now.getTimezoneOffset() * 60000);
-
-    var h = tzNow.getHours();
-    var m = tzNow.getMinutes();
-    var s = tzNow.getSeconds();
-
-    // Update analog
-    var hAngle = (h % 12) * 30 + m * 0.5 + s * 0.5 / 60;
-    var mAngle = m * 6 + s * 0.1;
-    var sAngle = s * 6;
-
-    handHour.style.transform = 'rotate(' + hAngle + 'deg)';
-    handMinute.style.transform = 'rotate(' + mAngle + 'deg)';
-    handSecond.style.transform = 'rotate(' + sAngle + 'deg)';
-
-    // Update digital
-    digiTime.textContent = pad(h) + ':' + pad(m);
-    digiSeconds.textContent = pad(s);
-
-    // Update date
-    var weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-    var dateStr = tzNow.getFullYear() + '年' + (tzNow.getMonth() + 1) + '月' + tzNow.getDate() + '日 ' + weekdays[tzNow.getDay()];
-    if (tz !== 'local') {
-      try {
-        var tzName = tzSelect.options[tzSelect.selectedIndex].text.split(' (')[0];
-        dateStr += ' | ' + tzName;
-      } catch(e) {}
-    }
-    dateDisplay.textContent = dateStr;
-
-    // World clocks
-    var cities = [
-      {name: '北京', tz: 'Asia/Shanghai'},
-      {name: '东京', tz: 'Asia/Tokyo'},
-      {name: '纽约', tz: 'America/New_York'},
-      {name: '伦敦', tz: 'Europe/London'},
-      {name: '巴黎', tz: 'Europe/Paris'},
-      {name: '悉尼', tz: 'Australia/Sydney'},
-    ];
-    var html = '';
-    for (var i = 0; i < cities.length; i++) {
-      var c = cities[i];
-      var cOffset = getOffset(c.tz);
-      var cTime = new Date(now.getTime() + cOffset * 60000 + now.getTimezoneOffset() * 60000);
-      var ch = pad(cTime.getHours());
-      var cm = pad(cTime.getMinutes());
-      var cd = (cTime.getMonth() + 1) + '/' + cTime.getDate();
-      html += '<div class="world-clock-item"><div class="city">' + c.name + '</div><div class="time">' + ch + ':' + cm + '</div><div class="date">' + cd + '</div></div>';
-    }
-    worldClocks.innerHTML = html;
-
-    animFrame = requestAnimationFrame(updateClock);
-  }
-
-  function pad(n) {
-    return n < 10 ? '0' + n : '' + n;
-  }
-
-  // Mode switch
-  modeBtns.forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      modeBtns.forEach(function(b) { b.className = 'btn btn-secondary'; });
-      this.className = 'btn btn-primary active';
-      currentMode = this.getAttribute('data-mode');
-      
-      if (currentMode === 'analog') {
-        analogSection.style.display = 'block';
-        digitalSection.style.display = 'none';
-      } else {
-        analogSection.style.display = 'none';
-        digitalSection.style.display = 'block';
-      }
-    });
-  });
-
-  tzSelect.addEventListener('change', function() {
-    // Reset clock with new timezone
-  });
-
-  // Start
-  updateClock();
-})();
-</script>
-
-<!-- 反馈收集 -->
-<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
-<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
-<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
-<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
-</div>
-<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
-<option value="feedback">💡 功能建议</option>
-<option value="bug">🐛 问题反馈</option>
-<option value="other">💬 其他</option>
-</select>
-<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
-<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
-</div>
-<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
-</div>
-</div>
-<script>
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const text=document.getElementById('feedback-text').value.trim();
-if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
-}
-</script>
-<!-- Related Tools (cross-recommendation) -->
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section">
-  <div class="related-tools-loading">Loading related tools...</div>
-</div>
-<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
+    </ul></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

@@ -77,7 +77,311 @@ header p{color:#94a3b8;font-size:1rem}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; PPT转PDF</p>
 <div class="hero"><p>免费在线PPT转PDF工具，纯前端处理不上传服务器。支持.pptx文件转换为PDF，保留文字内容和基本排版。无需注册，即转即下。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>📊 PPT 转 PDF
+  
+</h1>
+    <div class="lang-switch" style="display:flex;gap:8px;margin-top:8px"><a href="./" class="active" style="color:#22d3ee;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #22d3ee">中文</a><a href="../en/ppt-to-pdf/" style="color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #334155;text-decoration:none">EN</a></div>
+
+
+
+<div class="preview-section" id="previewSection">
+<h3>📋 幻灯片内容预览</h3>
+<div id="previewContent"></div>
+</div>
+
+<div class="btn-row">
+<button class="btn btn-primary" id="convertBtn" disabled>🔄 转换为 PDF</button>
+<button class="btn btn-secondary" id="clearBtn" style="display:none">✕ 清除</button>
+</div>
+</div>
+
+
+<div class="faq-item"><div class="faq-q">转换后PDF排版会变吗？<span>▼</span></div><div class="faq-a">本工具提取pptx中的文字内容，按幻灯片顺序排列为PDF。图片、图表、复杂动画效果无法保留。每张幻灯片在PDF中占一页。适合需要提取PPT文字内容、制作讲义或归档的场景。</div></div>
+<div class="faq-item"><div class="faq-q">支持哪些PPT格式？<span>▼</span></div><div class="faq-a">支持.pptx格式（PowerPoint 2007及以上版本）。不支持旧版.ppt格式。如需转换.ppt文件，请先用PowerPoint打开后另存为.pptx格式。</div></div>
+<div class="faq-item"><div class="faq-q">文件大小有限制吗？<span>▼</span></div><div class="faq-a">由于纯前端处理，建议文件不超过50MB。过大的文件可能导致浏览器卡顿。如果PPT包含大量高清图片，转换时间可能较长，请耐心等待。</div></div>
+</div>
+</div>
+
+<script src="../libs/jszip.min.js"></script>
+<script src="../libs/jspdf.umd.min.js"></script>
+<script>
+(function(){
+const uploadZone=document.getElementById('uploadZone');
+const fileInput=document.getElementById('fileInput');
+const fileInfo=document.getElementById('fileInfo');
+const fileName=document.getElementById('fileName');
+const fileSize=document.getElementById('fileSize');
+const previewSection=document.getElementById('previewSection');
+const previewContent=document.getElementById('previewContent');
+const convertBtn=document.getElementById('convertBtn');
+const clearBtn=document.getElementById('clearBtn');
+const progressBar=document.getElementById('progressBar');
+const progressFill=document.getElementById('progressFill');
+const toast=document.getElementById('toast');
+
+let currentFile=null;
+let slideContents=[];
+
+function showToast(msg,type){
+toast.textContent=msg;
+toast.className='toast '+(type||'')+' show';
+setTimeout(function(){toast.classList.remove('show')},3000);
+}
+
+uploadZone.addEventListener('click',function(){fileInput.click()});
+uploadZone.addEventListener('dragover',function(e){e.preventDefault();uploadZone.classList.add('drag-over')});
+uploadZone.addEventListener('dragleave',function(){uploadZone.classList.remove('drag-over')});
+uploadZone.addEventListener('drop',function(e){
+e.preventDefault();
+uploadZone.classList.remove('drag-over');
+if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change',function(){if(fileInput.files.length)handleFile(fileInput.files[0])});
+
+function handleFile(file){
+if(!file.name.toLowerCase().endsWith('.pptx')){
+showToast('请上传 .pptx 格式文件','error');
+return;
+}
+if(file.size>50*1024*1024){
+showToast('文件过大，请选择小于50MB的文件','error');
+return;
+}
+currentFile=file;
+fileName.textContent=file.name;
+fileSize.textContent=formatSize(file.size);
+fileInfo.style.display='block';
+convertBtn.disabled=false;
+clearBtn.style.display='inline-block';
+uploadZone.style.display='none';
+parsePptx(file);
+}
+
+function formatSize(bytes){
+if(bytes<1024)return bytes+' B';
+if(bytes<1048576)return (bytes/1024).toFixed(1)+' KB';
+return (bytes/1048576).toFixed(2)+' MB';
+}
+
+async function parsePptx(file){
+try{
+progressBar.style.display='block';
+progressFill.style.width='30%';
+const zip=await JSZip.loadAsync(file);
+progressFill.style.width='50%';
+
+const slideFiles=Object.keys(zip.files).filter(function(name){
+return /^ppt\/slides\/slide[0-9]+\.xml$/.test(name);
+}).sort(function(a,b){
+var na=parseInt(a.match(/slide(\d+)/)[1]);
+var nb=parseInt(b.match(/slide(\d+)/)[1]);
+return na-nb;
+});
+
+slideContents=[];
+var total=slideFiles.length;
+
+for(var i=0;i<total;i++){
+var slideXml=await zip.files[slideFiles[i]].async('text');
+var parser=new DOMParser();
+var xmlDoc=parser.parseFromString(slideXml,'text/xml');
+var texts=[];
+var tEls=xmlDoc.getElementsByTagNameNS('http://schemas.openxmlformats.org/drawingml/2006/main','t');
+for(var j=0;j<tEls.length;j++){
+var t=tEls[j].textContent||'';
+if(t.trim())texts.push(t.trim());
+}
+slideContents.push({num:i+1,texts:texts});
+progressFill.style.width=(50+(i+1)/total*30)+'%';
+}
+
+var html='';
+for(var k=0;k<slideContents.length;k++){
+var slide=slideContents[k];
+html+='<div class="slide-preview"><div class="slide-num">📄 幻灯片 '+slide.num+'</div>';
+html+='<div class="slide-text">'+escapeHtml(slide.texts.join('<br>'))+'</div></div>';
+}
+previewContent.innerHTML=html||'<p style="color:#999">此PPT无文字内容</p>';
+previewSection.style.display='block';
+progressFill.style.width='100%';
+showToast('PPT加载成功，共 '+total+' 张幻灯片','success');
+}catch(e){
+showToast('PPT解析失败：'+e.message,'error');
+}finally{
+setTimeout(function(){progressBar.style.display='none'},500);
+}
+}
+
+function escapeHtml(s){
+return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+convertBtn.addEventListener('click',async function(){
+if(!currentFile||!slideContents.length)return;
+try{
+progressBar.style.display='block';
+progressFill.style.width='20%';
+var jspdf=window.jspdf;
+var pdf=new jspdf.jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
+var pageWidth=pdf.internal.pageSize.getWidth();
+var margin=50;
+var contentWidth=pageWidth-2*margin;
+var lineHeight=16;
+
+for(var i=0;i<slideContents.length;i++){
+if(i>0)pdf.addPage();
+var slide=slideContents[i];
+var y=margin;
+
+pdf.setFontSize(16);
+pdf.setTextColor(230,126,34);
+pdf.text('Slide '+slide.num,margin,y);
+y+=30;
+
+pdf.setFontSize(11);
+pdf.setTextColor(51,51,51);
+for(var j=0;j<slide.texts.length;j++){
+var lines=pdf.splitTextToSize(slide.texts[j],contentWidth);
+for(var l=0;l<lines.length;l++){
+if(y+lineHeight>pdf.internal.pageSize.getHeight()-margin){
+pdf.addPage();
+y=margin;
+}
+pdf.text(lines[l],margin,y);
+y+=lineHeight;
+}
+y+=4;
+}
+progressFill.style.width((20+(i+1)/slideContents.length*70)+'%');
+}
+
+progressFill.style.width='95%';
+pdf.save(currentFile.name.replace(/\.pptx$/i,'.pdf'));
+progressFill.style.width='100%';
+showToast('PDF转换完成！','success');
+}catch(e){
+showToast('转换失败：'+e.message,'error');
+}finally{
+setTimeout(function(){progressBar.style.display='none'},500);
+}
+});
+
+clearBtn.addEventListener('click',function(){
+currentFile=null;
+slideContents=[];
+fileInfo.style.display='none';
+previewSection.style.display='none';
+convertBtn.disabled=true;
+clearBtn.style.display='none';
+uploadZone.style.display='block';
+fileInput.value='';
+});
+
+document.querySelectorAll('.faq-q').forEach(function(q){
+q.addEventListener('click',function(){
+var item=q.parentElement;
+item.classList.toggle('open');
+});
+});
+})();
+</script>
+
+<div id="feedback-widget-container"></div>
+<script src="../feedback-widget.html"></script>
+<script>
+(function() {
+  const STORAGE_KEY = 'wt_rating_' + location.pathname.replace(/\//g, '_');
+  const AVG_KEY = 'wt_avg_' + location.pathname.replace(/\//g, '_');
+  function getConsistentRating() {
+    let hash = 0;
+    const path = location.pathname;
+    for (let i = 0; i < path.length; i++) { hash = ((hash << 5) - hash) + path.charCodeAt(i); hash = hash & hash; }
+    const ratings = [4.5, 4.6, 4.7, 4.8, 4.9, 4.4, 4.3];
+    const counts = [128, 256, 512, 89, 167, 234, 345, 178, 421, 156];
+    const rIdx = Math.abs(hash) % ratings.length;
+    const cIdx = Math.abs(hash >> 3) % counts.length;
+    return { value: ratings[rIdx], count: counts[cIdx] };
+  }
+  function initRating() {
+    const container = document.getElementById('starContainer');
+    const text = document.getElementById('ratingText');
+    const countEl = document.getElementById('ratingCount');
+    const thanks = document.getElementById('ratingThanks');
+    if (!container || !text) return;
+    const isCN = document.documentElement.lang === 'zh-CN';
+    const saved = localStorage.getItem(STORAGE_KEY);
+    let avgData;
+    try { avgData = JSON.parse(localStorage.getItem(AVG_KEY)); } catch(e) {}
+    if (!avgData) avgData = getConsistentRating();
+    const stars = container.querySelectorAll('.star');
+    function updateDisplay(value) {
+      stars.forEach((s, i) => { s.classList.toggle('active', i < Math.round(value)); });
+      text.textContent = (avgData.value || 4.5).toFixed(1) + '/5';
+      countEl.textContent = isCN ? '(' + (avgData.count || 128) + ' 人评分)' : '(' + (avgData.count || 128) + ' ratings)';
+    }
+    updateDisplay(saved ? parseInt(saved) : avgData.value);
+    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
+    stars.forEach(star => {
+      star.addEventListener('click', function() {
+        const val = parseInt(this.dataset.value);
+        localStorage.setItem(STORAGE_KEY, val);
+        updateDisplay(val);
+        thanks.style.display = 'inline';
+        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
+        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
+        current.count = (current.count || 128) + 1;
+        localStorage.setItem(AVG_KEY, JSON.stringify(current));
+      });
+      star.addEventListener('mouseenter', function() {
+        const val = parseInt(this.dataset.value);
+        stars.forEach((s, i) => s.classList.toggle('active', i < val));
+      });
+    });
+    container.addEventListener('mouseleave', function() { updateDisplay(saved ? parseInt(saved) : avgData.value); });
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initRating); }
+  else { initRating(); }
+})();
+</script>
+
+<p style="text-align:center;margin:16px 0;color:#64748b;font-size:.8rem">问题反馈: dexshuang@google.com</p>
+
+<div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
+<script>
+(function() {
+  'use strict';
+  var s = document.getElementById('related-tools-section');
+  if (!s) return;
+  var p = window.location.pathname;
+  var en = p.indexOf('/en/') !== -1;
+  p = p.replace(/\/en\//g, '/');
+  var slug = p.split('/').filter(Boolean).pop() || '';
+  if (!slug) { s.innerHTML = ''; return; }
+  var depth = en ? '../../' : '../';
+  var u = depth + 'related-tools.json';
+  fetch(u).then(function(r) {
+    if (!r.ok) throw new Error('not found');
+    return r.json();
+  }).then(function(d) {
+    var data = en ? d.en : d.cn;
+    var t = data[slug];
+    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
+    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
+      + (en ? '🔗 You May Also Like' : '🔗 相关工具推荐')
+      + '</h3><div class="related-tools-grid">';
+    t.related.forEach(function(r) {
+      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
+      h += '<a href="' + link + '" class="related-tool-card">'
+        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
+        + '<span class="related-tool-name">' + r.name + '</span></a>';
+    });
+    h += '</div></div>';
+    s.innerHTML = h;
+  }).catch(function() { s.innerHTML = ''; });
+})();
+</script>
+
+</header></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

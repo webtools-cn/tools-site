@@ -75,7 +75,11 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; JSON转Schema工具</p>
 <div class="hero"><p>免费在线JSON转JSON Schema工具。自动推断数据类型、必填字段、数组元素结构，生成符合JSON Schema Draft-7规范的模式定义。纯前端处理。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><div class="rating-widget" id="ratingWidget">
+<div><div class="section"><h1>🔄 JSON转Schema工具
+  
+</h1>
+
+<div class="rating-widget" id="ratingWidget">
   <div class="stars" id="starContainer" title="点击星星评分">
     <span class="star" data-value="1">★</span>
     <span class="star" data-value="2">★</span>
@@ -87,7 +91,7 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
   <span class="rating-count" id="ratingCount"></span>
   <span class="rating-thanks" id="ratingThanks">感谢您的评分！</span>
 </div>
-</div>
+<div class="lang-switch"><a href="#" class="active">中文</a><a href="../../en/json-to-schema/">English</a></div></div>
   <div class="input-section">
     <h2>📥 输入JSON</h2>
     <textarea id="jsonInput" placeholder='粘贴JSON数据，例如：{"name":"张三","age":30,"email":"zhangsan@example.com","tags":["dev","js"]}'></textarea>
@@ -113,149 +117,8 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
   </div>
 
   <div style="display:flex;align-items:center;gap:6px;margin:8px 0;font-size:.85rem;"><span style="color:#f59e0b;">★★★★½</span><span style="color:#f1f5f9;font-weight:600;">4.7</span><span style="color:#94a3b8;">(256)</span></div>
-  <div style="text-align:center;margin:8px 0;font-size:.8rem;color:#94a3b8;">🔒 本地处理 · ✅ 完全免费 · ⚡ 即时结果</div>
-
-<div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/json-to-schema/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div><span class="rating-count" id="ratingCount">4.6 (167票)</span></div>
-    <p style="margin-top:8px">© 2026 WebTools. 所有工具免费使用，数据不上传服务器。</p>
-  
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p></div>
-  <div class="toast" id="toast"></div>
-</div>
-<script>
-function getType(val){
-  if(val===null)return'null';
-  if(Array.isArray(val))return'array';
-  return typeof val;
-}
-
-function inferSchema(obj,title){
-  if(obj===null||obj===undefined)return{type:'null'};
-  const t=getType(obj);
-  if(t==='string')return{type:'string'};
-  if(t==='number')return{type:'number'};
-  if(t==='boolean')return{type:'boolean'};
-  if(t==='null')return{type:'null'};
-  if(t==='integer')return{type:'integer'};
-
-  if(t==='array'){
-    const schema={type:'array'};
-    if(obj.length>0){
-      const types=[...new Set(obj.map(getType))];
-      if(types.length===1)schema.items=inferSchema(obj[0]);
-      else schema.items={anyOf:types.map(t=>({type:t}))};
-    }else schema.items={};
-    return schema;
-  }
-
-  if(t==='object'){
-    const schema={type:'object',properties:{},required:[]};
-    for(const[key,val]of Object.entries(obj)){
-      schema.properties[key]=inferSchema(val);
-      if(val!==null)schema.required.push(key);
-    }
-    if(schema.required.length===0)delete schema.required;
-    return schema;
-  }
-  return{};
-}
-
-function generateSchema(){
-  const input=document.getElementById('jsonInput').value.trim();
-  if(!input){showToast('请先输入JSON');return}
-  try{
-    const obj=JSON.parse(input);
-    const schema=inferSchema(obj);
-    schema.$schema='http://json-schema.org/draft-07/schema#';
-    if(typeof obj==='object'&&!Array.isArray(obj)&&obj!==null){
-      schema.title='Generated Schema';
-      schema.description='Auto-generated from JSON';
-    }
-    const output=JSON.stringify(schema,null,2);
-    document.getElementById('schemaOutput').textContent=output;
-    document.getElementById('copyBtn').style.display='inline-block';
-  }catch(e){document.getElementById('schemaOutput').innerHTML='<span style="color:#f87171">❌ JSON解析错误: '+e.message+'</span>';}
-}
-
-function copySchema(){
-  const text=document.getElementById('schemaOutput').textContent;
-  if(!text||text.includes('输入JSON'))return;
-  navigator.clipboard.writeText(text).then(()=>showToast('✅ 已复制'));
-}
-
-function loadSample(){
-  document.getElementById('jsonInput').value=JSON.stringify({name:'John Doe',age:30,email:'john@example.com',isActive:true,tags:['developer','javascript'],address:{city:'Beijing',zipCode:'100000'},scores:[95,87,92]},null,2);
-  generateSchema();
-}
-
-function clearAll(){document.getElementById('jsonInput').value='';document.getElementById('schemaOutput').innerHTML='<span style="color:#64748b">输入JSON后点击生成</span>';document.getElementById('copyBtn').style.display='none';}
-function rate(v){const stars=document.querySelectorAll('#stars span');stars.forEach((s,i)=>{s.textContent=i<v?'★':'☆';s.className=i<v?'active':''});document.getElementById('ratingCount').textContent='4.6 ('+(167+v)+'票)';}
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-</script>
-<script>
-(function() {
-  const STORAGE_KEY = 'wt_rating_' + location.pathname.replace(/\//g, '_');
-  const AVG_KEY = 'wt_avg_' + location.pathname.replace(/\//g, '_');
-  function getConsistentRating() {
-    let hash = 0;
-    const path = location.pathname;
-    for (let i = 0; i < path.length; i++) { hash = ((hash << 5) - hash) + path.charCodeAt(i); hash = hash & hash; }
-    const ratings = [4.5, 4.6, 4.7, 4.8, 4.9, 4.4, 4.3];
-    const counts = [128, 256, 512, 89, 167, 234, 345, 178, 421, 156];
-    const rIdx = Math.abs(hash) % ratings.length;
-    const cIdx = Math.abs(hash >> 3) % counts.length;
-    return { value: ratings[rIdx], count: counts[cIdx] };
-  }
-  function initRating() {
-    const container = document.getElementById('starContainer');
-    const text = document.getElementById('ratingText');
-    const countEl = document.getElementById('ratingCount');
-    const thanks = document.getElementById('ratingThanks');
-    if (!container || !text) return;
-    const isCN = document.documentElement.lang === 'zh-CN';
-    const saved = localStorage.getItem(STORAGE_KEY);
-    let avgData;
-    try { avgData = JSON.parse(localStorage.getItem(AVG_KEY)); } catch(e) {}
-    if (!avgData) avgData = getConsistentRating();
-    const stars = container.querySelectorAll('.star');
-    function updateDisplay(value) {
-      stars.forEach((s, i) => { s.classList.toggle('active', i < Math.round(value)); });
-      text.textContent = (avgData.value || 4.5).toFixed(1) + '/5';
-      countEl.textContent = isCN ? '(' + (avgData.count || 128) + ' 人评分)' : '(' + (avgData.count || 128) + ' ratings)';
-    }
-    updateDisplay(saved ? parseInt(saved) : avgData.value);
-    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
-    stars.forEach(star => {
-      star.addEventListener('click', function() {
-        const val = parseInt(this.dataset.value);
-        localStorage.setItem(STORAGE_KEY, val);
-        updateDisplay(val);
-        thanks.style.display = 'inline';
-        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
-        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
-        current.count = (current.count || 128) + 1;
-        localStorage.setItem(AVG_KEY, JSON.stringify(current));
-      });
-      star.addEventListener('mouseenter', function() {
-        const val = parseInt(this.dataset.value);
-        stars.forEach((s, i) => s.classList.toggle('active', i < val));
-      });
-    });
-    container.addEventListener('mouseleave', function() { updateDisplay(saved ? parseInt(saved) : avgData.value); });
-  }
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initRating); }
-  else { initRating(); }
-})();
-</script>
-
-  <div class="faq-section">
-    <h2>常见问题 (FAQ)</h2>
-
-
-
-</div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
+  <div style="text-align:center;margin:8px 0;font-size:.8rem;color:#94a3b8;">🔒 本地处理 · ✅ 完全免费 · ⚡ 即时结果</div></div>
+<div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 <div class="seo-content"></div>

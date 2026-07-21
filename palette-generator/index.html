@@ -93,7 +93,11 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 免费在线调色板生成器</p>
 <div class="hero"><p>免费在线调色板生成器，基于色彩理论生成和谐配色方案。支持互补色、类似色、三角色、单色等配色模式。纯前端本地处理。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><div class="rating-widget" id="ratingWidget">
+<div><div class="section"><h1>🎨 调色板生成器
+  
+</h1>
+
+<div class="rating-widget" id="ratingWidget">
   <div class="stars" id="starContainer">
     <span class="star" data-value="1">★</span>
     <span class="star" data-value="2">★</span>
@@ -106,7 +110,11 @@ a{color:#06b6d4;text-decoration:none}
   <span class="rating-thanks" id="ratingThanks">感谢您的评分！</span>
 </div>
 
+    <div class="lang-switch">
+      <a href="#" class="active">中文</a>
+      <a href="../../en/palette-generator/">English</a>
     </div>
+  </div>
   
   <div class="input-section">
     <h2>🎯 选择主色</h2>
@@ -181,224 +189,7 @@ a{color:#06b6d4;text-decoration:none}
     <div class="faq-item">
       <h3>颜色值准确吗？</h3>
       <p>颜色值基于标准色彩空间转换算法，精度极高。显示效果可能因显示器校准不同而略有差异。</p>
-    </div>
-  </div>
-
-<div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/palette-generator/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div>
-  <div class="toast" id="toast"></div>
-</div>
-
-<script>
-let currentMode = 'complementary';
-
-function hexToHsl(hex) {
-  let r = parseInt(hex.slice(1,3), 16) / 255;
-  let g = parseInt(hex.slice(3,5), 16) / 255;
-  let b = parseInt(hex.slice(5,7), 16) / 255;
-  const max = Math.max(r,g,b), min = Math.min(r,g,b);
-  let h, s, l = (max + min) / 2;
-  if (max === min) { h = s = 0; }
-  else {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch(max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-      case g: h = ((b - r) / d + 2) / 6; break;
-      case b: h = ((r - g) / d + 4) / 6; break;
-    }
-  }
-  return { h: h * 360, s: s * 100, l: l * 100 };
-}
-
-function hslToHex(h, s, l) {
-  s /= 100; l /= 100;
-  const a = s * Math.min(l, 1 - l);
-  const f = n => {
-    const k = (n + h / 30) % 12;
-    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    return Math.round(255 * color).toString(16).padStart(2, '0');
-  };
-  return `#${f(0)}${f(8)}${f(4)}`;
-}
-
-function hslToRgb(h, s, l) {
-  s /= 100; l /= 100;
-  const a = s * Math.min(l, 1 - l);
-  const f = n => {
-    const k = (n + h / 30) % 12;
-    return Math.round(255 * (l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)));
-  };
-  return `rgb(${f(0)}, ${f(8)}, ${f(4)})`;
-}
-
-function generatePalette(hex, mode) {
-  const hsl = hexToHsl(hex);
-  const colors = [{ hex, rgb: hslToRgb(hsl.h, hsl.s, hsl.l) }];
-  
-  switch(mode) {
-    case 'complementary':
-      colors.push(makeColor((hsl.h + 180) % 360, hsl.s, hsl.l));
-      colors.push(makeColor(hsl.h, Math.max(0, hsl.s - 20), Math.min(100, hsl.l + 15)));
-      colors.push(makeColor((hsl.h + 180) % 360, Math.max(0, hsl.s - 20), Math.min(100, hsl.l + 15)));
-      colors.push(makeColor(hsl.h, hsl.s, Math.max(0, hsl.l - 15)));
-      break;
-    case 'analogous':
-      colors.push(makeColor((hsl.h + 30) % 360, hsl.s, hsl.l));
-      colors.push(makeColor((hsl.h + 60) % 360, hsl.s, hsl.l));
-      colors.push(makeColor((hsl.h - 30 + 360) % 360, hsl.s, hsl.l));
-      colors.push(makeColor((hsl.h - 60 + 360) % 360, hsl.s, hsl.l));
-      break;
-    case 'triadic':
-      colors.push(makeColor((hsl.h + 120) % 360, hsl.s, hsl.l));
-      colors.push(makeColor((hsl.h + 240) % 360, hsl.s, hsl.l));
-      colors.push(makeColor(hsl.h, Math.max(0, hsl.s - 25), Math.min(100, hsl.l + 10)));
-      colors.push(makeColor((hsl.h + 120) % 360, Math.max(0, hsl.s - 25), Math.min(100, hsl.l + 10)));
-      break;
-    case 'split-complementary':
-      colors.push(makeColor((hsl.h + 150) % 360, hsl.s, hsl.l));
-      colors.push(makeColor((hsl.h + 210) % 360, hsl.s, hsl.l));
-      colors.push(makeColor(hsl.h, Math.max(0, hsl.s - 20), Math.min(100, hsl.l + 15)));
-      colors.push(makeColor((hsl.h + 180) % 360, Math.max(0, hsl.s - 30), Math.min(100, hsl.l + 20)));
-      break;
-    case 'tetradic':
-      colors.push(makeColor((hsl.h + 90) % 360, hsl.s, hsl.l));
-      colors.push(makeColor((hsl.h + 180) % 360, hsl.s, hsl.l));
-      colors.push(makeColor((hsl.h + 270) % 360, hsl.s, hsl.l));
-      colors.push(makeColor(hsl.h, Math.max(0, hsl.s - 20), Math.min(100, hsl.l + 10)));
-      break;
-    case 'monochromatic':
-      colors.push(makeColor(hsl.h, hsl.s, Math.min(100, hsl.l + 20)));
-      colors.push(makeColor(hsl.h, Math.max(0, hsl.s - 15), Math.min(100, hsl.l + 35)));
-      colors.push(makeColor(hsl.h, Math.max(0, hsl.s - 10), Math.max(0, hsl.l - 20)));
-      colors.push(makeColor(hsl.h, Math.max(0, hsl.s - 20), Math.max(0, hsl.l - 35)));
-      break;
-  }
-  return colors;
-}
-
-function makeColor(h, s, l) {
-  return {
-    hex: hslToHex(h, s, l),
-    rgb: hslToRgb(h, s, l)
-  };
-}
-
-function renderPalette() {
-  const hex = document.getElementById('hexInput').value;
-  if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) return;
-  
-  const colors = generatePalette(hex, currentMode);
-  const grid = document.getElementById('paletteGrid');
-  
-  grid.innerHTML = colors.map((c, i) => `
-    <div class="color-card" onclick="copyColor('${c.hex}', this)" title="点击复制 ${c.hex}">
-      <div class="color-preview" style="background:${c.hex}"></div>
-      <div class="color-info">
-        <div class="color-hex">${c.hex.toUpperCase()}</div>
-        <div class="color-rgb">${c.rgb}</div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function updateFromPicker() {
-  const val = document.getElementById('baseColor').value;
-  document.getElementById('hexInput').value = val;
-  renderPalette();
-}
-
-function updateFromHex() {
-  let val = document.getElementById('hexInput').value.trim();
-  if (!val.startsWith('#')) val = '#' + val;
-  if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
-    document.getElementById('baseColor').value = val;
-    renderPalette();
-  }
-}
-
-function copyColor(hex, el) {
-  navigator.clipboard.writeText(hex).then(() => {
-    showToast('✅ 已复制 ' + hex.toUpperCase());
-    el.style.transform = 'scale(0.95)';
-    setTimeout(() => el.style.transform = '', 200);
-  });
-}
-
-function copyAllColors() {
-  const cards = document.querySelectorAll('.color-hex');
-  const hexes = Array.from(cards).map(c => c.textContent).join(', ');
-  navigator.clipboard.writeText(hexes).then(() => showToast('✅ 已复制全部颜色'));
-}
-
-function randomColor() {
-  const hex = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');
-  document.getElementById('baseColor').value = hex;
-  document.getElementById('hexInput').value = hex;
-  renderPalette();
-  showToast('🎲 随机颜色');
-}
-
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2000);
-}
-
-// Mode switching
-document.getElementById('modeSelect').addEventListener('click', function(e) {
-  if (e.target.classList.contains('mode-btn')) {
-    this.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-    e.target.classList.add('active');
-    currentMode = e.target.dataset.mode;
-    renderPalette();
-  }
-});
-
-window.addEventListener('DOMContentLoaded', renderPalette);
-</script>
-<script>
-(function(){const STORAGE_KEY='wt_rating_'+location.pathname.replace(/\//g,'_');const AVG_KEY='wt_avg_'+location.pathname.replace(/\//g,'_');function getConsistentRating(){let hash=0;const path=location.pathname;for(let i=0;i<path.length;i++){hash=((hash<<5)-hash)+path.charCodeAt(i);hash=hash&hash}const ratings=[4.5,4.6,4.7,4.8,4.9,4.4,4.3];const counts=[128,256,512,89,167,234,345,178,421,156];const rIdx=Math.abs(hash)%ratings.length;const cIdx=Math.abs(hash>>3)%counts.length;return{value:ratings[rIdx],count:counts[cIdx]}}function initRating(){const container=document.getElementById('starContainer');const text=document.getElementById('ratingText');const countEl=document.getElementById('ratingCount');const thanks=document.getElementById('ratingThanks');if(!container||!text)return;const isCN=document.documentElement.lang==='zh-CN';const saved=localStorage.getItem(STORAGE_KEY);let avgData;try{avgData=JSON.parse(localStorage.getItem(AVG_KEY))}catch(e){}if(!avgData)avgData=getConsistentRating();const stars=container.querySelectorAll('.star');function updateDisplay(value){stars.forEach((s,i)=>{s.classList.toggle('active',i<Math.round(value))});text.textContent=(avgData.value||4.5).toFixed(1)+'/5';countEl.textContent=isCN?'('+(avgData.count||128)+' 人评分)':'('+(avgData.count||128)+' ratings)'}updateDisplay(saved?parseInt(saved):avgData.value);if(saved){thanks.style.display='inline';container.style.pointerEvents='none';container.style.opacity='0.7';return}stars.forEach(star=>{star.addEventListener('click',function(){const val=parseInt(this.dataset.value);localStorage.setItem(STORAGE_KEY,val);const newCount=(avgData.count||128)+1;const newValue=((avgData.value||4.5)*(avgData.count||128)+val)/newCount;avgData={value:parseFloat(newValue.toFixed(1)),count:newCount};localStorage.setItem(AVG_KEY,JSON.stringify(avgData));updateDisplay(val);thanks.style.display='inline';container.style.pointerEvents='none';container.style.opacity='0.7'})})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initRating);else initRating()})();
-</script>
-
-
-<div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
-<script>
-(function() {
-  'use strict';
-  var s = document.getElementById('related-tools-section');
-  if (!s) return;
-  var p = window.location.pathname;
-  var en = p.indexOf('/en/') !== -1;
-  p = p.replace(/\/en\//g, '/');
-  var slug = p.split('/').filter(Boolean).pop() || '';
-  if (!slug) { s.innerHTML = ''; return; }
-  var depth = en ? '../../' : '../';
-  var u = depth + 'related-tools.json';
-  fetch(u).then(function(r) {
-    if (!r.ok) throw new Error('not found');
-    return r.json();
-  }).then(function(d) {
-    var data = en ? d.en : d.cn;
-    var t = data[slug];
-    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 相关工具推荐')
-      + '</h3><div class="related-tools-grid">';
-    t.related.forEach(function(r) {
-      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '<a href="' + link + '" class="related-tool-card">'
-        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
-        + '<span class="related-tool-name">' + r.name + '</span></a>';
-    });
-    h += '</div></div>';
-    s.innerHTML = h;
-  }).catch(function() { s.innerHTML = ''; });
-})();
-</script></div></div>
+    </div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

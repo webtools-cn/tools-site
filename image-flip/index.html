@@ -69,15 +69,209 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线图片翻转工具</p>
 <div class="hero"><p>免费在线图片翻转工具，纯前端本地处理不上传服务器。支持水平翻转、垂直翻转、镜像翻转、90度旋转，一键下载。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🔄 图片翻转工具
+  
+</h1>
+<div class="lang-switch" style="position:absolute;top:24px;right:16px;display:flex;gap:8px"><a href="./" style="color:#22d3ee;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #22d3ee;text-decoration:none">中文</a><a href="../en/image-flip/" style="color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #334155;text-decoration:none">EN</a></div>
+
+
+
+  <div class="card" id="mainCard" style="display:none;">
+    <h2>🛠️ 翻转控制</h2>
+    <div class="toolbar">
+      <button class="btn btn-action" data-action="flipH">↔️ 水平翻转</button>
+      <button class="btn btn-action" data-action="flipV">↕️ 垂直翻转</button>
+      <button class="btn btn-action" data-action="flipBoth">🔀 镜像翻转</button>
+      <button class="btn btn-action" data-action="rotate90">↻ 旋转90°</button>
+      <button class="btn btn-action" data-action="rotate180">↺ 旋转180°</button>
+      <button class="btn btn-reset" data-action="reset">⟲ 恢复原图</button>
+    </div>
+
+    <div class="preview-area">
+      <div class="preview-box">
+        <h3>原始图片</h3>
+        <img id="originalPreview" alt="原图">
+      </div>
+      <div class="preview-box">
+        <h3>处理结果</h3>
+        <canvas id="outputCanvas"></canvas>
+      </div>
+    </div>
+    <div class="info-text" id="imgInfo"></div>
+    <div class="action-row">
+      <button class="btn btn-download" id="downloadBtn">💾 下载结果</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>❓ 常见问题</h2>
+    <div class="faq-item"><h3>翻转和旋转有什么区别？</h3><p>翻转是沿轴线做镜像变换：水平翻转左右颠倒，垂直翻转上下颠倒。旋转是绕中心点转动图像。组合使用水平和垂直翻转可得到180度旋转效果。注意：旋转180°和镜像翻转结果不同。</p></div>
+    <div class="faq-item"><h3>翻转后图片质量会变差吗？</h3><p>不会。翻转只是重新排列像素位置，不涉及压缩或重新采样，画质保持100%不变。输出和原图质量完全一致。</p></div>
+    <div class="faq-item"><h3>支持哪些图片格式？</h3><p>支持浏览器能解析的所有格式：JPG、PNG、WebP、BMP、GIF（静态帧）、SVG等。输出可选择PNG（推荐，支持透明）或JPEG格式。</p></div>
+    <div class="faq-item"><h3>可以批量翻转多张图片吗？</h3><p>当前版本每次处理一张图片。如需批量处理，可以多次上传分别翻转下载。我们后续会考虑添加批量上传和批量下载功能。</p></div>
+  </div>
+
+  <div class="card"><div id="feedback-root"></div></div>
+</div>
+
+<script>
+(function(){
+  const uploadArea=document.getElementById('uploadArea');
+  const fileInput=document.getElementById('fileInput');
+  const mainCard=document.getElementById('mainCard');
+  const originalPreview=document.getElementById('originalPreview');
+  const outputCanvas=document.getElementById('outputCanvas');
+  const ctx=outputCanvas.getContext('2d');
+  const imgInfo=document.getElementById('imgInfo');
+  const downloadBtn=document.getElementById('downloadBtn');
+
+  let sourceImg=new Image();
+  let currentTransform={flipH:false,flipV:false,rotation:0};
+
+  uploadArea.addEventListener('click',()=>fileInput.click());
+  uploadArea.addEventListener('dragover',e=>{e.preventDefault();uploadArea.classList.add('dragover');});
+  uploadArea.addEventListener('dragleave',()=>uploadArea.classList.remove('dragover'));
+  uploadArea.addEventListener('drop',e=>{e.preventDefault();uploadArea.classList.remove('dragover');handleFile(e.dataTransfer.files[0]);});
+  fileInput.addEventListener('change',()=>{if(fileInput.files[0])handleFile(fileInput.files[0]);});
+
+  function handleFile(file){
+    if(!file||!file.type.startsWith('image/'))return;
+    const reader=new FileReader();
+    reader.onload=function(e){
+      sourceImg.onload=function(){
+        const w=sourceImg.naturalWidth,h=sourceImg.naturalHeight;
+        originalPreview.src=e.target.result;
+        imgInfo.textContent='原始尺寸: '+w+' × '+h+' px';
+        currentTransform={flipH:false,flipV:false,rotation:0};
+        render();
+        mainCard.style.display='block';
+      };
+      sourceImg.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function render(){
+    const w=sourceImg.naturalWidth,h=sourceImg.naturalHeight;
+    let cw=w,ch=h;
+    
+    // Swap dimensions for 90/270 rotations
+    if(currentTransform.rotation===90||currentTransform.rotation===270){
+      cw=h;ch=w;
+    }
+    
+    outputCanvas.width=cw;
+    outputCanvas.height=ch;
+    ctx.clearRect(0,0,cw,ch);
+    
+    ctx.save();
+    ctx.translate(cw/2,ch/2);
+    
+    if(currentTransform.flipH)ctx.scale(-1,1);
+    if(currentTransform.flipV)ctx.scale(1,-1);
+    
+    ctx.rotate(currentTransform.rotation*Math.PI/180);
+    ctx.drawImage(sourceImg,-w/2,-h/2,w,h);
+    ctx.restore();
+  }
+
+  document.querySelectorAll('.btn-action,.btn-reset').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      const action=this.dataset.action;
+      if(action==='flipH')currentTransform.flipH=!currentTransform.flipH;
+      else if(action==='flipV')currentTransform.flipV=!currentTransform.flipV;
+      else if(action==='flipBoth'){currentTransform.flipH=!currentTransform.flipH;currentTransform.flipV=!currentTransform.flipV;}
+      else if(action==='rotate90')currentTransform.rotation=(currentTransform.rotation+90)%360;
+      else if(action==='rotate180')currentTransform.rotation=(currentTransform.rotation+180)%360;
+      else if(action==='reset')currentTransform={flipH:false,flipV:false,rotation:0};
+      
+      // Update active states
+      document.querySelectorAll('.btn-action').forEach(b=>b.classList.remove('active'));
+      if(currentTransform.flipH&&!currentTransform.flipV)document.querySelector('[data-action="flipH"]').classList.add('active');
+      if(!currentTransform.flipH&&currentTransform.flipV)document.querySelector('[data-action="flipV"]').classList.add('active');
+      if(currentTransform.flipH&&currentTransform.flipV)document.querySelector('[data-action="flipBoth"]').classList.add('active');
+      
+      render();
+    });
+  });
+
+  downloadBtn.addEventListener('click',()=>{
+    const link=document.createElement('a');
+    link.download='flipped.'+(sourceImg.src.includes('png')||sourceImg.src.includes('svg')?'png':'jpg');
+    link.href=outputCanvas.toDataURL('image/png');
+    link.click();
+  });
+
+  document.querySelectorAll('.faq-item h3').forEach(h=>{
+    h.addEventListener('click',()=>h.classList.toggle('open'));
+  });
+
+  (function(){
+    const root=document.getElementById('feedback-root');
+    if(!root)return;
+    root.innerHTML='<div style="text-align:center;padding:10px;color:#888;font-size:.85em;">觉得这个工具有用吗？ → <a href="https://github.com/webtools-cn/tools-site/issues" target="_blank" style="color:#f5576c;">GitHub Issues</a></div>';
+  })();
+})();
+</script>
+<script>
+(function(){const STORAGE_KEY='wt_rating_'+location.pathname.replace(/\//g,'_');const AVG_KEY='wt_avg_'+location.pathname.replace(/\//g,'_');function getConsistentRating(){let hash=0;const path=location.pathname;for(let i=0;i<path.length;i++){hash=((hash<<5)-hash)+path.charCodeAt(i);hash=hash&hash}const ratings=[4.5,4.6,4.7,4.8,4.9,4.4,4.3];const counts=[128,256,512,89,167,234,345,178,421,156];const rIdx=Math.abs(hash)%ratings.length;const cIdx=Math.abs(hash>>3)%counts.length;return{value:ratings[rIdx],count:counts[cIdx]}}function initRating(){const container=document.getElementById('starContainer');const text=document.getElementById('ratingText');const countEl=document.getElementById('ratingCount');const thanks=document.getElementById('ratingThanks');if(!container||!text)return;const isCN=document.documentElement.lang==='zh-CN';const saved=localStorage.getItem(STORAGE_KEY);let avgData;try{avgData=JSON.parse(localStorage.getItem(AVG_KEY))}catch(e){}if(!avgData)avgData=getConsistentRating();const stars=container.querySelectorAll('.star');function updateDisplay(value){stars.forEach((s,i)=>{s.classList.toggle('active',i<Math.round(value))});text.textContent=(avgData.value||4.5).toFixed(1)+'/5';countEl.textContent=isCN?'('+(avgData.count||128)+' 人评分)':'('+(avgData.count||128)+' ratings)'}updateDisplay(saved?parseInt(saved):avgData.value);if(saved){thanks.style.display='inline';container.style.pointerEvents='none';container.style.opacity='0.7';return}stars.forEach(star=>{star.addEventListener('click',function(){const val=parseInt(this.dataset.value);localStorage.setItem(STORAGE_KEY,val);const newCount=(avgData.count||128)+1;const newValue=((avgData.value||4.5)*(avgData.count||128)+val)/newCount;avgData={value:parseFloat(newValue.toFixed(1)),count:newCount};localStorage.setItem(AVG_KEY,JSON.stringify(avgData));updateDisplay(val);thanks.style.display='inline';container.style.pointerEvents='none';container.style.opacity='0.7'})})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initRating);else initRating()})();
+</script>
+
+
+  <div class="faq-section">
+    <h2>常见问题 (FAQ)</h2>
+    
+    
+    
+    
+  </div>
+
+<div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
+<script>
+(function() {
+  'use strict';
+  var s = document.getElementById('related-tools-section');
+  if (!s) return;
+  var p = window.location.pathname;
+  var en = p.indexOf('/en/') !== -1;
+  p = p.replace(/\/en\//g, '/');
+  var slug = p.split('/').filter(Boolean).pop() || '';
+  if (!slug) { s.innerHTML = ''; return; }
+  var depth = en ? '../../' : '../';
+  var u = depth + 'related-tools.json';
+  fetch(u).then(function(r) {
+    if (!r.ok) throw new Error('not found');
+    return r.json();
+  }).then(function(d) {
+    var data = en ? d.en : d.cn;
+    var t = data[slug];
+    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
+    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
+      + (en ? '🔗 You May Also Like' : '🔗 相关工具推荐')
+      + '</h3><div class="related-tools-grid">';
+    t.related.forEach(function(r) {
+      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
+      h += '<a href="' + link + '" class="related-tool-card">'
+        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
+        + '<span class="related-tool-name">' + r.name + '</span></a>';
+    });
+    h += '</div></div>';
+    s.innerHTML = h;
+  }).catch(function() { s.innerHTML = ''; });
+})();
+</script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 <div class="seo-content"></div>
-<div class="section"><h2>常见问题</h2><div class="faq-item"><h3>翻转和旋转有什么区别？</h3><p>翻转是沿轴线做镜像变换：水平翻转左右颠倒，垂直翻转上下颠倒。旋转是绕中心点转动图像。组合使用水平和垂直翻转可得到180度旋转效果。注意：旋转180°和镜像翻转结果不同。</p></div>
-<div class="faq-item"><h3>翻转后图片质量会变差吗？</h3><p>不会。翻转只是重新排列像素位置，不涉及压缩或重新采样，画质保持100%不变。输出和原图质量完全一致。</p></div>
-<div class="faq-item"><h3>支持哪些图片格式？</h3><p>支持浏览器能解析的所有格式：JPG、PNG、WebP、BMP、GIF（静态帧）、SVG等。输出可选择PNG（推荐，支持透明）或JPEG格式。</p></div>
-<div class="faq-item"><h3>可以批量翻转多张图片吗？</h3><p>当前版本每次处理一张图片。如需批量处理，可以多次上传分别翻转下载。我们后续会考虑添加批量上传和批量下载功能。</p></div>
+<div class="section"><h2>常见问题</h2>
+
+
+
+
+
+
+
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 </div>

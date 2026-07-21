@@ -95,7 +95,13 @@ textarea:focus,.text-input:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; WebP格式转换器</p>
 <div class="hero"><p>免费在线WebP格式转换器，支持WebP与PNG、JPEG、GIF互转。拖放上传，批量转换，纯前端Canvas处理，图片不上传服务器。支持质量调节和透明度保留。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><!-- PLACEHOLDER: Tool-specific HTML + JS will be injected here -->
+<div><div class="section"><h1>🖼️ WebP格式转换器
+  
+</h1>
+
+
+  
+  <!-- PLACEHOLDER: Tool-specific HTML + JS will be injected here -->
     <div class="input-section">
     <h2>📤 上传图片</h2>
     <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
@@ -167,160 +173,10 @@ textarea:focus,.text-input:focus{outline:none;border-color:rgba(6,182,212,.5)}
   <span class="rating-count" id="ratingCount"></span>
   <span class="rating-thanks" id="ratingThanks">Thanks for your rating!</span>
 </div>
-    </div>
-<div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/webp-converter/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div>
-  <div class="toast" id="toast"></div>
-</div>
-<script>
-const uploadZone = document.getElementById('uploadZone');
-['dragover','dragenter'].forEach(e=>{uploadZone.addEventListener(e,ev=>{ev.preventDefault();uploadZone.classList.add('dragover')})});
-['dragleave','drop'].forEach(e=>{uploadZone.addEventListener(e,ev=>{ev.preventDefault();uploadZone.classList.remove('dragover')})});
-uploadZone.addEventListener('drop',e=>{const files=e.dataTransfer.files;if(files.length)handleFiles(files)});
-
-let imageFiles=[], convertedBlobs=[];
-
-function handleFiles(files){
-  imageFiles=Array.from(files).filter(f=>f.type.startsWith('image/')).slice(0,20);
-  if(!imageFiles.length){showToast('⚠️ 请选择图片文件');return}
-  const list=document.getElementById('fileList');
-  list.innerHTML=imageFiles.map((f,i)=>`<div style="background:#0f172a;border-radius:8px;padding:8px 12px;font-size:.8rem;color:#94a3b8;display:flex;align-items:center;gap:8px">📄 ${f.name} <span style="color:#64748b">(${(f.size/1024).toFixed(1)}KB)</span> <span onclick="removeFile(${i})" style="cursor:pointer;color:#f87171;margin-left:auto">✕</span></div>`).join('');
-  list.innerHTML+=`<div style="color:#64748b;font-size:.8rem;padding:8px">共 ${imageFiles.length} 个文件</div>`;
-  convertAll();
-}
-
-function removeFile(i){imageFiles.splice(i,1);handleFiles(imageFiles.length?imageFiles:[]);convertAll()}
-
-function convertAll(){
-  const fmt=document.getElementById('targetFormat').value;
-  const q=parseInt(document.getElementById('quality').value)/100;
-  const results=document.getElementById('results');
-  if(!imageFiles.length){results.innerHTML='<div class="empty-state">请先上传图片</div>';document.getElementById('dlAllBtn').disabled=true;return}
-  
-  results.innerHTML='<div style="color:#22d3ee;text-align:center;padding:20px">⏳ 转换中...</div>';
-  convertedBlobs=[];
-  let done=0;
-  
-  imageFiles.forEach((f,i)=>{
-    const reader=new FileReader();
-    reader.onload=function(e){
-      const img=new Image();
-      img.onload=function(){
-        const canvas=document.createElement('canvas');
-        canvas.width=img.width;canvas.height=img.height;
-        const ctx=canvas.getContext('2d');
-        ctx.drawImage(img,0,0);
-        canvas.toBlob(blob=>{
-          const ext=fmt.split('/')[1];
-          const name=f.name.replace(/\.[^.]+$/,'.'+ext);
-          convertedBlobs[i]={blob,name,origName:f.name,origSize:f.size,newSize:blob.size};
-          done++;
-          if(done===imageFiles.length)showResults();
-        },fmt,q);
-      };
-      img.src=e.target.result;
-    };
-    reader.readAsDataURL(f);
-  });
-}
-
-function showResults(){
-  const results=document.getElementById('results');
-  let html='';
-  convertedBlobs.forEach((r,i)=>{
-    const reduction=((1-r.newSize/r.origSize)*100).toFixed(0);
-    const color=reduction>0?'#4ade80':(reduction<0?'#f87171':'#94a3b8');
-    html+=`<div style="display:flex;align-items:center;gap:12px;padding:12px;background:#0f172a;border-radius:8px;margin-bottom:8px">
-      <span>📄</span>
-      <div style="flex:1"><div style="font-size:.85rem;color:#e2e8f0">${r.name}</div>
-      <div style="font-size:.75rem;color:#64748b">${(r.origSize/1024).toFixed(1)}KB → ${(r.newSize/1024).toFixed(1)}KB <span style="color:${color}">${reduction>0?'↓':'↑'}${Math.abs(reduction)}%</span></div></div>
-      <button class="btn btn-primary" style="font-size:.75rem;padding:6px 12px" onclick="downloadOne(${i})">⬇ 下载</button>
-    </div>`;
-  });
-  results.innerHTML=html||'<div class="empty-state">无结果</div>';
-  document.getElementById('dlAllBtn').disabled=!convertedBlobs.length;
-}
-
-function downloadOne(i){
-  const r=convertedBlobs[i];
-  const url=URL.createObjectURL(r.blob);
-  const a=document.createElement('a');a.href=url;a.download=r.name;a.click();
-  URL.revokeObjectURL(url);showToast('✅ 已下载');
-}
-
-function downloadAll(){
-  convertedBlobs.forEach((r,i)=>setTimeout(()=>downloadOne(i),i*300));
-  showToast('✅ 开始下载全部');
-}
-
-function clearAll(){imageFiles=[];convertedBlobs=[];document.getElementById('fileList').innerHTML='';document.getElementById('results').innerHTML='<div class="empty-state">已清除</div>';document.getElementById('dlAllBtn').disabled=true;document.getElementById('fileInput').value=''}
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-</script>
-<script>
-(function() {
-  const STORAGE_KEY = 'wt_rating_' + location.pathname.replace(/\//g, '_');
-  const AVG_KEY = 'wt_avg_' + location.pathname.replace(/\//g, '_');
-  function getConsistentRating() {
-    let hash = 0;
-    const path = location.pathname;
-    for (let i = 0; i < path.length; i++) { hash = ((hash << 5) - hash) + path.charCodeAt(i); hash = hash & hash; }
-    const ratings = [4.5, 4.6, 4.7, 4.8, 4.9, 4.4, 4.3];
-    const counts = [128, 256, 512, 89, 167, 234, 345, 178, 421, 156];
-    const rIdx = Math.abs(hash) % ratings.length;
-    const cIdx = Math.abs(hash >> 3) % counts.length;
-    return { value: ratings[rIdx], count: counts[cIdx] };
-  }
-  function initRating() {
-    const container = document.getElementById('starContainer');
-    const text = document.getElementById('ratingText');
-    const countEl = document.getElementById('ratingCount');
-    const thanks = document.getElementById('ratingThanks');
-    if (!container || !text) return;
-    const isCN = document.documentElement.lang === 'zh-CN';
-    const saved = localStorage.getItem(STORAGE_KEY);
-    let avgData;
-    try { avgData = JSON.parse(localStorage.getItem(AVG_KEY)); } catch(e) {}
-    if (!avgData) avgData = getConsistentRating();
-    const stars = container.querySelectorAll('.star');
-    function updateDisplay(value) {
-      stars.forEach((s, i) => { s.classList.toggle('active', i < Math.round(value)); });
-      text.textContent = (avgData.value || 4.5).toFixed(1) + '/5';
-      countEl.textContent = isCN ? '(' + (avgData.count || 128) + ' 人评分)' : '(' + (avgData.count || 128) + ' ratings)';
-    }
-    updateDisplay(saved ? parseInt(saved) : avgData.value);
-    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
-    stars.forEach(star => {
-      star.addEventListener('click', function() {
-        const val = parseInt(this.dataset.value);
-        localStorage.setItem(STORAGE_KEY, val);
-        updateDisplay(val);
-        thanks.style.display = 'inline';
-        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
-        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
-        current.count = (current.count || 128) + 1;
-        localStorage.setItem(AVG_KEY, JSON.stringify(current));
-      });
-      star.addEventListener('mouseenter', function() {
-        const val = parseInt(this.dataset.value);
-        stars.forEach((s, i) => s.classList.toggle('active', i < val));
-      });
-    });
-    container.addEventListener('mouseleave', function() { updateDisplay(saved ? parseInt(saved) : avgData.value); });
-  }
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initRating); }
-  else { initRating(); }
-})();
-</script>
-
-  <div class="faq-section">
-    <h2>常见问题 (FAQ)</h2>
-
-
-
-</div>
-  </div></div></div>
+    <div class="lang-switch">
+      <a href="#" class="active">中文</a>
+      <a href="../../en/webp-converter/">English</a>
+    </div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

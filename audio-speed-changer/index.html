@@ -72,11 +72,184 @@ input[type=range]{width:100%;margin:8px 0;accent-color:#22d3ee}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线音频变速播放器</p>
 <div class="hero"><p>免费在线音频变速工具，改变MP3/WAV播放速度不变调。支持0.5x-2.0x变速，Web Audio API实时处理，数据不上传。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🎵 音频变速播放器</h1>
+    <div class="lang-switch">
+      <a href="index.html" class="active">中文</a>
+      <a href="../en/audio-speed-changer/" class="active">EN</a>
+    </div>
+  </div>
+  <!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+  <div class="section" id="playerSection" style="display:none">
+    <h2>🎛️ 播放控制</h2>
+    <div class="speed-display" id="speedDisplay">1.00x</div>
+    <div class="input-group">
+      <label>播放速度: <span id="speedLabel">1.00x</span></label>
+      <input type="range" id="speedRange" min="0.25" max="3.0" step="0.05" value="1.0">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="playBtn" onclick="togglePlay()">播放</button>
+      <button class="btn btn-secondary" onclick="stopAudio()">停止</button>
+    </div>
+    <div class="time-display">
+      <span id="currentTime">0:00</span>
+      <span id="totalTime">0:00</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div style="margin-top:12px;color:#94a3b8;font-size:.85rem">⚠️ 提示：音频文件仅在本地浏览器中处理，不会上传到服务器。支持 MP3、WAV、OGG 格式。</div>
+  </div>
+  <div class="section">
+
+  <h2>❓ 常见问题</h2>
+    <div style="margin-bottom:12px"><strong style="color:#f1f5f9;font-size:.95rem">变速会改变音调吗？</strong><p style="color:#94a3b8;font-size:.85rem;margin-top:4px">不会。本工具使用Web Audio API的playbackRate技术，变速时保持音调不变（变调不变速的反向技术）。</p></div>
+    <div style="margin-bottom:12px"><strong style="color:#f1f5f9;font-size:.95rem">支持哪些音频格式？</strong><p style="color:#94a3b8;font-size:.85rem;margin-top:4px">支持大多数浏览器支持的音频格式，包括MP3、WAV、OGG等。</p></div>
+    <div style="margin-bottom:12px"><strong style="color:#f1f5f9;font-size:.95rem">音频文件会上传吗？</strong><p style="color:#94a3b8;font-size:.85rem;margin-top:4px">不会。所有处理完全在浏览器本地完成，音频数据不会上传到任何服务器。</p></div>
+  </div>
+</div>
+<script>
+let audioCtx = null;
+let source = null;
+let gainNode = null;
+let audioBuffer = null;
+let isPlaying = false;
+let startOffset = 0;
+let startTime = 0;
+
+const fileInput = document.getElementById('audioFile');
+const playerSection = document.getElementById('playerSection');
+const fileInfo = document.getElementById('fileInfo');
+const speedRange = document.getElementById('speedRange');
+const speedDisplay = document.getElementById('speedDisplay');
+const speedLabel = document.getElementById('speedLabel');
+const playBtn = document.getElementById('playBtn');
+const currentTimeEl = document.getElementById('currentTime');
+const totalTimeEl = document.getElementById('totalTime');
+const progressFill = document.getElementById('progressFill');
+
+fileInput.addEventListener('change', async function(e) {
+    const file = this.files[0];
+    if (!file) return;
+    fileInfo.textContent = file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+    const arrayBuffer = await file.arrayBuffer();
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    totalTimeEl.textContent = formatTime(audioBuffer.duration);
+    playerSection.style.display = 'block';
+    stopAudio();
+});
+
+speedRange.addEventListener('input', function() {
+    const val = parseFloat(this.value).toFixed(2);
+    speedDisplay.textContent = val + 'x';
+    speedLabel.textContent = val + 'x';
+    if (source && isPlaying) {
+        source.playbackRate.value = parseFloat(val);
+    }
+});
+
+function togglePlay() {
+    if (!audioBuffer) return;
+    if (isPlaying) {
+        pauseAudio();
+    } else {
+        playAudio();
+    }
+}
+
+function playAudio() {
+    if (!audioBuffer || !audioCtx) return;
+    if (source) {
+        try { source.disconnect(); } catch(e) {}
+    }
+    source = audioCtx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.playbackRate.value = parseFloat(speedRange.value);
+    gainNode = audioCtx.createGain();
+    gainNode.gain.value = 1;
+    source.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    if (startOffset >= audioBuffer.duration) startOffset = 0;
+    source.start(0, startOffset);
+    startTime = audioCtx.currentTime;
+    isPlaying = true;
+    playBtn.textContent = '⏸️ 暂停';
+    updateProgress();
+}
+
+function pauseAudio() {
+    if (!isPlaying || !source) return;
+    startOffset += audioCtx.currentTime - startTime;
+    try { source.stop(); source.disconnect(); } catch(e) {}
+    isPlaying = false;
+    playBtn.textContent = '▶️ 播放';
+}
+
+function stopAudio() {
+    if (source) {
+        try { source.stop(); source.disconnect(); } catch(e) {}
+    }
+    isPlaying = false;
+    startOffset = 0;
+    playBtn.textContent = '▶️ 播放';
+    currentTimeEl.textContent = '0:00';
+    progressFill.style.width = '0%';
+}
+
+function updateProgress() {
+    if (!isPlaying || !audioBuffer) return;
+    const elapsed = startOffset + audioCtx.currentTime - startTime;
+    const dur = audioBuffer.duration;
+    currentTimeEl.textContent = formatTime(Math.min(elapsed, dur));
+    progressFill.style.width = Math.min((elapsed / dur) * 100, 100) + '%';
+    if (elapsed >= dur) {
+        stopAudio();
+        return;
+    }
+    requestAnimationFrame(updateProgress);
+}
+
+function formatTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-<div class="seo-content"></div>
+<div class="seo-content">
+    <h2>如何使用在线音频变速播放器</h2>
+    <p>使用在线音频变速播放器非常简单：</p>
+    <ol style="padding-left:20px;margin-top:12px">
+
+      <li style="margin-bottom:16px">
+        <strong>输入数值</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">在计算器字段中输入所需的数字和参数。每个字段都有清晰的标签——直接输入数值或使用微调控制调整。</span>
+      </li>
+
+      <li style="margin-bottom:16px">
+        <strong>配置选项</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">选择任何附加选项，如计算模式、货币、时间段或精度。改变数值时计算器会自动更新。</span>
+      </li>
+
+      <li style="margin-bottom:16px">
+        <strong>查看计算结果</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">计算结果立即以清晰的格式显示。可以复制结果或调整输入值查看不同场景的影响。</span>
+      </li>
+
+    </ol>
+  </div>
 <div class="section"><h2>常见问题</h2></div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 </div>

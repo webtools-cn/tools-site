@@ -80,7 +80,282 @@ textarea.code-input::placeholder{color:#475569}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; Gzip文本压缩工具 · 在线Gzip Text Compressor</p>
 <div class="hero"><p>免费在线Gzip文本压缩工具。使用pako.js在浏览器中直接压缩/解压文本字符串，支持gzip和deflate格式。实时显示压缩率，可输出Base64或Hex格式。纯前端处理，不上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🗜️ Gzip文本压缩工具</h1>
+<div class="lang-switch" style="position:absolute;top:24px;right:16px;display:flex;gap:8px"><a href="./" style="color:#22d3ee;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #22d3ee;text-decoration:none">中文</a><a href="../en/gzip-text-compressor/" style="color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #334155;text-decoration:none">EN</a></div>
+  <p class="subtitle">浏览器端文本压缩/解压 · 支持Gzip和Deflate · 实时压缩率显示 · 纯前端本地处理</p>
+
+<!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab(this, 'compress')">🔽 压缩</button>
+    <button class="tab-btn" onclick="switchTab(this, 'decompress')">🔼 解压</button>
+  </div>
+
+  <!-- Compress Tab -->
+  <div id="tab-compress">
+    <div class="panel">
+      <h3>📝 输入文本</h3>
+      <textarea id="inputText" class="code-input" placeholder="粘贴需要压缩的文本...&#10;&#10;示例：大量重复文本可以获得更高的压缩率。中英文和Unicode字符都支持。" oninput="onInputChange()"></textarea>
+      
+      <div class="options-row">
+        <label>压缩算法：</label>
+        <select id="algorithm" onchange="onInputChange()">
+          <option value="gzip">Gzip（推荐）</option>
+          <option value="deflate">Deflate</option>
+        </select>
+        <label>输出格式：</label>
+        <select id="outputFormat" onchange="onInputChange()">
+          <option value="base64">Base64</option>
+          <option value="hex">Hex (十六进制)</option>
+        </select>
+        <label>压缩级别：</label>
+        <select id="compressLevel" onchange="onInputChange()">
+          <option value="6">默认 (6)</option>
+          <option value="1">最快 (1)</option>
+          <option value="3">平衡 (3)</option>
+          <option value="9">最大压缩 (9)</option>
+        </select>
+      </div>
+
+      <div class="stat-bar" id="statsBar">
+        <div class="stat-item"><div class="num" id="origSize">0</div><div class="label">原始大小 (B)</div></div>
+        <div class="stat-item"><div class="num" id="compSize">0</div><div class="label">压缩大小 (B)</div></div>
+        <div class="stat-item"><div class="num" id="ratio">0%</div><div class="label">压缩率</div></div>
+        <div class="stat-item"><div class="num" id="saved">0%</div><div class="label">节省</div></div>
+      </div>
+
+      <div class="action-row">
+        <button class="primary" onclick="compress()">🗜️ 压缩</button>
+        <button onclick="copyOutput()">📋 复制结果</button>
+        <button onclick="clearAll()">清空</button>
+      </div>
+
+      <div id="compressOutput" class="output-area" style="display:none;margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- Decompress Tab -->
+  <div id="tab-decompress" style="display:none">
+    <div class="panel">
+      <h3>🔼 解压数据</h3>
+      <textarea id="decompressInput" class="code-input" placeholder="粘贴压缩后的Base64或Hex字符串..."></textarea>
+      
+      <div class="options-row">
+        <label>输入格式：</label>
+        <select id="decompressFormat">
+          <option value="base64">Base64</option>
+          <option value="hex">Hex (十六进制)</option>
+        </select>
+        <label>解压算法：</label>
+        <select id="decompressAlgorithm">
+          <option value="gzip">Gzip</option>
+          <option value="deflate">Deflate</option>
+        </select>
+      </div>
+
+      <div class="action-row">
+        <button class="primary" onclick="decompress()">🔼 解压</button>
+        <button onclick="document.getElementById('decompressInput').value='';document.getElementById('decompressOutput').style.display='none'">清空</button>
+      </div>
+
+      <div id="decompressOutput" class="output-area" style="display:none;margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <h2>📖 常见问题 (FAQ)</h2>
+    <div class="faq-item"><div class="faq-q">❓ Gzip压缩有什么用途？什么时候需要使用Gzip压缩文本？</div><div class="faq-a">Gzip是一种广泛使用的数据压缩格式，常用于：1）网页传输加速——服务器使用gzip压缩HTML/CSS/JS后传给浏览器，可减少70-90%传输大小；2）API数据传输——压缩JSON请求体减少带宽消耗；3）日志和文本存储——压缩大量文本数据节省存储空间；4）网络爬虫和抓取——压缩传输数据；5）消息队列——压缩消息体提高吞吐量。本工具可帮你测试压缩效果和格式。</div></div>
+    <div class="faq-item"><div class="faq-q">❓ Gzip和Deflate有什么区别？应该选择哪个？</div><div class="faq-a">Gzip和Deflate使用相同的压缩算法（DEFLATE），区别在于封装格式不同。Gzip在压缩数据周围添加了文件头（magic bytes 1f8b）、时间戳、原始文件名和CRC32校验和，兼容性更好。Deflate是纯粹的压缩数据流，没有额外头信息，体积稍小。我们推荐使用Gzip格式，因为所有浏览器和HTTP服务器都支持它。如果你需要最小的输出体积，可以选择Deflate。</div></div>
+    <div class="faq-item"><div class="faq-q">❓ Base64和Hex输出格式有什么区别？</div><div class="faq-a">Base64将二进制数据编码为可打印的ASCII字符（A-Z、a-z、0-9、+、/），每3个字节编码为4个字符，体积约为原始数据的1.37倍。Hex（十六进制）将每个字节表示为2个十六进制字符，体积为原始数据的2倍。Base64更适合在文本协议（如HTTP、JSON）中传输压缩数据，而Hex更适合可视化调试和某些特定格式要求。建议在Network传输场景选用Base64，在开发调试时用Hex。</div></div>
+    <div class="faq-item"><div class="faq-q">❓ 压缩后的字符串可以直接解压还原吗？</div><div class="faq-a">可以。本工具支持双向操作：压缩后的Base64或Hex字符串可以复制到解压区域，选择对应的格式和算法即可完整还原原始文本。需要注意的是，压缩和解压必须使用相同的格式（Base64↔Base64， Hex↔Hex）和算法（gzip↔gzip， deflate↔deflate）。如果格式不匹配，解压会报错——此时请检查格式设置是否正确。</div></div>
+    <div class="faq-item"><div class="faq-q">❓ 在浏览器中压缩数据安全吗？数据会离开我的设备吗？</div><div class="faq-a">完全安全。本工具使用pako.js库（JavaScript实现的zlib，纯客户端库）在浏览器本地执行所有压缩和解压操作。你的文本数据不会通过任何网络请求发送到服务器。所有计算都在你的浏览器内存中完成，刷新页面后数据即消失。这确保了敏感数据（如API密钥、日志、配置文件）的隐私安全。</div></div>
+  </div>
+
+  <div class="feedback-section">
+    <p>💡 本工具纯前端本地运行 · 使用pako.js · 数据不上传服务器</p>
+  </div>
+</div>
+
+<div id="toast" class="copy-toast">✅ 已复制到剪贴板</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+<script>
+let lastCompressed = null;
+let lastFormat = 'base64';
+let lastAlgo = 'gzip';
+
+function switchTab(el, tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-compress').style.display = tab === 'compress' ? 'block' : 'none';
+  document.getElementById('tab-decompress').style.display = tab === 'decompress' ? 'block' : 'none';
+}
+
+function onInputChange() {
+  const text = document.getElementById('inputText').value;
+  const origSize = new Blob([text]).size;
+  document.getElementById('origSize').textContent = origSize.toLocaleString();
+  if (text.length > 0) {
+    updateStats(text);
+  } else {
+    document.getElementById('compSize').textContent = '0';
+    document.getElementById('ratio').textContent = '0%';
+    document.getElementById('saved').textContent = '0%';
+  }
+}
+
+function updateStats(text) {
+  try {
+    const algo = document.getElementById('algorithm').value;
+    const level = parseInt(document.getElementById('compressLevel').value);
+    const input = new TextEncoder().encode(text);
+    let compressed;
+    if (algo === 'gzip') {
+      compressed = pako.gzip(input, { level });
+    } else {
+      compressed = pako.deflate(input, { level });
+    }
+    const origSize = input.length;
+    const compSize = compressed.length;
+    const ratio = ((compSize / origSize) * 100).toFixed(1);
+    const saved = ((1 - compSize / origSize) * 100).toFixed(1);
+
+    document.getElementById('compSize').textContent = compSize.toLocaleString();
+    document.getElementById('ratio').textContent = ratio + '%';
+    document.getElementById('saved').textContent = saved + '%';
+  } catch(e) {
+    // ignore
+  }
+}
+
+function compress() {
+  const text = document.getElementById('inputText').value;
+  if (!text.trim()) {
+    showToast('⚠️ 请输入要压缩的文本');
+    return;
+  }
+
+  try {
+    const algo = document.getElementById('algorithm').value;
+    const fmt = document.getElementById('outputFormat').value;
+    const level = parseInt(document.getElementById('compressLevel').value);
+    lastAlgo = algo;
+    lastFormat = fmt;
+
+    const input = new TextEncoder().encode(text);
+    let compressed;
+    if (algo === 'gzip') {
+      compressed = pako.gzip(input, { level });
+    } else {
+      compressed = pako.deflate(input, { level });
+    }
+    lastCompressed = compressed;
+
+    let outputStr;
+    if (fmt === 'base64') {
+      outputStr = btoa(String.fromCharCode.apply(null, compressed));
+    } else {
+      outputStr = Array.from(compressed).map(b => b.toString(16).padStart(2, '0')).join(' ');
+    }
+
+    const outEl = document.getElementById('compressOutput');
+    outEl.style.display = 'block';
+    outEl.textContent = outputStr;
+    
+    // Update stats
+    const origSize = input.length;
+    const compSize = compressed.length;
+    document.getElementById('origSize').textContent = origSize.toLocaleString();
+    document.getElementById('compSize').textContent = compSize.toLocaleString();
+    document.getElementById('ratio').textContent = ((compSize/origSize)*100).toFixed(1) + '%';
+    document.getElementById('saved').textContent = ((1-compSize/origSize)*100).toFixed(1) + '%';
+    
+    showToast('✅ 压缩完成！' + ((1-compSize/origSize)*100).toFixed(1) + '% 空间节省');
+  } catch(e) {
+    showToast('❌ 压缩失败：' + e.message);
+  }
+}
+
+function decompress() {
+  const input = document.getElementById('decompressInput').value.trim();
+  if (!input) {
+    showToast('⚠️ 请输入要解压的数据');
+    return;
+  }
+
+  try {
+    const fmt = document.getElementById('decompressFormat').value;
+    const algo = document.getElementById('decompressAlgorithm').value;
+
+    let binary;
+    if (fmt === 'base64') {
+      const binaryStr = atob(input);
+      binary = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) {
+        binary[i] = binaryStr.charCodeAt(i);
+      }
+    } else {
+      const hexStr = input.replace(/\s+/g, '');
+      binary = new Uint8Array(hexStr.length / 2);
+      for (let i = 0; i < binary.length; i++) {
+        binary[i] = parseInt(hexStr.substr(i * 2, 2), 16);
+      }
+    }
+
+    let decompressed;
+    if (algo === 'gzip') {
+      decompressed = pako.ungzip(binary);
+    } else {
+      decompressed = pako.inflate(binary);
+    }
+
+    const text = new TextDecoder().decode(decompressed);
+    const outEl = document.getElementById('decompressOutput');
+    outEl.style.display = 'block';
+    outEl.textContent = text;
+
+    showToast('✅ 解压完成！已还原 ' + text.length + ' 字符');
+  } catch(e) {
+    const outEl = document.getElementById('decompressOutput');
+    outEl.style.display = 'block';
+    outEl.textContent = '❌ 解压失败：' + e.message + '\n\n请检查：\n1. 格式是否正确（Base64↔Base64， Hex↔Hex）\n2. 算法是否匹配（gzip↔gzip， deflate↔deflate）\n3. 数据是否完整未被截断';
+    showToast('❌ 解压失败');
+  }
+}
+
+function copyOutput() {
+  const outEl = document.getElementById('compressOutput');
+  if (outEl.style.display === 'none' || !outEl.textContent) {
+    showToast('⚠️ 请先压缩');
+    return;
+  }
+  navigator.clipboard.writeText(outEl.textContent).then(() => showToast('✅ 已复制'));
+}
+
+function clearAll() {
+  document.getElementById('inputText').value = '';
+  document.getElementById('compressOutput').style.display = 'none';
+  document.getElementById('compressOutput').textContent = '';
+  document.getElementById('origSize').textContent = '0';
+  document.getElementById('compSize').textContent = '0';
+  document.getElementById('ratio').textContent = '0%';
+  document.getElementById('saved').textContent = '0%';
+  showToast('已清空');
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+</script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -269,7 +544,12 @@ function clearAll() {
   showToast('已清空');
 }
 
-
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
 
 </script>
 </body>

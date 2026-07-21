@@ -95,7 +95,13 @@ textarea:focus,.text-input:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; ASCII艺术生成器</p>
 <div class="hero"><p>免费在线ASCII艺术生成器，将文字、图片转换为ASCII字符画。支持多种字体样式、自定义字符集、亮度调节。纯前端本地处理，数据不上传服务器。一键复制分享。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><!-- PLACEHOLDER: Tool-specific HTML + JS will be injected here -->
+<div><div class="section"><h1>🎨 ASCII艺术生成器
+  
+</h1>
+
+
+  
+  <!-- PLACEHOLDER: Tool-specific HTML + JS will be injected here -->
     <div class="input-section">
     <h2>📝 输入内容</h2>
     <div class="form-row">
@@ -196,161 +202,11 @@ textarea:focus,.text-input:focus{outline:none;border-color:rgba(6,182,212,.5)}
   <span class="rating-count" id="ratingCount"></span>
   <span class="rating-thanks" id="ratingThanks">Thanks for your rating!</span>
 </div>
-    </div>
-<div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/ascii-art/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div>
-  <div class="toast" id="toast"></div>
-</div>
-<script>
-const fontDefs={
-  standard:{A:'  A  \n A A \nAAAAA\nA   A\nA   A',B:'BBBB \nB   B\nBBBB \nB   B\nBBBB ',C:' CCCC\nC    \nC    \nC    \n CCCC',H:'H   H\nH   H\nHHHHH\nH   H\nH   H',E:'EEEEE\nE    \nEEEEE\nE    \nEEEEE',L:'L    \nL    \nL    \nL    \nLLLLL',O:' OOO \nO   O\nO   O\nO   O\n OOO '},
-  block:{A:'▗▄▄▄▖\n▐▛▀▜▌\n▐▌ ▐▌\n▐▙▄▟▌\n▐▌ ▐▌',B:'▗▄▄▄▖\n▐▛▀▜▌\n▐▙▄▟▌\n▐▛▀▜▌\n▐▙▄▟▌',H:'▐▌ ▐▌\n▐▌ ▐▌\n▐▙▄▟▌\n▐▌ ▐▌\n▐▌ ▐▌'},
-  lean:{A:' /\\ \n/__\\\n|  |\n|  |\n|  |',B:'|--\\\n|--/\n|---\\\n|--/\n|--/',H:'|  |\n|  |\n|--|\n|  |\n|  |'},
-  bubble:{A:' ╭╮ \n│██│\n╰╯╭╯\n╭╮│ \n╰╯╰╯',B:'╭╮╮ \n├╯│ \n├╮╯ \n├╯│ \n╰╯╯ '},
-  script:{A:'  𝒶  \n 𝒶 𝒶 \n𝒶𝒶𝒶𝒶𝒶\n𝒶   𝒶\n𝒶   𝒶',B:'𝒷𝒷𝒷 \n𝒷   𝒷\n𝒷𝒷𝒷 \n𝒷   𝒷\n𝒷𝒷𝒷 '},
-  squared:{A:'┏━━━┓\n┃▀▄▀┃\n┃ █ ┃\n┃▄▀▄┃\n┃   ┃',B:'┏━━━┓\n┃▀▄▀┃\n┃▄▀▄┃\n┃▀▄▀┃\n┗━━━┛'}
-};
-
-const charSets={
-  standard:'@%#*+=-:. ',
-  blocks:'█▓▒░ ',
-  detailed:'$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. '
-};
-let currentChars=charSets.standard;
-
-function getFontChar(c,style){return(fontDefs[style]||fontDefs.standard)[c.toUpperCase()]||c}
-function generateTextArt(){
-  const text=document.getElementById('textInput').value||'Hello';
-  const style=document.getElementById('fontStyle').value;
-  const lines=Array(5).fill('');
-  for(const ch of text){
-    const fc=getFontChar(ch,style).split('\n');
-    for(let i=0;i<5;i++)lines[i]+=(fc[i]||' '.repeat(fc[0]?.length||3))+' ';
-  }
-  document.getElementById('asciiPreview').textContent=lines.join('\n');
-}
-let imageData=null;
-function handleImage(file){
-  if(!file)return;
-  const reader=new FileReader();
-  reader.onload=function(e){
-    const img=new Image();
-    img.onload=function(){imageData=img;generateImageArt()};
-    img.src=e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-function generateImageArt(){
-  if(!imageData)return;
-  const w=parseInt(document.getElementById('imgWidth').value);
-  const h=Math.round(imageData.height*w/imageData.width/2);
-  const canvas=document.createElement('canvas');
-  canvas.width=w;canvas.height=h;
-  const ctx=canvas.getContext('2d');
-  ctx.drawImage(imageData,0,0,w,h);
-  const data=ctx.getImageData(0,0,w,h).data;
-  let result='';
-  for(let y=0;y<h;y++){
-    for(let x=0;x<w;x++){
-      const i=(y*w+x)*4;
-      const gray=(data[i]*0.299+data[i+1]*0.587+data[i+2]*0.114);
-      const idx=Math.floor(gray/255*(currentChars.length-1));
-      result+=currentChars[currentChars.length-1-idx]||' ';
-    }
-    result+='\n';
-  }
-  document.getElementById('asciiPreview').textContent=result;
-}
-function switchMode(){
-  const mode=document.getElementById('mode').value;
-  document.getElementById('textMode').style.display=mode==='text'?'block':'none';
-  document.getElementById('imageMode').style.display=mode==='image'?'block':'none';
-  if(mode==='text')generateTextArt();else generateImageArt();
-}
-function onCharSetChange(){
-  const v=document.getElementById('charSet').value;
-  document.getElementById('customCharRow').style.display=v==='custom'?'flex':'none';
-  currentChars=v==='custom'?(document.getElementById('customChars').value||'@%#'):charSets[v];
-  if(document.getElementById('mode').value==='image')generateImageArt();else generateTextArt();
-}
-function onCustomChange(){currentChars=document.getElementById('customChars').value;generateImageArt()}
-function copyResult(){
-  const text=document.getElementById('asciiPreview').textContent;
-  navigator.clipboard.writeText(text).then(()=>showToast('✅ 已复制'));
-}
-function downloadTxt(){
-  const text=document.getElementById('asciiPreview').textContent;
-  const blob=new Blob([text],{type:'text/plain'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ascii-art.txt';a.click();
-}
-const uz=document.getElementById('uploadZone');if(uz){['dragover','dragenter'].forEach(e=>{uz.addEventListener(e,ev=>{ev.preventDefault();uz.classList.add('dragover')})});['dragleave','drop'].forEach(e=>{uz.addEventListener(e,ev=>{ev.preventDefault();uz.classList.remove('dragover')})});uz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)handleImage(f)})}
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-generateTextArt();
-</script>
-<script>
-(function() {
-  const STORAGE_KEY = 'wt_rating_' + location.pathname.replace(/\//g, '_');
-  const AVG_KEY = 'wt_avg_' + location.pathname.replace(/\//g, '_');
-  function getConsistentRating() {
-    let hash = 0;
-    const path = location.pathname;
-    for (let i = 0; i < path.length; i++) { hash = ((hash << 5) - hash) + path.charCodeAt(i); hash = hash & hash; }
-    const ratings = [4.5, 4.6, 4.7, 4.8, 4.9, 4.4, 4.3];
-    const counts = [128, 256, 512, 89, 167, 234, 345, 178, 421, 156];
-    const rIdx = Math.abs(hash) % ratings.length;
-    const cIdx = Math.abs(hash >> 3) % counts.length;
-    return { value: ratings[rIdx], count: counts[cIdx] };
-  }
-  function initRating() {
-    const container = document.getElementById('starContainer');
-    const text = document.getElementById('ratingText');
-    const countEl = document.getElementById('ratingCount');
-    const thanks = document.getElementById('ratingThanks');
-    if (!container || !text) return;
-    const isCN = document.documentElement.lang === 'zh-CN';
-    const saved = localStorage.getItem(STORAGE_KEY);
-    let avgData;
-    try { avgData = JSON.parse(localStorage.getItem(AVG_KEY)); } catch(e) {}
-    if (!avgData) avgData = getConsistentRating();
-    const stars = container.querySelectorAll('.star');
-    function updateDisplay(value) {
-      stars.forEach((s, i) => { s.classList.toggle('active', i < Math.round(value)); });
-      text.textContent = (avgData.value || 4.5).toFixed(1) + '/5';
-      countEl.textContent = isCN ? '(' + (avgData.count || 128) + ' 人评分)' : '(' + (avgData.count || 128) + ' ratings)';
-    }
-    updateDisplay(saved ? parseInt(saved) : avgData.value);
-    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
-    stars.forEach(star => {
-      star.addEventListener('click', function() {
-        const val = parseInt(this.dataset.value);
-        localStorage.setItem(STORAGE_KEY, val);
-        updateDisplay(val);
-        thanks.style.display = 'inline';
-        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
-        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
-        current.count = (current.count || 128) + 1;
-        localStorage.setItem(AVG_KEY, JSON.stringify(current));
-      });
-      star.addEventListener('mouseenter', function() {
-        const val = parseInt(this.dataset.value);
-        stars.forEach((s, i) => s.classList.toggle('active', i < val));
-      });
-    });
-    container.addEventListener('mouseleave', function() { updateDisplay(saved ? parseInt(saved) : avgData.value); });
-  }
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initRating); }
-  else { initRating(); }
-})();
-</script>
-
-  <div class="faq-section">
-    <h2>常见问题 (FAQ)</h2>
-
-
-
-</div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
+    <div class="lang-switch">
+      <a href="#" class="active">中文</a>
+      <a href="../../en/ascii-art/">English</a>
+    </div></div></div>
+<div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 <div class="seo-content"></div>

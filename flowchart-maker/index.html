@@ -62,11 +62,314 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线流程图生成器</p>
 <div class="hero"><p>免费在线流程图生成器，拖拽创建专业流程图。支持多种节点类型，Canvas绘制，一键导出PNG。纯前端，无需注册。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🔀 流程图生成器</h1>
+    <div class="lang-switch">
+      <a href="index.html" class="active">中文</a>
+      <a href="../en/flowchart-maker/" class="active">EN</a>
+    </div>
+  </div>
+  <!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+  <div class="section">
+    <h2>💡 使用说明</h2>
+    <ul style="color:#94a3b8;font-size:.9rem;line-height:1.8;padding-left:20px">
+      <li>点击下方按钮添加不同类型的流程图节点。</li>
+      <li>拖拽节点调整位置，点击节点编辑文字内容。</li>
+      <li>节点之间自动连线，展示流程走向。</li>
+      <li>点击导出PNG保存流程图。所有数据本地处理。</li>
+    </ul>
+  </div>
+  <div class="section">
+
+  <h2>❓ 常见问题</h2>
+    <div style="margin-bottom:12px"><strong style="color:#f1f5f9;font-size:.95rem">可以连接多个节点吗？</strong><p style="color:#94a3b8;font-size:.85rem;margin-top:4px">节点按照添加顺序自动连线，从开始到结束形成完整流程。</p></div>
+    <div style="margin-bottom:12px"><strong style="color:#f1f5f9;font-size:.95rem">导出格式是什么？</strong><p style="color:#94a3b8;font-size:.85rem;margin-top:4px">导出为PNG图片格式，包含所有节点和连线。</p></div>
+  </div>
+</div>
+<script>
+const NODE_W = 140, NODE_H = 50;
+const NODE_W_DECISION = 120;
+let nodes = [];
+let dragIdx = -1, dragOffX = 0, dragOffY = 0;
+let editIdx = -1;
+
+const canvas = document.getElementById('flowCanvas');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('flowchartWrap');
+
+function resize() {
+    const w = wrap.clientWidth;
+    const h = Math.max(400, wrap.clientHeight);
+    canvas.width = w;
+    canvas.height = h;
+    draw();
+}
+resize();
+window.addEventListener('resize', resize);
+
+function addNode(type) {
+    const w = type === 'decision' ? NODE_W_DECISION : NODE_W;
+    const h = type === 'decision' ? NODE_W_DECISION : NODE_H;
+    const x = 20 + (nodes.length % 5) * (w + 30);
+    const y = 20 + Math.floor(nodes.length / 5) * (h + 60);
+    const label = type === 'start' ? '开始' :
+                  type === 'end' ? '结束' :
+                  type === 'decision' ? '条件？' :
+                  type === 'input' ? '输入/输出' :
+                  '处理';
+    nodes.push({ type, x, y, w, h, label, text: label });
+    draw();
+}
+
+function draw() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+
+    // Draw connections
+    for (let i = 0; i < nodes.length - 1; i++) {
+        const a = nodes[i], b = nodes[i+1];
+        const ax = a.x + (a.type === 'decision' ? a.w/2 : a.w/2);
+        const ay = a.y + (a.type === 'decision' ? a.w : a.h);
+        const bx = b.x + (b.type === 'decision' ? b.w/2 : b.w/2);
+        const by = b.y;
+
+        ctx.beginPath();
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 2;
+        ctx.moveTo(ax, ay);
+        const cy = (ay + by) / 2;
+        ctx.lineTo(ax, cy);
+        ctx.lineTo(bx, cy);
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+
+        // Arrow
+        ctx.beginPath();
+        ctx.fillStyle = '#64748b';
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx - 5, by - 10);
+        ctx.lineTo(bx + 5, by - 10);
+        ctx.fill();
+    }
+
+    // Draw nodes
+    for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i];
+        ctx.save();
+        ctx.shadowColor = editIdx === i ? 'rgba(6,182,212,.4)' : 'rgba(0,0,0,.1)';
+        ctx.shadowBlur = editIdx === i ? 12 : 4;
+
+        ctx.strokeStyle = editIdx === i ? '#06b6d4' : '#cbd5e1';
+        ctx.lineWidth = editIdx === i ? 2.5 : 1.5;
+
+        if (n.type === 'start' || n.type === 'end') {
+            // Rounded rect
+            const r = 25;
+            ctx.beginPath();
+            ctx.moveTo(n.x + r, n.y);
+            ctx.lineTo(n.x + n.w - r, n.y);
+            ctx.quadraticCurveTo(n.x + n.w, n.y, n.x + n.w, n.y + r);
+            ctx.lineTo(n.x + n.w, n.y + n.h - r);
+            ctx.quadraticCurveTo(n.x + n.w, n.y + n.h, n.x + n.w - r, n.y + n.h);
+            ctx.lineTo(n.x + r, n.y + n.h);
+            ctx.quadraticCurveTo(n.x, n.y + n.h, n.x, n.y + n.h - r);
+            ctx.lineTo(n.x, n.y + r);
+            ctx.quadraticCurveTo(n.x, n.y, n.x + r, n.y);
+            ctx.closePath();
+            ctx.fillStyle = n.type === 'start' ? '#dbeafe' : '#fce7f3';
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = n.type === 'start' ? '#1e40af' : '#9d174d';
+        } else if (n.type === 'decision') {
+            // Diamond
+            const cx = n.x + n.w/2, cy = n.y + n.w/2;
+            ctx.beginPath();
+            ctx.moveTo(cx, n.y);
+            ctx.lineTo(n.x + n.w, cy);
+            ctx.lineTo(cx, n.y + n.w);
+            ctx.lineTo(n.x, cy);
+            ctx.closePath();
+            ctx.fillStyle = '#fef3c7';
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#92400e';
+        } else if (n.type === 'input') {
+            // Parallelogram
+            const skew = 15;
+            ctx.beginPath();
+            ctx.moveTo(n.x + skew, n.y);
+            ctx.lineTo(n.x + n.w, n.y);
+            ctx.lineTo(n.x + n.w - skew, n.y + n.h);
+            ctx.lineTo(n.x, n.y + n.h);
+            ctx.closePath();
+            ctx.fillStyle = '#e0e7ff';
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#3730a3';
+        } else {
+            // Process
+            ctx.fillStyle = '#f1f5f9';
+            ctx.fillRect(n.x, n.y, n.w, n.h);
+            ctx.strokeRect(n.x, n.y, n.w, n.h);
+            ctx.fillStyle = '#334155';
+        }
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
+        ctx.font = '13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const cx = n.x + (n.type === 'decision' ? n.w/2 : n.w/2);
+        const cy2 = n.y + (n.type === 'decision' ? n.w/2 : n.h/2);
+        ctx.fillText(n.text || n.label, cx, cy2);
+        ctx.restore();
+    }
+}
+
+// Mouse/touch events
+function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (cx - rect.left) * scaleX, y: (cy - rect.top) * scaleY };
+}
+
+function hitTest(pos) {
+    for (let i = nodes.length - 1; i >= 0; i--) {
+        const n = nodes[i];
+        const ew = n.type === 'decision' ? n.w : n.w;
+        const eh = n.type === 'decision' ? n.w : n.h;
+        if (pos.x >= n.x && pos.x <= n.x + ew && pos.y >= n.y && pos.y <= n.y + eh) return i;
+    }
+    return -1;
+}
+
+canvas.addEventListener('mousedown', e => {
+    const pos = getPos(e);
+    const idx = hitTest(pos);
+    if (idx >= 0) {
+        dragIdx = idx;
+        dragOffX = pos.x - nodes[idx].x;
+        dragOffY = pos.y - nodes[idx].y;
+        editIdx = -1;
+    }
+});
+
+canvas.addEventListener('mousemove', e => {
+    if (dragIdx < 0) return;
+    const pos = getPos(e);
+    nodes[dragIdx].x = pos.x - dragOffX;
+    nodes[dragIdx].y = pos.y - dragOffY;
+    draw();
+});
+
+canvas.addEventListener('mouseup', () => { dragIdx = -1; });
+canvas.addEventListener('mouseleave', () => { dragIdx = -1; });
+
+canvas.addEventListener('dblclick', e => {
+    const pos = getPos(e);
+    const idx = hitTest(pos);
+    if (idx >= 0) {
+        const n = nodes[idx];
+        const newText = prompt('编辑文字:', n.text || n.label);
+        if (newText !== null) {
+            n.text = newText || n.label;
+            editIdx = idx;
+            draw();
+            setTimeout(() => { editIdx = -1; draw(); }, 2000);
+        }
+    }
+});
+
+// Touch support
+canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const pos = getPos(e);
+    const idx = hitTest(pos);
+    if (idx >= 0) {
+        dragIdx = idx;
+        dragOffX = pos.x - nodes[idx].x;
+        dragOffY = pos.y - nodes[idx].y;
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (dragIdx < 0) return;
+    const pos = getPos(e);
+    nodes[dragIdx].x = pos.x - dragOffX;
+    nodes[dragIdx].y = pos.y - dragOffY;
+    draw();
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => { dragIdx = -1; });
+
+function clearFlowchart() {
+    if (confirm('确定清空？')) {
+        nodes = [];
+        draw();
+    }
+}
+
+function exportFlowchart() {
+    if (nodes.length === 0) return;
+    const w = canvas.width, h = canvas.height;
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = w;
+    tempCanvas.height = h;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(canvas, 0, 0);
+    const link = document.createElement('a');
+    link.download = 'flowchart.png';
+    link.href = tempCanvas.toDataURL('image/png');
+    link.click();
+}
+
+// Add default nodes
+addNode('start');
+addNode('process');
+addNode('decision');
+addNode('end');
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-<div class="seo-content"></div>
+<div class="seo-content">
+    <h2>如何使用在线流程图生成器</h2>
+    <p>使用在线流程图生成器生成内容只需三个简单步骤：</p>
+    <ol style="padding-left:20px;margin-top:12px">
+
+      <li style="margin-bottom:16px">
+        <strong>配置参数</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">根据需要调整生成参数，如长度、复杂度、样式或数量。每个选项都有清晰的说明。</span>
+      </li>
+
+      <li style="margin-bottom:16px">
+        <strong>点击生成</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">点击"生成"按钮创建内容。工具会立即处理您的偏好设置并在浏览器中生成结果，无需等待服务器响应。</span>
+      </li>
+
+      <li style="margin-bottom:16px">
+        <strong>复制或下载结果</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">查看生成结果，点击"复制"复制到剪贴板，或点击"下载"保存为文件。可以无限次生成，没有使用限制。</span>
+      </li>
+
+    </ol>
+  </div>
 <div class="section"><h2>常见问题</h2></div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 </div>

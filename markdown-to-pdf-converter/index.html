@@ -116,7 +116,97 @@ table.data td{color:#cbd5e1}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线Markdown转PDF转换器</p>
 <div class="hero"><p>免费在线Markdown转PDF转换器，快速将Markdown文本转为PDF。支持标题、代码块、表格等语法，实时预览，纯前端处理。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>📄 Markdown转PDF转换器</h1>
+    <div class="lang-switch"><a href="../en/markdown-to-pdf-converter/">EN</a><a href="./" class="active">中文</a></div>
+  </div>
+  <!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+  <div id="app"></div>
+  <div class="info-section" id="usage">
+    <h2>使用说明</h2>
+    <div id="usageContent"></div>
+  </div>
+</div>
+<script>
+(function(){
+var app=document.getElementById('app');
+app.innerHTML='<div class="input-section"><h2>📝 输入Markdown</h2><textarea id="mdInput" rows="10" placeholder="在此输入Markdown文本..."># Markdown转PDF\n\n## 功能特点\n\n- 支持**粗体**、*斜体*、~~删除线~~\n- 支持代码块 `inline` 和 ```block```\n- 支持表格\n\n```javascript\nconsole.log("Hello PDF!");\n```\n\n| 功能 | 支持 |\n|------|------|\n| 标题 | ✅ |\n| 列表 | ✅ |\n| 代码 | ✅ |\n</textarea><div class="options"><label>纸张大小</label><select id="paperSize"><option value="A4">A4</option><option value="Letter">Letter</option><option value="Legal">Legal</option></select></div><div class="btn-row"><button class="btn btn-primary" id="previewBtn">👁️ 预览</button><button class="btn btn-success" id="pdfBtn">📄 导出PDF</button></div></div><div class="result-section" id="previewSection"><h2>👁️ 预览</h2><div id="mdPreview" style="background:#fff;color:#1e293b;padding:24px;border-radius:8px;line-height:1.8;font-size:14px"></div></div>';
+document.getElementById('usageContent').innerHTML='<p>在输入框中输入Markdown文本，点击"预览"查看渲染效果，点击"导出PDF"下载PDF文件。</p><p>支持常见Markdown语法：标题、粗体/斜体、列表、代码块、表格、链接、图片等。纯前端处理，数据不上传服务器。</p>';
+
+function renderMD(md){
+  var html=md;
+  html=html.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  html=html.replace(/```(\w*)\\n([\\s\\S]*?)```/g,function(m,lang,code){return '<pre><code class="lang-'+lang+'">'+code.trim()+'</code></pre>';});
+  html=html.replace(/`([^`]+)`/g,'<code>$1</code>');
+  html=html.replace(/^### (.+)$/gm,'<h3>$1</h3>');
+  html=html.replace(/^## (.+)$/gm,'<h2>$1</h2>');
+  html=html.replace(/^# (.+)$/gm,'<h1>$1</h1>');
+  html=html.replace(/\\*\\*(.+?)\\*\\*/g,'<strong>$1</strong>');
+  html=html.replace(/\\*(.+?)\\*/g,'<em>$1</em>');
+  html=html.replace(/~~(.+?)~~/g,'<del>$1</del>');
+  html=html.replace(/^\\|(.+)\\|$/gm,function(m,row){
+    var cells=row.split('|').map(function(c){return c.trim();});
+    if(cells.every(function(c){return /^[-:]+$/.test(c);})) return '<hr>';
+    return '<tr>'+cells.map(function(c){return '<td>'+c+'</td>';}).join('')+'</tr>';
+  });
+  html=html.replace(/<tr>.*?<\\/tr>\\n<hr>\\n/g,function(m){return m.replace('<hr>','');});
+  html=html.replace(/(<tr>.*?<\\/tr>\\n?)+/g,function(m){return '<table>'+m+'</table>';});
+  html=html.replace(/^- (.+)$/gm,'<li>$1</li>');
+  html=html.replace(/(<li>.*?<\\/li>\\n?)+/g,function(m){return '<ul>'+m+'</ul>';});
+  html=html.replace(/^\\d+\\. (.+)$/gm,'<li>$1</li>');
+  html=html.replace(/^(?!<[houplt]|\\s*$)(.+)$/gm,'<p>$1</p>');
+  html=html.replace(/\\n\\n/g,'\\n');
+  return html;
+}
+
+document.getElementById('previewBtn').addEventListener('click',function(){
+  var md=document.getElementById('mdInput').value;
+  document.getElementById('mdPreview').innerHTML=renderMD(md);
+  document.getElementById('previewSection').classList.add('show');
+});
+
+document.getElementById('pdfBtn').addEventListener('click',function(){
+  var md=document.getElementById('mdInput').value;
+  var paper=document.getElementById('paperSize').value;
+  var html=renderMD(md);
+  var style='<style>body{font-family:Georgia,serif;padding:40px;line-height:1.8;color:#1e293b}h1{font-size:24px;border-bottom:2px solid #e2e8f0;padding-bottom:8px}h2{font-size:20px}h3{font-size:16px}pre{background:#f8fafc;padding:12px;border-radius:4px;overflow-x:auto;font-size:13px}code{background:#f1f5f9;padding:2px 6px;border-radius:3px;font-size:13px}table{border-collapse:collapse;width:100%;margin:12px 0}th,td{border:1px solid #e2e8f0;padding:8px 12px;text-align:left}th{background:#f8fafc}ul,ol{padding-left:24px}li{margin:4px 0}p{margin:8px 0}img{max-width:100%}</style>';
+  var full='<html><head><meta charset="utf-8">'+style+'
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "首页",
+      "item": "https://free-toolbase.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "在线工具",
+      "item": "https://free-toolbase.com/#online-tools"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Markdown转PDF转换器",
+      "item": "https://free-toolbase.com/markdown-to-pdf-converter/"
+    }
+  ],
+  "name": "Markdown转PDF转换器"
+}</script>
+</head><body>'+html+'<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

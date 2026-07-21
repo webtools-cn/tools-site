@@ -71,7 +71,12 @@ input[type="number"]{width:100%;padding:10px 12px;background:#0f172a;color:#e2e8
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 批量网址打开器</p>
 <div class="hero"><p>免费在线批量网址打开器，一键同时打开多个URL链接。支持每行一个URL、自定义打开延迟、去重和URL验证。适用于SEO优化、网站检查、问卷调查等场景，纯前端本地处理。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div>
+<div><div class="section"><h1>批量网址打开器</h1>
+    <div class="lang-switch">
+      <a href="index.html" class="active">中文</a>
+      <a href="../en/bulk-url-opener/">EN</a>
+    </div>
+  </div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -79,8 +84,6 @@ input[type="number"]{width:100%;padding:10px 12px;background:#0f172a;color:#e2e8
     Updated: 2026-07-11
   </span>
 </div>
-  <div class="ad-slot" style="margin:16px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-
   <div class="input-section">
     <h2>🔗 输入URL列表</h2>
     <label for="urlInput">每行一个URL</label>
@@ -142,197 +145,7 @@ https://twitter.com</textarea>
     <h3>设置延迟有什么用？</h3>
     <p>延迟可以防止浏览器因瞬间打开大量标签页而崩溃。同时也避免被目标网站识别为恶意访问。建议设置为1-3秒。</p>
     <h3>支持带端口的URL吗？</h3>
-    <p>支持。工具不会修改URL中的端口号（如 http://localhost:3000 会原样打开）。同时支持带路径、查询参数和锚点的URL。</p>
-  </div>
-
-  <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-
-  <div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/bulk-url-opener/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div>
-</div>
-
-<script>
-(function(){
-  var urlInput = document.getElementById('urlInput');
-  var openBtn = document.getElementById('openBtn');
-  var clearBtn = document.getElementById('clearBtn');
-  var exampleBtn = document.getElementById('exampleBtn');
-  var delayInput = document.getElementById('delayInput');
-  var dedupCheck = document.getElementById('dedupCheck');
-  var validateCheck = document.getElementById('validateCheck');
-  var resultSection = document.getElementById('resultSection');
-  var totalCount = document.getElementById('totalCount');
-  var validCount = document.getElementById('validCount');
-  var dupCount = document.getElementById('dupCount');
-  var invalidCount = document.getElementById('invalidCount');
-  var statusMsg = document.getElementById('statusMsg');
-  var urlListContainer = document.getElementById('urlListContainer');
-  var stopBtn = document.getElementById('stopBtn');
-
-  var isStopped = false;
-  var openTimer = null;
-
-  var examples = [
-    'https://github.com\nhttps://stackoverflow.com\nhttps://news.ycombinator.com\nhttps://www.reddit.com\nhttps://twitter.com',
-    'https://www.google.com\nhttps://www.youtube.com\nhttps://www.facebook.com\nhttps://www.amazon.com\nhttps://www.wikipedia.org\nhttps://www.linkedin.com\nhttps://www.instagram.com\nhttps://www.netflix.com',
-    'https://free-toolbase.com/\nhttps://free-toolbase.com/en/'
-  ];
-  var exampleIndex = 0;
-
-  function normalizeUrl(url) {
-    url = url.trim();
-    if (!url) return null;
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    if (url.startsWith('//')) return 'https:' + url;
-    if (url.startsWith('www.')) return 'https://' + url;
-    return 'https://' + url;
-  }
-
-  function isValidUrl(url) {
-    try {
-      var u = new URL(url);
-      return u.protocol === 'http:' || u.protocol === 'https:';
-    } catch(e) { return false; }
-  }
-
-  function analyze() {
-    var raw = urlInput.value.split('\n').map(function(s){return s.trim();}).filter(Boolean);
-    var normalized = [];
-    var dupSet = {};
-    var invalidUrls = [];
-
-    raw.forEach(function(url) {
-      var nu = normalizeUrl(url);
-      if (!nu) return;
-      if (validateCheck.checked && !isValidUrl(nu)) {
-        invalidUrls.push(url);
-        return;
-      }
-      if (dedupCheck.checked) {
-        var key = nu.toLowerCase();
-        if (dupSet[key]) return;
-        dupSet[key] = true;
-      }
-      normalized.push(nu);
-    });
-
-    var dups = raw.length - normalized.length - invalidUrls.length;
-    if (dups < 0) dups = 0;
-
-    return {
-      raw: raw.length,
-      valid: normalized.length,
-      dups: dups,
-      invalid: invalidUrls.length,
-      urls: normalized
-    };
-  }
-
-  function displayStats(data) {
-    totalCount.textContent = data.raw;
-    validCount.textContent = data.valid;
-    dupCount.textContent = data.dups;
-    invalidCount.textContent = data.invalid;
-    resultSection.classList.add('show');
-
-    urlListContainer.innerHTML = '';
-    data.urls.forEach(function(url) {
-      var div = document.createElement('div');
-      div.className = 'url-item';
-      div.textContent = url;
-      urlListContainer.appendChild(div);
-    });
-  }
-
-  function openUrls(urls, delay) {
-    if (urls.length === 0) {
-      statusMsg.textContent = '没有有效的URL可以打开';
-      stopBtn.style.display = 'none';
-      return;
-    }
-
-    isStopped = false;
-    stopBtn.style.display = 'inline-block';
-    var index = 0;
-
-    function openNext() {
-      if (isStopped || index >= urls.length) {
-        statusMsg.textContent = isStopped ? '⏹ 已停止' : '✅ 已全部打开 ' + urls.length + ' 个URL';
-        stopBtn.style.display = 'none';
-        return;
-      }
-      statusMsg.textContent = '正在打开 (' + (index + 1) + '/' + urls.length + '): ' + urls[index];
-      window.open(urls[index], '_blank');
-      index++;
-      openTimer = setTimeout(openNext, delay * 1000);
-    }
-
-    openNext();
-  }
-
-  openBtn.addEventListener('click', function() {
-    var data = analyze();
-    displayStats(data);
-    if (data.valid === 0) {
-      statusMsg.textContent = '⚠️ 没有有效的URL';
-      return;
-    }
-    var delay = parseFloat(delayInput.value) || 1;
-    openUrls(data.urls, delay);
-  });
-
-  stopBtn.addEventListener('click', function() {
-    isStopped = true;
-    if (openTimer) { clearTimeout(openTimer); openTimer = null; }
-    statusMsg.textContent = '⏹ 已停止';
-    stopBtn.style.display = 'none';
-  });
-
-  clearBtn.addEventListener('click', function() {
-    urlInput.value = '';
-    resultSection.classList.remove('show');
-    isStopped = true;
-    if (openTimer) { clearTimeout(openTimer); openTimer = null; }
-  });
-
-  exampleBtn.addEventListener('click', function() {
-    urlInput.value = examples[exampleIndex % examples.length];
-    exampleIndex++;
-    resultSection.classList.remove('show');
-  });
-
-  urlInput.value = examples[0];
-})();
-</script>
-
-<!-- Feedback -->
-<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
-<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3)">💬</button>
-<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈</span><button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button></div>
-<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none"><option value="feedback">💡 功能建议</option><option value="bug">🐛 报告问题</option><option value="other">💬 其他</option></select>
-<textarea id="feedback-text" placeholder="描述您的建议或问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span><button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer">提交</button></div>
-<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
-</div></div>
-<script>
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;const text=document.getElementById('feedback-text').value.trim();
-if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 报告问题',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\\n**类型**: '+typeLabel+'\\n\\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);}
-</script>
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section"><div class="related-tools-loading">加载推荐工具中...</div></div>
-<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
+    <p>支持。工具不会修改URL中的端口号（如 http://localhost:3000 会原样打开）。同时支持带路径、查询参数和锚点的URL。</p></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

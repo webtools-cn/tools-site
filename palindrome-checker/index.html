@@ -83,7 +83,316 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线回文检查器</p>
 <div class="hero"><p>免费在线回文检查器，快速判断一个字符串是否为回文（正着读反着读都一样）。支持中英文、忽略空格标点、大小写不敏感。高亮显示匹配字符，找出文本中的最长回文。纯前端本地处理，数据不上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>📝 回文检查器</h1>
+    <div class="lang-switch">
+      <a href="index.html" class="active">中文</a>
+      <a href="../en/palindrome-checker/index.html">EN</a>
+    </div>
+  </div>
+  <!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+
+  <div class="card">
+    <h2>✏️ 输入文本</h2>
+    <div class="form-group">
+      <label for="textInput">输入要检测的文本</label>
+      <textarea id="textInput" placeholder="输入字符串，例如：上海自来水来自海上 或 A man a plan a canal Panama"></textarea>
+    </div>
+    <div class="options-row">
+      <label class="option-check"><input type="checkbox" id="ignoreCase" checked> 忽略大小写</label>
+      <label class="option-check"><input type="checkbox" id="ignoreSpaces" checked> 忽略空格</label>
+      <label class="option-check"><input type="checkbox" id="ignorePunctuation" checked> 忽略标点符号</label>
+    </div>
+    <div class="quick-btns">
+      <button class="quick-btn" onclick="setExample('上海自来水来自海上')">上海自来水来自海上</button>
+      <button class="quick-btn" onclick="setExample('A man a plan a canal Panama')">Panama Canal</button>
+      <button class="quick-btn" onclick="setExample('racecar')">racecar</button>
+      <button class="quick-btn" onclick="setExample('Never odd or even')">Never odd or even</button>
+      <button class="quick-btn" onclick="setExample('Was it a car or a cat I saw')">Was it a car...</button>
+      <button class="quick-btn" onclick="setExample('hello world')">不是回文</button>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="checkPalindrome()">🔍 检测</button>
+      <button class="btn btn-secondary" onclick="clearAll()">清空</button>
+    </div>
+  </div>
+
+  <div id="resultSection" style="display:none">
+    <div class="card">
+      <h2>📊 检测结果</h2>
+      <div class="result-status" id="resultStatus">
+        <span class="icon" id="resultIcon"></span>
+        <span id="resultText"></span>
+      </div>
+      <div class="highlight-box" id="highlightBox"></div>
+      <div class="stats-grid">
+        <div class="stat-item"><div class="stat-value" id="statLength">0</div><div class="stat-label">原始长度</div></div>
+        <div class="stat-item"><div class="stat-value" id="statCleaned">0</div><div class="stat-label">清洗后长度</div></div>
+        <div class="stat-item"><div class="stat-value" id="statMatch">0</div><div class="stat-label">匹配字符数</div></div>
+      </div>
+      <div class="longest-section">
+        <div style="font-size:.82rem;color:#94a3b8;margin-top:10px;margin-bottom:4px">🔍 最长回文子串：</div>
+        <div class="longest-result" id="longestResult">-</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📖 什么是回文？</h2>
+    <div class="knowledge-grid">
+      <div class="knowledge-item"><h4>定义</h4><p>回文是指正着读和反着读都一样的字符串，忽略空格、标点和大小写</p></div>
+      <div class="knowledge-item"><h4>中文回文</h4><p>"上海自来水来自海上"、"黄山落叶松叶落山黄"、"人人为我我为人人"</p></div>
+      <div class="knowledge-item"><h4>英文回文</h4><p>"racecar"、"madam"、"A man, a plan, a canal, Panama"</p></div>
+      <div class="knowledge-item"><h4>编程应用</h4><p>面试经典题目、字符串算法、DNA序列分析、数据校验</p></div>
+    </div>
+  </div>
+</div>
+<script>
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show')},2000);
+}
+
+function setExample(text){
+  document.getElementById('textInput').value=text;
+  checkPalindrome();
+}
+
+function clearAll(){
+  document.getElementById('textInput').value='';
+  document.getElementById('resultSection').style.display='none';
+}
+
+function isPalindrome(str, ignoreCase, ignoreSpaces, ignorePunctuation){
+  var s = str;
+  if(ignoreCase) s = s.toLowerCase();
+  if(ignoreSpaces) s = s.replace(/\s+/g, '');
+  if(ignorePunctuation) s = s.replace(/[\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-.\/:;<=>?@\[\]^_`{|}~，。、；：？！""''（）【】《》〈〉「」『』〔〕〖〗〘〙〚〛〜～·…—–′″‴]/g, '');
+
+  if(s.length <= 1) return {result: s.length === 1 || s.length === 0, cleaned: s, matchCount: s.length};
+
+  var matchCount = 0;
+  var left = 0, right = s.length - 1;
+  while(left < right){
+    if(s[left] === s[right]) matchCount += 2;
+    left++;
+    right--;
+  }
+  if(left === right) matchCount++;
+
+  var isPal = true;
+  var i = 0, j = s.length - 1;
+  while(i < j){
+    if(s[i] !== s[j]){
+      isPal = false;
+      break;
+    }
+    i++;
+    j--;
+  }
+
+  return {result: isPal, cleaned: s, matchCount: matchCount};
+}
+
+// 双指针高亮显示匹配/不匹配
+function buildHighlightHTML(original, cleaned, ignoreCase, ignoreSpaces, ignorePunctuation){
+  // 构建原文本中每个字符的映射
+  var chars = [];
+  for(var i = 0; i < original.length; i++){
+    var ch = original[i];
+    if(/[\s]/.test(ch)) {
+      chars.push({ch: ch, type: 'skip'});
+    } else if(/[\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-.\/:;<=>?@\[\]^_`{|}~，。、；：？！""''（）【】《》〈〉「」『』〔〕〖〗〘〙〚〛〜～·…—–′″‴]/.test(ch)) {
+      chars.push({ch: ch, type: 'skip'});
+    } else {
+      chars.push({ch: ch, type: 'char'});
+    }
+  }
+
+  // 构建清洗后的字符序列
+  var cleanChars = [];
+  for(var i = 0; i < original.length; i++){
+    if(chars[i].type === 'char') {
+      var c = ignoreCase ? original[i].toLowerCase() : original[i];
+      cleanChars.push({origIdx: i, ch: c});
+    }
+  }
+
+  var n = cleanChars.length;
+  var halfLen = Math.floor(n / 2);
+  var matches = new Array(n).fill(false);
+  for(var i = 0; i < halfLen; i++){
+    var j = n - 1 - i;
+    if(cleanChars[i].ch === cleanChars[j].ch){
+      matches[i] = true;
+      matches[j] = true;
+    }
+  }
+  if(n % 2 === 1) matches[halfLen] = true; // middle char always matches
+
+  var result = '';
+  for(var i = 0; i < original.length; i++){
+    if(chars[i].type === 'skip') {
+      result += '<span class="hl-skip">' + escapeHtml(original[i]) + '</span>';
+    } else {
+      // find which cleanChar index this maps to
+      var cleanIdx = -1;
+      for(var k = 0; k < cleanChars.length; k++){
+        if(cleanChars[k].origIdx === i) {
+          cleanIdx = k;
+          break;
+        }
+      }
+      if(cleanIdx >= 0 && matches[cleanIdx]){
+        result += '<span class="hl-match">' + escapeHtml(original[i]) + '</span>';
+      } else if(cleanIdx >= 0) {
+        result += '<span class="hl-mismatch">' + escapeHtml(original[i]) + '</span>';
+      } else {
+        result += escapeHtml(original[i]);
+      }
+    }
+  }
+  return result;
+}
+
+function escapeHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// 最长回文子串（Manacher算法）
+function longestPalindromicSubstring(s){
+  if(!s || s.length === 0) return '';
+  // 插入分隔符
+  var t = '^#' + s.split('').join('#') + '#$';
+  var n = t.length;
+  var p = new Array(n).fill(0);
+  var center = 0, right = 0;
+  for(var i = 1; i < n - 1; i++){
+    var mirror = 2 * center - i;
+    if(right > i) p[i] = Math.min(right - i, p[mirror]);
+    while(t[i + 1 + p[i]] === t[i - 1 - p[i]]) p[i]++;
+    if(i + p[i] > right){
+      center = i;
+      right = i + p[i];
+    }
+  }
+  var maxLen = 0, centerIdx = 0;
+  for(var i = 1; i < n - 1; i++){
+    if(p[i] > maxLen){
+      maxLen = p[i];
+      centerIdx = i;
+    }
+  }
+  var start = Math.floor((centerIdx - maxLen) / 2);
+  return s.substring(start, start + maxLen);
+}
+
+function checkPalindrome(){
+  var input = document.getElementById('textInput').value;
+  if(!input.trim()){
+    showToast('请输入文本');
+    return;
+  }
+
+  var ignoreCase = document.getElementById('ignoreCase').checked;
+  var ignoreSpaces = document.getElementById('ignoreSpaces').checked;
+  var ignorePunctuation = document.getElementById('ignorePunctuation').checked;
+
+  var result = isPalindrome(input, ignoreCase, ignoreSpaces, ignorePunctuation);
+
+  // 构建高亮HTML
+  var hlHtml = buildHighlightHTML(input, result.cleaned, ignoreCase, ignoreSpaces, ignorePunctuation);
+
+  // 显示结果
+  document.getElementById('resultSection').style.display = 'block';
+
+  var statusEl = document.getElementById('resultStatus');
+  var iconEl = document.getElementById('resultIcon');
+  var textEl = document.getElementById('resultText');
+
+  statusEl.className = 'result-status ' + (result.result ? 'is-palindrome' : 'not-palindrome');
+  iconEl.textContent = result.result ? '✅' : '❌';
+  textEl.textContent = result.result
+    ? '是回文！该字符串正着读和反着读完全一致。'
+    : '不是回文。该字符串正反读不一致。';
+
+  document.getElementById('highlightBox').innerHTML = hlHtml;
+  document.getElementById('statLength').textContent = input.length;
+  document.getElementById('statCleaned').textContent = result.cleaned.length;
+
+  var matchCount = 0;
+  for(var i = 0; i < Math.floor(result.cleaned.length / 2); i++){
+    if(result.cleaned[i] === result.cleaned[result.cleaned.length - 1 - i]) matchCount += 2;
+  }
+  if(result.cleaned.length % 2 === 1) matchCount++;
+  document.getElementById('statMatch').textContent = matchCount;
+
+  // 最长回文子串
+  var cleaned = result.cleaned;
+  var longest = '';
+  if(cleaned.length > 0){
+    longest = longestPalindromicSubstring(cleaned);
+  }
+  document.getElementById('longestResult').textContent = longest || '(无)';
+}
+
+// Enter键触发检测
+document.getElementById('textInput').addEventListener('keydown', function(e){
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    checkPalindrome();
+  }
+});
+</script>
+
+<!-- 反馈收集 -->
+<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
+<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
+<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
+<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
+</div>
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
+<option value="feedback">💡 功能建议</option>
+<option value="bug">🐛 问题反馈</option>
+<option value="other">💬 其他</option>
+</select>
+<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
+<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
+</div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
+</div>
+</div>
+<script>
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){
+const type=document.getElementById('feedback-type').value;
+const text=document.getElementById('feedback-text').value.trim();
+if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
+const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
+const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
+}
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

@@ -81,14 +81,334 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线图片转素描画</p>
 <div class="hero"><p>免费在线图片转素描画工具，一键将照片转换为逼真的铅笔素描效果。支持强度调节、实时预览、高分辨率导出。纯前端Canvas处理，数据不上传服务器，保护隐私。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🖼️ 图片转素描画</h1>
+    <div class="lang-switch">
+      <a href="/tools-site/image-to-sketch/" class="active">中文</a>
+      <a href="/tools-site/en/image-to-sketch/">English</a>
+    </div>
+  </div>
+  <!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+
+  <!-- Upload Zone -->
+  <div class="upload-zone" id="uploadZone">
+    <div class="icon">🎨</div>
+    <p><strong>点击上传图片</strong> 或拖拽图片到此处</p>
+    <p style="font-size:.8rem;color:#64748b;margin-top:4px">支持 JPG / PNG / WebP / BMP</p>
+    <input type="file" id="fileInput" accept="image/*">
+  </div>
+
+  <!-- Preview Section -->
+  <div class="preview-section" id="previewSection">
+    <h2>📸 效果对比</h2>
+    <div class="compare-container">
+      <div class="img-wrap">
+        <img id="originalImg" src="" alt="原图" style="display:none">
+        <div class="label">原图</div>
+      </div>
+      <div class="img-wrap">
+        <canvas id="sketchCanvas"></canvas>
+        <div class="label">素描效果</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-section" id="controlsSection">
+    <h2>⚙️ 调节参数</h2>
+    <div class="control-group">
+      <label>素描强度: <span class="range-value" id="intensityVal">5</span></label>
+      <input type="range" id="intensity" min="1" max="10" value="5" step="0.5">
+    </div>
+    <div class="control-group">
+      <label>对比度增强: <span class="range-value" id="contrastVal">0</span></label>
+      <input type="range" id="contrast" min="-50" max="50" value="0" step="1">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-success" onclick="downloadSketch()">📥 下载素描图</button>
+      <button class="btn btn-secondary" onclick="resetImage()">🔄 重新选择</button>
+    </div>
+  </div>
+
+  <!-- Info Section -->
+  <div class="info-section">
+    <h2>📖 使用说明</h2>
+    <p>本工具使用经典图像算法将您的照片转换为铅笔素描效果：</p>
+    <ul>
+      <li><strong>一键转换</strong> - 上传照片自动生成素描效果</li>
+      <li><strong>强度可调</strong> - 通过滑块控制素描的浓淡程度</li>
+      <li><strong>对比度控制</strong> - 增强线条轮廓的清晰度</li>
+      <li><strong>实时预览</strong> - 调节参数即时看到效果变化</li>
+      <li><strong>高清晰度</strong> - 保持原始分辨率，输出PNG无损格式</li>
+      <li><strong>隐私安全</strong> - 纯前端处理，图片不上传服务器</li>
+    </ul>
+    <h3>适用场景</h3>
+    <p>适合将人物肖像、风景照片、建筑摄影等转换成艺术素描效果，可用于社交媒体头像、创意海报、个性礼物、艺术创作等。</p>
+  </div>
+
+  <!-- FAQ -->
+  <div class="info-section">
+
+  <h2>❓ 常见问题</h2>
+    <div class="faq-item">
+      <h3>图片转素描效果是如何实现的？</h3>
+      <p>本工具使用经典的图像处理算法：先将彩色图片转换为灰度图，然后创建一个反向模糊层，最后通过颜色减淡（Dodge）混合模式叠加，产生逼真的铅笔素描效果。所有处理均在浏览器本地完成。</p>
+    </div>
+    <div class="faq-item">
+      <h3>如何获得更好的素描效果？</h3>
+      <p>建议使用高对比度、轮廓清晰的照片。人物肖像、建筑风景、动物照片效果最佳。通过调整「素描强度」滑块可以控制效果的浓淡程度。</p>
+    </div>
+    <div class="faq-item">
+      <h3>转换后图片分辨率会降低吗？</h3>
+      <p>不会。转换后的图片保持原始分辨率不变，输出为PNG无损格式，适用于打印、社交媒体分享等多种场景。</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const uploadZone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('fileInput');
+  const originalImg = document.getElementById('originalImg');
+  const sketchCanvas = document.getElementById('sketchCanvas');
+  const previewSection = document.getElementById('previewSection');
+  const controlsSection = document.getElementById('controlsSection');
+  const intensityInput = document.getElementById('intensity');
+  const intensityVal = document.getElementById('intensityVal');
+  const contrastInput = document.getElementById('contrast');
+  const contrastVal = document.getElementById('contrastVal');
+
+  let currentFile = null;
+  let imgLoaded = false;
+
+  // Upload zone handlers
+  uploadZone.addEventListener('click', () => fileInput.click());
+  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('drop', (e) => { e.preventDefault(); uploadZone.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+  fileInput.addEventListener('change', (e) => { if(e.target.files[0]) handleFile(e.target.files[0]); });
+
+  function handleFile(file){
+    if(!file.type.startsWith('image/')) return;
+    currentFile = file;
+    const reader = new FileReader();
+    reader.onload = function(e){
+      originalImg.onload = function(){
+        imgLoaded = true;
+        processSketch();
+        previewSection.style.display = 'block';
+        controlsSection.style.display = 'block';
+        uploadZone.style.display = 'none';
+      };
+      originalImg.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function processSketch(){
+    if(!imgLoaded) return;
+    const intensity = parseFloat(intensityInput.value);
+    const contrast = parseFloat(contrastInput.value);
+
+    const w = originalImg.naturalWidth;
+    const h = originalImg.naturalHeight;
+    const maxDim = 1200;
+    let sw = w, sh = h;
+    if(w > maxDim || h > maxDim){
+      const ratio = Math.min(maxDim/w, maxDim/h);
+      sw = Math.round(w * ratio);
+      sh = Math.round(h * ratio);
+    }
+
+    sketchCanvas.width = sw;
+    sketchCanvas.height = sh;
+
+    const ctx = sketchCanvas.getContext('2d');
+    ctx.drawImage(originalImg, 0, 0, sw, sh);
+
+    // Get image data
+    const imageData = ctx.getImageData(0, 0, sw, sh);
+    const data = imageData.data;
+
+    // Step 1: Grayscale + optional contrast
+    for(let i = 0; i < data.length; i += 4){
+      let r = data[i], g = data[i+1], b = data[i+2];
+      // Luminosity grayscale
+      let gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+      // Apply contrast
+      if(contrast !== 0){
+        const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+        gray = Math.min(255, Math.max(0, Math.round(factor * (gray - 128) + 128)));
+      }
+      data[i] = gray;
+      data[i+1] = gray;
+      data[i+2] = gray;
+    }
+    ctx.putImageData(imageData, 0, 0);
+
+    // Step 2: Create inverted blur for sketch effect
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = sw;
+    tempCanvas.height = sh;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(sketchCanvas, 0, 0);
+
+    // Apply blur to temp canvas
+    const blurRadius = Math.max(1, Math.round((11 - intensity) * 1.5));
+    tempCtx.filter = `blur(${blurRadius}px)`;
+    tempCtx.drawImage(sketchCanvas, 0, 0);
+    tempCtx.filter = 'none';
+
+    // Step 3: Dodge blend (inverted blur + original = sketch)
+    const tempData = tempCtx.getImageData(0, 0, sw, sh);
+    const tData = tempData.data;
+    const resultData = ctx.getImageData(0, 0, sw, sh);
+    const rData = resultData.data;
+
+    const blendFactor = intensity / 5;
+
+    for(let i = 0; i < rData.length; i += 4){
+      const gray = rData[i]; // Original grayscale value
+      let blur = tData[i];   // Blurred value
+      let invertedBlur = 255 - blur;
+
+      // Dodge blend: result = min(gray + (gray * invertedBlur) / (256 - invertedBlur || 1), 255)
+      let result;
+      if(invertedBlur === 0){
+        result = gray;
+      } else if(invertedBlur >= 255){
+        result = 255;
+      } else {
+        const dodge = (gray * 255) / (256 - invertedBlur);
+        result = gray * (1 - blendFactor * 0.3) + dodge * (blendFactor * 0.3);
+        result = Math.min(255, Math.max(0, Math.round(result)));
+      }
+
+      rData[i] = result;
+      rData[i+1] = result;
+      rData[i+2] = result;
+    }
+    ctx.putImageData(resultData, 0, 0);
+  }
+
+  // Event listeners
+  intensityInput.addEventListener('input', function(){
+    intensityVal.textContent = this.value;
+    processSketch();
+  });
+  contrastInput.addEventListener('input', function(){
+    contrastVal.textContent = this.value;
+    processSketch();
+  });
+
+  window.downloadSketch = function(){
+    if(!imgLoaded) return;
+    const link = document.createElement('a');
+    link.download = 'sketch-' + (currentFile ? currentFile.name.replace(/\.[^.]+$/, '') : 'image') + '.png';
+    link.href = sketchCanvas.toDataURL('image/png');
+    link.click();
+  };
+
+  window.resetImage = function(){
+    currentFile = null;
+    imgLoaded = false;
+    originalImg.src = '';
+    originalImg.style.display = 'none';
+    previewSection.style.display = 'none';
+    controlsSection.style.display = 'none';
+    uploadZone.style.display = 'block';
+    fileInput.value = '';
+  };
+
+  // Show original image after load
+  const origLoad = originalImg.onload;
+  originalImg.onload = function(e){
+    originalImg.style.display = 'block';
+    imgLoaded = true;
+    processSketch();
+    previewSection.style.display = 'block';
+    controlsSection.style.display = 'block';
+    uploadZone.style.display = 'none';
+    if(origLoad) origLoad.call(this, e);
+  };
+})();
+</script>
+
+<!-- 反馈收集 -->
+<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
+<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
+<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
+<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
+</div>
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
+<option value="feedback">💡 功能建议</option>
+<option value="bug">🐛 问题反馈</option>
+<option value="other">💬 其他</option>
+</select>
+<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
+<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
+</div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
+</div>
+</div>
+<script>
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){
+const type=document.getElementById('feedback-type').value;
+const text=document.getElementById('feedback-text').value.trim();
+if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
+const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
+const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
+}
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-<div class="seo-content"></div>
-<div class="section"><h2>常见问题</h2><div class="faq-item"><h3>图片转素描效果是如何实现的？</h3><p>本工具使用经典的图像处理算法：先将彩色图片转换为灰度图，然后创建一个反向模糊层，最后通过颜色减淡（Dodge）混合模式叠加，产生逼真的铅笔素描效果。所有处理均在浏览器本地完成。</p></div>
-<div class="faq-item"><h3>如何获得更好的素描效果？</h3><p>建议使用高对比度、轮廓清晰的照片。人物肖像、建筑风景、动物照片效果最佳。通过调整「素描强度」滑块可以控制效果的浓淡程度。</p></div>
-<div class="faq-item"><h3>转换后图片分辨率会降低吗？</h3><p>不会。转换后的图片保持原始分辨率不变，输出为PNG无损格式，适用于打印、社交媒体分享等多种场景。</p></div>
+<div class="seo-content">
+    <h2>如何使用在线图片转素描画</h2>
+    <p>使用在线图片转素描画进行转换只需三个步骤：</p>
+    <ol style="padding-left:20px;margin-top:12px">
+
+      <li style="margin-bottom:16px">
+        <strong>输入要转换的值</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">在输入区域输入或粘贴要转换的数据。在线图片转素描画支持多种输入格式——输入数据后工具会自动识别。</span>
+      </li>
+
+      <li style="margin-bottom:16px">
+        <strong>选择源格式和目标格式</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">从可用选项中选择源格式和目标格式。工具支持双向转换（如适用）。设置会即时生效。</span>
+      </li>
+
+      <li style="margin-bottom:16px">
+        <strong>获取转换结果</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">转换结果实时显示。点击"复制"复制到剪贴板，或点击"下载"保存。所有转换都在您的设备本地完成。</span>
+      </li>
+
+    </ol>
+  </div>
+<div class="section"><h2>常见问题</h2>
+
+
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 </div>

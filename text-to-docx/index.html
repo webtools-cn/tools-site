@@ -62,7 +62,75 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线文本转Word工具</p>
 <div class="hero"><p>在线文本转Word工具 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>在线文本转Word工具</h1>
+<div class="lang-switch">
+<a class="active" href="./">中文</a>
+<a href="../en/text-to-docx/">English</a>
+</div>
+</div>
+<!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+
+<div class="tool-section" id="input">
+<h2>在线文本转Word工具</h2>
+
+<div style="margin-bottom:12px">
+<label style="font-size:.85rem;color:#94a3b8;display:block;margin-bottom:6px">输入文本内容：</label>
+<textarea id="textInput" placeholder='# Hello World\n\nParagraph text...' style="width:100%;height:250px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:monospace;white-space:pre;overflow:auto"># Hello World
+
+This is a sample paragraph. The text will be converted to a Word document.
+
+## Features
+- Heading recognition
+- Paragraph formatting
+- Font customization
+- Page margin control</textarea>
+</div>
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+<div><label style="display:block;font-size:.8rem;color:#64748b;margin-bottom:4px">字体:</label>
+<select id="fontSelect" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:4px;padding:6px 8px;color:#e2e8f0;font-size:.8rem;outline:none">
+<option value="Arial">Arial</option><option value="'Times New Roman'">Times New Roman</option><option value="'Courier New'">Courier New</option>
+<option value="'SimSun'">宋体</option><option value="'Microsoft YaHei'">微软雅黑</option>
+</select></div>
+<div><label style="display:block;font-size:.8rem;color:#64748b;margin-bottom:4px">字号:</label>
+<select id="sizeSelect" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:4px;padding:6px 8px;color:#e2e8f0;font-size:.8rem;outline:none">
+<option value="12">12pt</option><option value="14" selected>14pt</option><option value="16">16pt</option><option value="18">18pt</option>
+</select></div>
+<button id="generateBtn" style="padding:10px 24px;border:none;border-radius:6px;font-size:.9rem;cursor:pointer;background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);margin-top:14px">📄 生成Word文档</button>
+</div>
+<div id="result" style="display:none">
+<div style="margin-top:8px;padding:12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px">
+<div style="font-size:.85rem;color:#22c55e;display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+<span>✅ Word文档已生成！</span>
+<button id="downloadBtn" style="padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)">⬇️ 下载 .docx</button>
+<button id="previewBtn" style="padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)">👁️ 预览内容</button>
+</div>
+</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function(){
+var i=document.getElementById('textInput'),g=document.getElementById('generateBtn'),d=document.getElementById('downloadBtn'),p=document.getElementById('previewBtn'),r=document.getElementById('result'),f=document.getElementById('fontSelect'),sz=document.getElementById('sizeSelect');
+var ERR_EMPTY='请输入文本内容';
+var IMG_LBL='图片';
+var db=null;
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function gen(){var t=i.value;if(!t.trim()){showToast(ERR_EMPTY);return}var lines=t.split('
+');var bx='';var inUl=false;for(var li=0;li<lines.length;li++){var line=lines[li];var tr=line.trim();if(!tr){if(inUl){bx+='</w:p>';inUl=false}bx+='<w:p><w:pPr><w:spacing w:after="120"/></w:pPr></w:p>';continue}if(tr.startsWith('# ')){bx+='<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="32"/></w:rPr><w:t xml:space="preserve">'+esc(tr.substring(2))+'</w:t></w:r></w:p>';continue}if(tr.startsWith('## ')){bx+='<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t xml:space="preserve">'+esc(tr.substring(3))+'</w:t></w:r></w:p>';continue}if(tr.startsWith('### ')){bx+='<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">'+esc(tr.substring(4))+'</w:t></w:r></w:p>';continue}if(tr.startsWith('- ')||tr.startsWith('* ')){if(!inUl){bx+='<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr>';inUl=true}else{bx+='<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr>'}bx+='<w:r><w:rPr><w:sz w:val="'+sz.value+'"/></w:rPr><w:t xml:space="preserve">'+esc(tr.substring(2))+'</w:t></w:r></w:p>';continue}if(inUl){inUl=false}bx+='<w:p><w:pPr><w:spacing w:after="120"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="'+f.value+'" w:hAnsi="'+f.value+'"/><w:sz w:val="'+sz.value+'"/></w:rPr><w:t xml:space="preserve">'+esc(tr)+'</w:t></w:r></w:p>'}var xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>
+'+bx+'
+</w:body>
+</w:document>';var zip=new JSZip();zip.file("word/document.xml",xml);zip.file("[Content_Types].xml",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');zip.file("_rels/.rels",'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');zip.generateAsync({type:"blob"}).then(function(b){db=b;r.style.display='block'})}
+g.addEventListener('click',gen);
+d.addEventListener('click',function(){if(db){var u=URL.createObjectURL(db);var a=document.createElement('a');a.href=u;a.download='document.docx';a.click();URL.revokeObjectURL(u)}});
+p.addEventListener('click',function(){var w=window.open('','_blank');w.document.write('<html><head><title>Preview</title><style>body{font-family:Arial,sans-serif;padding:40px;line-height:1.6}</style></head><body>'+i.value.replace(/
+/g,'<br>').replace(/^# (.*)$/gm,'<h1>$1</h1>').replace(/^## (.*)$/gm,'<h2>$1</h2>').replace(/^### (.*)$/gm,'<h3>$1</h3>').replace(/^- (.*)$/gm,'<li>$1</li>')+'<div class="toast" id="toast"></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

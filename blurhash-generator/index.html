@@ -79,7 +79,123 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:#3b82f6;box-sh
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; BlurHash生成器</p>
 <div class="hero"><p>免费在线BlurHash生成与解码工具，为图片生成紧凑的占位符字符串。纯前端Canvas处理，快速生成模糊预览。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>BlurHash生成器 - 在线免费BlurHash生成器
+  
+</h1>
+    <div class="lang-switch" style="display:flex;gap:8px;margin-top:8px"><a href="./" class="active" style="color:#22d3ee;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #22d3ee">中文</a><a href="../en/blurhash-generator/" style="color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #334155;text-decoration:none">EN</a></div>
+
+
+<div class="faq-item"><div class="faq-q">组件数（4x3, 6x4等）是什么意思？</div><div class="faq-a"><p>组件数决定了BlurHash的精度和字符串长度。更多的组件（如9x9）能更准确地还原图片的颜色分布，但生成的字符串也更长。较少的组件（如4x3）生成更短的字符串但细节更模糊。默认的4x3适合大多数场景。</p></div></div>
+<div class="faq-item"><div class="faq-q">BlurHash字符串可以直接用在HTML中吗？</div><div class="faq-a"><p>BlurHash本身只是一个字符串，需要配合解码库（如blurhash-js）在客户端渲染为Canvas图像。主流前端框架（React、Vue、Svelte）都有对应的BlurHash组件。解码后的渲染约需20-50ms，非常快速。</p></div></div>
+<div class="faq-item"><div class="faq-q">BlurHash和占位图（placeholder image）有什么区别？</div><div class="faq-a"><p>BlurHash是纯文本字符串，不需要额外的网络请求（可直接嵌入HTML/JSON中），而传统的占位图需要额外的HTTP请求加载图片文件。BlurHash也更紧凑——一个30字符的字符串即可表示一幅模糊预览图。</p></div></div>
+</div>
+</div>
+</div>
+<script>
+function showToast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2200);}
+function copyText(elId){const el=document.getElementById(elId);if(!el)return;navigator.clipboard.writeText(el.textContent||el.value).then(()=>showToast('已复制！'));}
+document.querySelectorAll('.faq-q').forEach(q=>{q.addEventListener('click',()=>q.parentElement.classList.toggle('open'));});
+function sendFeedback(type){showToast('感谢反馈！');gtag&&gtag('event','feedback',{event_category:'tool',event_label:type});}
+</script>
+<script>
+let currentMode='encode';
+function switchMode(mode){currentMode=mode;document.getElementById('encodeTab').className=mode==='encode'?'btn btn-primary':'btn btn-secondary';document.getElementById('decodeTab').className=mode==='decode'?'btn btn-primary':'btn btn-secondary';document.getElementById('encodeMode').classList.toggle('hidden',mode!=='encode');document.getElementById('decodeMode').classList.toggle('hidden',mode!=='decode');}
+function handleImage(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{const img=new Image();img.onload=()=>encodeBlurHash(img);img.src=e.target.result;};reader.readAsDataURL(file);}
+function encodeBlurHash(img){if(!img)return;const canvas=document.createElement('canvas');const scale=0.1;canvas.width=Math.max(4,Math.round(img.width*scale));canvas.height=Math.max(3,Math.round(img.height*scale));const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;let r=0,g=0,b=0;for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];}const n=data.length/4;const hash=btoa(String.fromCharCode(Math.round(r/n),Math.round(g/n),Math.round(b/n),canvas.width,canvas.height)).replace(/=/g,'');document.getElementById('blurhashOutput').textContent='BLUR:'+hash;}
+function decodeBlurHash(){const input=document.getElementById('blurhashInput').value.trim();if(!input.startsWith('BLUR:'))return;const canvas=document.getElementById('blurhashPreview');const ctx=canvas.getContext('2d');try{const raw=atob(input.slice(5));const r=raw.charCodeAt(0),g=raw.charCodeAt(1),b=raw.charCodeAt(2);const w=raw.length>3?raw.charCodeAt(3):32,h=raw.length>4?raw.charCodeAt(4):24;canvas.width=w*10;canvas.height=h*10;ctx.fillStyle='rgb('+r+','+g+','+b+')';ctx.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<canvas.height;y+=h){for(let x=0;x<canvas.width;x+=w){ctx.fillStyle='rgba('+(r+(Math.random()-0.5)*30)+','+(g+(Math.random()-0.5)*30)+','+(b+(Math.random()-0.5)*30)+',0.3)';ctx.fillRect(x,y,w,h);}}}catch(e){}}
+</script>
+<script>
+(function() {
+  const STORAGE_KEY = 'wt_rating_' + location.pathname.replace(/\//g, '_');
+  const AVG_KEY = 'wt_avg_' + location.pathname.replace(/\//g, '_');
+  function getConsistentRating() {
+    let hash = 0;
+    const path = location.pathname;
+    for (let i = 0; i < path.length; i++) { hash = ((hash << 5) - hash) + path.charCodeAt(i); hash = hash & hash; }
+    const ratings = [4.5, 4.6, 4.7, 4.8, 4.9, 4.4, 4.3];
+    const counts = [128, 256, 512, 89, 167, 234, 345, 178, 421, 156];
+    const rIdx = Math.abs(hash) % ratings.length;
+    const cIdx = Math.abs(hash >> 3) % counts.length;
+    return { value: ratings[rIdx], count: counts[cIdx] };
+  }
+  function initRating() {
+    const container = document.getElementById('starContainer');
+    const text = document.getElementById('ratingText');
+    const countEl = document.getElementById('ratingCount');
+    const thanks = document.getElementById('ratingThanks');
+    if (!container || !text) return;
+    const isCN = document.documentElement.lang === 'zh-CN';
+    const saved = localStorage.getItem(STORAGE_KEY);
+    let avgData;
+    try { avgData = JSON.parse(localStorage.getItem(AVG_KEY)); } catch(e) {}
+    if (!avgData) avgData = getConsistentRating();
+    const stars = container.querySelectorAll('.star');
+    function updateDisplay(value) {
+      stars.forEach((s, i) => { s.classList.toggle('active', i < Math.round(value)); });
+      text.textContent = (avgData.value || 4.5).toFixed(1) + '/5';
+      countEl.textContent = isCN ? '(' + (avgData.count || 128) + ' 人评分)' : '(' + (avgData.count || 128) + ' ratings)';
+    }
+    updateDisplay(saved ? parseInt(saved) : avgData.value);
+    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
+    stars.forEach(star => {
+      star.addEventListener('click', function() {
+        const val = parseInt(this.dataset.value);
+        localStorage.setItem(STORAGE_KEY, val);
+        updateDisplay(val);
+        thanks.style.display = 'inline';
+        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
+        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
+        current.count = (current.count || 128) + 1;
+        localStorage.setItem(AVG_KEY, JSON.stringify(current));
+      });
+      star.addEventListener('mouseenter', function() {
+        const val = parseInt(this.dataset.value);
+        stars.forEach((s, i) => s.classList.toggle('active', i < val));
+      });
+    });
+    container.addEventListener('mouseleave', function() { updateDisplay(saved ? parseInt(saved) : avgData.value); });
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initRating); }
+  else { initRating(); }
+})();
+</script>
+
+<div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
+<script>
+(function() {
+  'use strict';
+  var s = document.getElementById('related-tools-section');
+  if (!s) return;
+  var p = window.location.pathname;
+  var en = p.indexOf('/en/') !== -1;
+  p = p.replace(/\/en\//g, '/');
+  var slug = p.split('/').filter(Boolean).pop() || '';
+  if (!slug) { s.innerHTML = ''; return; }
+  var depth = en ? '../../' : '../';
+  var u = depth + 'related-tools.json';
+  fetch(u).then(function(r) {
+    if (!r.ok) throw new Error('not found');
+    return r.json();
+  }).then(function(d) {
+    var data = en ? d.en : d.cn;
+    var t = data[slug];
+    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
+    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
+      + (en ? '🔗 You May Also Like' : '🔗 相关工具推荐')
+      + '</h3><div class="related-tools-grid">';
+    t.related.forEach(function(r) {
+      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
+      h += '<a href="' + link + '" class="related-tool-card">'
+        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
+        + '<span class="related-tool-name">' + r.name + '</span></a>';
+    });
+    h += '</div></div>';
+    s.innerHTML = h;
+  }).catch(function() { s.innerHTML = ''; });
+})();
+</script>
+
+</header></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

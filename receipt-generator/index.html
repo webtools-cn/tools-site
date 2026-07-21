@@ -90,7 +90,184 @@ table.data td{color:#cbd5e1}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线收据生成器</p>
 <div class="hero"><p>免费在线收据生成器，自定义商家信息、商品明细、税率，自动计算金额。支持打印和导出。纯前端处理，数据安全。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>收据生成器</h1>
+<div class="lang-switch"><a href="../receipt-generator/" class="active">中文</a><a href="../en/receipt-generator/">English</a></div>
+</div>
+<!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+<div class="input-section">
+<h2>收据信息</h2>
+<div class="row">
+<div class="field"><label>商家名称</label><input type="text" id="recBiz" value="示例商店" oninput="renderReceipt()"></div>
+<div class="field"><label>日期</label><input type="date" id="recDate" oninput="renderReceipt()"></div>
+</div>
+<div class="row">
+<div class="field"><label>收据编号</label><input type="text" id="recNo" value="RCP-001" oninput="renderReceipt()"></div>
+<div class="field"><label>货币</label><select id="recCurrency" onchange="renderReceipt()">
+<option value="¥">¥ (CNY)</option>
+<option value="$">$ (USD)</option>
+<option value="€">€ (EUR)</option>
+<option value="£">£ (GBP)</option>
+</select></div>
+</div>
+<div class="field"><label>客户名称 (可选)</label><input type="text" id="recClient" placeholder="客户姓名/公司" oninput="renderReceipt()"></div>
+<h3 style="color:#f1f5f9;font-size:1rem;margin:12px 0 8px">商品明细</h3>
+<div id="receiptItems">
+<div class="row" style="margin-bottom:8px">
+<div class="field" style="flex:2"><input type="text" class="item-name" placeholder="商品名称" value="商品A" oninput="renderReceipt()"></div>
+<div class="field" style="flex:1"><input type="number" class="item-qty" value="2" min="1" oninput="renderReceipt()"></div>
+<div class="field" style="flex:1"><input type="number" class="item-price" value="100" min="0" step="0.01" oninput="renderReceipt()"></div>
+</div>
+<div class="row" style="margin-bottom:8px">
+<div class="field" style="flex:2"><input type="text" class="item-name" placeholder="商品名称" value="商品B" oninput="renderReceipt()"></div>
+<div class="field" style="flex:1"><input type="number" class="item-qty" value="1" min="1" oninput="renderReceipt()"></div>
+<div class="field" style="flex:1"><input type="number" class="item-price" value="50" min="0" step="0.01" oninput="renderReceipt()"></div>
+</div>
+</div>
+<div class="btn-row">
+<button class="btn btn-secondary" onclick="addItem()">+ 添加商品</button>
+<button class="btn btn-secondary" onclick="removeItem()">- 移除商品</button>
+</div>
+<div class="row" style="margin-top:12px">
+<div class="field"><label>税率 (%)</label><input type="number" id="recTax" value="0" min="0" max="100" step="0.5" oninput="renderReceipt()"></div>
+<div class="field"><label>折扣 (可选)</label><input type="number" id="recDiscount" value="0" min="0" step="1" oninput="renderReceipt()"></div>
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" onclick="renderReceipt()">更新预览</button>
+<button class="btn btn-success" onclick="printReceipt()">🖨️ 打印/导出PDF</button>
+</div>
+</div>
+<div class="result-section show" style="display:block">
+<h2>收据预览</h2>
+<div id="receiptPreview" style="background:#fff;color:#1e293b;border-radius:8px;padding:24px;max-width:400px;margin:12px auto;font-family:monospace"></div>
+</div>
+<div class="info-section">
+<h2>关于收据生成器</h2>
+<p>免费在线收据生成器，快速创建格式规范的中英文收据。可自定义商家名称、日期、商品明细、数量、单价、税率等。自动计算小计、税额和总计金额，支持多种货币符号。可打印或导出为PDF。适合自由职业者、小商家、个人交易记录等场景。</p>
+</div>
+<script>
+function getItems() {
+    const names = document.querySelectorAll(".item-name");
+    const qtys = document.querySelectorAll(".item-qty");
+    const prices = document.querySelectorAll(".item-price");
+    const items = [];
+    for (let i = 0; i < names.length; i++) {
+        const name = names[i].value.trim();
+        const qty = parseInt(qtys[i].value) || 1;
+        const price = parseFloat(prices[i].value) || 0;
+        if (name) items.push({ name, qty, price });
+    }
+    return items;
+}
+
+function renderReceipt() {
+    const biz = document.getElementById("recBiz").value || "商店";
+    const date = document.getElementById("recDate").value || new Date().toISOString().split("T")[0];
+    const no = document.getElementById("recNo").value || "RCP-001";
+    const currency = document.getElementById("recCurrency").value;
+    const client = document.getElementById("recClient").value;
+    const taxRate = parseFloat(document.getElementById("recTax").value) || 0;
+    const discount = parseFloat(document.getElementById("recDiscount").value) || 0;
+    const items = getItems();
+    
+    let subtotal = 0;
+    let rows = "";
+    items.forEach(item => {
+        const lineTotal = item.qty * item.price;
+        subtotal += lineTotal;
+        rows += `<tr><td style="padding:4px 8px;border-bottom:1px dashed #ddd;font-size:.85rem">${item.name}</td><td style="padding:4px 8px;border-bottom:1px dashed #ddd;text-align:center;font-size:.85rem">${item.qty}</td><td style="padding:4px 8px;border-bottom:1px dashed #ddd;text-align:right;font-size:.85rem">${currency}${item.price.toFixed(2)}</td><td style="padding:4px 8px;border-bottom:1px dashed #ddd;text-align:right;font-size:.85rem">${currency}${lineTotal.toFixed(2)}</td></tr>`;
+    });
+    
+    const taxAmount = subtotal * (taxRate / 100);
+    const total = subtotal + taxAmount - discount;
+    
+    const preview = document.getElementById("receiptPreview");
+    preview.innerHTML = `
+        <div style="text-align:center;margin-bottom:16px">
+            <h3 style="font-size:1.4rem;margin:0;color:#1e293b">${biz}</h3>
+            <p style="font-size:.75rem;color:#64748b;margin:4px 0">收据 / RECEIPT</p>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;color:#475569;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #ddd">
+            <span>编号: ${no}</span>
+            <span>日期: ${date}</span>
+        </div>
+        ${client ? `<p style="font-size:.8rem;color:#475569;margin-bottom:8px">客户: ${client}</p>` : ""}
+        <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+            <tr><th style="padding:4px 8px;border-bottom:2px solid #333;text-align:left;font-size:.8rem">商品</th><th style="padding:4px 8px;border-bottom:2px solid #333;text-align:center;font-size:.8rem">数量</th><th style="padding:4px 8px;border-bottom:2px solid #333;text-align:right;font-size:.8rem">单价</th><th style="padding:4px 8px;border-bottom:2px solid #333;text-align:right;font-size:.8rem">金额</th></tr>
+            ${rows}
+        </table>
+        <div style="border-top:2px solid #333;padding-top:8px;margin-top:8px">
+            <div style="display:flex;justify-content:space-between;font-size:.85rem"><span>小计:</span><span>${currency}${subtotal.toFixed(2)}</span></div>
+            ${taxRate > 0 ? `<div style="display:flex;justify-content:space-between;font-size:.85rem"><span>税率 (${taxRate}%):</span><span>${currency}${taxAmount.toFixed(2)}</span></div>` : ""}
+            ${discount > 0 ? `<div style="display:flex;justify-content:space-between;font-size:.85rem"><span>折扣:</span><span>-${currency}${discount.toFixed(2)}</span></div>` : ""}
+            <div style="display:flex;justify-content:space-between;font-size:1.1rem;font-weight:bold;margin-top:4px;padding-top:4px;border-top:1px solid #ddd"><span>总计:</span><span>${currency}${total.toFixed(2)}</span></div>
+        </div>
+        <div style="text-align:center;margin-top:16px;font-size:.7rem;color:#94a3b8;border-top:1px solid #ddd;padding-top:12px">
+            <p>感谢您的惠顾！</p>
+            <p style="margin-top:4px">由 free-toolbase.com 生成</p>
+        </div>
+    `;
+}
+
+function addItem() {
+    const container = document.getElementById("receiptItems");
+    const row = document.createElement("div");
+    row.className = "row";
+    row.style.marginBottom = "8px";
+    row.innerHTML = `<div class="field" style="flex:2"><input type="text" class="item-name" placeholder="商品名称" oninput="renderReceipt()"></div><div class="field" style="flex:1"><input type="number" class="item-qty" value="1" min="1" oninput="renderReceipt()"></div><div class="field" style="flex:1"><input type="number" class="item-price" value="0" min="0" step="0.01" oninput="renderReceipt()"></div>`;
+    container.appendChild(row);
+}
+
+function removeItem() {
+    const container = document.getElementById("receiptItems");
+    if (container.children.length > 1) {
+        container.removeChild(container.lastChild);
+        renderReceipt();
+    }
+}
+
+function printReceipt() {
+    const content = document.getElementById("receiptPreview").innerHTML;
+    const win = window.open('', '_blank');
+    win.document.write('<!DOCTYPE html><html><head><title>收据 Receipt</title><style>body{font-family:monospace;padding:20px;max-width:400px;margin:0 auto}@media print{body{padding:0}</style>
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "首页",
+      "item": "https://free-toolbase.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "在线工具",
+      "item": "https://free-toolbase.com/#online-tools"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "收据生成器",
+      "item": "https://free-toolbase.com/receipt-generator/"
+    }
+  ],
+  "name": "收据生成器"
+}</script>
+</head><body>');
+    win.document.write(content);
+    win.document.write('<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

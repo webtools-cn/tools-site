@@ -119,7 +119,12 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线PDF拆分工具</p>
 <div class="hero"><p>免费在线PDF拆分工具，支持按页数、范围、奇偶页拆分PDF，纯前端本地处理，数据不上传服务器。无需注册，一键拆分PDF文件。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div>
+<div><div class="section"><h1>📄 PDF拆分器</h1>
+<div class="lang-switch">
+<a href="/pdf-splitter/" class="active">中文</a>
+<a href="/en/pdf-splitter/">English</a>
+</div>
+</div>
 
 <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
@@ -128,8 +133,6 @@ a{color:#06b6d4;text-decoration:none}
     Updated: 2026-07-11
   </span>
 </div>
-
-<div class="ad-slot">广告位（顶部横幅）</div>
 
 <div class="drop-zone" id="dropZone">
 <div class="icon">📁</div>
@@ -205,8 +208,6 @@ a{color:#06b6d4;text-decoration:none}
 <h3>📥 拆分结果</h3>
 <div class="result-list" id="resultList"></div>
 </div>
-
-<div class="ad-slot">广告位（中部）</div>
 
 <div class="tutorial">
 <h3>📖 使用教程</h3>
@@ -312,239 +313,7 @@ a{color:#06b6d4;text-decoration:none}
   <span style="display:block;font-weight:500;margin-top:4px">PDF转Word</span>
   <span style="display:block;color:#64748b;font-size:.75rem;margin-top:2px">将PDF转换为可编辑的Word文档</span>
 </a>
-</div>
-</div>
-
-<div class="ad-slot">广告位（底部）</div>
-
-<div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/pdf-splitter/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div>
-</div>
-
-<div class="progress-overlay" id="progressOverlay">
-<div class="progress-text" id="progressText">正在处理...</div>
-<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-</div>
-
-<script src="../libs/pdf-lib.min.js"></script>
-<script src="../libs/pdf.min.js"></script>
-<script>
-(function(){
-  const dropZone=document.getElementById('dropZone');
-  const fileInput=document.getElementById('fileInput');
-  const fileInfo=document.getElementById('fileInfo');
-  const pagePreview=document.getElementById('pagePreview');
-  const splitOptions=document.getElementById('splitOptions');
-  const results=document.getElementById('results');
-  const resultList=document.getElementById('resultList');
-  const progressOverlay=document.getElementById('progressOverlay');
-  const progressText=document.getElementById('progressText');
-  const progressFill=document.getElementById('progressFill');
-  let pdfDoc=null;
-  let pdfArrayBuffer=null;
-  let totalPageCount=0;
-  let selectedPages=new Set();
-
-  dropZone.addEventListener('click',function(){fileInput.click()});
-  dropZone.addEventListener('dragover',function(e){e.preventDefault();dropZone.classList.add('dragover')});
-  dropZone.addEventListener('dragleave',function(){dropZone.classList.remove('dragover')});
-  dropZone.addEventListener('drop',function(e){e.preventDefault();dropZone.classList.remove('dragover');if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0])});
-  fileInput.addEventListener('change',function(){if(fileInput.files.length)handleFile(fileInput.files[0])});
-
-  document.querySelectorAll('.split-mode button').forEach(function(btn){btn.addEventListener('click',function(){var mode=btn.dataset.mode;document.querySelectorAll('.split-mode button').forEach(function(b){b.classList.remove('active')});btn.classList.add('active');document.querySelectorAll('.mode-panel').forEach(function(p){p.classList.remove('active')});document.querySelector('.mode-panel[data-panel="'+mode+'"]').classList.add('active')})});
-
-  document.getElementById('resetBtn').addEventListener('click',function(){location.reload()});
-  document.getElementById('splitBtn').addEventListener('click',performSplit);
-
-  async function handleFile(file){
-    if(!file||file.type!=='application/pdf'){document.getElementById('status')&&(document.getElementById('status').textContent='请选择PDF文件',document.getElementById('status').style.color='#ef4444');return}
-    pdfArrayBuffer=await file.arrayBuffer();
-    showProgress('正在读取PDF文件...',10);
-    try{
-      pdfDoc=await PDFLib.PDFDocument.load(pdfArrayBuffer);
-      totalPageCount=pdfDoc.getPageCount();
-      document.getElementById('fileName').textContent=file.name;
-      document.getElementById('totalPages').textContent=totalPageCount+' 页';
-      document.getElementById('fileSize').textContent=formatBytes(file.size);
-      fileInfo.style.display='block';
-      splitOptions.style.display='block';
-      await renderThumbnails();
-      showProgress('',100);hideProgress();
-    }catch(err){showToast('无法读取PDF文件：'+err.message);hideProgress()}
-  }
-
-  async function renderThumbnails(){
-    pagePreview.innerHTML='';pagePreview.style.display='flex';
-    const loadingTask=pdfjsLib.getDocument({data:new Uint8Array(pdfArrayBuffer)});
-    const pdf=await loadingTask.promise;
-    for(let i=1;i<=pdf.numPages;i++){
-      const page=await pdf.getPage(i);
-      const viewport=page.getViewport({scale:0.2});
-      const canvas=document.createElement('canvas');
-      canvas.width=viewport.width;canvas.height=viewport.height;
-      const ctx=canvas.getContext('2d');
-      await page.render({canvasContext:ctx,viewport:viewport}).promise;
-      const thumb=document.createElement('div');thumb.className='page-thumb';thumb.dataset.page=i;
-      const numSpan=document.createElement('span');numSpan.className='page-num';numSpan.textContent='第'+i+'页';
-      thumb.appendChild(numSpan);thumb.appendChild(canvas);
-      thumb.addEventListener('click',function(){togglePageSelection(i,thumb)});
-      pagePreview.appendChild(thumb);
-    }
-    updateSelectPagesGrid();
-  }
-
-  function updateSelectPagesGrid(){
-    const grid=document.getElementById('selectPagesGrid');
-    if(!grid)return;
-    grid.innerHTML='';
-    for(let i=1;i<=totalPageCount;i++){
-      const item=document.createElement('div');item.className='page-item';item.textContent=i;
-      if(selectedPages.has(i))item.classList.add('selected');
-      item.addEventListener('click',function(){if(selectedPages.has(i)){selectedPages.delete(i);item.classList.remove('selected')}else{selectedPages.add(i);item.classList.add('selected')}});
-      grid.appendChild(item);
-    }
-  }
-
-  function togglePageSelection(pageNum,thumbEl){
-    var activePanel=document.querySelector('.mode-panel.active');
-    if(activePanel&&activePanel.dataset.panel==='byPages'){
-      if(selectedPages.has(pageNum)){selectedPages.delete(pageNum);thumbEl.classList.remove('selected')}else{selectedPages.add(pageNum);thumbEl.classList.add('selected')}
-    }
-  }
-
-  async function performSplit(){
-    if(!pdfDoc){showToast('请先上传PDF文件');return}
-    var activeBtn=document.querySelector('.split-mode button.active');
-    var mode=activeBtn?activeBtn.dataset.mode:'byCount';
-    var resultFiles=[];
-    showProgress('正在拆分PDF...',30);
-    try{
-      if(mode==='byCount'){
-        var perFile=parseInt(document.getElementById('countPerFile').value,10)||1;
-        if(perFile<1)perFile=1;
-        var numFiles=Math.ceil(totalPageCount/perFile);
-        for(var i=0;i<numFiles;i++){
-          var start=i*perFile;var end=Math.min((i+1)*perFile,totalPageCount);
-          var newPdf=await PDFLib.PDFDocument.create();
-          var srcPages=await newPdf.copyPages(pdfDoc,Array.from({length:end-start},function(_,idx){return start+idx}));
-          srcPages.forEach(function(p){newPdf.addPage(p)});
-          var bytes=await newPdf.save();
-          resultFiles.push({name:'拆分_'+totalPageCount+'页_第'+(start+1)+'-'+(end)+'页.pdf',pages:end-start,size:bytes.length,bytes:bytes});
-          showProgress('正在拆分PDF...',30+Math.round((i+1)/numFiles*60));
-        }
-      }else if(mode==='byRange'){
-        var rStart=parseInt(document.getElementById('rangeStart').value,10)||1;
-        var rEnd=parseInt(document.getElementById('rangeEnd').value,10)||totalPageCount;
-        if(rStart<1)rStart=1;if(rEnd>totalPageCount)rEnd=totalPageCount;if(rStart>rEnd){var t=rStart;rStart=rEnd;rEnd=t}
-        var newPdf=await PDFLib.PDFDocument.create();
-        var pageIndices=[];
-        for(var i=rStart-1;i<rEnd;i++)pageIndices.push(i);
-        var srcPages=await newPdf.copyPages(pdfDoc,pageIndices);
-        srcPages.forEach(function(p){newPdf.addPage(p)});
-        var bytes=await newPdf.save();
-        resultFiles.push({name:'提取_第'+rStart+'-'+rEnd+'页.pdf',pages:rEnd-rStart+1,size:bytes.length,bytes:bytes});
-      }else if(mode==='byPages'){
-        if(selectedPages.size===0){showToast('请至少选择一个页面');hideProgress();return}
-        var sortedPages=Array.from(selectedPages).sort(function(a,b){return a-b});
-        var newPdf=await PDFLib.PDFDocument.create();
-        var pageIndices=sortedPages.map(function(p){return p-1});
-        var srcPages=await newPdf.copyPages(pdfDoc,pageIndices);
-        srcPages.forEach(function(p){newPdf.addPage(p)});
-        var bytes=await newPdf.save();
-        resultFiles.push({name:'提取_'+sortedPages.length+'页.pdf',pages:sortedPages.length,size:bytes.length,bytes:bytes});
-      }else if(mode==='byOddEven'){
-        var oddIndices=[],evenIndices=[];
-        for(var i=0;i<totalPageCount;i++){if(i%2===0)oddIndices.push(i);else evenIndices.push(i)}
-        if(oddIndices.length>0){
-          var oddPdf=await PDFLib.PDFDocument.create();
-          var oddSrc=await oddPdf.copyPages(pdfDoc,oddIndices);
-          oddSrc.forEach(function(p){oddPdf.addPage(p)});
-          var oddBytes=await oddPdf.save();
-          resultFiles.push({name:'奇数页_'+oddIndices.length+'页.pdf',pages:oddIndices.length,size:oddBytes.length,bytes:oddBytes});
-        }
-        if(evenIndices.length>0){
-          var evenPdf=await PDFLib.PDFDocument.create();
-          var evenSrc=await evenPdf.copyPages(pdfDoc,evenIndices);
-          evenSrc.forEach(function(p){evenPdf.addPage(p)});
-          var evenBytes=await evenPdf.save();
-          resultFiles.push({name:'偶数页_'+evenIndices.length+'页.pdf',pages:evenIndices.length,size:evenBytes.length,bytes:evenBytes});
-        }
-      }
-      showProgress('正在生成下载...',95);
-      displayResults(resultFiles);
-      hideProgress();
-    }catch(err){showToast('拆分失败：'+err.message);hideProgress()}
-  }
-
-  function displayResults(files){
-    resultList.innerHTML='';results.style.display='block';
-    files.forEach(function(file,index){
-      var item=document.createElement('div');item.className='result-item';
-      var info=document.createElement('div');info.className='info';
-      var nameSpan=document.createElement('span');nameSpan.className='name';nameSpan.textContent=file.name;
-      var detailSpan=document.createElement('span');detailSpan.className='detail';detailSpan.textContent=file.pages+'页 | '+formatBytes(file.size);
-      info.appendChild(nameSpan);info.appendChild(detailSpan);
-      var dlBtn=document.createElement('button');dlBtn.className='download-btn';dlBtn.textContent='⬇️ 下载';
-      dlBtn.addEventListener('click',function(){var blob=new Blob([file.bytes],{type:'application/pdf'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=file.name;a.click();URL.revokeObjectURL(url)});
-      item.appendChild(info);item.appendChild(dlBtn);
-      resultList.appendChild(item);
-    });
-  }
-
-  function showProgress(text,percent){progressOverlay.classList.add('active');progressText.textContent=text;progressFill.style.width=percent+'%'}
-  function hideProgress(){progressOverlay.classList.remove('active')}
-  function formatBytes(bytes){if(bytes===0)return'0 B';var k=1024,sizes=['B','KB','MB','GB','TB'];var i=Math.floor(Math.log(bytes)/Math.log(k));return parseFloat((bytes/Math.pow(k,i)).toFixed(2))+' '+sizes[i]}
-})();
-</script>
-
-<!-- 反馈收集 -->
-<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
-<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
-<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
-<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
-</div>
-<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
-<option value="feedback">💡 功能建议</option>
-<option value="bug">🐛 问题反馈</option>
-<option value="other">💬 其他</option>
-</select>
-<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
-<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
-</div>
-<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
-</div>
-</div>
-<script>
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const text=document.getElementById('feedback-text').value.trim();
-if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
-}
-</script>
-<!-- Related Tools (cross-recommendation) -->
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section">
-  <div class="related-tools-loading">Loading related tools...</div>
-</div>
-<script src="https://free-toolbase.com/related-tools.js"></script>
-
-<div class="toast" id="toast"></div></div></div>
+</div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -570,7 +339,7 @@ setTimeout(()=>{document.getElementById('feedback-success').style.display='none'
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});

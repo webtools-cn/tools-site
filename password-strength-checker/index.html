@@ -65,7 +65,196 @@ input:focus{border-color:rgba(6,182,212,.5)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 密码强度检测器</p>
 <div class="hero"><p>免费在线密码强度检测器，实时评估密码安全等级，估算破解时间，检测常见弱密码模式。纯前端本地检测，密码不上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🔐 密码强度检测器</h1>
+<div class="lang-switch" style="position:absolute;top:24px;right:16px;display:flex;gap:8px"><a href="./" style="color:#22d3ee;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #22d3ee;text-decoration:none">中文</a><a href="../en/password-strength-checker/" style="color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #334155;text-decoration:none">EN</a></div>
+<p class="subtitle">实时评估密码安全等级 · 估算破解时间 · 纯前端本地检测</p>
+
+<div class="card">
+<label for="pw">输入密码</label>
+<input type="password" id="pw" placeholder="在此输入密码进行检测..." oninput="analyzePassword()">
+<div class="toggle-row">
+<input type="checkbox" id="show-pw" onchange="document.getElementById('pw').type=this.checked?'text':'password'">
+<span>显示密码</span>
+</div>
+<div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+<div class="strength-label" id="strength-label">—</div>
+<div class="crack-time" id="crack-time">输入密码开始检测</div>
+
+<div class="stats">
+<div class="stat-box"><div class="stat-value" id="entropy-val">0</div><div class="stat-label">熵值 (bits)</div></div>
+<div class="stat-box"><div class="stat-value" id="charset-val">0</div><div class="stat-label">字符集大小</div></div>
+<div class="stat-box"><div class="stat-value" id="length-val">0</div><div class="stat-label">密码长度</div></div>
+<div class="stat-box"><div class="stat-value" id="score-val">0</div><div class="stat-label">安全评分</div></div>
+</div>
+
+<div class="analysis" id="analysis"></div>
+</div>
+
+<div class="faq-section">
+<h2 style="font-size:1.1rem;margin-bottom:12px;color:#f1f5f9">❓ 常见问题</h2>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">密码强度检测器安全吗？密码会被上传吗？</div>
+<div class="faq-a">完全安全。所有密码分析都在您的浏览器本地完成，密码不会发送到任何服务器。您甚至可以断网使用此工具。</div>
+</div>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">破解时间是如何估算的？</div>
+<div class="faq-a">破解时间基于密码的熵（信息量）和现代GPU的暴力破解速度估算。假设攻击者使用RTX 4090级别的硬件，每秒可尝试约100亿次哈希。实际破解时间可能因攻击方式不同而有所差异。</div>
+</div>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">什么样的密码才算强密码？</div>
+<div class="faq-a">强密码应包含：至少12个字符、大小写字母混合、包含数字和特殊符号、不包含常见单词或个人信息、不使用连续或重复字符。建议使用密码管理器生成随机密码。</div>
+</div>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">为什么我的密码被评为弱密码？</div>
+<div class="faq-a">常见原因：密码太短（少于8位）、只使用小写字母、包含常见单词（如password、123456）、使用连续字符（如abc、123）、使用重复字符）、使用重复字符（如aaa）、包含个人信息模式。</div>
+</div>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">这个工具可以离线使用吗？</div>
+<div class="faq-a">可以。本工具是纯前端实现，所有密码分析逻辑都在浏览器中运行。首次加载后，即使断开网络连接也可以正常使用。</div>
+</div>
+</div>
+</div>
+
+<script>
+const commonPasswords=['password','123456','12345678','qwerty','abc123','monkey','1234567','letmein','trustno1','dragon','baseball','iloveyou','master','sunshine','ashley','bailey','passw0rd','shadow','123123','654321','superman','qazwsx','michael','football','password1','password123','admin','welcome','hello','charlie','donald','login','qwerty123','mustang','access','secret','p@ssw0rd','1q2w3e4r','admin123'];
+
+function analyzePassword(){
+const pw=document.getElementById('pw').value;
+if(!pw){
+document.getElementById('strength-fill').style.width='0';
+document.getElementById('strength-label').textContent='—';
+document.getElementById('crack-time').textContent='输入密码开始检测';
+document.getElementById('entropy-val').textContent='0';
+document.getElementById('charset-val').textContent='0';
+document.getElementById('length-val').textContent='0';
+document.getElementById('score-val').textContent='0';
+document.getElementById('analysis').innerHTML='';
+return;
+}
+
+const len=pw.length;
+const hasLower=/[a-z]/.test(pw);
+const hasUpper=/[A-Z]/.test(pw);
+const hasDigit=/[0-9]/.test(pw);
+const hasSpecial=/[^a-zA-Z0-9]/.test(pw);
+const isCommon=commonPasswords.includes(pw.toLowerCase());
+const hasSequential=/(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz|012|123|234|345|456|567|678|789)/i.test(pw);
+const hasRepeated=/(.)\1{2}/.test(pw);
+
+let charsetSize=0;
+if(hasLower)charsetSize+=26;
+if(hasUpper)charsetSize+=26;
+if(hasDigit)charsetSize+=10;
+if(hasSpecial)charsetSize+=33;
+if(charsetSize===0)charsetSize=26;
+
+const entropy=len*Math.log2(charsetSize||1);
+const guessesPerSecond=10e9;
+const totalGuesses=Math.pow(charsetSize,len);
+const crackSeconds=totalGuesses/guessesPerSecond;
+
+let score=0;
+if(len>=8)score+=15;else if(len>=6)score+=8;
+if(len>=12)score+=15;else if(len>=10)score+=8;
+if(len>=16)score+=10;
+if(hasLower)score+=10;
+if(hasUpper)score+=10;
+if(hasDigit)score+=10;
+if(hasSpecial)score+=15;
+if(!hasSequential)score+=5;
+if(!hasRepeated)score+=5;
+if(!isCommon)score+=5;else score-=30;
+if(entropy>=60)score+=10;else if(entropy>=40)score+=5;
+score=Math.max(0,Math.min(100,score));
+
+let level,color,barColor;
+if(score<20){level='极弱';color='#ef4444';barColor='#ef4444';}
+else if(score<40){level='弱';color='#f97316';barColor='#f97316';}
+else if(score<60){level='一般';color='#eab308';barColor='#eab308';}
+else if(score<80){level='强';color='#22c55e';barColor='#22c55e';}
+else{level='极强';color='#06b6d4';barColor='#06b6d4';}
+
+document.getElementById('strength-fill').style.width=score+'%';
+document.getElementById('strength-fill').style.background=barColor;
+document.getElementById('strength-label').textContent=level;
+document.getElementById('strength-label').style.color=color;
+document.getElementById('crack-time').textContent='暴力破解预估时间：'+formatTime(crackSeconds);
+document.getElementById('entropy-val').textContent=entropy.toFixed(1);
+document.getElementById('charset-val').textContent=charsetSize;
+document.getElementById('length-val').textContent=len;
+document.getElementById('score-val').textContent=score;
+
+const checks=[
+{pass:len>=8,label:'至少8个字符'},
+{pass:len>=12,label:'至少12个字符（推荐）'},
+{pass:hasLower,label:'包含小写字母'},
+{pass:hasUpper,label:'包含大写字母'},
+{pass:hasDigit,label:'包含数字'},
+{pass:hasSpecial,label:'包含特殊符号'},
+{pass:!isCommon,label:'不是常见弱密码'},
+{pass:!hasSequential,label:'无连续字符模式'},
+{pass:!hasRepeated,label:'无重复字符模式'}
+];
+
+document.getElementById('analysis').innerHTML=checks.map(c=>
+`<div class="analysis-item ${c.pass?'pass':'fail'}"><span class="icon">${c.pass?'✅':'❌'}</span>${c.label}</div>`
+).join('');
+}
+
+function formatTime(seconds){
+if(seconds<1)return'不到1秒';
+if(seconds<60)return Math.ceil(seconds)+'秒';
+if(seconds<3600)return Math.ceil(seconds/60)+'分钟';
+if(seconds<86400)return Math.ceil(seconds/3600)+'小时';
+if(seconds<86400*365)return Math.ceil(seconds/86400)+'天';
+if(seconds<86400*365*100)return Math.ceil(seconds/(86400*365))+'年';
+if(seconds<86400*365*1e6)return Math.ceil(seconds/(86400*365*100))+'百年';
+if(seconds<86400*365*1e9)return Math.ceil(seconds/(86400*365*1e6))+'百万年';
+return'数十亿年以上';
+}
+</script>
+
+<!-- Feedback Widget -->
+<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
+<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
+<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
+<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
+</div>
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
+<option value="feedback">💡 功能建议</option>
+<option value="bug">🐛 问题反馈</option>
+<option value="other">💬 其他</option>
+</select>
+<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
+<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
+</div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
+</div>
+</div>
+<script>
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){
+const type=document.getElementById('feedback-type').value;
+const text=document.getElementById('feedback-text').value.trim();
+if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
+const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
+const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
+}
+</script>
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

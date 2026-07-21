@@ -78,7 +78,12 @@ select{appearance:auto}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 词云生成器</p>
 <div class="hero"><p>免费在线词云生成器，输入文本自动生成词云图片。系统自动统计词频，高频词以更大字体显示。支持自定义最大词数，一键下载PNG图片。纯前端本地Canvas处理，数据不上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div>
+<div><div class="section"><h1>词云生成器</h1>
+    <div class="lang-switch">
+      <a href="index.html" class="active">中文</a>
+      <a href="../en/word-cloud-generator/">EN</a>
+    </div>
+  </div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -87,9 +92,6 @@ select{appearance:auto}
   </span>
 </div>
 
-  <div class="ad-slot" style="margin:16px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-
-  
   <div class="input-section">
     <h2>📝 输入文本</h2>
     <label for="textInput">粘贴文本内容</label>
@@ -134,207 +136,7 @@ select{appearance:auto}
     <h3>支持中文吗？</h3>
     <p>支持中英文。中文按词语统计频率，英文按单词统计。可以处理中英文混合文本。</p>
     <h3>可以自定义颜色吗？</h3>
-    <p>当前版本自动生成多彩配色方案。每个词的颜色从预设的色板中随机选择，保证视觉效果丰富而不杂乱。</p>
-  </div>
-
-
-  <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-
-  <div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/word-cloud-generator/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div>
-</div>
-<script>
-(function(){
-  var textInput = document.getElementById('textInput');
-  var maxWords = document.getElementById('maxWords');
-  var generateBtn = document.getElementById('generateBtn');
-  var downloadBtn = document.getElementById('downloadWcBtn');
-  var previewBox = document.getElementById('previewBox');
-  var resultSection = document.getElementById('resultSection');
-
-  var COLORS = ['#06b6d4','#22d3ee','#f43f5e','#f97316','#eab308','#22c55e','#a855f7','#ec4899','#14b8a6','#f59e0b','#8b5cf6','#3b82f6'];
-  var FONTS = ['Arial','Verdana','Georgia','Trebuchet MS','Impact','Palatino'];
-
-  function getWords(text) {
-    // Split into words/tokens
-    var tokens = text.match(/[\w\u4e00-\u9fff]+/g) || [];
-    var freq = {};
-    tokens.forEach(function(t) {
-      if (t.length < 1) return;
-      t = t.toLowerCase();
-      freq[t] = (freq[t] || 0) + 1;
-    });
-    var sorted = Object.entries(freq).sort(function(a,b){return b[1]-a[1]});
-    var max = parseInt(maxWords.value) || 50;
-    return sorted.slice(0, max);
-  }
-
-  function generate() {
-    var text = textInput.value.trim();
-    if (!text) { showToast('请输入文本'); return; }
-    
-    var words = getWords(text);
-    if (words.length === 0) { showToast('未找到有效词语'); return; }
-
-    var maxFreq = words[0][1];
-    var canvas = document.createElement('canvas');
-    var W = 600, H = 400;
-    canvas.width = W;
-    canvas.height = H;
-    var ctx = canvas.getContext('2d');
-    
-    // Background
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, 0, W, H);
-
-    // Simple word cloud layout
-    var positions = [];
-    var placed = [];
-    var minSize = 12, maxSize = 48;
-    
-    words.forEach(function(w, idx) {
-      var freq = w[1];
-      var ratio = freq / maxFreq;
-      var size = minSize + ratio * (maxSize - minSize);
-      var font = FONTS[Math.floor(Math.random() * FONTS.length)];
-      var color = COLORS[Math.floor(Math.random() * COLORS.length)];
-      ctx.font = 'bold ' + size + 'px ' + font;
-      var metrics = ctx.measureText(w[0]);
-      var tw = metrics.width;
-      var th = size;
-      
-      // Try to find a non-overlapping position
-      var found = false;
-      var attempts = 0;
-      var maxAttempts = 200;
-      var placedWord = {text: w[0], width: tw, height: th};
-      
-      while (!found && attempts < maxAttempts) {
-        var x = Math.random() * (W - tw - 20) + 10;
-        var y = Math.random() * (H - th - 20) + th + 10;
-        var overlap = false;
-        for (var i = 0; i < placed.length; i++) {
-          var p = placed[i];
-          if (x < p.x + p.width + 4 && x + tw + 4 > p.x && y < p.y + 4 && y + 4 > p.y - th) {
-            overlap = true;
-            break;
-          }
-          // Check vertical overlap too
-          if (x < p.x + p.width + 4 && x + tw + 4 > p.x && y < p.y + 4 && y + 4 > p.y - p.height) {
-            overlap = true;
-            break;
-          }
-        }
-        if (!overlap) { found = true; placedWord.x = x; placedWord.y = y; placed.push(placedWord); }
-        attempts++;
-      }
-      
-      if (found) {
-        ctx.font = 'bold ' + size + 'px ' + font;
-        ctx.fillStyle = color;
-        ctx.textBaseline = 'top';
-        ctx.fillText(w[0], placedWord.x, placedWord.y);
-      }
-    });
-
-    // Render title
-    ctx.fillStyle = '#334155';
-    ctx.font = '11px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText('Generated by Online Tools', W/2, H - 5);
-    
-    // Show in preview
-    previewBox.innerHTML = '';
-    var img = new Image();
-    img.src = canvas.toDataURL('image/png');
-    img.style.maxWidth = '100%';
-    previewBox.appendChild(img);
-    
-    // Store for download
-    canvas.toBlob(function(b) {
-      window._wcBlob = b;
-    }, 'image/png');
-    
-    resultSection.classList.add('show');
-  }
-
-  generateBtn.addEventListener('click', generate);
-
-  downloadBtn.addEventListener('click', function() {
-    if (window._wcBlob) {
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(window._wcBlob);
-      a.download = 'word-cloud.png';
-      a.click();
-      URL.revokeObjectURL(a.href);
-    } else {
-      generate();
-      setTimeout(function() {
-        if (window._wcBlob) {
-          var a = document.createElement('a');
-          a.href = URL.createObjectURL(window._wcBlob);
-          a.download = 'word-cloud.png';
-          a.click();
-          URL.revokeObjectURL(a.href);
-        }
-      }, 500);
-    }
-  });
-
-  // Auto-generate on load
-  generate();
-})();
-</script>
-
-<!-- 反馈收集 -->
-<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
-<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
-<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
-<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
-</div>
-<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
-<option value="feedback">💡 功能建议</option>
-<option value="bug">🐛 问题反馈</option>
-<option value="other">💬 其他</option>
-</select>
-<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
-<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
-</div>
-<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
-</div>
-</div>
-<script>
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const text=document.getElementById('feedback-text').value.trim();
-if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
-}
-</script>
-<!-- Related Tools (cross-recommendation) -->
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section">
-  <div class="related-tools-loading">Loading related tools...</div>
-</div>
-<script src="https://free-toolbase.com/related-tools.js"></script>
-
-<div class="toast" id="toast"></div></div></div>
+    <p>当前版本自动生成多彩配色方案。每个词的颜色从预设的色板中随机选择，保证视觉效果丰富而不杂乱。</p></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -360,7 +162,7 @@ setTimeout(()=>{document.getElementById('feedback-success').style.display='none'
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});

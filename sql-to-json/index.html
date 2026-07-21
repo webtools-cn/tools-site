@@ -76,7 +76,261 @@ h1{text-align:center;font-size:2rem;margin:20px 0;color:#1a1a2e}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; SQL转JSON</p>
 <div class="hero"><p>免费在线SQL转JSON工具。将SQL查询结果、INSERT语句转换为JSON格式。支持多种SQL方言，批量转换，实时预览。纯前端处理，数据安全。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🗄️ SQL 转 JSON 转换器</h1>
+<div class="lang-switch" style="position:absolute;top:24px;right:16px;display:flex;gap:8px"><a href="./" style="color:#22d3ee;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #22d3ee;text-decoration:none">中文</a><a href="../en/sql-to-json/" style="color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #334155;text-decoration:none">EN</a></div>
+  <p style="text-align:center;color:#888;margin-bottom:24px;font-size:0.95rem">SQL INSERT / 查询结果 → JSON · 纯前端 · 安全 · 免费</p>
+
+  <div class="card">
+    <div class="card-title">📥 输入模式</div>
+    <div class="options-row">
+      <label><input type="radio" name="mode" value="insert" checked onchange="updatePlaceholder()"> INSERT语句</label>
+      <label><input type="radio" name="mode" value="table" onchange="updatePlaceholder()"> 表格格式(带表头)</label>
+    </div>
+    <div class="preset-btns">
+      <button class="preset-btn" onclick="loadExample('insert')">INSERT示例</button>
+      <button class="preset-btn" onclick="loadExample('table')">表格示例</button>
+      <button class="preset-btn" onclick="loadExample('multiple')">多行INSERT</button>
+    </div>
+    <div class="form-group">
+      <textarea id="sqlInput" placeholder="INSERT INTO users (id, name, email) VALUES&#10;(1, '张三', 'zhangsan@example.com'),&#10;(2, '李四', 'lisi@example.com');"></textarea>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="convert()">🔄 转换为 JSON</button>
+      <button class="btn btn-outline" onclick="clearAll()">🗑️ 清空</button>
+    </div>
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💻 转换结果 (JSON)</div>
+    <div class="code-wrapper">
+      <button class="copy-btn" onclick="copyCode()">📋 复制</button>
+      <div class="code-output" id="codeOutput">// 输入 SQL 后点击"转换为 JSON"</div>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <h2>❓ 常见问题</h2>
+    <div class="faq-item open">
+      <div class="faq-q" onclick="toggleFaq(this)">这个工具支持哪些SQL方言？<span class="arrow">▼</span></div>
+      <div class="faq-a"><p>支持MySQL、PostgreSQL、SQLite、SQL Server和Oracle。工具自动识别INSERT INTO语句中的字段名和值。对于表格格式，支持常见的SELECT结果输出形式，包括MySQL命令行输出、pgAdmin输出等。</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">数据安全吗？<span class="arrow">▼</span></div>
+      <div class="faq-a"><p>完全安全。所有SQL解析和JSON生成都在浏览器本地完成，没有数据上传到服务器。您可以放心处理包含敏感数据的SQL语句。</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">表格格式支持什么样式？<span class="arrow">▼</span></div>
+      <div class="faq-a"><p>支持带表头的表格格式，包括MySQL命令行输出样式（带边框）、TSV（制表符分隔）、CSV（逗号分隔）、以及用空格/竖线对齐的格式化表格。第一行作为字段名，后续行作为数据。</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">如何处理NULL值？<span class="arrow">▼</span></div>
+      <div class="faq-a"><p>SQL中的NULL值会自动转换为JSON的null。空字符串保持为空字符串。数字字符串（如"123"）在JSON中保持为字符串类型，不做自动类型转换，确保数据准确性。</p></div>
+    </div>
+  </div>
+
+  <div class="card" style="background:#f8f9fc;margin-top:20px">
+    <p style="font-size:0.85rem;color:#888;text-align:center">💡 纯前端处理，数据不上传服务器。适合数据库迁移、API开发、数据分析场景。</p>
+  </div>
+</div>
+
+<script>
+(function(){var s=document.createElement('script');s.src='/tools-site/feedback-widget.html';s.onload=function(){if(window.initFeedback)initFeedback('sql-to-json')};document.body.appendChild(s)})();
+
+function toggleFaq(el){var item=el.parentElement;item.classList.toggle('open')}
+
+function updatePlaceholder(){
+  const mode=document.querySelector('input[name="mode"]:checked').value;
+  document.getElementById('sqlInput').placeholder=mode==='insert'?
+    'INSERT INTO users (id, name, email) VALUES\n(1, \'张三\', \'zhangsan@example.com\'),\n(2, \'李四\', \'lisi@example.com\');':
+    'id | name | email\n1 | 张三 | zhangsan@example.com\n2 | 李四 | lisi@example.com';
+}
+
+function parseInsertSQL(sql){
+  // Remove comments
+  sql=sql.replace(/--.*$/gm,'').replace(/\/\*[\s\S]*?\*\//g,'');
+  
+  // Extract table name and column list
+  const insertMatch=sql.match(/INSERT\s+INTO\s+(\w+)\s*\(([^)]+)\)\s*VALUES\s*([\s\S]+)/i);
+  if(!insertMatch)return null;
+  
+  const tableName=insertMatch[1];
+  const columns=insertMatch[2].split(',').map(function(c){return c.trim()});
+  
+  // Extract value rows
+  let valuesStr=insertMatch[3].replace(/;\s*$/,'').trim();
+  // Split by ),( pattern
+  const rows=[];
+  let depth=0,start=0;
+  for(let i=0;i<valuesStr.length;i++){
+    const ch=valuesStr[i];
+    if(ch==='(')depth++;
+    else if(ch===')'){depth--;if(depth===0){rows.push(valuesStr.substring(start,i+1));start=i+1}}
+  }
+  
+  const result=[];
+  rows.forEach(function(row){
+    row=row.trim();
+    if(!row.startsWith('(')||!row.endsWith(')'))return;
+    const inner=row.substring(1,row.length-1);
+    // Parse values respecting quotes
+    const values=parseSQLValues(inner);
+    if(values.length!==columns.length)return;
+    const obj={};
+    columns.forEach(function(col,i){obj[col]=parseSQLValue(values[i])});
+    result.push(obj);
+  });
+  
+  return result;
+}
+
+function parseSQLValues(str){
+  const values=[];
+  let current='',depth=0,inStr=false,strChar='';
+  for(let i=0;i<str.length;i++){
+    const ch=str[i];
+    if(inStr){
+      if(ch===strChar&&str[i-1]!=='\\'){inStr=false;current+=ch;values.push(current.trim());current=''}
+      else current+=ch;
+    }else if((ch==="'"||ch==='"')&&!inStr){inStr=true;strChar=ch;current+=ch}
+    else if(ch==='('){depth++;current+=ch}
+    else if(ch===')'){depth--;current+=ch}
+    else if(ch===','&&depth===0&&!inStr){if(current.trim()!=='')values.push(current.trim());current=''}
+    else current+=ch;
+  }
+  if(current.trim()!=='')values.push(current.trim());
+  return values;
+}
+
+function parseSQLValue(val){
+  val=val.trim();
+  if(val==='NULL'||val==='null')return null;
+  if((val.startsWith("'")&&val.endsWith("'"))||(val.startsWith('"')&&val.endsWith('"')))return val.slice(1,-1);
+  if(val==='TRUE'||val==='true')return true;
+  if(val==='FALSE'||val==='false')return false;
+  const num=Number(val);
+  if(!isNaN(num)&&val!=='')return num;
+  return val;
+}
+
+function parseTableFormat(text){
+  const lines=text.split('\n').map(function(l){return l.trim()}).filter(function(l){return l.length>0&&!l.match(/^[+\-|=]+$/)&&!l.match(/^-+$/)&&!l.match(/^\+[-+]+\+$/)&&!l.match(/^\|[-|]+\|$/)});
+  if(lines.length<2)return null;
+  
+  // Detect separator line and remove it
+  const cleaned=[];
+  lines.forEach(function(l){
+    if(l.match(/^[+\-|=]+$/)||l.match(/^\|[-|]+\|$/)||l.match(/^-+$/))return;
+    cleaned.push(l);
+  });
+  
+  if(cleaned.length<2)return null;
+  
+  // Parse header
+  const headerRaw=cleaned[0].replace(/^\||\|$/g,'').split('|').map(function(h){return h.trim()});
+  const dataLines=cleaned.slice(1);
+  
+  // If header has | separators, use the same for data
+  let usePipe=false;
+  if(cleaned[0].includes('|'))usePipe=true;
+  
+  const result=[];
+  dataLines.forEach(function(line){
+    let parts;
+    if(usePipe){
+      parts=line.replace(/^\||\|$/g,'').split('|').map(function(p){return p.trim()});
+    }else{
+      parts=line.split(/\s{2}/).map(function(p){return p.trim()});
+    }
+    
+    if(parts.length!==headerRaw.length){
+      // Try TSV
+      parts=line.split('\t').map(function(p){return p.trim()});
+    }
+    
+    if(parts.length===headerRaw.length){
+      const obj={};
+      headerRaw.forEach(function(h,i){obj[h]=parseTableCell(parts[i])});
+      result.push(obj);
+    }
+  });
+  
+  return result;
+}
+
+function parseTableCell(val){
+  val=val.trim();
+  if(val==='NULL'||val==='null'||val==='')return null;
+  if(val==='TRUE'||val==='true')return true;
+  if(val==='FALSE'||val==='false')return false;
+  const num=Number(val);
+  if(!isNaN(num)&&val!=='')return num;
+  // Check if it looks like a number string (e.g., zip code "10001") - keep as string
+  return val;
+}
+
+function formatJSON(data){
+  return JSON.stringify(data,null,2);
+}
+
+let lastResult='';
+
+function convert(){
+  const input=document.getElementById('sqlInput').value.trim();
+  const errorBox=document.getElementById('errorBox');
+  const mode=document.querySelector('input[name="mode"]:checked').value;
+  
+  if(!input){errorBox.style.display='block';errorBox.textContent='请输入SQL语句或表格数据';return}
+  errorBox.style.display='none';
+  
+  let data=null;
+  
+  if(mode==='insert'){
+    data=parseInsertSQL(input);
+    if(!data||data.length===0){
+      // Try table format as fallback
+      data=parseTableFormat(input);
+    }
+  }else{
+    data=parseTableFormat(input);
+    if(!data||data.length===0){
+      // Try INSERT mode as fallback
+      data=parseInsertSQL(input);
+    }
+  }
+  
+  if(!data||data.length===0){
+    errorBox.style.display='block';
+    errorBox.textContent='无法解析输入的SQL或表格数据。请检查格式是否正确。';
+    return;
+  }
+  
+  const json=formatJSON(data);
+  document.getElementById('codeOutput').textContent=json;
+  lastResult=json;
+}
+
+function copyCode(){
+  if(!lastResult){showToast('请先转换数据');return}
+  navigator.clipboard.writeText(lastResult).then(function(){showToast('已复制到剪贴板')}).catch(function(){showToast('复制失败')});
+}
+
+function clearAll(){document.getElementById('sqlInput').value='';document.getElementById('codeOutput').textContent='// 输入 SQL 后点击"转换为 JSON"';document.getElementById('errorBox').style.display='none';lastResult=''}
+
+function loadExample(type){
+  const examples={
+    'insert':"INSERT INTO users (id, name, email, age, is_active, created_at) VALUES\n(1, '张三', 'zhangsan@example.com', 28, TRUE, '2026-01-15'),\n(2, '李四', 'lisi@example.com', 35, TRUE, '2026-02-20'),\n(3, '王五', 'wangwu@example.com', 22, FALSE, '2026-03-10'),\n(4, '赵六', NULL, NULL, TRUE, '2026-04-05');",
+    'table':"id | name       | email                    | age | is_active\n1  | 张三       | zhangsan@example.com     | 28  | 1\n2  | 李四       | lisi@example.com         | 35  | 1\n3  | 王五       | wangwu@example.com       | 22  | 0\n4  | 赵六       | NULL                     | NULL | 1",
+    'multiple':"INSERT INTO products (product_id, name, price, category, in_stock) VALUES\n(101, '无线蓝牙耳机', 299.00, '电子产品', TRUE),\n(102, '机械键盘', 599.00, '电脑外设', TRUE),\n(103, 'USB-C 充电线', 29.00, '配件', TRUE),\n(104, '笔记本电脑支架', 159.00, '办公用品', FALSE);\n\nINSERT INTO categories (id, name, parent_id) VALUES\n(1, '电子产品', NULL),\n(2, '电脑外设', 1),\n(3, '配件', 1);"
+  };
+  document.getElementById('sqlInput').value=examples[type]||'';
+  const mode=type==='table'?'table':'insert';
+  document.querySelector('input[name="mode"][value="'+mode+'"]').checked=true;
+  showToast('已加载示例: '+type);
+}
+
+function showToast(msg){const t=document.createElement('div');t.className='toast show';t.textContent=msg;t.style.cssText='position:fixed;bottom:80px;right:20px;background:#333;color:#fff;padding:10px 20px;border-radius:8px;font-size:0.85rem;z-index:9999;opacity:1;transition:opacity .3s';document.body.appendChild(t);setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},300)},2000)}
+</script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -296,7 +550,7 @@ function loadExample(type){
   showToast('已加载示例: '+type);
 }
 
-
+function showToast(msg){const t=document.createElement('div');t.className='toast show';t.textContent=msg;t.style.cssText='position:fixed;bottom:80px;right:20px;background:#333;color:#fff;padding:10px 20px;border-radius:8px;font-size:0.85rem;z-index:9999;opacity:1;transition:opacity .3s';document.body.appendChild(t);setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},300)},2000)}
 
 </script>
 </body>

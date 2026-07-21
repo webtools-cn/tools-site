@@ -116,7 +116,135 @@ table.data td{color:#cbd5e1}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线图片调色板提取器</p>
 <div class="hero"><p>免费在线图片调色板提取器，从图片中提取主色调生成配色方案。支持提取5-20色，显示HEX/RGB/HSL，一键复制。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🎨 图片调色板提取器</h1>
+    <div class="lang-switch"><a href="../en/image-color-palette-extractor/">EN</a><a href="./" class="active">中文</a></div>
+  </div>
+  <!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+  <div id="app"></div>
+  <div class="info-section" id="usage">
+    <h2>使用说明</h2>
+    <div id="usageContent"></div>
+  </div>
+</div>
+<script>
+(function(){
+var app=document.getElementById('app');
+app.innerHTML='<div class="input-section"><h2>🖼️ 上传图片</h2><input type="file" id="imageInput" accept="image/*"><div class="row"><div class="field"><label>提取颜色数量</label><select id="colorCount"><option value="5">5色</option><option value="8">8色</option><option value="10" selected>10色</option><option value="15">15色</option><option value="20">20色</option></select></div></div><div class="btn-row"><button class="btn btn-primary" id="extractBtn">🎨 提取配色</button></div></div><div class="result-section" id="previewSection"><h2>🖼️ 原图预览</h2><div id="imagePreview" style="text-align:center"></div></div><div class="result-section" id="resultSection"><h2>🎨 提取的配色方案</h2><div class="palette-grid" id="paletteGrid"></div><div class="btn-row"><button class="btn btn-success" id="copyPaletteBtn">📋 复制颜色代码</button></div></div>';
+document.getElementById('usageContent').innerHTML='<p>上传一张图片，工具会自动提取图片中的主要颜色，生成配色方案。支持JPG、PNG、WebP等常见格式。</p><p>算法使用色彩量化（中值切割法），选择图片中占比最多的颜色。可调节提取颜色数量（5-20色），点击颜色方块可复制对应色值。</p>';
+
+var currentColors=[];
+function T(m){var t=document.getElementById("toast");if(!t)return;t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},2000)}
+document.getElementById('extractBtn').addEventListener('click',function(){
+  var file=document.getElementById('imageInput').files[0];
+  if(!file){T('请先选择一张图片');return;}
+  document.getElementById('extractBtn').textContent='⏳ 提取中...';
+  document.getElementById('extractBtn').disabled=true;
+  var img=new Image();
+  img.onload=function(){
+    var previewDiv=document.getElementById('imagePreview');
+    previewDiv.innerHTML='<img src="'+img.src+'" style="max-width:100%;max-height:300px;border-radius:8px">';
+    document.getElementById('previewSection').classList.add('show');
+    extractColors(img,parseInt(document.getElementById('colorCount').value));
+  };
+  img.src=URL.createObjectURL(file);
+});
+
+function extractColors(img,numColors){
+  var canvas=document.createElement('canvas');
+  var ctx=canvas.getContext('2d');
+  var w=img.width,h=img.height;
+  var size=Math.min(200,Math.max(w,h));
+  canvas.width=size;canvas.height=size*Math.min(h,w)/Math.max(w,h);
+  ctx.drawImage(img,0,0,canvas.width,canvas.height);
+  var data=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  var pixels=[];
+  for(var i=0;i<data.length;i+=4){pixels.push([data[i],data[i+1],data[i+2]]);}
+  var colors=quantize(pixels,numColors);
+  currentColors=colors;
+  renderPalette(colors);
+  document.getElementById('extractBtn').textContent='🎨 提取配色';
+  document.getElementById('extractBtn').disabled=false;
+}
+
+function quantize(pixels,numColors){
+  if(pixels.length<=numColors) return pixels;
+  var buckets=[pixels];
+  while(buckets.length<numColors){
+    var largestIdx=0;
+    for(var i=1;i<buckets.length;i++){
+      if(buckets[i].length>buckets[largestIdx].length) largestIdx=i;
+    }
+    var bucket=buckets[largestIdx];
+    if(bucket.length<2) break;
+    var rMin=255,rMax=0,gMin=255,gMax=0,bMin=255,bMax=0;
+    bucket.forEach(function(p){
+      rMin=Math.min(rMin,p[0]);rMax=Math.max(rMax,p[0]);
+      gMin=Math.min(gMin,p[1]);gMax=Math.max(gMax,p[1]);
+      bMin=Math.min(bMin,p[2]);bMax=Math.max(bMax,p[2]);
+    });
+    var rRange=rMax-rMin,gRange=gMax-gMin,bRange=bMax-bMin;
+    var channel=0;
+    if(gRange>=rRange&&gRange>=bRange) channel=1;
+    else if(bRange>=rRange&&bRange>=gRange) channel=2;
+    bucket.sort(function(a,b){return a[channel]-b[channel];});
+    var mid=Math.floor(bucket.length/2);
+    buckets.splice(largestIdx,1,bucket.slice(0,mid),bucket.slice(mid));
+  }
+  return buckets.map(function(bucket){
+    var sumR=0,sumG=0,sumB=0;
+    bucket.forEach(function(p){sumR+=p[0];sumG+=p[1];sumB+=p[2];});
+    var n=bucket.length;
+    return [Math.round(sumR/n),Math.round(sumG/n),Math.round(sumB/n)];
+  });
+}
+
+function rgbToHex(r,g,b){
+  return '#'+[r,g,b].map(function(x){return ('0'+x.toString(16)).slice(-2);}).join('');
+}
+
+function renderPalette(colors){
+  var grid=document.getElementById('paletteGrid');
+  grid.innerHTML='';
+  colors.forEach(function(c){
+    var hex=rgbToHex(c[0],c[1],c[2]);
+    var rgb='rgb('+c[0]+','+c[1]+','+c[2]+')';
+    var item=document.createElement('div');
+    item.className='palette-item';
+    item.innerHTML='<div class="palette-color" style="background:'+rgb+'"></div><div class="palette-info">'+hex+'<br>rgb('+c[0]+','+c[1]+','+c[2]+')</div>';
+    item.querySelector('.palette-color').addEventListener('click',function(){
+      navigator.clipboard.writeText(hex).then(function(){
+        var old=item.innerHTML;
+        item.innerHTML='<div class="palette-color" style="background:'+rgb+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem">✅ 已复制</div><div class="palette-info">'+hex+'</div>';
+        setTimeout(function(){item.innerHTML=old;},1000);
+      });
+    });
+    grid.appendChild(item);
+  });
+  document.getElementById('resultSection').classList.add('show');
+}
+
+document.getElementById('copyPaletteBtn').addEventListener('click',function(){
+  var txt=currentColors.map(function(c){return rgbToHex(c[0],c[1],c[2]);}).join(', ');
+  navigator.clipboard.writeText(txt).then(function(){
+    document.getElementById('copyPaletteBtn').textContent='✅ 已复制';
+    setTimeout(function(){document.getElementById('copyPaletteBtn').textContent='📋 复制颜色代码';},2000);
+  });
+});
+})();
+
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

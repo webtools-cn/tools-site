@@ -104,7 +104,150 @@ table.data td{color:#cbd5e1}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线概率计算器</p>
 <div class="hero"><p>免费在线概率计算器，支持硬币抛掷、骰子投掷、组合概率等场景。实时计算并显示分数和百分比结果。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🎲 概率计算器</h1>
+    <div class="lang-switch"><a href="../en/probability-calculator/">EN</a><a href="./" class="active">中文</a></div>
+  </div>
+  <!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+  <div id="app"></div>
+  <div class="info-section" id="usage">
+    <h2>使用说明</h2>
+    <div id="usageContent"></div>
+  </div>
+</div>
+<script>
+(function(){
+var app=document.getElementById('app');
+app.innerHTML='<div class="input-section"><h2>🎲 选择场景</h2><div class="row"><div class="field"><label>概率场景</label><select id="scene"><option value="coin">抛硬币</option><option value="dice">掷骰子</option><option value="cards">抽扑克牌</option><option value="combo">组合概率</option><option value="conditional">条件概率</option></select></div></div><div id="sceneInputs"></div><div class="btn-row"><button class="btn btn-primary" id="calcBtn">🎲 计算概率</button></div></div><div class="result-section" id="resultSection"><h2>📊 概率结果</h2><div class="result-box" id="resultDisplay"></div></div>';
+document.getElementById('usageContent').innerHTML='<p>选择概率计算场景，设置参数后点击"计算概率"获取事件发生的概率。</p><p>支持抛硬币、掷骰子、抽扑克牌、组合概率和条件概率。结果以分数、小数和百分比三种形式显示。</p>';
+
+function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){var t=b;b=a%b;a=t;}return a;}
+function fraction(num,den){
+  if(num===0) return '0';
+  if(den===0) return '∞';
+  var g=gcd(num,den);
+  num/=g;den/=g;
+  if(den===1) return num.toString();
+  return num+'/'+den;
+}
+
+function showSceneInputs(scene){
+  var html='';
+  if(scene==='coin'){
+    html='<div class="row"><div class="field"><label>抛掷次数</label><input type="number" id="coinTosses" value="1" min="1" max="100"></div><div class="field"><label>期望正面次数</label><input type="number" id="coinHeads" value="1" min="0"></div></div><p style="color:#64748b;font-size:.8rem">计算抛n次硬币恰好获得k次正面的概率</p>';
+  }else if(scene==='dice'){
+    html='<div class="row"><div class="field"><label>骰子面数</label><select id="diceSides"><option value="6">6面</option><option value="10">10面</option><option value="20">20面</option><option value="100">100面</option></select></div><div class="field"><label>掷出数字</label><input type="number" id="diceValue" value="6" min="1"></div></div><p style="color:#64748b;font-size:.8rem">计算掷出指定数字的概率</p>';
+  }else if(scene==='cards'){
+    html='<div class="row"><div class="field"><label>抽取张数</label><input type="number" id="cardDraw" value="1" min="1" max="52"></div><div class="field"><label>特定花色</label><select id="cardSuit"><option value="spade">黑桃</option><option value="heart">红心</option><option value="diamond">方块</option><option value="club">梅花</option></select></div></div><p style="color:#64748b;font-size:.8rem">计算从一副标准扑克牌中抽到特定花色的概率（不放回）</p>';
+  }else if(scene==='combo'){
+    html='<div class="row"><div class="field"><label>总数 (n)</label><input type="number" id="comboN" value="10" min="1"></div><div class="field"><label>选取数 (k)</label><input type="number" id="comboK" value="3" min="0"></div><div class="field"><label>事件方式数</label><input type="number" id="comboEvent" value="1" min="1"></div></div><p style="color:#64748b;font-size:.8rem">P = 事件方式数 / C(n,k)，计算从n个中选k个的特定组合概率</p>';
+  }else if(scene==='conditional'){
+    html='<div class="row"><div class="field"><label>P(A∩B) 两者都发生</label><input type="number" id="condAB" value="0.3" min="0" max="1" step="0.01"></div><div class="field"><label>P(B) 事件B概率</label><input type="number" id="condB" value="0.5" min="0" max="1" step="0.01"></div></div><p style="color:#64748b;font-size:.8rem">P(A|B) = P(A∩B) / P(B)，计算在B发生的条件下A发生的概率</p>';
+  }
+  document.getElementById('sceneInputs').innerHTML=html;
+}
+
+document.getElementById('scene').addEventListener('change',function(){
+  showSceneInputs(this.value);
+});
+showSceneInputs('coin');
+
+document.getElementById('calcBtn').addEventListener('click',function(){
+  var scene=document.getElementById('scene').value;
+  var result='';
+  try{
+    if(scene==='coin'){
+      var n=parseInt(document.getElementById('coinTosses').value);
+      var k=parseInt(document.getElementById('coinHeads').value);
+      if(k>n){result='<p style="color:#f87171">期望次数不能大于抛掷次数</p>';document.getElementById('resultDisplay').innerHTML=result;document.getElementById('resultSection').classList.add('show');return;}
+      var comb=1;
+      for(var i=1;i<=k;i++) comb=comb*(n-k+i)/i;
+      var prob=comb*Math.pow(0.5,n);
+      var total=Math.pow(2,n);
+      result='<table class="data"><tr><th>参数</th><th>值</th></tr>';
+      result+='<tr><td>抛掷次数</td><td>'+n+'</td></tr>';
+      result+='<tr><td>期望正面</td><td>'+k+'</td></tr>';
+      result+='<tr><td>所有可能结果</td><td>2<sup>'+n+'</sup> = '+total+'</td></tr>';
+      result+='<tr><td>有利结果数</td><td>C('+n+','+k+') = '+comb+'</td></tr>';
+      result+='<tr><td>概率 (分数)</td><td>'+fraction(comb,total)+'</td></tr>';
+      result+='<tr><td>概率 (小数)</td><td>'+prob.toFixed(6)+'</td></tr>';
+      result+='<tr><td>概率 (百分比)</td><td>'+(prob*100).toFixed(2)+'%</td></tr></table>';
+    }else if(scene==='dice'){
+      var sides=parseInt(document.getElementById('diceSides').value);
+      var val=parseInt(document.getElementById('diceValue').value);
+      if(val<1||val>sides){result='<p style="color:#f87171">骰子值必须在1到'+sides+'之间</p>';document.getElementById('resultDisplay').innerHTML=result;document.getElementById('resultSection').classList.add('show');return;}
+      result='<table class="data"><tr><th>参数</th><th>值</th></tr>';
+      result+='<tr><td>骰子面数</td><td>'+sides+'</td></tr>';
+      result+='<tr><td>掷出数字</td><td>'+val+'</td></tr>';
+      result+='<tr><td>概率 (分数)</td><td>1/'+sides+'</td></tr>';
+      result+='<tr><td>概率 (小数)</td><td>'+(1/sides).toFixed(6)+'</td></tr>';
+      result+='<tr><td>概率 (百分比)</td><td>'+(100/sides).toFixed(2)+'%</td></tr></table>';
+    }else if(scene==='cards'){
+      var draw=parseInt(document.getElementById('cardDraw').value);
+      var suit=document.getElementById('cardSuit').value;
+      var suitNames={'spade':'黑桃','heart':'红心','diamond':'方块','club':'梅花'};
+      if(draw>52){result='<p style="color:#f87171">最多抽取52张</p>';document.getElementById('resultDisplay').innerHTML=result;document.getElementById('resultSection').classList.add('show');return;}
+      var prob=1;
+      for(var i=0;i<draw;i++){
+        prob*=(13-i)/(52-i);
+      }
+      var pct=prob*100;
+      result='<table class="data"><tr><th>参数</th><th>值</th></tr>';
+      result+='<tr><td>抽取张数</td><td>'+draw+'</td></tr>';
+      result+='<tr><td>目标花色</td><td>'+suitNames[suit]+'</td></tr>';
+      result+='<tr><td>概率 (分数)</td><td>'+fraction(Math.round(prob*1000000),1000000)+'</td></tr>';
+      result+='<tr><td>概率 (小数)</td><td>'+prob.toFixed(6)+'</td></tr>';
+      result+='<tr><td>概率 (百分比)</td><td>'+pct.toFixed(2)+'%</td></tr>';
+      result+='<tr><td>赔率 (1 : )</td><td>1 : '+(prob>0?((1-prob)/prob).toFixed(2):'∞')+'</td></tr></table>';
+    }else if(scene==='combo'){
+      var n=parseInt(document.getElementById('comboN').value);
+      var k=parseInt(document.getElementById('comboK').value);
+      var eventWays=parseInt(document.getElementById('comboEvent').value);
+      if(k>n){result='<p style="color:#f87171">选取数不能大于总数</p>';document.getElementById('resultDisplay').innerHTML=result;document.getElementById('resultSection').classList.add('show');return;}
+      var comb=1;
+      for(var i=1;i<=k;i++) comb=comb*(n-k+i)/i;
+      var prob=eventWays/comb;
+      result='<table class="data"><tr><th>参数</th><th>值</th></tr>';
+      result+='<tr><td>总数 n</td><td>'+n+'</td></tr>';
+      result+='<tr><td>选取数 k</td><td>'+k+'</td></tr>';
+      result+='<tr><td>所有组合 C(n,k)</td><td>'+comb+'</td></tr>';
+      result+='<tr><td>有利方式数</td><td>'+eventWays+'</td></tr>';
+      result+='<tr><td>概率 (分数)</td><td>'+fraction(eventWays,comb)+'</td></tr>';
+      result+='<tr><td>概率 (小数)</td><td>'+prob.toFixed(6)+'</td></tr>';
+      result+='<tr><td>概率 (百分比)</td><td>'+(prob*100).toFixed(2)+'%</td></tr></table>';
+    }else if(scene==='conditional'){
+      var pAB=parseFloat(document.getElementById('condAB').value);
+      var pB=parseFloat(document.getElementById('condB').value);
+      if(pB<=0){result='<p style="color:#f87171">P(B) 必须大于0</p>';document.getElementById('resultDisplay').innerHTML=result;document.getElementById('resultSection').classList.add('show');return;}
+      if(pAB>pB){result='<p style="color:#f87171">P(A∩B) 不能大于 P(B)</p>';document.getElementById('resultDisplay').innerHTML=result;document.getElementById('resultSection').classList.add('show');return;}
+      var pAgivenB=pAB/pB;
+      result='<table class="data"><tr><th>参数</th><th>值</th></tr>';
+      result+='<tr><td>P(A∩B)</td><td>'+pAB+'</td></tr>';
+      result+='<tr><td>P(B)</td><td>'+pB+'</td></tr>';
+      result+='<tr><td>P(A|B) 条件概率</td><td>'+pAgivenB.toFixed(4)+'</td></tr>';
+      result+='<tr><td>P(A|B) 百分比</td><td>'+(pAgivenB*100).toFixed(2)+'%</td></tr></table>';
+    }
+    document.getElementById('resultDisplay').innerHTML=result;
+    document.getElementById('resultSection').classList.add('show');
+  }catch(e){
+    document.getElementById('resultDisplay').innerHTML='<p style="color:#f87171">计算出错：'+e.message+'</p>';
+    document.getElementById('resultSection').classList.add('show');
+  }
+});
+})();
+
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

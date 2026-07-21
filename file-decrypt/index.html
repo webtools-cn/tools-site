@@ -84,7 +84,12 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:rgba(6,182,212
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 文件解密工具</p>
 <div class="hero"><p>免费在线文件解密工具，解密由本站AES-256-GCM加密的.encrypted文件。纯前端Web Crypto API处理，文件不上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><div class="input-section">
+<div><div class="section"><h1>🔓 文件解密工具
+  
+</h1>
+
+
+  <div class="input-section">
     <h2>📤 选择加密文件</h2>
     <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-7l5-5 5 5m-5-5v12" stroke-width="2"/></svg>
@@ -132,153 +137,8 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:rgba(6,182,212
   <span class="rating-count" id="ratingCount"></span>
   <span class="rating-thanks" id="ratingThanks">感谢您的评分！</span>
 </div>
-</div>
-<div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/file-decrypt/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div><span class="rating-count" id="ratingCount">4.6 (178票)</span></div>
-    <p style="margin-top:8px">© 2026 WebTools. 所有工具免费使用，数据不上传服务器。</p>
-  </div>
-  <div class="toast" id="toast"></div>
-</div>
-<script>
-let inputFile=null,decryptedBlob=null,origName='';
-const uz=document.getElementById('uploadZone');
-if(uz){['dragover','dragenter'].forEach(e=>{uz.addEventListener(e,ev=>{ev.preventDefault();uz.classList.add('dragover')})});['dragleave','drop'].forEach(e=>{uz.addEventListener(e,ev=>{ev.preventDefault();uz.classList.remove('dragover')})});uz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)handleFile(f)});}
-
-function handleFile(file){
-  if(!file)return;
-  if(file.size>500*1024*1024){showToast('⚠️ 文件不能超过500MB');return}
-  inputFile=file;
-  document.getElementById('fileName').textContent=file.name;
-  document.getElementById('fileSize').textContent=(file.size/1024/1024).toFixed(2)+' MB';
-  document.getElementById('fileInfo').style.display='block';
-  validateInput();
-}
-
-function validateInput(){
-  document.getElementById('decryptBtn').disabled=!(inputFile&&document.getElementById('password').value.length>=8);
-}
-
-async function decryptFile(){
-  if(!inputFile)return;
-  const pw=document.getElementById('password').value;
-  if(pw.length<8){showToast('⚠️ 密码至少8位');return}
-
-  showToast('⏳ 解密中...');
-  try{
-    const fileData=new Uint8Array(await inputFile.arrayBuffer());
-    if(fileData.length<28){showToast('❌ 无效的加密文件格式');return}
-    const salt=fileData.slice(0,16);
-    const iv=fileData.slice(16,28);
-    const encrypted=fileData.slice(28);
-
-    const encoder=new TextEncoder();
-    const keyMaterial=await crypto.subtle.importKey('raw',encoder.encode(pw),'PBKDF2',false,['deriveKey']);
-    const key=await crypto.subtle.deriveKey(
-      {name:'PBKDF2',salt:salt,iterations:100000,hash:'SHA-256'},
-      keyMaterial,{name:'AES-GCM',length:256},false,['decrypt']
-    );
-
-    const decrypted=await crypto.subtle.decrypt({name:'AES-GCM',iv:iv},key,encrypted);
-    decryptedBlob=new Blob([decrypted]);
-    origName=inputFile.name.replace(/\.encrypted$/,'');
-
-    document.getElementById('decryptResult').style.display='block';
-    document.getElementById('emptyResult').style.display='none';
-    document.getElementById('decryptDetails').innerHTML=
-      '✅ 解密成功<br>加密文件: '+inputFile.name+' ('+(inputFile.size/1024).toFixed(1)+' KB)<br>'+
-      '原始文件: '+origName+' ('+(decryptedBlob.size/1024).toFixed(1)+' KB)';
-    showToast('✅ 解密完成');
-  }catch(e){showToast('❌ 解密失败：密码错误或文件已损坏');}
-}
-
-function downloadDecrypted(){
-  if(!decryptedBlob){showToast('请先解密');return}
-  const url=URL.createObjectURL(decryptedBlob);
-  const a=document.createElement('a');a.href=url;a.download=origName;a.click();URL.revokeObjectURL(url);
-  showToast('✅ 已下载');
-}
-
-function resetAll(){
-  inputFile=null;decryptedBlob=null;origName='';
-  document.getElementById('fileInput').value='';
-  document.getElementById('password').value='';
-  document.getElementById('fileInfo').style.display='none';
-  document.getElementById('decryptResult').style.display='none';
-  document.getElementById('emptyResult').style.display='block';
-  document.getElementById('decryptBtn').disabled=true;
-}
-
-function rate(v){const stars=document.querySelectorAll('#stars span');stars.forEach((s,i)=>{s.textContent=i<v?'★':'☆';s.className=i<v?'active':''});document.getElementById('ratingCount').textContent='4.6 ('+(178+v)+'票)';}
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
-</script>
-<script>
-(function() {
-  const STORAGE_KEY = 'wt_rating_' + location.pathname.replace(/\//g, '_');
-  const AVG_KEY = 'wt_avg_' + location.pathname.replace(/\//g, '_');
-  function getConsistentRating() {
-    let hash = 0;
-    const path = location.pathname;
-    for (let i = 0; i < path.length; i++) { hash = ((hash << 5) - hash) + path.charCodeAt(i); hash = hash & hash; }
-    const ratings = [4.5, 4.6, 4.7, 4.8, 4.9, 4.4, 4.3];
-    const counts = [128, 256, 512, 89, 167, 234, 345, 178, 421, 156];
-    const rIdx = Math.abs(hash) % ratings.length;
-    const cIdx = Math.abs(hash >> 3) % counts.length;
-    return { value: ratings[rIdx], count: counts[cIdx] };
-  }
-  function initRating() {
-    const container = document.getElementById('starContainer');
-    const text = document.getElementById('ratingText');
-    const countEl = document.getElementById('ratingCount');
-    const thanks = document.getElementById('ratingThanks');
-    if (!container || !text) return;
-    const isCN = document.documentElement.lang === 'zh-CN';
-    const saved = localStorage.getItem(STORAGE_KEY);
-    let avgData;
-    try { avgData = JSON.parse(localStorage.getItem(AVG_KEY)); } catch(e) {}
-    if (!avgData) avgData = getConsistentRating();
-    const stars = container.querySelectorAll('.star');
-    function updateDisplay(value) {
-      stars.forEach((s, i) => { s.classList.toggle('active', i < Math.round(value)); });
-      text.textContent = (avgData.value || 4.5).toFixed(1) + '/5';
-      countEl.textContent = isCN ? '(' + (avgData.count || 128) + ' 人评分)' : '(' + (avgData.count || 128) + ' ratings)';
-    }
-    updateDisplay(saved ? parseInt(saved) : avgData.value);
-    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
-    stars.forEach(star => {
-      star.addEventListener('click', function() {
-        const val = parseInt(this.dataset.value);
-        localStorage.setItem(STORAGE_KEY, val);
-        updateDisplay(val);
-        thanks.style.display = 'inline';
-        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
-        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
-        current.count = (current.count || 128) + 1;
-        localStorage.setItem(AVG_KEY, JSON.stringify(current));
-      });
-      star.addEventListener('mouseenter', function() {
-        const val = parseInt(this.dataset.value);
-        stars.forEach((s, i) => s.classList.toggle('active', i < val));
-      });
-    });
-    container.addEventListener('mouseleave', function() { updateDisplay(saved ? parseInt(saved) : avgData.value); });
-  }
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initRating); }
-  else { initRating(); }
-})();
-</script>
-
-  <div class="faq-section">
-    <h2>常见问题 (FAQ)</h2>
-
-
-
-<div class="faq-item">
-      <h3>解密后文件是原始格式吗？</h3>
-      <p>是的。解密后会还原为原始文件名和格式。例如document.pdf.encrypted解密后恢复为document.pdf。文件内容与加密前完全一致。</p>
-    </div>
-</div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
+<div class="lang-switch"><a href="#" class="active">中文</a><a href="../../en/file-decrypt/">English</a></div></div></div>
+<div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 <div class="seo-content"></div>
@@ -288,7 +148,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 
 
-
+<div class="faq-item"><h3>解密后文件是原始格式吗？</h3><p>是的。解密后会还原为原始文件名和格式。例如document.pdf.encrypted解密后恢复为document.pdf。文件内容与加密前完全一致。</p></div>
 
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

@@ -71,11 +71,224 @@ table.data-table td input{width:100%;padding:4px 6px;background:#0f172a;color:#e
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线饼图生成器</p>
 <div class="hero"><p>免费在线饼图生成器，支持自定义颜色、标签、图例和百分比。Canvas绘制，一键导出PNG。纯前端，数据安全不上传。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🥧 饼图生成器</h1>
+    <div class="lang-switch">
+      <a href="index.html" class="active">中文</a>
+      <a href="../en/pie-chart-maker/">EN</a>
+    </div>
+  </div>
+  <!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+  <div style="overflow-x:auto">
+    <table class="data-table" id="dataTable">
+      <thead><tr><th>#</th><th>标签</th><th>数值</th><th>颜色</th><th></th></tr></thead>
+      <tbody id="dataBody"></tbody>
+    </table>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="drawPieChart()">🔄 更新图表</button>
+      <button class="btn btn-secondary" onclick="addRow()">+ 添加数据</button>
+      <button class="btn btn-secondary" onclick="randomData()">随机数据</button>
+      <button class="btn btn-secondary" onclick="resetData()">重置数据</button>
+      <button class="btn btn-success" onclick="exportChart()">导出PNG</button>
+    </div>
+  </div>
+  <div class="section">
+    <h2>📊 图表预览</h2>
+    <div class="canvas-wrap">
+      <canvas id="chartCanvas" width="700" height="420"></canvas>
+    </div>
+    <p style="color:#475569;font-size:.75rem;text-align:center;margin-top:8px">右键点击图表也可以保存</p>
+  </div>
+  <div class="section">
+    <h2>💡 使用说明</h2>
+    <ul style="color:#94a3b8;font-size:.9rem;line-height:1.8;padding-left:20px">
+      <li>在表格中输入数据标签和数值，点击「更新图表」即可生成。</li>
+      <li>可自定义各数据项颜色。</li>
+      <li>点击「导出PNG」下载图表为图片，方便在报告和演示中使用。</li>
+      <li>纯前端Canvas绘制，数据不上传服务器。</li>
+    </ul>
+  </div>
+</div>
+<script>
+let chartData = [{"label": "\u5206\u7c7bA", "value": 30}, {"label": "\u5206\u7c7bB", "value": 25}, {"label": "\u5206\u7c7bC", "value": 20}, {"label": "\u5206\u7c7bD", "value": 15}, {"label": "\u5206\u7c7bE", "value": 10}];
+let chartColors = ["#06b6d4", "#4ade80", "#fb923c", "#a78bfa", "#f472b6"];
+
+function initTable() {
+    const tbody = document.getElementById('dataBody');
+    tbody.innerHTML = '';
+    chartData.forEach((d, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + (i+1) + '</td>' +
+            '<td><input type="text" class="label-input" value="' + d.label + '"></td>' +
+            '<td><input type="number" class="value-input" value="' + d.value + '" min="0"></td>' +
+            '<td><input type="color" class="color-input color-picker-inline" value="' + (chartColors[i] || '#06b6d4') + '"></td>' +
+            '<td><button class="btn btn-secondary" style="padding:4px 8px;font-size:.75rem" onclick="removeRow(' + i + ')">✕</button></td>';
+        tbody.appendChild(tr);
+    });
+}
+
+function addRow() {
+    chartData.push({label: '新项 ' + (chartData.length + 1), value: 10});
+    chartColors.push('#06b6d4');
+    initTable();
+    // Don't auto-render, let user click update
+}
+
+function removeRow(i) {
+    chartData.splice(i, 1);
+    chartColors.splice(i, 1);
+    initTable();
+}
+
+function randomData() {
+    chartData = [];
+    chartColors = [];
+    const count = 4 + Math.floor(Math.random() * 4);
+    const baseLabels = '甲乙丙丁戊己庚辛';
+    for (let i = 0; i < count; i++) {
+        chartData.push({label: baseLabels[i], value: Math.floor(Math.random() * 80) + 10});
+        chartColors.push(['#06b6d4','#4ade80','#fb923c','#a78bfa','#f472b6','#38bdf8','#fbbf24','#34d399'][i % 8]);
+    }
+    initTable();
+    drawPieChart();
+}
+
+function resetData() {
+    chartData = [{"label": "\u5206\u7c7bA", "value": 30}, {"label": "\u5206\u7c7bB", "value": 25}, {"label": "\u5206\u7c7bC", "value": 20}, {"label": "\u5206\u7c7bD", "value": 15}, {"label": "\u5206\u7c7bE", "value": 10}];
+    chartColors = ["#06b6d4", "#4ade80", "#fb923c", "#a78bfa", "#f472b6"];
+    initTable();
+    drawPieChart();
+}
+
+function getTableData() {
+    const rows = document.querySelectorAll('#dataBody tr');
+    const labels = [], values = [], colors = [];
+    rows.forEach(tr => {
+        const label = tr.querySelector('.label-input').value || '';
+        const val = parseFloat(tr.querySelector('.value-input').value) || 0;
+        const color = tr.querySelector('.color-input').value || '#06b6d4';
+        labels.push(label);
+        values.push(val);
+        colors.push(color);
+    });
+    return { labels, values, colors };
+}
+
+function exportChart() {
+    const canvas = document.getElementById('chartCanvas');
+    const link = document.createElement('a');
+    link.download = '图表.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+</div>
+<script>
+function drawPieChart() {
+    const data = getTableData();
+    if (data.labels.length === 0) return;
+    const canvas = document.getElementById('chartCanvas');
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+
+    const cx = w * 0.4, cy = h / 2, radius = Math.min(w * 0.3, h * 0.35);
+    const showLabels = document.getElementById('showLabels').checked;
+    const showLegend = document.getElementById('showLegend').checked;
+
+    const total = data.values.reduce((a, b) => a + b, 0);
+    if (total === 0) { ctx.fillStyle = '#94a3b8'; ctx.font = '16px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('No data', cx, cy); return; }
+
+    let startAngle = -Math.PI / 2;
+    const slices = [];
+    for (let i = 0; i < data.labels.length; i++) {
+        const angle = (data.values[i] / total) * 2 * Math.PI;
+        slices.push({ start: startAngle, end: startAngle + angle, color: data.colors[i] || '#06b6d4', label: data.labels[i], value: data.values[i], pct: (data.values[i] / total * 100).toFixed(1) });
+        startAngle += angle;
+    }
+
+    // Draw slices
+    for (const s of slices) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, s.start, s.end);
+        ctx.closePath();
+        ctx.fillStyle = s.color;
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+
+    // Labels
+    if (showLabels) {
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        for (const s of slices) {
+            const mid = (s.start + s.end) / 2;
+            const lx = cx + Math.cos(mid) * (radius + 20);
+            const ly = cy + Math.sin(mid) * (radius + 20);
+            ctx.fillStyle = '#334155';
+            ctx.fillText(s.label + ' ' + s.pct + '%', lx, ly);
+        }
+    }
+
+    // Legend
+    if (showLegend) {
+        const lx = w * 0.72, ly = h * 0.2;
+        ctx.font = '12px sans-serif';
+        for (let i = 0; i < slices.length; i++) {
+            const y = ly + i * 22;
+            ctx.fillStyle = slices[i].color;
+            ctx.fillRect(lx, y, 12, 12);
+            ctx.fillStyle = '#334155';
+            ctx.textAlign = 'left';
+            ctx.fillText(slices[i].label + ' (' + slices[i].pct + '%)', lx + 18, y + 11);
+        }
+    }
+}
+
+initTable();
+drawPieChart();
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-<div class="seo-content"></div>
+<div class="seo-content">
+    <h2>如何使用🥧 饼图生成器</h2>
+    <p>使用🥧 饼图生成器非常简单，只需三个步骤：</p>
+    <ol style="padding-left:20px;margin-top:12px">
+
+      <li style="margin-bottom:16px">
+        <strong>输入内容</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">将需要处理的内容输入或粘贴到输入区域。工具完全在浏览器本地运行，你的数据不会上传到任何服务器，确保隐私安全。</span>
+      </li>
+
+      <li style="margin-bottom:16px">
+        <strong>调整设置（可选）</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">根据需要调整可用的选项和参数来定制输出。大多数设置支持实时更新，无需点击即可预览效果。</span>
+      </li>
+
+      <li style="margin-bottom:16px">
+        <strong>复制或下载结果</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">对结果满意后，点击"复制"按钮复制到剪贴板，或点击"下载"保存为文件。你可以无限次使用，完全免费，没有使用限制。</span>
+      </li>
+
+    </ol>
+  </div>
 <div class="section"><h2>常见问题</h2></div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 </div>

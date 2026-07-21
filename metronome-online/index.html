@@ -82,7 +82,9 @@ select{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6p
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线节拍器</p>
 <div class="hero"><p>免费在线节拍器，精确BPM节拍控制，支持多种拍号、视觉节拍指示、声音选择。纯前端Web Audio API，音乐练习必备工具。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div>
+<div><div class="section"><h1>🎵 在线节拍器</h1>
+<div class="lang-switch"><a href="/tools-site/">🏠 首页</a><a href="/tools-site/metronome-online/" class="active">中文</a><a href="/tools-site/en/metronome-online/">EN</a></div>
+</div>
 <div class="tool-section">
 <h2>🎵 在线节拍器</h2>
 <p style="color:#94a3b8;font-size:.9rem;margin-bottom:12px">精确BPM节拍控制，多拍号支持，视觉节拍指示。音乐练习必备工具。</p>
@@ -174,189 +176,7 @@ select{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6p
 <textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span><button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer">提交</button></div>
 <div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
-</div>
-</div>
-
-<div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/metronome-online/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div>
-</div>
-
-<script>
-let audioCtx = null;
-let isRunning = false;
-let currentBeat = 0;
-let schedulerTimer = null;
-let nextNoteTime = 0;
-let tapTimes = [];
-
-function getAudioCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}
-
-function getBeats() {
-  return parseInt(document.getElementById('time-sig').value);
-}
-
-function getBpm() {
-  return parseInt(document.getElementById('bpm-slider').value);
-}
-
-function setBpm(bpm) {
-  document.getElementById('bpm-slider').value = bpm;
-  document.getElementById('bpm-value').textContent = bpm;
-}
-
-document.getElementById('bpm-slider').addEventListener('input', function() {
-  document.getElementById('bpm-value').textContent = this.value;
-});
-
-document.getElementById('vol-slider').addEventListener('input', function() {
-  document.getElementById('vol-value').textContent = this.value + '%';
-});
-
-function updateBeats() {
-  const beats = getBeats();
-  const dots = document.getElementById('beat-dots');
-  dots.innerHTML = '';
-  for (let i = 0; i < beats; i++) {
-    const dot = document.createElement('div');
-    dot.className = 'beat-dot';
-    dot.id = 'beat-' + i;
-    dots.appendChild(dot);
-  }
-  currentBeat = 0;
-}
-
-function playClick(time, isDownbeat) {
-  const ctx = getAudioCtx();
-  const vol = parseInt(document.getElementById('vol-slider').value) / 100;
-  const soundType = document.getElementById('sound-type').value;
-  
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  
-  if (soundType === 'click') {
-    osc.frequency.value = isDownbeat ? 1000 : 800;
-    osc.type = 'sine';
-    gain.gain.setValueAtTime(vol * (isDownbeat ? 0.6 : 0.3), time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
-    osc.start(time);
-    osc.stop(time + 0.05);
-  } else if (soundType === 'wood') {
-    osc.frequency.value = isDownbeat ? 500 : 400;
-    osc.type = 'triangle';
-    gain.gain.setValueAtTime(vol * (isDownbeat ? 0.5 : 0.25), time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.03);
-    osc.start(time);
-    osc.stop(time + 0.03);
-  } else {
-    const noise = ctx.createBufferSource();
-    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.05, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
-    noise.buffer = buf;
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'highpass';
-    filter.frequency.value = isDownbeat ? 8000 : 6000;
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.gain.setValueAtTime(vol * (isDownbeat ? 0.4 : 0.2), time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
-    noise.start(time);
-    noise.stop(time + 0.05);
-  }
-}
-
-function scheduler() {
-  const ctx = getAudioCtx();
-  while (nextNoteTime < ctx.currentTime + 0.1) {
-    const beats = getBeats();
-    const isDownbeat = currentBeat === 0;
-    playClick(nextNoteTime, isDownbeat);
-    
-    const beatIdx = currentBeat;
-    setTimeout(function() {
-      document.querySelectorAll('.beat-dot').forEach(function(d) { d.className = 'beat-dot'; });
-      const dot = document.getElementById('beat-' + beatIdx);
-      if (dot) dot.className = 'beat-dot ' + (beatIdx === 0 ? 'downbeat' : 'active');
-    }, (nextNoteTime - ctx.currentTime) * 1000);
-    
-    const secondsPerBeat = 60.0 / getBpm();
-    nextNoteTime += secondsPerBeat;
-    currentBeat = (currentBeat + 1) % beats;
-  }
-}
-
-function toggleMetronome() {
-  if (isRunning) {
-    stopMetronome();
-  } else {
-    startMetronome();
-  }
-}
-
-function startMetronome() {
-  const ctx = getAudioCtx();
-  if (ctx.state === 'suspended') ctx.resume();
-  currentBeat = 0;
-  nextNoteTime = ctx.currentTime;
-  schedulerTimer = setInterval(scheduler, 25);
-  isRunning = true;
-  document.getElementById('play-btn').textContent = '⏹ 停止';
-  document.getElementById('play-btn').className = 'btn btn-danger';
-}
-
-function stopMetronome() {
-  clearInterval(schedulerTimer);
-  isRunning = false;
-  document.querySelectorAll('.beat-dot').forEach(function(d) { d.className = 'beat-dot'; });
-  document.getElementById('play-btn').textContent = '▶️ 开始';
-  document.getElementById('play-btn').className = 'btn btn-success';
-}
-
-function tapTempo() {
-  const now = Date.now();
-  tapTimes.push(now);
-  if (tapTimes.length > 8) tapTimes.shift();
-  if (tapTimes.length >= 2) {
-    let total = 0;
-    for (let i = 1; i < tapTimes.length; i++) {
-      total += tapTimes[i] - tapTimes[i-1];
-    }
-    const avg = total / (tapTimes.length - 1);
-    const bpm = Math.round(60000 / avg);
-    if (bpm >= 20 && bpm <= 300) setBpm(bpm);
-  }
-  if (tapTimes.length > 1 && now - tapTimes[tapTimes.length - 2] > 2000) {
-    tapTimes = [now];
-  }
-}
-
-updateBeats();
-
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-document.getElementById('feedback-text')?.addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const text=document.getElementById('feedback-text').value.trim();
-if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\\n**类型**: '+typeLabel+'\\n\\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
-}
-function showToast(msg){const t=document.getElementById('toast')||(()=>{const d=document.createElement('div');d.id='toast';d.className='toast';document.body.appendChild(d);return d;})();t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
-</script>
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
-<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
+</div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -555,7 +375,7 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
 }
-
+function showToast(msg){const t=document.getElementById('toast')||(()=>{const d=document.createElement('div');d.id='toast';d.className='toast';document.body.appendChild(d);return d;})();t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
 
 </script>
 </body>

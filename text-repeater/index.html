@@ -78,7 +78,268 @@ select{cursor:pointer}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线文本重复生成器</p>
 <div class="hero"><p>免费在线文本重复生成器，一键重复文本/字符串任意次数。支持自定义分隔符、每行前缀后缀、换行/逗号/空格等分隔方式。纯前端本地处理，数据不上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🔁 文本重复生成器</h1>
+<div class="lang-switch" style="position:absolute;top:24px;right:16px;display:flex;gap:8px"><a href="./" style="color:#22d3ee;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #22d3ee;text-decoration:none">中文</a><a href="../en/text-repeater/" style="color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #334155;text-decoration:none">EN</a></div>
+  <p class="subtitle">快速重复文本/字符串任意次数，支持多种分隔方式</p>
+
+<!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+
+  <div class="card">
+    <div class="opt-group">
+      <label>输入要重复的文本</label>
+      <textarea id="inputText" placeholder="在此输入要重复的文字...">Hello World</textarea>
+    </div>
+
+    <div class="preset-chips" id="presetChips">
+      <span class="preset-chip">Hello World</span>
+      <span class="preset-chip">测试文字</span>
+      <span class="preset-chip">abc</span>
+      <span class="preset-chip">123</span>
+      <span class="preset-chip">#️⃣ tag</span>
+      <span class="preset-chip">abc123</span>
+    </div>
+
+    <div class="row">
+      <div class="opt-group">
+        <label>重复次数</label>
+        <input type="number" id="repeatCount" value="10" min="1" max="10000" step="1">
+      </div>
+      <div class="opt-group">
+        <label>分隔符</label>
+        <select id="separator">
+          <option value="\n">换行 (\n)</option>
+          <option value=", ">逗号+空格 (, )</option>
+          <option value=",">逗号 (,)</option>
+          <option value=" ">空格 ( )</option>
+          <option value="\t">Tab</option>
+          <option value="custom">自定义...</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row" id="customSepRow" style="display:none">
+      <div class="opt-group">
+        <label>自定义分隔符</label>
+        <input type="text" id="customSep" placeholder="输入自定义分隔符" value=" | ">
+      </div>
+      <div></div>
+    </div>
+
+    <div class="row">
+      <div class="opt-group">
+        <label>每行前缀（可选）</label>
+        <input type="text" id="prefix" placeholder="例如: - ">
+      </div>
+      <div class="opt-group">
+        <label>每行后缀（可选）</label>
+        <input type="text" id="suffix" placeholder="例如: ;">
+      </div>
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="addNumbers">
+      <label for="addNumbers">添加序号前缀 (1. 2. 3. ...)</label>
+    </div>
+
+    <div class="checkbox-row" style="margin-bottom:16px">
+      <input type="checkbox" id="trimOutput">
+      <label for="trimOutput">去除多余空白</label>
+    </div>
+
+    <button class="btn btn-primary" id="generateBtn" onclick="generate()">🚀 生成文本</button>
+  </div>
+
+  <div class="card" id="outputCard" style="display:none">
+    <h3 style="color:#f1f5f9;margin-bottom:12px;font-size:1.05rem">📋 生成结果</h3>
+
+    <div class="output-area">
+      <pre id="outputText"></pre>
+    </div>
+
+    <div class="stats" id="statsArea">
+      <div class="stat-item">共 <span id="totalLines">0</span> 行</div>
+      <div class="stat-item">总字符 <span id="totalChars">0</span></div>
+    </div>
+
+    <div class="output-actions">
+      <button class="btn btn-copy" onclick="copyOutput()">📋 复制结果</button>
+      <button class="btn btn-download" onclick="downloadOutput()">⬇️ 下载TXT</button>
+      <button class="btn btn-secondary" onclick="clearOutput()">🗑️ 清空</button>
+    </div>
+  </div>
+</div>
+
+<div class="flash-message" id="flashMsg"></div>
+
+<script>
+function showFlash(msg, type) {
+  const el = document.getElementById('flashMsg');
+  el.textContent = msg;
+  el.className = 'flash-message flash-' + type + ' show';
+  setTimeout(function() { el.classList.remove('show'); }, 2500);
+}
+
+document.getElementById('separator').addEventListener('change', function() {
+  document.getElementById('customSepRow').style.display = this.value === 'custom' ? 'block' : 'none';
+});
+
+document.querySelectorAll('.preset-chip').forEach(function(chip) {
+  chip.addEventListener('click', function() {
+    document.getElementById('inputText').value = this.textContent;
+  });
+});
+
+function getSeparator() {
+  const sel = document.getElementById('separator').value;
+  if (sel === 'custom') return document.getElementById('customSep').value;
+  if (sel === '\\n') return '\n';
+  return sel;
+}
+
+function generate() {
+  const text = document.getElementById('inputText').value;
+  const count = parseInt(document.getElementById('repeatCount').value);
+  const prefix = document.getElementById('prefix').value;
+  const suffix = document.getElementById('suffix').value;
+  const addNumbers = document.getElementById('addNumbers').checked;
+  const trimOutput = document.getElementById('trimOutput').checked;
+  const sep = getSeparator();
+
+  if (!text) {
+    showFlash('⚠️ 请输入要重复的文本', 'success');
+    return;
+  }
+
+  if (isNaN(count) || count < 1) {
+    showFlash('⚠️ 重复次数必须 >= 1', 'success');
+    return;
+  }
+
+  if (count > 10000) {
+    showFlash('⚠️ 最大支持10000次重复', 'success');
+    return;
+  }
+
+  var maxChars = count * (text.length + prefix.length + suffix.length + (addNumbers ? String(count).length + 2 : 0));
+  if (maxChars > 5000000) {
+    showFlash('⚠️ 输出内容过大，请减少重复次数', 'success');
+    return;
+  }
+
+  var parts = [];
+  for (var i = 0; i < count; i++) {
+    var line = '';
+    if (addNumbers) line += (i + 1) + '. ';
+    line += prefix + text + suffix;
+    parts.push(line);
+  }
+
+  var output = parts.join(sep);
+
+  if (trimOutput) {
+    output = output.replace(/^\s+|\s+$/g, '').replace(/\n{3}/g, '\n\n');
+  }
+
+  document.getElementById('outputText').textContent = output;
+  document.getElementById('totalLines').textContent = count.toLocaleString();
+  document.getElementById('totalChars').textContent = output.length.toLocaleString();
+  document.getElementById('outputCard').style.display = 'block';
+
+  showFlash('✅ 生成完成！共 ' + count.toLocaleString() + ' 条', 'success');
+}
+
+window.copyOutput = function() {
+  const text = document.getElementById('outputText').textContent;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(function() {
+    showFlash('📋 已复制到剪贴板', 'success');
+  }).catch(function() {
+    // Fallback
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showFlash('📋 已复制到剪贴板', 'success'); } catch(e) { showFlash('复制失败，请手动选择复制', 'success'); }
+    document.body.removeChild(ta);
+  });
+};
+
+window.downloadOutput = function() {
+  const text = document.getElementById('outputText').textContent;
+  if (!text) return;
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'repeated-text.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showFlash('⬇️ 文件已下载', 'success');
+};
+
+window.clearOutput = function() {
+  document.getElementById('outputText').textContent = '';
+  document.getElementById('outputCard').style.display = 'none';
+};
+
+// Auto-trigger on Enter
+document.getElementById('inputText').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && e.ctrlKey) generate();
+});
+</script>
+
+<!-- 反馈收集 -->
+<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
+<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
+<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
+<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
+</div>
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
+<option value="feedback">💡 功能建议</option>
+<option value="bug">🐛 问题反馈</option>
+<option value="other">💬 其他</option>
+</select>
+<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
+<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
+</div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
+</div>
+</div>
+<script>
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){
+const type=document.getElementById('feedback-type').value;
+const text=document.getElementById('feedback-text').value.trim();
+if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
+const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
+const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
+}
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

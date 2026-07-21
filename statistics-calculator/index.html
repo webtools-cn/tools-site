@@ -69,11 +69,199 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线统计分析计算器</p>
 <div class="hero"><p>免费在线统计分析计算器，一键计算均值、中位数、众数、方差、标准差、最小最大值、四分位数等描述性统计量。支持批量输入数据，实时计算，适合学生、研究人员和数据分析师使用。纯前端本地计算。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>📊 统计分析计算器</h1>
+    <div class="lang-switch">
+      <a href="index.html" class="active">中文</a>
+      <a href="../en/statistics-calculator/">EN</a>
+    </div>
+  </div>
+  <!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+
+  <div class="btn-row">
+      <button class="btn btn-primary" onclick="calculate()">计算统计量</button>
+      <button class="btn btn-secondary" onclick="loadSample()">加载示例数据</button>
+      <button class="btn btn-secondary" onclick="clearData()">清空</button>
+    </div>
+  </div>
+
+  <div class="section" id="resultSection" style="display:none">
+    <h2>📋 描述性统计结果</h2>
+    <div class="data-preview" id="dataPreview"></div>
+    <div class="result-grid" id="statsGrid"></div>
+
+    <h2 style="margin-top:16px">📈 数据分布信息</h2>
+    <div class="result-grid" id="distGrid"></div>
+
+    <h2 style="margin-top:12px">🔢 排序后的数据</h2>
+    <div style="background:#0f172a;border-radius:8px;padding:12px;font-family:monospace;font-size:.8rem;color:#94a3b8;max-height:100px;overflow-y:auto" id="sortedData"></div>
+  </div>
+
+  <div class="section">
+    <h2>❓ 描述性统计指标说明</h2>
+    <table class="macro-table" style="width:100%;border-collapse:collapse;margin-top:12px;font-size:.85rem">
+      <tr><th style="padding:8px 12px;text-align:left;border:1px solid rgba(148,163,184,.1);background:#0f172a;color:#94a3b8;font-weight:500">指标</th><th style="padding:8px 12px;text-align:left;border:1px solid rgba(148,163,184,.1);background:#0f172a;color:#94a3b8;font-weight:500">说明</th></tr>
+      <tr><td style="padding:8px 12px;border:1px solid rgba(148,163,184,.1);color:#22d3ee">均值</td><td style="padding:8px 12px;border:1px solid rgba(148,163,184,.1);color:#94a3b8">所有数据之和除以数据个数，反映数据的集中趋势</td></tr>
+      <tr><td style="padding:8px 12px;border:1px solid rgba(148,163,184,.1);color:#22d3ee">中位数</td><td style="padding:8px 12px;border:1px solid rgba(148,163,184,.1);color:#94a3b8">排序后位于中间位置的值，不受极端值影响</td></tr>
+      <tr><td style="padding:8px 12px;border:1px solid rgba(148,163,184,.1);color:#22d3ee">众数</td><td style="padding:8px 12px;border:1px solid rgba(148,163,184,.1);color:#94a3b8">出现频率最高的值，可能不止一个或无</td></tr>
+      <tr><td style="padding:8px 12px;border:1px solid rgba(148,163,184,.1);color:#22d3ee">标准差</td><td style="padding:8px 12px;border:1px solid rgba(148,163,184,.1);color:#94a3b8">衡量数据分散程度，越大表示数据越分散</td></tr>
+      <tr><td style="padding:8px 12px;border:1px solid rgba(148,163,184,.1);color:#22d3ee">四分位距</td><td style="padding:8px 12px;border:1px solid rgba(148,163,184,.1);color:#94a3b8">Q3-Q1，反映中间50%数据的分布范围</td></tr>
+      <tr><td style="padding:8px 12px;border:1px solid rgba(148,163,184,.1);color:#22d3ee">偏度</td><td style="padding:8px 12px;border:1px solid rgba(148,163,184,.1);color:#94a3b8">衡量分布不对称性，正值为右偏，负值为左偏</td></tr>
+      <tr><td style="padding:8px 12px;border:1px solid rgba(148,163,184,.1);color:#22d3ee">峰度</td><td style="padding:8px 12px;border:1px solid rgba(148,163,184,.1);color:#94a3b8">衡量分布尖峭程度，值越大分布越尖峭</td></tr>
+    </table>
+    <p style="color:#475569;font-size:.8rem;margin-top:12px">⚠️ 本计算器结果仅供参考。如需精确统计分析，建议使用专业统计软件。</p>
+  </div>
+</div>
+<script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
+function parseData(str) {
+  const nums = str.split(/[,\s\n\r]+/).map(s => s.trim()).filter(s => s !== '').map(Number);
+  return nums.filter(n => !isNaN(n));
+}
+
+function calculate() {
+  const raw = document.getElementById('dataInput').value;
+  const data = parseData(raw);
+
+  if (data.length < 2) {
+    showToast('请至少输入2个有效数字');
+    return;
+  }
+
+  const n = data.length;
+  const sorted = [...data].sort((a, b) => a - b);
+  const sum = data.reduce((a, b) => a + b, 0);
+  const mean = sum / n;
+
+  // Median
+  let median;
+  if (n % 2 === 0) {
+    median = (sorted[n/2 - 1] + sorted[n/2]) / 2;
+  } else {
+    median = sorted[Math.floor(n/2)];
+  }
+
+  // Mode
+  const freq = {};
+  data.forEach(v => { freq[v] = (freq[v] || 0) + 1; });
+  const maxFreq = Math.max(...Object.values(freq));
+  const modes = Object.keys(freq).filter(k => freq[k] === maxFreq).map(Number);
+  const modeStr = maxFreq === 1 ? '无众数' : modes.join(', ');
+
+  // Variance and Std Dev
+  const variance = data.reduce((acc, v) => acc + (v - mean) ** 2, 0);
+  const popVariance = variance / n;
+  const sampleVariance = variance / (n - 1);
+  const popStd = Math.sqrt(popVariance);
+  const sampleStd = Math.sqrt(sampleVariance);
+
+  // Min, Max, Range
+  const min = sorted[0];
+  const max = sorted[n - 1];
+  const range = max - min;
+
+  // Quartiles
+  function getQuartile(arr, q) {
+    const pos = q * (arr.length - 1);
+    const lower = Math.floor(pos);
+    const upper = Math.ceil(pos);
+    if (lower === upper) return arr[lower];
+    return arr[lower] * (upper - pos) + arr[upper] * (pos - lower);
+  }
+  const q1 = getQuartile(sorted, 0.25);
+  const q2 = median;
+  const q3 = getQuartile(sorted, 0.75);
+  const iqr = q3 - q1;
+
+  // Skewness (sample)
+  const skewness = n > 2 ? (data.reduce((acc, v) => acc + ((v - mean) / sampleStd) ** 3, 0) * n) / ((n-1) * (n-2)) : 0;
+
+  // Kurtosis (excess)
+  const kurtosis = n > 3 ? (data.reduce((acc, v) => acc + ((v - mean) / sampleStd) ** 4, 0) * n * (n+1)) / ((n-1) * (n-2) * (n-3)) - (3 * (n-1) ** 2) / ((n-2) * (n-3)) : 0;
+
+  // Display
+  document.getElementById('dataPreview').textContent = `共 ${n} 个数据: ${sorted.slice(0, 20).join(', ')}${n > 20 ? '...' : ''}`;
+
+  const statsGrid = document.getElementById('statsGrid');
+  statsGrid.innerHTML = `
+    <div class="result-card"><div class="value">${n}</div><div class="label">数据个数 (n)</div></div>
+    <div class="result-card"><div class="value">${mean.toFixed(4)}</div><div class="label">均值 (Mean)</div></div>
+    <div class="result-card"><div class="value">${median.toFixed(4)}</div><div class="label">中位数 (Median)</div></div>
+    <div class="result-card"><div class="value">${modeStr}</div><div class="label">众数 (Mode)</div></div>
+    <div class="result-card"><div class="value">${sum.toFixed(4)}</div><div class="label">总和 (Sum)</div></div>
+    <div class="result-card"><div class="value">${min.toFixed(4)}</div><div class="label">最小值 (Min)</div></div>
+    <div class="result-card"><div class="value">${max.toFixed(4)}</div><div class="label">最大值 (Max)</div></div>
+    <div class="result-card"><div class="value">${range.toFixed(4)}</div><div class="label">极差 (Range)</div></div>
+  `;
+
+  const distGrid = document.getElementById('distGrid');
+  distGrid.innerHTML = `
+    <div class="result-card"><div class="value">${popStd.toFixed(4)}</div><div class="label">总体标准差</div><div class="sub">Population Std Dev</div></div>
+    <div class="result-card"><div class="value">${sampleStd.toFixed(4)}</div><div class="label">样本标准差</div><div class="sub">Sample Std Dev</div></div>
+    <div class="result-card"><div class="value">${popVariance.toFixed(4)}</div><div class="label">总体方差</div><div class="sub">Population Variance</div></div>
+    <div class="result-card"><div class="value">${sampleVariance.toFixed(4)}</div><div class="label">样本方差</div><div class="sub">Sample Variance</div></div>
+    <div class="result-card"><div class="value">${q1.toFixed(4)}</div><div class="label">Q1 (第25百分位)</div></div>
+    <div class="result-card"><div class="value">${q3.toFixed(4)}</div><div class="label">Q3 (第75百分位)</div></div>
+    <div class="result-card"><div class="value">${iqr.toFixed(4)}</div><div class="label">四分位距 (IQR)</div></div>
+    <div class="result-card"><div class="value">${skewness.toFixed(4)}</div><div class="label">偏度 (Skewness)</div><div class="sub">${skewness > 0.5 ? '右偏' : skewness < -0.5 ? '左偏' : '近似对称'}</div></div>
+    <div class="result-card"><div class="value">${kurtosis.toFixed(4)}</div><div class="label">峰度 (Kurtosis)</div><div class="sub">${kurtosis > 1 ? '高峰度' : kurtosis < -1 ? '低峰度' : '适中'}</div></div>
+  `;
+
+  document.getElementById('sortedData').textContent = sorted.join('  ');
+
+  document.getElementById('resultSection').style.display = 'block';
+  document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+function loadSample() {
+  document.getElementById('dataInput').value = '23, 45, 67, 12, 89, 34, 56, 78, 90, 11, 22, 33, 44, 55, 66, 77, 88, 99, 15, 25, 35, 50, 60, 70, 80';
+  calculate();
+}
+
+function clearData() {
+  document.getElementById('dataInput').value = '';
+  document.getElementById('resultSection').style.display = 'none';
+}
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script>
+
+<div class="toast" id="toast"></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
-<div class="seo-content"></div>
+<div class="seo-content">
+    <h2>如何使用📊 统计分析计算器</h2>
+    <p>使用📊 统计分析计算器非常简单，只需三个步骤：</p>
+    <ol style="padding-left:20px;margin-top:12px">
+
+      <li style="margin-bottom:16px">
+        <strong>输入内容</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">将需要处理的内容输入或粘贴到输入区域。工具完全在浏览器本地运行，你的数据不会上传到任何服务器，确保隐私安全。</span>
+      </li>
+
+      <li style="margin-bottom:16px">
+        <strong>调整设置（可选）</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">根据需要调整可用的选项和参数来定制输出。大多数设置支持实时更新，无需点击即可预览效果。</span>
+      </li>
+
+      <li style="margin-bottom:16px">
+        <strong>复制或下载结果</strong><br>
+        <span style="color:#94a3b8;font-size:.9rem">对结果满意后，点击"复制"按钮复制到剪贴板，或点击"下载"保存为文件。你可以无限次使用，完全免费，没有使用限制。</span>
+      </li>
+
+    </ol>
+  </div>
 <div class="section"><h2>常见问题</h2></div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 </div>
@@ -95,7 +283,7 @@ a{color:#06b6d4;text-decoration:none}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 
 function parseData(str) {
   const nums = str.split(/[,\s\n\r]+/).map(s => s.trim()).filter(s => s !== '').map(Number);

@@ -73,7 +73,353 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.4);box-shadow:0 0 0 3px
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 文字转手写</p>
 <div class="hero"><p>免费在线文字转手写工具，将输入的文字转换为逼真的手写体图片。支持中英文，可自定义纸张样式(横线/方格/空白)、笔迹颜色、字体大小，一键下载PNG。纯前端本地处理，隐私安全。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>✍️ 文字转手写</h1>
+<div class="lang-switch" style="position:absolute;top:24px;right:16px;display:flex;gap:8px"><a href="./" style="color:#22d3ee;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #22d3ee;text-decoration:none">中文</a><a href="../en/text-to-handwriting/" style="color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #334155;text-decoration:none">EN</a></div>
+  <p class="subtitle">输入文字，一键生成逼真的手写体图片。支持中英文，可下载为 PNG 图片。</p>
+
+<!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+
+  <div class="card">
+    <h2>输入文字</h2>
+    <div class="form-group">
+      <textarea id="textInput" placeholder="在此输入要转换为手写体的文字..." maxlength="1000">你好，欢迎使用文字转手写工具！这是一段手写效果演示文字。夏天到了，阳光明媚，微风轻拂，树影婆娑。愿你每一天都充满好心情！</textarea>
+      <div class="char-count"><span id="charCount">62</span>/1000 字</div>
+    </div>
+
+    <h2>笔迹设置</h2>
+    <div class="controls">
+      <div class="control-item">
+        <label>纸张样式</label>
+        <select id="paperStyle">
+          <option value="lined">横线纸</option>
+          <option value="grid">方格纸</option>
+          <option value="blank" selected>空白纸</option>
+        </select>
+      </div>
+      <div class="control-item">
+        <label>笔迹颜色</label>
+        <input type="color" id="inkColor" value="#1a1a2e">
+      </div>
+      <div class="control-item">
+        <label>字体大小</label>
+        <input type="range" id="fontSize" min="14" max="40" value="24">
+        <span class="range-value" id="fontSizeVal">24px</span>
+      </div>
+      <div class="control-item">
+        <label>行间距</label>
+        <input type="range" id="lineHeight" min="1.0" max="2.5" step="0.1" value="1.6">
+        <span class="range-value" id="lineHeightVal">1.6</span>
+      </div>
+      <div class="control-item">
+        <label>笔迹倾斜度</label>
+        <input type="range" id="skewAngle" min="-15" max="15" value="2">
+        <span class="range-value" id="skewAngleVal">2°</span>
+      </div>
+      <div class="control-item">
+        <label>书写压力</label>
+        <input type="range" id="pressure" min="0.5" max="2.0" step="0.1" value="1.0">
+        <span class="range-value" id="pressureVal">1.0</span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="generateBtn">✍️ 生成手写体</button>
+      <button class="btn btn-secondary" id="downloadBtn" disabled>⬇️ 下载 PNG</button>
+    </div>
+  </div>
+
+  <div class="card result-area" id="resultArea" style="display:none">
+    <h2>预览效果</h2>
+    <div class="preview-info" id="previewInfo"></div>
+    <canvas id="handwritingCanvas"></canvas>
+    <div class="result-actions">
+      <button class="btn btn-success" id="downloadBtn2" disabled>⬇️ 下载 PNG 图片</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const textInput = document.getElementById('textInput');
+  const charCount = document.getElementById('charCount');
+  const paperStyle = document.getElementById('paperStyle');
+  const inkColor = document.getElementById('inkColor');
+  const fontSize = document.getElementById('fontSize');
+  const fontSizeVal = document.getElementById('fontSizeVal');
+  const lineHeight = document.getElementById('lineHeight');
+  const lineHeightVal = document.getElementById('lineHeightVal');
+  const skewAngle = document.getElementById('skewAngle');
+  const skewAngleVal = document.getElementById('skewAngleVal');
+  const pressure = document.getElementById('pressure');
+  const pressureVal = document.getElementById('pressureVal');
+  const generateBtn = document.getElementById('generateBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const downloadBtn2 = document.getElementById('downloadBtn2');
+  const resultArea = document.getElementById('resultArea');
+  const canvas = document.getElementById('handwritingCanvas');
+  const previewInfo = document.getElementById('previewInfo');
+  const ctx = canvas.getContext('2d');
+
+  let generated = false;
+
+  textInput.addEventListener('input', function(){
+    const len = this.value.length;
+    charCount.textContent = len;
+    if(len > 1000) this.value = this.value.substring(0,1000);
+  });
+
+  fontSize.addEventListener('input', function(){ fontSizeVal.textContent = this.value + 'px'; });
+  lineHeight.addEventListener('input', function(){ lineHeightVal.textContent = this.value; });
+  skewAngle.addEventListener('input', function(){ skewAngleVal.textContent = this.value + '°'; });
+  pressure.addEventListener('input', function(){ pressureVal.textContent = this.value; });
+
+  function loadFont(){
+    return new Promise((resolve) => {
+      if(document.fonts && document.fonts.check('16px "Ma Shan Zheng"')){ resolve(); return; }
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&display=swap';
+      link.onload = () => { document.fonts.ready.then(() => resolve()); };
+      link.onerror = () => resolve();
+      document.head.appendChild(link);
+      setTimeout(resolve, 3000);
+    });
+  }
+
+  function getLines(text, maxWidth, fontStr){
+    const lines = [];
+    const paragraphs = text.split('\n');
+    for(const para of paragraphs){
+      if(para === ''){ lines.push(''); continue; }
+      // Try to break at character boundaries for Chinese, word boundaries for English
+      let remaining = para;
+      while(remaining.length > 0){
+        // For Chinese text, we can break at any character
+        // For mixed text, try to find a good break point
+        let breakIdx = remaining.length;
+        let w = 0;
+        for(let i = 1; i <= remaining.length; i++){
+          const testStr = remaining.substring(0, i);
+          // Use canvas measureText
+          ctx.font = fontStr;
+          const m = ctx.measureText(testStr);
+          if(m.width > maxWidth){ breakIdx = i - 1; break; }
+        }
+        if(breakIdx <= 0) breakIdx = 1;
+        lines.push(remaining.substring(0, breakIdx));
+        remaining = remaining.substring(breakIdx);
+      }
+    }
+    return lines;
+  }
+
+  function generateHandwriting(){
+    const text = textInput.value.trim();
+    if(!text){ showToast('请输入文字'); return; }
+
+    const paper = paperStyle.value;
+    const color = inkColor.value;
+    const fSize = parseInt(fontSize.value);
+    const lHeight = parseFloat(lineHeight.value);
+    const skew = parseFloat(skewAngle.value);
+    const press = parseFloat(pressure.value);
+
+    // Canvas dimensions
+    const cw = 800;
+    const margin = 40;
+    const maxW = cw - margin * 2;
+    const lineH = fSize * lHeight;
+
+    // Use handwriting font with fallback
+    const fontStr = `${fSize}px "Ma Shan Zheng", "ZCOOL XiaoWei", "KaiTi", "楷体", "STKaiti", serif`;
+
+    // First get all lines
+    const lines = getLines(text, maxW, fontStr);
+    const totalH = Math.max(lineH * lines.length + margin * 2, 200);
+
+    canvas.width = cw;
+    canvas.height = totalH;
+
+    // Background
+    ctx.fillStyle = '#faf9f5';
+    ctx.fillRect(0, 0, cw, totalH);
+
+    // Draw paper style
+    if(paper === 'lined'){
+      ctx.strokeStyle = '#c4b998';
+      ctx.lineWidth = 0.8;
+      for(let i = 0; i < lines.length; i++){
+        const y = margin + i * lineH;
+        ctx.beginPath();
+        ctx.moveTo(margin - 10, y + fSize * 0.85);
+        ctx.lineTo(cw - margin + 10, y + fSize * 0.85);
+        ctx.stroke();
+      }
+      // Left margin line
+      ctx.strokeStyle = '#e8c4c4';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(margin - 5, margin);
+      ctx.lineTo(margin - 5, totalH - margin);
+      ctx.stroke();
+    } else if(paper === 'grid'){
+      ctx.strokeStyle = '#d4cfc4';
+      ctx.lineWidth = 0.5;
+      for(let i = 0; i < lines.length + 2; i++){
+        const y = margin - fSize * 0.3 + i * lineH;
+        ctx.beginPath();
+        ctx.moveTo(margin, y);
+        ctx.lineTo(cw - margin, y);
+        ctx.stroke();
+      }
+      for(let x = margin; x <= cw - margin; x += fSize){
+        ctx.beginPath();
+        ctx.moveTo(x, margin - fSize * 0.3);
+        ctx.lineTo(x, Math.max(totalH - margin, margin + lines.length * lineH + fSize * 0.3));
+        ctx.stroke();
+      }
+    }
+
+    // Draw handwriting
+    ctx.font = fontStr;
+    ctx.fillStyle = color;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+
+    // Apply slight variations for handwriting effect
+    const baseAlpha = 0.85 + press * 0.15;
+
+    for(let i = 0; i < lines.length; i++){
+      const line = lines[i];
+      if(!line) continue;
+
+      let x = margin + (Math.random() - 0.5) * 4;
+      const y = margin + i * lineH + fSize * 0.5 + (Math.random() - 0.5) * 2;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(skew * Math.PI / 180);
+
+      for(let j = 0; j < line.length; j++){
+        const ch = line[j];
+        // Skip spaces
+        if(ch === ' '){ ctx.translate(fSize * 0.3, 0); continue; }
+
+        // Random slight offset for hand-writing effect
+        const offsetX = (Math.random() - 0.5) * 1.5;
+        const offsetY = (Math.random() - 0.5) * 2;
+        const rot = (Math.random() - 0.5) * 0.03;
+        const alpha = Math.max(0.6, baseAlpha - Math.random() * 0.2);
+
+        ctx.save();
+        ctx.translate(offsetX, offsetY);
+        ctx.rotate(rot);
+        ctx.globalAlpha = alpha;
+
+        ctx.fillText(ch, 0, 0);
+
+        ctx.restore();
+
+        // Advance character width (approximate)
+        const charW = ctx.measureText(ch).width || fSize * 0.6;
+        ctx.translate(charW + (Math.random() - 0.5) * 1.0, 0);
+      }
+
+      ctx.restore();
+    }
+
+    // Add subtle paper texture
+    const imageData = ctx.getImageData(0, 0, cw, totalH);
+    const data = imageData.data;
+    for(let i = 0; i < data.length; i += 4){
+      const noise = (Math.random() - 0.5) * 6;
+      data[i] = Math.min(255, Math.max(0, data[i] + noise));
+      data[i+1] = Math.min(255, Math.max(0, data[i+1] + noise));
+      data[i+2] = Math.min(255, Math.max(0, data[i+2] + noise));
+    }
+    ctx.putImageData(imageData, 0, 0);
+
+    resultArea.style.display = 'block';
+    downloadBtn.disabled = false;
+    downloadBtn2.disabled = false;
+    generated = true;
+
+    const lineCount = lines.length;
+    previewInfo.textContent = `共 ${text.length} 字，${lineCount} 行 | 画布大小 ${cw}×${Math.round(totalH)}px`;
+  }
+
+  function downloadImage(){
+    if(!generated) return;
+    const link = document.createElement('a');
+    link.download = `handwriting-${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  generateBtn.addEventListener('click', generateHandwriting);
+  downloadBtn.addEventListener('click', downloadImage);
+  downloadBtn2.addEventListener('click', downloadImage);
+
+  // Auto-generate initial
+  loadFont().then(() => {
+    generateHandwriting();
+  }).catch(() => {
+    generateHandwriting();
+  });
+})();
+</script>
+
+<!-- 反馈收集 -->
+<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
+<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
+<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
+<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
+</div>
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
+<option value="feedback">💡 功能建议</option>
+<option value="bug">🐛 问题反馈</option>
+<option value="other">💬 其他</option>
+</select>
+<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
+<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
+</div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
+</div>
+</div>
+<script>
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){
+const type=document.getElementById('feedback-type').value;
+const text=document.getElementById('feedback-text').value.trim();
+if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
+const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
+const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
+}
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script>
+
+<div class="toast" id="toast"></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -99,7 +445,7 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.4);box-shadow:0 0 0 3px
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});

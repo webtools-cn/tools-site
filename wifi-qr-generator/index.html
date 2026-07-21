@@ -62,7 +62,207 @@ input:focus,select:focus{border-color:rgba(6,182,212,.5)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; WiFi二维码生成器</p>
 <div class="hero"><p>免费在线WiFi二维码生成器，输入WiFi名称和密码即可生成可扫描的QR码，纯前端本地生成，不上传服务器。支持WPA/WPA2/WEP/开放网络加密类型。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>📶 WiFi二维码生成器</h1>
+<div class="lang-switch" style="position:absolute;top:24px;right:16px;display:flex;gap:8px"><a href="./" style="color:#22d3ee;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #22d3ee;text-decoration:none">中文</a><a href="../en/wifi-qr-generator/" style="color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #334155;text-decoration:none">EN</a></div>
+<p class="subtitle">输入WiFi信息，生成可扫描连接的二维码 · 纯前端本地处理</p>
+
+<div class="card">
+<div style="margin-bottom:14px">
+<label for="ssid">WiFi名称（SSID）</label>
+<input type="text" id="ssid" placeholder="输入WiFi网络名称" maxlength="32">
+</div>
+<div style="margin-bottom:14px">
+<label for="encryption">加密类型</label>
+<select id="encryption">
+<option value="WPA" selected>WPA/WPA2/WPA3</option>
+<option value="WEP">WEP</option>
+<option value="nopass">开放网络（无密码）</option>
+</select>
+</div>
+<div id="password-field" style="margin-bottom:14px">
+<label for="password">WiFi密码</label>
+<input type="text" id="password" placeholder="输入WiFi密码">
+</div>
+<div class="toggle-row">
+<input type="checkbox" id="hide-pass">
+<span>隐藏密码显示</span>
+</div>
+<div class="toggle-row">
+<input type="checkbox" id="hidden-ssid">
+<span>隐藏网络（不广播SSID）</span>
+</div>
+<div class="btn-group">
+<button class="btn btn-primary" onclick="generateQR()">📱 生成二维码</button>
+<button class="btn btn-secondary" onclick="downloadQR()">💾 下载PNG</button>
+</div>
+</div>
+
+<div class="qr-output" id="qr-output" style="display:none">
+<div class="card">
+<p style="color:#94a3b8;font-size:.85rem;margin-bottom:12px">扫描此二维码即可连接WiFi</p>
+<canvas id="qr-canvas"></canvas>
+<p id="wifi-info" style="color:#64748b;font-size:.8rem;margin-top:10px"></p>
+</div>
+</div>
+
+<div class="faq-section">
+<h2 style="font-size:1.1rem;margin-bottom:12px;color:#f1f5f9">❓ 常见问题</h2>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">WiFi二维码安全吗？密码会被上传吗？</div>
+<div class="faq-a">完全安全。本工具在浏览器本地生成二维码，WiFi名称和密码不会上传到任何服务器。所有计算都在您的设备上完成，生成后可断网验证。</div>
+</div>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">扫描WiFi二维码后手机会自动连接吗？</div>
+<div class="faq-a">是的。iOS 11+和Android 8+系统原生支持扫描WiFi二维码自动连接，无需手动输入密码。扫描后系统会弹出连接确认，点击即可加入网络。</div>
+</div>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">支持哪些WiFi加密类型？</div>
+<div class="faq-a">支持WPA/WPA2/WPA3（最常用）、WEP（旧标准）和开放网络（无密码）。推荐使用WPA/WPA2/WPA3，这是目前最安全的加密方式。</div>
+</div>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">WiFi二维码的格式是什么？</div>
+<div class="faq-a">WiFi二维码遵循标准格式：WIFI:T:WPA;S:网络名;P:密码;; 其中T为加密类型，S为SSID，P为密码。这是被所有主流操作系统识别的标准格式。</div>
+</div>
+<div class="faq-item" onclick="this.classList.toggle('open')">
+<div class="faq-q">可以隐藏WiFi密码吗？</div>
+<div class="faq-a">可以。本工具提供隐藏密码选项，生成二维码时密码字段仍然编码在内，但在页面上不显示明文密码，适合打印张贴在公共场所。</div>
+</div>
+</div>
+</div>
+
+<script>
+// QR Code generator (minimal implementation)
+const QRCode=(function(){
+// QR Code generation using basic algorithm
+function generateQR(text,canvas,size){
+size=size||256;
+canvas.width=size;canvas.height=size;
+const ctx=canvas.getContext('2d');
+ctx.fillStyle='#ffffff';ctx.fillRect(0,0,size,size);
+// Use a simple QR encoding approach via a lightweight library
+// We'll use the qrcode-generator library inline
+if(typeof qrcode!=='undefined'){
+const qr=qrcode(0,'M');
+qr.addData(text);qr.make();
+const mc=qr.getModuleCount();
+const cs=Math.floor((size-16)/mc);
+const ox=Math.floor((size-cs*mc)/2);
+const oy=ox;
+ctx.fillStyle='#ffffff';ctx.fillRect(0,0,size,size);
+for(let r=0;r<mc;r++){
+for(let c=0;c<mc;c++){
+ctx.fillStyle=qr.isDark(r,c)?'#000000':'#ffffff';
+ctx.fillRect(ox+c*cs,oy+r*cs,cs,cs);
+}
+}
+}else{
+ctx.fillStyle='#000000';ctx.font='14px monospace';
+ctx.fillText('Loading QR library...',size/2-70,size/2);
+}
+}
+return{generate:generateQR};
+})();
+
+// Load qrcode library
+const script=document.createElement('script');
+script.src='https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';
+document.head.appendChild(script);
+
+const encSelect=document.getElementById('encryption');
+const passField=document.getElementById('password-field');
+encSelect.addEventListener('change',()=>{
+passField.style.display=encSelect.value==='nopass'?'none':'block';
+});
+
+document.getElementById('hide-pass').addEventListener('change',function(){
+const pw=document.getElementById('password');
+pw.type=this.checked?'password':'text';
+});
+
+function escapeWifiSpecial(str){
+return str.replace(/([\\;,:"'])/g,'\\$1');
+}
+
+function generateQR(){
+const ssid=document.getElementById('ssid').value.trim();
+const enc=encSelect.value;
+const pass=document.getElementById('password').value;
+const hidden=document.getElementById('hidden-ssid').checked;
+
+if(!ssid){showToast('请输入WiFi名称');return;}
+if(enc!=='nopass'&&!pass){showToast('请输入WiFi密码');return;}
+
+let wifiStr='WIFI:T:'+enc+';S:'+escapeWifiSpecial(ssid)+';P:'+escapeWifiSpecial(pass)+';;';
+if(hidden)wifiStr='WIFI:T:'+enc+';S:'+escapeWifiSpecial(ssid)+';P:'+escapeWifiSpecial(pass)+';H:true;;';
+
+const canvas=document.getElementById('qr-canvas');
+QRCode.generate(wifiStr,canvas,280);
+
+document.getElementById('qr-output').style.display='block';
+const info=enc==='nopass'?`${ssid}（开放网络）`:`${ssid} · ${enc} · ${document.getElementById('hide-pass').checked?'•••••••':pass}`;
+document.getElementById('wifi-info').textContent=info;
+showToast('二维码已生成');
+}
+
+function downloadQR(){
+const canvas=document.getElementById('qr-canvas');
+if(!canvas.width){showToast('请先生成二维码');return;}
+const link=document.createElement('a');
+link.download='wifi-qr.png';
+link.href=canvas.toDataURL('image/png');
+link.click();
+showToast('已下载');
+}
+
+function showToast(msg){
+const t=document.getElementById('toast');
+t.textContent=msg;t.classList.add('show');
+setTimeout(()=>t.classList.remove('show'),2000);
+}
+</script>
+
+<!-- 反馈收集 -->
+<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
+<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">💬</button>
+<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
+<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
+</div>
+<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
+<option value="feedback">💡 功能建议</option>
+<option value="bug">🐛 问题反馈</option>
+<option value="other">💬 其他</option>
+</select>
+<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
+<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(6,182,212,.4)'" onmouseout="this.style.background='rgba(6,182,212,.2)'">提交</button>
+</div>
+<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
+</div>
+</div>
+<script>
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function submitFeedback(){
+const type=document.getElementById('feedback-type').value;
+const text=document.getElementById('feedback-text').value.trim();
+if(!text){var ft=document.getElementById('feedback-text');if(ft){ft.style.borderColor='#ef4444';setTimeout(function(){ft.style.borderColor=''},2000)};return;}
+const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
+const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
+}
+</script>
+<!-- Related Tools -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

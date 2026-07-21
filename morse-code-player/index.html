@@ -90,7 +90,9 @@ table.data td{color:#cbd5e1}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线摩斯码播放器</p>
 <div class="hero"><p>免费在线摩斯码播放器，将文本转换为摩斯码音频播放。支持速度调节、音调调整，视觉同步显示，纯前端处理。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div>
+<div><div class="section"><h1>📻 摩斯码播放器</h1>
+    <div class="lang-switch"><a href="../en/morse-code-player/">EN</a><a href="./" class="active">中文</a></div>
+  </div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -98,155 +100,11 @@ table.data td{color:#cbd5e1}
     Updated: 2026-07-11
   </span>
 </div>
-  <div class="ad-slot" style="margin:16px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
   <div id="app"></div>
-  <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
   <div class="info-section" id="usage">
     <h2>使用说明</h2>
     <div id="usageContent"></div>
-  </div>
-</div>
-<div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/morse-code-player/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div>
-<script>
-(function(){
-var app=document.getElementById('app');
-
-app.innerHTML='<div class="input-section"><h2>📻 输入文字</h2><textarea id="input" placeholder="输入文字..." rows="3">SOS</textarea><div class="row"><div class="field"><label>播放速度 (WPM)</label><input type="range" id="speed" min="5" max="30" value="15"></div><div class="field"><label><span id="speedVal">15</span> WPM</label></div></div><div class="row"><div class="field"><label>音调频率 (Hz)</label><input type="range" id="tone" min="400" max="1200" value="700"></div><div class="field"><label><span id="toneVal">700</span> Hz</label></div></div><div class="btn-row"><button class="btn btn-primary" id="playBtn">▶️ 播放</button><button class="btn btn-secondary" id="stopBtn">⏹️ 停止</button></div></div><div class="input-section"><h2>📟 摩斯码</h2><div id="morseDisplay" style="font-family:monospace;font-size:1.5rem;letter-spacing:4px;color:#22d3ee;text-align:center;padding:16px;min-height:60px;word-break:break-all">...</div></div><div class="result-section" id="resultSection"><h2>📄 转换详情</h2><div id="resultContent"></div></div>';
-document.getElementById('usageContent').innerHTML='<p>输入文本，将其转换为摩斯码并播放音频。支持A-Z、0-9和基本标点符号。</p><p>速度(WPM)：调节播放速度<br>音调频率：调节声音频率<br>点(.) = 短音，划(-) = 长音（3倍时长）</p>';
-
-var morseMap={
-  'A':'.-','B':'-...','C':'-.-.','D':'-..','E':'.','F':'..-.','G':'--.','H':'....',
-  'I':'..','J':'.---','K':'-.-','L':'.-..','M':'--','N':'-.','O':'---','P':'.--.',
-  'Q':'--.-','R':'.-.','S':'...','T':'-','U':'..-','V':'...-','W':'.--','X':'-..-',
-  'Y':'-.--','Z':'--..','0':'-----','1':'.----','2':'..---','3':'...--','4':'....-',
-  '5':'.....','6':'-....','7':'--...','8':'---..','9':'----.','.':'.-.-.-',',':
-'--..--','?':'..--..',"'":'.----.','!':'-.-.--','/':'-..-.','(':'-.--.',')':'-.--.-',
-  '&':'.-...',':':'---...',';':'-.-.-.','=':'-...-','+':'.-.-.','-':'-....-',
-  '_':'..--.-','"':'.-..-.','$':'...-..-','@':'.--.-.'
-};
-
-var audioCtx=null;
-var isPlaying=false;
-var timeoutIds=[];
-
-function textToMorse(text){
-  text=text.toUpperCase();
-  var result='';
-  for(var i=0;i<text.length;i++){
-    var ch=text[i];
-    if(ch===' '){result+='  ';}
-    else if(morseMap[ch]){result+=morseMap[ch]+' ';}
-  }
-  return result.trim();
-}
-
-function playMorse(morse,speed,tone){
-  if(isPlaying)return;
-  isPlaying=true;
-  if(!audioCtx){audioCtx=new (window.AudioContext||window.webkitAudioContext)();}
-  
-  var dotDuration=1.2/speed; // seconds
-  var dashDuration=dotDuration*3;
-  var gapDuration=dotDuration;
-  var charGap=dotDuration*3;
-  var wordGap=dotDuration*7;
-  
-  var time=audioCtx.currentTime+0.1;
-  
-  for(var i=0;i<morse.length;i++){
-    var ch=morse[i];
-    if(ch==='.'){
-      _playTone(time,tone,dotDuration);
-      time+=dotDuration+gapDuration;
-    } else if(ch==='-'){
-      _playTone(time,tone,dashDuration);
-      time+=dashDuration+gapDuration;
-    } else if(ch===' '){
-      // Check if next char is also space (word gap)
-      if(i+1<morse.length && morse[i+1]===' '){
-        time+=wordGap;
-        i++; // skip next space
-      } else {
-        time+=charGap;
-      }
-    }
-  }
-  
-  var totalDuration=(time-audioCtx.currentTime)*1000+500;
-  var tid=setTimeout(function(){
-    isPlaying=false;
-  },totalDuration);
-  timeoutIds.push(tid);
-}
-
-function _playTone(time,freq,duration){
-  var osc=audioCtx.createOscillator();
-  var gain=audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.type='sine';
-  osc.frequency.value=freq;
-  gain.gain.setValueAtTime(0.5,time);
-  gain.gain.setValueAtTime(0.5,time+duration-0.01);
-  gain.gain.linearRampToValueAtTime(0,time+duration);
-  osc.start(time);
-  osc.stop(time+duration);
-}
-
-function stopPlaying(){
-  isPlaying=false;
-  for(var i=0;i<timeoutIds.length;i++){clearTimeout(timeoutIds[i]);}
-  timeoutIds=[];
-  if(audioCtx){audioCtx.close();audioCtx=null;}
-}
-
-function convert(){
-  var text=document.getElementById('input').value;
-  var morse=textToMorse(text);
-  document.getElementById('morseDisplay').textContent=morse||'-';
-  
-  var html='<table class="data"><tr><th>'+(window._isEN?'Char':'字符')+'</th><th>'+(window._isEN?'Morse Code':'摩斯码')+'</th></tr>';
-  for(var i=0;i<text.length;i++){
-    var ch=text[i].toUpperCase();
-    if(morseMap[ch]){
-      html+='<tr><td>'+text[i]+'</td><td style="font-family:monospace">'+morseMap[ch]+'</td></tr>';
-    }
-  }
-  html+='</table>';
-  document.getElementById('resultContent').innerHTML=html;
-  document.getElementById('resultSection').classList.add('show');
-}
-
-document.getElementById('playBtn').addEventListener('click',function(){
-  stopPlaying();
-  var text=document.getElementById('input').value;
-  var morse=textToMorse(text);
-  var speed=parseInt(document.getElementById('speed').value);
-  var tone=parseInt(document.getElementById('tone').value);
-  convert();
-  playMorse(morse,speed,tone);
-});
-document.getElementById('stopBtn').addEventListener('click',stopPlaying);
-document.getElementById('speed').addEventListener('input',function(){
-  document.getElementById('speedVal').textContent=this.value;
-});
-document.getElementById('tone').addEventListener('input',function(){
-  document.getElementById('toneVal').textContent=this.value;
-});
-document.getElementById('input').addEventListener('input',convert);
-convert();
-})();
-
-</script>
-<!-- Related Tools (cross-recommendation) -->
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section">
-  <div class="related-tools-loading">Loading related tools...</div>
-</div>
-<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
+  </div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

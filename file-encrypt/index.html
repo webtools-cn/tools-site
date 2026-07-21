@@ -81,7 +81,12 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:rgba(6,182,212
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 文件加密工具</p>
 <div class="hero"><p>免费在线文件加密工具，使用AES-256-GCM算法对任意文件进行加密保护。纯前端Web Crypto API处理，文件不上传服务器，安全可靠。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><div class="input-section">
+<div><div class="section"><h1>🔒 文件加密工具
+  
+</h1>
+
+
+  <div class="input-section">
     <h2>📤 选择文件</h2>
     <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-7l5-5 5 5m-5-5v12" stroke-width="2"/></svg>
@@ -134,168 +139,8 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:rgba(6,182,212
   <span class="rating-count" id="ratingCount"></span>
   <span class="rating-thanks" id="ratingThanks">感谢您的评分！</span>
 </div>
-</div>
-<div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/file-encrypt/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div><span class="rating-count" id="ratingCount">4.7 (203票)</span></div>
-    <p style="margin-top:8px">© 2026 WebTools. 所有工具免费使用，数据不上传服务器。</p>
-  </div>
-  <div class="toast" id="toast"></div>
-</div>
-<script>
-let inputFile=null,encryptedBlob=null;
-const uz=document.getElementById('uploadZone');
-if(uz){['dragover','dragenter'].forEach(e=>{uz.addEventListener(e,ev=>{ev.preventDefault();uz.classList.add('dragover')})});['dragleave','drop'].forEach(e=>{uz.addEventListener(e,ev=>{ev.preventDefault();uz.classList.remove('dragover')})});uz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)handleFile(f)});}
-
-function handleFile(file){
-  if(!file)return;
-  if(file.size>500*1024*1024){showToast('⚠️ 文件不能超过500MB');return}
-  inputFile=file;
-  document.getElementById('fileName').textContent=file.name;
-  document.getElementById('fileSize').textContent=(file.size/1024/1024).toFixed(2)+' MB';
-  document.getElementById('fileInfo').style.display='block';
-  validatePassword();
-}
-
-function validatePassword(){
-  const pw=document.getElementById('password').value;
-  const pw2=document.getElementById('passwordConfirm').value;
-  let strength='';
-  if(pw.length<8)strength='<span style="color:#f87171">太短（至少8位）</span>';
-  else if(pw.length<12)strength='<span style="color:#facc15">中等</span>';
-  else strength='<span style="color:#4ade80">强</span>';
-  document.getElementById('pwdStrength').innerHTML=strength;
-  const valid=inputFile&&pw.length>=8&&pw===pw2&&pw2.length>0;
-  document.getElementById('encryptBtn').disabled=!valid;
-}
-
-async function encryptFile(){
-  if(!inputFile||!document.getElementById('password').value)return;
-  const pw=document.getElementById('password').value;
-  const pw2=document.getElementById('passwordConfirm').value;
-  if(pw!==pw2){showToast('⚠️ 两次密码不一致');return}
-  if(pw.length<8){showToast('⚠️ 密码至少8位');return}
-
-  showToast('⏳ 加密中...');
-  try{
-    const encoder=new TextEncoder();
-    const keyMaterial=await crypto.subtle.importKey('raw',encoder.encode(pw),'PBKDF2',false,['deriveKey']);
-    const salt=crypto.getRandomValues(new Uint8Array(16));
-    const key=await crypto.subtle.deriveKey(
-      {name:'PBKDF2',salt:salt,iterations:100000,hash:'SHA-256'},
-      keyMaterial,{name:'AES-GCM',length:256},false,['encrypt']
-    );
-    const iv=crypto.getRandomValues(new Uint8Array(12));
-    const fileData=await inputFile.arrayBuffer();
-    const encrypted=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,fileData);
-
-    // Pack: salt(16) + iv(12) + encrypted data
-    const result=new Uint8Array(16+12+encrypted.byteLength);
-    result.set(salt,0);
-    result.set(iv,16);
-    result.set(new Uint8Array(encrypted),28);
-    encryptedBlob=new Blob([result],{type:'application/octet-stream'});
-
-    document.getElementById('encryptResult').style.display='block';
-    document.getElementById('emptyResult').style.display='none';
-    document.getElementById('encryptDetails').innerHTML=
-      '✅ 加密成功<br>原文件: '+inputFile.name+' ('+(inputFile.size/1024).toFixed(1)+' KB)<br>'+
-      '加密后: '+(encryptedBlob.size/1024).toFixed(1)+' KB<br>'+
-      '算法: AES-256-GCM · 密钥派生: PBKDF2 (100,000次迭代)<br>'+
-      '<span style="color:#fbbf24">⚠️ 请务必保管好密码，丢失后无法恢复！</span>';
-    showToast('✅ 加密完成');
-  }catch(e){showToast('❌ 加密失败: '+e.message)}
-}
-
-function downloadEncrypted(){
-  if(!encryptedBlob){showToast('请先加密');return}
-  const url=URL.createObjectURL(encryptedBlob);
-  const a=document.createElement('a');a.href=url;
-  a.download=inputFile.name+'.encrypted';a.click();URL.revokeObjectURL(url);
-  showToast('✅ 已下载');
-}
-
-function resetAll(){
-  inputFile=null;encryptedBlob=null;
-  document.getElementById('fileInput').value='';
-  document.getElementById('password').value='';
-  document.getElementById('passwordConfirm').value='';
-  document.getElementById('fileInfo').style.display='none';
-  document.getElementById('encryptResult').style.display='none';
-  document.getElementById('emptyResult').style.display='block';
-  document.getElementById('encryptBtn').disabled=true;
-}
-
-function rate(v){const stars=document.querySelectorAll('#stars span');stars.forEach((s,i)=>{s.textContent=i<v?'★':'☆';s.className=i<v?'active':''});document.getElementById('ratingCount').textContent='4.7 ('+(203+v)+'票)';}
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
-</script>
-<script>
-(function() {
-  const STORAGE_KEY = 'wt_rating_' + location.pathname.replace(/\//g, '_');
-  const AVG_KEY = 'wt_avg_' + location.pathname.replace(/\//g, '_');
-  function getConsistentRating() {
-    let hash = 0;
-    const path = location.pathname;
-    for (let i = 0; i < path.length; i++) { hash = ((hash << 5) - hash) + path.charCodeAt(i); hash = hash & hash; }
-    const ratings = [4.5, 4.6, 4.7, 4.8, 4.9, 4.4, 4.3];
-    const counts = [128, 256, 512, 89, 167, 234, 345, 178, 421, 156];
-    const rIdx = Math.abs(hash) % ratings.length;
-    const cIdx = Math.abs(hash >> 3) % counts.length;
-    return { value: ratings[rIdx], count: counts[cIdx] };
-  }
-  function initRating() {
-    const container = document.getElementById('starContainer');
-    const text = document.getElementById('ratingText');
-    const countEl = document.getElementById('ratingCount');
-    const thanks = document.getElementById('ratingThanks');
-    if (!container || !text) return;
-    const isCN = document.documentElement.lang === 'zh-CN';
-    const saved = localStorage.getItem(STORAGE_KEY);
-    let avgData;
-    try { avgData = JSON.parse(localStorage.getItem(AVG_KEY)); } catch(e) {}
-    if (!avgData) avgData = getConsistentRating();
-    const stars = container.querySelectorAll('.star');
-    function updateDisplay(value) {
-      stars.forEach((s, i) => { s.classList.toggle('active', i < Math.round(value)); });
-      text.textContent = (avgData.value || 4.5).toFixed(1) + '/5';
-      countEl.textContent = isCN ? '(' + (avgData.count || 128) + ' 人评分)' : '(' + (avgData.count || 128) + ' ratings)';
-    }
-    updateDisplay(saved ? parseInt(saved) : avgData.value);
-    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
-    stars.forEach(star => {
-      star.addEventListener('click', function() {
-        const val = parseInt(this.dataset.value);
-        localStorage.setItem(STORAGE_KEY, val);
-        updateDisplay(val);
-        thanks.style.display = 'inline';
-        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
-        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
-        current.count = (current.count || 128) + 1;
-        localStorage.setItem(AVG_KEY, JSON.stringify(current));
-      });
-      star.addEventListener('mouseenter', function() {
-        const val = parseInt(this.dataset.value);
-        stars.forEach((s, i) => s.classList.toggle('active', i < val));
-      });
-    });
-    container.addEventListener('mouseleave', function() { updateDisplay(saved ? parseInt(saved) : avgData.value); });
-  }
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initRating); }
-  else { initRating(); }
-})();
-</script>
-
-  <div class="faq-section">
-    <h2>常见问题 (FAQ)</h2>
-
-
-
-<div class="faq-item">
-      <h3>加密后的文件比原文件大吗？</h3>
-      <p>会略大一些。AES-GCM加密会在文件中添加16字节的认证标签（IV）和少量元数据（约28字节），用于验证数据完整性。文件大小增幅通常不到1%。</p>
-    </div>
-</div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
+<div class="lang-switch"><a href="#" class="active">中文</a><a href="../../en/file-encrypt/">English</a></div></div></div>
+<div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 <div class="seo-content"></div>
@@ -306,7 +151,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 
 
-
+<div class="faq-item"><h3>加密后的文件比原文件大吗？</h3><p>会略大一些。AES-GCM加密会在文件中添加16字节的认证标签（IV）和少量元数据（约28字节），用于验证数据完整性。文件大小增幅通常不到1%。</p></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 </div>

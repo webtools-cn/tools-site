@@ -75,7 +75,11 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; Cookie解析工具</p>
 <div class="hero"><p>免费在线Cookie解析工具，将Cookie字符串解析为键值对表格。支持URL解码、过期时间显示、安全属性标记（HttpOnly/Secure/SameSite）。纯前端处理。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><div class="rating-widget" id="ratingWidget">
+<div><div class="section"><h1>🍪 Cookie解析工具
+  
+</h1>
+
+<div class="rating-widget" id="ratingWidget">
   <div class="stars" id="starContainer" title="点击星星评分">
     <span class="star" data-value="1">★</span>
     <span class="star" data-value="2">★</span>
@@ -87,7 +91,7 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
   <span class="rating-count" id="ratingCount"></span>
   <span class="rating-thanks" id="ratingThanks">感谢您的评分！</span>
 </div>
-</div>
+<div class="lang-switch"><a href="#" class="active">中文</a><a href="../../en/cookie-parser/">English</a></div></div>
   <div class="input-section">
     <h2>📥 输入Cookie字符串</h2>
     <textarea id="cookieInput" placeholder="粘贴Cookie字符串，例如：sessionId=abc123; HttpOnly; Secure; SameSite=Lax; Max-Age=3600"></textarea>
@@ -117,177 +121,8 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
   </div>
 
   <div style="display:flex;align-items:center;gap:6px;margin:8px 0;font-size:.85rem;"><span style="color:#f59e0b;">★★★★½</span><span style="color:#f1f5f9;font-weight:600;">4.7</span><span style="color:#94a3b8;">(256)</span></div>
-  <div style="text-align:center;margin:8px 0;font-size:.8rem;color:#94a3b8;">🔒 本地处理 · ✅ 完全免费 · ⚡ 即时结果</div>
-
-<div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/cookie-parser/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div><span class="rating-count" id="ratingCount">4.4 (145票)</span></div>
-    <p style="margin-top:8px">© 2026 WebTools. 所有工具免费使用，数据不上传服务器。</p>
-  </div>
-  <div class="toast" id="toast"></div>
-</div>
-<script>
-let lastParsed=[];
-
-function parseCookie(){
-  const input=document.getElementById('cookieInput').value.trim();
-  if(!input){document.getElementById('cookieResult').innerHTML='<span style="color:#64748b">输入Cookie字符串后点击解析</span>';return}
-  
-  const urlDecode=document.getElementById('urlDecode').checked;
-  const showRaw=document.getElementById('showRaw').checked;
-  const cookies=[];
-  
-  // Split by semicolon, handle multiple cookies
-  const parts=input.split(/;\s*/);
-  let current={};
-  
-  for(const part of parts){
-    const trimmed=part.trim();
-    if(!trimmed)continue;
-    
-    const eqIdx=trimmed.indexOf('=');
-    if(eqIdx===-1){
-      // Flag like HttpOnly, Secure
-      const flag=trimmed.toLowerCase();
-      if(['httponly','secure'].includes(flag)){
-        current[flag]=true;
-      }else if(['lax','strict','none'].includes(flag)){
-        current['samesite']=trimmed;
-      }
-      continue;
-    }
-    
-    const key=trimmed.substring(0,eqIdx).trim();
-    let value=trimmed.substring(eqIdx+1).trim();
-    if(urlDecode){try{value=decodeURIComponent(value)}catch(e){}}
-    
-    const keyLower=key.toLowerCase();
-    if(keyLower==='expires'||keyLower==='max-age'||keyLower==='domain'||keyLower==='path'||keyLower==='samesite'){
-      current[keyLower]=value;
-    }else{
-      // New cookie entry
-      if(Object.keys(current).length>0&&current.name)cookies.push(current);
-      current={name:key,value:value,rawValue:trimmed.substring(eqIdx+1).trim()};
-    }
-  }
-  if(Object.keys(current).length>0)cookies.push(current);
-  
-  lastParsed=cookies;
-  
-  if(cookies.length===0){
-    document.getElementById('cookieResult').innerHTML='<span style="color:#facc15">⚠️ 未识别到有效Cookie</span>';
-    return;
-  }
-  
-  let html='<table class="cookie-table"><tr><th>名称</th><th>值</th><th>Domain</th><th>Path</th><th>Max-Age</th><th>HttpOnly</th><th>Secure</th><th>SameSite</th>';
-  if(showRaw)html+='<th>原始值</th>';
-  html+='</tr>';
-  
-  for(const c of cookies){
-    html+='<tr>';
-    html+='<td><strong>'+escHtml(c.name||'-')+'</strong></td>';
-    html+='<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">'+escHtml(c.value||'-')+'</td>';
-    html+='<td>'+escHtml(c.domain||'-')+'</td>';
-    html+='<td>'+escHtml(c.path||'-')+'</td>';
-    html+='<td>'+escHtml(c['max-age']||'-')+'</td>';
-    html+='<td>'+(c.httponly?'<span style="color:#4ade80">✓</span>':'<span style="color:#64748b">✗</span>')+'</td>';
-    html+='<td>'+(c.secure?'<span style="color:#4ade80">✓</span>':'<span style="color:#64748b">✗</span>')+'</td>';
-    html+='<td>'+escHtml(c.samesite||'-')+'</td>';
-    if(showRaw)html+='<td style="font-size:.8rem;color:#64748b">'+escHtml(c.rawValue||c.value||'')+'</td>';
-    html+='</tr>';
-  }
-  html+='</table>';
-  html+='<div style="margin-top:8px;color:#64748b;font-size:.8rem">共 '+cookies.length+' 个Cookie</div>';
-  document.getElementById('cookieResult').innerHTML=html;
-}
-
-function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-
-function exportJSON(){
-  if(lastParsed.length===0){showToast('请先解析Cookie');return}
-  navigator.clipboard.writeText(JSON.stringify(lastParsed,null,2)).then(()=>showToast('✅ JSON已复制'));
-}
-
-function loadSample(){
-  document.getElementById('cookieInput').value='sessionId=abc123def456; Domain=.example.com; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=3600\nlang=zh-CN; Domain=.example.com; Path=/; Max-Age=86400\ntheme=dark; Path=/; SameSite=Strict';
-  parseCookie();
-}
-
-function clearAll(){document.getElementById('cookieInput').value='';document.getElementById('cookieResult').innerHTML='<span style="color:#64748b">输入Cookie字符串后点击解析</span>';lastParsed=[];}
-function rate(v){const stars=document.querySelectorAll('#stars span');stars.forEach((s,i)=>{s.textContent=i<v?'★':'☆';s.className=i<v?'active':''});document.getElementById('ratingCount').textContent='4.4 ('+(145+v)+'票)';}
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-</script>
-<script>
-(function() {
-  const STORAGE_KEY = 'wt_rating_' + location.pathname.replace(/\//g, '_');
-  const AVG_KEY = 'wt_avg_' + location.pathname.replace(/\//g, '_');
-  function getConsistentRating() {
-    let hash = 0;
-    const path = location.pathname;
-    for (let i = 0; i < path.length; i++) { hash = ((hash << 5) - hash) + path.charCodeAt(i); hash = hash & hash; }
-    const ratings = [4.5, 4.6, 4.7, 4.8, 4.9, 4.4, 4.3];
-    const counts = [128, 256, 512, 89, 167, 234, 345, 178, 421, 156];
-    const rIdx = Math.abs(hash) % ratings.length;
-    const cIdx = Math.abs(hash >> 3) % counts.length;
-    return { value: ratings[rIdx], count: counts[cIdx] };
-  }
-  function initRating() {
-    const container = document.getElementById('starContainer');
-    const text = document.getElementById('ratingText');
-    const countEl = document.getElementById('ratingCount');
-    const thanks = document.getElementById('ratingThanks');
-    if (!container || !text) return;
-    const isCN = document.documentElement.lang === 'zh-CN';
-    const saved = localStorage.getItem(STORAGE_KEY);
-    let avgData;
-    try { avgData = JSON.parse(localStorage.getItem(AVG_KEY)); } catch(e) {}
-    if (!avgData) avgData = getConsistentRating();
-    const stars = container.querySelectorAll('.star');
-    function updateDisplay(value) {
-      stars.forEach((s, i) => { s.classList.toggle('active', i < Math.round(value)); });
-      text.textContent = (avgData.value || 4.5).toFixed(1) + '/5';
-      countEl.textContent = isCN ? '(' + (avgData.count || 128) + ' 人评分)' : '(' + (avgData.count || 128) + ' ratings)';
-    }
-    updateDisplay(saved ? parseInt(saved) : avgData.value);
-    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
-    stars.forEach(star => {
-      star.addEventListener('click', function() {
-        const val = parseInt(this.dataset.value);
-        localStorage.setItem(STORAGE_KEY, val);
-        updateDisplay(val);
-        thanks.style.display = 'inline';
-        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
-        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
-        current.count = (current.count || 128) + 1;
-        localStorage.setItem(AVG_KEY, JSON.stringify(current));
-      });
-      star.addEventListener('mouseenter', function() {
-        const val = parseInt(this.dataset.value);
-        stars.forEach((s, i) => s.classList.toggle('active', i < val));
-      });
-    });
-    container.addEventListener('mouseleave', function() { updateDisplay(saved ? parseInt(saved) : avgData.value); });
-  }
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initRating); }
-  else { initRating(); }
-})();
-</script>
-
-  <div class="faq-section">
-    <h2>常见问题 (FAQ)</h2>
-
-
-
-<div class="faq-item">
-      <h3>为什么有些Cookie值显示为乱码？</h3>
-      <p>Cookie值可能经过URL编码（如%20代表空格、%2F代表/）。勾选「URL解码」可以自动还原为可读文本。某些特殊编码（如Base<strong>64）</strong>不会被自动解码。</p>
-    </div>
-<div class="faq-item">
-      <h3>HttpOnly和Secure是什么意思？</h3>
-      <p>HttpOnly：JavaScript无法访问该Cookie（document.cookie不包含），只能通过HTTP传输。Secure：Cookie仅在HTTPS连接中发送。两者都是重要安全属性。</p>
-    </div>
-</div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
+  <div style="text-align:center;margin:8px 0;font-size:.8rem;color:#94a3b8;">🔒 本地处理 · ✅ 完全免费 · ⚡ 即时结果</div></div>
+<div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
 <div class="seo-content"></div>
@@ -296,8 +131,8 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 
 
-
-
+<div class="faq-item"><h3>为什么有些Cookie值显示为乱码？</h3><p>Cookie值可能经过URL编码（如%20代表空格、%2F代表/）。勾选「URL解码」可以自动还原为可读文本。某些特殊编码（如Base<strong>64）</strong>不会被自动解码。</p></div>
+<div class="faq-item"><h3>HttpOnly和Secure是什么意思？</h3><p>HttpOnly：JavaScript无法访问该Cookie（document.cookie不包含），只能通过HTTP传输。Secure：Cookie仅在HTTPS连接中发送。两者都是重要安全属性。</p></div>
 
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

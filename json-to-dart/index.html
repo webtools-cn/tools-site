@@ -77,7 +77,332 @@ h1{text-align:center;font-size:2rem;margin:20px 0;color:#1a1a2e}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; JSON转Dart</p>
 <div class="hero"><p>免费在线JSON转Dart工具。将JSON数据转换为Dart类定义，支持null safety、required属性、JSON序列化/反序列化。纯前端处理，适合Flutter开发者。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🔧 JSON 转 Dart 类生成器</h1>
+<div class="lang-switch" style="position:absolute;top:24px;right:16px;display:flex;gap:8px"><a href="./" style="color:#22d3ee;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #22d3ee;text-decoration:none">中文</a><a href="../en/json-to-dart/" style="color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:.85rem;border:1px solid #334155;text-decoration:none">EN</a></div>
+  <p style="text-align:center;color:#888;margin-bottom:24px;font-size:0.95rem">JSON → Dart Model · Flutter友 · null safety · fromJson/toJson</p>
+
+  <div class="card">
+    <div class="card-title">📥 输入JSON</div>
+    <div class="preset-btns">
+      <button class="preset-btn" onclick="loadExample('user')">用户模型</button>
+      <button class="preset-btn" onclick="loadExample('product')">商品模型</button>
+      <button class="preset-btn" onclick="loadExample('nested')">嵌套模型</button>
+    </div>
+    <div class="form-group">
+      <textarea id="jsonInput" placeholder='{
+  "name": "张三",
+  "age": 28,
+  "email": "zhangsan@example.com",
+  "isActive": true
+}'></textarea>
+    </div>
+    <div class="options-row">
+      <label><input type="checkbox" id="useCopyWith" checked> 生成 copyWith</label>
+      <label><input type="checkbox" id="useJsonSerializable"> json_serializable 注解</label>
+      <label><input type="checkbox" id="useFreezed"> freezed 注解</label>
+      <label><input type="checkbox" id="useFinal"> final 属性</label>
+      <label><input type="checkbox" id="useEquatable"> Equatable 继承</label>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="generateDart()">🚀 生成 Dart 类</button>
+      <button class="btn btn-outline" onclick="clearAll()">🗑️ 清空</button>
+    </div>
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💻 生成的Dart代码</div>
+    <div class="code-wrapper">
+      <button class="copy-btn" onclick="copyCode()">📋 复制</button>
+      <div class="code-output" id="codeOutput">// 输入JSON后点击"生成 Dart 类"</div>
+    </div>
+  </div>
+
+  <div class="faq-section">
+    <h2>❓ 常见问题</h2>
+    <div class="faq-item open">
+      <div class="faq-q" onclick="toggleFaq(this)">这个工具适合Flutter开发者吗？<span class="arrow">▼</span></div>
+      <div class="faq-a"><p>非常适合。本工具专为Flutter/Dart开发者设计，生成完全兼容Dart 3.x的类代码，支持null safety、required属性、copyWith方法、fromJson/toJson序列化。无论您是使用纯手写Dart类还是json_serializable/freezed库，本工具都能满足您的需求。</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">JSON数据安全吗？<span class="arrow">▼</span></div>
+      <div class="faq-a"><p>绝对安全。所有数据处理都在浏览器本地完成，没有任何数据上传到服务器。您可以放心处理包含API密钥、用户个人信息或商业机密的JSON数据。即使断网也能正常使用。</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">如何处理嵌套的JSON对象？<span class="arrow">▼</span></div>
+      <div class="faq-a"><p>工具自动识别嵌套对象和数组，会为每个嵌套结构生成独立的Dart类，并自动建立关联。例如，如果JSON中包含address对象，工具会生成一个Address类，并在父类中声明Address? address字段。fromJson和toJson方法支持深度嵌套的序列化/反序列化。</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">json_serializable和手写fromJson有什么区别？<span class="arrow">▼</span></div>
+      <div class="faq-a"><p>手写fromJson/toJson不依赖外部库，代码自包含，适合小型项目。json_serializable使用@JsonKey注解自动生成代码，适合大型项目，支持更多高级特性如重命名、默认值、类型转换。freezed提供额外的不变性和模式匹配功能。本工具三种方式都支持，您可以在选项中选择。</p></div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">如何自定义类型映射？<span class="arrow">▼</span></div>
+      <div class="faq-a"><p>工具默认使用智能类型推断。你可以修改生成的类名（修改类定义行）或字段类型。对于DateTime等特殊类型，目前需要手动调整生成的代码。我们计划在未来版本中支持自定义类型映射配置。</p></div>
+    </div>
+  </div>
+
+  <div class="card" style="background:#f8f9fc;margin-top:20px">
+    <p style="font-size:0.85rem;color:#888;text-align:center">💡 所有处理在浏览器本地完成。生成的Dart代码可直接用于Flutter项目。</p>
+  </div>
+</div>
+
+<script>
+(function(){var s=document.createElement('script');s.src='/tools-site/feedback-widget.html';s.onload=function(){if(window.initFeedback)initFeedback('json-to-dart')};document.body.appendChild(s)})();
+
+function toggleFaq(el){var item=el.parentElement;item.classList.toggle('open')}
+
+function escapeDartClass(name){return name.replace(/[^a-zA-Z0-9_]/g,'').replace(/^[0-9]/,'_')}
+
+function toPascalCase(s){return s.replace(/[^a-zA-Z0-9]/g,' ').replace(/\s+(.)/g,function(_,c){return c.toUpperCase()}).replace(/\s/g,'').replace(/^./,function(c){return c.toUpperCase()})}
+
+function toCamelCase(s){const p=toPascalCase(s);return p.charAt(0).toLowerCase()+p.slice(1)}
+
+function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+
+function inferType(value,jsonKey){
+  if(value===null||value===undefined)return 'dynamic';
+  if(typeof value==='string'){
+    if(/^\d{4}-\d{2}-\d{2}/.test(value)||/^\d{4}\/\d{2}\/\d{2}/.test(value))return 'DateTime';
+    return 'String';
+  }
+  if(typeof value==='boolean')return 'bool';
+  if(typeof value==='number'){
+    if(Number.isInteger(value))return 'int';
+    return 'double';
+  }
+  if(Array.isArray(value)){
+    if(value.length===0)return 'List<dynamic>';
+    const itemTypes=value.map(function(v){return inferType(v)});
+    const uniqueTypes=[...new Set(itemTypes)];
+    if(uniqueTypes.length===1&&uniqueTypes[0]!=='dynamic')return 'List<'+uniqueTypes[0]+'>';
+    // Check if items are objects (nested classes)
+    if(typeof value[0]==='object'&&value[0]!==null&&!Array.isArray(value[0])){
+      const className=toPascalCase(jsonKey)+'Item';
+      return 'List<'+className+'>';
+    }
+    return 'List<dynamic>';
+  }
+  if(typeof value==='object'&&value!==null){
+    return toPascalCase(jsonKey);
+  }
+  return 'dynamic';
+}
+
+let generatedClasses='';
+let rootClassName='';
+
+function generateDart(){
+  const input=document.getElementById('jsonInput').value.trim();
+  const errorBox=document.getElementById('errorBox');
+  
+  if(!input){errorBox.style.display='block';errorBox.textContent='请输入JSON数据';return}
+  
+  let data;
+  try{data=JSON.parse(input)}catch(e){errorBox.style.display='block';errorBox.textContent='JSON格式错误: '+e.message;return}
+  errorBox.style.display='none';
+  
+  const useCopyWith=document.getElementById('useCopyWith').checked;
+  const useJsonSerializable=document.getElementById('useJsonSerializable').checked;
+  const useFreezed=document.getElementById('useFreezed').checked;
+  const useFinal=document.getElementById('useFinal').checked;
+  const useEquatable=document.getElementById('useEquatable').checked;
+  
+  if(useJsonSerializable&&useFreezed){errorBox.style.display='block';errorBox.textContent='请选择 json_serializable 或 freezed，不能同时勾选';return}
+  
+  const classes={};
+  let mainClassName='';
+  
+  // Analyze JSON structure
+  function analyze(obj,name,classes){
+    if(obj===null||obj===undefined||typeof obj!=='object'||Array.isArray(obj)){
+      if(Array.isArray(obj)&&obj.length>0&&typeof obj[0]==='object'&&obj[0]!==null){
+        analyze(obj[0],name+'Item',classes);
+      }
+      return;
+    }
+    
+    if(classes[name])return; // Already processed
+    classes[name]={fields:[],hasArrayOfObjects:false};
+    
+    const keys=Object.keys(obj);
+    keys.forEach(function(key){
+      const val=obj[key];
+      let type=inferType(val,key);
+      
+      // Check if it's a nested object
+      if(typeof val==='object'&&val!==null&&!Array.isArray(val)){
+        const className=type;
+        analyze(val,className,classes);
+      }
+      
+      // Check if it's an array of objects
+      if(Array.isArray(val)&&val.length>0&&typeof val[0]==='object'&&val[0]!==null){
+        const itemClassName=type.replace('List<','').replace('>','');
+        analyze(val[0],itemClassName,classes);
+        classes[name].hasArrayOfObjects=true;
+      }
+      
+      const isRequired=val!==null&&val!==undefined;
+      const dartKey=toCamelCase(key);
+      classes[name].fields.push({jsonKey:key,dartKey:dartKey,type:type,isRequired:isRequired});
+    });
+  }
+  
+  // Determine root name
+  const rootName='RootModel';
+  mainClassName=rootName;
+  analyze(data,rootName,classes);
+  
+  // Generate Dart code
+  let code='';
+  const sortedClassNames=Object.keys(classes);
+  
+  sortedClassNames.forEach(function(className,i){
+    const cls=classes[className];
+    
+    if(useJsonSerializable){
+      code+="import 'package:json_annotation/json_annotation.dart';\n";
+      code+="part '"+toCamelCase(className)+".g.dart';\n\n";
+    }
+    if(useFreezed){
+      code+="import 'package:freezed_annotation/freezed_annotation.dart';\n";
+      code+="import 'package:flutter/foundation.dart';\n";
+      code+="part '"+toCamelCase(className)+".freezed.dart';\n";
+      code+="part '"+toCamelCase(className)+".g.dart';\n\n";
+    }
+    if(useEquatable&&!useFreezed){
+      code+="import 'package:equatable/equatable.dart';\n\n";
+    }
+    
+    if(useFreezed){
+      // Freezed class
+      code+='@freezed\n';
+      code+="class "+className+" with _\\$"+className+" {\n";
+      code+='  const factory '+className+'({\n';
+      cls.fields.forEach(function(f){
+        if(!f.isRequired)code+='    @Default(null) ';
+        code+='    '+f.type+(f.isRequired?'':'?')+' '+f.dartKey+',\n';
+      });
+      code+='  }) = _'+className+';\n\n';
+      code+='  factory '+className+'.fromJson(Map<String, dynamic> json) => _\\$'+className+'FromJson(json);\n';
+      code+='}\n\n';
+    }else if(useJsonSerializable){
+      code+='@JsonSerializable()\n';
+      code+='class '+className+(useEquatable?' extends Equatable':'')+' {\n';
+      cls.fields.forEach(function(f){
+        code+='  final '+f.type+(f.isRequired?'':'?')+' '+f.dartKey+';\n';
+      });
+      code+='\n  '+className+'({\n';
+      cls.fields.forEach(function(f){
+        code+='    '+((f.isRequired&&!useFinal)?'required ':'')+f.type+(f.isRequired?'':'?')+' '+f.dartKey+',\n';
+      });
+      code+='  });\n\n';
+      code+='  factory '+className+'.fromJson(Map<String, dynamic> json) => _\\$'+className+'FromJson(json);\n\n';
+      code+='  Map<String, dynamic> toJson() => _\\$'+className+'ToJson(this);\n\n';
+      if(useCopyWith){
+        code+='  '+className+' copyWith({\n';
+        cls.fields.forEach(function(f){
+          code+='    '+('Optional<String>'==='Optional<String>'?f.type+(f.isRequired?'?':''):f.type+(f.isRequired?'?':'?'))+' Function()? '+f.dartKey+',\n';
+        });
+        code+='  }) {\n    return '+className+'(\n';
+        cls.fields.forEach(function(f){
+          code+='      '+f.dartKey+': '+f.dartKey+'?.call() ?? this.'+f.dartKey+',\n';
+        });
+        code+='    );\n  }\n';
+      }
+      if(useEquatable){
+        code+='\n  @override\n  List<Object?> get props => ['+cls.fields.map(function(f){return f.dartKey}).join(', ')+'];\n';
+      }
+      code+='}\n\n';
+    }else{
+      // Plain Dart class
+      code+='class '+className+(useEquatable?' extends Equatable':'')+' {\n';
+      // Constructor
+      code+='  const '+className+'({\n';
+      cls.fields.forEach(function(f){
+        code+='    '+((f.isRequired&&!useFinal)?'required ':'')+f.type+(f.isRequired?'':'?')+' '+f.dartKey+(useFinal?'':'')+',\n';
+      });
+      code+='  });\n\n';
+      // Fields
+      cls.fields.forEach(function(f){
+        code+='  final '+f.type+(f.isRequired?'':'?')+' '+f.dartKey+';\n';
+      });
+      code+='\n';
+      // fromJson
+      code+='  factory '+className+'.fromJson(Map<String, dynamic> json) {\n    return '+className+'(\n';
+      cls.fields.forEach(function(f){
+        let val='json['+JSON.stringify(f.jsonKey)+']';
+        if(f.type==='DateTime'){code+='      '+f.dartKey+': '+val+' != null ? DateTime.parse('+val+') : null,\n'}
+        else if(f.type.startsWith('List<')){const innerType=f.type.replace('List<','').replace('>','');if(innerType!=='dynamic'&&classes[innerType]){code+='      '+f.dartKey+': ('+val+' as List<dynamic>?)?.map((e) => '+innerType+'.fromJson(e as Map<String,dynamic>)).toList(),\n'}else{code+='      '+f.dartKey+': ('+val+' as List<dynamic>?)?.cast<'+innerType+'>(),\n'}}
+        else if(classes[f.type]){code+='      '+f.dartKey+': '+val+' != null ? '+f.type+'.fromJson('+val+' as Map<String, dynamic>) : null,\n'}
+        else if(f.type==='int'||f.type==='double'){code+='      '+f.dartKey+': ('+val+' as num?)?.to'+capitalize(f.type)+'(),\n'}
+        else{code+='      '+f.dartKey+': '+val+' as '+f.type+'?,\n'}
+      });
+      code+='    );\n  }\n\n';
+      // toJson
+      code+='  Map<String, dynamic> toJson() {\n    return {\n';
+      cls.fields.forEach(function(f){
+        let val=f.dartKey;
+        if(f.type==='DateTime'){code+='      '+JSON.stringify(f.jsonKey)+': '+val+'?.toIso8601String(),\n'}
+        else if(f.type.startsWith('List<')){const innerType=f.type.replace('List<','').replace('>','');if(classes[innerType]){code+='      '+JSON.stringify(f.jsonKey)+': '+val+'?.map((e) => e.toJson()).toList(),\n'}else{code+='      '+JSON.stringify(f.jsonKey)+': '+val+',\n'}}
+        else if(classes[f.type]){code+='      '+JSON.stringify(f.jsonKey)+': '+val+'?.toJson(),\n'}
+        else{code+='      '+JSON.stringify(f.jsonKey)+': '+val+',\n'}
+      });
+      code+='    };\n  }\n';
+      // copyWith
+      if(useCopyWith){
+        code+='\n  '+className+' copyWith({\n';
+        cls.fields.forEach(function(f){
+          code+='    '+f.type+(f.isRequired?'?':'?')+' Function()? '+f.dartKey+',\n';
+        });
+        code+='  }) {\n    return '+className+'(\n';
+        cls.fields.forEach(function(f){
+          code+='      '+f.dartKey+': '+f.dartKey+'?.call() ?? this.'+f.dartKey+',\n';
+        });
+        code+='    );\n  }\n';
+      }
+      if(useEquatable){
+        code+='\n  @override\n  List<Object?> get props => ['+cls.fields.map(function(f){return f.dartKey}).join(', ')+'];\n';
+      }
+      code+='}\n\n';
+    }
+  });
+  
+  document.getElementById('codeOutput').textContent=code;
+  generatedClasses=code;
+  rootClassName=mainClassName;
+}
+
+function copyCode(){
+  if(!generatedClasses){showToast('请先生成代码');return}
+  navigator.clipboard.writeText(generatedClasses).then(function(){showToast('已复制到剪贴板')}).catch(function(){showToast('复制失败')});
+}
+
+function clearAll(){
+  document.getElementById('jsonInput').value='';
+  document.getElementById('codeOutput').textContent='// 输入JSON后点击"生成 Dart 类"';
+  document.getElementById('errorBox').style.display='none';
+  generatedClasses='';
+}
+
+function loadExample(type){
+  const examples={
+    'user':JSON.stringify({name:"张三",age:28,email:"zhangsan@example.com",isActive:true,phone:null,address:{street:"朝阳区建国路88号",city:"北京市",zipCode:"100022"},tags:["developer","designer"],profile:{bio:"全栈开发者",avatar:"https://example.com/avatar.png",followers:1024}},null,2),
+    'product':JSON.stringify({id:"prod_001",title:"无线蓝牙耳机",price:299.00,currency:"CNY",inStock:true,category:{id:"cat_01",name:"电子产品",icon:"🎧"},specs:[{key:"颜色",value:"黑色"},{key:"续航",value:"8小时"},{key:"重量",value:"45g"}],reviews:[{user:"用户A",rating:4.5,comment:"音质不错",date:"2026-06-15"}]},null,2),
+    'nested':JSON.stringify({user:{id:1,name:"李四",settings:{theme:"dark",notifications:true,language:"zh-CN",privacy:{showEmail:false,onlineStatus:"all"}},recentOrders:[{orderId:"ORD001",total:199.00,items:[{productId:"P001",qty:2,price:99.50}]}]},meta:{page:1,totalPages:5,totalItems:87}},null,2)
+  };
+  document.getElementById('jsonInput').value=examples[type]||'';
+  showToast('已加载示例: '+type);
+}
+
+function showToast(msg){
+  const t=document.createElement('div');t.className='toast show';t.textContent=msg;
+  t.style.cssText='position:fixed;bottom:80px;right:20px;background:#333;color:#fff;padding:10px 20px;border-radius:8px;font-size:0.85rem;z-index:9999;opacity:1;transition:opacity .3s';
+  document.body.appendChild(t);
+  setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},300)},2000);
+}
+</script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
@@ -351,7 +676,12 @@ function loadExample(type){
   showToast('已加载示例: '+type);
 }
 
-
+function showToast(msg){
+  const t=document.createElement('div');t.className='toast show';t.textContent=msg;
+  t.style.cssText='position:fixed;bottom:80px;right:20px;background:#333;color:#fff;padding:10px 20px;border-radius:8px;font-size:0.85rem;z-index:9999;opacity:1;transition:opacity .3s';
+  document.body.appendChild(t);
+  setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},300)},2000);
+}
 
 </script>
 </body>

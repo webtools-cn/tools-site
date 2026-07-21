@@ -353,11 +353,13 @@ class PageExtractor:
         # 5. 找到工具HTML区域
         # 策略1：找到ad-slot#ad-top结束位置
         ad_top_match = re.search(r'<div class="ad-slot" id="ad-top">.*?</div>\s*', body, re.S|re.I)
-        # 策略2：如果没有ad-slot，找ad-container（旧版页面）
-        if not ad_top_match:
-            ad_top_match = re.search(r'<div class="ad-container"[^>]*>.*?</div>\s*', body, re.S|re.I)
         
-        tool_start = ad_top_match.end() if ad_top_match else 0
+        if ad_top_match:
+            tool_start = ad_top_match.end()
+        else:
+            # 没有ad-top，从h1开始（h1是工具区域的一部分）
+            h1_match = re.search(r'<h1[^>]*>', body, re.I)
+            tool_start = h1_match.start() if h1_match else 0
         
         # 找到footer开始位置
         footer_match = re.search(r'<(div class="footer|footer)', body, re.S|re.I)

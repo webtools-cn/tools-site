@@ -95,7 +95,11 @@ textarea:focus,.text-input:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; CSV差异对比器</p>
 <div class="hero"><p>免费在线CSV差异对比工具，快速比较两个CSV文件的行级差异。支持新增、删除、修改标记，列对齐显示，忽略空白和大小写选项。纯前端本地处理，数据不上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><div class="rating-widget" id="ratingWidget">
+<div><div class="section"><h1>📊 CSV差异对比器
+  
+</h1>
+
+<div class="rating-widget" id="ratingWidget">
   <div class="stars" id="starContainer" title="Click stars to rate">
     <span class="star" data-value="1">★</span>
     <span class="star" data-value="2">★</span>
@@ -107,7 +111,11 @@ textarea:focus,.text-input:focus{outline:none;border-color:rgba(6,182,212,.5)}
   <span class="rating-count" id="ratingCount"></span>
   <span class="rating-thanks" id="ratingThanks">Thanks for your rating!</span>
 </div>
+    <div class="lang-switch">
+      <a href="#" class="active">中文</a>
+      <a href="../../en/csv-diff/">English</a>
     </div>
+  </div>
   
   <!-- PLACEHOLDER: Tool-specific HTML + JS will be injected here -->
     <div class="input-section">
@@ -184,265 +192,7 @@ textarea:focus,.text-input:focus{outline:none;border-color:rgba(6,182,212,.5)}
   </div>
 
   <div style="display:flex;align-items:center;gap:6px;margin:8px 0;font-size:.85rem;"><span style="color:#f59e0b;">★★★★½</span><span style="color:#f1f5f9;font-weight:600;">4.7</span><span style="color:#94a3b8;">(256)</span></div>
-  <div style="text-align:center;margin:8px 0;font-size:.8rem;color:#94a3b8;">🔒 本地处理 · ✅ 完全免费 · ⚡ 即时结果</div>
-
-<div class="footer container">
-    <a href="../">首页</a> | <a href="../#tools">全部工具</a> | <a href="mailto:dexshuang@google.com">联系我们</a> | <a href="../privacy-policy/">隐私政策</a> | <a href="../terms-of-service/">服务条款</a> | <a href="../en/csv-diff/">EN</a>
-    <p style="margin-top:8px;color:#475569;font-size:.8rem">© 2026 WebTools · 纯前端本地处理 · 问题反馈: dexshuang@google.com</p>
-  </div>
-  <div class="toast" id="toast"></div>
-</div>
-<script>
-function loadFile(input,targetId){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=function(e){document.getElementById(targetId).value=e.target.result};
-  reader.readAsText(file);
-}
-function detectDelim(text){
-  const firstLine=text.split('\n')[0]||'';
-  const counts={',':(firstLine.match(/,/g)||[]).length,';':(firstLine.match(/;/g)||[]).length,'\t':(firstLine.match(/\t/g)||[]).length};
-  const best=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
-  return best[1]>0?best[0]:',';
-}
-function parseCSV(text,delim,ignoreCase,ignoreWS){
-  if(delim==='auto')delim=detectDelim(text);
-  const lines=text.trim().split(/\r?\n/).filter(l=>l.trim());
-  return lines.map(l=>{
-    let row=[];let current='';let inQuote=false;
-    for(let i=0;i<l.length;i++){
-      const ch=l[i];
-      if(ch==='"'){inQuote=!inQuote}
-      else if((ch===delim||(delim==='\t'&&ch==='\t'))&&!inQuote){row.push(current);current=''}
-      else current+=ch;
-    }
-    row.push(current);
-    if(ignoreWS)row=row.map(c=>c.trim());
-    if(ignoreCase)row=row.map(c=>c.toLowerCase());
-    return row;
-  });
-}
-function rowsEqual(a,b){return a.length===b.length&&a.every((v,i)=>v===b[i])}
-
-let diffData=null;
-function compare(){
-  const a=document.getElementById('csvA').value.trim();
-  const b=document.getElementById('csvB').value.trim();
-  if(!a||!b){showToast('⚠️ 请填写两个CSV内容');return}
-  
-  const delim=document.getElementById('delimiter').value;
-  const ic=document.getElementById('ignoreCase').checked;
-  const iw=document.getElementById('ignoreWS').checked;
-  
-  const rowsA=parseCSV(a,delim,ic,iw);
-  const rowsB=parseCSV(b,delim,ic,iw);
-  
-  diffData={added:[],removed:[],modified:[],all:[]};
-  
-  const aSet=new Set(rowsA.map(r=>r.join('|')));
-  const bSet=new Set(rowsB.map(r=>r.join('|')));
-  
-  // Find removed (in A but not B)
-  rowsA.forEach((row,i)=>{
-    const key=row.join('|');
-    if(!bSet.has(key)){
-      // Check if it's modified (same position but different)
-      if(i<rowsB.length&&!rowsEqual(row,rowsB[i])){
-        diffData.modified.push({type:'modified',oldRow:row,newRow:rowsB[i],idx:i});
-        diffData.all.push({type:'modified',oldRow:row,newRow:rowsB[i],idx:i});
-      }else{
-        diffData.removed.push({type:'removed',row,idx:i});
-        diffData.all.push({type:'removed',row,idx:i});
-      }
-    }
-  });
-  
-  // Find added (in B but not A)
-  rowsB.forEach((row,i)=>{
-    const key=row.join('|');
-    if(!aSet.has(key)&&!diffData.modified.some(m=>rowsEqual(m.newRow,row))){
-      diffData.added.push({type:'added',row,idx:i});
-      diffData.all.push({type:'added',row,idx:i});
-    }
-  });
-  
-  // Add matching rows
-  const maxLen=Math.max(rowsA.length,rowsB.length);
-  for(let i=0;i<maxLen;i++){
-    if(i<rowsA.length&&i<rowsB.length&&rowsEqual(rowsA[i],rowsB[i])){
-      diffData.all.push({type:'same',row:rowsA[i],idx:i});
-    }
-  }
-  
-  document.getElementById('diffStats').textContent=` | 新增:${diffData.added.length} 删除:${diffData.removed.length} 修改:${diffData.modified.length}`;
-  document.getElementById('exportBtn').disabled=false;
-  applyFilter();
-}
-
-function applyFilter(){
-  if(!diffData){return}
-  const filter=document.getElementById('filterType').value;
-  let items=filter==='all'?diffData.all:diffData[filter];
-  const result=document.getElementById('diffResult');
-  
-  let html='';
-  items.forEach(item=>{
-    if(item.type==='added'){
-      html+=`<div style="padding:4px 8px;margin:2px 0;border-radius:4px" class="diff-added">+ ${item.row.join(', ')}</div>`;
-    }else if(item.type==='removed'){
-      html+=`<div style="padding:4px 8px;margin:2px 0;border-radius:4px" class="diff-removed">- ${item.row.join(', ')}</div>`;
-    }else if(item.type==='modified'){
-      html+=`<div style="padding:4px 8px;margin:2px 0;border-radius:4px" class="diff-modified">~ ${item.oldRow.join(', ')} → ${item.newRow.join(', ')}</div>`;
-    }else{
-      html+=`<div style="padding:4px 8px;margin:2px 0;color:#64748b">  ${item.row.join(', ')}</div>`;
-    }
-  });
-  result.innerHTML=html||'<div style="color:#64748b;padding:8px">无匹配结果</div>';
-}
-
-function loadSample(){
-  document.getElementById('csvA').value='Name,Age,City\nAlice,30,New York\nBob,25,Boston\nCharlie,35,Chicago\nDiana,28,Denver';
-  document.getElementById('csvB').value='Name,Age,City\nAlice,30,New York\nBob,26,Boston\nCharlie,35,Seattle\nEve,22,Portland';
-  showToast('✅ 示例已加载');
-}
-
-function clearCSV(){
-  document.getElementById('csvA').value='';
-  document.getElementById('csvB').value='';
-  document.getElementById('diffResult').innerHTML='已清除';
-  document.getElementById('diffStats').textContent='';
-  document.getElementById('exportBtn').disabled=true;
-  diffData=null;
-}
-
-function exportHTML(){
-  if(!diffData)return;
-  const filter=document.getElementById('filterType').value;
-  let items=filter==='all'?diffData.all:diffData[filter];
-  let html='<html><head><meta charset="UTF-8"><style>body{font-family:monospace;background:#0f172a;color:#e2e8f0;padding:20px}.a{background:rgba(34,197,94,.15);color:#4ade80}.r{background:rgba(239,68,68,.15);color:#f87171}.m{background:rgba(234,179,8,.15);color:#facc15}</style><style>
-.rating-widget {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border: 1px solid rgba(148,163,184,.15);
-  border-radius: 12px;
-  margin: 16px 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-.rating-widget .stars { display: flex; gap: 2px; }
-.rating-widget .stars .star {
-  font-size: 20px; color: #cbd5e1; cursor: pointer;
-  transition: color 0.2s, transform 0.1s; line-height: 1;
-}
-.rating-widget .stars .star:hover,
-.rating-widget .stars .star.active { color: #f59e0b; }
-.rating-widget .stars .star:hover { transform: scale(1.2); }
-.rating-widget .rating-text { font-size: 14px; color: #475569; font-weight: 500; }
-.rating-widget .rating-count { font-size: 12px; color: #94a3b8; }
-.rating-widget .rating-thanks { font-size: 13px; color: #10b981; font-weight: 600; display: none; }
-@media (max-width: 640px) {
-  .rating-widget { flex-wrap: wrap; padding: 10px 12px; }
-  .rating-widget .stars .star { font-size: 18px; }
-}
-</style>
-</head><body><h1>CSV Diff Report</h1>';
-  items.forEach(item=>{
-    if(item.type==='added')html+=`<div class="a">+ ${item.row.join(', ')}</div>`;
-    else if(item.type==='removed')html+=`<div class="r">- ${item.row.join(', ')}</div>`;
-    else if(item.type==='modified')html+=`<div class="m">~ ${item.oldRow.join(', ')} → ${item.newRow.join(', ')}</div>`;
-  });
-  html+='<script>
-(function() {
-  const STORAGE_KEY = 'wt_rating_' + location.pathname.replace(/\//g, '_');
-  const AVG_KEY = 'wt_avg_' + location.pathname.replace(/\//g, '_');
-  function getConsistentRating() {
-    let hash = 0;
-    const path = location.pathname;
-    for (let i = 0; i < path.length; i++) { hash = ((hash << 5) - hash) + path.charCodeAt(i); hash = hash & hash; }
-    const ratings = [4.5, 4.6, 4.7, 4.8, 4.9, 4.4, 4.3];
-    const counts = [128, 256, 512, 89, 167, 234, 345, 178, 421, 156];
-    const rIdx = Math.abs(hash) % ratings.length;
-    const cIdx = Math.abs(hash >> 3) % counts.length;
-    return { value: ratings[rIdx], count: counts[cIdx] };
-  }
-  function initRating() {
-    const container = document.getElementById('starContainer');
-    const text = document.getElementById('ratingText');
-    const countEl = document.getElementById('ratingCount');
-    const thanks = document.getElementById('ratingThanks');
-    if (!container || !text) return;
-    const isCN = document.documentElement.lang === 'zh-CN';
-    const saved = localStorage.getItem(STORAGE_KEY);
-    let avgData;
-    try { avgData = JSON.parse(localStorage.getItem(AVG_KEY)); } catch(e) {}
-    if (!avgData) avgData = getConsistentRating();
-    const stars = container.querySelectorAll('.star');
-    function updateDisplay(value) {
-      stars.forEach((s, i) => { s.classList.toggle('active', i < Math.round(value)); });
-      text.textContent = (avgData.value || 4.5).toFixed(1) + '/5';
-      countEl.textContent = isCN ? '(' + (avgData.count || 128) + ' 人评分)' : '(' + (avgData.count || 128) + ' ratings)';
-    }
-    updateDisplay(saved ? parseInt(saved) : avgData.value);
-    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
-    stars.forEach(star => {
-      star.addEventListener('click', function() {
-        const val = parseInt(this.dataset.value);
-        localStorage.setItem(STORAGE_KEY, val);
-        updateDisplay(val);
-        thanks.style.display = 'inline';
-        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
-        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
-        current.count = (current.count || 128) + 1;
-        localStorage.setItem(AVG_KEY, JSON.stringify(current));
-      });
-      star.addEventListener('mouseenter', function() {
-        const val = parseInt(this.dataset.value);
-        stars.forEach((s, i) => s.classList.toggle('active', i < val));
-      });
-    });
-    container.addEventListener('mouseleave', function() { updateDisplay(saved ? parseInt(saved) : avgData.value); });
-  }
-  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initRating); }
-  else { initRating(); }
-})();
-</script>
-
-<div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
-<script>
-(function() {
-  'use strict';
-  var s = document.getElementById('related-tools-section');
-  if (!s) return;
-  var p = window.location.pathname;
-  var en = p.indexOf('/en/') !== -1;
-  p = p.replace(/\/en\//g, '/');
-  var slug = p.split('/').filter(Boolean).pop() || '';
-  if (!slug) { s.innerHTML = ''; return; }
-  var depth = en ? '../../' : '../';
-  var u = depth + 'related-tools.json';
-  fetch(u).then(function(r) {
-    if (!r.ok) throw new Error('not found');
-    return r.json();
-  }).then(function(d) {
-    var data = en ? d.en : d.cn;
-    var t = data[slug];
-    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 相关工具推荐')
-      + '</h3><div class="related-tools-grid">';
-    t.related.forEach(function(r) {
-      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '<a href="' + link + '" class="related-tool-card">'
-        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
-        + '<span class="related-tool-name">' + r.name + '</span></a>';
-    });
-    h += '</div></div>';
-    s.innerHTML = h;
-  }).catch(function() { s.innerHTML = ''; });
-})();
-</script></div></div>
+  <div style="text-align:center;margin:8px 0;font-size:.8rem;color:#94a3b8;">🔒 本地处理 · ✅ 完全免费 · ⚡ 即时结果</div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

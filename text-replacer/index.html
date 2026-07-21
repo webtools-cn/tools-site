@@ -117,7 +117,133 @@ textarea::placeholder{color:#475569}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线文本替换工具</p>
 <div class="hero"><p>免费在线文本替换工具，支持多组查找替换、正则表达式、批量替换、大小写敏感控制。纯前端本地处理，数据不上传服务器。适合代码重构、数据清洗、格式转换等场景。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🔍 在线文本替换工具</h1>
+    <p class="subtitle">多组查找替换 · 正则表达式 · 批量处理 · 实时预览 · 纯前端本地处理</p>
+    <span class="badge">🔒 数据不上传服务器</span>
+  </div>
+
+  <div class="main-layout">
+    <div class="content-area">
+      <div class="tool-card">
+        <div class="io-grid">
+          <div class="io-panel">
+            <div class="io-label">
+              <span>📝 原文本</span>
+              <span class="count" id="inputCount">0 字符</span>
+            </div>
+            <textarea id="inputText" placeholder="在此粘贴需要处理的文本..." oninput="updateStats()"></textarea>
+          </div>
+          <div class="io-panel">
+            <div class="io-label">
+              <span>✨ 替换结果</span>
+              <span class="count" id="outputCount">0 字符</span>
+            </div>
+            <textarea id="outputText" placeholder="替换结果将显示在这里..." readonly></textarea>
+          </div>
+        </div>
+
+<!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="doReplace()">🔄 执行替换</button>
+          <button class="btn btn-secondary" onclick="undoReplace()">↩️ 撤销</button>
+          <button class="btn btn-secondary" onclick="clearAll()">🗑️ 清空</button>
+          <button class="btn btn-success" onclick="copyOutput()">📋 复制结果</button>
+        </div>
+
+        <div class="error-msg" id="errorMsg"></div>
+        <div class="success-msg" id="successMsg"></div>
+
+        <div class="preview-section">
+          <div class="preview-title">📋 替换规则</div>
+          <div id="rulesContainer"></div>
+          <button class="add-rule-btn" onclick="addRule()">+ 添加替换规则</button>
+        </div>
+
+        <div class="stats-row" id="statsRow" style="display:none">
+          <div class="stat-item">
+            <div class="stat-label">替换次数</div>
+            <div class="stat-value" id="statReplaceCount">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">原文本长度</div>
+            <div class="stat-value" id="statInputLen">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">结果长度</div>
+            <div class="stat-value" id="statOutputLen">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h2>使用教程</h2>
+        <p>本工具支持多组查找替换规则，可以灵活处理各种文本替换需求。以下是详细的使用指南：</p>
+        <h3>基本替换</h3>
+        <p>在左侧输入框中粘贴需要处理的文本，然后在下方添加替换规则。每行规则包含"查找"和"替换为"两个输入框。点击"执行替换"后，工具会按照规则的顺序依次执行替换操作，最终结果会显示在右侧输出框中。</p>
+        <h3>正则表达式模式</h3>
+        <p>开启正则表达式模式后，查找字符串会被视为正则表达式进行匹配。支持完整的JavaScript正则语法，包括字符类（<code>[a-z]</code>）、量词（<code>*</code>、<code>+</code>、<code>?</code>）、锚点（<code>^</code>、<code>$</code>）、分组和捕获（<code>(...)</code>）等。例如，使用正则模式查找 <code>\\d{4}-\\d{2}-\\d{2}</code> 可以匹配日期格式。</p>
+        <h3>多组规则与执行顺序</h3>
+        <p>工具支持添加多组替换规则，规则按照从上到下的顺序依次执行。这意味着你可以先执行一组替换，再用下一组规则继续处理结果。例如，先用规则1将所有空格替换为下划线，再用规则2将下划线替换为连字符。</p>
+        <h3>撤销与历史记录</h3>
+        <p>每次点击"执行替换"后，工具会自动保存当前原文本到历史记录中。如果你需要恢复到替换前的状态，只需点击"撤销"按钮即可。历史记录最多保存20步，足够应对大多数操作场景。</p>
+      </div>
+
+      <div class="info-section">
+        <h2>应用场景</h2>
+        <p><strong>代码重构与格式化：</strong>在代码迁移或重构时，经常需要批量替换变量名、函数名或API接口路径。例如将项目中的旧API域名批量替换为新域名，或将某个模块的命名风格从驼峰式改为下划线式。正则表达式模式可以帮助你精确匹配特定模式，如将所有 <code>var</code> 关键字替换为 <code>let</code>。</p>
+        <p><strong>数据清洗与预处理：</strong>在处理从各处收集的数据时，经常需要进行格式统一和清理。例如将CSV数据中的日期格式统一为ISO标准格式（<code>YYYY-MM-DD</code>），清理文本中的多余空格和特殊字符，或将中文标点符号统一替换为英文标点。</p>
+        <p><strong>文档批量修改：</strong>在编辑大量文档时，可以快速批量替换其中的特定词汇、更新版本号、修正拼写错误等。例如将文档中所有的"v1.0"替换为"v2.0"，或将公司名称的旧品牌名替换为新品牌名。</p>
+      </div>
+
+      <div class="info-section">
+        <h2>扩展知识</h2>
+        <p><strong>正则表达式基础：</strong>正则表达式（Regular Expression，简称Regex）是一种强大的文本匹配工具。它使用特殊的符号来描述字符模式。常用的元字符包括：<code>.</code>匹配任意字符，<code>\*</code>匹配0次或多次，<code>+</code>匹配1次或多次，<code>?</code>匹配0次或1次，<code>^</code>表示行首，<code>$</code>表示行尾。字符类如<code>[a-z]</code>匹配小写字母，<code>\d</code>匹配数字。</p>
+        <p><strong>捕获组与反向引用：</strong>使用圆括号<code>(...)</code>可以创建捕获组，在替换时通过<code>$1</code>、<code>$2</code>等引用。例如查找<code>(\\d{4})-(\\d{2})-(\\d{2})</code>，替换为<code>$3/$2/$1</code>，可以将日期从"2024-03-15"转为"15/03/2024"。</p>
+        <p><strong>正则标志：</strong>本工具支持全局匹配（<code>g</code>）和忽略大小写（<code>i</code>）两种标志。全局匹配会替换所有匹配项，而非仅替换第一个。忽略大小写则使匹配不区分大小写。注意：在正则模式下，<code>.</code>默认不匹配换行符，如需匹配可使用<code>[\\s\\S]</code>。</p>
+      </div>
+
+      <div class="faq-section">
+        <h2>常见问题</h2>
+        <div class="faq-item">
+          <h3 onclick="toggleFaq(this)">文本替换工具会上传我的数据吗？</h3>
+          <p>不会。所有操作均在浏览器本地完成，纯前端JavaScript处理，没有任何网络请求发送数据到服务器。你可以按F12打开开发者工具查看网络面板确认。</p>
+        </div>
+        <div class="faq-item">
+          <h3 onclick="toggleFaq(this)">支持正则表达式吗？</h3>
+          <p>支持。工具提供正则表达式模式开关，开启后查找字符串会被视为正则表达式进行匹配。支持捕获组和反向引用，例如将(\d{4})-(\d{2})-(\d{2})替换为$3/$2/$1。</p>
+        </div>
+        <div class="faq-item">
+          <h3 onclick="toggleFaq(this)">最多支持多少组替换规则？</h3>
+          <p>工具支持最多50组替换规则，足以应对绝大多数复杂场景。每组规则可以独立设置是否使用正则表达式和是否区分大小写。规则按顺序从上到下依次执行。</p>
+        </div>
+        <div class="faq-item">
+          <h3 onclick="toggleFaq(this)">可以撤销替换操作吗？</h3>
+          <p>可以。工具内置历史记录功能，每次替换后都会自动保存原文本。你可以通过点击"撤销"按钮恢复到上一步的状态。历史记录最多保存20步。</p>
+        </div>
+        <div class="faq-item">
+          <h3 onclick="toggleFaq(this)">支持哪些特殊字符？</h3>
+          <p>在非正则模式下，工具会原样匹配查找字符串。在正则模式下，支持完整的JavaScript正则语法，包括锚点(^,$)、字符类([a-z])、量词(*,+,?)、分组(())、反向引用($1,$2)等。</p>
+        </div>
+        <div class="faq-item">
+          <h3 onclick="toggleFaq(this)">替换结果中的特殊字符会被转义吗？</h3>
+          <p>不会自动转义。替换内容会按照原样插入到文本中。如果你需要在替换内容中使用特殊字符（如换行符），可以使用正则模式下的$&、$'、$`、$n等特殊替换字符串。</p>
+        </div>
+      </div>
+
+      <div class="privacy-note">
+        🔒 隐私声明：本工具完全在浏览器本地运行，所有数据处理均在你的设备上完成，数据绝不上传到任何服务器。
+      </div>
+    </div>
+
+    <div class="sidebar">
+      </div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

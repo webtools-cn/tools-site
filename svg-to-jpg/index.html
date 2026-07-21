@@ -93,7 +93,12 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线SVG转JPG转换器</p>
 <div class="hero"><p>免费在线SVG转JPG转换器，将SVG矢量图转换为JPG图片。支持自定义尺寸和背景颜色，纯前端处理，不上传服务器，隐私安全。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div>
+<div><div class="section"><h1>🖼️ SVG转JPG转换器</h1>
+    <div class="lang-switch">
+      <a href="../svg-to-jpg/" class="active">中文</a>
+      <a href="../en/svg-to-jpg/">EN</a>
+    </div>
+  </div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -180,152 +185,7 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 <h3 onclick="const p=this.nextElementSibling;p.style.display=p.style.display==='none'?'block':'none'">转换后的JPG图片分辨率是多少？</h3>
 <p style="display:none">您可以在转换前自定义输出宽度和高度（像素）。如果不指定，工具会使用原始SVG的尺寸。建议根据使用场景选择合适的分辨率：网页使用72-150dpi，打印使用300dpi以上。</p>
 </div>
-</div>
-</div>
-
-<div class="footer container">
-  <div style="margin-bottom:12px">
-    <a href="../index.html">首页</a>
-    <a href="../index.html">全部工具</a>
-    <a href="mailto:dexshuang@google.com">联系我们</a>
-    <a href="../en/svg-to-jpg/">EN</a>
-  </div>
-  <p>SVG转JPG转换器 · 纯前端本地计算 · 数据绝不上传服务器</p>
-  <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-
-const el = id => document.getElementById(id);
-const toast = el('toast');
-function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }
-let files = [];
-function handleFiles(newFiles) {
-  for (let f of newFiles) {
-    if (f.type === 'image/svg+xml' || f.name.endsWith('.svg')) files.push(f);
-  }
-  renderFileList();
-}
-function handleDrop(newFiles) { handleFiles(newFiles); }
-function renderFileList() {
-  const container = el('fileList');
-  if (files.length === 0) { container.innerHTML = ''; return; }
-  container.innerHTML = '<div style="color:#94a3b8;font-size:.85rem;margin-bottom:4px">已选择 ' + files.length + ' 个文件</div>' +
-    '<div style="display:flex;flex-wrap:wrap;gap:4px">' +
-    files.map((f,i) => '<span style="background:rgba(6,182,212,.1);color:#e2e8f0;padding:2px 10px;border-radius:12px;font-size:.8rem;border:1px solid rgba(6,182,212,.15)">' + f.name +
-    ' <span style="cursor:pointer;color:#ef4444" onclick="removeFile(' + i + ')">×</span></span>').join('') + '</div>';
-  el('convertBtn').disabled = false;
-}
-function removeFile(idx) { files.splice(idx, 1); renderFileList(); }
-function convertAll() {
-  if (files.length === 0) { showToast('请选择SVG文件'); return; }
-  const w = parseInt(el('outWidth').value) || 800;
-  const h = parseInt(el('outHeight').value) || 600;
-  const bg = el('bgColor').value;
-  const q = parseFloat(el('jpgQuality').value);
-  const results = el('resultsList');
-  results.innerHTML = '<div style="color:#64748b;text-align:center">处理中...</div>';
-  let completed = 0;
-  const converted = [];
-  files.forEach((file, idx) => {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const img = new Image();
-      img.onload = function() {
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = bg;
-        ctx.fillRect(0, 0, w, h);
-        ctx.drawImage(img, 0, 0, w, h);
-        const jpgData = canvas.toDataURL('image/jpeg', q);
-        converted[idx] = {name: file.name.replace(/\.svg$/i, '.jpg'), data: jpgData};
-        completed++;
-        if (completed === files.length) {
-          renderResults(converted);
-        }
-      };
-      img.onerror = function() {
-        completed++;
-        showToast('无法渲染: ' + file.name);
-        if (completed === files.length) renderResults(converted);
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-function renderResults(converted) {
-  const container = el('resultsList');
-  const valid = converted.filter(r => r);
-  container.innerHTML = valid.map((r, i) =>
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#0f172a;border-radius:6px;margin-bottom:6px">' +
-    '<span style="color:#e2e8f0;font-size:.85rem">' + (i+1) + '. ' + r.name + '</span>' +
-    '<button class="btn btn-primary" onclick="downloadOne(' + i + ')">💾 下载</button></div>'
-  ).join('');
-  el('resultSection').classList.add('show');
-  el('batchDownloadRow').style.display = 'flex';
-  window._converted = valid;
-}
-function downloadOne(idx) {
-  const item = window._converted[idx];
-  if (!item) return;
-  const a = document.createElement('a'); a.href = item.data; a.download = item.name; a.click();
-}
-function downloadAll() {
-  const items = window._converted || [];
-  if (items.length === 0) return;
-  items.forEach(item => {
-    const a = document.createElement('a'); a.href = item.data; a.download = item.name; a.click();
-  });
-}
-document.getElementById('fileInput').addEventListener('change', function() { handleFiles(this.files); });
-</script>
-
-<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:1000">
-<button id="feedback-toggle" onclick="toggleFeedback()" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,.2);border:2px solid rgba(6,182,212,.5);color:#22d3ee;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:all .2s">💬</button>
-<div id="feedback-panel" style="display:none;position:absolute;bottom:56px;right:0;width:320px;background:#1e293b;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.4)">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-<span style="color:#f1f5f9;font-size:.95rem;font-weight:600">📝 反馈建议</span>
-<button onclick="toggleFeedback()" style="background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer">✕</button>
-</div>
-<select id="feedback-type" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;margin-bottom:8px;outline:none">
-<option value="feedback">💡 功能建议</option>
-<option value="bug">🐛 问题反馈</option>
-<option value="other">💬 其他</option>
-</select>
-<textarea id="feedback-text" placeholder="请描述您的建议或遇到的问题..." style="width:100%;height:100px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;resize:vertical;outline:none;font-family:inherit" maxlength="1000"></textarea>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-<span id="feedback-count" style="color:#475569;font-size:.75rem">0/1000</span>
-<button onclick="submitFeedback()" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;padding:6px 16px;font-size:.85rem;cursor:pointer;transition:all .2s">提交</button>
-</div>
-<div id="feedback-success" style="display:none;margin-top:8px;padding:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;color:#22c55e;font-size:.8rem;text-align:center">✅ 感谢反馈！已提交到GitHub Issues</div>
-</div>
-</div>
-<script>
-function toggleFeedback(){const p=document.getElementById("feedback-panel");p.style.display=p.style.display==="none"?"block":"none";}
-document.getElementById("feedback-text").addEventListener("input",function(){document.getElementById("feedback-count").textContent=this.value.length+"/1000";});
-function submitFeedback(){
-const type=document.getElementById("feedback-type").value;
-const text=document.getElementById("feedback-text").value.trim();
-if(!text){showToast("请输入反馈内容");return;}
-const typeLabel={feedback:"💡 功能建议",bug:"🐛 问题反馈",other:"💬 其他"}[type];
-const title=encodeURIComponent(typeLabel+" - "+window.location.pathname);
-const body=encodeURIComponent("**页面**: "+window.location.href+"\n**类型**: "+typeLabel+"\n\n"+text);
-window.open("https://github.com/webtools-cn/tools-site/issues/new?title="+title+"&body="+body,"_blank");
-document.getElementById("feedback-success").style.display="block";
-setTimeout(function(){document.getElementById("feedback-success").style.display="none";toggleFeedback();document.getElementById("feedback-text").value="";document.getElementById("feedback-count").textContent="0/1000";},3000);
-}
-</script>
-<!-- Related Tools -->
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section">
-  <div class="related-tools-loading">Loading related tools...</div>
-</div>
-<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
+</div></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>

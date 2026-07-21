@@ -80,7 +80,159 @@ table.data-table th{background:#0f172a;color:#94a3b8;font-weight:500}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线文字描边生成器</p>
 <div class="hero"><p>免费在线文字描边生成器，为文字添加边框和描边效果。支持自定义字体、描边颜色和宽度。Canvas渲染，一键下载PNG图片。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"></div></div>
+<div><div class="section"><h1>🔤 文字描边生成器</h1>
+    <div class="lang-switch">
+      <a href="index.html" class="active">中文</a>
+      <a href="../en/text-border-generator/" class="active">EN</a>
+    </div>
+  </div>
+  <!-- Freshness badge - GEO signal -->
+<div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
+  <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Updated: 2026-07-11
+  </span>
+</div>
+  <div id="app">
+<div class="section">
+  <h2>⚙️ 样式设置</h2>
+  <div class="row">
+    <div class="input-group">
+      <label>字体大小: <span id="tbSizeVal">80</span>px</label>
+      <input type="range" id="tbSize" min="20" max="200" value="80">
+    </div>
+    <div class="input-group">
+      <label>描边宽度: <span id="tbStrokeVal">4</span>px</label>
+      <input type="range" id="tbStroke" min="1" max="20" value="4">
+    </div>
+  </div>
+  <div class="row">
+    <div class="input-group">
+      <label>描边颜色</label>
+      <input type="color" id="tbStrokeColor" value="#ff6b6b" style="width:50px;height:40px;padding:2px;border:1px solid rgba(148,163,184,.2);border-radius:6px;background:#0f172a;cursor:pointer">
+    </div>
+    <div class="input-group">
+      <label>填充颜色</label>
+      <input type="color" id="tbFillColor" value="#ffffff" style="width:50px;height:40px;padding:2px;border:1px solid rgba(148,163,184,.2);border-radius:6px;background:#0f172a;cursor:pointer">
+    </div>
+    <div class="input-group">
+      <label>背景颜色</label>
+      <input type="color" id="tbBgColor" value="#1e293b" style="width:50px;height:40px;padding:2px;border:1px solid rgba(148,163,184,.2);border-radius:6px;background:#0f172a;cursor:pointer">
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-success" id="downloadTbBtn">下载PNG</button>
+  </div>
+</div>
+<div class="section">
+  <h2>👁️ 预览</h2>
+  <div class="preview-wrap" id="tbPreview"></div>
+</div>
+<div class="section">
+  <h2>💡 使用说明</h2>
+  <ul style="color:#94a3b8;font-size:.9rem;line-height:1.8;padding-left:20px">
+    <li>输入您想要描边的文字内容</li>
+    <li>调整字体大小、描边宽度和颜色</li>
+    <li>实时预览效果，点击下载PNG</li>
+  </ul>
+</div>
+<script>
+(function(){
+const textInput = document.getElementById('tbText');
+const sizeSlider = document.getElementById('tbSize');
+const sizeVal = document.getElementById('tbSizeVal');
+const strokeSlider = document.getElementById('tbStroke');
+const strokeVal = document.getElementById('tbStrokeVal');
+const strokeColor = document.getElementById('tbStrokeColor');
+const fillColor = document.getElementById('tbFillColor');
+const bgColor = document.getElementById('tbBgColor');
+const preview = document.getElementById('tbPreview');
+const downloadBtn = document.getElementById('downloadTbBtn');
+
+function renderText() {
+  const text = textInput.value || '文字';
+  const size = parseInt(sizeSlider.value);
+  const stroke = parseInt(strokeSlider.value);
+  
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Measure text
+  ctx.font = 'bold ' + size + 'px Arial, sans-serif';
+  const metrics = ctx.measureText(text);
+  const textWidth = metrics.width;
+  const padding = stroke * 2 + 20;
+  canvas.width = Math.max(textWidth + padding * 2, 100);
+  canvas.height = size * 2 + padding * 2;
+  
+  // Background
+  ctx.fillStyle = bgColor.value;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Text
+  const x = canvas.width / 2;
+  const y = canvas.height / 2 + size / 3;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = 'bold ' + size + 'px Arial, sans-serif';
+  
+  // Stroke
+  ctx.strokeStyle = strokeColor.value;
+  ctx.lineWidth = stroke;
+  ctx.lineJoin = 'round';
+  ctx.strokeText(text, x, y);
+  
+  // Fill
+  ctx.fillStyle = fillColor.value;
+  ctx.fillText(text, x, y);
+  
+  preview.innerHTML = '';
+  preview.appendChild(canvas);
+}
+
+[textInput, sizeSlider, strokeSlider, strokeColor, fillColor, bgColor].forEach(el => {
+  el.addEventListener('input', function() {
+    sizeVal.textContent = sizeSlider.value;
+    strokeVal.textContent = strokeSlider.value;
+    renderText();
+  });
+});
+
+downloadBtn.addEventListener('click', function() {
+  const canvas = preview.querySelector('canvas');
+  if (!canvas) return;
+  const link = document.createElement('a');
+  link.download = 'outlined-text.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+
+renderText();
+})();
+</script>
+</div>
+</div>
+<script>
+(function(){
+const app = document.getElementById('app');
+const isCN = true;
+
+// text-border-generator - 文字描边生成器
+const slug = 'text-border-generator';
+
+function renderApp() {
+  rendertextBorder();
+}
+
+rendertextBorder();
+})();
+</script>
+<!-- Related Tools (cross-recommendation) -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script></div></div>
 <div><div class="ad-slot ad-sidebar"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div><div class="ad-slot ad-sidebar" style="margin-top:16px"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="rectangle" data-full-width-responsive="true"></ins></div></div>
 </div>
 <div class="ad-slot" style="margin:24px auto"><ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins></div>
