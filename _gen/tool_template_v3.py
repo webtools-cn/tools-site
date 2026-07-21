@@ -97,6 +97,7 @@ def schema_faq(faqs):
     return json.dumps({
         "@context": "https://schema.org",
         "@type": "FAQPage",
+        "name": faqs[0][0] if faqs else "FAQ",
         "mainEntity": entities
     }, ensure_ascii=False)
 
