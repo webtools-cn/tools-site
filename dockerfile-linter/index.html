@@ -222,7 +222,7 @@ header h1{font-size:1.6rem;color:#e2e8f0}header h1 span{color:#06b6d4}
 <div class="toast" id="toast"></div>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")}).catch(function(){showToast("复制失败")})}
 
 const RULES = [
   { id:'DL3006', severity:'error', msg:'不要使用:latest标签，应指定明确版本', check:lines=>lines.filter((l,i)=>/FROM\s+\S+:latest/.test(l.trim())).map(l=>({line:lines.indexOf(l)+1,msg:'使用:latest标签会导致不可预测的构建结果',fix:l.trim().replace(/:latest/,'@sha256:指定版本')}))},
@@ -232,7 +232,7 @@ const RULES = [
   { id:'DL3059', severity:'info', msg:'多个连续RUN指令可合并', check:lines=>{const runs=[];for(let i=0;i<lines.length;i++){if(/^\s*RUN\s/.test(lines[i])){if(runs.length>0&&i===runs[runs.length-1]+1)return[{line:i+1,msg:'连续RUN指令可用&&合并以减少镜像层数',fix:'RUN cmd1 && cmd2'}];runs.push(i)}}return[]}},
   { id:'DL3010', severity:'info', msg:'应使用COPY而非ADD', check:lines=>lines.filter(l=>/^\s*ADD\s/.test(l.trim())).map(l=>({line:lines.indexOf(l)+1,msg:'ADD会自动解压压缩文件，建议使用COPY',fix:l.trim().replace(/^ADD/,'COPY')}))},
   { id:'DL4001', severity:'warning', msg:'建议使用exec格式CMD/ENTRYPOINT', check:lines=>lines.filter(l=>/^\s*(CMD|ENTRYPOINT)\s+[^[]/.test(l.trim())).map(l=>({line:lines.indexOf(l)+1,msg:'Shell格式的CMD/ENTRYPOINT会以/bin/sh运行，建议使用exec格式',fix:'CMD ["executable","param1","param2"]'}))},
-  { id:'DL3013', severity:'warning', msg:'pip install应指定包版本', check:lines=>lines.filter(l=>/pip install/.test(l)&&!/==/.test(l.split('install')[1])).map(l=>({line:lines.indexOf(l)+1,msg:'未指定pip包版本，构建可能不一致',fix:'pip install package==1.0.0'})},
+  { id:'DL3013', severity:'warning', msg:'pip install应指定包版本', check:lines=>lines.filter(l=>/pip install/.test(l)&&!/==/.test(l.split('install')[1])).map(l=>({line:lines.indexOf(l)+1,msg:'未指定pip包版本，构建可能不一致',fix:'pip install package==1.0.0'}))},
   { id:'DL3020', severity:'error', msg:'不应暴露SSH端口22', check:lines=>lines.filter(l=>/EXPOSE\s+22\b/.test(l)).map(l=>({line:lines.indexOf(l)+1,msg:'暴露SSH端口是安全风险',fix:'移除 EXPOSE 22'}))},
   { id:'DL3047', severity:'warning', msg:'apt-get update应与install在同一RUN中', check:lines=>{const updateLine=lines.findIndex(l=>/apt-get update/.test(l));const installLine=lines.findIndex(l=>/apt-get install/.test(l));return(updateLine>=0&&installLine>=0&&updateLine!==installLine)?[{line:Math.min(updateLine,installLine)+1,msg:'apt-get update和install应在同一RUN指令中，否则缓存会导致安装过期包',fix:'RUN apt-get update && apt-get install -y ... && rm -rf /var/lib/apt/lists/*'}]:[]}},
   { id:'DL4000', severity:'error', msg:'应设置HEALTHCHECK', check:lines=>{return lines.some(l=>/^\s*HEALTHCHECK/.test(l))?[]:[{line:1,msg:'未设置HEALTHCHECK，容器编排系统无法判断容器健康状态',fix:'HEALTHCHECK --interval=30s CMD curl -f http://localhost/ || exit 1'}]}},
@@ -241,7 +241,7 @@ const RULES = [
   { id:'DL3003', severity:'warning', msg:'WORKDIR应使用绝对路径', check:lines=>lines.filter(l=>/^\s*WORKDIR\s+[^/]/.test(l.trim())).map(l=>({line:lines.indexOf(l)+1,msg:'WORKDIR使用相对路径可能导致意外行为',fix:'WORKDIR /app'}))},
   { id:'DL3001', severity:'info', msg:'不应在同一指令中混合apt-get update和install后不清理', check:lines=>lines.filter(l=>/apt-get update/.test(l)&&/apt-get install/.test(l)&&!/rm -rf/.test(l)).map(l=>({line:lines.indexOf(l)+1,msg:'apt-get操作后应清理缓存',fix:l.trim()+' && rm -rf /var/lib/apt/lists/*'}))},
   { id:'DL3048', severity:'info', msg:'pip install应使用--no-cache-dir', check:lines=>lines.filter(l=>/pip install/.test(l)&&!/--no-cache-dir/.test(l)).map(l=>({line:lines.indexOf(l)+1,msg:'pip安装应使用--no-cache-dir减少镜像体积',fix:l.trim().replace('pip install','pip install --no-cache-dir')}))},
-  { id:'DL3016', severity:'warning', msg:'npm install应使用--production或指定版本', check:lines=>lines.filter(l=>/npm install/.test(l)&&!/--production|--only=production/.test(l)&&!/--save-dev/.test(l)).map(l=>({line:lines.indexOf(l)+1,msg:'生产镜像应使用npm ci --production',fix:'npm ci --production'})},
+  { id:'DL3016', severity:'warning', msg:'npm install应使用--production或指定版本', check:lines=>lines.filter(l=>/npm install/.test(l)&&!/--production|--only=production/.test(l)&&!/--save-dev/.test(l)).map(l=>({line:lines.indexOf(l)+1,msg:'生产镜像应使用npm ci --production',fix:'npm ci --production'}))},
 ];
 
 function lintDockerfile() {

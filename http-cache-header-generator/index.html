@@ -266,12 +266,24 @@ function evaluatePolicy(noStore,noCache,maxAge,isPublic,immutable,validator){
   return tags.join(' ');
 }
 function generateServerCode(server,cacheControl,ext,validator,noCache,noStore,maxAge){
+  ext=ext.replace(/\|/g,'|');
   if(server==='nginx'){
-    return 'server {\n  location ~* \\.('+ext.replace(/\|/g,'|')+')$ {\n    add_header Cache-Control "'+cacheControl+'";\n'+(validator==='etag'||validator==='both'?'    etag on;\n':'    etag off;\n')+(validator==='last-modified'||validator==='both'?'    if_modified_since exact;\n':'    if_modified_since off;\n')+'  }\n}';
+    var n='server {\n  location ~* \\.('+ext+')$ {\n    add_header Cache-Control "'+cacheControl+'";\n';
+    n+=(validator==='etag'||validator==='both'?'    etag on;\n':'    etag off;\n');
+    n+=(validator==='last-modified'||validator==='both'?'    if_modified_since exact;\n':'    if_modified_since off;\n');
+    n+='  }\n}';
+    return n;
   }else if(server==='apache'){
-    return '<IfModule mod_expires.c>\n  <FilesMatch "\\.(('+ext.replace(/\|/g,'|')+))$">\n    Header set Cache-Control "'+cacheControl+'"\n'+(validator==='etag'||validator==='both'?'    FileETag MTime Size\n':'    Header unset ETag\n    FileETag None\n')+(validator==='last-modified'||validator==='both'?'':'    Header unset Last-Modified\n')+'  </FilesMatch>\n</IfModule>';
+    var a='<IfModule mod_expires.c>\n  <FilesMatch "\\.(('+ext+'))$">\n    Header set Cache-Control "'+cacheControl+'"\n';
+    a+=(validator==='etag'||validator==='both'?'    FileETag MTime Size\n':'    Header unset ETag\n    FileETag None\n');
+    a+=(validator==='last-modified'||validator==='both'?'    Header set Last-Modified "from environment"\n':'    Header unset Last-Modified\n');
+    a+='  </FilesMatch>\n</IfModule>';
+    return a;
   }else if(server==='node'){
-    return 'const express = require(\'express\');\nconst app = express();\n\napp.use((req, res, next) => {\n  if (req.path.match(/\\.('+ext.replace(/\|/g,'|')+')$/)) {\n    res.setHeader(\'Cache-Control\', \''+cacheControl+'\');\n'+(noStore||noCache?'':'    // ETag enabled by default in Express\n')+'  }\n  next();\n});';
+    var nd='const express = require(\'express\');\nconst app = express();\n\napp.use((req, res, next) => {\n  if (req.path.match(/\\.('+ext+')$/)) {\n    res.setHeader(\'Cache-Control\', \''+cacheControl+'\');\n';
+    nd+=(noStore||noCache?'':'    // ETag enabled by default in Express\n');
+    nd+='  }\n  next();\n});';
+    return nd;
   }else{
     return '{\n  handle /media/* {\n    header Cache-Control "'+cacheControl+'"\n  }\n}';
   }

@@ -248,32 +248,59 @@ function renderShoppingList(){
 function printShoppingList(){
   if(!shoppingItems.length){toast('List is empty');return;}
   var printWindow=window.open('','_blank');
-  var html='<!DOCTYPE html><html><head><title>Shopping List</title><style>body{font-family:sans-serif;padding:40px}h1{font-size:24px}table{width:100%;border-collapse:collapse}th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #ddd}.checked{text-decoration:line-through;color:#999}@media print{body{padding:20px}</style>
-<script type="application/ld+json">{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    {
-      "@type": "ListItem",
-      "position": 1,
-      "name": "首页",
-      "item": "https://free-toolbase.com/"
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "name": "在线工具",
-      "item": "https://free-toolbase.com/#online-tools"
-    },
-    {
-      "@type": "ListItem",
-      "position": 3,
-      "name": "购物清单生成器",
-      "item": "https://free-toolbase.com/shopping-list-generator/"
+  var html='<!DOCTYPE html><html><head><title>Shopping List</title><style>body{font-family:sans-serif;padding:40px}h1{font-size:24px}table{width:100%;border-collapse:collapse}th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #ddd}.checked{text-decoration:line-through;color:#999}@media print{body{padding:20px}}<\/style><\/head><body>';
+
+    var cats={};
+    for(var i=0;i<shoppingItems.length;i++){
+      var item=shoppingItems[i];
+      if(!cats[item.category]) cats[item.category]=[];
+      cats[item.category].push(item);
     }
-  ],
-  "name": "购物清单生成器"
-}
-</script>
-</body>
-</html>
+    html+='<h1>Shopping List<\/h1>';
+    var catKeys=Object.keys(cats).sort();
+    for(var c=0;c<catKeys.length;c++){
+      var cat=catKeys[c];
+      var items=cats[cat];
+      html+='<h2>'+cat+' ('+items.length+')<\/h2><table><tr><th>Done<\/th><th>Item<\/th><th>Qty<\/th><\/tr>';
+      for(var i=0;i<items.length;i++){
+        var item=items[i];
+        var cls=item.checked?' class="checked"':'';
+        html+='<tr'+cls+'><td>'+(item.checked?'\u2713':'')+'<\/td><td>'+item.name+'<\/td><td>x'+item.quantity+'<\/td><\/tr>';
+      }
+      html+='<\/table>';
+    }
+    html+='<\/body><\/html>';
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.print();
+  }
+  function exportShoppingList(){
+    if(!shoppingItems.length){toast('List is empty');return;}
+    var text='Shopping List\\n'+'='.repeat(40)+'\\n\\n';
+    var cats={};
+    for(var i=0;i<shoppingItems.length;i++){
+      var item=shoppingItems[i];
+      if(!cats[item.category]) cats[item.category]=[];
+      cats[item.category].push(item);
+    }
+    var catKeys=Object.keys(cats).sort();
+    for(var c=0;c<catKeys.length;c++){
+      text+=catKeys[c]+':\\n';
+      for(var i=0;i<cats[catKeys[c]].length;i++){
+        var item=cats[catKeys[c]][i];
+        text+='  '+(item.checked?'[\u2713]':'[ ]')+' '+item.name+' x'+item.quantity+'\\n';
+      }
+      text+='\\n';
+    }
+    var blob=new Blob([text],{type:'text/plain'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='shopping-list.txt';
+    a.click();
+    toast('Exported!');
+  }
+  function escapeHtml(str){return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  window.addEventListener('load',function(){loadShoppingList();});
+  </script>
+  </body>
+  </html>
