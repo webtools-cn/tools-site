@@ -46,7 +46,7 @@ def check_tool(tool_name):
     """检测单个工具"""
     url = f"{BASE}/{tool_name}/"
     local_html = os.path.join(TOOLS_DIR, tool_name, "index.html")
-    en_html = os.path.join(TOOLS_DIR, tool_name, "en", "index.html")
+    en_html = os.path.join(TOOLS_DIR, "en", tool_name, "index.html")
     
     issues = []
     status = "pass"
@@ -61,10 +61,19 @@ def check_tool(tool_name):
         scripts = re.findall(r"<script>(.*?)</script>", content, re.DOTALL)
         
         # 检查是否有业务逻辑（非模板脚本：gtag/toggleFeedback/showToast）
-        biz_scripts = [s for s in scripts if "gtag" not in s and "toggleFeedback" not in s 
-                       and len(s) > 100
-                       and not (s.count("showToast") < 3 and s.count("copyText") < 3 
-                                and "function showToast" in s and "function copyText" in s)]
+        biz_scripts = []
+        for s in scripts:
+            if "gtag" in s:
+                continue
+            if len(s) <= 100:
+                continue
+            # Remove tool function definitions and check remaining length
+            stripped = re.sub(r'function showToast[^}]*\}', '', s)
+            stripped = re.sub(r'function copyText[^}]*\}', '', stripped)
+            stripped = re.sub(r'function toggleFeedback[^}]*\}', '', stripped)
+            stripped = stripped.strip()
+            if len(stripped) > 100:
+                biz_scripts.append(s)
         if not biz_scripts:
             issues.append(f"{label}_NO_BIZ_JS")
             status = "fail"
