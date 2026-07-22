@@ -88,7 +88,7 @@ select{cursor:pointer}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 音频均衡器预设</p>
 <div class="hero"><p>免费在线音频均衡器预设工具，为您的音频一键应用专业EQ预设（摇滚、流行、爵士、古典、电子、人声增强、低音增强、语音、电话等）。使用Web Audio API BiquadFilter，支持自定义微调，实时预览效果。纯前端处理，不上传服务器。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><h1>音频均衡器预设</h1>
+<div><div class="section">
 <div class="lang-switch"><a href="/tools-site/">🏠 首页</a><a href="/tools-site/audio-eq-presets/" class="active">中文</a><a href="/tools-site/en/audio-eq-presets/">EN</a></div>
 </div>
 <div class="tool-section">
@@ -324,6 +324,55 @@ document.getElementById('feedback-success').style.display='block';
 setTimeout(()=>{document.getElementById('feedback-success').style.display='none';toggleFeedback();document.getElementById('feedback-text').value='';document.getElementById('feedback-count').textContent='0/1000';},3000);
 }
 function showToast(msg){const t=document.getElementById('toast')||(()=>{const d=document.createElement('div');d.id='toast';d.className='toast';document.body.appendChild(d);return d;})();t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+
+</script>
+
+<script>
+
+function bufferToWav(abuffer) {
+  var numOfChan = abuffer.numberOfChannels,
+      length = abuffer.length * numOfChan * 2 + 44,
+      buffer = new ArrayBuffer(length),
+      view = new DataView(buffer),
+      channels = [], i, sample,
+      offset = 0, pos = 0;
+
+  // write WAV header
+  setUint32 = function(data) { view.setUint32(pos, data, true); pos += 4; };
+  setUint16 = function(data) { view.setUint16(pos, data, true); pos += 2; };
+
+  setUint32(0x46464952); // "RIFF"
+  setUint32(length - 8); // file length - 8
+  setUint32(0x45564157); // "WAVE"
+
+  setUint32(0x20746d66); // "fmt "
+  setUint32(16); // length = 16
+  setUint16(1); // PCM
+  setUint16(numOfChan);
+  setUint32(abuffer.sampleRate);
+  setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+  setUint16(numOfChan * 2); // block-align
+  setUint16(16); // 16-bit
+
+  setUint32(0x61746164); // "data"
+  setUint32(length - pos - 4); // chunk length
+
+  // write interleaved data
+  for (i = 0; i < abuffer.numberOfChannels; i++)
+    channels.push(abuffer.getChannelData(i));
+
+  while (pos < length) {
+    for (i = 0; i < numOfChan; i++) {
+      sample = Math.max(-1, Math.min(1, channels[i][offset]));
+      sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+      view.setInt16(pos, sample, true);
+      pos += 2;
+    }
+    offset++;
+  }
+
+  return new Blob([buffer], { type: "audio/wav" });
+}
 
 </script>
 </body>

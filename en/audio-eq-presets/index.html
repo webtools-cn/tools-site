@@ -363,5 +363,54 @@ function showToast(msg){const t=document.getElementById('toast')||(()=>{const d=
 <div class="ad-container" style="text-align:center;margin:1rem 0">
 <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="XXXXXXX" data-ad-format="horizontal" data-full-width-responsive="true"></ins>
 </div>
+
+<script>
+
+function bufferToWav(abuffer) {
+  var numOfChan = abuffer.numberOfChannels,
+      length = abuffer.length * numOfChan * 2 + 44,
+      buffer = new ArrayBuffer(length),
+      view = new DataView(buffer),
+      channels = [], i, sample,
+      offset = 0, pos = 0;
+
+  // write WAV header
+  setUint32 = function(data) { view.setUint32(pos, data, true); pos += 4; };
+  setUint16 = function(data) { view.setUint16(pos, data, true); pos += 2; };
+
+  setUint32(0x46464952); // "RIFF"
+  setUint32(length - 8); // file length - 8
+  setUint32(0x45564157); // "WAVE"
+
+  setUint32(0x20746d66); // "fmt "
+  setUint32(16); // length = 16
+  setUint16(1); // PCM
+  setUint16(numOfChan);
+  setUint32(abuffer.sampleRate);
+  setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+  setUint16(numOfChan * 2); // block-align
+  setUint16(16); // 16-bit
+
+  setUint32(0x61746164); // "data"
+  setUint32(length - pos - 4); // chunk length
+
+  // write interleaved data
+  for (i = 0; i < abuffer.numberOfChannels; i++)
+    channels.push(abuffer.getChannelData(i));
+
+  while (pos < length) {
+    for (i = 0; i < numOfChan; i++) {
+      sample = Math.max(-1, Math.min(1, channels[i][offset]));
+      sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+      view.setInt16(pos, sample, true);
+      pos += 2;
+    }
+    offset++;
+  }
+
+  return new Blob([buffer], { type: "audio/wav" });
+}
+
+</script>
 </body>
 </html>
