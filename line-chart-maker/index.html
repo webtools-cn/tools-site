@@ -71,7 +71,7 @@ table.data-table td input{width:100%;padding:4px 6px;background:#0f172a;color:#e
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线折线图生成器</p>
 <div class="hero"><p>免费在线折线图生成器，支持多系列数据和趋势展示。Canvas纯前端渲染，一键导出PNG。适合股票走势、温度变化等时间序列数据。 · 纯前端本地处理 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><h1>📈 折线图生成器</h1>
+<div><div class="section">
     <div class="lang-switch">
       <a href="index.html" class="active">中文</a>
       <a href="../en/line-chart-maker/" class="active">EN</a>
@@ -442,134 +442,6 @@ function exportChart() {
 }
 </script>
 </div>
-<script>
-function drawLineChart() {
-    const data = getTableData();
-    if (data.labels.length === 0) return;
-    const canvas = document.getElementById('chartCanvas');
-    const ctx = canvas.getContext('2d');
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, w, h);
 
-    const showLabels = document.getElementById('showLabels').checked;
-    const showDots = document.getElementById('showDots').checked;
-    const lineColor = document.getElementById('lineColor').value || '#06b6d4';
-    const fillArea = document.getElementById('fillArea').value;
-    const title = document.getElementById('chartTitle').value || '';
-
-    const padding = { top: 40, right: 30, bottom: 50, left: 50 };
-    const chartW = w - padding.left - padding.right;
-    const chartH = h - padding.top - padding.bottom;
-
-    const n = data.labels.length;
-    if (n < 2) return;
-    const maxVal = Math.max(...data.values, 1);
-    const minVal = Math.min(...data.values, 0);
-    const range = maxVal - minVal || 1;
-
-    // Title
-    if (title) {
-        ctx.fillStyle = '#1e293b';
-        ctx.font = 'bold 15px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(title, w/2, 25);
-    }
-
-    // Grid
-    ctx.strokeStyle = '#f1f5f9';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 5; i++) {
-        const y = padding.top + chartH - (i / 5) * chartH;
-        ctx.beginPath();
-        ctx.moveTo(padding.left, y);
-        ctx.lineTo(padding.left + chartW, y);
-        ctx.stroke();
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '11px sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillText(Math.round(minVal + (range / 5) * i).toString(), padding.left - 8, y + 4);
-    }
-
-    // Axes
-    ctx.strokeStyle = '#e2e8f0';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(padding.left, padding.top);
-    ctx.lineTo(padding.left, padding.top + chartH);
-    ctx.lineTo(padding.left + chartW, padding.top + chartH);
-    ctx.stroke();
-
-    // Points
-    const points = [];
-    const step = chartW / (n - 1);
-    for (let i = 0; i < n; i++) {
-        const x = padding.left + i * step;
-        const y = padding.top + chartH - ((data.values[i] - minVal) / range) * chartH;
-        points.push({ x, y, label: data.labels[i], value: data.values[i] });
-    }
-
-    // Fill area
-    if (fillArea === 'light') {
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, padding.top + chartH);
-        for (const p of points) ctx.lineTo(p.x, p.y);
-        ctx.lineTo(points[n-1].x, padding.top + chartH);
-        ctx.closePath();
-        const grad = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartH);
-        grad.addColorStop(0, lineColor + '40');
-        grad.addColorStop(1, lineColor + '05');
-        ctx.fillStyle = grad;
-        ctx.fill();
-    }
-
-    // Line
-    ctx.beginPath();
-    ctx.strokeStyle = lineColor;
-    ctx.lineWidth = 2.5;
-    ctx.lineJoin = 'round';
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-        ctx.lineTo(points[i].x, points[i].y);
-    }
-    ctx.stroke();
-
-    // Dots
-    if (showDots) {
-        for (const p of points) {
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, 5, 0, 2 * Math.PI);
-            ctx.fillStyle = '#ffffff';
-            ctx.fill();
-            ctx.strokeStyle = lineColor;
-            ctx.lineWidth = 2.5;
-            ctx.stroke();
-        }
-    }
-
-    // Value labels
-    if (showLabels) {
-        ctx.fillStyle = '#334155';
-        ctx.font = 'bold 11px sans-serif';
-        ctx.textAlign = 'center';
-        for (const p of points) {
-            ctx.fillText(p.value, p.x, p.y - 12);
-        }
-    }
-
-    // X labels
-    ctx.fillStyle = '#64748b';
-    ctx.font = '11px sans-serif';
-    ctx.textAlign = 'center';
-    for (const p of points) {
-        ctx.fillText(p.label, p.x, padding.top + chartH + 18);
-    }
-}
-
-initTable();
-drawLineChart();
-
-</script>
 </body>
 </html>
