@@ -1,1376 +1,551 @@
 #!/usr/bin/env python3
-"""Batch create 10 new tools with Chinese + English versions."""
-import os, json, datetime
+"""批量创建10个新工具 - 中英文双语"""
+import os
 
-BASE = "/home/chison/tools-site"
-TODAY = "2026-07-25"
+BASE_DIR = "/home/chison/tools-site"
 
-# ===== Tool definitions =====
 TOOLS = [
     {
-        "slug": "utc-converter",
-        "cn_name": "UTC时间转换器",
-        "en_name": "UTC Time Converter",
-        "cn_desc": "免费在线UTC时间转换器，支持UTC与本地时间互转、多时区转换、ISO 8601格式解析。无需注册，隐私安全。",
-        "en_desc": "Free online UTC time converter — convert between UTC and local time, support multiple timezones and ISO 8601 format. No registration required.",
-        "cn_keywords": "UTC时间转换,UTC转本地时间,时区转换,ISO8601,时间格式转换,在线工具,免费",
-        "en_keywords": "UTC time converter,UTC to local time,timezone converter,ISO 8601,time format,online tool,free",
-        "cn_faq_q": "UTC时间和本地时间有什么区别？",
-        "cn_faq_a": "UTC（协调世界时）是全球统一的时间标准，不随季节变化。本地时间是UTC加上时区偏移量（如UTC+8表示北京时间）。",
-        "en_faq_q": "What's the difference between UTC and local time?",
-        "en_faq_a": "UTC (Coordinated Universal Time) is the global time standard that doesn't change with seasons. Local time is UTC plus a timezone offset (e.g., UTC+8 for Beijing time).",
+        "slug": "prime-number",
+        "title_cn": "质数检查器",
+        "title_en": "Prime Number Checker",
+        "desc_cn": "免费在线质数检查器，支持单数质数判断、区间质数生成。适合数学学习、密码学基础研究，无需注册。",
+        "desc_en": "Free online prime number checker. Check if a number is prime, generate prime numbers in a range. Great for math learning and cryptography basics. No signup required.",
+        "emoji": "🔢",
+        "faq": [
+            {"q": "什么是质数？", "a": "质数（素数）是大于1的自然数，且只能被1和自身整除。例如：2、3、5、7、11、13等都是质数。"},
+            {"q": "最大的质数是多少？", "a": "目前已知的最大质数有数千万位。本工具支持检查100亿以内的数是否为质数，足以满足日常使用。"},
+            {"q": "1是质数吗？", "a": "不是。根据数学定义，质数必须大于1。1既不是质数也不是合数。"},
+        ],
+        "faq_en": [
+            {"q": "What is a prime number?", "a": "A prime number is a natural number greater than 1 that is only divisible by 1 and itself. Examples: 2, 3, 5, 7, 11, 13."},
+            {"q": "What is the largest prime number?", "a": "The largest known prime has tens of millions of digits. This tool supports checking numbers up to 10 billion."},
+            {"q": "Is 1 a prime number?", "a": "No. By mathematical definition, prime numbers must be greater than 1. 1 is neither prime nor composite."},
+        ],
     },
     {
-        "slug": "date-to-timestamp",
-        "cn_name": "日期转时间戳",
-        "en_name": "Date to Timestamp",
-        "cn_desc": "免费在线日期时间戳转换器，支持日期转Unix时间戳、时间戳转日期、毫秒时间戳转换。无需注册，一键复制。",
-        "en_desc": "Free online date to timestamp converter — convert date to Unix timestamp, timestamp to date, millisecond timestamp support. One-click copy.",
-        "cn_keywords": "日期转时间戳,Unix时间戳,时间戳转换,毫秒时间戳,在线工具,免费",
-        "en_keywords": "date to timestamp,Unix timestamp,timestamp converter,millisecond timestamp,online tool,free",
-        "cn_faq_q": "Unix时间戳是什么？",
-        "cn_faq_a": "Unix时间戳是从1970年1月1日00:00:00 UTC到指定时间的秒数（或毫秒数），广泛用于编程和数据库中表示时间。",
-        "en_faq_q": "What is a Unix timestamp?",
-        "en_faq_a": "A Unix timestamp is the number of seconds (or milliseconds) elapsed since January 1, 1970 00:00:00 UTC, widely used in programming and databases to represent time.",
+        "slug": "fibonacci",
+        "title_cn": "斐波那契数列生成器",
+        "title_en": "Fibonacci Sequence Generator",
+        "desc_cn": "免费在线斐波那契数列生成器，生成指定长度的斐波那契数列。适合数学教学、算法学习、编程练习，无需注册。",
+        "desc_en": "Free online Fibonacci sequence generator. Generate Fibonacci numbers of specified length. Perfect for math teaching, algorithm learning, and programming practice. No signup required.",
+        "emoji": "🌀",
+        "faq": [
+            {"q": "什么是斐波那契数列？", "a": "斐波那契数列以0和1开始，后续每个数都是前两个数之和：0, 1, 1, 2, 3, 5, 8, 13, 21... 由意大利数学家斐波那契在1202年提出。"},
+            {"q": "斐波那契数列有什么应用？", "a": "广泛应用于自然界（向日葵种子排列、贝壳螺旋）、金融（斐波那契回调）、计算机科学（斐波那契堆、动态规划）等领域。"},
+            {"q": "可以生成多少项？", "a": "本工具支持生成最多100项。由于斐波那契数增长极快，超过100项后数值会非常大。"},
+        ],
+        "faq_en": [
+            {"q": "What is the Fibonacci sequence?", "a": "The Fibonacci sequence starts with 0 and 1, and each subsequent number is the sum of the two preceding ones: 0, 1, 1, 2, 3, 5, 8, 13, 21... It was introduced by Italian mathematician Fibonacci in 1202."},
+            {"q": "What are applications of Fibonacci?", "a": "Widely found in nature (sunflower seed patterns, shell spirals), finance (Fibonacci retracements), and computer science (Fibonacci heaps, dynamic programming)."},
+            {"q": "How many terms can I generate?", "a": "This tool supports up to 100 terms. Fibonacci numbers grow extremely fast, so values beyond 100 terms become very large."},
+        ],
     },
     {
-        "slug": "color-names",
-        "cn_name": "HTML颜色名称大全",
-        "en_name": "HTML Color Names",
-        "cn_desc": "免费在线HTML颜色名称参考大全，包含140+标准颜色名称、HEX值、RGB值。支持搜索和点击复制。无需注册。",
-        "en_desc": "Free online HTML color names reference — 140+ standard color names with HEX and RGB values. Search and click to copy. No registration required.",
-        "cn_keywords": "HTML颜色名称,CSS颜色,颜色代码,HEX颜色,RGB颜色,颜色参考,在线工具,免费",
-        "en_keywords": "HTML color names,CSS colors,color codes,HEX colors,RGB colors,color reference,online tool,free",
-        "cn_faq_q": "HTML支持多少种命名颜色？",
-        "cn_faq_a": "HTML/CSS标准支持140+种命名颜色，包括基本颜色如red、blue、green，以及扩展颜色如tomato、coral、teal等。",
-        "en_faq_q": "How many named colors does HTML support?",
-        "en_faq_a": "HTML/CSS supports 140+ named colors, including basic colors like red, blue, green, and extended colors like tomato, coral, teal, and more.",
+        "slug": "factorial",
+        "title_cn": "阶乘计算器",
+        "title_en": "Factorial Calculator",
+        "desc_cn": "免费在线阶乘计算器，计算任意正整数的阶乘（n!）。适合数学学习、排列组合计算、编程练习，无需注册。",
+        "desc_en": "Free online factorial calculator. Calculate the factorial (n!) of any positive integer. Great for math learning, permutation and combination calculations. No signup required.",
+        "emoji": "✖️",
+        "faq": [
+            {"q": "什么是阶乘？", "a": "阶乘用n!表示，等于1×2×3×...×n。例如：5! = 5×4×3×2×1 = 120。特别地，0! = 1。"},
+            {"q": "阶乘有什么用？", "a": "阶乘广泛应用于排列组合（P(n,r)、C(n,r)）、概率论、泰勒级数、算法复杂度分析等领域。"},
+            {"q": "能算多大的阶乘？", "a": "本工具支持计算0到1000的阶乘。超过170!后结果会非常大，但使用BigInt可精确计算。"},
+        ],
+        "faq_en": [
+            {"q": "What is a factorial?", "a": "Factorial, denoted n!, equals 1×2×3×...×n. For example: 5! = 5×4×3×2×1 = 120. By convention, 0! = 1."},
+            {"q": "What are factorials used for?", "a": "Factorials are widely used in permutations and combinations, probability theory, Taylor series, and algorithm complexity analysis."},
+            {"q": "How large a factorial can I calculate?", "a": "This tool supports 0 to 1000. Results beyond 170! are extremely large but can be precisely calculated using BigInt."},
+        ],
     },
     {
-        "slug": "workdays-calculator",
-        "cn_name": "工作日计算器",
-        "en_name": "Workdays Calculator",
-        "cn_desc": "免费在线工作日计算器，计算两个日期之间的工作日天数、排除周末和法定节假日。无需注册，结果精准。",
-        "en_desc": "Free online workdays calculator — calculate business days between two dates, exclude weekends and holidays. Accurate results, no registration.",
-        "cn_keywords": "工作日计算,工作日天数,排除周末,节假日计算,日期计算,在线工具,免费",
-        "en_keywords": "workdays calculator,business days,exclude weekends,holiday calculation,date calculator,online tool,free",
-        "cn_faq_q": "如何计算两个日期之间的工作日？",
-        "cn_faq_a": "工作日计算器会自动排除周六和周日，只计算周一到周五的天数。您也可以手动排除特定的节假日日期。",
-        "en_faq_q": "How to calculate workdays between two dates?",
-        "en_faq_a": "The workdays calculator automatically excludes Saturdays and Sundays, counting only Monday through Friday. You can also manually exclude specific holiday dates.",
+        "slug": "gcd-calculator",
+        "title_cn": "最大公约数计算器",
+        "title_en": "GCD Calculator",
+        "desc_cn": "免费在线最大公约数（GCD）计算器，使用欧几里得算法快速计算。支持批量计算多个数的最大公约数，无需注册。",
+        "desc_en": "Free online GCD (Greatest Common Divisor) calculator using the Euclidean algorithm. Support batch calculation of GCD for multiple numbers. No signup required.",
+        "emoji": "➗",
+        "faq": [
+            {"q": "什么是最大公约数？", "a": "最大公约数（GCD）是能同时整除所有给定数的最大正整数。例如：12和18的GCD是6。"},
+            {"q": "使用什么算法？", "a": "使用欧几里得算法（辗转相除法），是计算GCD最高效的经典算法，时间复杂度O(log min(a,b))。"},
+            {"q": "支持多少个数字？", "a": "支持2到20个数字同时计算。只需用逗号或空格分隔数字即可。"},
+        ],
+        "faq_en": [
+            {"q": "What is GCD?", "a": "The Greatest Common Divisor (GCD) is the largest positive integer that divides all given numbers without remainder. Example: GCD(12,18) = 6."},
+            {"q": "What algorithm is used?", "a": "The Euclidean algorithm, the most efficient classical algorithm for computing GCD, with time complexity O(log min(a,b))."},
+            {"q": "How many numbers can I input?", "a": "Supports 2 to 20 numbers. Simply separate numbers with commas or spaces."},
+        ],
     },
     {
-        "slug": "ideal-weight",
-        "cn_name": "理想体重计算器",
-        "en_name": "Ideal Weight Calculator",
-        "cn_desc": "免费在线理想体重计算器，基于身高、性别和多种公式（BMI、Devine、Robinson）计算健康体重范围。无需注册。",
-        "en_desc": "Free online ideal weight calculator — calculate healthy weight range based on height, gender and multiple formulas (BMI, Devine, Robinson). No registration.",
-        "cn_keywords": "理想体重,BMI计算,标准体重,健康体重,体重计算器,在线工具,免费",
-        "en_keywords": "ideal weight,BMI calculator,healthy weight,weight calculator,body weight,online tool,free",
-        "cn_faq_q": "如何计算理想体重？",
-        "cn_faq_a": "常见公式包括Devine公式（男性：50+2.3×(身高英寸-60)，女性：45.5+2.3×(身高英寸-60)）和Robinson公式等，不同公式结果略有差异。",
-        "en_faq_q": "How is ideal weight calculated?",
-        "en_faq_a": "Common formulas include Devine (Men: 50+2.3×(height_in-60), Women: 45.5+2.3×(height_in-60)) and Robinson formulas, with slight variations between methods.",
+        "slug": "lcm-calculator",
+        "title_cn": "最小公倍数计算器",
+        "title_en": "LCM Calculator",
+        "desc_cn": "免费在线最小公倍数（LCM）计算器，基于GCD快速计算。支持批量计算多个数的最小公倍数，无需注册。",
+        "desc_en": "Free online LCM (Least Common Multiple) calculator based on GCD. Support batch calculation for multiple numbers. No signup required.",
+        "emoji": "🔗",
+        "faq": [
+            {"q": "什么是最小公倍数？", "a": "最小公倍数（LCM）是能被所有给定数整除的最小正整数。例如：4和6的LCM是12。"},
+            {"q": "如何计算LCM？", "a": "利用公式 LCM(a,b) = |a×b| / GCD(a,b)。先计算最大公约数，再计算最小公倍数，高效准确。"},
+            {"q": "支持多少个数字？", "a": "支持2到20个数字同时计算。用逗号或空格分隔数字即可。"},
+        ],
+        "faq_en": [
+            {"q": "What is LCM?", "a": "The Least Common Multiple (LCM) is the smallest positive integer that is divisible by all given numbers. Example: LCM(4,6) = 12."},
+            {"q": "How is LCM calculated?", "a": "Using the formula LCM(a,b) = |a×b| / GCD(a,b). First compute GCD, then derive LCM — efficient and accurate."},
+            {"q": "How many numbers can I input?", "a": "Supports 2 to 20 numbers. Separate them with commas or spaces."},
+        ],
     },
     {
-        "slug": "water-intake",
-        "cn_name": "每日饮水量计算器",
-        "en_name": "Daily Water Intake Calculator",
-        "cn_desc": "免费在线每日饮水量计算器，根据体重、活动量和气候计算每日推荐饮水量。无需注册，科学建议。",
-        "en_desc": "Free online daily water intake calculator — calculate recommended daily water intake based on weight, activity level and climate. Science-based, no registration.",
-        "cn_keywords": "饮水量,每日饮水,喝水提醒,水分摄入,健康饮水,在线工具,免费",
-        "en_keywords": "water intake,daily water,hydration calculator,drink water,health,online tool,free",
-        "cn_faq_q": "每天应该喝多少水？",
-        "cn_faq_a": "一般建议每天饮水约体重(kg)×30-40毫升。运动量大或天气炎热时应增加。本计算器根据体重和活动量提供个性化建议。",
-        "en_faq_q": "How much water should I drink daily?",
-        "en_faq_a": "General recommendation is body weight (kg) × 30-40 ml per day. Increase intake with exercise or hot weather. This calculator provides personalized recommendations.",
+        "slug": "text-to-list",
+        "title_cn": "文本转列表",
+        "title_en": "Text to List",
+        "desc_cn": "免费在线文本转列表工具，支持按行、逗号、空格等多种分隔符转换。可添加编号、引号包裹，一键复制。无需注册。",
+        "desc_en": "Free online text to list converter. Convert text using various delimiters (newline, comma, space). Add numbering, quote wrapping, one-click copy. No signup required.",
+        "emoji": "📋",
+        "faq": [
+            {"q": "支持哪些分隔符？", "a": "支持换行、逗号、空格、分号、制表符、自定义分隔符等多种方式，灵活适配各种输入格式。"},
+            {"q": "可以添加编号吗？", "a": "可以。支持数字编号（1. 2. 3.）、字母编号（a. b. c.）、项目符号（• -）等多种格式。"},
+            {"q": "数据安全吗？", "a": "完全安全。所有转换在浏览器本地完成，数据不会上传到任何服务器。"},
+        ],
+        "faq_en": [
+            {"q": "What delimiters are supported?", "a": "Newline, comma, space, semicolon, tab, and custom delimiters — flexible for various input formats."},
+            {"q": "Can I add numbering?", "a": "Yes. Support numeric (1. 2. 3.), alphabetic (a. b. c.), and bullet (• -) formats."},
+            {"q": "Is my data safe?", "a": "Completely safe. All conversion happens locally in your browser — no data is uploaded to any server."},
+        ],
     },
     {
-        "slug": "running-pace",
-        "cn_name": "跑步配速计算器",
-        "en_name": "Running Pace Calculator",
-        "cn_desc": "免费在线跑步配速计算器，计算每公里配速、每英里配速、完赛时间预测。支持多种距离。无需注册。",
-        "en_desc": "Free online running pace calculator — calculate pace per km, pace per mile, and race finish time predictions. Supports multiple distances. No registration.",
-        "cn_keywords": "跑步配速,配速计算,马拉松配速,跑步计算器,完赛时间,在线工具,免费",
-        "en_keywords": "running pace,pace calculator,marathon pace,running calculator,finish time,online tool,free",
-        "cn_faq_q": "如何计算跑步配速？",
-        "cn_faq_a": "配速 = 总时间 ÷ 距离。例如5公里跑了25分钟，配速为5分钟/公里。本计算器支持公里和英里单位，可预测不同距离的完赛时间。",
-        "en_faq_q": "How to calculate running pace?",
-        "en_faq_a": "Pace = total time ÷ distance. For example, 5K in 25 minutes = 5:00 min/km pace. This calculator supports both km and mile units and predicts finish times for different distances.",
+        "slug": "list-deduplicator",
+        "title_cn": "列表去重工具",
+        "title_en": "List Deduplicator",
+        "desc_cn": "免费在线列表去重工具，快速移除重复项，保留唯一值。支持大小写敏感/不敏感、保留空行等选项。无需注册。",
+        "desc_en": "Free online list deduplication tool. Quickly remove duplicates and keep unique values. Case-sensitive/insensitive options, preserve empty lines. No signup required.",
+        "emoji": "🧹",
+        "faq": [
+            {"q": "去重如何工作？", "a": "工具逐行读取输入内容，使用哈希集合检测重复项，只保留首次出现的唯一值，保持原始顺序。"},
+            {"q": "大小写敏感是什么意思？", "a": "开启大小写敏感时，'Apple'和'apple'被视为不同；关闭时两者被视为相同，只保留第一次出现的。"},
+            {"q": "数据安全吗？", "a": "完全安全。所有去重处理在浏览器本地完成，数据不会上传到任何服务器。"},
+        ],
+        "faq_en": [
+            {"q": "How does deduplication work?", "a": "The tool reads input line by line, uses a hash set to detect duplicates, keeps only the first occurrence, and preserves original order."},
+            {"q": "What does case sensitivity mean?", "a": "When enabled, 'Apple' and 'apple' are treated as different. When disabled, they're treated as the same."},
+            {"q": "Is my data safe?", "a": "Completely safe. All processing is done locally in your browser — no data is uploaded."},
+        ],
     },
     {
-        "slug": "paragraph-counter",
-        "cn_name": "段落计数器",
-        "en_name": "Paragraph Counter",
-        "cn_desc": "免费在线段落计数器，实时统计文本中的段落数、每段字数、平均段落长度。无需注册，隐私安全。",
-        "en_desc": "Free online paragraph counter — real-time count of paragraphs, words per paragraph, and average paragraph length. No registration, privacy safe.",
-        "cn_keywords": "段落计数,段落统计,文本分析,段落长度,在线工具,免费",
-        "en_keywords": "paragraph counter,paragraph count,text analysis,paragraph length,online tool,free",
-        "cn_faq_q": "如何定义文本中的段落？",
-        "cn_faq_a": "段落通常由换行符（一个或多个空行）分隔。本工具将连续的文本块视为一个段落，空行作为段落分隔符。",
-        "en_faq_q": "How is a paragraph defined in text?",
-        "en_faq_a": "A paragraph is typically separated by line breaks (one or more blank lines). This tool treats continuous text blocks as one paragraph, with blank lines as separators.",
+        "slug": "list-comparer",
+        "title_cn": "列表比较工具",
+        "title_en": "List Comparer",
+        "desc_cn": "免费在线列表比较工具，快速找出两个列表的交集、差集、并集。支持文本列表对比分析，无需注册。",
+        "desc_en": "Free online list comparison tool. Quickly find intersection, difference, and union of two lists. Perfect for text list analysis. No signup required.",
+        "emoji": "🔄",
+        "faq": [
+            {"q": "支持哪些比较模式？", "a": "支持交集（两列表共有）、差集A-B（A有B无）、差集B-A（B有A无）、并集（两列表合并去重）四种模式。"},
+            {"q": "比较结果如何排序？", "a": "默认保持原始顺序。也可以选择按字母排序或按出现频率排序。"},
+            {"q": "数据安全吗？", "a": "完全安全。所有比较处理在浏览器本地完成，数据不会上传到任何服务器。"},
+        ],
+        "faq_en": [
+            {"q": "What comparison modes are supported?", "a": "Intersection (shared), Difference A-B (in A not B), Difference B-A (in B not A), Union (combined unique)."},
+            {"q": "How are results sorted?", "a": "Default preserves original order. Also supports alphabetical sorting or frequency-based sorting."},
+            {"q": "Is my data safe?", "a": "Completely safe. All comparison is done locally in your browser — no data is uploaded."},
+        ],
     },
     {
-        "slug": "vowel-counter",
-        "cn_name": "元音计数器",
-        "en_name": "Vowel Counter",
-        "cn_desc": "免费在线元音计数器，统计文本中a/e/i/o/u元音字母数量和比例。支持大小写，实时统计。无需注册。",
-        "en_desc": "Free online vowel counter — count a/e/i/o/u vowel letters and their ratio in text. Case-insensitive, real-time stats. No registration required.",
-        "cn_keywords": "元音计数,元音统计,字母统计,文本分析,在线工具,免费",
-        "en_keywords": "vowel counter,vowel count,letter count,text analysis,online tool,free",
-        "cn_faq_q": "英语中有哪些元音字母？",
-        "cn_faq_a": "英语有5个基本元音字母：a、e、i、o、u。有时y也被视为元音。本工具统计这5个标准元音的出现次数和比例。",
-        "en_faq_q": "What are the vowel letters in English?",
-        "en_faq_a": "English has 5 basic vowel letters: a, e, i, o, u. Sometimes y is also considered a vowel. This tool counts the 5 standard vowels and their ratio.",
+        "slug": "screen-resolution",
+        "title_cn": "屏幕分辨率检测",
+        "title_en": "Screen Resolution Checker",
+        "desc_cn": "免费在线屏幕分辨率检测工具，实时显示屏幕尺寸、分辨率、像素比、视口大小。适合前端开发者和设计师使用，无需注册。",
+        "desc_en": "Free online screen resolution checker. Real-time display of screen size, resolution, pixel ratio, and viewport dimensions. Perfect for frontend developers and designers. No signup required.",
+        "emoji": "🖥️",
+        "faq": [
+            {"q": "什么是设备像素比？", "a": "设备像素比（DPR）是物理像素与CSS像素的比值。Retina屏幕通常为2，部分高端手机可达3。"},
+            {"q": "分辨率和视口有什么区别？", "a": "屏幕分辨率是物理像素（如1920×1080），视口是浏览器可见区域（减去任务栏、书签栏等），通常小于分辨率。"},
+            {"q": "为什么要检测这些信息？", "a": "前端开发者需要根据屏幕参数做响应式设计；设计师需要了解目标用户的设备特征；用户购买显示器时也需要参考。"},
+        ],
+        "faq_en": [
+            {"q": "What is device pixel ratio?", "a": "DPR is the ratio of physical pixels to CSS pixels. Retina screens typically have DPR=2, some high-end phones reach 3."},
+            {"q": "What's the difference between resolution and viewport?", "a": "Screen resolution is physical pixels (e.g., 1920×1080), viewport is the browser's visible area (minus taskbars, bookmarks), usually smaller."},
+            {"q": "Why check this info?", "a": "Frontend developers need screen parameters for responsive design; designers need target user device characteristics; monitor buyers reference it."},
+        ],
     },
     {
-        "slug": "keyword-density",
-        "cn_name": "关键词密度分析器",
-        "en_name": "Keyword Density Analyzer",
-        "cn_desc": "免费在线关键词密度分析器，分析文本中关键词出现频率和密度百分比。支持多词短语。无需注册，SEO必备。",
-        "en_desc": "Free online keyword density analyzer — analyze keyword frequency and density percentage in text. Supports multi-word phrases. No registration, SEO essential.",
-        "cn_keywords": "关键词密度,关键词分析,SEO工具,文本分析,关键词频率,在线工具,免费",
-        "en_keywords": "keyword density,keyword analysis,SEO tool,text analysis,keyword frequency,online tool,free",
-        "cn_faq_q": "什么是关键词密度？",
-        "cn_faq_a": "关键词密度是指关键词在文本中出现的次数占总词数的百分比。一般建议关键词密度在1-3%之间，过高可能被搜索引擎视为关键词堆砌。",
-        "en_faq_q": "What is keyword density?",
-        "en_faq_a": "Keyword density is the percentage of times a keyword appears relative to total word count. A density of 1-3% is generally recommended; higher may be seen as keyword stuffing by search engines.",
+        "slug": "device-info",
+        "title_cn": "设备信息查看器",
+        "title_en": "Device Info Viewer",
+        "desc_cn": "免费在线设备信息查看器，一键查看浏览器、操作系统、CPU、内存、网络、电池等详细信息。无需注册。",
+        "desc_en": "Free online device information viewer. View browser, OS, CPU, memory, network, battery details with one click. No signup required.",
+        "emoji": "📱",
+        "faq": [
+            {"q": "能查看哪些信息？", "a": "可以查看浏览器名称版本、操作系统、CPU核心数、内存大小、网络类型、电池状态、语言、时区、Cookie/LocalStorage状态等。"},
+            {"q": "隐私安全吗？", "a": "完全安全。所有信息仅在您的浏览器中显示，不会上传到任何服务器。部分信息（如电池）需要您授权才能获取。"},
+            {"q": "为什么有些信息显示'不可用'？", "a": "某些API（如电池状态、网络信息）需要浏览器支持。如果浏览器不支持或用户未授权，则会显示不可用。"},
+        ],
+        "faq_en": [
+            {"q": "What information can I view?", "a": "Browser name/version, OS, CPU cores, RAM, network type, battery status, language, timezone, Cookie/LocalStorage status, and more."},
+            {"q": "Is my privacy safe?", "a": "Completely safe. All information is displayed only in your browser. Some info (like battery) requires your permission."},
+            {"q": "Why do some items show 'Unavailable'?", "a": "Certain APIs (battery, network info) require browser support. If unsupported or permission denied, they show as unavailable."},
+        ],
     },
 ]
 
-def html_escape(s):
-    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+# Pre-built JS for each tool (keyed by slug, separate for CN/EN)
+TOOL_JS = {}
 
-def make_cn_page(tool):
+# prime-number
+TOOL_JS["prime-number"] = {
+    "zh": """function isPrime(n){if(n<2)return false;if(n===2)return true;if(n%2===0)return false;for(var i=3;i*i<=n;i+=2)if(n%i===0)return false;return true;}
+document.getElementById('checkBtn').addEventListener('click',function(){var n=parseInt(document.getElementById('numInput').value);if(isNaN(n)||n<0){document.getElementById('checkResult').textContent='请输入有效数字';return;}document.getElementById('checkResult').textContent=n+' '+(isPrime(n)?'是质数 ✓':'不是质数 ✗');});
+document.getElementById('genBtn').addEventListener('click',function(){var s=parseInt(document.getElementById('rangeStart').value);var e=parseInt(document.getElementById('rangeEnd').value);if(isNaN(s)||isNaN(e)||s>e){document.getElementById('rangeResult').textContent='请输入有效范围';return;}if(e-s>1000000){document.getElementById('rangeResult').textContent='范围太大，请缩小到100万以内';return;}var primes=[];for(var i=Math.max(2,s);i<=e;i++)if(isPrime(i))primes.push(i);document.getElementById('rangeResult').textContent=primes.length+' 个质数: '+primes.join(', ');});""",
+    "en": """function isPrime(n){if(n<2)return false;if(n===2)return true;if(n%2===0)return false;for(var i=3;i*i<=n;i+=2)if(n%i===0)return false;return true;}
+document.getElementById('checkBtn').addEventListener('click',function(){var n=parseInt(document.getElementById('numInput').value);if(isNaN(n)||n<0){document.getElementById('checkResult').textContent='Please enter a valid number';return;}document.getElementById('checkResult').textContent=n+' '+(isPrime(n)?'is prime \\u2713':'is NOT prime \\u2717');});
+document.getElementById('genBtn').addEventListener('click',function(){var s=parseInt(document.getElementById('rangeStart').value);var e=parseInt(document.getElementById('rangeEnd').value);if(isNaN(s)||isNaN(e)||s>e){document.getElementById('rangeResult').textContent='Please enter a valid range';return;}if(e-s>1000000){document.getElementById('rangeResult').textContent='Range too large, limit to 1,000,000';return;}var primes=[];for(var i=Math.max(2,s);i<=e;i++)if(isPrime(i))primes.push(i);document.getElementById('rangeResult').textContent=primes.length+' primes: '+primes.join(', ');});""",
+}
+
+# fibonacci
+TOOL_JS["fibonacci"] = {
+    "zh": """document.getElementById('genBtn').addEventListener('click',function(){var n=parseInt(document.getElementById('nInput').value);if(isNaN(n)||n<1||n>100){document.getElementById('result').textContent='请输入1-100之间的数字';return;}var fib=[0n];if(n>1)fib.push(1n);for(var i=2;i<n;i++)fib.push(fib[i-1]+fib[i-2]);document.getElementById('result').textContent=fib.map(function(x,i){return 'F'+i+' = '+x;}).join('\\n');});""",
+    "en": """document.getElementById('genBtn').addEventListener('click',function(){var n=parseInt(document.getElementById('nInput').value);if(isNaN(n)||n<1||n>100){document.getElementById('result').textContent='Please enter a number between 1 and 100';return;}var fib=[0n];if(n>1)fib.push(1n);for(var i=2;i<n;i++)fib.push(fib[i-1]+fib[i-2]);document.getElementById('result').textContent=fib.map(function(x,i){return 'F'+i+' = '+x;}).join('\\n');});""",
+}
+
+# factorial
+TOOL_JS["factorial"] = {
+    "zh": """document.getElementById('calcBtn').addEventListener('click',function(){var n=parseInt(document.getElementById('nInput').value);if(isNaN(n)||n<0||n>1000){document.getElementById('result').textContent='请输入0-1000之间的整数';return;}var r=1n;for(var i=2n;i<=BigInt(n);i++)r*=i;document.getElementById('result').textContent=n+'! = '+r.toString();});""",
+    "en": """document.getElementById('calcBtn').addEventListener('click',function(){var n=parseInt(document.getElementById('nInput').value);if(isNaN(n)||n<0||n>1000){document.getElementById('result').textContent='Please enter an integer between 0 and 1000';return;}var r=1n;for(var i=2n;i<=BigInt(n);i++)r*=i;document.getElementById('result').textContent=n+'! = '+r.toString();});""",
+}
+
+# gcd-calculator
+TOOL_JS["gcd-calculator"] = {
+    "zh": """function gcd(a,b){a=BigInt(a);b=BigInt(b);while(b!==0n){var t=b;b=a%b;a=t;}return a;}
+document.getElementById('calcBtn').addEventListener('click',function(){var raw=document.getElementById('numInput').value.trim();if(!raw){document.getElementById('result').textContent='请输入数字';return;}var nums=raw.split(/[,\\s]+/).map(Number).filter(function(x){return !isNaN(x)&&Number.isInteger(x)&&x>0;});if(nums.length<2){document.getElementById('result').textContent='请至少输入2个正整数';return;}var g=BigInt(nums[0]);for(var i=1;i<nums.length;i++)g=gcd(g,nums[i]);document.getElementById('result').textContent='GCD('+nums.join(', ')+') = '+g.toString();});""",
+    "en": """function gcd(a,b){a=BigInt(a);b=BigInt(b);while(b!==0n){var t=b;b=a%b;a=t;}return a;}
+document.getElementById('calcBtn').addEventListener('click',function(){var raw=document.getElementById('numInput').value.trim();if(!raw){document.getElementById('result').textContent='Please enter numbers';return;}var nums=raw.split(/[,\\s]+/).map(Number).filter(function(x){return !isNaN(x)&&Number.isInteger(x)&&x>0;});if(nums.length<2){document.getElementById('result').textContent='Please enter at least 2 positive integers';return;}var g=BigInt(nums[0]);for(var i=1;i<nums.length;i++)g=gcd(g,nums[i]);document.getElementById('result').textContent='GCD('+nums.join(', ')+') = '+g.toString();});""",
+}
+
+# lcm-calculator
+TOOL_JS["lcm-calculator"] = {
+    "zh": """function gcd(a,b){a=BigInt(a);b=BigInt(b);while(b!==0n){var t=b;b=a%b;a=t;}return a;}
+function lcm(a,b){return (BigInt(a)*BigInt(b))/gcd(a,b);}
+document.getElementById('calcBtn').addEventListener('click',function(){var raw=document.getElementById('numInput').value.trim();if(!raw){document.getElementById('result').textContent='请输入数字';return;}var nums=raw.split(/[,\\s]+/).map(Number).filter(function(x){return !isNaN(x)&&Number.isInteger(x)&&x>0;});if(nums.length<2){document.getElementById('result').textContent='请至少输入2个正整数';return;}var l=BigInt(nums[0]);for(var i=1;i<nums.length;i++)l=lcm(l,nums[i]);document.getElementById('result').textContent='LCM('+nums.join(', ')+') = '+l.toString();});""",
+    "en": """function gcd(a,b){a=BigInt(a);b=BigInt(b);while(b!==0n){var t=b;b=a%b;a=t;}return a;}
+function lcm(a,b){return (BigInt(a)*BigInt(b))/gcd(a,b);}
+document.getElementById('calcBtn').addEventListener('click',function(){var raw=document.getElementById('numInput').value.trim();if(!raw){document.getElementById('result').textContent='Please enter numbers';return;}var nums=raw.split(/[,\\s]+/).map(Number).filter(function(x){return !isNaN(x)&&Number.isInteger(x)&&x>0;});if(nums.length<2){document.getElementById('result').textContent='Please enter at least 2 positive integers';return;}var l=BigInt(nums[0]);for(var i=1;i<nums.length;i++)l=lcm(l,nums[i]);document.getElementById('result').textContent='LCM('+nums.join(', ')+') = '+l.toString();});""",
+}
+
+# text-to-list
+TOOL_JS["text-to-list"] = {
+    "zh": """document.getElementById('convertBtn').addEventListener('click',function(){var text=document.getElementById('textInput').value;var delim=document.getElementById('delimiter').value;var num=document.getElementById('numbering').value;var items=[];if(delim==='newline')items=text.split('\\n');else if(delim==='comma')items=text.split(',');else if(delim==='space')items=text.split(/\\s+/);else if(delim==='semicolon')items=text.split(';');else if(delim==='tab')items=text.split('\\t');items=items.map(function(x){return x.trim();}).filter(function(x){return x;});var result='';for(var i=0;i<items.length;i++){var prefix='';if(num==='numeric')prefix=(i+1)+'. ';else if(num==='bullet')prefix='\\u2022 ';else if(num==='dash')prefix='- ';result+=prefix+items[i]+'\\n';}document.getElementById('result').textContent=result||'无内容';});
+document.getElementById('copyBtn').addEventListener('click',function(){var t=document.getElementById('result').textContent;if(t)copyText(t);});""",
+    "en": """document.getElementById('convertBtn').addEventListener('click',function(){var text=document.getElementById('textInput').value;var delim=document.getElementById('delimiter').value;var num=document.getElementById('numbering').value;var items=[];if(delim==='newline')items=text.split('\\n');else if(delim==='comma')items=text.split(',');else if(delim==='space')items=text.split(/\\s+/);else if(delim==='semicolon')items=text.split(';');else if(delim==='tab')items=text.split('\\t');items=items.map(function(x){return x.trim();}).filter(function(x){return x;});var result='';for(var i=0;i<items.length;i++){var prefix='';if(num==='numeric')prefix=(i+1)+'. ';else if(num==='bullet')prefix='\\u2022 ';else if(num==='dash')prefix='- ';result+=prefix+items[i]+'\\n';}document.getElementById('result').textContent=result||'No content';});
+document.getElementById('copyBtn').addEventListener('click',function(){var t=document.getElementById('result').textContent;if(t)copyText(t);});""",
+}
+
+# list-deduplicator
+TOOL_JS["list-deduplicator"] = {
+    "zh": """document.getElementById('dedupBtn').addEventListener('click',function(){var text=document.getElementById('textInput').value;var caseSensitive=document.getElementById('caseSensitive').checked;var preserveEmpty=document.getElementById('preserveEmpty').checked;var lines=text.split('\\n');var seen={};var result=[];for(var i=0;i<lines.length;i++){var line=lines[i];if(!preserveEmpty&&line.trim()==='')continue;var key=caseSensitive?line:line.toLowerCase();if(!(key in seen)){seen[key]=true;result.push(line);}}document.getElementById('result').textContent=result.join('\\n')||'无内容';});
+document.getElementById('copyBtn').addEventListener('click',function(){var t=document.getElementById('result').textContent;if(t)copyText(t);});""",
+    "en": """document.getElementById('dedupBtn').addEventListener('click',function(){var text=document.getElementById('textInput').value;var caseSensitive=document.getElementById('caseSensitive').checked;var preserveEmpty=document.getElementById('preserveEmpty').checked;var lines=text.split('\\n');var seen={};var result=[];for(var i=0;i<lines.length;i++){var line=lines[i];if(!preserveEmpty&&line.trim()==='')continue;var key=caseSensitive?line:line.toLowerCase();if(!(key in seen)){seen[key]=true;result.push(line);}}document.getElementById('result').textContent=result.join('\\n')||'No content';});
+document.getElementById('copyBtn').addEventListener('click',function(){var t=document.getElementById('result').textContent;if(t)copyText(t);});""",
+}
+
+# list-comparer - use keyed approach for the problematic strings
+_list_cn_result_template = "项结果:\\n"
+_list_en_result_template = " results:\\n"
+TOOL_JS["list-comparer"] = {
+    "zh": """document.getElementById('compareBtn').addEventListener('click',function(){var a=document.getElementById('listA').value.split('\\n').map(function(x){return x.trim();}).filter(function(x){return x;});var b=document.getElementById('listB').value.split('\\n').map(function(x){return x.trim();}).filter(function(x){return x;});var caseSensitive=document.getElementById('caseSensitive').checked;var mode=document.getElementById('mode').value;if(!caseSensitive){a=a.map(function(x){return x.toLowerCase();});b=b.map(function(x){return x.toLowerCase();});}var setA={},setB={};a.forEach(function(x){setA[x]=true;});b.forEach(function(x){setB[x]=true;});var result=[];if(mode==='intersection'){for(var k in setA)if(setB[k])result.push(k);}else if(mode==='diffAB'){for(var k in setA)if(!setB[k])result.push(k);}else if(mode==='diffBA'){for(var k in setB)if(!setA[k])result.push(k);}else if(mode==='union'){var u={};a.forEach(function(x){u[x]=true;});b.forEach(function(x){u[x]=true;});for(var k in u)result.push(k);}document.getElementById('result').textContent=result.length+' """ + _list_cn_result_template + """'+result.join('\\n');});
+document.getElementById('copyBtn').addEventListener('click',function(){var t=document.getElementById('result').textContent;if(t)copyText(t);});""",
+    "en": """document.getElementById('compareBtn').addEventListener('click',function(){var a=document.getElementById('listA').value.split('\\n').map(function(x){return x.trim();}).filter(function(x){return x;});var b=document.getElementById('listB').value.split('\\n').map(function(x){return x.trim();}).filter(function(x){return x;});var caseSensitive=document.getElementById('caseSensitive').checked;var mode=document.getElementById('mode').value;if(!caseSensitive){a=a.map(function(x){return x.toLowerCase();});b=b.map(function(x){return x.toLowerCase();});}var setA={},setB={};a.forEach(function(x){setA[x]=true;});b.forEach(function(x){setB[x]=true;});var result=[];if(mode==='intersection'){for(var k in setA)if(setB[k])result.push(k);}else if(mode==='diffAB'){for(var k in setA)if(!setB[k])result.push(k);}else if(mode==='diffBA'){for(var k in setB)if(!setA[k])result.push(k);}else if(mode==='union'){var u={};a.forEach(function(x){u[x]=true;});b.forEach(function(x){u[x]=true;});for(var k in u)result.push(k);}document.getElementById('result').textContent=result.length+'""" + _list_en_result_template + """'+result.join('\\n');});
+document.getElementById('copyBtn').addEventListener('click',function(){var t=document.getElementById('result').textContent;if(t)copyText(t);});""",
+}
+
+# screen-resolution
+_scr_cn_na = "不支持"
+_scr_en_na = "N/A"
+TOOL_JS["screen-resolution"] = {
+    "zh": """function update(){document.getElementById('resolution').textContent=screen.width+' x '+screen.height;document.getElementById('availRes').textContent=screen.availWidth+' x '+screen.availHeight;document.getElementById('viewport').textContent=window.innerWidth+' x '+window.innerHeight;document.getElementById('dpr').textContent=window.devicePixelRatio||1;document.getElementById('colorDepth').textContent=screen.colorDepth+' bit';document.getElementById('orientation').textContent=screen.orientation?screen.orientation.type:'""" + _scr_cn_na + """';}update();window.addEventListener('resize',update);screen.orientation&&screen.orientation.addEventListener('change',update);""",
+    "en": """function update(){document.getElementById('resolution').textContent=screen.width+' x '+screen.height;document.getElementById('availRes').textContent=screen.availWidth+' x '+screen.availHeight;document.getElementById('viewport').textContent=window.innerWidth+' x '+window.innerHeight;document.getElementById('dpr').textContent=window.devicePixelRatio||1;document.getElementById('colorDepth').textContent=screen.colorDepth+' bit';document.getElementById('orientation').textContent=screen.orientation?screen.orientation.type:'""" + _scr_en_na + """';}update();window.addEventListener('resize',update);screen.orientation&&screen.orientation.addEventListener('change',update);""",
+}
+
+# device-info
+_dev_cn_unknown = "未知"
+_dev_en_unknown = "Unknown"
+_dev_cn_online = "在线"
+_dev_cn_offline = "离线"
+_dev_en_online = "Online"
+_dev_en_offline = "Offline"
+_dev_cn_enabled = "已启用"
+_dev_cn_disabled = "已禁用"
+_dev_en_enabled = "Enabled"
+_dev_en_disabled = "Disabled"
+
+TOOL_JS["device-info"] = {
+    "zh": """function getBrowser(){var ua=navigator.userAgent;if(ua.indexOf('Firefox')>-1)return 'Firefox '+ua.match(/Firefox\\/(\\d+)/)[1];if(ua.indexOf('Edg')>-1)return 'Edge '+ua.match(/Edg\\/(\\d+)/)[1];if(ua.indexOf('Chrome')>-1)return 'Chrome '+ua.match(/Chrome\\/(\\d+)/)[1];if(ua.indexOf('Safari')>-1)return 'Safari '+ua.match(/Version\\/(\\d+)/)[1];return ua;}
+function getOS(){var p=navigator.platform||'';if(p.indexOf('Win')>-1)return 'Windows';if(p.indexOf('Mac')>-1)return 'macOS';if(p.indexOf('Linux')>-1)return 'Linux';if(p.indexOf('Android')>-1)return 'Android';if(p.indexOf('iPhone')>-1||p.indexOf('iPad')>-1)return 'iOS';return p;}
+function update(){document.getElementById('browser').textContent=getBrowser();document.getElementById('os').textContent=getOS();document.getElementById('cpu').textContent=navigator.hardwareConcurrency||'""" + _dev_cn_unknown + """';document.getElementById('memory').textContent=navigator.deviceMemory?navigator.deviceMemory+' GB':'""" + _dev_cn_unknown + """';document.getElementById('language').textContent=navigator.language||'""" + _dev_cn_unknown + """';document.getElementById('timezone').textContent=Intl.DateTimeFormat().resolvedOptions().timeZone||'""" + _dev_cn_unknown + """';document.getElementById('online').textContent=navigator.onLine?'""" + _dev_cn_online + """':'""" + _dev_cn_offline + """';document.getElementById('cookies').textContent=navigator.cookieEnabled?'""" + _dev_cn_enabled + """':'""" + _dev_cn_disabled + """';}update();document.getElementById('refreshBtn').addEventListener('click',update);""",
+    "en": """function getBrowser(){var ua=navigator.userAgent;if(ua.indexOf('Firefox')>-1)return 'Firefox '+ua.match(/Firefox\\/(\\d+)/)[1];if(ua.indexOf('Edg')>-1)return 'Edge '+ua.match(/Edg\\/(\\d+)/)[1];if(ua.indexOf('Chrome')>-1)return 'Chrome '+ua.match(/Chrome\\/(\\d+)/)[1];if(ua.indexOf('Safari')>-1)return 'Safari '+ua.match(/Version\\/(\\d+)/)[1];return ua;}
+function getOS(){var p=navigator.platform||'';if(p.indexOf('Win')>-1)return 'Windows';if(p.indexOf('Mac')>-1)return 'macOS';if(p.indexOf('Linux')>-1)return 'Linux';if(p.indexOf('Android')>-1)return 'Android';if(p.indexOf('iPhone')>-1||p.indexOf('iPad')>-1)return 'iOS';return p;}
+function update(){document.getElementById('browser').textContent=getBrowser();document.getElementById('os').textContent=getOS();document.getElementById('cpu').textContent=navigator.hardwareConcurrency||'""" + _dev_en_unknown + """';document.getElementById('memory').textContent=navigator.deviceMemory?navigator.deviceMemory+' GB':'""" + _dev_en_unknown + """';document.getElementById('language').textContent=navigator.language||'""" + _dev_en_unknown + """';document.getElementById('timezone').textContent=Intl.DateTimeFormat().resolvedOptions().timeZone||'""" + _dev_en_unknown + """';document.getElementById('online').textContent=navigator.onLine?'""" + _dev_en_online + """':'""" + _dev_en_offline + """';document.getElementById('cookies').textContent=navigator.cookieEnabled?'""" + _dev_en_enabled + """':'""" + _dev_en_disabled + """';}update();document.getElementById('refreshBtn').addEventListener('click',update);""",
+}
+
+
+def get_tool_body(slug, is_cn):
+    """Return tool-specific HTML body"""
+    if slug == "prime-number":
+        return '''<div class="tool-area">
+<h3 style="margin-bottom:16px;color:#f1f5f9">''' + ('🔍 质数检查' if is_cn else '🔍 Prime Number Check') + '''</h3>
+<div style="margin-bottom:12px"><label>''' + ('输入一个数字' if is_cn else 'Enter a number') + '''</label><input id="numInput" type="number" placeholder="''' + ('例如: 17' if is_cn else 'e.g. 17') + '''" style="width:100%"></div>
+<button class="btn btn-primary" id="checkBtn">''' + ('检查是否为质数' if is_cn else 'Check if Prime') + '''</button>
+<div class="result-box" id="checkResult"></div>
+<h3 style="margin:24px 0 16px;color:#f1f5f9">''' + ('📊 区间质数生成' if is_cn else '📊 Generate Primes in Range') + '''</h3>
+<div class="grid-2">
+<div><label>''' + ('起始' if is_cn else 'Start') + '''</label><input id="rangeStart" type="number" value="1"></div>
+<div><label>''' + ('结束' if is_cn else 'End') + '''</label><input id="rangeEnd" type="number" value="100"></div>
+</div>
+<button class="btn btn-primary" id="genBtn" style="margin-top:12px">''' + ('生成质数' if is_cn else 'Generate Primes') + '''</button>
+<div class="result-box" id="rangeResult"></div>
+</div>'''
+    
+    if slug == "fibonacci":
+        return '''<div class="tool-area">
+<h3 style="margin-bottom:16px;color:#f1f5f9">''' + ('🌀 生成斐波那契数列' if is_cn else '🌀 Generate Fibonacci Sequence') + '''</h3>
+<div style="margin-bottom:12px"><label>''' + ('项数 (1-100)' if is_cn else 'Terms (1-100)') + '''</label><input id="nInput" type="number" value="10" min="1" max="100"></div>
+<button class="btn btn-primary" id="genBtn">''' + ('生成数列' if is_cn else 'Generate Sequence') + '''</button>
+<div class="result-box" id="result"></div>
+</div>'''
+    
+    if slug == "factorial":
+        return '''<div class="tool-area">
+<h3 style="margin-bottom:16px;color:#f1f5f9">''' + ('✖️ 计算阶乘' if is_cn else '✖️ Calculate Factorial') + '''</h3>
+<div style="margin-bottom:12px"><label>''' + ('输入非负整数 (0-1000)' if is_cn else 'Enter non-negative integer (0-1000)') + '''</label><input id="nInput" type="number" value="5" min="0" max="1000"></div>
+<button class="btn btn-primary" id="calcBtn">''' + ('计算阶乘' if is_cn else 'Calculate Factorial') + '''</button>
+<div class="result-box" id="result"></div>
+</div>'''
+    
+    if slug == "gcd-calculator":
+        return '''<div class="tool-area">
+<h3 style="margin-bottom:16px;color:#f1f5f9">''' + ('➗ GCD计算器' if is_cn else '➗ GCD Calculator') + '''</h3>
+<div style="margin-bottom:12px"><label>''' + ('输入数字（用逗号或空格分隔）' if is_cn else 'Enter numbers (separated by commas or spaces)') + '''</label><input id="numInput" placeholder="''' + ('例如: 12, 18, 24' if is_cn else 'e.g. 12, 18, 24') + '''"></div>
+<button class="btn btn-primary" id="calcBtn">''' + ('计算 GCD' if is_cn else 'Calculate GCD') + '''</button>
+<div class="result-box" id="result"></div>
+</div>'''
+    
+    if slug == "lcm-calculator":
+        return '''<div class="tool-area">
+<h3 style="margin-bottom:16px;color:#f1f5f9">''' + ('🔗 LCM计算器' if is_cn else '🔗 LCM Calculator') + '''</h3>
+<div style="margin-bottom:12px"><label>''' + ('输入数字（用逗号或空格分隔）' if is_cn else 'Enter numbers (separated by commas or spaces)') + '''</label><input id="numInput" placeholder="''' + ('例如: 4, 6, 8' if is_cn else 'e.g. 4, 6, 8') + '''"></div>
+<button class="btn btn-primary" id="calcBtn">''' + ('计算 LCM' if is_cn else 'Calculate LCM') + '''</button>
+<div class="result-box" id="result"></div>
+</div>'''
+    
+    if slug == "text-to-list":
+        return '''<div class="tool-area">
+<h3 style="margin-bottom:16px;color:#f1f5f9">''' + ('📋 文本转列表' if is_cn else '📋 Text to List') + '''</h3>
+<div style="margin-bottom:12px"><label>''' + ('输入文本' if is_cn else 'Input text') + '''</label><textarea id="textInput" placeholder="''' + ('粘贴文本...' if is_cn else 'Paste text...') + '''"></textarea></div>
+<div class="grid-2" style="margin-bottom:12px">
+<div><label>''' + ('分隔符' if is_cn else 'Delimiter') + '''</label><select id="delimiter"><option value="newline">''' + ('换行' if is_cn else 'Newline') + '''</option><option value="comma">''' + ('逗号' if is_cn else 'Comma') + '''</option><option value="space">''' + ('空格' if is_cn else 'Space') + '''</option><option value="semicolon">''' + ('分号' if is_cn else 'Semicolon') + '''</option><option value="tab">''' + ('制表符' if is_cn else 'Tab') + '''</option></select></div>
+<div><label>''' + ('编号格式' if is_cn else 'Numbering') + '''</label><select id="numbering"><option value="none">''' + ('无' if is_cn else 'None') + '''</option><option value="numeric">''' + ('1. 2. 3.' if is_cn else '1. 2. 3.') + '''</option><option value="bullet">''' + ('• • •' if is_cn else '• • •') + '''</option><option value="dash">''' + ('- - -' if is_cn else '- - -') + '''</option></select></div>
+</div>
+<button class="btn btn-primary" id="convertBtn">''' + ('转换' if is_cn else 'Convert') + '''</button>
+<button class="btn btn-secondary" id="copyBtn" style="margin-left:8px">''' + ('复制结果' if is_cn else 'Copy Result') + '''</button>
+<div class="result-box" id="result"></div>
+</div>'''
+    
+    if slug == "list-deduplicator":
+        return '''<div class="tool-area">
+<h3 style="margin-bottom:16px;color:#f1f5f9">''' + ('🧹 列表去重' if is_cn else '🧹 List Deduplication') + '''</h3>
+<div style="margin-bottom:12px"><label>''' + ('输入列表（每行一项）' if is_cn else 'Input list (one item per line)') + '''</label><textarea id="textInput" placeholder="''' + ('粘贴列表...' if is_cn else 'Paste list...') + '''"></textarea></div>
+<div class="select-row"><label><input type="checkbox" id="caseSensitive">''' + ('区分大小写' if is_cn else 'Case sensitive') + '''</label><label><input type="checkbox" id="preserveEmpty">''' + ('保留空行' if is_cn else 'Preserve empty lines') + '''</label></div>
+<button class="btn btn-primary" id="dedupBtn">''' + ('去重' if is_cn else 'Deduplicate') + '''</button>
+<button class="btn btn-secondary" id="copyBtn" style="margin-left:8px">''' + ('复制结果' if is_cn else 'Copy Result') + '''</button>
+<div class="result-box" id="result"></div>
+</div>'''
+    
+    if slug == "list-comparer":
+        return '''<div class="tool-area">
+<h3 style="margin-bottom:16px;color:#f1f5f9">''' + ('🔄 列表比较' if is_cn else '🔄 List Comparison') + '''</h3>
+<div class="grid-2" style="margin-bottom:12px">
+<div><label>''' + ('列表 A' if is_cn else 'List A') + '''</label><textarea id="listA" placeholder="''' + ('每行一项...' if is_cn else 'One per line...') + '''"></textarea></div>
+<div><label>''' + ('列表 B' if is_cn else 'List B') + '''</label><textarea id="listB" placeholder="''' + ('每行一项...' if is_cn else 'One per line...') + '''"></textarea></div>
+</div>
+<div class="select-row"><label><input type="checkbox" id="caseSensitive">''' + ('区分大小写' if is_cn else 'Case sensitive') + '''</label></div>
+<div style="margin-bottom:12px"><label>''' + ('比较模式' if is_cn else 'Comparison mode') + '''</label><select id="mode"><option value="intersection">''' + ('交集 A∩B' if is_cn else 'Intersection A∩B') + '''</option><option value="diffAB">''' + ('差集 A-B' if is_cn else 'Difference A-B') + '''</option><option value="diffBA">''' + ('差集 B-A' if is_cn else 'Difference B-A') + '''</option><option value="union">''' + ('并集 A∪B' if is_cn else 'Union A∪B') + '''</option></select></div>
+<button class="btn btn-primary" id="compareBtn">''' + ('比较' if is_cn else 'Compare') + '''</button>
+<button class="btn btn-secondary" id="copyBtn" style="margin-left:8px">''' + ('复制结果' if is_cn else 'Copy Result') + '''</button>
+<div class="result-box" id="result"></div>
+</div>'''
+    
+    if slug == "screen-resolution":
+        return '''<div class="tool-area">
+<h3 style="margin-bottom:16px;color:#f1f5f9">''' + ('🖥️ 屏幕信息' if is_cn else '🖥️ Screen Information') + '''</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">''' + ('屏幕分辨率' if is_cn else 'Screen Resolution') + '''</div><div style="font-size:1.4rem;font-weight:bold;color:#22d3ee" id="resolution">-</div></div>
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">''' + ('可用分辨率' if is_cn else 'Available Resolution') + '''</div><div style="font-size:1.4rem;font-weight:bold;color:#22d3ee" id="availRes">-</div></div>
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">''' + ('视口大小' if is_cn else 'Viewport Size') + '''</div><div style="font-size:1.4rem;font-weight:bold;color:#22d3ee" id="viewport">-</div></div>
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">''' + ('设备像素比' if is_cn else 'Device Pixel Ratio') + '''</div><div style="font-size:1.4rem;font-weight:bold;color:#22d3ee" id="dpr">-</div></div>
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">''' + ('颜色深度' if is_cn else 'Color Depth') + '''</div><div style="font-size:1.4rem;font-weight:bold;color:#22d3ee" id="colorDepth">-</div></div>
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">''' + ('屏幕方向' if is_cn else 'Orientation') + '''</div><div style="font-size:1.4rem;font-weight:bold;color:#22d3ee" id="orientation">-</div></div>
+</div>
+</div>'''
+    
+    if slug == "device-info":
+        return '''<div class="tool-area">
+<h3 style="margin-bottom:16px;color:#f1f5f9">''' + ('📱 设备详情' if is_cn else '📱 Device Details') + '''</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">''' + ('浏览器' if is_cn else 'Browser') + '''</div><div style="font-weight:bold;color:#e2e8f0;font-size:.9rem" id="browser">-</div></div>
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">''' + ('操作系统' if is_cn else 'OS') + '''</div><div style="font-weight:bold;color:#e2e8f0;font-size:.9rem" id="os">-</div></div>
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">CPU ''' + ('核心' if is_cn else 'Cores') + '''</div><div style="font-weight:bold;color:#e2e8f0;font-size:.9rem" id="cpu">-</div></div>
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">''' + ('内存' if is_cn else 'Memory') + '''</div><div style="font-weight:bold;color:#e2e8f0;font-size:.9rem" id="memory">-</div></div>
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">''' + ('语言' if is_cn else 'Language') + '''</div><div style="font-weight:bold;color:#e2e8f0;font-size:.9rem" id="language">-</div></div>
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">''' + ('时区' if is_cn else 'Timezone') + '''</div><div style="font-weight:bold;color:#e2e8f0;font-size:.9rem" id="timezone">-</div></div>
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">''' + ('在线状态' if is_cn else 'Online') + '''</div><div style="font-weight:bold;color:#e2e8f0;font-size:.9rem" id="online">-</div></div>
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">Cookies</div><div style="font-weight:bold;color:#e2e8f0;font-size:.9rem" id="cookies">-</div></div>
+</div>
+<button class="btn btn-secondary" id="refreshBtn" style="margin-top:12px">''' + ('🔄 刷新' if is_cn else '🔄 Refresh') + '''</button>
+</div>'''
+    
+    return ""
+
+
+def make_page(tool, lang="zh"):
+    is_cn = lang == "zh"
     slug = tool["slug"]
-    name = tool["cn_name"]
-    desc = tool["cn_desc"]
-    keywords = tool["cn_keywords"]
-    faq_q = tool["cn_faq_q"]
-    faq_a = tool["cn_faq_a"]
-
-    return f'''<!DOCTYPE html>
-<html lang="zh-CN">
+    title = tool["title_cn"] if is_cn else tool["title_en"]
+    desc = tool["desc_cn"] if is_cn else tool["desc_en"]
+    emoji = tool["emoji"]
+    faq_list = tool["faq"] if is_cn else tool["faq_en"]
+    
+    canonical = "https://free-toolbase.com/" + slug + "/" if is_cn else "https://free-toolbase.com/en/" + slug + "/"
+    alt_canonical = "https://free-toolbase.com/en/" + slug + "/" if is_cn else "https://free-toolbase.com/" + slug + "/"
+    home_href = "../index.html" if is_cn else "../../index.html"
+    tools_href = "../index.html#tools" if is_cn else "../../index.html#tools"
+    
+    schema_name = title.replace('"', '\\"')
+    schema_desc = desc.replace('"', '\\"')
+    
+    faq_entries = ",\n".join([
+        '{"@type": "Question", "name": "' + f["q"].replace('"', '\\"') + '", "acceptedAnswer": {"@type": "Answer", "text": "' + f["a"].replace('"', '\\"') + '"}}'
+        for f in faq_list
+    ])
+    
+    faq_html = "\n".join([
+        '<div class="faq-item"><h3>' + f["q"] + '</h3><p>' + f["a"] + '</p></div>'
+        for f in faq_list
+    ])
+    
+    tool_body = get_tool_body(slug, is_cn)
+    tool_js = TOOL_JS[slug][lang]
+    
+    # Build the page
+    hreflang_self = "zh" if is_cn else "en"
+    hreflang_alt = "en" if is_cn else "zh"
+    
+    page = '''<!DOCTYPE html>
+<html lang="''' + ('zh-CN' if is_cn else 'en') + '''">
 <head>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
-<script>window.addEventListener("error",function(e){{if(e&&e.message===""){{e.preventDefault();}}}});window.addEventListener("unhandledrejection",function(e){{if(e&&e.reason&&e.reason.message===""){{e.preventDefault();}}}});</script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="{html_escape(desc)}">
-<meta name="keywords" content="{html_escape(keywords)}">
-<title>免费{name} | Free ToolBase</title>
-<link rel="canonical" href="https://free-toolbase.com/{slug}/">
-<meta property="og:title" content="免费{name} | Free ToolBase">
-<meta property="og:description" content="{html_escape(desc)}">
-<meta property="og:url" content="https://free-toolbase.com/{slug}/">
+<meta name="description" content="''' + desc + '''">
+<meta name="keywords" content="''' + slug + ''',''' + ('online tool,free' if is_cn else 'online tool,free') + '''">
+<title>''' + title + ''' - Free ToolBase</title>
+<link rel="canonical" href="''' + canonical + '''">
+<meta property="og:title" content="''' + title + ''' - Free ToolBase">
+<meta property="og:description" content="''' + desc + '''">
+<meta property="og:url" content="''' + canonical + '''">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Free ToolBase">
-<link rel="alternate" hreflang="zh" href="https://free-toolbase.com/{slug}/">
-<link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/{slug}/">
-<link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/{slug}/">
-<script type="application/ld+json">{{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "{name}", "description": "{html_escape(desc)}", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Web", "publisher": {{"@type": "Organization", "name": "Free ToolBase", "email": "dexshuang@google.com"}}, "offers": {{"@type": "Offer", "price": "0", "priceCurrency": "USD"}}}}</script>
-<script type="application/ld+json">{{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{{"@type": "Question", "name": "{html_escape(faq_q)}", "acceptedAnswer": {{"@type": "Answer", "text": "{html_escape(faq_a)}"}}}}]}}</script>
-<script type="application/ld+json">{{"@context": "https://schema.org", "@type": "HowTo", "name": "如何使用{name}", "description": "如何使用{name}的详细步骤指南", "totalTime": "PT2M", "tool": {{"@type": "HowToTool", "name": "{name}"}}, "step": [{{"@type": "HowToStep", "position": 1, "name": "输入数据", "text": "在输入框中输入需要计算的数据"}}, {{"@type": "HowToStep", "position": 2, "name": "选择选项", "text": "根据需要选择计算模式或参数"}}, {{"@type": "HowToStep", "position": 3, "name": "点击计算", "text": "点击计算按钮获取结果"}}, {{"@type": "HowToStep", "position": 4, "name": "查看结果", "text": "查看计算结果，支持一键复制"}}]}}</script>
-<script type="application/ld+json">{{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://free-toolbase.com/"}}, {{"@type": "ListItem", "position": 2, "name": "工具", "item": "https://free-toolbase.com/#tools"}}, {{"@type": "ListItem", "position": 3, "name": "{name}", "item": "https://free-toolbase.com/{slug}/"}}]}}</script>
+<link rel="alternate" hreflang="''' + hreflang_self + '''" href="''' + canonical + '''">
+<link rel="alternate" hreflang="''' + hreflang_alt + '''" href="''' + alt_canonical + '''">
+<link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/''' + slug + '''/">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "''' + schema_name + '''", "description": "''' + schema_desc + '''", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Web", "publisher": {"@type": "Organization", "name": "Free ToolBase", "email": "dexshuang@google.com"}, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [''' + faq_entries + ''']}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "HowTo", "name": "''' + ('如何使用' if is_cn else 'How to use') + ' ' + schema_name + '''", "description": "''' + ('详细使用步骤' if is_cn else 'Step-by-step guide') + '''", "totalTime": "PT2M", "tool": {"@type": "HowToTool", "name": "''' + schema_name + '''"}, "step": [{"@type": "HowToStep", "position": 1, "name": "''' + ('输入数据' if is_cn else 'Enter data') + '''", "text": "''' + ('输入数据或设置参数' if is_cn else 'Enter data or set parameters') + '''"}, {"@type": "HowToStep", "position": 2, "name": "''' + ('点击执行' if is_cn else 'Click execute') + '''", "text": "''' + ('点击按钮执行计算或转换' if is_cn else 'Click button to compute or convert') + '''"}, {"@type": "HowToStep", "position": 3, "name": "''' + ('查看结果' if is_cn else 'View results') + '''", "text": "''' + ('查看结果' if is_cn else 'View results') + '''"}, {"@type": "HowToStep", "position": 4, "name": "''' + ('复制结果' if is_cn else 'Copy results') + '''", "text": "''' + ('复制或导出结果' if is_cn else 'Copy or export results') + '''"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "''' + ('首页' if is_cn else 'Home') + '''", "item": "https://free-toolbase.com/"}, {"@type": "ListItem", "position": 2, "name": "''' + ('工具' if is_cn else 'Tools') + '''", "item": "https://free-toolbase.com/#tools"}, {"@type": "ListItem", "position": 3, "name": "''' + schema_name + '''", "item": "''' + canonical + '''"}]}</script>
 <style>
-*{{box-sizing:border-box;margin:0;padding:0}}
-body{{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}}
-a{{color:#06b6d4;text-decoration:none}}
-.container{{max-width:960px;margin:0 auto;padding:24px 16px}}
-.header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}}
-.header h1{{font-size:1.5rem;color:#f1f5f9}}
-.lang-switch{{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px}}
-.lang-switch a{{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}}
-.lang-switch a.active{{background:rgba(6,182,212,.2);color:#22d3ee}}
-.nav-back{{color:#64748b;font-size:.85rem;margin-bottom:16px}}
-.nav-back a{{color:#64748b}}
-.section{{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px}}
-.section h2{{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}}
-.form-group{{margin-bottom:14px}}
-.form-group label{{display:block;color:#94a3b8;font-size:.9rem;margin-bottom:6px;font-weight:500}}
-.form-group input,.form-group select,.form-group textarea{{width:100%;padding:10px 14px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;color:#e2e8f0;font-size:.9rem;outline:none}}
-.form-group input:focus,.form-group select:focus,.form-group textarea:focus{{border-color:rgba(6,182,212,.4)}}
-.form-group textarea{{min-height:120px;resize:vertical;font-family:monospace}}
-.form-row{{display:flex;gap:12px;flex-wrap:wrap}}
-.form-row .form-group{{flex:1;min-width:200px}}
-.btn{{padding:10px 24px;border:none;border-radius:8px;font-size:.9rem;cursor:pointer;transition:all .2s;font-weight:600}}
-.btn-primary{{background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff}}
-.btn-primary:hover{{transform:translateY(-2px);box-shadow:0 4px 15px rgba(6,182,212,.3)}}
-.btn-secondary{{background:rgba(148,163,184,.1);color:#94a3b8}}
-.btn-secondary:hover{{background:rgba(148,163,184,.2)}}
-.btn-group{{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}}
-.result-box{{background:#0f172a;border-radius:8px;padding:16px;margin-top:12px;display:none}}
-.result-box.show{{display:block}}
-.result-item{{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(148,163,184,.1)}}
-.result-item:last-child{{border-bottom:none}}
-.result-label{{color:#94a3b8;font-size:.85rem}}
-.result-value{{color:#22d3ee;font-weight:600;font-size:.9rem;cursor:pointer}}
-.result-value:hover{{text-decoration:underline}}
-.toast{{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#22d3ee;color:#0f172a;padding:10px 24px;border-radius:8px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s}}
-.toast.show{{opacity:1}}
-footer{{text-align:center;padding:24px;color:#64748b;font-size:.8rem}}
-footer a{{color:#64748b}}
-.copied{{color:#10b981!important}}
-@media(max-width:600px){{.header h1{{font-size:1.2rem}}.section{{padding:16px}}}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:900px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.hero{background:linear-gradient(135deg,rgba(6,182,212,.1),rgba(168,85,247,.1));border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid rgba(148,163,184,.1);text-align:center}
+.hero p{color:#94a3b8;font-size:.95rem}
+.badge{display:inline-block;background:rgba(6,182,212,.15);color:#22d3ee;padding:4px 12px;border-radius:20px;font-size:.8rem;margin-top:8px}
+.tool-area{background:#1e293b;border-radius:12px;padding:24px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.tool-area label{display:block;color:#94a3b8;font-size:.85rem;margin-bottom:4px}
+.tool-area input,.tool-area textarea,.tool-area select{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:1rem;outline:none;font-family:inherit}
+.tool-area textarea{resize:vertical;min-height:120px}
+.btn{padding:10px 24px;border:none;border-radius:6px;font-size:.9rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+.result-box{margin-top:16px;padding:16px;background:#0f172a;border-radius:8px;border:1px solid rgba(148,163,184,.15);word-break:break-all;min-height:48px;font-family:monospace;font-size:.95rem;white-space:pre-wrap;color:#e2e8f0}
+.result-box:empty{display:none}
+.info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.info-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.info-section h3{font-size:.95rem;color:#e2e8f0;margin:16px 0 8px}
+.info-section p{color:#94a3b8;font-size:.9rem;margin-bottom:8px;line-height:1.6}
+.faq-item{margin-bottom:16px}
+.faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px}
+.faq-item p{color:#94a3b8;font-size:.9rem}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#64748b;margin:0 8px}
+.footer a:hover{color:#94a3b8}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.select-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.select-row label{display:flex;align-items:center;gap:4px;color:#e2e8f0;font-size:.85rem;cursor:pointer}
+@media(max-width:600px){.header h1{font-size:1.2rem}.grid-2{grid-template-columns:1fr}.header{flex-direction:column;gap:8px}}
 </style>
 </head>
 <body>
 <div class="container">
-<div class="nav-back"><a href="/">← 返回首页</a></div>
-<div class="header">
-<h1>🔧 {name}</h1>
-<div class="lang-switch">
-<a href="/{slug}/" class="active">中文</a>
-<a href="/en/{slug}/">EN</a>
-</div>
-</div>
-<!-- TOOL_CONTENT_PLACEHOLDER_CN -->
-<footer>
-<p><a href="/">首页</a> · <a href="/#tools">全部工具</a> · <a href="/about/">关于</a></p>
-<p>© 2026 Free ToolBase · 免费在线工具，无需注册</p>
-</footer>
+<div class="header"><h1>''' + emoji + ' ' + title + '''</h1><div class="lang-switch"><a href="''' + ('index.html' if is_cn else '') + '''" class="''' + ('active' if is_cn else '') + '''">''' + ('中文' if is_cn else '中文') + '''</a><a href="''' + ('../en/' + slug + '/' if is_cn else '') + '''" class="''' + ('' if is_cn else 'active') + '''">EN</a></div></div>
+<p class="nav-back"><a href="''' + home_href + '''">''' + ('首页' if is_cn else 'Home') + '''</a> &rsaquo; <a href="''' + tools_href + '''">''' + ('工具' if is_cn else 'Tools') + '''</a> &rsaquo; ''' + title + '''</p>
+<div class="hero"><p>''' + desc + '''</p><span class="badge">''' + ('零依赖·可离线使用' if is_cn else 'Zero dependencies · Works offline') + '''</span></div>
+''' + tool_body + '''
+<div class="info-section"><h2>''' + ('关于' if is_cn else 'About') + ' ' + title + '''</h2><p>''' + desc + '''</p></div>
+<div class="info-section"><h2>''' + ('常见问题' if is_cn else 'FAQ') + '''</h2>''' + faq_html + '''</div>
+<div class="footer"><p>&copy; 2026 Free ToolBase · <a href="''' + ('../about/' if is_cn else '../../about/') + '''">''' + ('关于我们' if is_cn else 'About Us') + '''</a> · <a href="''' + ('../privacy/' if is_cn else '../../privacy/') + '''">''' + ('隐私政策' if is_cn else 'Privacy') + '''</a></p></div>
 </div>
 <div class="toast" id="toast"></div>
-<!-- TOOL_SCRIPT_PLACEHOLDER_CN -->
+<script>
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000);}
+function copyText(text){if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){showToast(''' + ("'已复制!'" if is_cn else "'Copied!'") + ''')}).catch(function(){fallbackCopy(text)});}else{fallbackCopy(text);}}
+function fallbackCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast(''' + ("'已复制!'" if is_cn else "'Copied!'") + ''');}
+''' + tool_js + '''
+</script>
 </body>
 </html>'''
+    return page
 
-def make_en_page(tool):
-    slug = tool["slug"]
-    name = tool["en_name"]
-    desc = tool["en_desc"]
-    keywords = tool["en_keywords"]
-    faq_q = tool["en_faq_q"]
-    faq_a = tool["en_faq_a"]
 
-    return f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="{html_escape(desc)}">
-<meta name="keywords" content="{html_escape(keywords)}">
-<title>Free {name} | Free ToolBase</title>
-<link rel="canonical" href="https://free-toolbase.com/en/{slug}/">
-<meta property="og:title" content="{name}">
-<meta property="og:description" content="{html_escape(desc)}">
-<meta property="og:url" content="https://free-toolbase.com/en/{slug}/">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Free ToolBase">
-<link rel="alternate" hreflang="zh" href="https://free-toolbase.com/{slug}/">
-<link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/{slug}/">
-<link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/{slug}/">
-<script type="application/ld+json">{{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "{name}", "description": "{html_escape(desc)}", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Web", "publisher": {{"@type": "Organization", "name": "Free ToolBase", "email": "dexshuang@google.com"}}, "author": {{"@type": "Organization", "name": "Free ToolBase"}}, "dateModified": "{TODAY}", "offers": {{"@type": "Offer", "price": "0", "priceCurrency": "USD"}}}}</script>
-<script type="application/ld+json">{{"@context": "https://schema.org", "@type": "FAQPage", "name": "{html_escape(faq_q)}", "mainEntity": [{{"@type": "Question", "name": "{html_escape(faq_q)}", "acceptedAnswer": {{"@type": "Answer", "text": "{html_escape(faq_a)}"}}}}]}}</script>
-<script type="application/ld+json">{{"@context": "https://schema.org", "@type": "HowTo", "name": "How to Use {name}", "description": "Step-by-step guide on using the {name}", "totalTime": "PT2M", "tool": {{"@type": "HowToTool", "name": "{name}"}}, "step": [{{"@type": "HowToStep", "position": 1, "name": "Enter Data", "text": "Enter the data you want to process"}}, {{"@type": "HowToStep", "position": 2, "name": "Select Options", "text": "Select mode or parameters as needed"}}, {{"@type": "HowToStep", "position": 3, "name": "Click Calculate", "text": "Click the calculate button to get results"}}, {{"@type": "HowToStep", "position": 4, "name": "View Results", "text": "View the results, one-click copy supported"}}]}}</script>
-<script type="application/ld+json">{{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://free-toolbase.com/en/"}}, {{"@type": "ListItem", "position": 2, "name": "Tools", "item": "https://free-toolbase.com/en/#tools"}}, {{"@type": "ListItem", "position": 3, "name": "{name}", "item": "https://free-toolbase.com/en/{slug}/"}}]}}</script>
-<style>
-*{{box-sizing:border-box;margin:0;padding:0}}
-body{{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.6;min-height:100vh}}
-a{{color:#06b6d4;text-decoration:none}}
-.container{{max-width:960px;margin:0 auto;padding:24px 16px}}
-.header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}}
-.header h1{{font-size:1.5rem;color:#f1f5f9}}
-.lang-switch{{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px}}
-.lang-switch a{{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}}
-.lang-switch a.active{{background:rgba(6,182,212,.2);color:#22d3ee}}
-.nav-back{{color:#64748b;font-size:.85rem;margin-bottom:16px}}
-.nav-back a{{color:#64748b}}
-.section{{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px}}
-.section h2{{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}}
-.form-group{{margin-bottom:14px}}
-.form-group label{{display:block;color:#94a3b8;font-size:.9rem;margin-bottom:6px;font-weight:500}}
-.form-group input,.form-group select,.form-group textarea{{width:100%;padding:10px 14px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;color:#e2e8f0;font-size:.9rem;outline:none}}
-.form-group input:focus,.form-group select:focus,.form-group textarea:focus{{border-color:rgba(6,182,212,.4)}}
-.form-group textarea{{min-height:120px;resize:vertical;font-family:monospace}}
-.form-row{{display:flex;gap:12px;flex-wrap:wrap}}
-.form-row .form-group{{flex:1;min-width:200px}}
-.btn{{padding:10px 24px;border:none;border-radius:8px;font-size:.9rem;cursor:pointer;transition:all .2s;font-weight:600}}
-.btn-primary{{background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff}}
-.btn-primary:hover{{transform:translateY(-2px);box-shadow:0 4px 15px rgba(6,182,212,.3)}}
-.btn-secondary{{background:rgba(148,163,184,.1);color:#94a3b8}}
-.btn-secondary:hover{{background:rgba(148,163,184,.2)}}
-.btn-group{{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}}
-.result-box{{background:#0f172a;border-radius:8px;padding:16px;margin-top:12px;display:none}}
-.result-box.show{{display:block}}
-.result-item{{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(148,163,184,.1)}}
-.result-item:last-child{{border-bottom:none}}
-.result-label{{color:#94a3b8;font-size:.85rem}}
-.result-value{{color:#22d3ee;font-weight:600;font-size:.9rem;cursor:pointer}}
-.result-value:hover{{text-decoration:underline}}
-.toast{{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#22d3ee;color:#0f172a;padding:10px 24px;border-radius:8px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s}}
-.toast.show{{opacity:1}}
-footer{{text-align:center;padding:24px;color:#64748b;font-size:.8rem}}
-footer a{{color:#64748b}}
-.copied{{color:#10b981!important}}
-@media(max-width:600px){{.header h1{{font-size:1.2rem}}.section{{padding:16px}}}}
-</style>
-</head>
-<body>
-<div class="container">
-<div class="nav-back"><a href="/en/">← Back to Home</a></div>
-<div class="header">
-<h1>🔧 {name}</h1>
-<div class="lang-switch">
-<a href="/{slug}/">中文</a>
-<a href="/en/{slug}/" class="active">EN</a>
-</div>
-</div>
-<!-- TOOL_CONTENT_PLACEHOLDER_EN -->
-<footer>
-<p><a href="/en/">Home</a> · <a href="/en/#tools">All Tools</a> · <a href="/about/">About</a></p>
-<p>© 2026 Free ToolBase · Free Online Tools, No Registration</p>
-</footer>
-</div>
-<div class="toast" id="toast"></div>
-<!-- TOOL_SCRIPT_PLACEHOLDER_EN -->
-</body>
-</html>'''
+def main():
+    for tool in TOOLS:
+        slug = tool["slug"]
+        # 中文版
+        cn_dir = os.path.join(BASE_DIR, slug)
+        os.makedirs(cn_dir, exist_ok=True)
+        cn_html = make_page(tool, "zh")
+        cn_path = os.path.join(cn_dir, "index.html")
+        with open(cn_path, "w", encoding="utf-8") as f:
+            f.write(cn_html)
+        print("Created: " + cn_path)
+        
+        # 英文版
+        en_dir = os.path.join(BASE_DIR, "en", slug)
+        os.makedirs(en_dir, exist_ok=True)
+        en_html = make_page(tool, "en")
+        en_path = os.path.join(en_dir, "index.html")
+        with open(en_path, "w", encoding="utf-8") as f:
+            f.write(en_html)
+        print("Created: " + en_path)
 
-# ===== Generate tool-specific content and JS =====
-
-def get_tool_content_cn(tool):
-    slug = tool["slug"]
-    
-    if slug == "utc-converter":
-        return '''<div class="section">
-<h2>UTC时间转换</h2>
-<div class="form-group">
-<label>当前UTC时间</label>
-<div id="currentUTC" style="font-size:1.2rem;color:#22d3ee;font-family:monospace;"></div>
-</div>
-<div class="form-group">
-<label>当前本地时间</label>
-<div id="currentLocal" style="font-size:1.2rem;color:#22d3ee;font-family:monospace;"></div>
-</div>
-<div class="form-row">
-<div class="form-group">
-<label>输入UTC时间</label>
-<input type="datetime-local" id="utcInput">
-</div>
-<div class="form-group">
-<label>目标时区</label>
-<select id="targetTZ"></select>
-</div>
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="convertBtn">转换</button>
-<button class="btn btn-secondary" id="nowBtn">使用当前时间</button>
-</div>
-<div class="result-box" id="resultBox">
-<div class="result-item"><span class="result-label">输入UTC时间</span><span class="result-value" id="inputUTC"></span></div>
-<div class="result-item"><span class="result-label">目标时区</span><span class="result-value" id="targetTZName"></span></div>
-<div class="result-item"><span class="result-label">转换结果</span><span class="result-value" id="convertedTime"></span></div>
-<div class="result-item"><span class="result-label">ISO 8601</span><span class="result-value" id="isoTime"></span></div>
-</div>
-</div>
-<div class="section">
-<h2>常用时区快速查询</h2>
-<div class="form-group">
-<select id="quickTZ" style="margin-bottom:8px"></select>
-</div>
-<div id="quickResult" style="font-size:1.1rem;color:#22d3ee;font-family:monospace;"></div>
-</div>'''
-    
-    elif slug == "date-to-timestamp":
-        return '''<div class="section">
-<h2>日期 ↔ 时间戳</h2>
-<div class="form-group">
-<label>日期时间</label>
-<input type="datetime-local" id="dateInput">
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="toTimestampBtn">转为时间戳</button>
-<button class="btn btn-secondary" id="nowBtn">当前时间</button>
-</div>
-<div class="result-box" id="resultBox">
-<div class="result-item"><span class="result-label">秒级时间戳</span><span class="result-value" id="tsSeconds"></span></div>
-<div class="result-item"><span class="result-label">毫秒级时间戳</span><span class="result-value" id="tsMillis"></span></div>
-</div>
-</div>
-<div class="section">
-<h2>时间戳 → 日期</h2>
-<div class="form-group">
-<label>输入时间戳</label>
-<input type="text" id="tsInput" placeholder="输入秒级或毫秒级时间戳">
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="toDateBtn">转为日期</button>
-<button class="btn btn-secondary" id="nowTSBtn">当前时间戳</button>
-</div>
-<div class="result-box" id="dateResultBox">
-<div class="result-item"><span class="result-label">UTC时间</span><span class="result-value" id="utcDate"></span></div>
-<div class="result-item"><span class="result-label">本地时间</span><span class="result-value" id="localDate"></span></div>
-<div class="result-item"><span class="result-label">ISO 8601</span><span class="result-value" id="isoDate"></span></div>
-</div>
-</div>'''
-    
-    elif slug == "color-names":
-        return '''<div class="section">
-<h2>HTML颜色名称搜索</h2>
-<div class="form-row">
-<div class="form-group">
-<label>搜索颜色</label>
-<input type="text" id="colorSearch" placeholder="输入颜色名称搜索...">
-</div>
-<div class="form-group">
-<label>按色系筛选</label>
-<select id="colorFilter">
-<option value="all">全部颜色</option>
-<option value="red">红色系</option>
-<option value="pink">粉色系</option>
-<option value="orange">橙色系</option>
-<option value="yellow">黄色系</option>
-<option value="green">绿色系</option>
-<option value="blue">蓝色系</option>
-<option value="purple">紫色系</option>
-<option value="brown">棕色系</option>
-<option value="gray">灰色系</option>
-<option value="white">白色系</option>
-</select>
-</div>
-</div>
-<div id="colorGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:12px;"></div>
-<div style="text-align:center;color:#64748b;margin-top:8px;font-size:.85rem">共 <span id="colorCount">0</span> 种颜色 · 点击复制颜色名称</div>
-</div>'''
-    
-    elif slug == "workdays-calculator":
-        return '''<div class="section">
-<h2>工作日计算</h2>
-<div class="form-row">
-<div class="form-group">
-<label>开始日期</label>
-<input type="date" id="startDate">
-</div>
-<div class="form-group">
-<label>结束日期</label>
-<input type="date" id="endDate">
-</div>
-</div>
-<div class="form-group">
-<label>排除节假日（用逗号分隔）</label>
-<input type="text" id="holidays" placeholder="可选：2026-10-01,2026-10-02">
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="calcBtn">计算工作日</button>
-</div>
-<div class="result-box" id="resultBox">
-<div class="result-item"><span class="result-label">总天数</span><span class="result-value" id="totalDays"></span></div>
-<div class="result-item"><span class="result-label">工作日</span><span class="result-value" id="workDays"></span></div>
-<div class="result-item"><span class="result-label">周末天数</span><span class="result-value" id="weekendDays"></span></div>
-<div class="result-item"><span class="result-label">排除节假日</span><span class="result-value" id="holidayDays"></span></div>
-</div>
-</div>'''
-    
-    elif slug == "ideal-weight":
-        return '''<div class="section">
-<h2>理想体重计算</h2>
-<div class="form-row">
-<div class="form-group">
-<label>性别</label>
-<select id="gender"><option value="male">男</option><option value="female">女</option></select>
-</div>
-<div class="form-group">
-<label>身高 (cm)</label>
-<input type="number" id="height" placeholder="例如：170" min="100" max="250" value="170">
-</div>
-</div>
-<div class="form-group">
-<label>计算公式</label>
-<select id="formula">
-<option value="devine">Devine公式</option>
-<option value="robinson">Robinson公式</option>
-<option value="miller">Miller公式</option>
-<option value="bmi">BMI健康范围</option>
-</select>
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="calcBtn">计算</button>
-</div>
-<div class="result-box" id="resultBox">
-<div class="result-item"><span class="result-label">计算公式</span><span class="result-value" id="formulaName"></span></div>
-<div class="result-item"><span class="result-label">理想体重</span><span class="result-value" id="idealWeightKg"></span></div>
-<div class="result-item"><span class="result-label">健康体重范围</span><span class="result-value" id="healthyRange"></span></div>
-</div>
-</div>'''
-    
-    elif slug == "water-intake":
-        return '''<div class="section">
-<h2>每日饮水量</h2>
-<div class="form-row">
-<div class="form-group">
-<label>体重 (kg)</label>
-<input type="number" id="weight" placeholder="例如：65" min="30" max="200" value="65">
-</div>
-<div class="form-group">
-<label>活动水平</label>
-<select id="activity">
-<option value="sedentary">久坐（几乎不运动）</option>
-<option value="light">轻度活动（每周1-3次）</option>
-<option value="moderate">中度活动（每周3-5次）</option>
-<option value="active">高度活动（每周6-7次）</option>
-<option value="very-active">极高强度（每天训练）</option>
-</select>
-</div>
-</div>
-<div class="form-group">
-<label>气候条件</label>
-<select id="climate">
-<option value="cool">凉爽</option>
-<option value="normal">常温</option>
-<option value="hot">炎热</option>
-<option value="very-hot">极热</option>
-</select>
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="calcBtn">计算</button>
-</div>
-<div class="result-box" id="resultBox">
-<div class="result-item"><span class="result-label">每日建议饮水量</span><span class="result-value" id="waterLiters"></span></div>
-<div class="result-item"><span class="result-label">约合杯数 (250ml/杯)</span><span class="result-value" id="waterCups"></span></div>
-<div class="result-item"><span class="result-label">每小时建议</span><span class="result-value" id="waterPerHour"></span></div>
-</div>
-</div>'''
-    
-    elif slug == "running-pace":
-        return '''<div class="section">
-<h2>跑步配速</h2>
-<div class="form-row">
-<div class="form-group">
-<label>距离</label>
-<input type="number" id="distance" placeholder="例如：5" min="0.1" step="0.1" value="5">
-</div>
-<div class="form-group">
-<label>单位</label>
-<select id="distUnit"><option value="km">公里 (km)</option><option value="mile">英里 (mi)</option></select>
-</div>
-</div>
-<div class="form-row">
-<div class="form-group">
-<label>时间 (HH:MM:SS)</label>
-<input type="text" id="timeInput" placeholder="例如：00:25:00" value="00:25:00">
-</div>
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="calcBtn">计算配速</button>
-</div>
-<div class="result-box" id="resultBox">
-<div class="result-item"><span class="result-label">每公里配速</span><span class="result-value" id="paceKm"></span></div>
-<div class="result-item"><span class="result-label">每英里配速</span><span class="result-value" id="paceMile"></span></div>
-<div class="result-item"><span class="result-label">速度</span><span class="result-value" id="speedKph"></span></div>
-<div class="result-item"><span class="result-label">5K预测</span><span class="result-value" id="predict5k"></span></div>
-<div class="result-item"><span class="result-label">半马预测</span><span class="result-value" id="predictHalf"></span></div>
-<div class="result-item"><span class="result-label">全马预测</span><span class="result-value" id="predictFull"></span></div>
-</div>
-</div>'''
-    
-    elif slug == "paragraph-counter":
-        return '''<div class="section">
-<h2>段落统计</h2>
-<div class="form-group">
-<label>输入文本</label>
-<textarea id="textInput" placeholder="在此粘贴或输入文本..."></textarea>
-</div>
-<div class="result-box show" id="resultBox">
-<div class="result-item"><span class="result-label">段落总数</span><span class="result-value" id="paraCount">0</span></div>
-<div class="result-item"><span class="result-label">总字数</span><span class="result-value" id="wordCount">0</span></div>
-<div class="result-item"><span class="result-label">总字符数</span><span class="result-value" id="charCount">0</span></div>
-<div class="result-item"><span class="result-label">平均每段字数</span><span class="result-value" id="avgWordsPerPara">0</span></div>
-<div class="result-item"><span class="result-label">最长段落字数</span><span class="result-value" id="maxWordsPerPara">0</span></div>
-<div class="result-item"><span class="result-label">最短段落字数</span><span class="result-value" id="minWordsPerPara">0</span></div>
-</div>
-</div>'''
-    
-    elif slug == "vowel-counter":
-        return '''<div class="section">
-<h2>元音统计</h2>
-<div class="form-group">
-<label>输入文本</label>
-<textarea id="textInput" placeholder="在此粘贴或输入英文文本..."></textarea>
-</div>
-<div class="result-box show" id="resultBox">
-<div class="result-item"><span class="result-label">总字符数</span><span class="result-value" id="totalChars">0</span></div>
-<div class="result-item"><span class="result-label">总元音数</span><span class="result-value" id="totalVowels">0</span></div>
-<div class="result-item"><span class="result-label">元音比例</span><span class="result-value" id="vowelRatio">0%</span></div>
-<div class="result-item"><span class="result-label">A 数量</span><span class="result-value" id="countA">0</span></div>
-<div class="result-item"><span class="result-label">E 数量</span><span class="result-value" id="countE">0</span></div>
-<div class="result-item"><span class="result-label">I 数量</span><span class="result-value" id="countI">0</span></div>
-<div class="result-item"><span class="result-label">O 数量</span><span class="result-value" id="countO">0</span></div>
-<div class="result-item"><span class="result-label">U 数量</span><span class="result-value" id="countU">0</span></div>
-</div>
-</div>'''
-    
-    elif slug == "keyword-density":
-        return '''<div class="section">
-<h2>关键词密度分析</h2>
-<div class="form-group">
-<label>输入文本</label>
-<textarea id="textInput" placeholder="在此粘贴需要分析的文本..." rows="8"></textarea>
-</div>
-<div class="form-group">
-<label>关键词（逗号分隔多个）</label>
-<input type="text" id="keywordInput" placeholder="例如：SEO, 关键词, 分析">
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="analyzeBtn">分析</button>
-<button class="btn btn-secondary" id="clearBtn">清空</button>
-</div>
-<div class="result-box" id="resultBox">
-<div class="result-item"><span class="result-label">总词数</span><span class="result-value" id="totalWords">-</span></div>
-<div id="keywordResults"></div>
-</div>
-</div>'''
-
-def get_tool_script_cn(tool):
-    slug = tool["slug"]
-    
-    if slug == "utc-converter":
-        return '''<script>
-const tzs=["UTC-12","UTC-11","UTC-10","UTC-9","UTC-8","UTC-7","UTC-6","UTC-5","UTC-4","UTC-3","UTC-2","UTC-1","UTC+0","UTC+1","UTC+2","UTC+3","UTC+4","UTC+5","UTC+6","UTC+7","UTC+8","UTC+9","UTC+10","UTC+11","UTC+12"];
-const tzNames={"UTC-12":"国际日期变更线西","UTC-11":"中途岛","UTC-10":"夏威夷","UTC-9":"阿拉斯加","UTC-8":"太平洋时间(美国)","UTC-7":"山地时间(美国)","UTC-6":"中部时间(美国)","UTC-5":"东部时间(美国)","UTC-4":"大西洋时间","UTC-3":"巴西","UTC-2":"中大西洋","UTC-1":"亚速尔群岛","UTC+0":"伦敦/格林威治","UTC+1":"巴黎/柏林","UTC+2":"开罗/雅典","UTC+3":"莫斯科","UTC+4":"迪拜","UTC+5":"巴基斯坦","UTC+6":"孟加拉","UTC+7":"曼谷/河内","UTC+8":"北京/新加坡","UTC+9":"东京/首尔","UTC+10":"悉尼","UTC+11":"所罗门群岛","UTC+12":"奥克兰"};
-function getOffset(tz){return parseInt(tz.replace("UTC",""));}
-function fmtDate(d){return d.toISOString().slice(0,16).replace("T"," ")+" UTC";}
-function fmtLocal(d){return d.toLocaleString("zh-CN",{timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone});}
-function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2000);}
-function updateNow(){
-  var now=new Date();
-  document.getElementById("currentUTC").textContent=now.toISOString().replace("T"," ").slice(0,19)+" UTC";
-  document.getElementById("currentLocal").textContent=fmtLocal(now);
-}
-function populateTZ(){
-  var s1=document.getElementById("targetTZ"),s2=document.getElementById("quickTZ");
-  var localTZ="UTC"+(new Date().getTimezoneOffset()/-60>=0?"+":"")+(new Date().getTimezoneOffset()/-60);
-  tzs.forEach(function(tz){
-    var o1=document.createElement("option"),o2=document.createElement("option");
-    o1.value=o2.value=tz;o1.textContent=o2.textContent=tz+" ("+tzNames[tz]+")";
-    if(tz===localTZ){o1.selected=true;o2.selected=true;}
-    s1.appendChild(o1);s2.appendChild(o2);
-  });
-}
-document.getElementById("convertBtn").addEventListener("click",function(){
-  var utcVal=document.getElementById("utcInput").value;
-  if(!utcVal){showToast("请先输入UTC时间");return;}
-  var utcDate=new Date(utcVal+"Z");
-  var tz=document.getElementById("targetTZ").value;
-  var offset=getOffset(tz);
-  var localDate=new Date(utcDate.getTime()+offset*3600000);
-  document.getElementById("inputUTC").textContent=fmtDate(utcDate);
-  document.getElementById("targetTZName").textContent=tz+" ("+tzNames[tz]+")";
-  document.getElementById("convertedTime").textContent=localDate.toISOString().replace("T"," ").slice(0,19);
-  document.getElementById("isoTime").textContent=localDate.toISOString().slice(0,19)+tz.replace("UTC","");
-  document.getElementById("resultBox").classList.add("show");
-});
-document.getElementById("nowBtn").addEventListener("click",function(){
-  var now=new Date();
-  document.getElementById("utcInput").value=now.toISOString().slice(0,16);
-});
-document.getElementById("quickTZ").addEventListener("change",function(){
-  var tz=this.value,offset=getOffset(tz),now=new Date();
-  var localDate=new Date(now.getTime()+offset*3600000);
-  document.getElementById("quickResult").textContent=tz+" ("+tzNames[tz]+"): "+localDate.toISOString().replace("T"," ").slice(0,19);
-});
-document.querySelectorAll(".result-value").forEach(function(el){el.addEventListener("click",function(){navigator.clipboard.writeText(this.textContent);showToast("已复制到剪贴板");});});
-populateTZ();updateNow();setInterval(updateNow,1000);
-document.getElementById("quickTZ").dispatchEvent(new Event("change"));
-</script>'''
-    
-    elif slug == "date-to-timestamp":
-        return '''<script>
-function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2000);}
-document.getElementById("toTimestampBtn").addEventListener("click",function(){
-  var val=document.getElementById("dateInput").value;
-  if(!val){showToast("请先选择日期");return;}
-  var d=new Date(val);
-  var sec=Math.floor(d.getTime()/1000);
-  document.getElementById("tsSeconds").textContent=sec;
-  document.getElementById("tsMillis").textContent=d.getTime();
-  document.getElementById("resultBox").classList.add("show");
-});
-document.getElementById("nowBtn").addEventListener("click",function(){
-  document.getElementById("dateInput").value=new Date().toISOString().slice(0,16);
-});
-document.getElementById("toDateBtn").addEventListener("click",function(){
-  var val=document.getElementById("tsInput").value.trim();
-  if(!val){showToast("请输入时间戳");return;}
-  var ts=parseInt(val);
-  if(isNaN(ts)){showToast("时间戳格式错误");return;}
-  if(ts<10000000000)ts*=1000;
-  var d=new Date(ts);
-  document.getElementById("utcDate").textContent=d.toISOString().replace("T"," ").slice(0,19)+" UTC";
-  document.getElementById("localDate").textContent=d.toLocaleString("zh-CN");
-  document.getElementById("isoDate").textContent=d.toISOString();
-  document.getElementById("dateResultBox").classList.add("show");
-});
-document.getElementById("nowTSBtn").addEventListener("click",function(){
-  document.getElementById("tsInput").value=Math.floor(Date.now()/1000);
-});
-document.querySelectorAll(".result-value").forEach(function(el){el.addEventListener("click",function(){navigator.clipboard.writeText(this.textContent);showToast("已复制");});});
-</script>'''
-    
-    elif slug == "color-names":
-        return '''<script>
-var colors=[
-  {name:"AliceBlue",hex:"#F0F8FF",rgb:"240,248,255",group:"white"},
-  {name:"AntiqueWhite",hex:"#FAEBD7",rgb:"250,235,215",group:"white"},
-  {name:"Aqua",hex:"#00FFFF",rgb:"0,255,255",group:"blue"},
-  {name:"Aquamarine",hex:"#7FFFD4",rgb:"127,255,212",group:"green"},
-  {name:"Azure",hex:"#F0FFFF",rgb:"240,255,255",group:"white"},
-  {name:"Beige",hex:"#F5F5DC",rgb:"245,245,220",group:"white"},
-  {name:"Bisque",hex:"#FFE4C4",rgb:"255,228,196",group:"orange"},
-  {name:"Black",hex:"#000000",rgb:"0,0,0",group:"gray"},
-  {name:"BlanchedAlmond",hex:"#FFEBCD",rgb:"255,235,205",group:"orange"},
-  {name:"Blue",hex:"#0000FF",rgb:"0,0,255",group:"blue"},
-  {name:"BlueViolet",hex:"#8A2BE2",rgb:"138,43,226",group:"purple"},
-  {name:"Brown",hex:"#A52A2A",rgb:"165,42,42",group:"brown"},
-  {name:"BurlyWood",hex:"#DEB887",rgb:"222,184,135",group:"brown"},
-  {name:"CadetBlue",hex:"#5F9EA0",rgb:"95,158,160",group:"blue"},
-  {name:"Chartreuse",hex:"#7FFF00",rgb:"127,255,0",group:"green"},
-  {name:"Chocolate",hex:"#D2691E",rgb:"210,105,30",group:"brown"},
-  {name:"Coral",hex:"#FF7F50",rgb:"255,127,80",group:"red"},
-  {name:"CornflowerBlue",hex:"#6495ED",rgb:"100,149,237",group:"blue"},
-  {name:"Cornsilk",hex:"#FFF8DC",rgb:"255,248,220",group:"white"},
-  {name:"Crimson",hex:"#DC143C",rgb:"220,20,60",group:"red"},
-  {name:"Cyan",hex:"#00FFFF",rgb:"0,255,255",group:"blue"},
-  {name:"DarkBlue",hex:"#00008B",rgb:"0,0,139",group:"blue"},
-  {name:"DarkCyan",hex:"#008B8B",rgb:"0,139,139",group:"blue"},
-  {name:"DarkGoldenRod",hex:"#B8860B",rgb:"184,134,11",group:"yellow"},
-  {name:"DarkGray",hex:"#A9A9A9",rgb:"169,169,169",group:"gray"},
-  {name:"DarkGreen",hex:"#006400",rgb:"0,100,0",group:"green"},
-  {name:"DarkKhaki",hex:"#BDB76B",rgb:"189,183,107",group:"yellow"},
-  {name:"DarkMagenta",hex:"#8B008B",rgb:"139,0,139",group:"purple"},
-  {name:"DarkOliveGreen",hex:"#556B2F",rgb:"85,107,47",group:"green"},
-  {name:"DarkOrange",hex:"#FF8C00",rgb:"255,140,0",group:"orange"},
-  {name:"DarkOrchid",hex:"#9932CC",rgb:"153,50,204",group:"purple"},
-  {name:"DarkRed",hex:"#8B0000",rgb:"139,0,0",group:"red"},
-  {name:"DarkSalmon",hex:"#E9967A",rgb:"233,150,122",group:"red"},
-  {name:"DarkSeaGreen",hex:"#8FBC8F",rgb:"143,188,143",group:"green"},
-  {name:"DarkSlateBlue",hex:"#483D8B",rgb:"72,61,139",group:"purple"},
-  {name:"DarkSlateGray",hex:"#2F4F4F",rgb:"47,79,79",group:"gray"},
-  {name:"DarkTurquoise",hex:"#00CED1",rgb:"0,206,209",group:"blue"},
-  {name:"DarkViolet",hex:"#9400D3",rgb:"148,0,211",group:"purple"},
-  {name:"DeepPink",hex:"#FF1493",rgb:"255,20,147",group:"pink"},
-  {name:"DeepSkyBlue",hex:"#00BFFF",rgb:"0,191,255",group:"blue"},
-  {name:"DimGray",hex:"#696969",rgb:"105,105,105",group:"gray"},
-  {name:"DodgerBlue",hex:"#1E90FF",rgb:"30,144,255",group:"blue"},
-  {name:"FireBrick",hex:"#B22222",rgb:"178,34,34",group:"red"},
-  {name:"FloralWhite",hex:"#FFFAF0",rgb:"255,250,240",group:"white"},
-  {name:"ForestGreen",hex:"#228B22",rgb:"34,139,34",group:"green"},
-  {name:"Fuchsia",hex:"#FF00FF",rgb:"255,0,255",group:"purple"},
-  {name:"Gainsboro",hex:"#DCDCDC",rgb:"220,220,220",group:"gray"},
-  {name:"GhostWhite",hex:"#F8F8FF",rgb:"248,248,255",group:"white"},
-  {name:"Gold",hex:"#FFD700",rgb:"255,215,0",group:"yellow"},
-  {name:"GoldenRod",hex:"#DAA520",rgb:"218,165,32",group:"yellow"},
-  {name:"Gray",hex:"#808080",rgb:"128,128,128",group:"gray"},
-  {name:"Green",hex:"#008000",rgb:"0,128,0",group:"green"},
-  {name:"GreenYellow",hex:"#ADFF2F",rgb:"173,255,47",group:"green"},
-  {name:"HoneyDew",hex:"#F0FFF0",rgb:"240,255,240",group:"white"},
-  {name:"HotPink",hex:"#FF69B4",rgb:"255,105,180",group:"pink"},
-  {name:"IndianRed",hex:"#CD5C5C",rgb:"205,92,92",group:"red"},
-  {name:"Indigo",hex:"#4B0082",rgb:"75,0,130",group:"purple"},
-  {name:"Ivory",hex:"#FFFFF0",rgb:"255,255,240",group:"white"},
-  {name:"Khaki",hex:"#F0E68C",rgb:"240,230,140",group:"yellow"},
-  {name:"Lavender",hex:"#E6E6FA",rgb:"230,230,250",group:"purple"},
-  {name:"LavenderBlush",hex:"#FFF0F5",rgb:"255,240,245",group:"pink"},
-  {name:"LawnGreen",hex:"#7CFC00",rgb:"124,252,0",group:"green"},
-  {name:"LemonChiffon",hex:"#FFFACD",rgb:"255,250,205",group:"yellow"},
-  {name:"LightBlue",hex:"#ADD8E6",rgb:"173,216,230",group:"blue"},
-  {name:"LightCoral",hex:"#F08080",rgb:"240,128,128",group:"red"},
-  {name:"LightCyan",hex:"#E0FFFF",rgb:"224,255,255",group:"blue"},
-  {name:"LightGoldenRodYellow",hex:"#FAFAD2",rgb:"250,250,210",group:"yellow"},
-  {name:"LightGray",hex:"#D3D3D3",rgb:"211,211,211",group:"gray"},
-  {name:"LightGreen",hex:"#90EE90",rgb:"144,238,144",group:"green"},
-  {name:"LightPink",hex:"#FFB6C1",rgb:"255,182,193",group:"pink"},
-  {name:"LightSalmon",hex:"#FFA07A",rgb:"255,160,122",group:"red"},
-  {name:"LightSeaGreen",hex:"#20B2AA",rgb:"32,178,170",group:"green"},
-  {name:"LightSkyBlue",hex:"#87CEFA",rgb:"135,206,250",group:"blue"},
-  {name:"LightSlateGray",hex:"#778899",rgb:"119,136,153",group:"gray"},
-  {name:"LightSteelBlue",hex:"#B0C4DE",rgb:"176,196,222",group:"blue"},
-  {name:"LightYellow",hex:"#FFFFE0",rgb:"255,255,224",group:"yellow"},
-  {name:"Lime",hex:"#00FF00",rgb:"0,255,0",group:"green"},
-  {name:"LimeGreen",hex:"#32CD32",rgb:"50,205,50",group:"green"},
-  {name:"Linen",hex:"#FAF0E6",rgb:"250,240,230",group:"white"},
-  {name:"Magenta",hex:"#FF00FF",rgb:"255,0,255",group:"purple"},
-  {name:"Maroon",hex:"#800000",rgb:"128,0,0",group:"red"},
-  {name:"MediumAquaMarine",hex:"#66CDAA",rgb:"102,205,170",group:"green"},
-  {name:"MediumBlue",hex:"#0000CD",rgb:"0,0,205",group:"blue"},
-  {name:"MediumOrchid",hex:"#BA55D3",rgb:"186,85,211",group:"purple"},
-  {name:"MediumPurple",hex:"#9370DB",rgb:"147,112,219",group:"purple"},
-  {name:"MediumSeaGreen",hex:"#3CB371",rgb:"60,179,113",group:"green"},
-  {name:"MediumSlateBlue",hex:"#7B68EE",rgb:"123,104,238",group:"purple"},
-  {name:"MediumSpringGreen",hex:"#00FA9A",rgb:"0,250,154",group:"green"},
-  {name:"MediumTurquoise",hex:"#48D1CC",rgb:"72,209,204",group:"blue"},
-  {name:"MediumVioletRed",hex:"#C71585",rgb:"199,21,133",group:"pink"},
-  {name:"MidnightBlue",hex:"#191970",rgb:"25,25,112",group:"blue"},
-  {name:"MintCream",hex:"#F5FFFA",rgb:"245,255,250",group:"white"},
-  {name:"MistyRose",hex:"#FFE4E1",rgb:"255,228,225",group:"pink"},
-  {name:"Moccasin",hex:"#FFE4B5",rgb:"255,228,181",group:"orange"},
-  {name:"NavajoWhite",hex:"#FFDEAD",rgb:"255,222,173",group:"orange"},
-  {name:"Navy",hex:"#000080",rgb:"0,0,128",group:"blue"},
-  {name:"OldLace",hex:"#FDF5E6",rgb:"253,245,230",group:"white"},
-  {name:"Olive",hex:"#808000",rgb:"128,128,0",group:"yellow"},
-  {name:"OliveDrab",hex:"#6B8E23",rgb:"107,142,35",group:"green"},
-  {name:"Orange",hex:"#FFA500",rgb:"255,165,0",group:"orange"},
-  {name:"OrangeRed",hex:"#FF4500",rgb:"255,69,0",group:"red"},
-  {name:"Orchid",hex:"#DA70D6",rgb:"218,112,214",group:"purple"},
-  {name:"PaleGoldenRod",hex:"#EEE8AA",rgb:"238,232,170",group:"yellow"},
-  {name:"PaleGreen",hex:"#98FB98",rgb:"152,251,152",group:"green"},
-  {name:"PaleTurquoise",hex:"#AFEEEE",rgb:"175,238,238",group:"blue"},
-  {name:"PaleVioletRed",hex:"#DB7093",rgb:"219,112,147",group:"pink"},
-  {name:"PapayaWhip",hex:"#FFEFD5",rgb:"255,239,213",group:"orange"},
-  {name:"PeachPuff",hex:"#FFDAB9",rgb:"255,218,185",group:"orange"},
-  {name:"Peru",hex:"#CD853F",rgb:"205,133,63",group:"brown"},
-  {name:"Pink",hex:"#FFC0CB",rgb:"255,192,203",group:"pink"},
-  {name:"Plum",hex:"#DDA0DD",rgb:"221,160,221",group:"purple"},
-  {name:"PowderBlue",hex:"#B0E0E6",rgb:"176,224,230",group:"blue"},
-  {name:"Purple",hex:"#800080",rgb:"128,0,128",group:"purple"},
-  {name:"RebeccaPurple",hex:"#663399",rgb:"102,51,153",group:"purple"},
-  {name:"Red",hex:"#FF0000",rgb:"255,0,0",group:"red"},
-  {name:"RosyBrown",hex:"#BC8F8F",rgb:"188,143,143",group:"brown"},
-  {name:"RoyalBlue",hex:"#4169E1",rgb:"65,105,225",group:"blue"},
-  {name:"SaddleBrown",hex:"#8B4513",rgb:"139,69,19",group:"brown"},
-  {name:"Salmon",hex:"#FA8072",rgb:"250,128,114",group:"red"},
-  {name:"SandyBrown",hex:"#F4A460",rgb:"244,164,96",group:"orange"},
-  {name:"SeaGreen",hex:"#2E8B57",rgb:"46,139,87",group:"green"},
-  {name:"SeaShell",hex:"#FFF5EE",rgb:"255,245,238",group:"white"},
-  {name:"Sienna",hex:"#A0522D",rgb:"160,82,45",group:"brown"},
-  {name:"Silver",hex:"#C0C0C0",rgb:"192,192,192",group:"gray"},
-  {name:"SkyBlue",hex:"#87CEEB",rgb:"135,206,235",group:"blue"},
-  {name:"SlateBlue",hex:"#6A5ACD",rgb:"106,90,205",group:"purple"},
-  {name:"SlateGray",hex:"#708090",rgb:"112,128,144",group:"gray"},
-  {name:"Snow",hex:"#FFFAFA",rgb:"255,250,250",group:"white"},
-  {name:"SpringGreen",hex:"#00FF7F",rgb:"0,255,127",group:"green"},
-  {name:"SteelBlue",hex:"#4682B4",rgb:"70,130,180",group:"blue"},
-  {name:"Tan",hex:"#D2B48C",rgb:"210,180,140",group:"brown"},
-  {name:"Teal",hex:"#008080",rgb:"0,128,128",group:"blue"},
-  {name:"Thistle",hex:"#D8BFD8",rgb:"216,191,216",group:"purple"},
-  {name:"Tomato",hex:"#FF6347",rgb:"255,99,71",group:"red"},
-  {name:"Turquoise",hex:"#40E0D0",rgb:"64,224,208",group:"blue"},
-  {name:"Violet",hex:"#EE82EE",rgb:"238,130,238",group:"purple"},
-  {name:"Wheat",hex:"#F5DEB3",rgb:"245,222,179",group:"orange"},
-  {name:"White",hex:"#FFFFFF",rgb:"255,255,255",group:"white"},
-  {name:"WhiteSmoke",hex:"#F5F5F5",rgb:"245,245,245",group:"white"},
-  {name:"Yellow",hex:"#FFFF00",rgb:"255,255,0",group:"yellow"},
-  {name:"YellowGreen",hex:"#9ACD32",rgb:"154,205,50",group:"green"}
-];
-function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2000);}
-function renderColors(filter,search){
-  var grid=document.getElementById("colorGrid");grid.innerHTML="";
-  var q=(search||"").toLowerCase(),g=(filter||"all");
-  var shown=0;
-  colors.forEach(function(c){
-    if(g!=="all"&&c.group!==g)return;
-    if(q&&c.name.toLowerCase().indexOf(q)===-1&&c.hex.toLowerCase().indexOf(q)===-1)return;
-    shown++;
-    var div=document.createElement("div");
-    div.style.cssText="padding:12px 8px;border-radius:8px;text-align:center;cursor:pointer;transition:transform .15s;border:1px solid rgba(148,163,184,.1);background:"+c.hex+";color:"+(c.group==="white"||c.group==="yellow"?"#0f172a":"#fff");
-    div.innerHTML='<div style="font-size:.8rem;font-weight:600;margin-bottom:4px">'+c.name+'</div><div style="font-size:.7rem;opacity:.8">'+c.hex+'</div>';
-    div.addEventListener("click",function(){navigator.clipboard.writeText(c.name);showToast("已复制: "+c.name);});
-    div.addEventListener("mouseenter",function(){this.style.transform="scale(1.05)";});
-    div.addEventListener("mouseleave",function(){this.style.transform="scale(1)";});
-    grid.appendChild(div);
-  });
-  document.getElementById("colorCount").textContent=shown;
-}
-document.getElementById("colorSearch").addEventListener("input",function(){renderColors(document.getElementById("colorFilter").value,this.value);});
-document.getElementById("colorFilter").addEventListener("change",function(){renderColors(this.value,document.getElementById("colorSearch").value);});
-renderColors("all","");
-</script>'''
-    
-    elif slug == "workdays-calculator":
-        return '''<script>
-function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2000);}
-document.getElementById("calcBtn").addEventListener("click",function(){
-  var s=document.getElementById("startDate").value,e=document.getElementById("endDate").value;
-  if(!s||!e){showToast("请选择开始和结束日期");return;}
-  var start=new Date(s+"T00:00:00"),end=new Date(e+"T00:00:00");
-  if(start>end){showToast("开始日期不能晚于结束日期");return;}
-  var holidays=document.getElementById("holidays").value.split(",").map(function(h){return h.trim();}).filter(Boolean);
-  var total=0,work=0,weekend=0,holiday=0;
-  var cur=new Date(start);
-  while(cur<=end){
-    total++;
-    var ds=cur.toISOString().slice(0,10),isWeekend=cur.getDay()===0||cur.getDay()===6,isHoliday=holidays.indexOf(ds)!==-1;
-    if(isHoliday){holiday++;}else if(isWeekend){weekend++;}else{work++;}
-    cur.setDate(cur.getDate()+1);
-  }
-  document.getElementById("totalDays").textContent=total+" 天";
-  document.getElementById("workDays").textContent=work+" 天";
-  document.getElementById("weekendDays").textContent=weekend+" 天";
-  document.getElementById("holidayDays").textContent=holiday+" 天";
-  document.getElementById("resultBox").classList.add("show");
-});
-document.addEventListener("DOMContentLoaded",function(){
-  var today=new Date().toISOString().slice(0,10);
-  document.getElementById("startDate").value=today;
-  var next=new Date();next.setDate(next.getDate()+30);
-  document.getElementById("endDate").value=next.toISOString().slice(0,10);
-});
-</script>'''
-    
-    elif slug == "ideal-weight":
-        return '''<script>
-function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2000);}
-document.getElementById("calcBtn").addEventListener("click",function(){
-  var h=parseFloat(document.getElementById("height").value),g=document.getElementById("gender").value,f=document.getElementById("formula").value;
-  if(!h||h<100||h>250){showToast("请输入有效身高(100-250cm)");return;}
-  var inch=h/2.54,kg,rangeLow,rangeHigh,fName;
-  if(f==="devine"){
-    kg=g==="male"?50+2.3*(inch-60):45.5+2.3*(inch-60);fName="Devine公式";
-  }else if(f==="robinson"){
-    kg=g==="male"?52+1.9*(inch-60):49+1.7*(inch-60);fName="Robinson公式";
-  }else if(f==="miller"){
-    kg=g==="male"?56.2+1.41*(inch-60):53.1+1.36*(inch-60);fName="Miller公式";
-  }else{
-    var hM=h/100;rangeLow=(18.5*hM*hM).toFixed(1);rangeHigh=(24*hM*hM).toFixed(1);kg=((parseFloat(rangeLow)+parseFloat(rangeHigh))/2).toFixed(1);fName="BMI健康范围";
-  }
-  var hM=h/100;rangeLow=(18.5*hM*hM).toFixed(1);rangeHigh=(24*hM*hM).toFixed(1);
-  document.getElementById("formulaName").textContent=fName;
-  document.getElementById("idealWeightKg").textContent=(typeof kg==="number"?kg.toFixed(1):kg)+" kg";
-  document.getElementById("healthyRange").textContent=rangeLow+" - "+rangeHigh+" kg (BMI 18.5-24)";
-  document.getElementById("resultBox").classList.add("show");
-});
-</script>'''
-    
-    elif slug == "water-intake":
-        return '''<script>
-function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2000);}
-document.getElementById("calcBtn").addEventListener("click",function(){
-  var w=parseFloat(document.getElementById("weight").value),act=document.getElementById("activity").value,cli=document.getElementById("climate").value;
-  if(!w||w<30||w>200){showToast("请输入有效体重(30-200kg)");return;}
-  var base=w*35,actM={sedentary:0.8,light:1,moderate:1.2,active:1.5,"very-active":1.8},cliM={cool:0.9,normal:1,hot:1.2,"very-hot":1.4};
-  var ml=base*actM[act]*cliM[cli];
-  var liters=(ml/1000).toFixed(1),cups=Math.round(ml/250),perHour=(ml/16/1000).toFixed(1);
-  document.getElementById("waterLiters").textContent=liters+" 升/天";
-  document.getElementById("waterCups").textContent=cups+" 杯 (250ml/杯)";
-  document.getElementById("waterPerHour").textContent=perHour+" 升 (按清醒16小时计)";
-  document.getElementById("resultBox").classList.add("show");
-});
-</script>'''
-    
-    elif slug == "running-pace":
-        return '''<script>
-function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2000);}
-function fmtTime(sec){var m=Math.floor(sec/60),s=Math.round(sec%60);return m+":"+(s<10?"0":"")+s;}
-function fmtPace(sec){var m=Math.floor(sec/60),s=Math.round(sec%60);return m+"'"+s+'"';}
-document.getElementById("calcBtn").addEventListener("click",function(){
-  var d=parseFloat(document.getElementById("distance").value),unit=document.getElementById("distUnit").value,timeStr=document.getElementById("timeInput").value.trim();
-  if(!d||d<=0){showToast("请输入有效距离");return;}
-  var parts=timeStr.split(":"),totalSec=0;
-  if(parts.length===3)totalSec=parseInt(parts[0])*3600+parseInt(parts[1])*60+parseInt(parts[2]);
-  else if(parts.length===2)totalSec=parseInt(parts[0])*60+parseInt(parts[1]);
-  else totalSec=parseInt(parts[0]);
-  if(isNaN(totalSec)||totalSec<=0){showToast("请输入有效时间格式(HH:MM:SS)");return;}
-  var distKm=unit==="mile"?d*1.60934:d;
-  var paceKm=totalSec/distKm,paceMile=paceKm*1.60934,speed=distKm/(totalSec/3600);
-  document.getElementById("paceKm").textContent=fmtPace(paceKm)+" /km";
-  document.getElementById("paceMile").textContent=fmtPace(paceMile)+" /mi";
-  document.getElementById("speedKph").textContent=speed.toFixed(1)+" km/h";
-  document.getElementById("predict5k").textContent=fmtTime(paceKm*5);
-  document.getElementById("predictHalf").textContent=fmtTime(paceKm*21.0975);
-  document.getElementById("predictFull").textContent=fmtTime(paceKm*42.195);
-  document.getElementById("resultBox").classList.add("show");
-});
-</script>'''
-    
-    elif slug == "paragraph-counter":
-        return '''<script>
-function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2000);}
-document.getElementById("textInput").addEventListener("input",function(){
-  var text=this.value;
-  if(!text.trim()){document.getElementById("paraCount").textContent="0";document.getElementById("wordCount").textContent="0";document.getElementById("charCount").textContent="0";document.getElementById("avgWordsPerPara").textContent="0";document.getElementById("maxWordsPerPara").textContent="0";document.getElementById("minWordsPerPara").textContent="0";return;}
-  var paras=text.split(/\\n\\s*\\n/).filter(function(p){return p.trim();});
-  var totalWords=0,charCount=text.length,wordCounts=[];
-  paras.forEach(function(p){
-    var words=p.trim().split(/\\s+/).filter(function(w){return w.length>0;});
-    wordCounts.push(words.length);totalWords+=words.length;
-  });
-  var avg=paras.length>0?Math.round(totalWords/paras.length):0;
-  var maxW=wordCounts.length>0?Math.max.apply(null,wordCounts):0;
-  var minW=wordCounts.length>0?Math.min.apply(null,wordCounts):0;
-  document.getElementById("paraCount").textContent=paras.length;
-  document.getElementById("wordCount").textContent=totalWords;
-  document.getElementById("charCount").textContent=charCount;
-  document.getElementById("avgWordsPerPara").textContent=avg;
-  document.getElementById("maxWordsPerPara").textContent=maxW;
-  document.getElementById("minWordsPerPara").textContent=minW;
-});
-</script>'''
-    
-    elif slug == "vowel-counter":
-        return '''<script>
-function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2000);}
-document.getElementById("textInput").addEventListener("input",function(){
-  var text=this.value;
-  if(!text){document.getElementById("totalChars").textContent="0";document.getElementById("totalVowels").textContent="0";document.getElementById("vowelRatio").textContent="0%";document.getElementById("countA").textContent="0";document.getElementById("countE").textContent="0";document.getElementById("countI").textContent="0";document.getElementById("countO").textContent="0";document.getElementById("countU").textContent="0";return;}
-  var lower=text.toLowerCase(),total=text.length;
-  var a=(lower.match(/a/g)||[]).length,e=(lower.match(/e/g)||[]).length,i=(lower.match(/i/g)||[]).length,o=(lower.match(/o/g)||[]).length,u=(lower.match(/u/g)||[]).length;
-  var totalVowels=a+e+i+o+u,ratio=total>0?((totalVowels/total)*100).toFixed(1):0;
-  document.getElementById("totalChars").textContent=total;
-  document.getElementById("totalVowels").textContent=totalVowels;
-  document.getElementById("vowelRatio").textContent=ratio+"%";
-  document.getElementById("countA").textContent=a;
-  document.getElementById("countE").textContent=e;
-  document.getElementById("countI").textContent=i;
-  document.getElementById("countO").textContent=o;
-  document.getElementById("countU").textContent=u;
-});
-</script>'''
-    
-    elif slug == "keyword-density":
-        return '''<script>
-function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2000);}
-document.getElementById("analyzeBtn").addEventListener("click",function(){
-  var text=document.getElementById("textInput").value,keywords=document.getElementById("keywordInput").value;
-  if(!text.trim()){showToast("请输入文本");return;}
-  if(!keywords.trim()){showToast("请输入关键词");return;}
-  var words=text.toLowerCase().match(/[\\u4e00-\\u9fa5a-zA-Z0-9]+/g)||[],total=words.length;
-  document.getElementById("totalWords").textContent=total+" 词";
-  var kwList=keywords.split(",").map(function(k){return k.trim().toLowerCase();}).filter(Boolean);
-  var container=document.getElementById("keywordResults");container.innerHTML="";
-  kwList.forEach(function(kw){
-    var count=0;words.forEach(function(w){if(w===kw)count++;});
-    var density=total>0?((count/total)*100).toFixed(2):0,cls=density>5?"color:#f87171":density>3?"color:#fbbf24":"color:#22d3ee";
-    var item=document.createElement("div");
-    item.className="result-item";
-    item.innerHTML='<span class="result-label">"'+kw+'"</span><span class="result-value" style="'+cls+'">'+count+" 次 ("+density+"%)</span>";
-    container.appendChild(item);
-  });
-  document.getElementById("resultBox").classList.add("show");
-});
-document.getElementById("clearBtn").addEventListener("click",function(){
-  document.getElementById("textInput").value="";document.getElementById("keywordInput").value="";document.getElementById("resultBox").classList.remove("show");
-});
-</script>'''
-
-def get_tool_content_en(tool):
-    slug = tool["slug"]
-    
-    if slug == "utc-converter":
-        return '''<div class="section">
-<h2>UTC Time Conversion</h2>
-<div class="form-group">
-<label>Current UTC Time</label>
-<div id="currentUTC" style="font-size:1.2rem;color:#22d3ee;font-family:monospace;"></div>
-</div>
-<div class="form-group">
-<label>Current Local Time</label>
-<div id="currentLocal" style="font-size:1.2rem;color:#22d3ee;font-family:monospace;"></div>
-</div>
-<div class="form-row">
-<div class="form-group">
-<label>Enter UTC Time</label>
-<input type="datetime-local" id="utcInput">
-</div>
-<div class="form-group">
-<label>Target Timezone</label>
-<select id="targetTZ"></select>
-</div>
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="convertBtn">Convert</button>
-<button class="btn btn-secondary" id="nowBtn">Use Current Time</button>
-</div>
-<div class="result-box" id="resultBox">
-<div class="result-item"><span class="result-label">Input UTC Time</span><span class="result-value" id="inputUTC"></span></div>
-<div class="result-item"><span class="result-label">Target Timezone</span><span class="result-value" id="targetTZName"></span></div>
-<div class="result-item"><span class="result-label">Converted Time</span><span class="result-value" id="convertedTime"></span></div>
-<div class="result-item"><span class="result-label">ISO 8601</span><span class="result-value" id="isoTime"></span></div>
-</div>
-</div>
-<div class="section">
-<h2>Quick Timezone Lookup</h2>
-<div class="form-group">
-<select id="quickTZ" style="margin-bottom:8px"></select>
-</div>
-<div id="quickResult" style="font-size:1.1rem;color:#22d3ee;font-family:monospace;"></div>
-</div>'''
-    
-    elif slug == "date-to-timestamp":
-        return '''<div class="section">
-<h2>Date → Timestamp</h2>
-<div class="form-group">
-<label>Date & Time</label>
-<input type="datetime-local" id="dateInput">
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="toTimestampBtn">Convert to Timestamp</button>
-<button class="btn btn-secondary" id="nowBtn">Current Time</button>
-</div>
-<div class="result-box" id="resultBox">
-<div class="result-item"><span class="result-label">Unix Timestamp (seconds)</span><span class="result-value" id="tsSeconds"></span></div>
-<div class="result-item"><span class="result-label">Unix Timestamp (milliseconds)</span><span class="result-value" id="tsMillis"></span></div>
-</div>
-</div>
-<div class="section">
-<h2>Timestamp → Date</h2>
-<div class="form-group">
-<label>Enter Timestamp</label>
-<input type="text" id="tsInput" placeholder="Enter seconds or milliseconds timestamp">
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="toDateBtn">Convert to Date</button>
-<button class="btn btn-secondary" id="nowTSBtn">Current Timestamp</button>
-</div>
-<div class="result-box" id="dateResultBox">
-<div class="result-item"><span class="result-label">UTC Time</span><span class="result-value" id="utcDate"></span></div>
-<div class="result-item"><span class="result-label">Local Time</span><span class="result-value" id="localDate"></span></div>
-<div class="result-item"><span class="result-label">ISO 8601</span><span class="result-value" id="isoDate"></span></div>
-</div>
-</div>'''
-    
-    elif slug == "color-names":
-        return '''<div class="section">
-<h2>HTML Color Name Search</h2>
-<div class="form-row">
-<div class="form-group">
-<label>Search Colors</label>
-<input type="text" id="colorSearch" placeholder="Search by color name...">
-</div>
-<div class="form-group">
-<label>Filter by Group</label>
-<select id="colorFilter">
-<option value="all">All Colors</option>
-<option value="red">Reds</option>
-<option value="pink">Pinks</option>
-<option value="orange">Oranges</option>
-<option value="yellow">Yellows</option>
-<option value="green">Greens</option>
-<option value="blue">Blues</option>
-<option value="purple">Purples</option>
-<option value="brown">Browns</option>
-<option value="gray">Grays</option>
-<option value="white">Whites</option>
-</select>
-</div>
-</div>
-<div id="colorGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:12px;"></div>
-<div style="text-align:center;color:#64748b;margin-top:8px;font-size:.85rem"><span id="colorCount">0</span> colors · Click to copy name</div>
-</div>'''
-    
-    elif slug == "workdays-calculator":
-        return '''<div class="section">
-<h2>Workdays Calculation</h2>
-<div class="form-row">
-<div class="form-group">
-<label>Start Date</label>
-<input type="date" id="startDate">
-</div>
-<div class="form-group">
-<label>End Date</label>
-<input type="date" id="endDate">
-</div>
-</div>
-<div class="form-group">
-<label>Exclude Holidays (comma separated)</label>
-<input type="text" id="holidays" placeholder="Optional: 2026-12-25,2026-01-01">
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="calcBtn">Calculate Workdays</button>
-</div>
-<div class="result-box" id="resultBox">
-<div class="result-item"><span class="result-label">Total Days</span><span class="result-value" id="totalDays"></span></div>
-<div class="result-item"><span class="result-label">Workdays</span><span class="result-value" id="workDays"></span></div>
-<div class="result-item"><span class="result-label">Weekend Days</span><span class="result-value" id="weekendDays"></span></div>
-<div class="result-item"><span class="result-label">Excluded Holidays</span><span class="result-value" id="holidayDays"></span></div>
-</div>
-</div>'''
-    
-    elif slug == "ideal-weight":
-        return '''<div class="section">
-<h2>Ideal Weight Calculator</h2>
-<div class="form-row">
-<div class="form-group">
-<label>Gender</label>
-<select id="gender"><option value="male">Male</option><option value="female">Female</option></select>
-</div>
-<div class="form-group">
-<label>Height (cm)</label>
-<input type="number" id="height" placeholder="e.g. 170" min="100" max="250" value="170">
-</div>
-</div>
-<div class="form-group">
-<label>Formula</label>
-<select id="formula">
-<option value="devine">Devine Formula</option>
-<option value="robinson">Robinson Formula</option>
-<option value="miller">Miller Formula</option>
-<option value="bmi">BMI Healthy Range</option>
-</select>
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="calcBtn">Calculate</button>
-</div>
-<div class="result-box" id="resultBox">
-<div class="result-item"><span class="result-label">Formula</span><span class="result-value" id="formulaName"></span></div>
-<div class="result-item"><span class="result-label">Ideal Weight</span><span class="result-value" id="idealWeightKg"></span></div>
-<div class="result-item"><span class="result-label">Healthy Weight Range</span><span class="result-value" id="healthyRange"></span></div>
-</div>
-</div>'''
-    
-    elif slug == "water-intake":
-        return '''<div class="section">
-<h2>Daily Water Intake</h2>
-<div class="form-row">
-<div class="form-group">
-<label>Weight (kg)</label>
-<input type="number" id="weight" placeholder="e.g. 65" min="30" max="200" value="65">
-</div>
-<div class="form-group">
-<label>Activity Level</label>
-<select id="activity">
-<option value="sedentary">Sedentary (little exercise)</option>
-<option value="light">Light (1-3 times/week)</option>
-<option value="moderate">Moderate (3-5 times/week)</option>
-<option value="active">Active (6-7 times/week)</option>
-<option value="very-active">Very Active (daily training)</option>
-</select>
-</div>
-</div>
-<div class="form-group">
-<label>Climate</label>
-<select id="climate">
-<option value="cool">Cool</option>
-<option value="normal">Normal</option>
-<option value="hot">Hot</option>
-<option value="very-hot">Very Hot</option>
-</select>
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="calcBtn">Calculate</button>
-</div>
-<div class="result-box" id="resultBox">
-<div class="result-item"><span class="result-label">Daily Water Recommendation</span><span class="result-value" id="waterLiters"></span></div>
-<div class="result-item"><span class="result-label">Approx. Cups (250ml/cup)</span><span class="result-value" id="waterCups"></span></div>
-<div class="result-item"><span class="result-label">Per Hour (16 waking hours)</span><span class="result-value" id="waterPerHour"></span></div>
-</div>
-</div>'''
-    
-    elif slug == "running-pace":
-        return '''<div class="section">
-<h2>Running Pace</h2>
-<div class="form-row">
-<div class="form-group">
-<label>Distance</label>
-<input type="number" id="distance" placeholder="e.g. 5" min="0.1" step="0.1" value="5">
-</div>
-<div class="form-group">
-<label>Unit</label>
-<select id="distUnit"><option value="km">Kilometers (km)</option><option value="mile">Miles (mi)</option></select>
-</div>
-</div>
-<div class="form-row">
-<div class="form-group">
-<label>Time (HH:MM:SS)</label>
-<input type="text" id="timeInput" placeholder="e.g. 00:25:00" value="00:25:00">
-</div>
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="calcBtn">Calculate Pace</button>
-</div>
-<div class="result-box" id="resultBox">
-<div class="result-item"><span class="result-label">Pace per km</span><span class="result-value" id="paceKm"></span></div>
-<div class="result-item"><span class="result-label">Pace per mile</span><span class="result-value" id="paceMile"></span></div>
-<div class="result-item"><span class="result-label">Speed</span><span class="result-value" id="speedKph"></span></div>
-<div class="result-item"><span class="result-label">5K Prediction</span><span class="result-value" id="predict5k"></span></div>
-<div class="result-item"><span class="result-label">Half Marathon Prediction</span><span class="result-value" id="predictHalf"></span></div>
-<div class="result-item"><span class="result-label">Marathon Prediction</span><span class="result-value" id="predictFull"></span></div>
-</div>
-</div>'''
-    
-    elif slug == "paragraph-counter":
-        return '''<div class="section">
-<h2>Paragraph Statistics</h2>
-<div class="form-group">
-<label>Enter Text</label>
-<textarea id="textInput" placeholder="Paste or type your text here..."></textarea>
-</div>
-<div class="result-box show" id="resultBox">
-<div class="result-item"><span class="result-label">Total Paragraphs</span><span class="result-value" id="paraCount">0</span></div>
-<div class="result-item"><span class="result-label">Total Words</span><span class="result-value" id="wordCount">0</span></div>
-<div class="result-item"><span class="result-label">Total Characters</span><span class="result-value" id="charCount">0</span></div>
-<div class="result-item"><span class="result-label">Avg Words per Paragraph</span><span class="result-value" id="avgWordsPerPara">0</span></div>
-<div class="result-item"><span class="result-label">Longest Paragraph</span><span class="result-value" id="maxWordsPerPara">0</span></div>
-<div class="result-item"><span class="result-label">Shortest Paragraph</span><span class="result-value" id="minWordsPerPara">0</span></div>
-</div>
-</div>'''
-    
-    elif slug == "vowel-counter":
-        return '''<div class="section">
-<h2>Vowel Statistics</h2>
-<div class="form-group">
-<label>Enter Text</label>
-<textarea id="textInput" placeholder="Paste or type your English text here..."></textarea>
-</div>
-<div class="result-box show" id="resultBox">
-<div class="result-item"><span class="result-label">Total Characters</span><span class="result-value" id="totalChars">0</span></div>
-<div class="result-item"><span class="result-label">Total Vowels</span><span class="result-value" id="totalVowels">0</span></div>
-<div class="result-item"><span class="result-label">Vowel Ratio</span><span class="result-value" id="vowelRatio">0%</span></div>
-<div class="result-item"><span class="result-label">A Count</span><span class="result-value" id="countA">0</span></div>
-<div class="result-item"><span class="result-label">E Count</span><span class="result-value" id="countE">0</span></div>
-<div class="result-item"><span class="result-label">I Count</span><span class="result-value" id="countI">0</span></div>
-<div class="result-item"><span class="result-label">O Count</span><span class="result-value" id="countO">0</span></div>
-<div class="result-item"><span class="result-label">U Count</span><span class="result-value" id="countU">0</span></div>
-</div>
-</div>'''
-    
-    elif slug == "keyword-density":
-        return '''<div class="section">
-<h2>Keyword Density Analysis</h2>
-<div class="form-group">
-<label>Enter Text</label>
-<textarea id="textInput" placeholder="Paste the text to analyze..." rows="8"></textarea>
-</div>
-<div class="form-group">
-<label>Keywords (comma separated)</label>
-<input type="text" id="keywordInput" placeholder="e.g. SEO, keyword, analysis">
-</div>
-<div class="btn-group">
-<button class="btn btn-primary" id="analyzeBtn">Analyze</button>
-<button class="btn btn-secondary" id="clearBtn">Clear</button>
-</div>
-<div class="result-box" id="resultBox">
-<div class="result-item"><span class="result-label">Total Words</span><span class="result-value" id="totalWords">-</span></div>
-<div id="keywordResults"></div>
-</div>
-</div>'''
-
-# English scripts are same as Chinese (just different UI labels in HTML)
-# We reuse the same JS for both
-
-# ===== Generate all files =====
-for tool in TOOLS:
-    slug = tool["slug"]
-    
-    # Chinese version
-    cn_dir = os.path.join(BASE, slug)
-    os.makedirs(cn_dir, exist_ok=True)
-    cn_content = get_tool_content_cn(tool)
-    cn_script = get_tool_script_cn(tool)
-    cn_page = make_cn_page(tool)
-    cn_page = cn_page.replace("<!-- TOOL_CONTENT_PLACEHOLDER_CN -->", cn_content)
-    cn_page = cn_page.replace("<!-- TOOL_SCRIPT_PLACEHOLDER_CN -->", cn_script)
-    
-    cn_path = os.path.join(cn_dir, "index.html")
-    with open(cn_path, "w", encoding="utf-8") as f:
-        f.write(cn_page)
-    print(f"✅ Created: {slug}/index.html")
-    
-    # English version
-    en_dir = os.path.join(BASE, "en", slug)
-    os.makedirs(en_dir, exist_ok=True)
-    en_content = get_tool_content_en(tool)
-    en_script = cn_script  # Same JS
-    en_page = make_en_page(tool)
-    en_page = en_page.replace("<!-- TOOL_CONTENT_PLACEHOLDER_EN -->", en_content)
-    en_page = en_page.replace("<!-- TOOL_SCRIPT_PLACEHOLDER_EN -->", en_script)
-    
-    en_path = os.path.join(en_dir, "index.html")
-    with open(en_path, "w", encoding="utf-8") as f:
-        f.write(en_page)
-    print(f"✅ Created: en/{slug}/index.html")
-
-print("\n=== All 10 tools created (CN + EN) ===")
-print(f"Total: {len(TOOLS)*2} files")
+if __name__ == "__main__":
+    main()
