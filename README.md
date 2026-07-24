@@ -1,44 +1,26 @@
-# 在线小工具矩阵
+# 🛠️ Free ToolBase - 2000+ Free Online Tools, No Signup, No Upload
 
-基于纯前端技术构建的在线工具集合，支持离线使用，零后端依赖。
+**🌐 [free-toolbase.com](https://free-toolbase.com) | Open Source | 100% Client-Side | Privacy-First**
 
-## 已上线工具
+[![GitHub](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red)](https://github.com/webtools-cn/tools-site)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](https://github.com/webtools-cn/tools-site)
+[![Tools](https://img.shields.io/badge/Tools-2000%2B-blue)](https://free-toolbase.com/en/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](https://github.com/webtools-cn/tools-site/pulls)
 
-| 工具 | 路径 | 描述 |
-|:-----|:-----|:-----|
-| 🔐 在线密码生成器 | `/password-generator/` | 密码学安全随机数，本地生成绝不上传。支持场景预设、熵值检测、批量生成 |
+The largest collection of **free, browser-based online tools** — no signup, no upload, 100% client-side processing. All tools run in your browser using JavaScript, CSS, and Web APIs. Your data never leaves your device.
 
-## 技术特点
+## Why Free ToolBase?
+- 2000+ tools vs competitors' 75-1500
+- Never upload files to servers (100% client-side)
+- No signup required
+- Open source (full source on GitHub)
+- Privacy-first: data stays on your device
 
-- **纯前端**：HTML + CSS + JavaScript，无需服务器
-- **零依赖**：单文件即可运行，无外部JS库
-- **可离线**：下载后断网也能用
-- **密码学安全**：所有随机数使用 `window.crypto.getRandomValues()`
-- **隐私优先**：数据不上传任何服务器
+## Tool Categories
+Audio Tools, Developer Tools, CSS Generators, Security Tools, Text Tools, Image Tools, Calculators, Converters, Network Tools, Encoding Tools
 
-## 本地预览
+## Quick Start
+Clone repo, then: python3 -m http.server 8080
+All tools are plain HTML/CSS/JS — no build step needed.
 
-```bash
-cd tools-site
-python3 -m http.server 8080
-# 访问 http://localhost:8080/password-generator/
-```
-
-## SEO 策略
-
-- 每个工具独立页面，各自获取长尾流量
-- Schema.org 结构化数据
-- FAQ 覆盖长尾关键词
-- 关键词自然布局在 H1/H2/正文
-
-## 广告位预留
-
-每个工具页面预留以下广告位（待接入 AdSense）：
-- 顶部 Banner (728×90)
-- 侧边栏 (300×250) × 2
-- 中部 (728×90)
-- 底部 (728×90)
-
----
-
-> 本仓库使用 GitHub Pages 免费托管，支持 HTTPS。
+MIT License — built for the open web.
