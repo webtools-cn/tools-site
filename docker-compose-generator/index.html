@@ -69,7 +69,7 @@ a{color:#06b6d4;text-decoration:none}
 <div class="hero"><p>在线Docker Compose生成器，支持Web+数据库、WordPress、LAMP、MEAN等多容器应用部署。一键生成docker-compose.yml，无需注册。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
-    /div>
+    </div>
   </div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
@@ -168,6 +168,70 @@ a{color:#06b6d4;text-decoration:none}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
+function generate(){
+  const scenario=document.getElementById('scenario').value;
+  const project=document.getElementById('projectName').value.trim()||'myapp';
+  const webPort=document.getElementById('webPort').value||8080;
+  const dbPort=document.getElementById('dbPort').value||3306;
+  const dbPwd=document.getElementById('dbPassword').value||'changeme123';
+  const dbName=document.getElementById('dbName').value||'myapp';
+  const extraEnv=document.getElementById('extraEnv').value.trim();
+  const useVolumes=document.getElementById('optVolumes').checked;
+  const useNetwork=document.getElementById('optNetwork').checked;
+  const useRestart=document.getElementById('optRestart').checked;
+  const R=useRestart?'restart: unless-stopped\n  ':'';
+  const V=(n)=>useVolumes?'volumes:\n      - '+n+'-data:/var/lib/mysql\n  ':'';
+  const N=useNetwork?'networks:\n      - app-network\n  ':'';
+  const E=extraEnv?'\n      '+extraEnv.split('\n').filter(l=>l.trim()).join('\n      '):'';
+  let y='version: "3.8"\n\nservices:\n';
+  const A=(s)=>y+=s+'\n';
+  if(scenario==='webdb'){
+    A('  web:\n    image: nginx:alpine\n    ports:\n      - "'+webPort+':80"\n    '+R+'depends_on:\n      - db\n    '+N);
+    A('  db:\n    image: mysql:8.0\n    environment:\n      MYSQL_ROOT_PASSWORD: '+dbPwd+'\n      MYSQL_DATABASE: '+dbName+E+'\n    '+R+V('db')+'ports:\n      - "'+dbPort+':3306"');
+  }else if(scenario==='wordpress'){
+    A('  wordpress:\n    image: wordpress:latest\n    ports:\n      - "'+webPort+':80"\n    environment:\n      WORDPRESS_DB_HOST: db\n      WORDPRESS_DB_USER: root\n      WORDPRESS_DB_PASSWORD: '+dbPwd+'\n      WORDPRESS_DB_NAME: '+dbName+E+'\n    '+R+N+'depends_on:\n      - db');
+    A('  db:\n    image: mysql:8.0\n    environment:\n      MYSQL_ROOT_PASSWORD: '+dbPwd+'\n      MYSQL_DATABASE: '+dbName+'\n    '+R+V('db')+'ports:\n      - "'+dbPort+':3306"');
+  }else if(scenario==='lamp'){
+    A('  php:\n    image: php:8.2-apache\n    ports:\n      - "'+webPort+':80"\n    '+R+N+'volumes:\n      - ./www:/var/www/html');
+    A('  db:\n    image: mysql:8.0\n    environment:\n      MYSQL_ROOT_PASSWORD: '+dbPwd+'\n      MYSQL_DATABASE: '+dbName+E+'\n    '+R+V('db')+'ports:\n      - "'+dbPort+':3306"');
+  }else if(scenario==='mean'){
+    A('  mongo:\n    image: mongo:7\n    '+R+V('mongo')+'ports:\n      - "27017:27017"');
+    A('  express:\n    image: node:20-alpine\n    working_dir: /app\n    ports:\n      - "'+webPort+':3000"\n    '+R+N+'volumes:\n      - ./app:/app\n    command: sh -c "npm install && npm start"\n    environment:\n      MONGO_URI: mongodb://mongo:27017/'+dbName+E+'\n    depends_on:\n      - mongo');
+  }else if(scenario==='nextjs'){
+    A('  nextjs:\n    image: node:20-alpine\n    working_dir: /app\n    ports:\n      - "'+webPort+':3000"\n    '+R+N+'volumes:\n      - ./app:/app\n    command: sh -c "npm install && npm run build && npm start"');
+    A('  db:\n    image: postgres:16\n    environment:\n      POSTGRES_PASSWORD: '+dbPwd+'\n      POSTGRES_DB: '+dbName+E+'\n    '+R+V('pg')+'ports:\n      - "'+dbPort+':5432"');
+  }else if(scenario==='redis'){
+    A('  app:\n    image: node:20-alpine\n    working_dir: /app\n    ports:\n      - "'+webPort+':3000"\n    '+R+N+'volumes:\n      - ./app:/app\n    command: sh -c "npm install && npm start"\n    environment:\n      REDIS_URL: redis://redis:6379'+E+'\n    depends_on:\n      - redis');
+    A('  redis:\n    image: redis:7-alpine\n    '+R+'ports:\n      - "6379:6379"');
+  }else if(scenario==='nginxproxy'){
+    A('  nginx:\n    image: nginx:alpine\n    ports:\n      - "'+webPort+':80"\n    '+R+N+'volumes:\n      - ./nginx.conf:/etc/nginx/nginx.conf:ro\n    depends_on:\n      - app');
+    A('  app:\n    image: node:20-alpine\n    working_dir: /app\n    '+R+N+'volumes:\n      - ./app:/app\n    command: sh -c "npm install && npm start"\n    ports:\n      - "3000:3000"');
+    A('  db:\n    image: mysql:8.0\n    environment:\n      MYSQL_ROOT_PASSWORD: '+dbPwd+'\n      MYSQL_DATABASE: '+dbName+E+'\n    '+R+V('db'));
+  }
+  if(useNetwork&&!y.includes('app-network')) y+='\nnetworks:\n  app-network:\n    driver: bridge\n';
+  if(useVolumes){
+    y+='\nvolumes:\n';
+    ['db-data','pg-data','mongo-data'].forEach(v=>{if(y.includes(v))y+='  '+v+':\n';});
+  }
+  document.getElementById('output').textContent=y;
+  showToast('✅ 已生成 docker-compose.yml');
+}
+function copyIt(){
+  const el=document.getElementById('output');
+  if(!el||el.textContent==='选择场景并点击「生成」'){showToast('请先生成配置');return;}
+  navigator.clipboard.writeText(el.textContent).then(()=>showToast('📋 已复制到剪贴板')).catch(()=>showToast('复制失败'));
+}
+function downloadIt(){
+  const el=document.getElementById('output');
+  if(!el||el.textContent==='选择场景并点击「生成」'){showToast('请先生成配置');return;}
+  const blob=new Blob([el.textContent],{type:'text/yaml'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='docker-compose.yml';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('⬇️ 已下载 docker-compose.yml');
+}
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
 function submitFeedback(){
