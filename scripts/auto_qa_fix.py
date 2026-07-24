@@ -92,6 +92,9 @@ def fix_h1_mobile(content):
     return content, True
 
 def is_empty_tool(content):
+    # Skip redirect pages (already migrated tools with canonical redirect)
+    if 'http-equiv="refresh"' in content and 'content="0;url=' in content:
+        return False
     has_btn = bool(re.search(r'<button', content))
     has_submit = bool(re.search(r'type="submit"', content))
     has_onclick = bool(re.search(r'onclick', content))
