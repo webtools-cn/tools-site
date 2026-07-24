@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>项目估算计算器 - Free ToolBase</title>
+  <meta name="description" content="免费在线项目估算计算器。输入任务和工时，自动计算总工时和成本。支持小时/天计费，多种费率模式，适合自由职业者和项目经理。">
+  <meta property="og:title" content="项目估算计算器 - Free ToolBase">
+  <meta property="og:description" content="免费在线项目估算计算器，计算项目总工时和成本">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"项目估算计算器","description":"免费在线项目估算计算器","applicationCategory":"Utility"}</script>
+  <style>
+    :root{--primary:#4F46E5;--primary-dark:#3730A3;--bg:#f8fafc;--card-bg:#fff;--text:#1e293b;--text-light:#64748b;--border:#e2e8f0;--radius:12px}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+    header{background:linear-gradient(135deg,#4F46E5,#7C3AED);color:#fff;padding:20px 0;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+    header h1{font-size:1.6rem;font-weight:700;letter-spacing:-.5px}
+    header p{font-size:.9rem;opacity:.85;margin-top:4px}
+    .container{max-width:800px;margin:0 auto;padding:24px 16px 60px}
+    .card{background:var(--card-bg);border-radius:var(--radius);box-shadow:0 1px 3px rgba(0,0,0,.08);padding:24px;margin-bottom:20px}
+    h2{font-size:1.25rem;font-weight:600;margin-bottom:16px;color:var(--primary-dark)}
+    .form-group{margin-bottom:16px}
+    label{display:block;font-size:.9rem;font-weight:500;margin-bottom:6px;color:var(--text-light)}
+    input,select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.95rem;font-family:inherit;transition:border-color .2s;box-sizing:border-box}
+    input:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .row>*{flex:1;min-width:100px}
+    table{width:100%;border-collapse:collapse;margin:16px 0}
+    th{background:#f1f5f9;padding:10px;text-align:left;font-size:.85rem;font-weight:600}
+    td{padding:10px;border-bottom:1px solid var(--border);font-size:.9rem}
+    td input{border:none;background:transparent;width:100%;padding:6px 4px;font-size:.9rem}
+    td input:focus{outline:none;background:#eef2ff}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border:none;border-radius:8px;font-size:.95rem;font-weight:600;cursor:pointer;transition:all .2s}
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-primary:hover{background:var(--primary-dark);transform:translateY(-1px)}
+    .btn-secondary{background:#e2e8f0;color:var(--text)}
+    .btn-secondary:hover{background:#cbd5e1}
+    .btn-danger{background:#fee2e2;color:#dc2626}
+    .btn-danger:hover{background:#fecaca}
+    .summary-card{background:linear-gradient(135deg,#eef2ff,#faf5ff);border-radius:16px;padding:24px;text-align:center}
+    .summary-value{font-size:2rem;font-weight:700;color:var(--primary)}
+    .summary-label{font-size:.85rem;color:var(--text-light);margin-top:4px}
+    .summary-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+    .summary-row>*{flex:1;min-width:120px}
+    footer{text-align:center;padding:20px;color:var(--text-light);font-size:.85rem}
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 24px;border-radius:8px;font-size:.9rem;z-index:9999;opacity:0;transition:opacity .3s}
+    .toast.show{opacity:1}
+    @media(max-width:600px){
+      .summary-value{font-size:1.5rem}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📊 项目估算计算器</h1>
+    <p>快速估算项目工时和成本</p>
+  </header>
+  <div class="container">
+    <div class="card">
+      <h2>⚙️ 费率设置</h2>
+      <div class="row">
+        <div class="form-group"><label>费率（元/小时）</label><input type="number" id="hourlyRate" value="300" min="0" onchange="updateSummary()"></div>
+        <div class="form-group"><label>应急缓冲 (%)</label><input type="number" id="buffer" value="15" min="0" max="100" onchange="updateSummary()"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>📋 任务清单</h2>
+      <table>
+        <thead><tr><th>任务名称</th><th style="width:100px">估算(小时)</th><th style="width:100px">成本(元)</th><th></th></tr></thead>
+        <tbody id="tasksBody">
+          <tr><td><input type="text" value="需求分析" placeholder="任务名称"></td><td><input type="number" value="8" min="0" step="0.5" style="width:80px" onchange="updateSummary()"></td><td class="task-cost">2400.00</td><td><button class="btn btn-danger" style="padding:4px 8px;font-size:.8rem" onclick="removeTask(this)">✕</button></td></tr>
+          <tr><td><input type="text" value="设计阶段" placeholder="任务名称"></td><td><input type="number" value="16" min="0" step="0.5" style="width:80px" onchange="updateSummary()"></td><td class="task-cost">4800.00</td><td><button class="btn btn-danger" style="padding:4px 8px;font-size:.8rem" onclick="removeTask(this)">✕</button></td></tr>
+          <tr><td><input type="text" value="开发实现" placeholder="任务名称"></td><td><input type="number" value="40" min="0" step="0.5" style="width:80px" onchange="updateSummary()"></td><td class="task-cost">12000.00</td><td><button class="btn btn-danger" style="padding:4px 8px;font-size:.8rem" onclick="removeTask(this)">✕</button></td></tr>
+        </tbody>
+      </table>
+      <button class="btn btn-secondary" onclick="addTask()" style="margin-top:8px">+ 添加任务</button>
+    </div>
+    <div class="summary-card">
+      <h2 style="color:var(--primary);margin-bottom:16px">📈 汇总</h2>
+      <div class="summary-row">
+        <div><div class="summary-value" id="totalHours">73.6</div><div class="summary-label">总工时 (小时)</div></div>
+        <div><div class="summary-value" id="totalDays">9.2</div><div class="summary-label">总天数 (8h/天)</div></div>
+        <div><div class="summary-value" id="totalCost">22080</div><div class="summary-label">预估成本 (元)</div></div>
+      </div>
+    </div>
+  </div>
+  <footer>Free ToolBase - 免费在线工具</footer>
+  <div class="toast" id="toast"></div>
+  <script>
+    function addTask(){
+      const tbody = document.getElementById('tasksBody');
+      const row = document.createElement('tr');
+      row.innerHTML = `<td><input type="text" placeholder="任务名称"></td><td><input type="number" value="0" min="0" step="0.5" style="width:80px" onchange="updateSummary()"></td><td class="task-cost">0.00</td><td><button class="btn btn-danger" style="padding:4px 8px;font-size:.8rem" onclick="removeTask(this)">✕</button></td>`;
+      tbody.appendChild(row);
+      updateSummary();
+    }
+    function removeTask(btn){btn.closest('tr').remove();updateSummary();}
+    function updateSummary(){
+      const rate = parseFloat(document.getElementById('hourlyRate').value)||0;
+      const buffer = parseFloat(document.getElementById('buffer').value)||0;
+      let totalHours = 0;
+      document.querySelectorAll('#tasksBody tr').forEach(row=>{
+        const hours = parseFloat(row.cells[1].querySelector('input').value)||0;
+        const cost = hours * rate;
+        row.cells[2].textContent = cost.toFixed(2);
+        totalHours += hours;
+      });
+      const bufferedHours = totalHours * (1+buffer/100);
+      document.getElementById('totalHours').textContent = bufferedHours.toFixed(1);
+      document.getElementById('totalDays').textContent = (bufferedHours/8).toFixed(1);
+      document.getElementById('totalCost').textContent = (bufferedHours*rate).toFixed(0);
+    }
+    updateSummary();
+  </script>
+</body>
+</html>
