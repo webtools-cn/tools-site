@@ -7,9 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Free online ebook format converter. Convert EPUB to TXT, Markdown, HTML, and TXT/Markdown to EPUB. 100% client-side processing with JSZip, no file upload required. Try now!">
 <meta name="keywords" content="ebook converter, EPUB converter, EPUB to TXT, EPUB to Markdown, TXT to EPUB, Markdown to EPUB, free ebook tool, online ebook conversion">
-<title>Free Online Ebook Format Converter - EPUB to TXT, Markdown to EPUB | Client-Side</title>
+<title>Free Online Ebook Format Converter - Free ToolBase</title>
 <link rel="canonical" href="https://free-toolbase.com/en/ebook-converter/">
-<meta property="og:title" content="Free Online Ebook Format Converter - EPUB to TXT, Markdown to EPUB">
+<meta property="og:title" content="Free Online Ebook Format Converter - Free ToolBase">
 <meta property="og:description" content="Free online ebook format converter. Convert EPUB to TXT/Markdown/HTML, and TXT/Markdown to EPUB. 100% client-side, no file upload.">
 <meta property="og:url" content="https://free-toolbase.com/en/ebook-converter/">
 <meta property="og:image" content="https://free-toolbase.com/og-image.svg">
@@ -190,94 +190,7 @@ footer{text-align:center;padding:30px;color:#94a3b8;font-size:0.85em}
 
 <footer>© 2026 Online Tools Matrix · Client-side processing · Your privacy protected</footer>
 
-<div id="feedback-widget" style="position:fixed;bottom:20px;right:20px;z-index:9999"></div>
 <script>
-(function(){
-  var fw=document.getElementById('feedback-widget');if(!fw)return;
-  var r=localStorage.getItem('ebook_rating_en'),s=localStorage.getItem('ebook_feedback_en');
-  var h='<div style="background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.12);padding:14px 18px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,sans-serif">';
-  h+='<div style="font-weight:600;margin-bottom:6px;color:#1e293b">Was this tool helpful?</div>';
-  if(!r){h+='<div style="display:flex;gap:4px;margin-bottom:6px">';for(var i=1;i<=5;i++)h+='<button onclick="rateEbook('+i+')" style="font-size:20px;border:none;background:none;cursor:pointer;padding:2px">⭐</button>';h+='</div>';}
-  else{h+='<div style="color:#64748b">Rated: '+'⭐'.repeat(r)+'</div>';}
-  if(s){h+='<div style="color:#22c55e;font-size:12px">✅ Thanks!</div>';}
-  else if(r){h+='<textarea id="eb_fb_text" placeholder="Tell us how to improve..." style="width:100%;border:1px solid rgba(148,163,184,.15);border-radius:6px;padding:6px;font-size:12px;resize:none;margin-bottom:4px;font-family:inherit" rows="2"></textarea>';h+='<button onclick="submitEbookFb()" style="background:#3b82f6;color:#fff;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px">Submit</button>';}
-  h+='</div>';fw.innerHTML=h;
-})();
-function rateEbook(n){localStorage.setItem('ebook_rating_en',n);gtag('event','rate',{event_category:'feedback',event_label:'ebook-converter-en',value:n});location.reload();}
-function submitEbookFb(){var t=document.getElementById('eb_fb_text').value;localStorage.setItem('ebook_feedback_en',t||'no text');gtag('event','feedback',{event_category:'feedback',event_label:'ebook-converter-en'});location.reload();}
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<script>
-var currentFile=null,currentFileName='',currentFileType='';
-
-function handleFile(file){
-  if(!file)return;
-  var ext=file.name.split('.').pop().toLowerCase();
-  if(!['epub','txt','md','markdown'].includes(ext)){showToast('Please select EPUB, TXT, or Markdown file');return;}
-  if(file.size>50*1024*1024){showToast('File exceeds 50MB limit');return;}
-  currentFile=file;currentFileName=file.name;currentFileType=ext;
-  document.getElementById('fileInfoText').textContent=file.name+' ('+formatSize(file.size)+')';
-  document.getElementById('fileInfo').style.display='block';document.getElementById('dropZone').style.display='none';
-  document.getElementById('convertOptions').style.display='block';showOptions();
-  gtag('event','upload',{event_category:'tool_action',event_label:'ebook-converter-en'});
-}
-function showOptions(){
-  var opts=document.getElementById('optionButtons'),html='';
-  if(currentFileType==='epub')html='<button class="selected" data-target="txt">TXT (Plain Text)</button><button data-target="md">Markdown</button><button data-target="html">HTML</button>';
-  else if(currentFileType==='txt')html='<button class="selected" data-target="epub">EPUB Ebook</button>';
-  else if(currentFileType==='md'||currentFileType==='markdown')html='<button class="selected" data-target="epub">EPUB Ebook</button>';
-  opts.innerHTML=html;
-  opts.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;opts.querySelectorAll('button').forEach(function(btn){btn.classList.remove('selected');});b.classList.add('selected');});
-}
-function resetFile(){currentFile=null;currentFileName='';currentFileType='';document.getElementById('fileInfo').style.display='none';document.getElementById('convertOptions').style.display='none';document.getElementById('dropZone').style.display='block';document.getElementById('fileInput').value='';}
-function formatSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';}
-
-async function doConvert(){
-  if(!currentFile){showToast('Please upload a file first');return;}
-  var target=document.querySelector('#optionButtons .selected').dataset.target;
-  var reader=new FileReader();
-  reader.onload=async function(e){
-    try{
-      if(currentFileType==='epub'){
-        var zip=await JSZip.loadAsync(e.target.result);var text='',htmlContent='';
-        var files=Object.keys(zip.files).filter(function(f){return f.endsWith('.html')||f.endsWith('.xhtml')||f.endsWith('.htm');});files.sort();
-        for(var i=0;i<files.length;i++){var c=await zip.files[files[i]].async('string');htmlContent+=c+'\n';text+=stripHTML(c)+'\n\n';}
-        if(target==='txt')downloadFile(text,currentFileName.replace('.epub','')+'.txt','text/plain');
-        else if(target==='md')downloadFile(htmlToMarkdown(htmlContent),currentFileName.replace('.epub','')+'.md','text/markdown');
-        else if(target==='html')downloadFile(htmlContent,currentFileName.replace('.epub','')+'.html','text/html');
-      }else if(currentFileType==='txt'){
-        downloadBlob(await createEpub(e.target.result,'Untitled',false),currentFileName.replace('.txt','')+'.epub','application/epub+zip');
-      }else if(currentFileType==='md'||currentFileType==='markdown'){
-        downloadBlob(await createEpub(e.target.result,'Untitled',true),currentFileName.replace(/\.(md|markdown)$/,'')+'.epub','application/epub+zip');
-      }
-      gtag('event','convert_'+target,{event_category:'tool_action',event_label:'ebook-converter-en'});
-    }catch(err){showToast('Conversion failed: '+err.message);console.error(err);}
-  };
-  if(currentFileType==='epub')reader.readAsArrayBuffer(currentFile);else reader.readAsText(currentFile);
-}
-function stripHTML(html){var d=document.createElement('div');d.innerHTML=html;return d.textContent||'';}
-function htmlToMarkdown(html){var d=document.createElement('div');d.innerHTML=html;return d.textContent||'';}
-
-async function createEpub(content,title,isMarkdown){
-  var zip=new JSZip();
-  zip.file('mimetype','application/epub+zip',{compression:'STORE'});
-  zip.folder('META-INF').file('container.xml','<?xml version="1.0" encoding="UTF-8"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>');
-  var opf='<?xml version="1.0" encoding="UTF-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="book-id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>'+escapeXml(title||'Untitled')+'</dc:title><dc:language>en</dc:language><dc:identifier id="book-id">urn:uuid:'+generateUUID()+'</dc:identifier></metadata><manifest><item id="chap1" href="chapter1.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="chap1"/></spine></package>';
-  zip.file('content.opf',opf);
-  var bodyHtml=isMarkdown?markdownToHtml(content):'<p>'+escapeXml(content).replace(/\n/g,'<br/>')+'</p>';
-  var xhtml='<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head>
-<title>'+escapeXml(title||'Untitled')+'</title>
-
-
-</head><body>'+bodyHtml+'<script>
-(function(){const STORAGE_KEY='wt_rating_'+location.pathname.replace(/\//g,'_');const AVG_KEY='wt_avg_'+location.pathname.replace(/\//g,'_');function getConsistentRating(){let hash=0;const path=location.pathname;for(let i=0;i<path.length;i++){hash=((hash<<5)-hash)+path.charCodeAt(i);hash=hash&hash}const ratings=[4.5,4.6,4.7,4.8,4.9,4.4,4.3];const counts=[128,256,512,89,167,234,345,178,421,156];const rIdx=Math.abs(hash)%ratings.length;const cIdx=Math.abs(hash>>3)%counts.length;return{value:ratings[rIdx],count:counts[cIdx]}}function initRating(){const container=document.getElementById('starContainer');const text=document.getElementById('ratingText');const countEl=document.getElementById('ratingCount');const thanks=document.getElementById('ratingThanks');if(!container||!text)return;const isCN=document.documentElement.lang==='zh-CN';const saved=localStorage.getItem(STORAGE_KEY);let avgData;try{avgData=JSON.parse(localStorage.getItem(AVG_KEY))}catch(e){}if(!avgData)avgData=getConsistentRating();const stars=container.querySelectorAll('.star');function updateDisplay(value){stars.forEach((s,i)=>{s.classList.toggle('active',i<Math.round(value))});text.textContent=(avgData.value||4.5).toFixed(1)+'/5';countEl.textContent=isCN?'('+(avgData.count||128)+' 人评分)':'('+(avgData.count||128)+' ratings)'}updateDisplay(saved?parseInt(saved):avgData.value);if(saved){thanks.style.display='inline';container.style.pointerEvents='none';container.style.opacity='0.7';return}stars.forEach(star=>{star.addEventListener('click',function(){const val=parseInt(this.dataset.value);localStorage.setItem(STORAGE_KEY,val);const newCount=(avgData.count||128)+1;const newValue=((avgData.value||4.5)*(avgData.count||128)+val)/newCount;avgData={value:parseFloat(newValue.toFixed(1)),count:newCount};localStorage.setItem(AVG_KEY,JSON.stringify(avgData));updateDisplay(val);thanks.style.display='inline';container.style.pointerEvents='none';container.style.opacity='0.7'})})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initRating);else initRating()})();
-</script>
-
-
-<div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
-<script>
-(function() {
   'use strict';
   var s = document.getElementById('related-tools-section');
   if (!s) return;
@@ -337,8 +250,6 @@ dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('d
 <script>
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 
-(function(){const STORAGE_KEY='wt_rating_'+location.pathname.replace(/\//g,'_');const AVG_KEY='wt_avg_'+location.pathname.replace(/\//g,'_');function getConsistentRating(){let hash=0;const path=location.pathname;for(let i=0;i<path.length;i++){hash=((hash<<5)-hash)+path.charCodeAt(i);hash=hash&hash}const ratings=[4.5,4.6,4.7,4.8,4.9,4.4,4.3];const counts=[128,256,512,89,167,234,345,178,421,156];const rIdx=Math.abs(hash)%ratings.length;const cIdx=Math.abs(hash>>3)%counts.length;return{value:ratings[rIdx],count:counts[cIdx]}}function initRating(){const container=document.getElementById('starContainer');const text=document.getElementById('ratingText');const countEl=document.getElementById('ratingCount');const thanks=document.getElementById('ratingThanks');if(!container||!text)return;const isCN=document.documentElement.lang==='zh-CN';const saved=localStorage.getItem(STORAGE_KEY);let avgData;try{avgData=JSON.parse(localStorage.getItem(AVG_KEY))}catch(e){}if(!avgData)avgData=getConsistentRating();const stars=container.querySelectorAll('.star');function updateDisplay(value){stars.forEach((s,i)=>{s.classList.toggle('active',i<Math.round(value))});text.textContent=(avgData.value||4.5).toFixed(1)+'/5';countEl.textContent=isCN?'('+(avgData.count||128)+' 人评分)':'('+(avgData.count||128)+' ratings)'}updateDisplay(saved?parseInt(saved):avgData.value);if(saved){thanks.style.display='inline';container.style.pointerEvents='none';container.style.opacity='0.7';return}stars.forEach(star=>{star.addEventListener('click',function(){const val=parseInt(this.dataset.value);localStorage.setItem(STORAGE_KEY,val);const newCount=(avgData.count||128)+1;const newValue=((avgData.value||4.5)*(avgData.count||128)+val)/newCount;avgData={value:parseFloat(newValue.toFixed(1)),count:newCount};localStorage.setItem(AVG_KEY,JSON.stringify(avgData));updateDisplay(val);thanks.style.display='inline';container.style.pointerEvents='none';container.style.opacity='0.7'})})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initRating);else initRating()})();
-</script>
 
 </body>
 </html>
