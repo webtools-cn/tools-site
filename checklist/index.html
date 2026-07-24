@@ -98,7 +98,17 @@ label{display:block;color:#94a3b8;font-size:.85rem;margin-bottom:4px}
     Updated: 2026-07-11
   </span>
 </div>
-  <div id="app"></div>
+  <div class="input-section">
+<h2>📝 添加项目</h2>
+<div class="input-row"><input type="text" id="itemInput" placeholder="输入清单项目..."><button class="btn btn-primary" id="addBtn">添加</button></div>
+<div class="btn-row"><button class="btn btn-secondary" id="exportBtn">📁 导出文本</button><button class="btn btn-danger" id="clearAllBtn">🗑 清空全部</button></div>
+</div>
+<div class="result-section">
+<h2>📋 清单列表</h2>
+<div class="stats"><span class="stat">总计: <strong id="totalCount">0</strong></span><span class="stat">已完成: <strong id="doneCount">0</strong></span><span class="stat">进度: <strong id="progressPercent">0%</strong></span></div>
+<ul class="checklist" id="checklist"></ul>
+<div class="empty-state" id="emptyState">✨ 清单为空，添加一些项目吧</div>
+</div>
   <div class="info-section" id="usage">
     <h2>使用说明</h2>
     <div id="usageContent">
@@ -133,6 +143,35 @@ label{display:block;color:#94a3b8;font-size:.85rem;margin-bottom:4px}
 </div>
 <div class="toast" id="toast"></div>
 <script>
+(function(){
+var items=JSON.parse(localStorage.getItem('checklist')||'[]');
+function save(){localStorage.setItem('checklist',JSON.stringify(items));render();}
+function render(){
+var ul=document.getElementById('checklist');var es=document.getElementById('emptyState');
+var total=items.length;var done=items.filter(function(i){return i.done;}).length;
+document.getElementById('totalCount').textContent=total;
+document.getElementById('doneCount').textContent=done;
+document.getElementById('progressPercent').textContent=total?Math.round(done/total*100)+'%':'0%';
+if(!total){ul.innerHTML='';es.style.display='block';return;}
+es.style.display='none';
+ul.innerHTML=items.map(function(item,i){
+return '<li class="'+(item.done?'done':'')+'"><input type="checkbox" '+(item.done?'checked':'')+' onchange="window._toggleCheck('+i+')"><span class="item-text">'+esc(item.text)+'</span><div class="item-actions"><button class="move-btn" onclick="window._moveItem('+i+',-1)" title="上移">▲</button><button class="move-btn" onclick="window._moveItem('+i+',1)" title="下移">▼</button><button class="del-btn" onclick="window._delItem('+i+')">✕</button></div></li>';
+}).join('');
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+window._toggleCheck=function(i){items[i].done=!items[i].done;save();};
+window._moveItem=function(i,dir){var j=i+dir;if(j<0||j>=items.length)return;var t=items[i];items[i]=items[j];items[j]=t;save();};
+window._delItem=function(i){items.splice(i,1);save();};
+document.getElementById('addBtn').addEventListener('click',function(){var inp=document.getElementById('itemInput');var v=inp.value.trim();if(!v)return;items.push({text:v,done:false});inp.value='';save();inp.focus();});
+document.getElementById('itemInput').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('addBtn').click();});
+document.getElementById('exportBtn').addEventListener('click',function(){
+var txt=items.map(function(i,n){return (n+1)+'. ['+(i.done?'✓':' ')+'] '+i.text;}).join('\n');
+var blob=new Blob([txt],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='checklist.txt';a.click();showToast('已导出');
+});
+document.getElementById('clearAllBtn').addEventListener('click',function(){if(confirm('确定清空所有项目？')){items=[];save();showToast('已清空');}});
+render();
+})();
+
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 

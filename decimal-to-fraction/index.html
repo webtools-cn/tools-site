@@ -211,6 +211,64 @@ a{color:#06b6d4;text-decoration:none}
 </div>
 <div class="toast" id="toast"></div>
 <script>
+(function(){
+function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){var t=b;b=a%b;a=t;}return a;}
+function parseDecimal(s){
+s=s.trim();if(!s)return null;
+var match=s.match(/^(-?\d+)\.(\d*)\((\d+)\)$/);
+if(match){
+var intPart=match[1];var nonRep=match[2];var rep=match[3];
+var sign=intPart.startsWith('-')?-1:1;intPart=intPart.replace('-','');
+var denomStr='';for(var i=0;i<rep.length;i++)denomStr+='9';
+for(var i=0;i<nonRep.length;i++)denomStr+='0';
+var denom=BigInt(denomStr);
+var nonRepNum=BigInt((intPart==='0'?'':intPart)+nonRep||'0');
+var repNum=BigInt(rep);
+var num1=nonRepNum*BigInt('1'+'0'.repeat(rep.length))+repNum;
+var num2=nonRepNum;
+var num=num1-num2;
+var g=gcdBig(num,denom);
+return{num:Number(num/g)*sign,den:Number(denom/g)};
+}
+var f=parseFloat(s);if(isNaN(f))return null;
+if(!s.includes('.')){return{num:parseInt(s),den:1};}
+var parts=s.split('.');var intPart=parseInt(parts[0]);var fracPart=parts[1];
+var den=Math.pow(10,fracPart.length);var num=Math.abs(intPart)*den+parseInt(fracPart||'0');
+if(intPart<0||s.startsWith('-'))num=-num;
+var g=gcd(num,den);return{num:num/g,den:den/g};
+}
+function gcdBig(a,b){a=a<0n?-a:a;b=b<0n?-b:b;while(b){var t=b;b=a%b;a=t;}return a;}
+function formatFraction(num,den){
+if(den===1)return '<span style="font-size:3rem;color:#22d3ee">'+num+'</span>';
+var sign=num<0?'-':'';num=Math.abs(num);
+var whole=Math.floor(num/den);var rem=num%den;
+if(whole>0&&rem===0)return '<span style="font-size:3rem;color:#22d3ee">'+sign+whole+'</span>';
+var html='';
+if(whole>0)html+=sign+whole+' ';
+else if(sign)html+=sign;
+html+='<span class="fraction"><span class="numerator">'+rem+'</span><span class="denominator">'+den+'</span></span>';
+if(whole>0){var dec=(num/den).toFixed(4);html+=' <span style="color:#94a3b8;font-size:1rem">(≈ '+dec+')</span>';}
+return html;
+}
+function convert(){
+var inp=document.getElementById('decimalInput').value.trim();
+var rb=document.getElementById('resultBox');var sb=document.getElementById('stepsBox');
+if(!inp){rb.innerHTML='<div class="label">请输入小数</div>';sb.style.display='none';return;}
+var result=parseDecimal(inp);
+if(!result){rb.innerHTML='<div class="label" style="color:#f87171">无效输入</div>';sb.style.display='none';return;}
+var num=result.num;var den=result.den;
+var g=gcd(num,den);num/=g;den/=g;
+if(den<0){num=-num;den=-den;}
+rb.innerHTML='<div class="result-decimal"><span style="font-size:2rem;color:#e2e8f0">'+inp+'</span> <span class="arrow">=</span></div><div class="result-fraction">'+formatFraction(num,den)+'</div>';
+sb.style.display='block';
+document.getElementById('stepsContent').innerHTML='<div class="step">1. 识别小数类型: '+(inp.includes('(')?'循环小数':'有限小数')+'</div><div class="step">2. 转换为分数: <code>'+num+'/'+den+'</code></div><div class="step">3. 化简 (GCD='+g+'): <code>'+num+'/'+den+'</code></div>';
+}
+document.getElementById('convertBtn').addEventListener('click',convert);
+document.getElementById('decimalInput').addEventListener('keydown',function(e){if(e.key==='Enter')convert();});
+document.querySelectorAll('.example-tag').forEach(function(tag){tag.addEventListener('click',function(){document.getElementById('decimalInput').value=this.dataset.val;convert();});});
+convert();
+})();
+
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 

@@ -86,7 +86,18 @@ input[type=color]:hover{border-color:rgba(6,182,212,.4)}
     Updated: 2026-07-11
   </span>
 </div>
-  <div id="app"></div>
+  <div class="input-section">
+<h2>🎯 输入颜色值</h2>
+<div class="row"><div class="field"><label>颜色选择器</label><input type="color" id="colorPicker" value="#4F46E5"></div><div class="field"><label>Hex/RGBA/HSL 值</label><input type="text" id="colorInput" value="#4F46E5" placeholder="#4F46E5 或 rgba(79,70,229,1)"></div></div>
+<div class="color-preview" id="colorPreview"></div>
+</div>
+<div class="result-section">
+<h2>📋 转换结果</h2>
+<div class="format-row"><span class="label">HEX</span><span class="value" id="hexVal">#4F46E5</span><button class="copy-btn" onclick="copyTextVal('hexVal')">复制</button></div>
+<div class="format-row"><span class="label">RGB</span><span class="value" id="rgbVal">rgb(79, 70, 229)</span><button class="copy-btn" onclick="copyTextVal('rgbVal')">复制</button></div>
+<div class="format-row"><span class="label">RGBA</span><span class="value" id="rgbaVal">rgba(79, 70, 229, 1)</span><button class="copy-btn" onclick="copyTextVal('rgbaVal')">复制</button></div>
+<div class="format-row"><span class="label">HSL</span><span class="value" id="hslVal">hsl(243, 75%, 59%)</span><button class="copy-btn" onclick="copyTextVal('hslVal')">复制</button></div>
+</div>
   <div class="info-section" id="usage">
     <h2>使用说明</h2>
     <div id="usageContent">
@@ -121,6 +132,48 @@ input[type=color]:hover{border-color:rgba(6,182,212,.4)}
 </div>
 <div class="toast" id="toast"></div>
 <script>
+(function(){
+function parseColor(s){
+s=s.trim();
+var m=s.match(/^#([0-9a-fA-F]{3,8})$/);
+if(m){var h=m[1];if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];if(h.length===6)h+='FF';var r=parseInt(h.substr(0,2),16);var g=parseInt(h.substr(2,2),16);var b=parseInt(h.substr(4,2),16);var a=parseInt(h.substr(6,2)||'FF',16)/255;return{r,g,b,a};}
+m=s.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/);
+if(m)return{r:parseInt(m[1]),g:parseInt(m[2]),b:parseInt(m[3]),a:m[4]!==undefined?parseFloat(m[4]):1};
+m=s.match(/hsla?\(\s*(\d+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*(?:,\s*([\d.]+))?\s*\)/);
+if(m){var h=parseInt(m[1])/360;var s2=parseFloat(m[2])/100;var l=parseFloat(m[3])/100;var a2=m[4]!==undefined?parseFloat(m[4]):1;
+var r2,g2,b2;if(s2===0){r2=g2=b2=l;}
+else{var hue2rgb=function(p,q,t){if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};
+var q=l<0.5?l*(1+s2):l+s2-l*s2;var p=2*l-q;
+r2=Math.round(hue2rgb(p,q,h+1/3)*255);g2=Math.round(hue2rgb(p,q,h)*255);b2=Math.round(hue2rgb(p,q,h-1/3)*255);}
+return{r:r2,g:g2,b:b2,a:a2};}
+return null;
+}
+function rgbToHsl(r,g,b){r/=255;g/=255;b/=255;var max=Math.max(r,g,b),min=Math.min(r,g,b);var h2,s2,l=(max+min)/2;
+if(max===min){h2=s2=0;}else{var d=max-min;s2=l>0.5?d/(2-max-min):d/(max+min);
+switch(max){case r:h2=((g-b)/d+(g<b?6:0))/6;break;case g:h2=((b-r)/d+2)/6;break;case b:h2=((r-g)/d+4)/6;break;}}
+return{h:Math.round(h2*360),s:Math.round(s2*100),l:Math.round(l*100)};}
+function toHex(r,g,b,a){var h2=function(x){var s2=x.toString(16);return s2.length===1?'0'+s2:s2;};var hex=h2(r)+h2(g)+h2(b);if(a!==undefined&&a<1)hex+=h2(Math.round(a*255));return '#'+hex.toUpperCase();}
+function update(){
+var inp=document.getElementById('colorInput').value.trim();
+var c=parseColor(inp);
+if(!c){
+if(inp){var pc=document.getElementById('colorPicker').value;c=parseColor(pc);}
+if(!c)return;
+}
+document.getElementById('colorPicker').value=toHex(c.r,c.g,c.b);
+document.getElementById('colorPreview').style.backgroundColor='rgba('+c.r+','+c.g+','+c.b+','+c.a+')';
+document.getElementById('hexVal').textContent=toHex(c.r,c.g,c.b,c.a);
+document.getElementById('rgbVal').textContent='rgb('+c.r+', '+c.g+', '+c.b+')';
+document.getElementById('rgbaVal').textContent='rgba('+c.r+', '+c.g+', '+c.b+', '+c.a+')';
+var hsl=rgbToHsl(c.r,c.g,c.b);
+document.getElementById('hslVal').textContent='hsl('+hsl.h+', '+hsl.s+'%, '+hsl.l+'%)';
+}
+document.getElementById('colorInput').addEventListener('input',update);
+document.getElementById('colorPicker').addEventListener('input',function(){document.getElementById('colorInput').value=this.value;update();});
+window.copyTextVal=function(id){var el=document.getElementById(id);navigator.clipboard.writeText(el.textContent).then(function(){showToast('已复制');}).catch(function(){showToast('复制失败');});};
+update();
+})();
+
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
