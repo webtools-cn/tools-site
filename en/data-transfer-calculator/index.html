@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Transfer Time Calculator - File Download Speed | Free ToolBase</title>
+  <meta name="description" content="Free online data transfer time calculator. Calculate upload/download time based on file size and network bandwidth. Supports multiple data units and speed units.">
+  <meta property="og:title" content="Data Transfer Time Calculator - File Download Speed">
+  <meta property="og:description" content="Free online data transfer time calculator. Calculate upload/download time based on file size and bandwidth.">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Data Transfer Time Calculator","applicationCategory":"UtilityApplication","description":"Free online data transfer time calculator.","operatingSystem":"Web"}</script>
+  <style>
+    :root { --primary: #6366F1; --primary-dark: #4F46E5; --bg: #f8fafc; --card: #fff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; --radius: 12px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    header { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 20px; text-align: center; }
+    header a { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 18px; }
+    main { max-width: 700px; margin: 0 auto; padding: 24px 16px; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .subtitle { color: var(--text-light); margin-bottom: 24px; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 14px; font-weight: 600; color: var(--text-light); margin-bottom: 6px; }
+    .input-row { display: flex; gap: 8px; align-items: center; }
+    .input-row input { flex: 1; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 18px; text-align: right; }
+    .input-row select { padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--bg); }
+    .result { background: linear-gradient(135deg, #6366F1, #4F46E5); color: #fff; border-radius: var(--radius); padding: 24px; text-align: center; }
+    .result .time { font-size: 36px; font-weight: 700; margin: 8px 0; }
+    .result .detail { font-size: 14px; opacity: 0.85; }
+    .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-top: 16px; }
+    .result-item { background: rgba(255,255,255,0.15); border-radius: 8px; padding: 12px; }
+    .result-item .val { font-size: 18px; font-weight: 700; }
+    .result-item .lbl { font-size: 11px; opacity: 0.7; }
+    footer { text-align: center; padding: 24px; color: var(--text-light); font-size: 13px; }
+    footer a { color: var(--primary); text-decoration: none; }
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity 0.3s; z-index: 999; pointer-events: none; }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <header><a href="/en/">Free ToolBase</a></header>
+  <main>
+    <h1>⏱️ Data Transfer Time Calculator</h1>
+    <p class="subtitle">Calculate upload/download time based on file size and network bandwidth.</p>
+    <div class="card">
+      <div class="form-group">
+        <label>📦 File Size</label>
+        <div class="input-row">
+          <input type="number" id="fileSize" value="100" min="0.001" step="any">
+          <select id="fileUnit">
+            <option value="1">B (Bytes)</option>
+            <option value="1024">KB</option>
+            <option value="1048576" selected>MB</option>
+            <option value="1073741824">GB</option>
+            <option value="1099511627776">TB</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>🌐 Network Bandwidth</label>
+        <div class="input-row">
+          <input type="number" id="speed" value="100" min="0.001" step="any">
+          <select id="speedUnit">
+            <option value="1">bps</option>
+            <option value="1000">Kbps</option>
+            <option value="1000000" selected>Mbps</option>
+            <option value="1000000000">Gbps</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="result">
+      <div class="detail">Estimated Transfer Time</div>
+      <div class="time" id="mainTime">--</div>
+      <div class="detail" id="mainDetail"></div>
+      <div class="result-grid">
+        <div class="result-item"><div class="val" id="seconds">--</div><div class="lbl">Seconds</div></div>
+        <div class="result-item"><div class="val" id="minutes">--</div><div class="lbl">Minutes</div></div>
+        <div class="result-item"><div class="val" id="hours">--</div><div class="lbl">Hours</div></div>
+        <div class="result-item"><div class="val" id="days">--</div><div class="lbl">Days</div></div>
+      </div>
+    </div>
+  </main>
+  <footer>&copy; 2026 <a href="/en/">Free ToolBase</a> - Free Online Tools</footer>
+  <div id="toast"></div>
+  <script>
+    function calculate() {
+      const fileVal = parseFloat(document.getElementById('fileSize').value) || 0;
+      const fileUnit = parseInt(document.getElementById('fileUnit').value);
+      const speedVal = parseFloat(document.getElementById('speed').value) || 0;
+      const speedUnit = parseInt(document.getElementById('speedUnit').value);
+      const totalBits = fileVal * fileUnit * 8;
+      const speedBps = speedVal * speedUnit;
+      if (totalBits <= 0 || speedBps <= 0) {
+        document.getElementById('mainTime').textContent = '--';
+        document.getElementById('mainDetail').textContent = '';
+        ['seconds','minutes','hours','days'].forEach(id => document.getElementById(id).textContent = '--');
+        return;
+      }
+      const seconds = totalBits / speedBps;
+      const minutes = seconds / 60;
+      const hours = minutes / 60;
+      const days = hours / 24;
+      document.getElementById('seconds').textContent = seconds.toFixed(2);
+      document.getElementById('minutes').textContent = minutes.toFixed(2);
+      document.getElementById('hours').textContent = hours.toFixed(2);
+      document.getElementById('days').textContent = days.toFixed(4);
+      let main, detail;
+      if (seconds < 1) { main = (seconds * 1000).toFixed(0) + ' ms'; detail = seconds.toFixed(3) + ' sec'; }
+      else if (seconds < 60) { main = seconds.toFixed(1) + ' sec'; detail = ''; }
+      else if (minutes < 60) { main = Math.floor(minutes) + ' min ' + Math.round(seconds % 60) + ' sec'; detail = minutes.toFixed(2) + ' min'; }
+      else if (hours < 24) { main = Math.floor(hours) + ' hr ' + Math.round(minutes % 60) + ' min'; detail = hours.toFixed(2) + ' hr'; }
+      else { main = Math.floor(days) + ' day ' + Math.floor(hours % 24) + ' hr'; detail = days.toFixed(2) + ' days'; }
+      document.getElementById('mainTime').textContent = main;
+      document.getElementById('mainDetail').textContent = detail;
+    }
+    document.getElementById('fileSize').addEventListener('input', calculate);
+    document.getElementById('fileUnit').addEventListener('change', calculate);
+    document.getElementById('speed').addEventListener('input', calculate);
+    document.getElementById('speedUnit').addEventListener('change', calculate);
+    calculate();
+  </script>
+</body>
+</html>

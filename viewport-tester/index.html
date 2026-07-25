@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>响应式视口测试器 - 网页多设备预览工具 | Free ToolBase</title>
+  <meta name="description" content="在线响应式视口测试器，模拟手机、平板、桌面等多种设备屏幕尺寸预览网页效果，支持自定义分辨率，前端开发必备工具。">
+  <meta property="og:title" content="响应式视口测试器 - 网页多设备预览工具">
+  <meta property="og:description" content="在线响应式视口测试器，模拟多种设备屏幕尺寸预览网页效果。">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"响应式视口测试器","applicationCategory":"DeveloperApplication","description":"在线响应式视口测试器。","operatingSystem":"Web"}</script>
+  <style>
+    :root { --primary: #6366F1; --primary-dark: #4F46E5; --bg: #f8fafc; --card: #fff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; --radius: 12px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    header { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 20px; text-align: center; }
+    header a { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 18px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .subtitle { color: var(--text-light); margin-bottom: 24px; }
+    .controls { background: var(--card); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .controls input[type="url"] { flex: 1; min-width: 200px; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; }
+    .controls input[type="number"] { width: 80px; padding: 10px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; text-align: center; }
+    .controls select { padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--bg); }
+    .btn { padding: 10px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .preset-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .preset { padding: 6px 14px; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 13px; background: var(--bg); transition: all 0.2s; }
+    .preset:hover, .preset.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .preview-area { background: var(--card); border-radius: var(--radius); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; justify-content: center; }
+    .iframe-wrapper { border: 2px solid #e2e8f0; border-radius: 4px; overflow: hidden; transition: all 0.3s; box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
+    iframe { border: none; display: block; }
+    .info { display: flex; justify-content: center; gap: 24px; margin-top: 12px; font-size: 13px; color: var(--text-light); }
+    footer { text-align: center; padding: 24px; color: var(--text-light); font-size: 13px; }
+    footer a { color: var(--primary); text-decoration: none; }
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity 0.3s; z-index: 999; pointer-events: none; }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <header><a href="/">Free ToolBase</a></header>
+  <main>
+    <h1>📱 响应式视口测试器</h1>
+    <p class="subtitle">模拟不同设备屏幕尺寸预览网页效果，支持手机、平板、桌面等预设及自定义分辨率。</p>
+    <div class="controls">
+      <input type="url" id="urlInput" value="https://free-toolbase.com" placeholder="输入网址...">
+      <input type="number" id="widthInput" value="375" min="200" max="2560" step="1">
+      <span style="color:var(--text-light)">×</span>
+      <input type="number" id="heightInput" value="667" min="200" max="1600" step="1">
+      <select id="scaleSelect">
+        <option value="1">100%</option>
+        <option value="0.75">75%</option>
+        <option value="0.5">50%</option>
+        <option value="0.25">25%</option>
+      </select>
+      <button class="btn btn-primary" id="goBtn">🔍 预览</button>
+    </div>
+    <div class="preset-row" id="presets">
+      <span class="preset active" data-w="375" data-h="667">iPhone SE</span>
+      <span class="preset" data-w="390" data-h="844">iPhone 14</span>
+      <span class="preset" data-w="430" data-h="932">iPhone 14 Pro Max</span>
+      <span class="preset" data-w="360" data-h="800">Android Small</span>
+      <span class="preset" data-w="412" data-h="915">Android Large</span>
+      <span class="preset" data-w="768" data-h="1024">iPad</span>
+      <span class="preset" data-w="1024" data-h="768">iPad Landscape</span>
+      <span class="preset" data-w="1280" data-h="720">HD</span>
+      <span class="preset" data-w="1440" data-h="900">Laptop</span>
+      <span class="preset" data-w="1920" data-h="1080">Full HD</span>
+    </div>
+    <div class="preview-area">
+      <div class="iframe-wrapper" id="wrapper">
+        <iframe id="previewFrame" width="375" height="667" src="https://free-toolbase.com"></iframe>
+      </div>
+    </div>
+    <div class="info">
+      <span>当前视口：<strong id="infoSize">375 × 667</strong></span>
+      <span>缩放：<strong id="infoScale">100%</strong></span>
+    </div>
+  </main>
+  <footer>&copy; 2026 <a href="/">Free ToolBase</a> - 免费在线工具</footer>
+  <div id="toast"></div>
+  <script>
+    const frame = document.getElementById('previewFrame');
+    const wrapper = document.getElementById('wrapper');
+    const wInput = document.getElementById('widthInput');
+    const hInput = document.getElementById('heightInput');
+    const scaleSelect = document.getElementById('scaleSelect');
+
+    function updatePreview() {
+      const w = parseInt(wInput.value) || 375;
+      const h = parseInt(hInput.value) || 667;
+      const scale = parseFloat(scaleSelect.value) || 1;
+      frame.width = w;
+      frame.height = h;
+      wrapper.style.width = (w * scale) + 'px';
+      wrapper.style.height = (h * scale) + 'px';
+      frame.style.transform = 'scale(' + scale + ')';
+      frame.style.transformOrigin = '0 0';
+      document.getElementById('infoSize').textContent = w + ' × ' + h;
+      document.getElementById('infoScale').textContent = Math.round(scale*100) + '%';
+    }
+
+    document.getElementById('goBtn').addEventListener('click', () => {
+      const url = document.getElementById('urlInput').value.trim();
+      if (!url) { showToast('请输入网址'); return; }
+      const finalUrl = url.startsWith('http') ? url : 'https://' + url;
+      frame.src = finalUrl;
+      document.getElementById('urlInput').value = finalUrl;
+      updatePreview();
+      showToast('已加载: ' + finalUrl);
+    });
+
+    document.getElementById('presets').addEventListener('click', (e) => {
+      if (e.target.classList.contains('preset')) {
+        document.querySelectorAll('.preset').forEach(p => p.classList.remove('active'));
+        e.target.classList.add('active');
+        wInput.value = e.target.dataset.w;
+        hInput.value = e.target.dataset.h;
+        updatePreview();
+      }
+    });
+
+    wInput.addEventListener('change', updatePreview);
+    hInput.addEventListener('change', updatePreview);
+    scaleSelect.addEventListener('change', updatePreview);
+    document.getElementById('urlInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('goBtn').click();
+    });
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
+    }
+  </script>
+</body>
+</html>
