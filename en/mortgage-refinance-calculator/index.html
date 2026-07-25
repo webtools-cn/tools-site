@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mortgage Refinance Calculator - Free ToolBase</title>
+  <meta name="description" content="Free online mortgage refinance calculator. Calculate monthly payment changes, total interest savings, and break-even point. Quickly assess whether refinancing is worth it to save on mortgage costs.">
+  <meta property="og:title" content="Mortgage Refinance Calculator - Free Online Refinance Savings Tool">
+  <meta property="og:description" content="Free online mortgage refinance calculator. Calculate refinance savings and break-even point to evaluate if refinancing is worthwhile.">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Mortgage Refinance Calculator","applicationCategory":"Finance Tools","operatingSystem":"Web","description":"Free online mortgage refinance calculator. Calculate refinance savings.","offers":{"@type":"Offer","price":"0"}}</script>
+  <style>
+    :root { --primary: #059669; --primary-light: #10b981; --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --success: #10b981; --danger: #ef4444; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+    header { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; padding: 20px 0; text-align: center; }
+    header h1 { font-size: 1.6rem; margin-bottom: 4px; }
+    header p { opacity: 0.9; font-size: 0.9rem; }
+    .container { max-width: 800px; margin: 0 auto; padding: 20px 16px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .card h2 { font-size: 1.15rem; margin-bottom: 16px; color: var(--primary); }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .row > .form-group { flex: 1; min-width: 180px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }
+    .form-group input { width: 100%; padding: 10px 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 0.95rem; font-family: inherit; }
+    .form-group input:focus { outline: none; border-color: var(--primary); }
+    .btn { padding: 10px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer; font-weight: 600; }
+    .btn:hover { background: var(--primary-light); }
+    .result-box { background: var(--bg); border-radius: 10px; padding: 20px; margin-top: 16px; }
+    .result-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .result-row .label { color: var(--text-secondary); font-size: 0.9rem; }
+    .result-row .value { font-weight: 700; font-size: 0.95rem; }
+    .saving { color: var(--success); }
+    .cost { color: var(--danger); }
+    .highlight { background: #f0fdf4; border-radius: 8px; padding: 14px; margin-top: 12px; font-size: 1.05rem; text-align: center; font-weight: 700; }
+    .divider { border: none; border-top: 2px dashed var(--border); margin: 16px 0; }
+    footer { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 0.8rem; }
+    @media (max-width: 600px) { .container { padding: 12px; } .card { padding: 16px; } }
+  </style>
+</head>
+<body>
+<header><h1>🏠 Mortgage Refinance Calculator</h1><p>Calculate refinance savings · Evaluate if it's worth it</p></header>
+<div class="container">
+  <div class="card">
+    <h2>📋 Current Loan</h2>
+    <div class="row">
+      <div class="form-group"><label>Remaining Balance ($)</label><input type="number" id="currentBalance" value="300000" min="1000"></div>
+      <div class="form-group"><label>Current Rate (%)</label><input type="number" id="currentRate" value="5.2" min="0.1" step="0.01"></div>
+      <div class="form-group"><label>Remaining Term (months)</label><input type="number" id="currentMonths" value="240" min="1"></div>
+    </div>
+    <div class="divider"></div>
+    <h2>📋 New Loan</h2>
+    <div class="row">
+      <div class="form-group"><label>New Rate (%)</label><input type="number" id="newRate" value="3.8" min="0.1" step="0.01"></div>
+      <div class="form-group"><label>New Term (months)</label><input type="number" id="newMonths" value="240" min="1"></div>
+      <div class="form-group"><label>Refinance Cost ($)</label><input type="number" id="refiCost" value="3000" min="0"></div>
+    </div>
+    <button class="btn" id="calcBtn">🔍 Calculate Savings</button>
+  </div>
+  <div class="card" id="resultsCard" style="display:none">
+    <h2>📊 Refinance Analysis</h2>
+    <div id="results"></div>
+  </div>
+</div>
+<footer>Free ToolBase © 2025 · Free Online Finance Tools</footer>
+<script>
+(function() {
+  const calcBtn = document.getElementById('calcBtn');
+  const resultsCard = document.getElementById('resultsCard');
+  const resultsEl = document.getElementById('results');
+
+  function calcMonthly(amount, annualRate, months) {
+    if (months <= 0 || annualRate <= 0) return { monthly: amount/months, totalPayment: amount, totalInterest: 0 };
+    const r = annualRate / 100 / 12;
+    const mp = amount * r * Math.pow(1+r, months) / (Math.pow(1+r, months) - 1);
+    return { monthly: mp, totalPayment: mp*months, totalInterest: mp*months - amount };
+  }
+
+  function calc() {
+    const balance = parseFloat(document.getElementById('currentBalance').value) || 0;
+    const cRate = parseFloat(document.getElementById('currentRate').value) || 0;
+    const cMonths = parseInt(document.getElementById('currentMonths').value) || 0;
+    const nRate = parseFloat(document.getElementById('newRate').value) || 0;
+    const nMonths = parseInt(document.getElementById('newMonths').value) || 0;
+    const refiCost = parseFloat(document.getElementById('refiCost').value) || 0;
+
+    if (!balance || !cRate || !cMonths || !nRate || !nMonths) { resultsCard.style.display='none'; return; }
+
+    const current = calcMonthly(balance, cRate, cMonths);
+    const newLoan = calcMonthly(balance, nRate, nMonths);
+
+    const monthlySaving = current.monthly - newLoan.monthly;
+    const totalInterestSaving = current.totalInterest - newLoan.totalInterest;
+    const netSaving = totalInterestSaving - refiCost;
+    const breakEven = monthlySaving > 0 ? Math.ceil(refiCost / monthlySaving) : Infinity;
+
+    const fmt = (n) => n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+    resultsEl.innerHTML = `
+      <div class="result-box">
+        <div class="result-row"><span class="label">Current Monthly</span><span class="value">$${fmt(current.monthly)}</span></div>
+        <div class="result-row"><span class="label">New Monthly</span><span class="value ${monthlySaving>0?'saving':'cost'}">$${fmt(newLoan.monthly)}</span></div>
+        <div class="result-row"><span class="label">Monthly Change</span><span class="value ${monthlySaving>0?'saving':'cost'}">${monthlySaving>0?'↓':'↑'} $${fmt(Math.abs(monthlySaving))}</span></div>
+        <div class="result-row"><span class="label">Current Total Interest</span><span class="value">$${fmt(current.totalInterest)}</span></div>
+        <div class="result-row"><span class="label">New Total Interest</span><span class="value ${totalInterestSaving>0?'saving':'cost'}">$${fmt(newLoan.totalInterest)}</span></div>
+        <div class="result-row"><span class="label">Interest Savings</span><span class="value saving">$${fmt(Math.max(0,totalInterestSaving))}</span></div>
+        <div class="result-row"><span class="label">Refinance Cost</span><span class="value">-$${fmt(refiCost)}</span></div>
+        <div class="result-row"><span class="label">Net Savings</span><span class="value" style="font-size:1.1rem;color:${netSaving>0?'var(--success)':'var(--danger)'}">$${fmt(netSaving)}</span></div>
+      </div>
+      <div class="highlight" style="background:${netSaving>0?'#f0fdf4':'#fef2f2'}">
+        ${netSaving > 0 
+          ? `✅ Refinancing recommended! Net savings $${fmt(netSaving)}, break-even in ${breakEven} months.` 
+          : `⚠️ Not recommended. Net loss $${fmt(Math.abs(netSaving))}.`}
+      </div>
+    `;
+    resultsCard.style.display = 'block';
+  }
+
+  calcBtn.addEventListener('click', calc);
+  document.querySelectorAll('input').forEach(el => el.addEventListener('input', calc));
+  calc();
+})();
+</script>
+</body>
+</html>

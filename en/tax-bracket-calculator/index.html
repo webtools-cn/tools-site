@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tax Bracket Calculator - Free ToolBase</title>
+  <meta name="description" content="Free online tax bracket calculator. Automatically calculate income tax based on progressive tax brackets. Supports salary and annual bonus tax calculation with take-home pay estimates.">
+  <meta property="og:title" content="Tax Bracket Calculator - Free Online Income Tax Calculator">
+  <meta property="og:description" content="Free online tax bracket calculator. Automatically calculate income tax based on progressive tax brackets with take-home pay estimates.">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Tax Bracket Calculator","applicationCategory":"Finance Tools","operatingSystem":"Web","description":"Free online tax bracket calculator. Automatically calculate income tax.","offers":{"@type":"Offer","price":"0"}}</script>
+  <style>
+    :root { --primary: #059669; --primary-light: #10b981; --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+    header { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; padding: 20px 0; text-align: center; }
+    header h1 { font-size: 1.6rem; margin-bottom: 4px; }
+    header p { opacity: 0.9; font-size: 0.9rem; }
+    .container { max-width: 750px; margin: 0 auto; padding: 20px 16px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .card h2 { font-size: 1.15rem; margin-bottom: 16px; color: var(--primary); }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .row > .form-group { flex: 1; min-width: 160px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }
+    .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 0.95rem; font-family: inherit; }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); }
+    .btn { padding: 10px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer; font-weight: 600; }
+    .btn:hover { background: var(--primary-light); }
+    .result-box { background: var(--bg); border-radius: 10px; padding: 20px; margin-top: 16px; }
+    .result-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .result-row .label { color: var(--text-secondary); }
+    .result-row .value { font-weight: 700; font-size: 1rem; }
+    .highlight { background: #f0fdf4; border-radius: 8px; padding: 14px; margin-top: 12px; text-align: center; font-weight: 700; font-size: 1.1rem; }
+    footer { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 0.8rem; }
+    @media (max-width: 600px) { .container { padding: 12px; } .card { padding: 16px; } }
+  </style>
+</head>
+<body>
+<header><h1>🧾 Tax Bracket Calculator</h1><p>Progressive income tax calculation · Salary & Bonus</p></header>
+<div class="container">
+  <div class="card">
+    <h2>📋 Income Details</h2>
+    <div class="row">
+      <div class="form-group"><label>Calculation Type</label><select id="calcType"><option value="monthly">Monthly Salary</option><option value="bonus">Annual Bonus</option></select></div>
+      <div class="form-group"><label>Pre-tax Income ($)</label><input type="number" id="income" value="80000" min="0"></div>
+      <div class="form-group"><label>Deductions ($/mo)</label><input type="number" id="deduction" value="5000" min="0"></div>
+      <div class="form-group"><label>Standard Deduction ($/mo)</label><input type="number" id="extraDeduction" value="12950" min="0"></div>
+    </div>
+    <button class="btn" id="calcBtn">🔍 Calculate Tax</button>
+  </div>
+  <div class="card" id="resultsCard" style="display:none">
+    <h2>📊 Results</h2>
+    <div id="results"></div>
+  </div>
+</div>
+<footer>Free ToolBase © 2025 · Free Online Finance Tools</footer>
+<script>
+(function() {
+  const calcBtn = document.getElementById('calcBtn');
+  const resultsCard = document.getElementById('resultsCard');
+  const resultsEl = document.getElementById('results');
+
+  const brackets = [
+    { min: 0, max: 11000, rate: 0.10 },
+    { min: 11000, max: 44725, rate: 0.12 },
+    { min: 44725, max: 95375, rate: 0.22 },
+    { min: 95375, max: 182100, rate: 0.24 },
+    { min: 182100, max: 231250, rate: 0.32 },
+    { min: 231250, max: 578125, rate: 0.35 },
+    { min: 578125, max: Infinity, rate: 0.37 },
+  ];
+
+  function calcTax(amount) {
+    let tax = 0;
+    let remaining = amount;
+    for (let i = 0; i < brackets.length - 1; i++) {
+      const b = brackets[i];
+      const taxable = Math.min(remaining, b.max - b.min);
+      tax += taxable * b.rate;
+      remaining -= taxable;
+      if (remaining <= 0) break;
+    }
+    if (remaining > 0) tax += remaining * brackets[brackets.length-1].rate;
+    return tax;
+  }
+
+  function calc() {
+    const type = document.getElementById('calcType').value;
+    const income = parseFloat(document.getElementById('income').value) || 0;
+    const deduction = parseFloat(document.getElementById('deduction').value) || 0;
+    const extraDeduction = parseFloat(document.getElementById('extraDeduction').value) || 0;
+    if (!income) { resultsCard.style.display = 'none'; return; }
+
+    const fmt = (n) => n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+    let taxable, tax, afterTax;
+
+    if (type === 'monthly') {
+      taxable = Math.max(0, income - deduction - extraDeduction);
+      tax = calcTax(taxable);
+      afterTax = income - deduction - tax;
+    } else {
+      taxable = income;
+      tax = calcTax(taxable);
+      afterTax = income - tax;
+    }
+
+    const rate = taxable > 0 ? (tax / taxable * 100).toFixed(1) : 0;
+
+    resultsEl.innerHTML = `
+      <div class="result-box">
+        <div class="result-row"><span class="label">${type==='monthly'?'Monthly Pre-tax':'Annual Bonus'}</span><span class="value">$${fmt(income)}</span></div>
+        <div class="result-row"><span class="label">Deductions</span><span class="value">-$${fmt(deduction)}</span></div>
+        ${type==='monthly'?`<div class="result-row"><span class="label">Standard Deduction</span><span class="value">-$${fmt(extraDeduction)}</span></div>`:''}
+        <div class="result-row"><span class="label">Taxable Income</span><span class="value">$${fmt(taxable)}</span></div>
+        <div class="result-row"><span class="label">Effective Tax Rate</span><span class="value">${rate}%</span></div>
+        <div class="result-row"><span class="label">Tax Owed</span><span class="value" style="color:#ef4444">-$${fmt(tax)}</span></div>
+        <div class="result-row"><span class="label" style="font-weight:700">Take-Home Pay</span><span class="value" style="font-size:1.2rem;color:var(--success)">$${fmt(afterTax)}</span></div>
+      </div>
+      <div class="highlight">
+        ${type==='monthly'?`Monthly Take-Home: $${fmt(afterTax)} | Annual: $${fmt(afterTax*12)}`:`Bonus After Tax: $${fmt(afterTax)} | Tax: $${fmt(tax)}`}
+      </div>
+    `;
+    resultsCard.style.display = 'block';
+  }
+
+  calcBtn.addEventListener('click', calc);
+  document.querySelectorAll('input, select').forEach(el => el.addEventListener('input', calc));
+  calc();
+})();
+</script>
+</body>
+</html>

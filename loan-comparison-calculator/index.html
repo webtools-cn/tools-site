@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>贷款比较计算器 - Free ToolBase</title>
+  <meta name="description" content="免费在线贷款比较计算器，同时对比多个贷款方案的总利息、月供和总还款额。支持自定义金额、利率和期限，一目了然选择最优贷款方案。">
+  <meta property="og:title" content="贷款比较计算器 - 免费在线贷款方案对比工具">
+  <meta property="og:description" content="免费在线贷款比较计算器，同时对比多个贷款方案的利息、月供和总还款额，选择最优方案。">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"贷款比较计算器","applicationCategory":"金融工具","operatingSystem":"Web","description":"免费在线贷款比较计算器，对比多个贷款方案。","offers":{"@type":"Offer","price":"0"}}</script>
+  <style>
+    :root { --primary: #059669; --primary-light: #10b981; --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --success: #10b981; --warning: #f59e0b; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+    header { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; padding: 20px 0; text-align: center; }
+    header h1 { font-size: 1.6rem; margin-bottom: 4px; }
+    header p { opacity: 0.9; font-size: 0.9rem; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 20px 16px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .card h2 { font-size: 1.15rem; margin-bottom: 16px; color: var(--primary); }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .row > .form-group { flex: 1; min-width: 160px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }
+    .form-group input { width: 100%; padding: 10px 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 0.95rem; font-family: inherit; }
+    .form-group input:focus { outline: none; border-color: var(--primary); }
+    .btn { padding: 10px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer; font-weight: 600; }
+    .btn:hover { background: var(--primary-light); }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; background: #fee2e2; color: #ef4444; border: none; border-radius: 6px; cursor: pointer; }
+    .loan-plan { background: var(--bg); border-radius: 10px; padding: 16px; margin-bottom: 12px; position: relative; border: 2px solid transparent; }
+    .loan-plan.best { border-color: var(--success); background: #f0fdf4; }
+    .loan-plan .plan-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .loan-plan .plan-name { font-weight: 700; font-size: 1.05rem; }
+    .loan-plan .best-badge { background: var(--success); color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; }
+    .result-grid { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+    .result-item { flex: 1; min-width: 100px; text-align: center; padding: 10px; background: white; border-radius: 8px; }
+    .result-item .val { font-size: 1.2rem; font-weight: 700; }
+    .result-item .lbl { font-size: 0.72rem; color: var(--text-secondary); }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 0.9rem; }
+    th, td { padding: 10px; text-align: right; border-bottom: 1px solid var(--border); }
+    th { background: var(--bg); color: var(--text-secondary); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
+    td:first-child, th:first-child { text-align: left; }
+    .best-col { background: #f0fdf4; font-weight: 700; }
+    footer { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 0.8rem; }
+    @media (max-width: 600px) { .container { padding: 12px; } .card { padding: 16px; } .row { flex-direction: column; } }
+  </style>
+</head>
+<body>
+<header><h1>💰 贷款比较计算器</h1><p>同时对比多个贷款方案 · 选出最优</p></header>
+<div class="container">
+  <div class="card">
+    <h2>📋 配置贷款方案</h2>
+    <div id="plansContainer">
+      <div class="loan-plan">
+        <div class="plan-header"><span class="plan-name">方案 A</span><button class="btn-sm" onclick="this.closest('.loan-plan').remove();compare()">删除</button></div>
+        <div class="row">
+          <div class="form-group"><label>贷款金额 (元)</label><input type="number" class="amount" value="500000" min="1000"></div>
+          <div class="form-group"><label>年利率 (%)</label><input type="number" class="rate" value="4.5" min="0.1" step="0.01"></div>
+          <div class="form-group"><label>贷款期限 (月)</label><input type="number" class="months" value="240" min="1"></div>
+        </div>
+        <div class="result-grid" style="display:none" data-results></div>
+      </div>
+      <div class="loan-plan">
+        <div class="plan-header"><span class="plan-name">方案 B</span><button class="btn-sm" onclick="this.closest('.loan-plan').remove();compare()">删除</button></div>
+        <div class="row">
+          <div class="form-group"><label>贷款金额 (元)</label><input type="number" class="amount" value="500000" min="1000"></div>
+          <div class="form-group"><label>年利率 (%)</label><input type="number" class="rate" value="3.8" min="0.1" step="0.01"></div>
+          <div class="form-group"><label>贷款期限 (月)</label><input type="number" class="months" value="240" min="1"></div>
+        </div>
+        <div class="result-grid" style="display:none" data-results></div>
+      </div>
+    </div>
+    <button class="btn" id="addPlanBtn" style="margin-top:8px;background:var(--text-secondary)">+ 添加贷款方案</button>
+    <button class="btn" id="compareBtn" style="margin-left:8px">🔍 开始比较</button>
+  </div>
+  <div class="card" id="resultsCard" style="display:none">
+    <h2>📊 比较结果</h2>
+    <div style="overflow-x:auto"><table id="resultTable"><thead><tr id="tableHead"></tr></thead><tbody id="tableBody"></tbody></table></div>
+    <div style="margin-top:12px;padding:10px;background:#f0fdf4;border-radius:8px;font-size:0.85rem">
+      <strong>🥇 最优方案：</strong><span id="bestPlan"></span>
+    </div>
+  </div>
+</div>
+<footer>Free ToolBase © 2025 · 免费在线金融工具</footer>
+<script>
+(function() {
+  const plansContainer = document.getElementById('plansContainer');
+  const addPlanBtn = document.getElementById('addPlanBtn');
+  const compareBtn = document.getElementById('compareBtn');
+  const resultsCard = document.getElementById('resultsCard');
+  const tableHead = document.getElementById('tableHead');
+  const tableBody = document.getElementById('tableBody');
+  const bestPlanEl = document.getElementById('bestPlan');
+  let planCount = 2;
+
+  function calcMonthly(amount, annualRate, months) {
+    if (months <= 0 || annualRate <= 0) return { monthly: amount/months, totalInterest: 0, totalPayment: amount };
+    const monthlyRate = annualRate / 100 / 12;
+    const monthly = amount * monthlyRate * Math.pow(1 + monthlyRate, months) / (Math.pow(1 + monthlyRate, months) - 1);
+    const totalPayment = monthly * months;
+    const totalInterest = totalPayment - amount;
+    return { monthly, totalInterest, totalPayment };
+  }
+
+  function compare() {
+    const plans = [];
+    document.querySelectorAll('#plansContainer .loan-plan').forEach((plan, i) => {
+      const amount = parseFloat(plan.querySelector('.amount').value) || 0;
+      const rate = parseFloat(plan.querySelector('.rate').value) || 0;
+      const months = parseInt(plan.querySelector('.months').value) || 0;
+      if (amount > 0 && rate > 0 && months > 0) {
+        const r = calcMonthly(amount, rate, months);
+        plans.push({ name: String.fromCharCode(65 + i), amount, rate, months, ...r });
+      }
+    });
+
+    if (plans.length < 2) { resultsCard.style.display = 'none'; return; }
+
+    const best = plans.reduce((a, b) => a.totalInterest < b.totalInterest ? a : b);
+
+    tableHead.innerHTML = '<th>指标</th>' + plans.map(p => `<th class="${p.name===best.name?'best-col':''}">方案 ${p.name}</th>`).join('');
+    const rows = [
+      ['贷款金额', 'amount', '¥'],
+      ['年利率', 'rate', '%'],
+      ['贷款期限', 'months', '个月'],
+      ['月供', 'monthly', '¥'],
+      ['总利息', 'totalInterest', '¥'],
+      ['总还款额', 'totalPayment', '¥'],
+    ];
+    tableBody.innerHTML = rows.map(([label, key, suffix]) =>
+      `<tr><td>${label}</td>${plans.map(p => `<td class="${p.name===best.name?'best-col':''}">${suffix==='¥'?p[key].toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2}):suffix==='%'?p[key].toFixed(2):p[key]} ${suffix}</td>`).join('')}</tr>`
+    ).join('');
+
+    bestPlanEl.textContent = `方案 ${best.name} - 年利率${best.rate}%，总利息最低 ¥${best.totalInterest.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+    resultsCard.style.display = 'block';
+  }
+
+  function addPlan() {
+    const name = String.fromCharCode(65 + planCount);
+    planCount++;
+    const div = document.createElement('div');
+    div.className = 'loan-plan';
+    div.innerHTML = `
+      <div class="plan-header"><span class="plan-name">方案 ${name}</span><button class="btn-sm" onclick="this.closest('.loan-plan').remove();compare()">删除</button></div>
+      <div class="row">
+        <div class="form-group"><label>贷款金额 (元)</label><input type="number" class="amount" value="500000" min="1000"></div>
+        <div class="form-group"><label>年利率 (%)</label><input type="number" class="rate" value="4.0" min="0.1" step="0.01"></div>
+        <div class="form-group"><label>贷款期限 (月)</label><input type="number" class="months" value="240" min="1"></div>
+      </div>
+    `;
+    plansContainer.appendChild(div);
+    div.querySelectorAll('input').forEach(el => el.addEventListener('input', compare));
+    compare();
+  }
+
+  addPlanBtn.addEventListener('click', addPlan);
+  compareBtn.addEventListener('click', compare);
+  document.querySelectorAll('#plansContainer input').forEach(el => el.addEventListener('input', compare));
+  compare();
+})();
+</script>
+</body>
+</html>

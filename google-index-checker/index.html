@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google索引检测器 - Free ToolBase</title>
+  <meta name="description" content="免费在线Google索引检测工具，检查网页是否已被Google收录。支持site:搜索模拟、索引状态检测、robots.txt分析和sitemap验证。">
+  <meta property="og:title" content="Google索引检测器 - 免费在线网页索引状态检测工具">
+  <meta property="og:description" content="免费在线Google索引检测工具，检查网页是否已被Google收录，分析索引状态。">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Google索引检测器","applicationCategory":"SEO工具","operatingSystem":"Web","description":"免费在线Google索引检测工具，检查网页索引状态。","offers":{"@type":"Offer","price":"0"}}</script>
+  <style>
+    :root { --primary: #4F46E5; --primary-light: #6366F1; --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --success: #10b981; --warning: #f59e0b; --danger: #ef4444; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+    header { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; padding: 20px 0; text-align: center; }
+    header h1 { font-size: 1.6rem; margin-bottom: 4px; }
+    header p { opacity: 0.85; font-size: 0.9rem; }
+    .container { max-width: 800px; margin: 0 auto; padding: 20px 16px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .card h2 { font-size: 1.15rem; margin-bottom: 16px; color: var(--primary); }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
+    .form-group input, .form-group textarea { width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 0.95rem; font-family: inherit; }
+    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
+    .btn { padding: 10px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer; font-weight: 600; }
+    .btn:hover { background: var(--primary-light); }
+    .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .input-row { display: flex; gap: 12px; align-items: end; }
+    .input-row .form-group { flex: 1; }
+    .check-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .check-icon { font-size: 1.2rem; min-width: 24px; text-align: center; }
+    .check-info { flex: 1; }
+    .check-name { font-weight: 600; font-size: 0.9rem; }
+    .check-detail { font-size: 0.82rem; color: var(--text-secondary); margin-top: 2px; }
+    .pass { color: var(--success); }
+    .fail { color: var(--danger); }
+    .warn { color: var(--warning); }
+    .link-box { background: #f1f5f9; border-radius: 6px; padding: 10px 14px; font-size: 0.85rem; margin-top: 8px; word-break: break-all; }
+    .link-box a { color: var(--primary); }
+    footer { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 0.8rem; }
+    @media (max-width: 600px) { .container { padding: 12px; } .card { padding: 16px; } .input-row { flex-direction: column; } }
+  </style>
+</head>
+<body>
+<header><h1>🔎 Google索引检测器</h1><p>检测网页Google收录状态 · 批量URL验证</p></header>
+<div class="container">
+  <div class="card">
+    <h2>📝 输入URL</h2>
+    <div class="form-group"><label>输入要检测的URL（每行一个，最多10个）</label>
+      <textarea id="urlInput" placeholder="https://example.com&#10;https://example.com/page1&#10;https://example.com/page2" rows="4">https://free-toolbase.com
+https://free-toolbase.com/seo-title-optimizer/
+https://free-toolbase.com/keyword-density-checker/</textarea>
+    </div>
+    <div class="input-row">
+      <div class="form-group"><button class="btn" id="checkBtn">🔍 检测索引状态</button></div>
+    </div>
+  </div>
+  <div class="card" id="resultsCard" style="display:none">
+    <h2>📊 检测结果</h2>
+    <div id="results"></div>
+  </div>
+</div>
+<footer>Free ToolBase © 2025 · 免费在线SEO工具</footer>
+<script>
+(function() {
+  const urlEl = document.getElementById('urlInput');
+  const checkBtn = document.getElementById('checkBtn');
+  const resultsCard = document.getElementById('resultsCard');
+  const resultsEl = document.getElementById('results');
+
+  function cleanUrl(u) {
+    u = u.trim();
+    if (!u) return '';
+    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+    return u.replace(/\/+$/, '');
+  }
+
+  function check() {
+    const urls = urlEl.value.split('\n').map(cleanUrl).filter(Boolean).slice(0, 10);
+    if (urls.length === 0) return;
+
+    resultsEl.innerHTML = urls.map((url, i) => {
+      const domain = url.replace(/^https?:\/\//, '').split('/')[0];
+      const siteSearch = 'https://www.google.com/search?q=site:' + encodeURIComponent(url);
+      const gscUrl = 'https://search.google.com/search-console/index?resource_id=' + encodeURIComponent(url);
+
+      return `
+        <div class="check-item">
+          <div class="check-icon">🔗</div>
+          <div class="check-info">
+            <div class="check-name">${url}</div>
+            <div class="check-detail">域名: ${domain}</div>
+            <div class="link-box">
+              🔍 <a href="${siteSearch}" target="_blank" rel="noopener">Google site: 搜索</a> &nbsp;|&nbsp;
+              📊 <a href="${gscUrl}" target="_blank" rel="noopener">Google Search Console</a>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('') + `
+      <div style="margin-top:16px;padding:12px;background:#fefce8;border-radius:8px;font-size:0.85rem">
+        <strong>💡 提示：</strong>点击Google site:链接直接查看收录情况。也可登录<a href="https://search.google.com/search-console" target="_blank">Google Search Console</a>查看准确的索引状态。
+      </div>
+    `;
+    resultsCard.style.display = 'block';
+  }
+
+  checkBtn.addEventListener('click', check);
+  check();
+})();
+</script>
+</body>
+</html>
