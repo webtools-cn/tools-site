@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ER图生成器 - 在线实体关系图绘制 | Free ToolBase</title>
+  <meta name="description" content="在线ER图生成器，使用简洁语法快速绘制实体关系图。支持导出PNG/SVG，纯前端渲染，无需注册。">
+  <meta property="og:title" content="ER图生成器 - 在线实体关系图绘制 | Free ToolBase">
+  <meta property="og:description" content="在线ER图生成器，使用简洁语法快速绘制实体关系图。支持导出PNG/SVG，纯前端渲染。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://free-toolbase.com/er-diagram-generator/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ER图生成器",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Web",
+    "description": "在线ER图生成器，使用简洁语法快速绘制实体关系图。"
+  }
+  </script>
+  <style>
+    :root { --primary: #4F46E5; --primary-hover: #4338CA; --bg: #f8fafc; --surface: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 8px; --shadow: 0 1px 3px rgba(0,0,0,.1); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; }
+    header nav { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 24px; }
+    header nav a { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
+    header nav a:hover { color: var(--primary); }
+    header nav .logo { font-weight: 700; font-size: 18px; color: var(--primary); }
+    main { max-width: 1100px; margin: 0 auto; padding: 32px 20px; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .desc { color: var(--text-secondary); margin-bottom: 24px; }
+    .editor-layout { display: flex; gap: 16px; flex-wrap: wrap; }
+    .editor-pane { flex: 1; min-width: 320px; }
+    .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; margin-bottom: 16px; }
+    .card h2 { font-size: 16px; margin-bottom: 12px; }
+    textarea { width: 100%; height: 280px; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; line-height: 1.5; resize: vertical; }
+    textarea:focus { outline: none; border-color: var(--primary); }
+    .output-pane { flex: 1; min-width: 320px; }
+    .diagram-svg { width: 100%; min-height: 300px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); overflow: auto; display: flex; align-items: center; justify-content: center; }
+    .diagram-svg svg { max-width: 100%; }
+    .toolbar { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: var(--radius); border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: all .2s; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: #f1f5f9; color: var(--text); }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .examples { margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .example-link { color: var(--primary); cursor: pointer; font-size: 13px; text-decoration: underline; }
+    .toast { position: fixed; top: 20px; right: 20px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: var(--radius); font-size: 14px; z-index: 9999; opacity: 0; transform: translateY(-10px); transition: all .3s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: #ef4444; }
+    footer { text-align: center; padding: 32px 20px; color: var(--text-secondary); font-size: 13px; border-top: 1px solid var(--border); margin-top: 40px; }
+    @media (max-width: 768px) { .editor-layout { flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="/" class="logo">Free ToolBase</a>
+      <a href="/">首页</a>
+      <a href="/en/er-diagram-generator/">English</a>
+    </nav>
+  </header>
+  <main>
+    <h1>ER 图生成器</h1>
+    <p class="desc">使用简洁的文本语法快速生成实体关系图（ER Diagram），支持导出 PNG / SVG。</p>
+    <div class="editor-layout">
+      <div class="editor-pane">
+        <div class="card">
+          <h2>📝 语法输入</h2>
+          <textarea id="codeInput" placeholder="输入ER图语法..."># 电商系统ER图
+
+User {
+  id PK
+  username
+  email
+  created_at
+}
+
+Order {
+  id PK
+  user_id FK
+  total
+  status
+  created_at}
+
+Product {
+  id PK
+  name
+  price
+  stock}
+
+OrderItem {
+  id PK
+  order_id FK
+  product_id FK
+  quantity
+  price}
+
+User ||--o{ Order : places
+Order ||--|{ OrderItem : contains
+Product ||--o{ OrderItem : includes</textarea>
+          <div class="examples">
+            <span style="font-size:12px;color:var(--text-secondary);line-height:22px;">示例:</span>
+            <span class="example-link" data-example="blog">博客系统</span>
+            <span class="example-link" data-example="school">学校管理</span>
+            <span class="example-link" data-example="simple">简单示例</span>
+          </div>
+          <div class="toolbar">
+            <button class="btn btn-primary" id="renderBtn">🔄 生成图表</button>
+          </div>
+        </div>
+      </div>
+      <div class="output-pane">
+        <div class="card">
+          <h2>📊 ER 图</h2>
+          <div class="diagram-svg" id="diagramOutput">
+            <p style="color:var(--text-secondary)">点击"生成图表"渲染</p>
+          </div>
+          <div class="toolbar">
+            <button class="btn btn-secondary" id="downloadSvg">📥 导出 SVG</button>
+            <button class="btn btn-secondary" id="downloadPng">� 导出 PNG</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer><p>&copy; 2026 Free ToolBase · 免费在线工具</p></footer>
+  <div class="toast" id="toast"></div>
+  <script>
+    function showToast(msg, isErr) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast ' + (isErr ? 'error' : '');
+      t.classList.add('show');
+      clearTimeout(t._t);
+      t._t = setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function parseER(text) {
+      const lines = text.split('\n');
+      const entities = [], relations = [];
+      let current = null, currentFields = [];
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+
+        if (trimmed.endsWith('{')) {
+          if (current) entities.push({ name: current, fields: currentFields });
+          current = trimmed.slice(0, -1).trim();
+          currentFields = [];
+        } else if (trimmed === '}') {
+          if (current) entities.push({ name: current, fields: currentFields });
+          current = null;
+          currentFields = [];
+        } else if (current) {
+          const parts = trimmed.split(/\s+/);
+          const field = parts[0];
+          const attrs = parts.slice(1).join(' ');
+          currentFields.push({ name: field, attrs: attrs });
+        } else {
+          // relation line: Entity1 ||--o{ Entity2 : label
+          const relMatch = trimmed.match(/^(\S+)\s+(.+?)\s+(\S+)\s*:?\s*(.*)$/);
+          if (relMatch) {
+            relations.push({
+              from: relMatch[1],
+              type: relMatch[2],
+              to: relMatch[3],
+              label: relMatch[4] || ''
+            });
+          }
+        }
+      }
+      if (current) entities.push({ name: current, fields: currentFields });
+      return { entities, relations };
+    }
+
+    function renderSVG(diagram) {
+      const entities = diagram.entities;
+      const relations = diagram.relations;
+
+      if (entities.length === 0) return '<p>请输入至少一个实体定义。</p>';
+
+      const colW = 220, rowH = 22, padding = 40;
+      const cols = Math.min(entities.length, 4);
+      const svgW = cols * colW + padding * 2;
+      const svgH = Math.ceil(entities.length / cols) * 300 + padding * 2;
+
+      const positions = {};
+      entities.forEach((e, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        positions[e.name] = {
+          x: padding + col * colW + 10,
+          y: padding + row * 280,
+          w: colW - 20,
+          h: (e.fields.length + 1) * rowH + 10
+        };
+      });
+
+      let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" style="font-family: -apple-system, sans-serif; font-size: 12px;">`;
+      svg += `<rect width="100%" height="100%" fill="white"/>`;
+
+      // draw relations (behind entities)
+      relations.forEach(r => {
+        const fromPos = positions[r.from];
+        const toPos = positions[r.to];
+        if (!fromPos || !toPos) return;
+
+        const fx = fromPos.x + fromPos.w / 2;
+        const fy = fromPos.y + fromPos.h / 2;
+        const tx = toPos.x + toPos.w / 2;
+        const ty = toPos.y + toPos.h / 2;
+
+        svg += `<line x1="${fx}" y1="${fy}" x2="${tx}" y2="${ty}" stroke="#94a3b8" stroke-width="1.5"/>`;
+        if (r.label) {
+          const mx = (fx + tx) / 2, my = (fy + ty) / 2;
+          svg += `<text x="${mx}" y="${my - 5}" text-anchor="middle" fill="#64748b" font-size="11">${escapeXml(r.label)}</text>`;
+        }
+
+        // arrowheads
+        const angle = Math.atan2(ty - fy, tx - fx);
+        const arrowSize = 8;
+        svg += `<polygon points="${tx},${ty} ${tx - arrowSize * Math.cos(angle - Math.PI/6)},${ty - arrowSize * Math.sin(angle - Math.PI/6)} ${tx - arrowSize * Math.cos(angle + Math.PI/6)},${ty - arrowSize * Math.sin(angle + Math.PI/6)}" fill="#94a3b8"/>`;
+      });
+
+      // draw entities
+      entities.forEach(e => {
+        const p = positions[e.name];
+        if (!p) return;
+
+        // entity box
+        svg += `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="#f0f9ff" stroke="#0ea5e9" stroke-width="1.5" rx="4"/>`;
+        // header
+        svg += `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${rowH}" fill="#0ea5e9" rx="4"/>`;
+        svg += `<rect x="${p.x}" y="${p.y + rowH/2}" width="${p.w}" height="${rowH/2}" fill="#0ea5e9"/>`;
+        svg += `<text x="${p.x + p.w/2}" y="${p.y + 15}" text-anchor="middle" fill="white" font-weight="bold" font-size="13">${escapeXml(e.name)}</text>`;
+
+        // fields
+        e.fields.forEach((f, fi) => {
+          const fy = p.y + rowH + fi * rowH;
+          svg += `<line x1="${p.x}" y1="${fy}" x2="${p.x + p.w}" y2="${fy}" stroke="#e2e8f0" stroke-width="0.5"/>`;
+          const isPK = f.attrs.includes('PK');
+          const isFK = f.attrs.includes('FK');
+          const prefix = isPK ? '🔑 ' : isFK ? '🔗 ' : '  ';
+          svg += `<text x="${p.x + 8}" y="${fy + 15}" fill="#1e293b" font-size="12">${escapeXml(prefix + f.name)}</text>`;
+          if (f.attrs) {
+            svg += `<text x="${p.x + p.w - 8}" y="${fy + 15}" text-anchor="end" fill="#64748b" font-size="10">${escapeXml(f.attrs.replace('PK','').replace('FK','').trim())}</text>`;
+          }
+        });
+      });
+
+      svg += `</svg>`;
+      return svg;
+    }
+
+    function escapeXml(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderDiagram() {
+      const text = document.getElementById('codeInput').value;
+      const output = document.getElementById('diagramOutput');
+      try {
+        const diagram = parseER(text);
+        const svg = renderSVG(diagram);
+        output.innerHTML = typeof svg === 'string' && svg.startsWith('<svg') ? svg : svg;
+        showToast('图表已生成');
+      } catch (e) {
+        output.innerHTML = `<p style="color:#ef4444">解析错误: ${e.message}</p>`;
+      }
+    }
+
+    function downloadSVG() {
+      const svgEl = document.getElementById('diagramOutput').querySelector('svg');
+      if (!svgEl) { showToast('请先生成图表', true); return; }
+      const blob = new Blob([svgEl.outerHTML], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'er-diagram.svg'; a.click();
+      URL.revokeObjectURL(url);
+      showToast('SVG 已下载');
+    }
+
+    function downloadPNG() {
+      const svgEl = document.getElementById('diagramOutput').querySelector('svg');
+      if (!svgEl) { showToast('请先生成图表', true); return; }
+      const svgData = new XMLSerializer().serializeToString(svgEl);
+      const canvas = document.createElement('canvas');
+      const w = parseInt(svgEl.getAttribute('width'));
+      const h = parseInt(svgEl.getAttribute('height'));
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.onload = () => {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob(blob => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'er-diagram.png'; a.click();
+          URL.revokeObjectURL(url);
+          showToast('PNG 已下载');
+        }, 'image/png');
+      };
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+    }
+
+    const examples = {
+      simple: '# 简单ER图\nUser {\n  id PK\n  name\n  email\n}\n\nPost {\n  id PK\n  user_id FK\n  title\n  content\n}\n\nUser ||--o{ Post : writes',
+      blog: '# 博客系统\nUser {\n  id PK\n  username\n  email\n  avatar\n}\n\nPost {\n  id PK\n  author_id FK\n  title\n  body\n  published_at\n}\n\nComment {\n  id PK\n  post_id FK\n  user_id FK\n  content\n  created_at\n}\n\nTag {\n  id PK\n  name\n}\n\nPostTag {\n  post_id FK\n  tag_id FK\n}\n\nUser ||--o{ Post : authors\nPost ||--o{ Comment : has\nUser ||--o{ Comment : writes\nPost ||--o{ PostTag : tagged\nTag ||--o{ PostTag : belongs',
+      school: '# 学校管理系统\nStudent {\n  id PK\n  name\n  email\n  grade\n}\n\nCourse {\n  id PK\n  name\n  teacher_id FK\n  credits\n}\n\nTeacher {\n  id PK\n  name\n  department\n}\n\nEnrollment {\n  id PK\n  student_id FK\n  course_id FK\n  score\n}\n\nStudent ||--o{ Enrollment : enrolls\nCourse ||--o{ Enrollment : has\nTeacher ||--o{ Course : teaches'
+    };
+
+    document.getElementById('renderBtn').addEventListener('click', renderDiagram);
+    document.getElementById('downloadSvg').addEventListener('click', downloadSVG);
+    document.getElementById('downloadPng').addEventListener('click', downloadPNG);
+    document.querySelectorAll('.example-link').forEach(el => {
+      el.addEventListener('click', () => {
+        const key = el.dataset.example;
+        if (examples[key]) document.getElementById('codeInput').value = examples[key];
+        renderDiagram();
+      });
+    });
+    renderDiagram();
+  </script>
+</body>
+</html>
