@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free Online Audio Visualizer - Music Spectrum Visualizer | Free ToolBase</title>
+  <meta name="description" content="Free online audio visualizer with real-time spectrum display. Supports microphone input and local audio files. Multiple styles: bars, waveform, particles. No download needed.">
+  <meta property="og:title" content="Free Online Audio Visualizer - Music Spectrum">
+  <meta property="og:description" content="Real-time audio spectrum visualization. Supports microphone and audio files, multiple stunning styles.">
+  <meta property="og:type" content="website">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://free-toolbase.com/en/audio-visualizer/">
+  <link rel="alternate" hreflang="zh-CN" href="https://free-toolbase.com/audio-visualizer/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Audio Visualizer",
+    "description": "Free online audio visualizer with real-time spectrum display. Supports microphone input and local audio files, multiple visualization styles.",
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "Web Browser",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <style>
+    :root {
+      --primary: #8B5CF6;
+      --primary-hover: #7C3AED;
+      --bg: #0f0f23;
+      --card-bg: #1a1a2e;
+      --text: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --border: #2d2d5e;
+      --shadow: 0 4px 24px rgba(139,92,246,0.15);
+      --radius: 16px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .header .logo { font-size: 1.25rem; font-weight: 700; color: var(--primary); text-decoration: none; }
+    .header .logo span { color: var(--text); }
+    .container { max-width: 800px; margin: 0 auto; padding: 24px 16px 40px; flex: 1; width: 100%; }
+    h1 { font-size: 1.5rem; font-weight: 700; text-align: center; margin-bottom: 4px; }
+    .subtitle { text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px; }
+
+    .viz-container {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 280px;
+      border-radius: 12px;
+      background: #0a0a1a;
+    }
+    @media(max-width:640px){ canvas { height: 200px; } }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+      justify-content: center;
+    }
+    .btn {
+      padding: 8px 18px; border: none; border-radius: 10px; cursor: pointer;
+      font-size: 0.9rem; font-weight: 600; transition: all 0.2s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-outline { background: transparent; border: 2px solid var(--border); color: var(--text); }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-outline.active { border-color: var(--primary); color: var(--primary); background: rgba(139,92,246,0.1); }
+
+    .source-section {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+    .source-section h3 { font-size: 1rem; margin-bottom: 12px; }
+    .source-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .file-input { display: none; }
+    .file-label {
+      padding: 8px 18px; border: 2px dashed var(--border); border-radius: 10px;
+      cursor: pointer; font-size: 0.9rem; color: var(--text-secondary);
+      transition: all 0.2s; text-align: center;
+    }
+    .file-label:hover { border-color: var(--primary); color: var(--primary); }
+
+    .footer { text-align: center; padding: 16px; color: var(--text-secondary); font-size: 0.8rem; border-top: 1px solid var(--border); }
+    .footer a { color: var(--primary); text-decoration: none; }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #2d2d5e; color: #fff; padding: 10px 24px; border-radius: 10px;
+      font-size: 0.9rem; opacity: 0; transition: opacity 0.3s; z-index: 999; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <a href="/en/" class="logo">Free <span>ToolBase</span></a>
+  </header>
+
+  <main class="container">
+    <h1>Audio Visualizer</h1>
+    <p class="subtitle">Real-time audio spectrum visualization - supports microphone & audio files</p>
+
+    <div class="source-section">
+      <h3>Audio Source</h3>
+      <div class="source-row">
+        <button class="btn btn-primary" id="micBtn">Use Microphone</button>
+        <label class="file-label" for="fileInput">Choose Audio File</label>
+        <input type="file" id="fileInput" class="file-input" accept="audio/*">
+        <button class="btn btn-outline" id="stopBtn" style="display:none;">Stop</button>
+      </div>
+    </div>
+
+    <div class="viz-container">
+      <canvas id="vizCanvas"></canvas>
+      <div class="controls">
+        <button class="btn btn-outline active" data-mode="bars">Bars</button>
+        <button class="btn btn-outline" data-mode="wave">Wave</button>
+        <button class="btn btn-outline" data-mode="particles">Particles</button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>&copy; 2026 <a href="/en/">Free ToolBase</a> · Free Online Tools</p>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const canvas = document.getElementById('vizCanvas');
+    const ctx = canvas.getContext('2d');
+    const micBtn = document.getElementById('micBtn');
+    const fileInput = document.getElementById('fileInput');
+    const stopBtn = document.getElementById('stopBtn');
+    const toast = document.getElementById('toast');
+    const modeBtns = document.querySelectorAll('[data-mode]');
+
+    let audioContext = null;
+    let analyser = null;
+    let source = null;
+    let animationId = null;
+    let mode = 'bars';
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(function() { toast.classList.remove('show'); }, 2500);
+    }
+
+    function resizeCanvas() {
+      var rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * (window.devicePixelRatio || 1);
+      canvas.height = rect.height * (window.devicePixelRatio || 1);
+    }
+
+    function initAudioContext() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+      }
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+    }
+
+    function stopSource() {
+      if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+      if (source) {
+        try { source.disconnect(); } catch(e) {}
+        source = null;
+      }
+      micBtn.style.display = '';
+      fileInput.value = '';
+      stopBtn.style.display = 'none';
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function startVisualization() {
+      if (!analyser) return;
+      resizeCanvas();
+
+      var bufferLength = analyser.frequencyBinCount;
+      var dataArray = new Uint8Array(bufferLength);
+
+      function draw() {
+        animationId = requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(dataArray);
+
+        var w = canvas.width;
+        var h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        if (mode === 'bars') {
+          var barWidth = (w / bufferLength) * 2.5;
+          var gap = 2;
+          for (var i = 0; i < bufferLength; i++) {
+            var barHeight = (dataArray[i] / 255) * h;
+            var x = i * (barWidth + gap);
+            var hue = (i / bufferLength) * 300;
+            ctx.fillStyle = 'hsl(' + hue + ', 80%, 60%)';
+            ctx.fillRect(x, h - barHeight, barWidth, barHeight);
+          }
+        } else if (mode === 'wave') {
+          ctx.beginPath();
+          ctx.lineWidth = 2;
+          var sliceWidth = w / bufferLength;
+          for (var i = 0; i < bufferLength; i++) {
+            var v = dataArray[i] / 255;
+            var y = (h / 2) - (v * h / 2) + (h / 4);
+            var x = i * sliceWidth;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          var gradient = ctx.createLinearGradient(0, 0, w, 0);
+          gradient.addColorStop(0, '#8B5CF6');
+          gradient.addColorStop(0.5, '#EC4899');
+          gradient.addColorStop(1, '#06B6D4');
+          ctx.strokeStyle = gradient;
+          ctx.stroke();
+        } else if (mode === 'particles') {
+          for (var i = 0; i < bufferLength; i += 2) {
+            var pv = dataArray[i] / 255;
+            var px = (i / bufferLength) * w;
+            var py = h / 2;
+            var radius = pv * 40 + 2;
+            var hue = (i / bufferLength) * 360;
+            ctx.beginPath();
+            ctx.arc(px, py, radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'hsla(' + hue + ', 80%, 60%, 0.8)';
+            ctx.fill();
+          }
+        }
+      }
+      draw();
+    }
+
+    micBtn.addEventListener('click', function() {
+      initAudioContext();
+      stopSource();
+
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+        source = audioContext.createMediaStreamSource(stream);
+        source.connect(analyser);
+        startVisualization();
+        micBtn.style.display = 'none';
+        stopBtn.style.display = '';
+        showToast('Microphone connected');
+      }).catch(function() {
+        showToast('Cannot access microphone. Please check permissions.');
+      });
+    });
+
+    fileInput.addEventListener('change', function() {
+      var file = fileInput.files[0];
+      if (!file) return;
+      initAudioContext();
+      stopSource();
+
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        audioContext.decodeAudioData(e.target.result, function(buffer) {
+          source = audioContext.createBufferSource();
+          source.buffer = buffer;
+          source.connect(analyser);
+          analyser.connect(audioContext.destination);
+          source.start(0);
+          startVisualization();
+          micBtn.style.display = 'none';
+          stopBtn.style.display = '';
+          showToast('Playing: ' + file.name);
+        }, function() {
+          showToast('Cannot decode audio file');
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    stopBtn.addEventListener('click', function() {
+      stopSource();
+      showToast('Stopped');
+    });
+
+    modeBtns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        modeBtns.forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        mode = btn.getAttribute('data-mode');
+      });
+    });
+
+    resizeCanvas();
+    window.addEventListener('resize', function() {
+      if (analyser && source) {
+        resizeCanvas();
+      }
+    });
+  </script>
+</body>
+</html>
