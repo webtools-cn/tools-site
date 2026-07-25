@@ -1,0 +1,146 @@
+#!/usr/bin/env python3
+"""批量创建工具2-7：中文版"""
+import os, json
+
+BASE = '/home/chison/tools-site'
+
+def css_base():
+    return '''*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:960px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.panel{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.panel-title{font-size:1.1rem;color:#f1f5f9;margin-bottom:14px;font-weight:600}
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.9rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.35);transform:translateY(-1px)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+.btn-large{padding:12px 32px;font-size:1.1rem;font-weight:600}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+.input-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.input-row input{padding:10px 12px;border:1px solid rgba(148,163,184,.2);border-radius:8px;background:#0f172a;color:#e2e8f0;font-size:.9rem;min-width:180px;transition:border-color .2s}
+.input-row input:focus{outline:none;border-color:#06b6d4}
+.faq-item{margin-bottom:16px;border-bottom:1px solid rgba(148,163,184,.1);padding-bottom:16px}
+.faq-item:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.faq-q{font-weight:600;color:#f1f5f9;margin-bottom:6px}
+.faq-a{color:#94a3b8;font-size:.9rem}
+.privacy-note{background:rgba(6,182,212,.05);border:1px solid rgba(6,182,212,.15);border-radius:8px;padding:12px 16px;font-size:.85rem;color:#94a3b8;margin-top:16px;display:flex;align-items:center;gap:8px}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:48px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#64748b;margin:0 8px}
+.hero{margin-bottom:20px}
+.hero p{color:#94a3b8;font-size:.95rem;line-height:1.7}
+.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:600;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.2);margin-top:8px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+@media(max-width:640px){.header h1{font-size:1.3rem}}'''
+
+def head(slug, cn_name, cn_desc, cn_keywords):
+    meta_desc = cn_desc if len(cn_desc)<=160 else cn_desc[:157]+'...'
+    return f'''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script>window.addEventListener("error",function(e){{if(e&&e.message===""){{e.preventDefault();}}}});window.addEventListener("unhandledrejection",function(e){{if(e&&e.reason&&e.reason.message===""){{e.preventDefault();}}}});</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="{meta_desc}">
+<meta name="keywords" content="{cn_keywords}">
+<title>{cn_name} - Free ToolBase</title>
+<link rel="canonical" href="https://free-toolbase.com/{slug}/">
+<meta property="og:title" content="{cn_name} - Free ToolBase">
+<meta property="og:description" content="{meta_desc}">
+<meta property="og:url" content="https://free-toolbase.com/{slug}/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Free ToolBase">
+<link rel="alternate" hreflang="zh" href="https://free-toolbase.com/{slug}/">
+<link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/{slug}/">
+<link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/{slug}/">
+<script type="application/ld+json">{{"@context":"https://schema.org","@type":"SoftwareApplication","name":"{cn_name}","description":"{cn_desc}","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","publisher":{{"@type":"Organization","name":"Free ToolBase","email":"dexshuang@google.com"}},"offers":{{"@type":"Offer","price":"0","priceCurrency":"USD"}}}}</script>
+'''
+
+def faq_schema(faqs):
+    items = ','.join([f'{{"@type":"Question","name":"{q}","acceptedAnswer":{{"@type":"Answer","text":"{a}"}}}}' for q,a in faqs])
+    return f'<script type="application/ld+json">{{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{items}]}}</script>'
+
+def breadcrumb(cn_name, slug):
+    return f'<script type="application/ld+json">{{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{{"@type":"ListItem","position":1,"name":"首页","item":"https://free-toolbase.com/"}},{{"@type":"ListItem","position":2,"name":"工具","item":"https://free-toolbase.com/#tools"}},{{"@type":"ListItem","position":3,"name":"{cn_name}","item":"https://free-toolbase.com/{slug}/"}}]}}</script>'
+
+def faq_html(faqs):
+    return ''.join([f'<div class="faq-item"><div class="faq-q">{q}</div><div class="faq-a">{a}</div></div>\n' for q,a in faqs])
+
+def footer_html():
+    return '<div class="footer"><a href="../">首页</a> | <a href="../about/">关于</a> | <a href="../contact/">联系</a> | <a href="../privacy/">隐私</a><br>© 2026 Free ToolBase. All rights reserved.</div>'
+
+def body_top(slug, cn_icon, cn_name, cn_desc):
+    return f'''<body>
+<div class="container">
+<div class="header"><h1>{cn_icon} {cn_name}</h1><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/{slug}/">EN</a></div></div>
+<p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../#tools">工具</a> &rsaquo; {cn_name}</p>
+<div class="hero"><p>{cn_desc} <span class="badge">🔒 无需注册 · 数据绝不上传</span></p></div>
+<div class="panel">
+  <div class="panel-title">{cn_icon} {cn_name}</div>'''
+
+def body_bottom(cn_name, faqs):
+    return f'''</div>
+<div class="privacy-note">🔒 <span>所有处理均在浏览器本地完成，数据不会上传到服务器。</span></div>
+<div class="panel">
+  <div class="panel-title">❓ 常见问题</div>
+{faq_html(faqs)}</div>
+{footer_html()}
+</div>
+<div class="toast" id="toast"></div>
+<script>
+function showToast(msg){{var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){{t.classList.remove('show')}},2000)}}
+'''
+
+def make(slug, cn_icon, cn_name, cn_desc, cn_keywords, extra_css, controls, faqs, js_logic):
+    h = head(slug, cn_name, cn_desc, cn_keywords)
+    s = faq_schema(faqs)
+    b = breadcrumb(cn_name, slug)
+    c = f'<style>\n{css_base()}\n{extra_css}\n</style>\n</head>\n'
+    t = body_top(slug, cn_icon, cn_name, cn_desc)
+    m = controls
+    e = body_bottom(cn_name, faqs)
+    j = f'{js_logic}\n</script>\n</body>\n</html>'
+    return h + s + b + c + t + m + e + j
+
+# =================== 工具定义 ===================
+
+# 2. speaker-test
+make('speaker-test', '🔊', '扬声器测试',
+  '免费在线扬声器/耳机测试工具，检测左右声道、频率响应和立体声效果。无需安装，打开即用。',
+  '扬声器测试,音响测试,耳机测试,声道测试,立体声测试,在线测试,免费',
+  '''.test-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.test-buttons .btn{justify-content:center;padding:16px}
+.status-text{text-align:center;color:#22d3ee;font-size:1rem;margin-top:12px;min-height:24px}''',
+  '''<div class="test-buttons">
+    <button class="btn btn-primary btn-large" id="testLeft">🔊 测试左声道</button>
+    <button class="btn btn-primary btn-large" id="testRight">🔊 测试右声道</button>
+    <button class="btn btn-primary btn-large" id="testBoth">🔊 测试双声道</button>
+    <button class="btn btn-primary btn-large" id="testSweep">📈 频率扫描</button>
+  </div>
+  <div class="btn-row"><button class="btn btn-secondary" id="stopBtn">⏹ 停止</button></div>
+  <div id="statusText" class="status-text">点击按钮开始测试</div>''',
+  [('如何测试扬声器？','分别点击左声道、右声道按钮确认每个声道是否正常发声。频率扫描可以检测扬声器在不同频率下的表现，帮助发现破音或失真问题。'),
+   ('需要安装软件吗？','不需要！使用浏览器Web Audio API，直接在网页中生成测试音频信号，无需安装任何软件或插件。'),
+   ('为什么听不到声音？','请检查：1)设备音量是否开启；2)是否处于静音模式；3)浏览器是否被系统静音。部分浏览器需要用户先点击页面才能播放音频。')],
+  '''var ctx=null,osc=null,gain=null,stopped=false;
+function initAudio(){if(!ctx){ctx=new(window.AudioContext||window.webkitAudioContext)();gain=ctx.createGain();gain.connect(ctx.destination);gain.gain.value=0.3}}
+function stopAll(){stopped=true;if(osc){try{osc.stop()}catch(e){}osc=null};document.getElementById('statusText').textContent='已停止'}
+function playTone(freq,pan,cb){initAudio();stopAll();stopped=false;osc=ctx.createOscillator();var p=ctx.createStereoPanner();osc.type='sine';osc.frequency.value=freq;p.pan.value=pan;osc.connect(p);p.connect(gain);osc.start();osc.onended=function(){if(cb&&!stopped)cb()};document.getElementById('statusText').textContent='播放中: '+freq+'Hz'}
+document.getElementById('testLeft').addEventListener('click',function(){playTone(440,-1,function(){document.getElementById('statusText').textContent='左声道测试完成'})});
+document.getElementById('testRight').addEventListener('click',function(){playTone(440,1,function(){document.getElementById('statusText').textContent='右声道测试完成'})});
+document.getElementById('testBoth').addEventListener('click',function(){playTone(440,0,function(){document.getElementById('statusText').textContent='双声道测试完成'})});
+document.getElementById('testSweep').addEventListener('click',function(){initAudio();stopAll();stopped=false;osc=ctx.createOscillator();var p=ctx.createStereoPanner();osc.type='sine';osc.frequency.value=100;p.pan.value=0;osc.connect(p);p.connect(gain);osc.start();osc.frequency.linearRampToValueAtTime(8000,ctx.currentTime+3);osc.onended=function(){document.getElementById('statusText').textContent='频率扫描完成'};document.getElementById('statusText').textContent='频率扫描中: 100Hz → 8000Hz';setTimeout(function(){try{osc.stop()}catch(e){}},3000)});
+document.getElementById('stopBtn').addEventListener('click',stopAll);''')
+
+print("speaker-test done")
+print("OK")

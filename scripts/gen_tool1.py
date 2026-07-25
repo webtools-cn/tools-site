@@ -1,0 +1,146 @@
+#!/usr/bin/env python3
+"""工具1: memory-game 记忆翻牌游戏 - 中文版"""
+html = '''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="免费在线记忆翻牌游戏，锻炼记忆力和专注力。多种难度可选，适合各年龄段。无需注册，数据不上传。">
+<meta name="keywords" content="记忆翻牌,记忆游戏,记忆训练,翻牌游戏,脑力训练,在线游戏,免费">
+<title>记忆翻牌游戏 - Free ToolBase</title>
+<link rel="canonical" href="https://free-toolbase.com/memory-game/">
+<meta property="og:title" content="记忆翻牌游戏 - Free ToolBase">
+<meta property="og:description" content="免费在线记忆翻牌游戏，锻炼记忆力和专注力。多种难度可选，适合各年龄段。无需注册，数据不上传。">
+<meta property="og:url" content="https://free-toolbase.com/memory-game/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Free ToolBase">
+<link rel="alternate" hreflang="zh" href="https://free-toolbase.com/memory-game/">
+<link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/memory-game/">
+<link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/memory-game/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"记忆翻牌游戏","description":"免费在线记忆翻牌游戏，锻炼记忆力和专注力。多种难度可选，适合各年龄段。无需注册，数据不上传。","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","publisher":{"@type":"Organization","name":"Free ToolBase","email":"dexshuang@google.com"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"记忆翻牌游戏有什么好处？","acceptedAnswer":{"@type":"Answer","text":"记忆翻牌游戏可以锻炼短期记忆、注意力和专注力，适合各年龄段进行脑力训练。研究表明定期玩记忆游戏有助于保持大脑活跃。"}},{"@type":"Question","name":"支持哪些难度等级？","acceptedAnswer":{"@type":"Answer","text":"提供三个难度等级：简单(4×4=8对)、中等(6×6=18对)和困难(8×8=32对)。建议从简单开始，逐步挑战更高难度。"}},{"@type":"Question","name":"游戏规则是什么？","acceptedAnswer":{"@type":"Answer","text":"点击翻开两张卡片，如果图案相同则配对成功并保留翻开状态；如果不同则自动翻回。目标是记住每张卡片的位置，用最少的步数完成所有配对。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://free-toolbase.com/"},{"@type":"ListItem","position":2,"name":"工具","item":"https://free-toolbase.com/#tools"},{"@type":"ListItem","position":3,"name":"记忆翻牌游戏","item":"https://free-toolbase.com/memory-game/"}]}</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:960px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.nav-back a{color:#64748b}
+.panel{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.panel-title{font-size:1.1rem;color:#f1f5f9;margin-bottom:14px;font-weight:600}
+.game-info{text-align:center;margin-bottom:16px;font-size:1rem;color:#94a3b8}
+.game-info strong{color:#22d3ee;font-size:1.2rem}
+.difficulty-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.diff-btn{padding:8px 18px;border:1px solid rgba(148,163,184,.2);border-radius:8px;background:#0f172a;color:#94a3b8;cursor:pointer;font-size:.85rem;transition:all .2s}
+.diff-btn.active{border-color:#06b6d4;background:rgba(6,182,212,.15);color:#22d3ee}
+.diff-btn:hover{border-color:#06b6d4}
+.card-grid{display:grid;gap:8px;margin:16px auto;max-width:600px}
+.card-grid.col4{grid-template-columns:repeat(4,1fr)}
+.card-grid.col6{grid-template-columns:repeat(6,1fr)}
+.card-grid.col8{grid-template-columns:repeat(8,1fr)}
+.card{aspect-ratio:1;background:#1e293b;border:2px solid rgba(148,163,184,.15);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:2rem;transition:all .2s;user-select:none}
+.card:hover{border-color:rgba(6,182,212,.3);transform:scale(1.03)}
+.card.flipped{background:rgba(6,182,212,.15);border-color:#06b6d4;color:#22d3ee}
+.card.matched{background:rgba(34,197,94,.15);border-color:#22c55e;color:#4ade80;cursor:default}
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.9rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.35)}
+.btn-large{padding:12px 32px;font-size:1.1rem;font-weight:600}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+.faq-item{margin-bottom:16px;border-bottom:1px solid rgba(148,163,184,.1);padding-bottom:16px}
+.faq-item:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.faq-q{font-weight:600;color:#f1f5f9;margin-bottom:6px}
+.faq-a{color:#94a3b8;font-size:.9rem}
+.privacy-note{background:rgba(6,182,212,.05);border:1px solid rgba(6,182,212,.15);border-radius:8px;padding:12px 16px;font-size:.85rem;color:#94a3b8;margin-top:16px;display:flex;align-items:center;gap:8px}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:48px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#64748b;margin:0 8px}
+.hero{margin-bottom:20px}
+.hero p{color:#94a3b8;font-size:.95rem;line-height:1.7}
+.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:600;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.2);margin-top:8px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+@media(max-width:640px){.header h1{font-size:1.3rem}.card{font-size:1.5rem}.card-grid.col8{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header"><h1>🧠 记忆翻牌游戏</h1><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/memory-game/">EN</a></div></div>
+<p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../#tools">工具</a> &rsaquo; 记忆翻牌游戏</p>
+<div class="hero"><p>免费在线记忆翻牌游戏，锻炼记忆力和专注力。多种难度可选，适合各年龄段。 <span class="badge">🔒 无需注册 · 数据绝不上传</span></p></div>
+<div class="panel">
+  <div class="panel-title">🧠 记忆翻牌游戏</div>
+  <div class="game-info">得分: <strong id="score">0</strong> | 步数: <strong id="moves">0</strong></div>
+  <div class="difficulty-row">
+    <button class="diff-btn active" data-size="4">简单 (4×4)</button>
+    <button class="diff-btn" data-size="6">中等 (6×6)</button>
+    <button class="diff-btn" data-size="8">困难 (8×8)</button>
+  </div>
+  <div class="card-grid col4" id="cardGrid"></div>
+  <div class="btn-row"><button class="btn btn-primary btn-large" id="restartBtn">🔄 重新开始</button></div>
+</div>
+<div class="privacy-note">🔒 <span>所有处理均在浏览器本地完成，数据不会上传到服务器。</span></div>
+<div class="panel">
+  <div class="panel-title">❓ 常见问题</div>
+  <div class="faq-item"><div class="faq-q">记忆翻牌游戏有什么好处？</div><div class="faq-a">记忆翻牌游戏可以锻炼短期记忆、注意力和专注力，适合各年龄段进行脑力训练。研究表明定期玩记忆游戏有助于保持大脑活跃。</div></div>
+  <div class="faq-item"><div class="faq-q">支持哪些难度等级？</div><div class="faq-a">提供三个难度等级：简单(4×4=8对)、中等(6×6=18对)和困难(8×8=32对)。建议从简单开始，逐步挑战更高难度。</div></div>
+  <div class="faq-item"><div class="faq-q">游戏规则是什么？</div><div class="faq-a">点击翻开两张卡片，如果图案相同则配对成功并保留翻开状态；如果不同则自动翻回。目标是记住每张卡片的位置，用最少的步数完成所有配对。</div></div>
+</div>
+<div class="footer"><a href="../">首页</a> | <a href="../about/">关于</a> | <a href="../contact/">联系</a> | <a href="../privacy/">隐私</a><br>© 2026 Free ToolBase. All rights reserved.</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+var emojis=['🍎','🍊','🍋','🍇','🍓','🍒','🥝','🍑','🌸','🌻','🌺','💎','⭐','🌈','🔥','🎵','🦊','🐱','🐶','🐼','🐨','🐸','🦄','🐙','🚀','🌍','🎨','🎮','🎯','🎪','🎲','🎸'];
+var size=4, score=0, moves=0, flipped=[], matched=new Set(), lock=false;
+
+function initGame(s){
+  size=s; score=0; moves=0; flipped=[]; matched=new Set(); lock=false;
+  document.getElementById('score').textContent=score;
+  document.getElementById('moves').textContent=moves;
+  var grid=document.getElementById('cardGrid');
+  grid.className='card-grid col'+size;
+  var total=size*size;
+  var selected=[];
+  for(var i=0;i<total/2;i++){selected.push(emojis[i%emojis.length])}
+  selected=selected.concat(selected);
+  for(var i=selected.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=selected[i];selected[i]=selected[j];selected[j]=tmp}
+  grid.innerHTML='';
+  for(var i=0;i<total;i++){
+    var card=document.createElement('div');
+    card.className='card'; card.dataset.index=i; card.dataset.emoji=selected[i];
+    card.textContent='?'; card.addEventListener('click',function(){flipCard(this)});
+    grid.appendChild(card);
+  }
+}
+function flipCard(card){
+  if(lock || card.classList.contains('flipped') || card.classList.contains('matched'))return;
+  card.classList.add('flipped'); card.textContent=card.dataset.emoji;
+  flipped.push(card);
+  if(flipped.length===2){
+    moves++; document.getElementById('moves').textContent=moves;
+    if(flipped[0].dataset.emoji===flipped[1].dataset.emoji){
+      flipped[0].classList.add('matched'); flipped[1].classList.add('matched');
+      score+=10; document.getElementById('score').textContent=score;
+      matched.add(flipped[0].dataset.index); matched.add(flipped[1].dataset.index);
+      flipped=[];
+      if(matched.size===size*size){showToast('🎉 恭喜通关！得分: '+score+' 步数: '+moves)}
+    }else{lock=true;setTimeout(function(){flipped[0].classList.remove('flipped');flipped[0].textContent='?';flipped[1].classList.remove('flipped');flipped[1].textContent='?';flipped=[];lock=false},800)}
+  }
+}
+document.querySelectorAll('.diff-btn').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.diff-btn').forEach(function(x){x.classList.remove('active')});this.classList.add('active');initGame(parseInt(this.dataset.size))})});
+document.getElementById('restartBtn').addEventListener('click',function(){initGame(size)});
+initGame(4);
+</script>
+</body>
+</html>'''
+with open('/home/chison/tools-site/memory-game/index.html','w') as f: f.write(html)
+print("memory-game CN OK")

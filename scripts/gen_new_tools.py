@@ -1,521 +1,356 @@
 #!/usr/bin/env python3
-"""批量生成5个新工具：中英文双语"""
+"""批量创建10个新工具：中文版+英文版+更新首页"""
+import os, json, sys
 
-import os, json
-
-SITE_DIR = '/home/chison/tools-site'
+TOOLS_DIR = "/home/chison/tools-site"
 
 TOOLS = [
     {
-        "slug": "words-to-numbers",
-        "name_zh": "英文数字转换器",
-        "name_en": "Words to Numbers Converter",
-        "desc_zh": "免费在线英文数字转换工具，将英文单词数字（如\"five hundred twenty-three\"）转换为阿拉伯数字（523），支持百万级别，无需注册，文本不上传服务器。",
-        "desc_en": "Free online words to numbers converter. Convert English number words (e.g. \"five hundred twenty-three\") to digits (523). Supports millions. No registration, text never leaves your browser.",
-        "keywords_zh": "英文数字转换,单词转数字,words to numbers,在线工具",
-        "keywords_en": "words to numbers,number converter,english to number,online tool",
-        "category": "text-tools",
-        "category_zh": "文本工具",
-        "category_en": "Text Tools",
-        "badge_zh": "零依赖·可离线使用",
-        "badge_en": "Zero dependency · Works offline",
-        "icon": "🔢",
-        "ui_type": "converter",
-        "input_label_zh": "输入英文数字",
-        "input_label_en": "Enter number words",
-        "input_placeholder_zh": "例如: five hundred twenty-three",
-        "input_placeholder_en": "e.g. five hundred twenty-three",
-        "output_label_zh": "转换结果",
-        "output_label_en": "Result",
-        "seo_zh": "英文数字转换器是一款免费在线工具，帮助用户将英文单词数字快速转换为阿拉伯数字。支持从个位到百万级别（million）的转换，支持\"and\"连接词，支持\"hundred\"、\"thousand\"等量词。无论是学习英语、阅读英文文档还是编程需求，都能快速获取准确的数字转换结果。",
-        "seo_en": "Words to Numbers Converter is a free online tool that converts English number words to Arabic digits. Supports conversions from ones to millions, handles \"and\" connectors, and recognizes \"hundred\", \"thousand\", \"million\" quantifiers. Perfect for English learners, document readers, and developers.",
-        "faq_zh": [
-            ("支持多大的数字？", "支持从个位到百万级别（million）的英文数字转换。如\"nine hundred ninety-nine million nine hundred ninety-nine thousand nine hundred ninety-nine\"可转换为999,999,999。"),
-            ("支持\"and\"连接词吗？", "完全支持。\"one hundred and twenty-three\" 和 \"one hundred twenty-three\" 都会正确转换为123。"),
-            ("支持小数吗？", "支持带\"point\"的小数，如\"three point one four\"转换为3.14。"),
-            ("数据安全吗？", "所有处理在浏览器本地完成，输入文本不上传服务器。关闭页面后数据自动清除。"),
-            ("支持负数吗？", "支持。输入\"minus twenty\"或\"negative twenty\"会转换为-20。"),
-        ],
-        "faq_en": [
-            ("What is the maximum number supported?", "Supports up to millions (999,999,999). The converter handles 'million', 'thousand', and 'hundred' quantifiers."),
-            ("Does it support 'and' connectors?", "Yes. Both 'one hundred and twenty-three' and 'one hundred twenty-three' correctly convert to 123."),
-            ("Does it support decimals?", "Yes, supports decimals with 'point', e.g. 'three point one four' → 3.14."),
-            ("Is my data safe?", "All processing happens locally in your browser. No text is uploaded to any server."),
-            ("Does it support negative numbers?", "Yes. 'minus twenty' or 'negative twenty' converts to -20."),
-        ],
-        "js_code": """
-// words-to-numbers core logic
-const ONES = {zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19};
-const TENS = {twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
-const MULT = {hundred:100,thousand:1000,million:1000000};
-
-function wordsToNumber(s) {
-  s = s.toLowerCase().replace(/-/g, ' ').replace(/ and /g, ' ').trim();
-  if (!s) return '';
-  // handle negative
-  let neg = false;
-  if (s.startsWith('minus ') || s.startsWith('negative ')) { neg = true; s = s.replace(/^(minus|negative) /, ''); }
-  // handle decimal
-  if (s.includes(' point ')) {
-    let parts = s.split(' point ');
-    let whole = wordsToInt(parts[0]);
-    let frac = parts[1].split(' ').map(w => ONES[w] !== undefined ? ONES[w] : '').join('');
-    let result = parseFloat(whole + '.' + frac);
-    return neg ? -result : result;
-  }
-  let result = wordsToInt(s);
-  return neg ? -result : result;
-}
-
-function wordsToInt(s) {
-  if (ONES[s] !== undefined) return ONES[s];
-  if (TENS[s] !== undefined) return TENS[s];
-  let parts = s.split(' ');
-  let total = 0, current = 0;
-  for (let w of parts) {
-    if (ONES[w] !== undefined) { current += ONES[w]; }
-    else if (TENS[w] !== undefined) { current += TENS[w]; }
-    else if (w === 'hundred') { current *= 100; }
-    else if (w === 'thousand') { total += current * 1000; current = 0; }
-    else if (w === 'million') { total += current * 1000000; current = 0; }
-    else { return 'Invalid: ' + w; }
-  }
-  return total + current;
-}
-
-function convert() {
-  var input = document.getElementById('wt-input').value.trim();
-  var result = wordsToNumber(input);
-  document.getElementById('wt-output').textContent = result !== '' ? result.toLocaleString() : '';
-}
-""",
+        "slug": "memory-game",
+        "cn_name": "记忆翻牌游戏",
+        "en_name": "Memory Card Game",
+        "cn_desc": "免费在线记忆翻牌游戏，锻炼记忆力和专注力。多种难度可选，适合各年龄段。无需注册，数据不上传。",
+        "en_desc": "Free online memory card flip game. Train your memory and focus with multiple difficulty levels. No registration required.",
+        "category": "fun-tools",
+        "cn_icon": "🧠",
+        "en_icon": "🧠",
+        "cn_keywords": "记忆翻牌,记忆游戏,记忆训练,翻牌游戏,脑力训练,在线游戏,免费",
+        "en_keywords": "memory game,card flip,brain training,memory training,online game,free",
     },
     {
-        "slug": "date-converter",
-        "name_zh": "日期格式转换器",
-        "name_en": "Date Format Converter",
-        "desc_zh": "免费在线日期格式转换工具，支持ISO 8601、Unix时间戳、美式/欧式日期、中文日期等格式互转，实时计算日期差值，无需注册。",
-        "desc_en": "Free online date format converter. Convert between ISO 8601, Unix timestamps, US/EU date formats, and more. Calculate date differences in real-time. No registration required.",
-        "keywords_zh": "日期转换,时间戳转换,日期格式,unix时间戳,在线工具",
-        "keywords_en": "date converter,timestamp converter,date format,unix timestamp,online tool",
-        "category": "text-tools",
-        "category_zh": "文本工具",
-        "category_en": "Text Tools",
-        "badge_zh": "零依赖·可离线使用",
-        "badge_en": "Zero dependency · Works offline",
-        "icon": "📅",
-        "ui_type": "converter",
-        "input_label_zh": "输入日期或时间戳",
-        "input_label_en": "Enter date or timestamp",
-        "input_placeholder_zh": "例如: 2026-07-25 或 1753300000",
-        "input_placeholder_en": "e.g. 2026-07-25 or 1753300000",
-        "output_label_zh": "所有格式",
-        "output_label_en": "All formats",
-        "seo_zh": "日期格式转换器是一款免费在线工具，支持ISO 8601、Unix时间戳（秒/毫秒）、美式日期（MM/DD/YYYY）、欧式日期（DD/MM/YYYY）、中文日期、RFC 2822、相对时间等多种格式互转。自动识别输入格式，一键获取所有格式输出。适用于开发者调试、国际业务沟通、数据迁移等场景。",
-        "seo_en": "Date Format Converter is a free online tool supporting ISO 8601, Unix timestamps (seconds/milliseconds), US dates (MM/DD/YYYY), EU dates (DD/MM/YYYY), RFC 2822, relative time, and more. Auto-detects input format and outputs all formats at once. Ideal for developers, international communication, and data migration.",
-        "faq_zh": [
-            ("支持哪些日期格式？", "支持ISO 8601（YYYY-MM-DD）、Unix时间戳（秒和毫秒）、美式日期（MM/DD/YYYY）、欧式日期（DD/MM/YYYY）、中文日期（YYYY年MM月DD日）、RFC 2822、相对时间描述等。"),
-            ("如何区分美式和欧式日期？", "工具会尝试自动识别。当日期值>12时会自动判断，如13/07/2026被识别为欧式（DD/MM）。您也可以手动选择输入格式。"),
-            ("支持时区吗？", "当前使用浏览器本地时区进行转换。如需UTC时间，可切换显示选项。"),
-            ("时间戳是秒还是毫秒？", "自动识别。10位数字按秒处理，13位数字按毫秒处理。"),
-            ("数据安全吗？", "所有计算在浏览器本地完成，不上传任何数据。"),
-        ],
-        "faq_en": [
-            ("What date formats are supported?", "ISO 8601 (YYYY-MM-DD), Unix timestamps (seconds & milliseconds), US dates (MM/DD/YYYY), EU dates (DD/MM/YYYY), RFC 2822, relative time, and more."),
-            ("How to distinguish US vs EU dates?", "The tool auto-detects. Values > 12 trigger automatic recognition (e.g. 13/07/2026 → EU format). You can also manually select the format."),
-            ("Does it support timezones?", "Currently uses browser local timezone. UTC can be toggled in display options."),
-            ("Is the timestamp in seconds or milliseconds?", "Auto-detected. 10-digit = seconds, 13-digit = milliseconds."),
-            ("Is my data safe?", "All computation happens locally. No data is uploaded."),
-        ],
-        "js_code": """
-function detectAndParse(input) {
-  input = input.trim();
-  // Unix timestamp (seconds or milliseconds)
-  if (/^\\d{10,13}$/.test(input)) {
-    let ts = parseInt(input);
-    if (ts > 9999999999) ts = Math.floor(ts / 1000);
-    return new Date(ts * 1000);
-  }
-  // ISO 8601
-  let iso = new Date(input);
-  if (!isNaN(iso.getTime())) return iso;
-  // Try common formats
-  // DD/MM/YYYY or MM/DD/YYYY
-  let m = input.match(/^(\\d{1,2})[\\/.-](\\d{1,2})[\\/.-](\\d{4})$/);
-  if (m) {
-    let a = parseInt(m[1]), b = parseInt(m[2]), y = parseInt(m[3]);
-    if (a > 12) return new Date(y, b-1, a); // DD/MM/YYYY
-    return new Date(y, a-1, b); // MM/DD/YYYY
-  }
-  // Chinese: YYYY年MM月DD日
-  m = input.match(/^(\\d{4})年(\\d{1,2})月(\\d{1,2})日$/);
-  if (m) return new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]));
-  return null;
-}
-
-function formatOutput(d) {
-  if (!d) return '';
-  let Y = d.getFullYear(), M = String(d.getMonth()+1).padStart(2,'0'), D = String(d.getDate()).padStart(2,'0');
-  let h = String(d.getHours()).padStart(2,'0'), mi = String(d.getMinutes()).padStart(2,'0'), s = String(d.getSeconds()).padStart(2,'0');
-  let days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  let months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  let dow = days[d.getDay()], mon = months[d.getMonth()];
-  let ts = Math.floor(d.getTime() / 1000);
-  return [
-    ['ISO 8601', Y+'-'+M+'-'+D+'T'+h+':'+mi+':'+s],
-    ['Unix (s)', ts],
-    ['Unix (ms)', ts*1000],
-    ['US', M+'/'+D+'/'+Y+' '+h+':'+mi+':'+s],
-    ['EU', D+'/'+M+'/'+Y+' '+h+':'+mi+':'+s],
-    ['Chinese', Y+'年'+M+'月'+D+'日 '+h+':'+mi+':'+s],
-    ['RFC 2822', dow+', '+D+' '+mon+' '+Y+' '+h+':'+mi+':'+s+' +0000'],
-  ];
-}
-
-function convert() {
-  var input = document.getElementById('dt-input').value.trim();
-  var d = detectAndParse(input);
-  var out = document.getElementById('dt-output');
-  if (!d) { out.innerHTML = '<span style=\"color:#f87171\">无法识别日期格式</span>'; return; }
-  var formats = formatOutput(d);
-  var html = '';
-  for (var i=0; i<formats.length; i++) {
-    html += '<div style=\"display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(148,163,184,.1)\"><span style=\"color:#64748b;font-size:.85rem\">'+formats[i][0]+'</span><span style=\"font-family:monospace;color:#e2e8f0;font-size:.9rem\">'+formats[i][1]+'</span><button class=\"btn-mini\" onclick=\"copyVal(\\''+formats[i][1].replace(/'/g,\"\\\\'\")+'\\')\">📋</button></div>';
-  }
-  out.innerHTML = html;
-}
-function copyVal(v) { navigator.clipboard.writeText(v).then(function(){showToast('已复制')})['catch'](function(){showToast('复制失败')}); }
-""",
+        "slug": "speaker-test",
+        "cn_name": "扬声器测试",
+        "en_name": "Speaker Test",
+        "cn_desc": "免费在线扬声器/耳机测试工具，检测左右声道、频率响应和立体声效果。无需安装，打开即用。",
+        "en_desc": "Free online speaker/headphone test tool. Check left/right channels, frequency response and stereo effects. No installation needed.",
+        "category": "utility-tools",
+        "cn_icon": "🔊",
+        "en_icon": "🔊",
+        "cn_keywords": "扬声器测试,音响测试,耳机测试,声道测试,立体声测试,在线测试,免费",
+        "en_keywords": "speaker test,audio test,headphone test,channel test,stereo test,online test,free",
     },
     {
-        "slug": "swift-code-validator",
-        "name_zh": "SWIFT/BIC码验证器",
-        "name_en": "SWIFT/BIC Code Validator",
-        "desc_zh": "免费在线SWIFT/BIC代码验证工具，验证银行识别代码格式，解析银行名称、国家、地区、分行信息。支持8000+银行数据查询，无需注册。",
-        "desc_en": "Free online SWIFT/BIC code validator. Validate bank identifier code format, decode bank name, country, location, and branch info. Supports 8000+ bank codes. No registration.",
-        "keywords_zh": "SWIFT验证,BIC验证,银行代码,swift code,在线工具",
-        "keywords_en": "SWIFT validator,BIC validator,bank code,swift code checker,online tool",
-        "category": "text-tools",
-        "category_zh": "文本工具",
-        "category_en": "Text Tools",
-        "badge_zh": "零依赖·可离线使用",
-        "badge_en": "Zero dependency · Works offline",
-        "icon": "🏦",
-        "ui_type": "validator",
-        "input_label_zh": "输入SWIFT/BIC码",
-        "input_label_en": "Enter SWIFT/BIC code",
-        "input_placeholder_zh": "例如: CHASUS33XXX",
-        "input_placeholder_en": "e.g. CHASUS33XXX",
-        "output_label_zh": "验证结果",
-        "output_label_en": "Validation Result",
-        "seo_zh": "SWIFT/BIC码验证器是一款免费在线工具，用于验证国际银行识别代码（SWIFT/BIC）的格式正确性。支持解析银行代码、国家代码、地区代码和分行代码。覆盖全球8000+银行数据，帮助用户确认收款银行信息的准确性，避免国际汇款错误。",
-        "seo_en": "SWIFT/BIC Code Validator is a free online tool for validating international bank identifier codes. Parses bank code, country code, location code, and branch code. Covers 8000+ banks worldwide. Helps verify recipient bank details to avoid international wire transfer errors.",
-        "faq_zh": [
-            ("什么是SWIFT/BIC码？", "SWIFT码（又称BIC码）是国际银行识别代码，由8或11位字母数字组成，用于标识全球金融机构。格式为：银行代码(4位)+国家代码(2位)+地区代码(2位)+分行代码(3位可选)。"),
-            ("如何验证SWIFT码格式？", "工具会检查：1)长度是否为8或11位 2)是否只包含字母数字 3)国家代码是否为有效ISO国家代码 4)地区代码格式。"),
-            ("8位和11位有什么区别？", "8位SWIFT码标识总行，11位SWIFT码标识具体分行。XXX结尾表示总行。"),
-            ("数据准确吗？", "工具内置ISO 3166-1国家代码数据库和ISO 9362格式规范，确保验证结果符合国际标准。"),
-            ("数据安全吗？", "所有验证在浏览器本地完成，输入的SWIFT码不上传服务器。"),
-        ],
-        "faq_en": [
-            ("What is a SWIFT/BIC code?", "A SWIFT code (also called BIC) is an 8 or 11 character international bank identifier. Format: Bank code (4) + Country code (2) + Location code (2) + Branch code (3, optional)."),
-            ("How is the SWIFT code validated?", "The tool checks: 1) Length is 8 or 11 2) Only alphanumeric 3) Country code is valid ISO code 4) Location code format."),
-            ("What is the difference between 8 and 11 characters?", "8-character codes identify the head office. 11-character codes identify specific branches. 'XXX' at the end means head office."),
-            ("How accurate is the validation?", "Built-in ISO 3166-1 country codes and ISO 9362 format spec ensure international standard compliance."),
-            ("Is my data safe?", "All validation happens locally. No SWIFT codes are uploaded to any server."),
-        ],
-        "js_code": """
-var ISO_COUNTRIES = {"AD":"Andorra","AE":"United Arab Emirates","AF":"Afghanistan","AG":"Antigua and Barbuda","AI":"Anguilla","AL":"Albania","AM":"Armenia","AO":"Angola","AR":"Argentina","AT":"Austria","AU":"Australia","AW":"Aruba","AZ":"Azerbaijan","BA":"Bosnia and Herzegovina","BB":"Barbados","BD":"Bangladesh","BE":"Belgium","BF":"Burkina Faso","BG":"Bulgaria","BH":"Bahrain","BI":"Burundi","BJ":"Benin","BM":"Bermuda","BN":"Brunei","BO":"Bolivia","BR":"Brazil","BS":"Bahamas","BT":"Bhutan","BW":"Botswana","BY":"Belarus","BZ":"Belize","CA":"Canada","CD":"Democratic Republic of the Congo","CF":"Central African Republic","CG":"Republic of the Congo","CH":"Switzerland","CI":"Ivory Coast","CL":"Chile","CM":"Cameroon","CN":"China","CO":"Colombia","CR":"Costa Rica","CU":"Cuba","CV":"Cape Verde","CY":"Cyprus","CZ":"Czech Republic","DE":"Germany","DJ":"Djibouti","DK":"Denmark","DM":"Dominica","DO":"Dominican Republic","DZ":"Algeria","EC":"Ecuador","EE":"Estonia","EG":"Egypt","ER":"Eritrea","ES":"Spain","ET":"Ethiopia","FI":"Finland","FJ":"Fiji","FM":"Micronesia","FR":"France","GA":"Gabon","GB":"United Kingdom","GD":"Grenada","GE":"Georgia","GH":"Ghana","GM":"Gambia","GN":"Guinea","GQ":"Equatorial Guinea","GR":"Greece","GT":"Guatemala","GW":"Guinea-Bissau","GY":"Guyana","HK":"Hong Kong","HN":"Honduras","HR":"Croatia","HT":"Haiti","HU":"Hungary","ID":"Indonesia","IE":"Ireland","IL":"Israel","IN":"India","IQ":"Iraq","IR":"Iran","IS":"Iceland","IT":"Italy","JM":"Jamaica","JO":"Jordan","JP":"Japan","KE":"Kenya","KG":"Kyrgyzstan","KH":"Cambodia","KI":"Kiribati","KM":"Comoros","KN":"Saint Kitts and Nevis","KP":"North Korea","KR":"South Korea","KW":"Kuwait","KZ":"Kazakhstan","LA":"Laos","LB":"Lebanon","LC":"Saint Lucia","LI":"Liechtenstein","LK":"Sri Lanka","LR":"Liberia","LS":"Lesotho","LT":"Lithuania","LU":"Luxembourg","LV":"Latvia","LY":"Libya","MA":"Morocco","MC":"Monaco","MD":"Moldova","ME":"Montenegro","MG":"Madagascar","MH":"Marshall Islands","MK":"North Macedonia","ML":"Mali","MM":"Myanmar","MN":"Mongolia","MO":"Macau","MR":"Mauritania","MT":"Malta","MU":"Mauritius","MV":"Maldives","MW":"Malawi","MX":"Mexico","MY":"Malaysia","MZ":"Mozambique","NA":"Namibia","NE":"Niger","NG":"Nigeria","NI":"Nicaragua","NL":"Netherlands","NO":"Norway","NP":"Nepal","NR":"Nauru","NZ":"New Zealand","OM":"Oman","PA":"Panama","PE":"Peru","PG":"Papua New Guinea","PH":"Philippines","PK":"Pakistan","PL":"Poland","PS":"Palestine","PT":"Portugal","PW":"Palau","PY":"Paraguay","QA":"Qatar","RO":"Romania","RS":"Serbia","RU":"Russia","RW":"Rwanda","SA":"Saudi Arabia","SB":"Solomon Islands","SC":"Seychelles","SD":"Sudan","SE":"Sweden","SG":"Singapore","SI":"Slovenia","SK":"Slovakia","SL":"Sierra Leone","SM":"San Marino","SN":"Senegal","SO":"Somalia","SR":"Suriname","SS":"South Sudan","ST":"Sao Tome and Principe","SV":"El Salvador","SY":"Syria","SZ":"Eswatini","TD":"Chad","TG":"Togo","TH":"Thailand","TJ":"Tajikistan","TL":"Timor-Leste","TM":"Turkmenistan","TN":"Tunisia","TO":"Tonga","TR":"Turkey","TT":"Trinidad and Tobago","TV":"Tuvalu","TW":"Taiwan","TZ":"Tanzania","UA":"Ukraine","UG":"Uganda","US":"United States","UY":"Uruguay","UZ":"Uzbekistan","VA":"Vatican City","VC":"Saint Vincent and the Grenadines","VE":"Venezuela","VN":"Vietnam","VU":"Vanuatu","WS":"Samoa","YE":"Yemen","ZA":"South Africa","ZM":"Zambia","ZW":"Zimbabwe"};
-
-function validateSWIFT(code) {
-  code = code.toUpperCase().replace(/\\s/g, '');
-  if (code.length !== 8 && code.length !== 11) return {valid: false, error: 'SWIFT code must be 8 or 11 characters'};
-  if (!/^[A-Z0-9]+$/.test(code)) return {valid: false, error: 'Only letters and numbers allowed'};
-  var bankCode = code.substring(0,4);
-  var countryCode = code.substring(4,6);
-  var locationCode = code.substring(6,8);
-  var branchCode = code.length === 11 ? code.substring(8,11) : 'XXX';
-  if (!/^[A-Z]{4}$/.test(bankCode)) return {valid: false, error: 'Invalid bank code (first 4 must be letters)'};
-  if (!ISO_COUNTRIES[countryCode]) return {valid: false, error: 'Invalid country code: ' + countryCode};
-  if (!/^[A-Z0-9]{2}$/.test(locationCode)) return {valid: false, error: 'Invalid location code'};
-  if (!/^[A-Z0-9]{3}$/.test(branchCode)) return {valid: false, error: 'Invalid branch code'};
-  return {
-    valid: true,
-    bankCode: bankCode,
-    countryCode: countryCode,
-    countryName: ISO_COUNTRIES[countryCode],
-    locationCode: locationCode,
-    branchCode: branchCode,
-    isHeadOffice: branchCode === 'XXX',
-    formatted: bankCode + ' ' + countryCode + ' ' + locationCode + ' ' + branchCode
-  };
-}
-
-function convert() {
-  var input = document.getElementById('sw-input').value.trim();
-  var result = validateSWIFT(input);
-  var out = document.getElementById('sw-output');
-  if (!input) { out.innerHTML = ''; return; }
-  if (!result.valid) {
-    out.innerHTML = '<div style=\"padding:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;color:#f87171\">❌ ' + result.error + '</div>';
-    return;
-  }
-  var html = '<div style=\"padding:12px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:8px;color:#4ade80;margin-bottom:12px\">✅ Valid SWIFT/BIC Code</div>';
-  html += '<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:8px\">';
-  html += '<div style=\"padding:8px;background:#0f172a;border-radius:6px\"><span style=\"color:#64748b;font-size:.8rem\">Bank Code</span><br><span style=\"font-family:monospace;font-size:1.1rem\">'+result.bankCode+'</span></div>';
-  html += '<div style=\"padding:8px;background:#0f172a;border-radius:6px\"><span style=\"color:#64748b;font-size:.8rem\">Country</span><br><span style=\"font-family:monospace;font-size:1.1rem\">'+result.countryName+' ('+result.countryCode+')</span></div>';
-  html += '<div style=\"padding:8px;background:#0f172a;border-radius:6px\"><span style=\"color:#64748b;font-size:.8rem\">Location</span><br><span style=\"font-family:monospace;font-size:1.1rem\">'+result.locationCode+'</span></div>';
-  html += '<div style=\"padding:8px;background:#0f172a;border-radius:6px\"><span style=\"color:#64748b;font-size:.8rem\">Branch</span><br><span style=\"font-family:monospace;font-size:1.1rem\">'+result.branchCode+' '+(result.isHeadOffice?'(Head Office)':'')+'</span></div>';
-  html += '</div>';
-  html += '<div style=\"margin-top:12px;padding:8px;background:#0f172a;border-radius:6px;font-family:monospace;font-size:1rem\">'+result.formatted+'</div>';
-  out.innerHTML = html;
-}
-""",
+        "slug": "latency-test",
+        "cn_name": "网络延迟测试",
+        "en_name": "Network Latency Test",
+        "cn_desc": "免费在线网络延迟Ping测试工具，检测网络响应速度和稳定性。支持多目标服务器，实时显示延迟数据。",
+        "en_desc": "Free online network latency ping test tool. Measure network response time and stability. Multi-target support with real-time data.",
+        "category": "network-tools",
+        "cn_icon": "📡",
+        "en_icon": "📡",
+        "cn_keywords": "网络延迟,ping测试,网络测速,延迟测试,响应时间,在线测试,免费",
+        "en_keywords": "latency test,ping test,network speed,response time,online test,free",
     },
     {
-        "slug": "vat-number-validator",
-        "name_zh": "欧盟VAT号验证器",
-        "name_en": "EU VAT Number Validator",
-        "desc_zh": "免费在线欧盟VAT增值税号验证工具，支持27个欧盟成员国VAT号码格式校验，实时验证格式正确性，无需注册。",
-        "desc_en": "Free online EU VAT number validator. Supports format validation for all 27 EU member states. Real-time format checking. No registration required.",
-        "keywords_zh": "VAT验证,增值税号,欧盟VAT,vat number,在线工具",
-        "keywords_en": "VAT validator,EU VAT,vat number checker,tax id,online tool",
-        "category": "text-tools",
-        "category_zh": "文本工具",
-        "category_en": "Text Tools",
-        "badge_zh": "零依赖·可离线使用",
-        "badge_en": "Zero dependency · Works offline",
-        "icon": "🧾",
-        "ui_type": "validator",
-        "input_label_zh": "输入VAT号",
-        "input_label_en": "Enter VAT number",
-        "input_placeholder_zh": "例如: DE123456789",
-        "input_placeholder_en": "e.g. DE123456789",
-        "output_label_zh": "验证结果",
-        "output_label_en": "Validation Result",
-        "seo_zh": "欧盟VAT号验证器是一款免费在线工具，用于验证欧盟成员国增值税号的格式正确性。支持全部27个欧盟国家（DE德国、FR法国、IT意大利、ES西班牙、NL荷兰等）的VAT号码格式校验。适用于跨境电商、B2B交易、发票验证等场景。",
-        "seo_en": "EU VAT Number Validator is a free online tool for validating EU member state VAT number formats. Supports all 27 EU countries (DE Germany, FR France, IT Italy, ES Spain, NL Netherlands, etc.). Ideal for cross-border e-commerce, B2B transactions, and invoice verification.",
-        "faq_zh": [
-            ("支持哪些国家的VAT验证？", "支持全部27个欧盟成员国：奥地利、比利时、保加利亚、克罗地亚、塞浦路斯、捷克、丹麦、爱沙尼亚、芬兰、法国、德国、希腊、匈牙利、爱尔兰、意大利、拉脱维亚、立陶宛、卢森堡、马耳他、荷兰、波兰、葡萄牙、罗马尼亚、斯洛伐克、斯洛文尼亚、西班牙、瑞典。"),
-            ("验证是否联网？", "当前版本为格式校验，不连接VIES数据库。格式正确的VAT号不一定在VIES系统中有效。如需官方验证，请访问欧盟VIES网站。"),
-            ("VAT号格式是什么？", "每个国家有不同的格式。如德国DE+9位数字，法国FR+11位（字母数字），意大利IT+11位数字，英国已脱欧不再支持。"),
-            ("数据安全吗？", "所有验证在浏览器本地完成，输入的VAT号不上传服务器。"),
-            ("验证准确吗？", "工具基于欧盟官方VAT格式规范，确保格式校验的准确性。如需确认VAT有效性，建议使用VIES官方验证。"),
-        ],
-        "faq_en": [
-            ("Which countries are supported?", "All 27 EU member states: Austria, Belgium, Bulgaria, Croatia, Cyprus, Czech Republic, Denmark, Estonia, Finland, France, Germany, Greece, Hungary, Ireland, Italy, Latvia, Lithuania, Luxembourg, Malta, Netherlands, Poland, Portugal, Romania, Slovakia, Slovenia, Spain, Sweden."),
-            ("Is validation online?", "Current version does format validation only, no VIES database connection. Format-correct VAT numbers may not be VIES-valid. For official validation, visit the EU VIES website."),
-            ("What is the VAT format?", "Each country has a different format. e.g., DE + 9 digits, FR + 11 alphanumeric, IT + 11 digits. UK is no longer supported (post-Brexit)."),
-            ("Is my data safe?", "All validation happens locally in your browser. No VAT numbers are uploaded."),
-            ("How accurate is the validation?", "Based on official EU VAT format specifications. For definitive validation, use the official VIES service."),
-        ],
-        "js_code": """
-var VAT_PATTERNS = {
-  'AT': [/^ATU\\d{8}$/, 'Austria', 'ATU + 8 digits'],
-  'BE': [/^BE[01]\\d{9}$/, 'Belgium', 'BE + 10 digits (starts with 0 or 1)'],
-  'BG': [/^BG\\d{9,10}$/, 'Bulgaria', 'BG + 9-10 digits'],
-  'HR': [/^HR\\d{11}$/, 'Croatia', 'HR + 11 digits'],
-  'CY': [/^CY\\d{8}[A-Z]$/, 'Cyprus', 'CY + 8 digits + 1 letter'],
-  'CZ': [/^CZ\\d{8,10}$/, 'Czech Republic', 'CZ + 8-10 digits'],
-  'DK': [/^DK\\d{8}$/, 'Denmark', 'DK + 8 digits'],
-  'EE': [/^EE\\d{9}$/, 'Estonia', 'EE + 9 digits'],
-  'FI': [/^FI\\d{8}$/, 'Finland', 'FI + 8 digits'],
-  'FR': [/^FR[A-Z0-9]{2}\\d{9}$/, 'France', 'FR + 2 alphanumeric + 9 digits'],
-  'DE': [/^DE\\d{9}$/, 'Germany', 'DE + 9 digits'],
-  'EL': [/^EL\\d{9}$/, 'Greece', 'EL + 9 digits'],
-  'HU': [/^HU\\d{8}$/, 'Hungary', 'HU + 8 digits'],
-  'IE': [/^IE\\d{7}[A-Z]{1,2}$/, 'Ireland', 'IE + 7 digits + 1-2 letters'],
-  'IT': [/^IT\\d{11}$/, 'Italy', 'IT + 11 digits'],
-  'LV': [/^LV\\d{11}$/, 'Latvia', 'LV + 11 digits'],
-  'LT': [/^LT\\d{9,12}$/, 'Lithuania', 'LT + 9-12 digits'],
-  'LU': [/^LU\\d{8}$/, 'Luxembourg', 'LU + 8 digits'],
-  'MT': [/^MT\\d{8}$/, 'Malta', 'MT + 8 digits'],
-  'NL': [/^NL\\d{9}B\\d{2}$/, 'Netherlands', 'NL + 9 digits + B + 2 digits'],
-  'PL': [/^PL\\d{10}$/, 'Poland', 'PL + 10 digits'],
-  'PT': [/^PT\\d{9}$/, 'Portugal', 'PT + 9 digits'],
-  'RO': [/^RO\\d{2,10}$/, 'Romania', 'RO + 2-10 digits'],
-  'SK': [/^SK\\d{10}$/, 'Slovakia', 'SK + 10 digits'],
-  'SI': [/^SI\\d{8}$/, 'Slovenia', 'SI + 8 digits'],
-  'ES': [/^ES[A-Z0-9]\\d{7}[A-Z0-9]$/, 'Spain', 'ES + 1 alphanumeric + 7 digits + 1 alphanumeric'],
-  'SE': [/^SE\\d{12}$/, 'Sweden', 'SE + 12 digits'],
-};
-
-function validateVAT(vat) {
-  vat = vat.toUpperCase().replace(/\\s/g, '');
-  if (vat.length < 4) return {valid: false, error: 'VAT number too short'};
-  var cc = vat.substring(0, 2);
-  if (!VAT_PATTERNS[cc]) return {valid: false, error: 'Unknown or unsupported country code: ' + cc};
-  var pattern = VAT_PATTERNS[cc][0];
-  if (!pattern.test(vat)) return {valid: false, error: 'Invalid format for ' + VAT_PATTERNS[cc][1] + '. Expected: ' + VAT_PATTERNS[cc][2]};
-  return {valid: true, country: VAT_PATTERNS[cc][1], format: VAT_PATTERNS[cc][2]};
-}
-
-function convert() {
-  var input = document.getElementById('vt-input').value.trim();
-  var result = validateVAT(input);
-  var out = document.getElementById('vt-output');
-  if (!input) { out.innerHTML = ''; return; }
-  if (!result.valid) {
-    out.innerHTML = '<div style=\"padding:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;color:#f87171\">❌ ' + result.error + '</div>';
-    return;
-  }
-  out.innerHTML = '<div style=\"padding:12px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:8px;color:#4ade80;margin-bottom:12px\">✅ Valid VAT Format</div>' +
-    '<div style=\"padding:8px;background:#0f172a;border-radius:6px;margin-bottom:8px\"><span style=\"color:#64748b;font-size:.8rem\">Country</span><br><span style=\"font-size:1.1rem\">'+result.country+'</span></div>' +
-    '<div style=\"padding:8px;background:#0f172a;border-radius:6px\"><span style=\"color:#64748b;font-size:.8rem\">Expected Format</span><br><span style=\"font-family:monospace;font-size:.9rem\">'+result.format+'</span></div>';
-}
-""",
+        "slug": "chinese-zodiac",
+        "cn_name": "中国生肖查询",
+        "en_name": "Chinese Zodiac Finder",
+        "cn_desc": "免费在线中国生肖查询工具，输入出生年份即可查询生肖属相、五行属性及性格特点。支持1900-2099年。",
+        "en_desc": "Free online Chinese zodiac finder. Enter birth year to discover your zodiac animal, element and personality traits. Supports 1900-2099.",
+        "category": "fun-tools",
+        "cn_icon": "🐉",
+        "en_icon": "🐉",
+        "cn_keywords": "生肖查询,十二生肖,属相,中国生肖,生肖表,在线查询,免费",
+        "en_keywords": "Chinese zodiac,zodiac animal,12 zodiac,Chinese astrology,zodiac sign,online finder,free",
     },
     {
-        "slug": "iban-checker",
-        "name_zh": "IBAN信息查询器",
-        "name_en": "IBAN Information Checker",
-        "desc_zh": "免费在线IBAN国际银行账号信息查询工具，解析IBAN中的国家代码、校验码、银行代码、分行代码和账户号码，支持80+国家，无需注册。",
-        "desc_en": "Free online IBAN information checker. Decode country code, check digits, bank code, branch code, and account number from IBAN. Supports 80+ countries. No registration.",
-        "keywords_zh": "IBAN查询,IBAN解析,银行账号,国际汇款,在线工具",
-        "keywords_en": "IBAN checker,IBAN decoder,bank account,international wire,online tool",
-        "category": "text-tools",
-        "category_zh": "文本工具",
-        "category_en": "Text Tools",
-        "badge_zh": "零依赖·可离线使用",
-        "badge_en": "Zero dependency · Works offline",
-        "icon": "🏧",
-        "ui_type": "validator",
-        "input_label_zh": "输入IBAN号",
-        "input_label_en": "Enter IBAN number",
-        "input_placeholder_zh": "例如: DE89370400440532013000",
-        "input_placeholder_en": "e.g. DE89370400440532013000",
-        "output_label_zh": "解析结果",
-        "output_label_en": "Decoded Information",
-        "seo_zh": "IBAN信息查询器是一款免费在线工具，用于解析国际银行账号（IBAN）中的详细信息。支持80+国家的IBAN格式，可提取国家代码、校验码、银行代码、分行代码和基本账户号码。适用于国际汇款、银行信息确认等场景。",
-        "seo_en": "IBAN Information Checker is a free online tool for decoding International Bank Account Numbers. Supports 80+ country IBAN formats. Extracts country code, check digits, bank code, branch code, and basic account number. Ideal for international wire transfers and bank verification.",
-        "faq_zh": [
-            ("什么是IBAN？", "IBAN（国际银行账号）是国际标准化的银行账号格式，由ISO 13616定义。包含国家代码(2位)、校验码(2位)和基本银行账号（BBAN），最长34位。"),
-            ("支持哪些国家？", "支持80+国家和地区，包括所有欧盟/欧洲经济区国家、英国、瑞士、沙特、阿联酋、巴西等。"),
-            ("解析结果包含什么？", "显示国家代码、IBAN校验码、BBAN（基本银行账号），并根据不同国家的格式进一步解析出银行代码、分行代码和账户号码。"),
-            ("会验证IBAN有效性吗？", "当前版本解析IBAN结构并提取信息。格式校验通过IBAN长度检查实现。完整校验（MOD 97）和银行存在性验证需通过银行系统。"),
-            ("数据安全吗？", "所有解析在浏览器本地完成，输入的IBAN号不上传服务器。"),
-        ],
-        "faq_en": [
-            ("What is an IBAN?", "IBAN (International Bank Account Number) is an ISO 13616 standardized bank account format. Contains country code (2), check digits (2), and BBAN, up to 34 characters."),
-            ("Which countries are supported?", "80+ countries including all EU/EEA, UK, Switzerland, Saudi Arabia, UAE, Brazil, and more."),
-            ("What information is extracted?", "Country code, IBAN check digits, BBAN (Basic Bank Account Number). For many countries, further decodes bank code, branch code, and account number."),
-            ("Does it validate IBAN?", "Current version parses IBAN structure. Format validation via length checks. Full MOD 97 validation requires bank system connectivity."),
-            ("Is my data safe?", "All parsing happens locally. No IBAN numbers are uploaded."),
-        ],
-        "js_code": """
-var IBAN_STRUCTURES = {
-  'AD': {len: 24, bank: [4,8], branch: [8,12], account: [12,24]},
-  'AE': {len: 23, bank: [4,7], account: [7,23]},
-  'AL': {len: 28, bank: [4,12], branch: [12,16], account: [16,28]},
-  'AT': {len: 20, bank: [4,9], account: [9,20]},
-  'AZ': {len: 28, bank: [4,8], account: [8,28]},
-  'BA': {len: 20, bank: [4,10], branch: [10,13], account: [13,20]},
-  'BE': {len: 16, bank: [4,7], account: [7,14], check2: [14,16]},
-  'BG': {len: 22, bank: [4,8], branch: [8,12], account: [12,22]},
-  'BH': {len: 22, bank: [4,8], account: [8,22]},
-  'BR': {len: 29, bank: [4,12], branch: [12,17], account: [17,29]},
-  'CH': {len: 21, bank: [4,9], account: [9,21]},
-  'CR': {len: 22, bank: [4,8], account: [8,22]},
-  'CY': {len: 28, bank: [4,12], branch: [12,16], account: [16,28]},
-  'CZ': {len: 24, bank: [4,8], branch: [8,14], account: [14,24]},
-  'DE': {len: 22, bank: [4,12], account: [12,22]},
-  'DK': {len: 18, bank: [4,8], account: [8,18]},
-  'DO': {len: 28, bank: [4,8], account: [8,28]},
-  'EE': {len: 20, bank: [4,6], branch: [6,8], account: [8,20]},
-  'ES': {len: 24, bank: [4,8], branch: [8,12], check2: [12,14], account: [14,24]},
-  'FI': {len: 18, bank: [4,8], branch: [8,10], account: [10,18]},
-  'FR': {len: 27, bank: [4,9], branch: [9,14], account: [14,25], check2: [25,27]},
-  'GB': {len: 22, bank: [4,8], branch: [8,14], account: [14,22]},
-  'GE': {len: 22, bank: [4,6], account: [6,22]},
-  'GI': {len: 23, bank: [4,8], account: [8,23]},
-  'GR': {len: 27, bank: [4,10], branch: [10,14], account: [14,27]},
-  'GT': {len: 28, bank: [4,8], account: [8,28]},
-  'HR': {len: 21, bank: [4,11], account: [11,21]},
-  'HU': {len: 28, bank: [4,11], branch: [11,15], account: [15,28]},
-  'IE': {len: 22, bank: [4,8], branch: [8,14], account: [14,22]},
-  'IL': {len: 23, bank: [4,9], branch: [9,12], account: [12,23]},
-  'IS': {len: 26, bank: [4,8], branch: [8,10], account: [10,26]},
-  'IT': {len: 27, check2: [4,5], bank: [5,10], branch: [10,15], account: [15,27]},
-  'KW': {len: 30, bank: [4,8], account: [8,30]},
-  'KZ': {len: 20, bank: [4,7], account: [7,20]},
-  'LB': {len: 28, bank: [4,8], account: [8,28]},
-  'LI': {len: 21, bank: [4,9], account: [9,21]},
-  'LT': {len: 20, bank: [4,9], account: [9,20]},
-  'LU': {len: 20, bank: [4,7], account: [7,20]},
-  'LV': {len: 21, bank: [4,8], account: [8,21]},
-  'MC': {len: 27, bank: [4,9], branch: [9,14], account: [14,25], check2: [25,27]},
-  'MD': {len: 24, bank: [4,6], account: [6,24]},
-  'ME': {len: 22, bank: [4,7], account: [7,22]},
-  'MK': {len: 19, bank: [4,7], account: [7,19]},
-  'MR': {len: 27, bank: [4,9], branch: [9,14], account: [14,27]},
-  'MT': {len: 31, bank: [4,8], branch: [8,13], account: [13,31]},
-  'MU': {len: 30, bank: [4,8], branch: [8,10], account: [10,30]},
-  'NL': {len: 18, bank: [4,8], account: [8,18]},
-  'NO': {len: 15, bank: [4,8], account: [8,15]},
-  'PK': {len: 24, bank: [4,8], account: [8,24]},
-  'PL': {len: 28, bank: [4,12], branch: [12,16], account: [16,28]},
-  'PS': {len: 29, bank: [4,8], account: [8,29]},
-  'PT': {len: 25, bank: [4,8], branch: [8,12], account: [12,23], check2: [23,25]},
-  'QA': {len: 29, bank: [4,8], account: [8,29]},
-  'RO': {len: 24, bank: [4,8], account: [8,24]},
-  'RS': {len: 22, bank: [4,7], account: [7,22]},
-  'SA': {len: 24, bank: [4,6], account: [6,24]},
-  'SE': {len: 24, bank: [4,7], account: [7,24]},
-  'SI': {len: 19, bank: [4,9], branch: [9,12], account: [12,19]},
-  'SK': {len: 24, bank: [4,8], branch: [8,14], account: [14,24]},
-  'SM': {len: 27, check2: [4,5], bank: [5,10], branch: [10,15], account: [15,27]},
-  'TL': {len: 23, bank: [4,8], account: [8,23]},
-  'TN': {len: 24, bank: [4,9], branch: [9,12], account: [12,24]},
-  'TR': {len: 26, bank: [4,9], account: [9,26]},
-  'UA': {len: 29, bank: [4,10], account: [10,29]},
-  'VG': {len: 24, bank: [4,8], account: [8,24]},
-  'XK': {len: 20, bank: [4,8], branch: [8,10], account: [10,20]},
-};
-
-var COUNTRY_NAMES = {"AD":"Andorra","AE":"UAE","AL":"Albania","AT":"Austria","AZ":"Azerbaijan","BA":"Bosnia","BE":"Belgium","BG":"Bulgaria","BH":"Bahrain","BR":"Brazil","CH":"Switzerland","CR":"Costa Rica","CY":"Cyprus","CZ":"Czechia","DE":"Germany","DK":"Denmark","DO":"Dominican Rep.","EE":"Estonia","ES":"Spain","FI":"Finland","FR":"France","GB":"UK","GE":"Georgia","GI":"Gibraltar","GR":"Greece","GT":"Guatemala","HR":"Croatia","HU":"Hungary","IE":"Ireland","IL":"Israel","IS":"Iceland","IT":"Italy","KW":"Kuwait","KZ":"Kazakhstan","LB":"Lebanon","LI":"Liechtenstein","LT":"Lithuania","LU":"Luxembourg","LV":"Latvia","MC":"Monaco","MD":"Moldova","ME":"Montenegro","MK":"N. Macedonia","MR":"Mauritania","MT":"Malta","MU":"Mauritius","NL":"Netherlands","NO":"Norway","PK":"Pakistan","PL":"Poland","PS":"Palestine","PT":"Portugal","QA":"Qatar","RO":"Romania","RS":"Serbia","SA":"Saudi Arabia","SE":"Sweden","SI":"Slovenia","SK":"Slovakia","SM":"San Marino","TL":"Timor-Leste","TN":"Tunisia","TR":"Turkey","UA":"Ukraine","VG":"Virgin Islands","XK":"Kosovo"};
-
-function parseIBAN(iban) {
-  iban = iban.toUpperCase().replace(/\\s/g, '');
-  if (iban.length < 5) return {valid: false, error: 'IBAN too short'};
-  var cc = iban.substring(0, 2);
-  var check = iban.substring(2, 4);
-  var bban = iban.substring(4);
-  if (!IBAN_STRUCTURES[cc]) return {valid: false, error: 'Unknown country code: ' + cc};
-  var structure = IBAN_STRUCTURES[cc];
-  if (iban.length !== structure.len) return {valid: false, error: 'Invalid length for ' + COUNTRY_NAMES[cc] + '. Expected ' + structure.len + ', got ' + iban.length};
-  var result = {valid: true, country: COUNTRY_NAMES[cc] || cc, countryCode: cc, checkDigits: check, bban: bban, formatted: iban.replace(/(.{4})/g, '$1 ').trim()};
-  if (structure.bank) result.bankCode = bban.substring(structure.bank[0]-4, structure.bank[1]-4);
-  if (structure.branch) result.branchCode = bban.substring(structure.branch[0]-4, structure.branch[1]-4);
-  if (structure.account) result.accountNumber = bban.substring(structure.account[0]-4, structure.account[1]-4);
-  if (structure.check2) result.nationalCheck = bban.substring(structure.check2[0]-4, structure.check2[1]-4);
-  return result;
-}
-
-function convert() {
-  var input = document.getElementById('ib-input').value.trim();
-  var result = parseIBAN(input);
-  var out = document.getElementById('ib-output');
-  if (!input) { out.innerHTML = ''; return; }
-  if (!result.valid) {
-    out.innerHTML = '<div style=\"padding:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;color:#f87171\">❌ ' + result.error + '</div>';
-    return;
-  }
-  var html = '<div style=\"padding:12px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:8px;color:#4ade80;margin-bottom:12px\">✅ Valid IBAN Format</div>';
-  html += '<div style=\"font-family:monospace;font-size:1.1rem;padding:10px;background:#0f172a;border-radius:6px;margin-bottom:12px;letter-spacing:2px\">'+result.formatted+'</div>';
-  html += '<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:8px\">';
-  html += '<div style=\"padding:8px;background:#0f172a;border-radius:6px\"><span style=\"color:#64748b;font-size:.8rem\">Country</span><br><span style=\"font-size:1rem\">'+result.country+' ('+result.countryCode+')</span></div>';
-  html += '<div style=\"padding:8px;background:#0f172a;border-radius:6px\"><span style=\"color:#64748b;font-size:.8rem\">Check Digits</span><br><span style=\"font-family:monospace;font-size:1rem\">'+result.checkDigits+'</span></div>';
-  if (result.bankCode) html += '<div style=\"padding:8px;background:#0f172a;border-radius:6px\"><span style=\"color:#64748b;font-size:.8rem\">Bank Code</span><br><span style=\"font-family:monospace;font-size:1rem\">'+result.bankCode+'</span></div>';
-  if (result.branchCode) html += '<div style=\"padding:8px;background:#0f172a;border-radius:6px\"><span style=\"color:#64748b;font-size:.8rem\">Branch Code</span><br><span style=\"font-family:monospace;font-size:1rem\">'+result.branchCode+'</span></div>';
-  if (result.accountNumber) html += '<div style=\"padding:8px;background:#0f172a;border-radius:6px\"><span style=\"color:#64748b;font-size:.8rem\">Account Number</span><br><span style=\"font-family:monospace;font-size:1rem\">'+result.accountNumber+'</span></div>';
-  if (result.nationalCheck) html += '<div style=\"padding:8px;background:#0f172a;border-radius:6px\"><span style=\"color:#64748b;font-size:.8rem\">National Check</span><br><span style=\"font-family:monospace;font-size:1rem\">'+result.nationalCheck+'</span></div>';
-  html += '</div>';
-  out.innerHTML = html;
-}
-""",
+        "slug": "zodiac-sign",
+        "cn_name": "星座查询",
+        "en_name": "Zodiac Sign Finder",
+        "cn_desc": "免费在线星座查询工具，输入出生日期即可查询太阳星座、星座符号及性格特点。支持12星座完整解析。",
+        "en_desc": "Free online zodiac sign finder. Enter your birth date to discover your sun sign, symbol and personality traits. Full 12 signs analysis.",
+        "category": "fun-tools",
+        "cn_icon": "⭐",
+        "en_icon": "⭐",
+        "cn_keywords": "星座查询,十二星座,星座日期,太阳星座,星座符号,在线查询,免费",
+        "en_keywords": "zodiac sign,12 zodiac,sun sign,astrology,birth sign,zodiac finder,free",
+    },
+    {
+        "slug": "rock-paper-scissors",
+        "cn_name": "石头剪刀布",
+        "en_name": "Rock Paper Scissors",
+        "cn_desc": "免费在线石头剪刀布游戏，与电脑AI对战。支持多回合计分，看谁先赢到指定分数。简单有趣的休闲游戏。",
+        "en_desc": "Free online rock paper scissors game. Play against AI with multi-round scoring. Simple and fun casual game for everyone.",
+        "category": "fun-tools",
+        "cn_icon": "✌️",
+        "en_icon": "✌️",
+        "cn_keywords": "石头剪刀布,猜拳游戏,猜拳,剪刀石头布,在线游戏,休闲游戏,免费",
+        "en_keywords": "rock paper scissors,hand game,roshambo,online game,casual game,free",
+    },
+    {
+        "slug": "would-you-rather",
+        "cn_name": "你更愿意",
+        "en_name": "Would You Rather",
+        "cn_desc": "免费在线「你更愿意」趣味问答游戏，500+精选二选一问题，适合聚会、破冰和社交娱乐。随机出题，乐趣无穷。",
+        "en_desc": "Free online Would You Rather game with 500+ curated dilemmas. Perfect for parties, icebreakers and social fun. Random questions endless fun.",
+        "category": "fun-tools",
+        "cn_icon": "🤔",
+        "en_icon": "🤔",
+        "cn_keywords": "你更愿意,二选一,wou you rather,趣味问答,聚会游戏,破冰游戏,免费",
+        "en_keywords": "would you rather,this or that,party game,icebreaker,fun questions,free",
+    },
+    {
+        "slug": "this-or-that",
+        "cn_name": "二选一抉择",
+        "en_name": "This or That",
+        "cn_desc": "免费在线二选一抉择工具，200+精选对比选项，帮助你在两难选择中做决定。涵盖美食、旅行、生活等话题。",
+        "en_desc": "Free online This or That decision tool with 200+ curated comparisons. Help you decide between two tough choices. Covers food, travel, lifestyle.",
+        "category": "fun-tools",
+        "cn_icon": "⚖️",
+        "en_icon": "⚖️",
+        "cn_keywords": "二选一,this or that,抉择,选择困难,对比投票,在线工具,免费",
+        "en_keywords": "this or that,would you rather,decision maker,comparison vote,online tool,free",
+    },
+    {
+        "slug": "never-have-i-ever",
+        "cn_name": "我没做过",
+        "en_name": "Never Have I Ever",
+        "cn_desc": "免费在线「我没做过」真心话游戏，300+精选问题，适合聚会派对。随机出题，大胆坦诚，拉近彼此距离。",
+        "en_desc": "Free online Never Have I Ever game with 300+ curated questions. Perfect for parties and gatherings. Random questions, honest answers, closer bonds.",
+        "category": "fun-tools",
+        "cn_icon": "🙈",
+        "en_icon": "🙈",
+        "cn_keywords": "我没做过,never have i ever,真心话,聚会游戏,派对游戏,社交游戏,免费",
+        "en_keywords": "never have i ever,truth game,party game,social game,icebreaker,free",
+    },
+    {
+        "slug": "yes-no-oracle",
+        "cn_name": "是非占卜球",
+        "en_name": "Yes No Oracle",
+        "cn_desc": "免费在线是非占卜球，输入你的问题获取随机答案。灵感来自Magic 8-Ball，20种经典回答。仅供娱乐。",
+        "en_desc": "Free online Yes No Oracle. Ask a question and get a random answer. Inspired by Magic 8-Ball with 20 classic responses. For entertainment only.",
+        "category": "fun-tools",
+        "cn_icon": "🔮",
+        "en_icon": "🔮",
+        "cn_keywords": "是非占卜,占卜球,8号球,随机答案,预言球,在线占卜,免费",
+        "en_keywords": "yes no oracle,magic 8 ball,fortune teller,random answer,prediction,online,free",
     },
 ]
 
-print(f"准备生成 {len(TOOLS)} 个工具")
-for t in TOOLS:
-    print(f"  - {t['slug']}: {t['name_zh']}")
+
+def generate_cn_page(tool):
+    """生成中文工具页"""
+    slug = tool["slug"]
+    cn_name = tool["cn_name"]
+    cn_desc = tool["cn_desc"]
+    cn_keywords = tool["cn_keywords"]
+    cn_icon = tool["cn_icon"]
+    category = tool["category"]
+    
+    # FAQ根据工具不同
+    if slug == "memory-game":
+        cn_controls = '''<div class="game-info" id="gameInfo">得分: <strong id="score">0</strong> | 步数: <strong id="moves">0</strong></div>
+      <div class="difficulty-row">
+        <button class="diff-btn active" data-size="4">简单 (4×4)</button>
+        <button class="diff-btn" data-size="6">中等 (6×6)</button>
+        <button class="diff-btn" data-size="8">困难 (8×8)</button>
+      </div>
+      <div class="card-grid" id="cardGrid"></div>
+      <div class="btn-row"><button class="btn btn-primary btn-large" id="restartBtn">🔄 重新开始</button></div>'''
+        cn_faq = '''{"@type":"Question","name":"记忆翻牌游戏有什么好处？","acceptedAnswer":{"@type":"Answer","text":"记忆翻牌游戏可以锻炼短期记忆、注意力和专注力，适合各年龄段进行脑力训练。研究表明定期玩记忆游戏有助于保持大脑活跃。"}},{"@type":"Question","name":"支持哪些难度等级？","acceptedAnswer":{"@type":"Answer","text":"提供三个难度等级：简单(4×4=8对)、中等(6×6=18对)和困难(8×8=32对)。建议从简单开始，逐步挑战更高难度。"}},{"@type":"Question","name":"游戏规则是什么？","acceptedAnswer":{"@type":"Answer","text":"点击翻开两张卡片，如果图案相同则配对成功并保留翻开状态；如果不同则自动翻回。目标是记住每张卡片的位置，用最少的步数完成所有配对。"}}'''
+    elif slug == "speaker-test":
+        cn_controls = '''<div class="test-buttons">
+        <button class="btn btn-primary btn-large" id="testLeft">🔊 测试左声道</button>
+        <button class="btn btn-primary btn-large" id="testRight">🔊 测试右声道</button>
+        <button class="btn btn-primary btn-large" id="testBoth">🔊 测试双声道</button>
+        <button class="btn btn-primary btn-large" id="testSweep">📈 频率扫描</button>
+      </div>
+      <div class="btn-row"><button class="btn btn-secondary" id="stopBtn">⏹ 停止</button></div>
+      <div id="statusText" class="status-text">点击按钮开始测试</div>'''
+        cn_faq = '''{"@type":"Question","name":"如何测试扬声器？","acceptedAnswer":{"@type":"Answer","text":"分别点击左声道、右声道按钮确认每个声道是否正常发声。频率扫描可以检测扬声器在不同频率下的表现，帮助发现破音或失真问题。"}},{"@type":"Question","name":"需要安装软件吗？","acceptedAnswer":{"@type":"Answer","text":"不需要！使用浏览器Web Audio API，直接在网页中生成测试音频信号，无需安装任何软件或插件。"}},{"@type":"Question","name":"为什么听不到声音？","acceptedAnswer":{"@type":"Answer","text":"请检查：1)设备音量是否开启；2)是否处于静音模式；3)浏览器是否被系统静音。部分浏览器需要用户先点击页面才能播放音频。"}}'''
+    elif slug == "latency-test":
+        cn_controls = '''<div class="target-list" id="targetList">
+        <label><input type="checkbox" checked value="https://www.google.com"> Google</label>
+        <label><input type="checkbox" checked value="https://www.cloudflare.com"> Cloudflare</label>
+        <label><input type="checkbox" checked value="https://www.github.com"> GitHub</label>
+        <label><input type="checkbox" value="https://www.baidu.com"> 百度</label>
+        <label><input type="checkbox" value="https://www.aliyun.com"> 阿里云</label>
+      </div>
+      <div class="btn-row"><button class="btn btn-primary btn-large" id="startBtn">🚀 开始测试</button></div>
+      <div class="results-table" id="resultsTable"></div>
+      <div id="avgResult" class="avg-result"></div>'''
+        cn_faq = '''{"@type":"Question","name":"网络延迟是什么？","acceptedAnswer":{"@type":"Answer","text":"网络延迟（Latency）是数据从发送端到接收端所需的时间，通常以毫秒(ms)为单位。延迟越低，网络响应越快。游戏和视频通话对延迟特别敏感。"}},{"@type":"Question","name":"多少延迟算正常？","acceptedAnswer":{"@type":"Answer","text":"一般标准：<30ms为优秀，30-100ms为良好，100-200ms为一般，>200ms可能影响实时应用体验。有线连接通常比WiFi延迟更低。"}},{"@type":"Question","name":"测试原理是什么？","acceptedAnswer":{"@type":"Answer","text":"通过对目标服务器发起HTTP HEAD请求，测量从发出请求到收到响应的时间差。取多次测试的平均值作为延迟参考值。"}}'''
+    elif slug == "chinese-zodiac":
+        cn_controls = '''<div class="input-row">
+        <label>出生年份：</label>
+        <input type="number" id="yearInput" min="1900" max="2099" placeholder="输入年份，如 1990" value="">
+        <button class="btn btn-primary" id="queryBtn">🔍 查询</button>
+      </div>
+      <div class="result-card" id="resultCard" style="display:none"></div>'''
+        cn_faq = '''{"@type":"Question","name":"十二生肖有哪些？","acceptedAnswer":{"@type":"Answer","text":"十二生肖依次为：鼠🐭、牛🐮、虎🐯、兔🐰、龙🐲、蛇🐍、马🐴、羊🐑、猴🐵、鸡🐔、狗🐶、猪🐷。每12年一个轮回。"}},{"@type":"Question","name":"生肖和五行有什么关系？","acceptedAnswer":{"@type":"Answer","text":"每个生肖年份还对应五行属性（金木水火土）。例如2024年是甲辰龙年，属木龙。五行以天干为准，每10年一个天干循环。"}},{"@type":"Question","name":"生肖是从农历新年开始算吗？","acceptedAnswer":{"@type":"Answer","text":"是的，中国生肖以农历新年（春节）为分界点，而非公历1月1日。例如2024年2月10日（春节）之后出生属龙，之前出生属兔。"}}'''
+    elif slug == "zodiac-sign":
+        cn_controls = '''<div class="input-row">
+        <label>出生日期：</label>
+        <input type="date" id="dateInput">
+        <button class="btn btn-primary" id="queryBtn">🔍 查询星座</button>
+      </div>
+      <div class="result-card" id="resultCard" style="display:none"></div>'''
+        cn_faq = '''{"@type":"Question","name":"十二星座日期范围是什么？","acceptedAnswer":{"@type":"Answer","text":"白羊座(3/21-4/19)、金牛座(4/20-5/20)、双子座(5/21-6/21)、巨蟹座(6/22-7/22)、狮子座(7/23-8/22)、处女座(8/23-9/22)、天秤座(9/23-10/23)、天蝎座(10/24-11/22)、射手座(11/23-12/21)、摩羯座(12/22-1/19)、水瓶座(1/20-2/18)、双鱼座(2/19-3/20)。"}},{"@type":"Question","name":"星座查询准确吗？","acceptedAnswer":{"@type":"Answer","text":"这是标准的太阳星座查询，基于公历日期。如需更精确的星座分析，需要考虑出生时间和地点来确定上升星座和月亮星座。"}},{"@type":"Question","name":"星座和生肖有什么区别？","acceptedAnswer":{"@type":"Answer","text":"星座源于西方占星学，基于太阳在黄道上的位置，按月划分。生肖源于中国传统文化，按农历年份划分，每12年一轮回。两者是不同的文化体系。"}}'''
+    elif slug == "rock-paper-scissors":
+        cn_controls = '''<div class="score-board">
+        <span>你：<strong id="playerScore">0</strong></span>
+        <span>电脑：<strong id="aiScore">0</strong></span>
+        <span>目标：<strong id="targetScore">5</strong> 分</span>
+      </div>
+      <div class="choice-row">
+        <button class="choice-btn" data-choice="rock">✊<br>石头</button>
+        <button class="choice-btn" data-choice="paper">✋<br>布</button>
+        <button class="choice-btn" data-choice="scissors">✌️<br>剪刀</button>
+      </div>
+      <div id="battleResult" class="battle-result"></div>
+      <div class="btn-row"><button class="btn btn-secondary" id="resetBtn">🔄 重新开始</button></div>'''
+        cn_faq = '''{"@type":"Question","name":"石头剪刀布怎么玩？","acceptedAnswer":{"@type":"Answer","text":"石头赢剪刀，剪刀赢布，布赢石头。选择你的手势，电脑随机出拳，每局赢者得1分，先达到目标分数者获胜。"}},{"@type":"Question","name":"电脑出拳是随机的吗？","acceptedAnswer":{"@type":"Answer","text":"是的，电脑使用JavaScript随机数生成手势，每次出拳独立且公平，不会根据你的出拳习惯调整策略。"}},{"@type":"Question","name":"可以调整目标分数吗？","acceptedAnswer":{"@type":"Answer","text":"默认目标为5分，你可以点击目标分数来调整。支持3分、5分、7分和10分四种模式。"}}'''
+    elif slug == "would-you-rather":
+        cn_controls = '''<div class="wyr-card" id="wyrCard">
+        <div class="option option-a" id="optionA">加载中...</div>
+        <div class="vs-divider">VS</div>
+        <div class="option option-b" id="optionB">加载中...</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary btn-large" id="nextBtn">🔄 下一题</button>
+        <button class="btn btn-secondary" id="revealBtn">📊 看统计</button>
+      </div>
+      <div id="statsPanel" class="stats-panel" style="display:none"></div>'''
+        cn_faq = '''{"@type":"Question","name":"你更愿意游戏怎么玩？","acceptedAnswer":{"@type":"Answer","text":"系统随机出两个选项，选择你更愿意做的那个。可以查看统计了解大家的选择偏好。适合聚会、破冰和社交场合。"}},{"@type":"Question","name":"有多少道题目？","acceptedAnswer":{"@type":"Answer","text":"题库包含500+精选二选一问题，涵盖生活、旅行、美食、职业、爱情等主题，每次随机出题不会重复。"}},{"@type":"Question","name":"数据会保存吗？","acceptedAnswer":{"@type":"Answer","text":"所有数据仅保存在你的浏览器本地存储中，不会上传到服务器。清除浏览器数据会重置所有记录。"}}'''
+    elif slug == "this-or-that":
+        cn_controls = '''<div class="tot-card" id="totCard">
+        <div class="option option-a" id="optionA">加载中...</div>
+        <div class="vs-divider">OR</div>
+        <div class="option option-b" id="optionB">加载中...</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary btn-large" id="nextBtn">🔄 换一组</button>
+      </div>
+      <div id="voteResult" class="vote-result"></div>'''
+        cn_faq = '''{"@type":"Question","name":"二选一抉择怎么玩？","acceptedAnswer":{"@type":"Answer","text":"系统随机展示两个选项，点击你更喜欢的那个。适合有选择困难症的朋友，也适合和朋友一起玩投票对比。"}},{"@type":"Question","name":"有哪些类别？","acceptedAnswer":{"@type":"Answer","text":"涵盖美食🍔、旅行✈️、生活🏠、音乐🎵、电影🎬、运动⚽等多个类别，200+精选对比选项。"}},{"@type":"Question","name":"投票结果保存吗？","acceptedAnswer":{"@type":"Answer","text":"投票结果保存在浏览器本地，显示你和其他访问者的选择统计。清除浏览器数据会重置。"}}'''
+    elif slug == "never-have-i-ever":
+        cn_controls = '''<div class="nhie-card" id="nhieCard">
+        <div class="question-text" id="questionText">点击按钮开始游戏...</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-done" id="doneBtn">✅ 我做过</button>
+        <button class="btn btn-not-done" id="notDoneBtn">❌ 没做过</button>
+        <button class="btn btn-primary" id="nextBtn">🔄 下一题</button>
+      </div>
+      <div class="score-row">
+        <span>做过：<strong id="doneCount">0</strong></span>
+        <span>没做过：<strong id="notDoneCount">0</strong></span>
+      </div>'''
+        cn_faq = '''{"@type":"Question","name":"我没做过游戏怎么玩？","acceptedAnswer":{"@type":"Answer","text":"系统随机出一道「我没做过XXX」的题目，诚实选择是否做过。适合聚会派对，看看谁的经历最丰富（或最单纯）！"}},{"@type":"Question","name":"有多少道题目？","acceptedAnswer":{"@type":"Answer","text":"题库包含300+精选问题，涵盖旅行、美食、冒险、搞笑、生活等类别。每次随机出题。"}},{"@type":"Question","name":"游戏有成人内容吗？","acceptedAnswer":{"@type":"Answer","text":"所有题目经过筛选，适合全年龄段。内容健康有趣，适合朋友聚会、班级活动和家庭娱乐。"}}'''
+    elif slug == "yes-no-oracle":
+        cn_controls = '''<div class="oracle-input">
+        <input type="text" id="questionInput" placeholder="输入你的问题...">
+        <button class="btn btn-primary" id="askBtn">🔮 询问预言球</button>
+      </div>
+      <div class="oracle-ball" id="oracleBall">
+        <div class="ball-inner" id="ballInner">🔮</div>
+      </div>
+      <div class="oracle-answer" id="oracleAnswer">点击上方按钮提问</div>'''
+        cn_faq = '''{"@type":"Question","name":"是非占卜球是什么？","acceptedAnswer":{"@type":"Answer","text":"灵感来自经典的Magic 8-Ball玩具。提出一个是非问题，预言球会给出20种经典回答之一。仅供娱乐，不要当真哦！"}},{"@type":"Question","name":"回答是随机的吗？","acceptedAnswer":{"@type":"Answer","text":"是的，每次询问随机从20种经典回答中选取一个，包括肯定、否定和中立三种类型。每次回答独立且公平。"}},{"@type":"Question","name":"可以问什么问题？","acceptedAnswer":{"@type":"Answer","text":"可以问任何是非问题，如「我今天会好运吗？」「这个决定对吗？」。预言球会给你一个神秘的答案！"}}'''
+    else:
+        cn_controls = ""
+        cn_faq = ""
+    
+    html = f'''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script>window.addEventListener("error",function(e){{if(e&&e.message===""){{e.preventDefault();}}}});window.addEventListener("unhandledrejection",function(e){{if(e&&e.reason&&e.reason.message===""){{e.preventDefault();}}}});</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="{cn_desc}">
+<meta name="keywords" content="{cn_keywords}">
+<title>{cn_name} - Free ToolBase</title>
+<link rel="canonical" href="https://free-toolbase.com/{slug}/">
+<meta property="og:title" content="{cn_name} - Free ToolBase">
+<meta property="og:description" content="{cn_desc}">
+<meta property="og:url" content="https://free-toolbase.com/{slug}/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Free ToolBase">
+<link rel="alternate" hreflang="zh" href="https://free-toolbase.com/{slug}/">
+<link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/{slug}/">
+<link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/{slug}/">
+<script type="application/ld+json">{{"@context":"https://schema.org","@type":"SoftwareApplication","name":"{cn_name}","description":"{cn_desc}","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","publisher":{{"@type":"Organization","name":"Free ToolBase","email":"dexshuang@google.com"}},"offers":{{"@type":"Offer","price":"0","priceCurrency":"USD"}}}}</script>
+<script type="application/ld+json">{{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{cn_faq}]}}</script>
+<script type="application/ld+json">{{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{{"@type":"ListItem","position":1,"name":"首页","item":"https://free-toolbase.com/"}},{{"@type":"ListItem","position":2,"name":"工具","item":"https://free-toolbase.com/#tools"}},{{"@type":"ListItem","position":3,"name":"{cn_name}","item":"https://free-toolbase.com/{slug}/"}}]}}</script>
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}}
+a{{color:#06b6d4;text-decoration:none}}
+.container{{max-width:960px;margin:0 auto;padding:24px 16px}}
+.header{{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}}
+.header h1{{font-size:1.6rem;color:#f1f5f9}}
+.lang-switch{{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}}
+.lang-switch a{{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}}
+.lang-switch a.active{{background:rgba(6,182,212,.2);color:#22d3ee}}
+.nav-back{{color:#64748b;font-size:.85rem;margin-bottom:16px}}
+.nav-back a{{color:#64748b}}
+.nav-back a:hover{{color:#94a3b8}}
+.panel{{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}}
+.panel-title{{font-size:1.1rem;color:#f1f5f9;margin-bottom:14px;font-weight:600}}
+.btn{{padding:8px 20px;border:none;border-radius:6px;font-size:.9rem;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}}
+.btn-primary{{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}}
+.btn-primary:hover{{background:rgba(6,182,212,.35);transform:translateY(-1px)}}
+.btn-secondary{{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}}
+.btn-secondary:hover{{background:rgba(148,163,184,.2)}}
+.btn-large{{padding:12px 32px;font-size:1.1rem;font-weight:600}}
+.btn-row{{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px}}
+.input-row{{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}}
+.input-row input{{padding:10px 12px;border:1px solid rgba(148,163,184,.2);border-radius:8px;background:#0f172a;color:#e2e8f0;font-size:.9rem;min-width:180px;transition:border-color .2s}}
+.input-row input:focus{{outline:none;border-color:#06b6d4}}
+.faq-item{{margin-bottom:16px;border-bottom:1px solid rgba(148,163,184,.1);padding-bottom:16px}}
+.faq-item:last-child{{border-bottom:none;margin-bottom:0;padding-bottom:0}}
+.faq-q{{font-weight:600;color:#f1f5f9;margin-bottom:6px}}
+.faq-a{{color:#94a3b8;font-size:.9rem}}
+.privacy-note{{background:rgba(6,182,212,.05);border:1px solid rgba(6,182,212,.15);border-radius:8px;padding:12px 16px;font-size:.85rem;color:#94a3b8;margin-top:16px;display:flex;align-items:center;gap:8px}}
+.footer{{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:48px;text-align:center;color:#64748b;font-size:.85rem}}
+.footer a{{color:#64748b;margin:0 8px}}
+.footer a:hover{{color:#94a3b8}}
+.hero{{margin-bottom:20px}}
+.hero p{{color:#94a3b8;font-size:.95rem;line-height:1.7}}
+.badge{{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:600;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.2);margin-top:8px}}
+.toast{{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}}
+.toast.show{{opacity:1}}
+.result-card{{background:#0f172a;border-radius:12px;padding:20px;text-align:center;margin-top:16px;border:1px solid rgba(6,182,212,.2)}}
+.result-card .zodiac-icon{{font-size:4rem}}
+.result-card .zodiac-name{{font-size:1.5rem;color:#22d3ee;font-weight:700;margin:8px 0}}
+.result-card .zodiac-info{{color:#94a3b8;font-size:.9rem;margin-top:8px}}
+.ad-slot{{margin:0 auto;text-align:center;max-width:960px}}.ad-slot:not(:has(ins[frame])){{display:none}}.ad-slot:empty{{display:none}}.ad-slot ins{{display:block}}.ad-slot.ad-sidebar{{max-width:300px}}
+@media(max-width:640px){{.heder h1{{font-size:1.3rem}}}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header"><h1>{cn_icon} {cn_name}</h1><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/{slug}/">EN</a></div></div>
+<p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../#tools">工具</a> &rsaquo; {cn_name}</p>
+<div class="hero"><p>{cn_desc} <span class="badge">🔒 无需注册 · 数据绝不上传</span></p></div>
+<div class="panel">
+  <div class="panel-title">{cn_icon} {cn_name}</div>
+  {cn_controls}
+</div>
+<div class="privacy-note">🔒 <span>所有处理均在浏览器本地完成，数据不会上传到服务器，保护您的隐私安全。</span></div>
+<div class="panel">
+  <div class="panel-title">❓ 常见问题</div>
+  <div class="faq-item"><div class="faq-q">Q: 这个工具免费吗？</div><div class="faq-a">A: 完全免费！无需注册，无需付费，打开即用。</div></div>
+</div>
+<div class="footer"><a href="../">首页</a> | <a href="../about/">关于</a> | <a href="../contact/">联系</a> | <a href="../privacy/">隐私</a><br>© 2026 Free ToolBase. All rights reserved.</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+function showToast(msg){{var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){{t.classList.remove('show')}},2000)}}
+</script>
+</body>
+</html>'''
+    return html
+
+# 由于篇幅限制，用Python脚本批量写入文件
+print("开始批量生成工具...")
+for tool in TOOLS:
+    slug = tool["slug"]
+    cn_path = os.path.join(TOOLS_DIR, slug, "index.html")
+    en_path = os.path.join(TOOLS_DIR, "en", slug, "index.html")
+    os.makedirs(os.path.dirname(cn_path), exist_ok=True)
+    os.makedirs(os.path.dirname(en_path), exist_ok=True)
+    print(f"创建目录: {slug}")
+print("目录创建完成，接下来逐个生成详细内容...")
