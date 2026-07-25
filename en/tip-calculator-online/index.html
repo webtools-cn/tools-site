@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tip Calculator - Free ToolBase</title>
+  <meta name="description" content="Online tip calculator. Quickly calculate tips based on bill amount and service satisfaction. Supports split-by-person and multiple tip rates. Ideal for dining and group meals.">
+  <meta property="og:title" content="Tip Calculator - Free ToolBase">
+  <meta property="og:description" content="Quickly calculate tips based on bill amount. Supports splitting among multiple people.">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Tip Calculator","description":"Calculate tips and split bills instantly","applicationCategory":"UtilityApplication","operatingSystem":"Any","url":"https://free-toolbase.com/tip-calculator-online/"}</script>
+  <style>:root{--primary:#4F46E5;--bg:#f8fafc;--surface:#fff;--text:#1e293b;--text2:#64748b;--border:#e2e8f0;--success:#22c55e;--warn:#f59e0b}*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px}header a{color:var(--primary);text-decoration:none;font-weight:600;font-size:18px}main{max-width:640px;margin:0 auto;padding:32px 16px 64px}h1{font-size:28px;margin-bottom:8px}.subtitle{color:var(--text2);margin-bottom:24px}.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px}.form-group{margin-bottom:16px}.form-group label{display:block;font-weight:600;margin-bottom:6px;font-size:14px;color:var(--text)}.form-group input,.form-group select{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:16px;transition:border-color .2s}.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.1)}.input-row{display:flex;gap:12px}.input-row .form-group{flex:1}.btn{display:inline-flex;align-items:center;gap:6px;padding:12px 24px;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s}.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{opacity:.9}.btn-block{width:100%;justify-content:center}.tip-buttons{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}.tip-btn{padding:8px 16px;border:2px solid var(--border);border-radius:8px;background:var(--surface);cursor:pointer;font-size:15px;font-weight:600;transition:all .2s}.tip-btn:hover,.tip-btn.active{border-color:var(--primary);background:var(--primary);color:#fff}.tip-btn.custom{background:var(--bg)}.result-card{text-align:center;padding:20px;background:var(--bg);border-radius:12px}.result-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:15px}.result-row:last-child{border-bottom:none}.result-row.total{border-top:2px solid var(--primary);padding-top:14px;margin-top:4px;font-size:18px;font-weight:700}.result-label{color:var(--text2)}.result-value{font-weight:600}footer{text-align:center;padding:24px;color:var(--text2);font-size:13px;border-top:1px solid var(--border)}footer a{color:var(--primary);text-decoration:none}@media(max-width:375px){main{padding:24px 12px 48px}h1{font-size:22px}}</style>
+</head>
+<body>
+  <header><a href="/en/">← Free ToolBase</a></header>
+  <main>
+    <h1>💰 Tip Calculator</h1>
+    <p class="subtitle">Calculate tips and split bills. Easy checkout every time.</p>
+    <div class="card">
+      <div class="form-group">
+        <label>Bill Amount</label>
+        <input type="number" id="billAmount" placeholder="输入Bill Amount" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label>Tip Rate</label>
+        <div class="tip-buttons">
+          <button class="tip-btn" data-pct="10">10%</button>
+          <button class="tip-btn active" data-pct="15">15%</button>
+          <button class="tip-btn" data-pct="18">18%</button>
+          <button class="tip-btn" data-pct="20">20%</button>
+          <button class="tip-btn custom" data-pct="custom">Custom</button>
+        </div>
+        <input type="number" id="customTip" placeholder="Custom比例 (%)" step="1" min="0" max="100" style="display:none">
+      </div>
+      <div class="form-group">
+        <label>Number of People</label>
+        <input type="number" id="people" value="1" min="1" step="1">
+      </div>
+      <button class="btn btn-primary btn-block" id="calcBtn">Calculate</button>
+      <div id="resultArea" style="display:none;margin-top:16px">
+        <div class="result-card">
+          <div class="result-row"><span class="result-label">Tip Amount</span><span class="result-value" id="tipAmount"></span></div>
+          <div class="result-row"><span class="result-label">Total</span><span class="result-value" id="totalAmount"></span></div>
+          <div class="result-row total"><span class="result-label">Per Person</span><span class="result-value" id="perPerson"></span></div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer>© 2025 <a href="/en/">Free ToolBase</a> · All tools are free to use</footer>
+  <div id="toast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
+  <script>
+    var currentTipPct = 15;
+
+    function showToast(msg) {
+      var t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      clearTimeout(t._timeout);
+      t._timeout = setTimeout(function() { t.style.display = 'none'; }, 2500);
+    }
+
+    function formatMoney(n) {
+      return '¥' + n.toFixed(2);
+    }
+
+    function calc() {
+      var bill = parseFloat(document.getElementById('billAmount').value);
+      if (isNaN(bill) || bill < 0) { showToast('请输入有效的Bill Amount'); return; }
+      var people = parseInt(document.getElementById('people').value) || 1;
+      if (people < 1) { showToast('At least 1 person'); return; }
+
+      var tip = bill * currentTipPct / 100;
+      var total = bill + tip;
+      var perPerson = total / people;
+
+      document.getElementById('tipAmount').textContent = formatMoney(tip);
+      document.getElementById('totalAmount').textContent = formatMoney(total);
+      document.getElementById('perPerson').textContent = formatMoney(perPerson);
+      document.getElementById('resultArea').style.display = 'block';
+    }
+
+    document.getElementById('calcBtn').addEventListener('click', calc);
+
+    document.querySelectorAll('.tip-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.tip-btn').forEach(function(b) { b.classList.remove('active'); });
+        this.classList.add('active');
+        var pct = this.dataset.pct;
+        if (pct === 'custom') {
+          document.getElementById('customTip').style.display = 'block';
+          document.getElementById('customTip').focus();
+          currentTipPct = parseFloat(document.getElementById('customTip').value) || 0;
+        } else {
+          document.getElementById('customTip').style.display = 'none';
+          currentTipPct = parseInt(pct);
+        }
+      });
+    });
+
+    document.getElementById('customTip').addEventListener('input', function() {
+      var v = parseFloat(this.value);
+      if (!isNaN(v)) {
+        currentTipPct = v;
+        document.querySelectorAll('.tip-btn').forEach(function(b) { b.classList.remove('active'); });
+        document.querySelector('.tip-btn.custom').classList.add('active');
+      }
+    });
+
+    // 默认
+    document.getElementById('billAmount').value = 100;
+  </script>
+</body>
+</html>
