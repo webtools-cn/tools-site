@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Batch File Renamer - Free ToolBase</title>
+  <meta name="description" content="Free online Batch File Renamer - supports prefix/suffix/replace/numbering rules, generates rename scripts for your files.">
+  <meta property="og:title" content="Batch File Renamer - Free ToolBase">
+  <meta property="og:description" content="Free online Batch File Renamer - supports prefix/suffix/replace/numbering rules.">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Batch File Renamer","applicationCategory":"UtilityApplication","operatingSystem":"Web","description":"Free online batch file renamer"}</script>
+  <style>
+    :root{--primary:#4F46E5;--bg:#f8fafc;--card:#fff;--text:#1e293b;--sub:#64748b;--border:#e2e8f0;--radius:12px}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+    header{background:var(--card);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
+    header a{color:var(--primary);text-decoration:none;font-weight:600;font-size:18px}
+    .lang-switch a{color:var(--sub);font-size:14px;text-decoration:none;padding:4px 12px;border-radius:6px;border:1px solid var(--border)}
+    .lang-switch a:hover{color:var(--primary);border-color:var(--primary)}
+    main{flex:1;max-width:800px;margin:0 auto;padding:40px 20px;width:100%}
+    h1{font-size:28px;margin-bottom:8px;text-align:center}
+    .subtitle{text-align:center;color:var(--sub);margin-bottom:32px}
+    .card{background:var(--card);border-radius:var(--radius);padding:24px;border:1px solid var(--border);margin-bottom:20px}
+    .form-group{margin-bottom:16px}
+    .form-group label{display:block;font-weight:600;margin-bottom:6px;font-size:14px}
+    .form-group input,.form-group select,.form-group textarea{width:100%;padding:12px;border:2px solid var(--border);border-radius:8px;font-size:15px}
+    .form-group textarea{min-height:120px;font-family:monospace;resize:vertical}
+    .form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--primary)}
+    .row{display:flex;gap:12px}.row>*{flex:1}
+    .btn-row{display:flex;gap:12px;margin:16px 0;flex-wrap:wrap}
+    .btn{padding:10px 24px;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-weight:600;transition:all .2s}
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+    .btn-outline{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+    .btn-outline:hover{background:var(--primary);color:#fff}
+    .output-box{min-height:80px;padding:16px;background:#f1f5f9;border-radius:8px;font-family:monospace;font-size:14px;line-height:1.8;white-space:pre-wrap;word-break:break-all}
+    .preview-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+    .preview-table th{background:#f1f5f9;padding:8px;text-align:left;font-weight:600}
+    .preview-table td{padding:8px;border-bottom:1px solid var(--border)}
+    .preview-table tr:hover{background:#f8fafc}
+    footer{text-align:center;padding:24px;color:var(--sub);font-size:13px;border-top:1px solid var(--border)}
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;z-index:999;opacity:0;transition:opacity .3s}
+    .toast.show{opacity:1}
+    @media(max-width:600px){main{padding:20px 12px}h1{font-size:22px}.row{flex-direction:column}}
+  </style>
+</head>
+<body>
+<header><a href="/en/">🧰 Free ToolBase</a><div class="lang-switch"><a href="/batch-rename/">中文</a></div></header>
+<main>
+  <h1>📝 Batch File Renamer</h1>
+  <p class="subtitle">Supports prefix, suffix, replace, numbering rules — generates rename scripts</p>
+  <div class="card">
+    <h3>📂 Enter file names (one per line)</h3>
+    <textarea id="fileList" placeholder="photo1.jpg&#10;photo2.jpg&#10;photo3.jpg&#10;document.pdf&#10;screenshot.png"></textarea>
+    <div class="form-group"><label>🔄 Rename Rule</label><select id="ruleType" onchange="toggleRule()"><option value="prefix">Add Prefix</option><option value="suffix">Add Suffix</option><option value="replace">Find & Replace</option><option value="number">Sequential Numbering</option><option value="remove">Remove Characters</option></select></div>
+    <div id="ruleParams"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnPreview">👁️ Preview</button>
+      <button class="btn btn-outline" id="btnScript">📜 Generate Script</button>
+      <button class="btn btn-outline" id="btnCopy">📋 Copy Result</button>
+    </div>
+    <div class="output-box" id="output"></div>
+    <div id="previewTable"></div>
+  </div>
+</main>
+<footer>© 2024 Free ToolBase · Client-side only</footer>
+<div class="toast" id="toast"></div>
+<script>
+function toggleRule(){
+  const t=document.getElementById('ruleType').value;
+  const p=document.getElementById('ruleParams');
+  if(t==='prefix')p.innerHTML='<div class="form-group"><label>Prefix text</label><input type="text" id="param1" placeholder="e.g.: IMG_" value="IMG_"></div>';
+  else if(t==='suffix')p.innerHTML='<div class="form-group"><label>Suffix text (before extension)</label><input type="text" id="param1" placeholder="e.g.: _final" value="_final"></div>';
+  else if(t==='replace')p.innerHTML='<div class="row"><div class="form-group"><label>Find</label><input type="text" id="param1" placeholder="Old text" value="photo"></div><div class="form-group"><label>Replace with</label><input type="text" id="param2" placeholder="New text" value="image"></div></div>';
+  else if(t==='number')p.innerHTML='<div class="row"><div class="form-group"><label>Prefix</label><input type="text" id="param1" value="file_"></div><div class="form-group"><label>Start number</label><input type="number" id="param2" value="1" min="0"></div><div class="form-group"><label>Padding (zeros)</label><input type="number" id="param3" value="3" min="1" max="10"></div></div>';
+  else if(t==='remove')p.innerHTML='<div class="row"><div class="form-group"><label>Remove from start</label><input type="number" id="param1" value="0" min="0"></div><div class="form-group"><label>Remove from end (before ext)</label><input type="number" id="param2" value="0" min="0"></div></div>';
+}
+function getNewNames(){
+  const files=document.getElementById('fileList').value.trim().split('\n').filter(Boolean);
+  const t=document.getElementById('ruleType').value;
+  return files.map((f,i)=>{
+    const dot=f.lastIndexOf('.');const name=dot>0?f.substring(0,dot):f;const ext=dot>0?f.substring(dot):'';
+    let nn;
+    if(t==='prefix'){const p=document.getElementById('param1')?.value||'';nn=p+name+ext;}
+    else if(t==='suffix'){const s=document.getElementById('param1')?.value||'';nn=name+s+ext;}
+    else if(t==='replace'){const from=document.getElementById('param1')?.value||'';const to=document.getElementById('param2')?.value||'';nn=name.replace(new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'),to)+ext;}
+    else if(t==='number'){const prefix=document.getElementById('param1')?.value||'';const start=parseInt(document.getElementById('param2')?.value)||1;const pad=parseInt(document.getElementById('param3')?.value)||3;nn=prefix+String(start+i).padStart(pad,'0')+ext;}
+    else if(t==='remove'){const head=parseInt(document.getElementById('param1')?.value)||0;const tail=parseInt(document.getElementById('param2')?.value)||0;nn=name.substring(head,tail>0?name.length-tail:name.length)+ext;}
+    return {old:f,new:nn};
+  });
+}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+document.getElementById('btnPreview').addEventListener('click',()=>{
+  const names=getNewNames();
+  if(!names.length){showToast('Please enter file names first');return}
+  let html='<table class="preview-table"><tr><th>Original</th><th>→</th><th>New Name</th></tr>';
+  names.forEach(n=>html+=`<tr><td>${n.old}</td><td>→</td><td style="color:var(--primary);font-weight:600">${n.new}</td></tr>`);
+  html+='</table>';
+  document.getElementById('previewTable').innerHTML=html;
+  document.getElementById('output').textContent=names.map(n=>n.new).join('\n');
+});
+document.getElementById('btnScript').addEventListener('click',()=>{
+  const names=getNewNames();
+  if(!names.length){showToast('Please enter file names first');return}
+  const isWin=navigator.platform.toLowerCase().includes('win');
+  let script='';
+  if(isWin){
+    script='@echo off\n';
+    names.forEach(n=>script+=`ren "${n.old}" "${n.new}"\n`);
+  }else{
+    script='#!/bin/bash\n';
+    names.forEach(n=>script+=`mv "${n.old}" "${n.new}"\n`);
+  }
+  document.getElementById('output').textContent=script;
+  document.getElementById('previewTable').innerHTML='<div style="color:var(--sub);margin-top:12px">'+(isWin?'Windows batch script':'Linux/Mac shell script')+' generated</div>';
+});
+document.getElementById('btnCopy').addEventListener('click',()=>{
+  const t=document.getElementById('output').textContent;
+  if(!t){showToast('Nothing to copy');return}
+  navigator.clipboard.writeText(t).then(()=>showToast('Copied'));
+});
+toggleRule();
+</script>
+</body>
+</html>

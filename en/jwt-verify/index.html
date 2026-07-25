@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JWT Verifier - Free ToolBase</title>
+  <meta name="description" content="Free online JWT Verifier - decode JWT token header and payload, verify signature and expiration time.">
+  <meta property="og:title" content="JWT Verifier - Free ToolBase">
+  <meta property="og:description" content="Free online JWT Verifier - decode JWT token header and payload, verify signature and expiration time.">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"JWT Verifier","applicationCategory":"DeveloperApplication","operatingSystem":"Web","description":"Free online JWT verifier and decoder"}</script>
+  <style>
+    :root{--primary:#4F46E5;--bg:#f8fafc;--card:#fff;--text:#1e293b;--sub:#64748b;--border:#e2e8f0;--radius:12px}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+    header{background:var(--card);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
+    header a{color:var(--primary);text-decoration:none;font-weight:600;font-size:18px}
+    .lang-switch a{color:var(--sub);font-size:14px;text-decoration:none;padding:4px 12px;border-radius:6px;border:1px solid var(--border)}
+    .lang-switch a:hover{color:var(--primary);border-color:var(--primary)}
+    main{flex:1;max-width:900px;margin:0 auto;padding:40px 20px;width:100%}
+    h1{font-size:28px;margin-bottom:8px;text-align:center}
+    .subtitle{text-align:center;color:var(--sub);margin-bottom:32px}
+    .card{background:var(--card);border-radius:var(--radius);padding:24px;border:1px solid var(--border);margin-bottom:20px}
+    textarea{width:100%;min-height:100px;border:2px solid var(--border);border-radius:8px;padding:12px;font-size:14px;font-family:monospace;resize:vertical}
+    textarea:focus{outline:none;border-color:var(--primary)}
+    .btn-row{display:flex;gap:12px;margin:16px 0;flex-wrap:wrap}
+    .btn{padding:10px 24px;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-weight:600;transition:all .2s}
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+    .btn-outline{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+    .btn-outline:hover{background:var(--primary);color:#fff}
+    .result-section{margin-top:20px;display:none}
+    .result-section.show{display:block}
+    .section-title{font-size:14px;font-weight:700;color:var(--primary);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+    .json-block{background:#1e293b;color:#e2e8f0;border-radius:8px;padding:16px;font-family:monospace;font-size:13px;overflow-x:auto;white-space:pre-wrap;word-break:break-all}
+    .status-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600}
+    .status-valid{background:#dcfce7;color:#166534}
+    .status-invalid{background:#fef2f2;color:#991b1b}
+    .status-warning{background:#fef9c3;color:#854d0e}
+    .claims-table{width:100%;border-collapse:collapse;font-size:14px}
+    .claims-table td{padding:8px 12px;border-bottom:1px solid var(--border)}
+    .claims-table td:first-child{font-weight:600;color:var(--primary);width:40%}
+    footer{text-align:center;padding:24px;color:var(--sub);font-size:13px;border-top:1px solid var(--border)}
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;z-index:999;opacity:0;transition:opacity .3s}
+    .toast.show{opacity:1}
+    @media(max-width:600px){main{padding:20px 12px}h1{font-size:22px}}
+  </style>
+</head>
+<body>
+<header><a href="/en/">🧰 Free ToolBase</a><div class="lang-switch"><a href="/jwt-verify/">中文</a></div></header>
+<main>
+  <h1>🔑 JWT Verifier</h1>
+  <p class="subtitle">Decode and verify JWT tokens — view Header, Payload, and Signature</p>
+  <div class="card">
+    <textarea id="jwtInput" placeholder="Paste JWT token here, e.g.: eyJhbG...sw5c"></textarea>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnDecode">🔍 Decode JWT</button>
+      <button class="btn btn-outline" id="btnCopy">📋 Copy Result</button>
+      <button class="btn btn-outline" id="btnClear">🗑️ Clear</button>
+    </div>
+    <div class="result-section" id="resultSection">
+      <div id="statusBadge"></div>
+      <div style="margin-top:16px">
+        <div class="section-title">📋 Header</div>
+        <div class="json-block" id="headerBlock"></div>
+      </div>
+      <div style="margin-top:16px">
+        <div class="section-title">📦 Payload</div>
+        <div class="json-block" id="payloadBlock"></div>
+        <div id="claimsTable"></div>
+      </div>
+      <div style="margin-top:16px">
+        <div class="section-title">🔏 Signature</div>
+        <div class="json-block" id="signatureBlock"></div>
+      </div>
+    </div>
+  </div>
+</main>
+<footer>© 2024 Free ToolBase · Client-side only, JWT decoded locally</footer>
+<div class="toast" id="toast"></div>
+<script>
+function base64UrlDecode(str){
+  str=str.replace(/-/g,'+').replace(/_/g,'/');
+  while(str.length%4)str+='=';
+  try{return JSON.parse(atob(str));}catch(e){return null;}
+}
+function formatTime(ts){
+  if(!ts)return 'N/A';
+  const d=new Date(ts*1000);
+  return d.toISOString().replace('T',' ').substring(0,19)+' ('+ts+')';
+}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+document.getElementById('btnDecode').addEventListener('click',()=>{
+  const token=document.getElementById('jwtInput').value.trim();
+  if(!token){showToast('Please paste a JWT token');return}
+  const parts=token.split('.');
+  if(parts.length!==3){showToast('Invalid JWT format: expected 3 parts separated by dots');return}
+  const header=base64UrlDecode(parts[0]);
+  const payload=base64UrlDecode(parts[1]);
+  const signature=parts[2];
+  let status='',statusClass='';
+  if(!header||!payload){status='❌ Invalid JWT';statusClass='status-invalid'}
+  else{
+    const now=Math.floor(Date.now()/1000);
+    if(payload.exp&&payload.exp<now){status='⚠️ JWT Expired';statusClass='status-warning'}
+    else if(payload.nbf&&payload.nbf>now){status='⚠️ JWT Not Yet Valid';statusClass='status-warning'}
+    else{status='✅ JWT Valid';statusClass='status-valid'}
+  }
+  document.getElementById('statusBadge').innerHTML=`<span class="status-badge ${statusClass}">${status}</span>`;
+  document.getElementById('headerBlock').textContent=header?JSON.stringify(header,null,2):'(Failed to decode)';
+  document.getElementById('payloadBlock').textContent=payload?JSON.stringify(payload,null,2):'(Failed to decode)';
+  document.getElementById('signatureBlock').textContent=signature;
+  if(payload){
+    const claims=[];
+    const keys={sub:'Subject',name:'Name',iss:'Issuer',aud:'Audience',iat:'Issued At',exp:'Expiration',nbf:'Not Before',jti:'JWT ID'};
+    for(const[k,v]of Object.entries(payload)){
+      const label=keys[k]||k;
+      let val=v;
+      if(['iat','exp','nbf'].includes(k)&&typeof v==='number')val=formatTime(v);
+      else if(typeof v==='object')val=JSON.stringify(v);
+      claims.push(`<tr><td>${label}</td><td>${val}</td></tr>`);
+    }
+    document.getElementById('claimsTable').innerHTML='<table class="claims-table">'+claims.join('')+'</table>';
+  }
+  document.getElementById('resultSection').classList.add('show');
+});
+document.getElementById('btnCopy').addEventListener('click',()=>{
+  const h=document.getElementById('headerBlock').textContent;
+  const p=document.getElementById('payloadBlock').textContent;
+  if(!h||!p){showToast('Please decode a JWT first');return}
+  navigator.clipboard.writeText('Header:\n'+h+'\n\nPayload:\n'+p).then(()=>showToast('Copied'));
+});
+document.getElementById('btnClear').addEventListener('click',()=>{
+  document.getElementById('jwtInput').value='';
+  document.getElementById('resultSection').classList.remove('show');
+});
+</script>
+</body>
+</html>

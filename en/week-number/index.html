@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Week Number Calculator - Free ToolBase</title>
+  <meta name="description" content="Free online Week Number Calculator - find ISO week number for any date, supports different week numbering standards (ISO/US).">
+  <meta property="og:title" content="Week Number Calculator - Free ToolBase">
+  <meta property="og:description" content="Free online Week Number Calculator - find ISO week number for any date.">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Week Number Calculator","applicationCategory":"UtilityApplication","operatingSystem":"Web","description":"Free online week number calculator"}</script>
+  <style>
+    :root{--primary:#4F46E5;--bg:#f8fafc;--card:#fff;--text:#1e293b;--sub:#64748b;--border:#e2e8f0;--radius:12px}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+    header{background:var(--card);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
+    header a{color:var(--primary);text-decoration:none;font-weight:600;font-size:18px}
+    .lang-switch a{color:var(--sub);font-size:14px;text-decoration:none;padding:4px 12px;border-radius:6px;border:1px solid var(--border)}
+    .lang-switch a:hover{color:var(--primary);border-color:var(--primary)}
+    main{flex:1;max-width:700px;margin:0 auto;padding:40px 20px;width:100%}
+    h1{font-size:28px;margin-bottom:8px;text-align:center}
+    .subtitle{text-align:center;color:var(--sub);margin-bottom:32px}
+    .card{background:var(--card);border-radius:var(--radius);padding:24px;border:1px solid var(--border);margin-bottom:20px}
+    .form-group{margin-bottom:16px}
+    .form-group label{display:block;font-weight:600;margin-bottom:6px;font-size:14px}
+    .form-group input,.form-group select{width:100%;padding:12px;border:2px solid var(--border);border-radius:8px;font-size:16px}
+    .form-group input:focus,.form-group select:focus{outline:none;border-color:var(--primary)}
+    .btn{width:100%;padding:14px;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-weight:600;background:var(--primary);color:#fff;transition:all .2s}
+    .btn:hover{opacity:.9;transform:translateY(-1px)}
+    .result{background:#eef2ff;border-radius:8px;padding:24px;margin-top:20px;text-align:center}
+    .result .week-num{font-size:64px;font-weight:700;color:var(--primary);line-height:1}
+    .result .detail{font-size:14px;color:var(--sub);margin-top:12px;line-height:1.8}
+    .year-weeks{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:4px;margin-top:12px}
+    .year-weeks span{background:#f1f5f9;padding:6px;border-radius:4px;text-align:center;font-size:12px}
+    .year-weeks span.current{background:var(--primary);color:#fff;font-weight:700}
+    footer{text-align:center;padding:24px;color:var(--sub);font-size:13px;border-top:1px solid var(--border)}
+    @media(max-width:600px){main{padding:20px 12px}h1{font-size:22px}}
+  </style>
+</head>
+<body>
+<header><a href="/en/">🧰 Free ToolBase</a><div class="lang-switch"><a href="/week-number/">中文</a></div></header>
+<main>
+  <h1>📆 Week Number Calculator</h1>
+  <p class="subtitle">Find the week number for any date</p>
+  <div class="card">
+    <div class="form-group"><label>📅 Select Date</label><input type="date" id="dateInput"></div>
+    <div class="form-group"><label>📏 Week Standard</label><select id="standard"><option value="iso">ISO 8601 (Monday start, international)</option><option value="us">US Standard (Sunday start)</option></select></div>
+    <button class="btn" id="btnCalc">🔍 Look Up Week</button>
+    <div class="result" id="result" style="display:none">
+      <div>Week</div>
+      <div class="week-num" id="weekNum">1</div>
+      <div class="detail" id="detail"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>📋 Year Week Overview</h3>
+    <div class="year-weeks" id="yearWeeks"></div>
+  </div>
+</main>
+<footer>© 2024 Free ToolBase · Client-side only</footer>
+<script>
+function getISOWeek(d){
+  const date=new Date(d);
+  date.setHours(0,0,0,0);
+  date.setDate(date.getDate()+3-(date.getDay()+6)%7);
+  const week1=new Date(date.getFullYear(),0,4);
+  return 1+Math.round(((date-week1)/86400000-3+(week1.getDay()+6)%7)/7);
+}
+function getUSWeek(d){
+  const date=new Date(d);
+  const jan1=new Date(date.getFullYear(),0,1);
+  return Math.ceil(((date-jan1)/86400000+jan1.getDay()+1)/7);
+}
+const today=new Date().toISOString().split('T')[0];
+document.getElementById('dateInput').value=today;
+function renderYearWeeks(){
+  const y=new Date().getFullYear();
+  const html=[];
+  for(let w=1;w<=52;w++)html.push(`<span>W${w}</span>`);
+  const curWeek=getISOWeek(new Date());
+  html[curWeek-1]=`<span class="current">W${curWeek}</span>`;
+  document.getElementById('yearWeeks').innerHTML=html.join('');
+}
+document.getElementById('btnCalc').addEventListener('click',()=>{
+  const d=new Date(document.getElementById('dateInput').value);
+  if(isNaN(d)){alert('Please select a valid date');return}
+  const std=document.getElementById('standard').value;
+  const wn=std==='iso'?getISOWeek(d):getUSWeek(d);
+  const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  document.getElementById('weekNum').textContent=wn;
+  document.getElementById('detail').innerHTML=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${dayNames[d.getDay()]} | ${std==='iso'?'ISO 8601':'US'} standard`;
+  document.getElementById('result').style.display='block';
+});
+renderYearWeeks();
+document.getElementById('btnCalc').click();
+</script>
+</body>
+</html>
