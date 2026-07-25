@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON Path求值器 - Free ToolBase</title>
+  <meta name="description" content="在线JSON Path求值器，支持$.store.book[*].author等标准表达式，实时解析JSON数据并提取指定路径的值。">
+  <meta property="og:title" content="JSON Path求值器 - Free ToolBase">
+  <meta property="og:description" content="在线JSON Path求值器，实时解析JSON并提取指定路径的值。">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "JSON Path求值器",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Any",
+    "description": "在线JSON Path求值器，支持标准JSONPath表达式实时解析JSON数据。",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <style>
+  :root { --primary: #4F46E5; --primary-hover: #4338CA; --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --error: #ef4444; --success: #22c55e; --radius: 8px; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; }
+  header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  header .logo { font-size: 1.2rem; font-weight: 700; color: var(--primary); text-decoration: none; }
+  header nav { display: flex; gap: 16px; }
+  header nav a { color: var(--text-secondary); text-decoration: none; font-size: .9rem; }
+  header nav a:hover { color: var(--primary); }
+  main { flex: 1; max-width: 900px; margin: 0 auto; padding: 24px 16px; width: 100%; }
+  h1 { font-size: 1.6rem; margin-bottom: 8px; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 20px; font-size: .9rem; }
+  .editor-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 700px) { .editor-panel { grid-template-columns: 1fr; } }
+  .panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .panel h3 { font-size: .85rem; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+  textarea { width: 100%; min-height: 200px; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; font-family: 'Fira Code', 'Cascadia Code', monospace; font-size: .85rem; resize: vertical; background: #1e293b; color: #e2e8f0; line-height: 1.5; }
+  textarea:focus { outline: 2px solid var(--primary); outline-offset: -2px; }
+  .input-row { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .input-row input { flex: 1; min-width: 150px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: .9rem; font-family: monospace; }
+  .input-row input:focus { outline: 2px solid var(--primary); outline-offset: -2px; }
+  .btn { padding: 10px 20px; border: none; border-radius: var(--radius); font-size: .9rem; cursor: pointer; font-weight: 600; transition: all .15s; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-sm { padding: 6px 14px; font-size: .8rem; }
+  .output-area { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; min-height: 120px; word-break: break-all; }
+  .output-area pre { font-family: 'Fira Code', monospace; font-size: .85rem; white-space: pre-wrap; margin: 0; }
+  .output-area .error { color: var(--error); }
+  .output-area .result-item { padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .examples { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .examples button { font-size: .75rem; padding: 4px 10px; background: #eef2ff; color: var(--primary); border: 1px solid #c7d2fe; border-radius: 20px; cursor: pointer; }
+  .examples button:hover { background: #e0e7ff; }
+  footer { background: var(--card-bg); border-top: 1px solid var(--border); padding: 16px 24px; text-align: center; color: var(--text-secondary); font-size: .8rem; }
+  footer a { color: var(--primary); text-decoration: none; }
+  #toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: var(--radius); font-size: .85rem; opacity: 0; transform: translateY(20px); transition: all .3s; pointer-events: none; z-index: 999; }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.error { background: var(--error); }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="logo">Free ToolBase</a>
+    <nav>
+      <a href="/">首页</a>
+      <a href="/en/">English</a>
+    </nav>
+  </header>
+  <main>
+    <h1>JSON Path求值器</h1>
+    <p class="subtitle">输入JSON数据和JSONPath表达式，实时提取指定路径的值。支持嵌套对象、数组过滤、通配符等。</p>
+    <div class="input-row">
+      <input type="text" id="pathInput" placeholder="例如: $.store.book[*].author" value="$.store.book[*].author">
+      <button class="btn btn-primary" id="evalBtn">求值</button>
+      <button class="btn btn-secondary" id="clearBtn">清空</button>
+    </div>
+    <div class="editor-panel">
+      <div class="panel">
+        <h3>JSON 输入</h3>
+        <textarea id="jsonInput" placeholder='{"store":{"book":[{"title":"Sayings","author":"Author1"},{"title":"Sword","author":"Author2"}]}}'>{"store":{"book":[{"title":"Sayings of the Century","author":"Nigel Rees","price":8.95},{"title":"Sword of Honour","author":"Evelyn Waugh","price":12.99},{"title":"Moby Dick","author":"Herman Melville","price":8.99}],"bicycle":{"color":"red","price":19.95}}}</textarea>
+        <div class="examples">
+          <span style="font-size:.75rem;color:var(--text-secondary)">示例:</span>
+          <button onclick="setExample('$.store.book[*].author')">所有作者</button>
+          <button onclick="setExample('$.store.book[0].title')">第一本书</button>
+          <button onclick="setExample('$.store.book[?(@.price<10)].title')">低价书</button>
+          <button onclick="setExample('$.store.bicycle.color')">自行车颜色</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>求值结果</h3>
+        <div class="output-area" id="output">输入JSON和路径后点击"求值"</div>
+      </div>
+    </div>
+  </main>
+  <footer>
+    <p>Free ToolBase &copy; 2025 · <a href="/">返回首页</a></p>
+  </footer>
+  <div id="toast"></div>
+  <script>
+  function showToast(msg, isError) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = isError ? 'error show' : 'show';
+    setTimeout(function(){ t.className = ''; }, 2500);
+  }
+  function evalPath(obj, path) {
+    path = path.replace(/^\$\.?/, '');
+    if (!path) return [obj];
+    var tokens = [];
+    var i = 0, ch;
+    while (i < path.length) {
+      ch = path[i];
+      if (ch === '.') { i++; continue; }
+      if (ch === '[') {
+        var end = path.indexOf(']', i);
+        if (end === -1) throw new Error('未闭合的方括号');
+        var content = path.substring(i+1, end);
+        tokens.push({ type: 'bracket', value: content });
+        i = end + 1;
+      } else {
+        var j = i;
+        while (j < path.length && path[j] !== '.' && path[j] !== '[') j++;
+        tokens.push({ type: 'key', value: path.substring(i, j) });
+        i = j;
+      }
+    }
+    var results = [obj];
+    for (var ti = 0; ti < tokens.length; ti++) {
+      var token = tokens[ti];
+      var nextResults = [];
+      for (var ri = 0; ri < results.length; ri++) {
+        var cur = results[ri];
+        if (cur === null || cur === undefined) continue;
+        if (token.type === 'key') {
+          if (token.value === '*') {
+            if (Array.isArray(cur)) { for (var a=0;a<cur.length;a++) nextResults.push(cur[a]); }
+            else if (typeof cur === 'object') { for (var k in cur) if (cur.hasOwnProperty(k)) nextResults.push(cur[k]); }
+          } else {
+            if (cur.hasOwnProperty(token.value)) nextResults.push(cur[token.value]);
+          }
+        } else {
+          var v = token.value;
+          if (v === '*') {
+            if (Array.isArray(cur)) { for (var a=0;a<cur.length;a++) nextResults.push(cur[a]); }
+          } else if (/^\d+$/.test(v)) {
+            var idx = parseInt(v);
+            if (Array.isArray(cur) && idx < cur.length) nextResults.push(cur[idx]);
+          } else if (v.startsWith('?(') && v.endsWith(')')) {
+            var expr = v.slice(2, -1);
+            if (Array.isArray(cur)) {
+              for (var a=0;a<cur.length;a++) {
+                var item = cur[a];
+                try {
+                  var cond = evalFilter(expr, item);
+                  if (cond) nextResults.push(item);
+                } catch(e) {}
+              }
+            }
+          }
+        }
+      }
+      results = nextResults;
+    }
+    return results;
+  }
+  function evalFilter(expr, item) {
+    var m = expr.match(/@\.(\w+)\s*(<|>|<=|>=|==|!=)\s*(.+)/);
+    if (!m) return false;
+    var field = m[1], op = m[2], val = m[3].trim().replace(/['"]/g, '');
+    var fv = item[field];
+    var nv = isNaN(val) ? val : parseFloat(val);
+    switch(op) {
+      case '<': return fv < nv;
+      case '>': return fv > nv;
+      case '<=': return fv <= nv;
+      case '>=': return fv >= nv;
+      case '==': return fv == nv;
+      case '!=': return fv != nv;
+      default: return false;
+    }
+  }
+  function formatResult(results) {
+    if (results.length === 0) return '<span class="error">未匹配到任何值</span>';
+    if (results.length === 1) return '<pre>' + JSON.stringify(results[0], null, 2) + '</pre>';
+    var html = '<div>匹配到 ' + results.length + ' 个结果:</div>';
+    for (var i=0;i<results.length;i++) {
+      html += '<div class="result-item"><strong>[' + i + ']</strong> ' + JSON.stringify(results[i]) + '</div>';
+    }
+    return html;
+  }
+  document.getElementById('evalBtn').addEventListener('click', function(){
+    var jsonStr = document.getElementById('jsonInput').value.trim();
+    var path = document.getElementById('pathInput').value.trim();
+    if (!jsonStr) { showToast('请输入JSON数据', true); return; }
+    if (!path) { showToast('请输入JSONPath表达式', true); return; }
+    try {
+      var obj = JSON.parse(jsonStr);
+      var results = evalPath(obj, path);
+      document.getElementById('output').innerHTML = formatResult(results);
+    } catch(e) {
+      document.getElementById('output').innerHTML = '<span class="error">错误: ' + e.message + '</span>';
+      showToast('解析失败: ' + e.message, true);
+    }
+  });
+  document.getElementById('clearBtn').addEventListener('click', function(){
+    document.getElementById('output').innerHTML = '输入JSON和路径后点击"求值"';
+    document.getElementById('pathInput').value = '';
+  });
+  function setExample(path) {
+    document.getElementById('pathInput').value = path;
+    document.getElementById('evalBtn').click();
+  }
+  document.getElementById('jsonInput').addEventListener('input', function(){
+    var path = document.getElementById('pathInput').value.trim();
+    if (path) document.getElementById('evalBtn').click();
+  });
+  </script>
+</body>
+</html>
