@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Character Unicode Finder - Free ToolBase</title>
+  <meta name="description" content="Free online Character Unicode Finder - look up Unicode code points, UTF-8/UTF-16 encodings, HTML entities, and character details for any character.">
+  <meta property="og:title" content="Character Unicode Finder - Free ToolBase">
+  <meta property="og:description" content="Free online Character Unicode Finder - look up Unicode code points, UTF-8/UTF-16 encodings, HTML entities, and character details for any character.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Character Unicode Finder",
+    "description": "Free online Character Unicode Finder - look up Unicode code points, UTF-8/UTF-16 encodings, HTML entities, and character details for any character.",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Any",
+    "offers": {"@type": "Offer", "price": "0"}
+  }
+  </script>
+  <style>
+  :root { --primary: #4F46E5; --primary-hover: #4338CA; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; }
+  header { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 20px; }
+  header nav { max-width: 900px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+  header a { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 14px; }
+  main { max-width: 900px; margin: 0 auto; padding: 32px 16px 64px; flex: 1; width: 100%; }
+  h1 { font-size: clamp(1.5rem, 4vw, 2rem); word-break: break-word; margin-bottom: 8px; color: var(--text); }
+  .desc { color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; }
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; margin-bottom: 20px; }
+  .input-group { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+  .input-group textarea { flex: 1; min-width: 200px; padding: 12px 16px; border: 2px solid var(--border); border-radius: 8px; font-size: 16px; font-family: 'SF Mono', 'Fira Code', monospace; resize: none; height: 60px; }
+  .input-group textarea:focus { outline: none; border-color: var(--primary); }
+  .btn { background: var(--primary); color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-size: 15px; cursor: pointer; font-weight: 600; white-space: nowrap; transition: background 0.2s; }
+  .btn:hover { background: var(--primary-hover); }
+  .result table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .result td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .result td:first-child { color: var(--text-secondary); font-weight: 600; width: 140px; white-space: nowrap; }
+  .result .code { font-family: 'SF Mono', 'Fira Code', monospace; color: var(--primary); }
+  .result .char-preview { font-size: 48px; text-align: center; padding: 16px; background: var(--bg); border-radius: 8px; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 14px; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  footer { text-align: center; padding: 20px; font-size: 13px; color: var(--text-secondary); border-top: 1px solid var(--border); }
+  @media (max-width: 600px) { .input-group { flex-direction: column; } .input-group textarea { width: 100%; } .btn { width: 100%; } }
+  </style>
+</head>
+<body>
+  <header><nav><a href="/en/">← Home</a></nav></header>
+  <main>
+    <h1>Character Unicode Finder</h1>
+    <p class="desc">Enter any character to look up its Unicode code point, encodings, HTML entities, and character details.</p>
+    <div class="card">
+      <div class="input-group">
+        <textarea id="charInput" placeholder="Enter one or more characters, e.g. 😀, €, 中文" maxlength="10"></textarea>
+        <button class="btn" id="lookupBtn">Look Up</button>
+      </div>
+      <div class="result" id="result"></div>
+    </div>
+  </main>
+  <div class="toast" id="toast"></div>
+  <footer><p>© 2024 Free ToolBase · Free Online Developer Tools</p></footer>
+  <script>
+  const input = document.getElementById('charInput');
+  const btn = document.getElementById('lookupBtn');
+  const result = document.getElementById('result');
+  const toast = document.getElementById('toast');
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  function lookup() {
+    const text = input.value;
+    if (!text.trim()) { showToast('Please enter a character'); return; }
+    const chars = [...text];
+    let html = '';
+    chars.forEach(ch => {
+      const cp = ch.codePointAt(0);
+      const hex = cp.toString(16).toUpperCase().padStart(4, '0');
+      const utf8 = new TextEncoder().encode(ch);
+      const utf8hex = Array.from(utf8).map(b => b.toString(16).toUpperCase().padStart(2,'0')).join(' ');
+      const utf16code = [];
+      if (cp <= 0xFFFF) {
+        utf16code.push(cp.toString(16).toUpperCase().padStart(4,'0'));
+      } else {
+        const H = Math.floor((cp - 0x10000) / 0x400) + 0xD800;
+        const L = ((cp - 0x10000) % 0x400) + 0xDC00;
+        utf16code.push(H.toString(16).toUpperCase(), L.toString(16).toUpperCase());
+      }
+      const entity = `&#x${hex};`;
+      const namedEntities = {'<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;'};
+      const named = namedEntities[ch] || '';
+      html += `<div style="margin-bottom:16px;">
+        <div class="char-preview">${ch}</div>
+        <table>
+          <tr><td>Unicode Code Point</td><td><span class="code">U+${hex}</span> (Decimal: ${cp})</td></tr>
+          <tr><td>UTF-8 Encoding</td><td><span class="code">${utf8hex}</span></td></tr>
+          <tr><td>UTF-16 Encoding</td><td><span class="code">${utf16code.join(' ')}</span></td></tr>
+          <tr><td>HTML Entity</td><td><span class="code">${entity}</span>${named ? ' <span class="code">' + named + '</span>' : ''}</td></tr>
+          <tr><td>Character Category</td><td>${getCharCategory(ch)}</td></tr>
+        </table>
+      </div>`;
+    });
+    result.innerHTML = html || '<p style="color:var(--text-secondary)">Enter characters to begin</p>';
+  }
+
+  function getCharCategory(ch) {
+    if (/\p{L}/u.test(ch)) return 'Letter';
+    if (/\p{N}/u.test(ch)) return 'Number';
+    if (/\p{P}/u.test(ch)) return 'Punctuation';
+    if (/\p{S}/u.test(ch)) return 'Symbol';
+    if (/\p{Z}/u.test(ch)) return 'Whitespace';
+    if (/\p{Emoji}/u.test(ch)) return 'Emoji';
+    return 'Other';
+  }
+  btn.addEventListener('click', lookup);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); lookup(); } });
+  input.value = '😀';
+  lookup();
+  </script>
+</body>
+</html>
