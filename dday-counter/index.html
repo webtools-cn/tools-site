@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>D-Day倒计时计算器 - Free ToolBase</title>
+  <meta name="description" content="在线D-Day倒计时计算器，计算距离重要日期的天数，支持正计时和倒计时模式，精确到秒的实时更新">
+  <meta property="og:title" content="D-Day倒计时计算器 - Free ToolBase">
+  <meta property="og:description" content="在线D-Day倒计时计算器，计算距离重要日期的天数，支持正计时和倒计时模式">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"D-Day倒计时计算器","applicationCategory":"UtilityApplication","operatingSystem":"Any","description":"在线D-Day倒计时计算器，计算距离重要日期的天数"}</script>
+  <style>
+    :root { --primary: #4F46E5; --bg: #f8fafc; --card: #fff; --text: #1e293b; --text2: #64748b; --border: #e2e8f0; --radius: 12px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    header { background: var(--primary); color: #fff; padding: 16px 24px; text-align: center; }
+    header a { color: #fff; text-decoration: none; font-weight: 700; font-size: 18px; }
+    main { max-width: 640px; margin: 0 auto; padding: 24px 16px; }
+    h1 { font-size: 24px; text-align: center; margin-bottom: 24px; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.1); margin-bottom: 16px; }
+    label { display: block; font-size: 14px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+    input[type="text"], input[type="date"] { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; margin-bottom: 12px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; font-weight: 600; width: 100%; }
+    .btn:hover { opacity: .9; }
+    .result { text-align: center; padding: 20px; }
+    .result .days { font-size: 64px; font-weight: 800; color: var(--primary); line-height: 1; }
+    .result .label { font-size: 14px; color: var(--text2); margin-top: 4px; }
+    .result .detail { font-size: 13px; color: var(--text2); margin-top: 8px; }
+    .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .preset { padding: 6px 14px; border: 1px solid var(--border); border-radius: 20px; font-size: 13px; cursor: pointer; background: #fff; }
+    .preset:hover { border-color: var(--primary); color: var(--primary); }
+    .mode-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+    .mode-btn { flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; cursor: pointer; background: #fff; text-align: center; }
+    .mode-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    @media (max-width: 375px) { .result .days { font-size: 48px; } main { padding: 16px 12px; } }
+  </style>
+</head>
+<body>
+<header><a href="/">Free ToolBase</a></header>
+<main>
+  <h1>📅 D-Day倒计时计算器</h1>
+  <div class="card">
+    <div class="mode-toggle" id="modeToggle">
+      <div class="mode-btn active" data-mode="countdown">⏳ 倒计时</div>
+      <div class="mode-btn" data-mode="countup">📆 正计时</div>
+    </div>
+    <label for="titleInput">事件名称（可选）</label>
+    <input type="text" id="titleInput" placeholder="例如：生日、考试、旅行...">
+    <label for="dateInput">目标日期</label>
+    <input type="date" id="dateInput">
+    <div class="presets" id="presets">
+      <span class="preset" data-days="1">明天</span>
+      <span class="preset" data-days="7">一周后</span>
+      <span class="preset" data-days="30">30天后</span>
+      <span class="preset" data-days="100">100天后</span>
+      <span class="preset" data-days="365">一年后</span>
+    </div>
+    <button class="btn" id="calcBtn">计算倒计时</button>
+  </div>
+  <div class="card result" id="result" style="display:none">
+    <div class="days" id="daysNum">0</div>
+    <div class="label" id="daysLabel">天</div>
+    <div class="detail" id="detail"></div>
+  </div>
+</main>
+<footer style="text-align:center;padding:16px;color:var(--text2);font-size:12px">Free ToolBase © 2025</footer>
+<div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;display:none;z-index:9999"></div>
+<script>
+const dateInput = document.getElementById('dateInput');
+const titleInput = document.getElementById('titleInput');
+const calcBtn = document.getElementById('calcBtn');
+const result = document.getElementById('result');
+const daysNum = document.getElementById('daysNum');
+const daysLabel = document.getElementById('daysLabel');
+const detail = document.getElementById('detail');
+const modeToggle = document.getElementById('modeToggle');
+const presets = document.getElementById('presets');
+
+let mode = 'countdown';
+let timer = null;
+
+// Set today as default
+const today = new Date().toISOString().split('T')[0];
+dateInput.value = today;
+
+// Mode toggle
+modeToggle.addEventListener('click', function(e) {
+  const btn = e.target.closest('.mode-btn');
+  if (!btn) return;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  mode = btn.dataset.mode;
+  if (dateInput.value) calculate();
+});
+
+// Presets
+presets.addEventListener('click', function(e) {
+  const p = e.target.closest('.preset');
+  if (!p) return;
+  const days = parseInt(p.dataset.days);
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  dateInput.value = d.toISOString().split('T')[0];
+  calculate();
+});
+
+// Calculate
+calcBtn.addEventListener('click', calculate);
+
+function calculate() {
+  if (!dateInput.value) return;
+  if (timer) clearInterval(timer);
+
+  const target = new Date(dateInput.value + 'T00:00:00');
+  const title = titleInput.value || '目标日期';
+
+  function update() {
+    const now = new Date();
+    const diffMs = mode === 'countdown' ? target - now : now - target;
+    const diffDaysTotal = diffMs / (1000 * 60 * 60 * 24);
+    const absDays = Math.abs(Math.floor(diffDaysTotal));
+
+    daysNum.textContent = absDays;
+    if (mode === 'countdown') {
+      daysLabel.textContent = diffMs > 0 ? '天后' : '天前（已过）';
+    } else {
+      daysLabel.textContent = diffMs > 0 ? '天' : '天后';
+    }
+
+    const absTotal = Math.abs(diffMs);
+    const hours = Math.floor((absTotal % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const mins = Math.floor((absTotal % (1000 * 60 * 60)) / (1000 * 60));
+    const secs = Math.floor((absTotal % (1000 * 60)) / 1000);
+    detail.textContent = `"${title}" · ${hours}小时${mins}分${secs}秒 · 约${absDays}天`;
+
+    const prefix = mode === 'countdown' ? (diffMs > 0 ? '距离' : '已过去') : (diffMs > 0 ? '已过去' : '距离');
+    document.title = `${prefix} ${absDays} 天 - ${title}`;
+  }
+
+  update();
+  result.style.display = 'block';
+  timer = setInterval(update, 1000);
+}
+
+// Auto-calc on date change
+dateInput.addEventListener('change', calculate);
+if (dateInput.value) calculate();
+</script>
+</body>
+</html>
