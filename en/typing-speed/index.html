@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Typing Speed Test - Free ToolBase</title>
+  <meta name="description" content="Free online typing speed test. Measure your WPM and accuracy with English sentences, random words, or code snippets. 100% client-side, no registration required.">
+  <meta property="og:title" content="Typing Speed Test - Free ToolBase">
+  <meta property="og:description" content="Free online typing speed test. Measure your WPM and accuracy with English sentences, random words, or code snippets. 100% client-side, no registration required.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Typing Speed Test",
+    "description": "Free online typing speed test. Measure your WPM and accuracy with English sentences, random words, or code snippets.",
+    "applicationCategory": "UtilityApplication",
+    "operatingSystem": "Any",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --primary-light: #6366f1;
+      --bg: #0f172a;
+      --bg-card: #1e293b;
+      --text: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --border: rgba(148,163,184,.15);
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header a { color: var(--text); text-decoration: none; font-weight: 700; font-size: 1.2rem; }
+    main {
+      flex: 1;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 32px 20px;
+      width: 100%;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 24px; text-align: center; }
+    .stats {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 24px;
+      text-align: center;
+      min-width: 120px;
+    }
+    .stat-value { font-size: 2rem; font-weight: 700; color: var(--primary-light); }
+    .stat-label { font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; }
+    .display-area {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      font-size: 1.2rem;
+      line-height: 2;
+      min-height: 120px;
+      word-break: break-all;
+    }
+    .char { transition: color .15s; }
+    .char.correct { color: var(--success); }
+    .char.incorrect { color: var(--danger); background: rgba(239,68,68,.15); }
+    .char.current { background: rgba(79,70,229,.3); border-radius: 2px; }
+    .char.remaining { color: var(--text-secondary); }
+    .input-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    textarea {
+      flex: 1;
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      color: var(--text);
+      font-size: 1.1rem;
+      font-family: 'Courier New', monospace;
+      resize: none;
+      height: 80px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    textarea:focus { border-color: var(--primary-light); }
+    textarea:disabled { opacity: .5; cursor: not-allowed; }
+    .btn {
+      padding: 12px 28px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-light); transform: translateY(-1px); }
+    .btn-secondary { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--primary-light); }
+    .controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .mode-selector {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .mode-btn {
+      padding: 8px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: .9rem;
+      transition: all .2s;
+    }
+    .mode-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .result-detail {
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 20px;
+      text-align: center;
+    }
+    .result-detail.show { display: block; }
+    .result-grade {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--primary-light);
+      margin-bottom: 8px;
+    }
+    .result-grade-desc { font-size: 1.1rem; color: var(--text-secondary); }
+    footer {
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      padding: 16px 24px;
+      text-align: center;
+    }
+    footer a { color: var(--primary-light); text-decoration: none; }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 24px;
+      color: var(--text);
+      font-size: .9rem;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity .3s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+    @media (max-width: 600px) {
+      main { padding: 20px 12px; }
+      .stats { gap: 8px; }
+      .stat-card { min-width: 80px; padding: 12px; }
+      .stat-value { font-size: 1.5rem; }
+      h1 { font-size: 1.4rem; }
+      .display-area { font-size: 1rem; padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/en/">Free ToolBase</a>
+    <span style="color:var(--text-secondary);font-size:.85rem;">Typing Speed Test</span>
+  </header>
+
+  <main>
+    <h1>⌨️ Typing Speed Test</h1>
+
+    <div class="mode-selector" id="modeSelector">
+      <button class="mode-btn active" data-mode="sentence">Sentences</button>
+      <button class="mode-btn" data-mode="word">Random Words</button>
+      <button class="mode-btn" data-mode="code">Code Snippets</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-value" id="wpm">0</div>
+        <div class="stat-label">WPM</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="accuracy">100%</div>
+        <div class="stat-label">Accuracy</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="timeDisplay">60s</div>
+        <div class="stat-label">Time Left</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="charsTyped">0</div>
+        <div class="stat-label">Chars Typed</div>
+      </div>
+    </div>
+
+    <div class="display-area" id="displayArea"></div>
+
+    <div class="input-row">
+      <textarea id="inputArea" placeholder="Start typing here..." disabled></textarea>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-primary" id="startBtn">Start Test</button>
+      <button class="btn btn-secondary" id="resetBtn">Reset</button>
+      <select id="durationSelect" style="padding:10px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.95rem;">
+        <option value="30">30 seconds</option>
+        <option value="60" selected>60 seconds</option>
+        <option value="120">120 seconds</option>
+        <option value="180">180 seconds</option>
+      </select>
+    </div>
+
+    <div class="result-detail" id="resultDetail">
+      <div class="result-grade" id="resultGrade"></div>
+      <div class="result-grade-desc" id="resultGradeDesc"></div>
+      <div style="margin-top:16px;color:var(--text-secondary);font-size:.9rem;" id="resultSummary"></div>
+    </div>
+  </main>
+
+  <footer>
+    <p>© 2024 <a href="/en/">Free ToolBase</a> - Free Online Tools · Client-side only, no data uploaded</p>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const sentences = [
+      "The quick brown fox jumps over the lazy dog near the river bank today.",
+      "Programming is the art of telling another human what one wants the computer to do.",
+      "Success is not final, failure is not fatal, it is the courage to continue that counts.",
+      "Walking through the quiet forest path brings peace to the wandering mind and soul.",
+      "Every great developer you know got there by solving problems they did not know how to solve.",
+      "The sunset painted the sky with brilliant shades of orange purple and golden light.",
+      "Learning never exhausts the mind, it only creates new pathways for ideas to flow through.",
+      "Simple and elegant solutions often come after hours of deep thinking and experimentation.",
+    ];
+
+    const words = [
+      "apple", "bridge", "candle", "dragon", "eagle", "forest", "garden", "harbor",
+      "island", "jungle", "knight", "lemon", "mountain", "noble", "ocean", "puzzle",
+      "quartz", "rocket", "shadow", "temple", "unique", "valley", "winter", "zenith",
+      "banana", "coffee", "diamond", "emerald", "falcon", "guitar", "horizon", "insect",
+      "jaguar", "kitten", "lantern", "marble", "nectar", "oracle", "planet", "quiver",
+    ];
+
+    const codeSnippets = [
+      "function fibonacci(n) { return n <= 1 ? n : fibonacci(n-1) + fibonacci(n-2); }",
+      "const sum = (a, b) => a + b; console.log(sum(42, 18));",
+      "const items = data.filter(x => x.active).map(x => x.name); return items.join(', ');",
+      "async function fetchUsers() { const res = await fetch('/api/users'); return res.json(); }",
+      "const sorted = arr.sort((a, b) => a.score - b.score); return sorted.slice(0, 10);",
+    ];
+
+    let currentText = '';
+    let currentPos = 0;
+    let startTime = 0;
+    let timerInterval = null;
+    let timeLeft = 60;
+    let totalKeystrokes = 0;
+    let correctKeystrokes = 0;
+    let isActive = false;
+    let mode = 'sentence';
+
+    const displayArea = document.getElementById('displayArea');
+    const inputArea = document.getElementById('inputArea');
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const durationSelect = document.getElementById('durationSelect');
+    const resultDetail = document.getElementById('resultDetail');
+    const toast = document.getElementById('toast');
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    function getText() {
+      if (mode === 'sentence') return sentences[Math.floor(Math.random() * sentences.length)];
+      if (mode === 'code') return codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+      const count = 8 + Math.floor(Math.random() * 8);
+      const selected = [];
+      for (let i = 0; i < count; i++) {
+        selected.push(words[Math.floor(Math.random() * words.length)]);
+      }
+      return selected.join(' ');
+    }
+
+    function renderDisplay() {
+      let html = '';
+      for (let i = 0; i < currentText.length; i++) {
+        let cls = 'remaining';
+        if (i < currentPos) cls = 'correct';
+        if (i === currentPos) cls = 'current';
+        html += `<span class="char ${cls}">${escapeHtml(currentText[i])}</span>`;
+      }
+      displayArea.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', ' ': '&nbsp;' };
+      return str.replace(/[&<>"'\s]/g, c => map[c] || c);
+    }
+
+    function updateStats() {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const minutes = Math.max(elapsed / 60, 0.01);
+      const wpm = Math.round((correctKeystrokes / 5) / minutes);
+      const acc = totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 100;
+
+      document.getElementById('wpm').textContent = wpm;
+      document.getElementById('accuracy').textContent = acc + '%';
+      document.getElementById('timeDisplay').textContent = timeLeft + 's';
+      document.getElementById('charsTyped').textContent = correctKeystrokes;
+    }
+
+    function finishTest() {
+      isActive = false;
+      clearInterval(timerInterval);
+      inputArea.disabled = true;
+
+      const elapsed = (Date.now() - startTime) / 1000;
+      const minutes = Math.max(elapsed / 60, 0.01);
+      const wpm = Math.round((correctKeystrokes / 5) / minutes);
+      const acc = totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 100;
+
+      let grade, gradeDesc;
+      if (wpm >= 100) { grade = 'S'; gradeDesc = 'World-class typist!'; }
+      else if (wpm >= 80) { grade = 'A'; gradeDesc = 'Very fast typing speed'; }
+      else if (wpm >= 60) { grade = 'B'; gradeDesc = 'Good typing speed'; }
+      else if (wpm >= 40) { grade = 'C'; gradeDesc = 'Average typing speed'; }
+      else if (wpm >= 20) { grade = 'D'; gradeDesc = 'Needs more practice'; }
+      else { grade = 'E'; gradeDesc = 'Keep practicing!'; }
+
+      document.getElementById('resultGrade').textContent = grade;
+      document.getElementById('resultGradeDesc').textContent = gradeDesc;
+      document.getElementById('resultSummary').textContent =
+        `Final Speed: ${wpm} WPM | Accuracy: ${acc}% | Chars: ${correctKeystrokes} | Time: ${Math.round(elapsed)}s`;
+      resultDetail.classList.add('show');
+      startBtn.textContent = 'Retry';
+
+      document.getElementById('wpm').textContent = wpm;
+    }
+
+    function startTest() {
+      currentText = getText();
+      currentPos = 0;
+      totalKeystrokes = 0;
+      correctKeystrokes = 0;
+      timeLeft = parseInt(durationSelect.value);
+      startTime = Date.now();
+      isActive = true;
+
+      inputArea.value = '';
+      inputArea.disabled = false;
+      inputArea.focus();
+      resultDetail.classList.remove('show');
+      startBtn.textContent = 'Testing...';
+      startBtn.disabled = true;
+
+      renderDisplay();
+      updateStats();
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        updateStats();
+        if (timeLeft <= 0) {
+          finishTest();
+        }
+      }, 1000);
+    }
+
+    function resetAll() {
+      clearInterval(timerInterval);
+      isActive = false;
+      currentPos = 0;
+      totalKeystrokes = 0;
+      correctKeystrokes = 0;
+      timeLeft = parseInt(durationSelect.value);
+
+      inputArea.value = '';
+      inputArea.disabled = true;
+      startBtn.textContent = 'Start Test';
+      startBtn.disabled = false;
+      resultDetail.classList.remove('show');
+      displayArea.innerHTML = '<span style="color:var(--text-secondary);">Click "Start Test" to begin...</span>';
+
+      document.getElementById('wpm').textContent = '0';
+      document.getElementById('accuracy').textContent = '100%';
+      document.getElementById('timeDisplay').textContent = timeLeft + 's';
+      document.getElementById('charsTyped').textContent = '0';
+    }
+
+    inputArea.addEventListener('input', function(e) {
+      if (!isActive) return;
+
+      const typed = inputArea.value;
+      totalKeystrokes++;
+
+      if (typed.length > 0) {
+        const lastChar = typed[typed.length - 1];
+        if (currentPos < currentText.length && lastChar === currentText[currentPos]) {
+          correctKeystrokes++;
+          currentPos++;
+        } else if (currentPos < currentText.length) {
+          currentPos++;
+        }
+      }
+
+      if (typed.length < currentPos) {
+        currentPos = typed.length;
+      }
+
+      updateStats();
+      renderDisplay();
+
+      if (currentPos >= currentText.length) {
+        currentText = getText();
+        currentPos = 0;
+        inputArea.value = '';
+        renderDisplay();
+        showToast('✅ Completed! New text loaded');
+      }
+    });
+
+    inputArea.addEventListener('paste', function(e) {
+      if (isActive) {
+        e.preventDefault();
+        showToast('Pasting is not allowed during the test');
+      }
+    });
+
+    startBtn.addEventListener('click', function() {
+      if (isActive) return;
+      startTest();
+    });
+
+    resetBtn.addEventListener('click', resetAll);
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        mode = this.dataset.mode;
+        resetAll();
+      });
+    });
+
+    durationSelect.addEventListener('change', function() {
+      if (!isActive) {
+        timeLeft = parseInt(this.value);
+        document.getElementById('timeDisplay').textContent = timeLeft + 's';
+      }
+    });
+
+    resetAll();
+  </script>
+</body>
+</html>

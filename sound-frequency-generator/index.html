@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>声音频率生成器 - Free ToolBase</title>
+  <meta name="description" content="免费在线声音频率生成器，生成20Hz到20000Hz的正弦波/方波/锯齿波/三角波音频信号。支持左右声道独立调节，纯前端处理无需注册。">
+  <meta property="og:title" content="声音频率生成器 - Free ToolBase">
+  <meta property="og:description" content="免费在线声音频率生成器，生成20Hz到20000Hz的正弦波/方波/锯齿波/三角波音频信号。纯前端处理无需注册。">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "声音频率生成器",
+    "description": "免费在线声音频率生成器，生成20Hz-20000Hz的正弦波/方波/锯齿波/三角波音频信号。纯前端处理无需注册。",
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "Any",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <style>
+    :root {
+      --primary: #4F46E5; --primary-light: #6366f1;
+      --bg: #0f172a; --bg-card: #1e293b;
+      --text: #f1f5f9; --text-secondary: #94a3b8;
+      --border: rgba(148,163,184,.15); --success: #22c55e; --danger: #ef4444;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: var(--text); text-decoration: none; font-weight: 700; font-size: 1.2rem; }
+    main { flex: 1; max-width: 700px; margin: 0 auto; padding: 32px 20px; width: 100%; }
+    h1 { font-size: 1.8rem; margin-bottom: 24px; text-align: center; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: var(--primary-light); }
+    .freq-display { text-align: center; font-size: 3rem; font-weight: 700; color: var(--primary-light); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+    .freq-unit { text-align: center; color: var(--text-secondary); margin-bottom: 20px; }
+    .preset-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; justify-content: center; }
+    .preset-btn { padding: 8px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; color: var(--text-secondary); cursor: pointer; font-size: .85rem; transition: all .2s; }
+    .preset-btn:hover { border-color: var(--primary-light); color: var(--text); }
+    .preset-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .control-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+    .control-group { flex: 1; min-width: 150px; }
+    .control-group label { display: block; font-size: .85rem; color: var(--text-secondary); margin-bottom: 6px; }
+    input[type="range"] { width: 100%; height: 8px; -webkit-appearance: none; background: var(--border); border-radius: 4px; outline: none; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; background: var(--primary); border-radius: 50%; cursor: pointer; }
+    input[type="number"] { width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 1rem; outline: none; }
+    input[type="number"]:focus { border-color: var(--primary-light); }
+    .btn { padding: 12px 28px; border-radius: 10px; font-size: 1rem; font-weight: 600; border: none; cursor: pointer; transition: all .2s; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-light); transform: translateY(-1px); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { opacity: .9; }
+    .btn-secondary { background: var(--bg-card); color: var(--text); border: 1px solid var(--border); }
+    .btn-group { display: flex; gap: 12px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+    .waveform-selector { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .wave-btn { flex: 1; min-width: 60px; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); cursor: pointer; text-align: center; font-size: .85rem; transition: all .2s; }
+    .wave-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .vis-area { width: 100%; height: 80px; background: var(--bg); border-radius: 8px; overflow: hidden; margin-bottom: 16px; position: relative; }
+    .vis-area canvas { width: 100%; height: 100%; }
+    footer { background: var(--bg-card); border-top: 1px solid var(--border); padding: 16px 24px; text-align: center; }
+    footer a { color: var(--primary-light); text-decoration: none; }
+    @media (max-width: 500px) {
+      .freq-display { font-size: 2rem; }
+      .control-row { gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/">Free ToolBase</a>
+    <span style="color:var(--text-secondary);font-size:.85rem;">声音频率生成器</span>
+  </header>
+
+  <main>
+    <h1>🔊 声音频率生成器</h1>
+
+    <div class="card">
+      <div class="freq-display" id="freqDisplay">440</div>
+      <div class="freq-unit">Hz</div>
+
+      <div class="waveform-selector">
+        <button class="wave-btn active" data-wave="sine">正弦波</button>
+        <button class="wave-btn" data-wave="square">方波</button>
+        <button class="wave-btn" data-wave="sawtooth">锯齿波</button>
+        <button class="wave-btn" data-wave="triangle">三角波</button>
+      </div>
+
+      <div class="vis-area"><canvas id="waveCanvas"></canvas></div>
+
+      <div class="control-row">
+        <div class="control-group">
+          <label>频率: <span id="freqLabel">440</span> Hz</label>
+          <input type="range" id="freqSlider" min="20" max="5000" value="440" step="1">
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="control-group">
+          <label>音量: <span id="volLabel">50</span>%</label>
+          <input type="range" id="volSlider" min="0" max="100" value="50">
+        </div>
+        <div class="control-group">
+          <label>左声道</label>
+          <input type="range" id="panSlider" min="-1" max="1" value="0" step="0.1">
+        </div>
+      </div>
+
+      <div class="preset-grid" id="presetGrid">
+        <button class="preset-btn" data-freq="100">100 Hz</button>
+        <button class="preset-btn" data-freq="200">200 Hz</button>
+        <button class="preset-btn" data-freq="440">A4 440</button>
+        <button class="preset-btn" data-freq="1000">1kHz</button>
+        <button class="preset-btn" data-freq="2000">2kHz</button>
+        <button class="preset-btn" data-freq="4000">4kHz</button>
+        <button class="preset-btn" data-freq="5000">5kHz</button>
+        <button class="preset-btn" data-freq="8000">8kHz</button>
+        <button class="preset-btn" data-freq="10000">10kHz</button>
+        <button class="preset-btn" data-freq="15000">15kHz</button>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-primary" id="playBtn">▶ 播放</button>
+        <button class="btn btn-danger" id="stopBtn">⏹ 停止</button>
+        <button class="btn btn-secondary" id="sweepBtn">↗ 频率扫描</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>© 2024 <a href="/">Free ToolBase</a> - 免费在线工具 · 纯前端处理，数据不上传</p>
+  </footer>
+
+  <script>
+    let audioCtx = null;
+    let oscillator = null;
+    let gainNode = null;
+    let pannerNode = null;
+    let isPlaying = false;
+    let waveform = 'sine';
+    let currentFreq = 440;
+    let currentVol = 0.5;
+    let currentPan = 0;
+    let sweepInterval = null;
+    let animFrameId = null;
+
+    const freqDisplay = document.getElementById('freqDisplay');
+    const freqLabel = document.getElementById('freqLabel');
+    const freqSlider = document.getElementById('freqSlider');
+    const volSlider = document.getElementById('volSlider');
+    const volLabel = document.getElementById('volLabel');
+    const panSlider = document.getElementById('panSlider');
+    const playBtn = document.getElementById('playBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const sweepBtn = document.getElementById('sweepBtn');
+    const waveCanvas = document.getElementById('waveCanvas');
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function stopSound() {
+      if (oscillator) { try { oscillator.stop(); } catch(e){} oscillator.disconnect(); oscillator = null; }
+      if (gainNode) { gainNode.disconnect(); gainNode = null; }
+      if (pannerNode) { pannerNode.disconnect(); pannerNode = null; }
+      if (sweepInterval) { clearInterval(sweepInterval); sweepInterval = null; }
+      if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+      isPlaying = false;
+      playBtn.textContent = '▶ 播放';
+      sweepBtn.textContent = '↗ 频率扫描';
+    }
+
+    function startSound(freq) {
+      initAudio();
+      stopSound();
+      if (!audioCtx) return;
+
+      const f = freq || currentFreq;
+      gainNode = audioCtx.createGain();
+      gainNode.gain.value = currentVol;
+
+      pannerNode = audioCtx.createStereoPanner();
+      pannerNode.pan.value = currentPan;
+
+      oscillator = audioCtx.createOscillator();
+      oscillator.type = waveform;
+      oscillator.frequency.value = f;
+
+      oscillator.connect(gainNode);
+      gainNode.connect(pannerNode);
+      pannerNode.connect(audioCtx.destination);
+      oscillator.start();
+      isPlaying = true;
+      playBtn.textContent = '⏸ 暂停';
+      drawWaveform();
+    }
+
+    function drawWaveform() {
+      if (!isPlaying) { animFrameId = null; return; }
+      const canvas = waveCanvas;
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.offsetWidth * 2;
+      canvas.height = canvas.offsetHeight * 2;
+      ctx.scale(2, 2);
+      const w = canvas.offsetWidth, h = canvas.offsetHeight;
+
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = '#6366f1';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+
+      const freq = currentFreq;
+      const samples = 200;
+      for (let i = 0; i < samples; i++) {
+        const t = (i / samples) * (1000 / freq) * 2 * Math.PI * freq / 1000;
+        let val;
+        const phase = (Date.now() / 1000 * freq * 2 * Math.PI + (i / samples) * 2 * Math.PI * 2) % (2 * Math.PI);
+        switch(waveform) {
+          case 'sine': val = Math.sin(phase); break;
+          case 'square': val = Math.sin(phase) >= 0 ? 1 : -1; break;
+          case 'sawtooth': val = 2 * (phase / (2 * Math.PI) % 1) - 1; break;
+          case 'triangle': val = 2 * Math.abs(2 * (phase / (2 * Math.PI) % 1) - 1) - 1; break;
+          default: val = Math.sin(phase);
+        }
+        const x = (i / samples) * w;
+        const y = (h / 2) - val * (h / 2.5);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      animFrameId = requestAnimationFrame(drawWaveform);
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (isPlaying) { stopSound(); return; }
+      startSound();
+    });
+
+    stopBtn.addEventListener('click', stopSound);
+
+    sweepBtn.addEventListener('click', () => {
+      if (sweepInterval) { clearInterval(sweepInterval); sweepInterval = null; sweepBtn.textContent = '↗ 频率扫描'; return; }
+      initAudio();
+      stopSound();
+      sweepBtn.textContent = '⏹ 停止扫描';
+      let sweepFreq = 20;
+      startSound(sweepFreq);
+      sweepInterval = setInterval(() => {
+        sweepFreq += 30;
+        if (sweepFreq > 5000) sweepFreq = 20;
+        if (oscillator) oscillator.frequency.value = sweepFreq;
+        currentFreq = sweepFreq;
+        freqDisplay.textContent = sweepFreq;
+        freqLabel.textContent = sweepFreq;
+        freqSlider.value = sweepFreq;
+      }, 80);
+    });
+
+    freqSlider.addEventListener('input', () => {
+      currentFreq = parseInt(freqSlider.value);
+      freqDisplay.textContent = currentFreq;
+      freqLabel.textContent = currentFreq;
+      if (oscillator) oscillator.frequency.value = currentFreq;
+    });
+
+    volSlider.addEventListener('input', () => {
+      currentVol = parseInt(volSlider.value) / 100;
+      volLabel.textContent = volSlider.value;
+      if (gainNode) gainNode.gain.value = currentVol;
+    });
+
+    panSlider.addEventListener('input', () => {
+      currentPan = parseFloat(panSlider.value);
+      if (pannerNode) pannerNode.pan.value = currentPan;
+    });
+
+    document.querySelectorAll('.wave-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.wave-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        waveform = this.dataset.wave;
+        if (oscillator) oscillator.type = waveform;
+      });
+    });
+
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const f = parseInt(this.dataset.freq);
+        currentFreq = f;
+        freqDisplay.textContent = f;
+        freqLabel.textContent = f;
+        freqSlider.value = f;
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        if (oscillator) oscillator.frequency.value = f;
+      });
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', stopSound);
+  </script>
+</body>
+</html>
