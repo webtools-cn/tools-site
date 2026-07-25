@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>健身计划生成器 - Free ToolBase</title>
+  <meta name="description" content="免费在线健身计划生成器，根据目标（增肌/减脂/塑形）、健身水平、可用天数自动生成个性化健身训练计划，支持器械/自重训练。">
+  <meta property="og:title" content="健身计划生成器 - 个性化训练计划在线定制">
+  <meta property="og:description" content="免费健身计划生成工具，输入目标与水平，自动生成科学训练方案。">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "健身计划生成器",
+    "description": "在线健身训练计划生成工具",
+    "applicationCategory": "HealthApplication",
+    "operatingSystem": "Web"
+  }
+  </script>
+  <style>
+    :root { --primary: #10B981; --primary-dark: #059669; --bg: #ecfdf5; --card: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #a7f3d0; --radius: 16px; --shadow: 0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.03); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: linear-gradient(135deg, #059669, #10b981); padding: 24px 20px; text-align: center; }
+    header h1 { color: #fff; font-size: 1.6rem; }
+    header p { color: #d1fae5; font-size: .9rem; margin-top: 4px; }
+    main { flex: 1; max-width: 680px; margin: 0 auto; padding: 24px 16px; width: 100%; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); margin-bottom: 16px; }
+    .field-group { margin-bottom: 14px; }
+    .field-group label { display: block; font-size: .85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+    .field-group select { width: 100%; padding: 12px 14px; border: 2px solid var(--border); border-radius: 12px; font-size: 1rem; outline: none; transition: border-color .2s; background: #fff; }
+    .field-group select:focus { border-color: var(--primary); }
+    .btn { width: 100%; padding: 14px 24px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: background .2s; }
+    .btn:hover { background: var(--primary-dark); }
+    .plan-day { margin-bottom: 14px; border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .plan-day-header { background: #d1fae5; padding: 12px 16px; font-weight: 700; font-size: 1rem; color: #065f46; }
+    .plan-day-body { padding: 14px 16px; }
+    .exercise-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0fdf4; }
+    .exercise-row:last-child { border-bottom: none; }
+    .exercise-name { font-weight: 600; font-size: .95rem; }
+    .exercise-detail { font-size: .82rem; color: var(--text-secondary); }
+    .plan-tips { background: #ecfdf5; border-radius: 12px; padding: 14px 18px; margin-top: 16px; font-size: .9rem; color: #065f46; }
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+    .empty-state .icon { font-size: 3rem; }
+    footer { text-align: center; padding: 20px; color: var(--text-secondary); font-size: .85rem; border-top: 1px solid var(--border); margin-top: auto; }
+    @media (max-width: 375px) { .plan-day-header { font-size: .9rem; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>💪 健身计划生成器</h1>
+    <p>选择目标与水平，一键生成个性化训练方案</p>
+  </header>
+  <main>
+    <div class="card">
+      <div class="field-group">
+        <label>🎯 健身目标</label>
+        <select id="goal">
+          <option value="build">增肌增重</option>
+          <option value="lose">减脂塑形</option>
+          <option value="tone">线条塑形</option>
+          <option value="strength">力量提升</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>🏋️ 健身水平</label>
+        <select id="level">
+          <option value="beginner">新手（刚开始健身）</option>
+          <option value="intermediate">中级（健身3-12个月）</option>
+          <option value="advanced">高级（健身1年以上）</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>📅 每周可用天数</label>
+        <select id="days">
+          <option value="3">3天/周</option>
+          <option value="4">4天/周</option>
+          <option value="5">5天/周</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>🏠 训练方式</label>
+        <select id="equipment">
+          <option value="gym">健身房（器械）</option>
+          <option value="home">居家（自重/弹力带）</option>
+          <option value="mixed">混合（器械+自重）</option>
+        </select>
+      </div>
+      <button class="btn" id="generateBtn">✨ 生成我的健身计划</button>
+    </div>
+    <div class="card" id="planCard">
+      <div id="planContent"><div class="empty-state"><div class="icon">🏋️</div><p>选择参数后点击生成</p></div></div>
+    </div>
+  </main>
+  <footer>Free ToolBase &copy; 2026 · 训练前请咨询专业教练</footer>
+  <script>
+    (function(){
+      const exercises = {
+        build: {
+          gym: [
+            { name: '杠铃卧推', sets: '4x8-10', rest: '90秒' },
+            { name: '杠铃深蹲', sets: '4x8-10', rest: '120秒' },
+            { name: '杠铃硬拉', sets: '3x6-8', rest: '120秒' },
+            { name: '哑铃肩推', sets: '3x10-12', rest: '90秒' },
+            { name: '杠铃划船', sets: '3x8-10', rest: '90秒' },
+            { name: '引体向上', sets: '3x8-12', rest: '90秒' },
+            { name: '二头弯举', sets: '3x12-15', rest: '60秒' },
+            { name: '三头下压', sets: '3x12-15', rest: '60秒' },
+            { name: '腿举机', sets: '3x10-12', rest: '90秒' },
+            { name: '坐姿划船', sets: '3x10-12', rest: '90秒' }
+          ],
+          home: [
+            { name: '俯卧撑', sets: '4x12-20', rest: '60秒' },
+            { name: '深蹲跳', sets: '3x15-20', rest: '60秒' },
+            { name: '保加利亚分腿蹲', sets: '3x10-12/边', rest: '60秒' },
+            { name: '弹力带划船', sets: '3x12-15', rest: '60秒' },
+            { name: '弹力带肩推', sets: '3x12-15', rest: '60秒' },
+            { name: '臀桥', sets: '3x15-20', rest: '60秒' },
+            { name: '钻石俯卧撑', sets: '3x10-15', rest: '60秒' },
+            { name: '弹力带二头弯举', sets: '3x15-20', rest: '45秒' },
+            { name: '板凳臂屈伸', sets: '3x12-15', rest: '60秒' },
+            { name: '弓步蹲', sets: '3x12-15/边', rest: '60秒' }
+          ]
+        },
+        lose: {
+          gym: [
+            { name: '波比跳', sets: '3x15', rest: '45秒' },
+            { name: '壶铃摇摆', sets: '3x20', rest: '45秒' },
+            { name: '战绳', sets: '3x30秒', rest: '30秒' },
+            { name: '划船机', sets: '5分钟', rest: '60秒' },
+            { name: '哑铃推举', sets: '3x12-15', rest: '45秒' },
+            { name: '深蹲', sets: '3x15-20', rest: '45秒' },
+            { name: '登山者', sets: '3x30秒', rest: '30秒' },
+            { name: '跳绳', sets: '3x1分钟', rest: '30秒' },
+            { name: 'TRX划船', sets: '3x15', rest: '45秒' },
+            { name: '箱跳', sets: '3x10', rest: '45秒' }
+          ],
+          home: [
+            { name: '开合跳', sets: '3x45秒', rest: '30秒' },
+            { name: '高抬腿', sets: '3x30秒', rest: '30秒' },
+            { name: '波比跳', sets: '3x10', rest: '45秒' },
+            { name: '深蹲', sets: '3x20', rest: '45秒' },
+            { name: '登山者', sets: '3x30秒', rest: '30秒' },
+            { name: '平板支撑', sets: '3x45秒', rest: '30秒' },
+            { name: '弓步跳', sets: '3x12/边', rest: '45秒' },
+            { name: '俯卧撑', sets: '3x15', rest: '45秒' },
+            { name: '熊爬', sets: '3x20米', rest: '45秒' },
+            { name: '跳绳（模拟）', sets: '3x1分钟', rest: '30秒' }
+          ]
+        },
+        tone: {
+          gym: [
+            { name: '哑铃飞鸟', sets: '3x15', rest: '60秒' },
+            { name: '绳索夹胸', sets: '3x15', rest: '60秒' },
+            { name: '腿弯举', sets: '3x15', rest: '60秒' },
+            { name: '哑铃侧平举', sets: '3x15', rest: '45秒' },
+            { name: '坐姿划船', sets: '3x15', rest: '60秒' },
+            { name: '臀推', sets: '3x15', rest: '60秒' },
+            { name: '腹肌卷腹', sets: '3x20', rest: '45秒' },
+            { name: '哑铃弯举', sets: '3x15', rest: '45秒' },
+            { name: '绳索下压', sets: '3x15', rest: '45秒' },
+            { name: '平板支撑', sets: '3x60秒', rest: '30秒' }
+          ],
+          home: [
+            { name: '俯卧撑', sets: '3x15', rest: '45秒' },
+            { name: '深蹲', sets: '3x20', rest: '45秒' },
+            { name: '臀桥', sets: '3x20', rest: '45秒' },
+            { name: '弹力带侧平举', sets: '3x15', rest: '45秒' },
+            { name: '弹力带划船', sets: '3x15', rest: '45秒' },
+            { name: '死虫式', sets: '3x12/边', rest: '30秒' },
+            { name: '鸟狗式', sets: '3x10/边', rest: '30秒' },
+            { name: '板凳臂屈伸', sets: '3x15', rest: '45秒' },
+            { name: '超人式', sets: '3x15', rest: '30秒' },
+            { name: '侧平板', sets: '3x30秒/边', rest: '30秒' }
+          ]
+        },
+        strength: {
+          gym: [
+            { name: '杠铃深蹲', sets: '5x5', rest: '180秒' },
+            { name: '杠铃卧推', sets: '5x5', rest: '180秒' },
+            { name: '杠铃硬拉', sets: '3x5', rest: '180秒' },
+            { name: '杠铃肩推', sets: '5x5', rest: '150秒' },
+            { name: '杠铃划船', sets: '5x5', rest: '150秒' },
+            { name: '引体向上（负重）', sets: '4x6-8', rest: '150秒' },
+            { name: '双杠臂屈伸', sets: '4x8-10', rest: '120秒' },
+            { name: '农夫行走', sets: '3x30米', rest: '120秒' }
+          ],
+          home: [
+            { name: '单腿深蹲（手枪蹲）', sets: '4x5-8/边', rest: '120秒' },
+            { name: '倒立俯卧撑', sets: '4x5-8', rest: '120秒' },
+            { name: '引体向上', sets: '4x8-12', rest: '120秒' },
+            { name: '保加利亚分腿蹲（负重）', sets: '4x8/边', rest: '120秒' },
+            { name: '双杠臂屈伸', sets: '4x10', rest: '120秒' },
+            { name: '宽距俯卧撑', sets: '4x12-15', rest: '90秒' },
+            { name: '弹力带硬拉', sets: '4x12-15', rest: '90秒' }
+          ]
+        }
+      };
+
+      function shuffle(arr) { for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
+
+      function generatePlan() {
+        const goal = document.getElementById('goal').value;
+        const level = document.getElementById('level').value;
+        const days = parseInt(document.getElementById('days').value);
+        const equip = document.getElementById('equipment').value;
+
+        let eqKey = equip === 'home' ? 'home' : 'gym';
+        if (equip === 'mixed') eqKey = Math.random() > 0.5 ? 'gym' : 'home';
+
+        const pool = [...(exercises[goal]?.[eqKey] || exercises.build.gym)];
+        shuffle(pool);
+
+        const perDay = level === 'beginner' ? 4 : level === 'intermediate' ? 5 : 6;
+        const dayNamesCN = ['周一','周二','周三','周四','周五'];
+        const dayFocus = goal === 'build' ? ['胸部+三头','背部+二头','腿部+肩部'] :
+                         goal === 'lose' ? ['全身HIIT','全身HIIT','全身HIIT','全身HIIT','全身HIIT'] :
+                         goal === 'tone' ? ['上肢','下肢+核心','全身','上肢','下肢'] :
+                         ['深蹲日','卧推日','硬拉日','肩推日','辅助日'];
+
+        let html = '';
+        for (let i = 0; i < days; i++) {
+          const exs = pool.slice(i * perDay, (i + 1) * perDay);
+          html += '<div class="plan-day"><div class="plan-day-header">📅 ' + dayNamesCN[i] + ' — ' + (dayFocus[i] || '训练日') + '</div><div class="plan-day-body">';
+          exs.forEach(e => {
+            html += '<div class="exercise-row"><span class="exercise-name">'+e.name+'</span><span class="exercise-detail">'+e.sets+' · 休息'+e.rest+'</span></div>';
+          });
+          html += '</div></div>';
+        }
+
+        const tips = {
+          build: '💡 增肌建议：保证每日热量盈余300-500kcal，蛋白质摄入1.6-2.2g/kg体重，每组做到力竭前1-2次。',
+          lose: '💡 减脂建议：保持每日热量缺口300-500kcal，训练后30分钟内补充蛋白质，保证充足睡眠。',
+          tone: '💡 塑形建议：注重动作质量而非重量，每次训练保持45-60分钟，配合有氧运动效果更佳。',
+          strength: '💡 力量建议：每组间隔充分休息，逐步增加负重（每周+2.5-5kg），记录训练日志追踪进步。'
+        };
+
+        html += '<div class="plan-tips">'+tips[goal]+'</div>';
+        document.getElementById('planContent').innerHTML = html;
+      }
+
+      document.getElementById('generateBtn').addEventListener('click', generatePlan);
+    })();
+  </script>
+</body>
+</html>

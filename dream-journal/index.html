@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>梦境日记 - Free ToolBase</title>
+  <meta name="description" content="免费在线梦境日记工具，记录每晚梦境、分析梦境类型与情绪，支持梦境搜索与统计，帮助理解潜意识。">
+  <meta property="og:title" content="梦境日记 - 在线记录与分析你的梦境">
+  <meta property="og:description" content="记录梦境、分析梦境类型，追踪你的潜意识活动。">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "梦境日记",
+    "description": "在线梦境记录与分析工具",
+    "applicationCategory": "LifestyleApplication",
+    "operatingSystem": "Web"
+  }
+  </script>
+  <style>
+    :root { --primary: #8B5CF6; --primary-dark: #7C3AED; --bg: #f5f3ff; --card: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #ddd6fe; --radius: 16px; --shadow: 0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.03); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: linear-gradient(135deg, #5b21b6, #8b5cf6); padding: 24px 20px; text-align: center; }
+    header h1 { color: #fff; font-size: 1.6rem; }
+    header p { color: #ddd6fe; font-size: .9rem; margin-top: 4px; }
+    main { flex: 1; max-width: 680px; margin: 0 auto; padding: 24px 16px; width: 100%; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); margin-bottom: 16px; }
+    .field-group { margin-bottom: 12px; }
+    .field-group label { display: block; font-size: .85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+    .field-group input, .field-group textarea, .field-group select { width: 100%; padding: 12px 14px; border: 2px solid var(--border); border-radius: 12px; font-size: 1rem; outline: none; transition: border-color .2s; background: #fff; font-family: inherit; }
+    .field-group textarea { resize: vertical; min-height: 100px; }
+    .field-group input:focus, .field-group textarea:focus, .field-group select:focus { border-color: var(--primary); }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag { padding: 6px 14px; border-radius: 20px; font-size: .82rem; cursor: pointer; border: 1.5px solid var(--border); background: #fff; transition: all .2s; }
+    .tag.selected { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn { padding: 12px 24px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    .btn:hover { background: var(--primary-dark); }
+    .btn-sm { padding: 6px 14px; font-size: .8rem; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; cursor: pointer; }
+    .dream-entry { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; position: relative; }
+    .dream-entry .dream-date { font-size: .8rem; color: var(--text-secondary); }
+    .dream-entry .dream-title { font-weight: 700; font-size: 1.05rem; margin: 4px 0; }
+    .dream-entry .dream-text { font-size: .9rem; color: var(--text-secondary); margin: 4px 0; }
+    .dream-entry .dream-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .dream-entry .dream-tag-badge { font-size: .75rem; background: #ede9fe; color: #7c3aed; padding: 2px 10px; border-radius: 10px; }
+    .dream-entry .dream-delete { position: absolute; top: 10px; right: 10px; }
+    .stats-row { display: flex; gap: 12px; margin-bottom: 16px; }
+    .stat-card { flex: 1; background: #ede9fe; border-radius: 12px; padding: 12px; text-align: center; }
+    .stat-num { font-size: 1.5rem; font-weight: 700; color: #7c3aed; }
+    .stat-label { font-size: .78rem; color: var(--text-secondary); }
+    .empty-state { text-align: center; padding: 30px 20px; color: var(--text-secondary); }
+    footer { text-align: center; padding: 20px; color: var(--text-secondary); font-size: .85rem; border-top: 1px solid var(--border); margin-top: auto; }
+    @media (max-width: 375px) { .stats-row { flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🌙 梦境日记</h1>
+    <p>记录梦境，探索潜意识的世界</p>
+  </header>
+  <main>
+    <div class="card">
+      <div class="field-group">
+        <label>📅 日期</label>
+        <input type="date" id="dreamDate">
+      </div>
+      <div class="field-group">
+        <label>📝 梦境标题</label>
+        <input type="text" id="dreamTitle" placeholder="给梦境起个标题..." maxlength="60">
+      </div>
+      <div class="field-group">
+        <label>💭 梦境内容</label>
+        <textarea id="dreamContent" placeholder="描述你的梦境...人物、场景、情绪、事件..." rows="4"></textarea>
+      </div>
+      <div class="field-group">
+        <label>😊 情绪</label>
+        <select id="dreamMood">
+          <option value="happy">😊 愉快</option>
+          <option value="scary">😱 恐怖</option>
+          <option value="sad">😢 悲伤</option>
+          <option value="strange">🤔 奇怪</option>
+          <option value="exciting">🤩 兴奋</option>
+          <option value="neutral">😐 中性</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>🏷️ 标签（可选多选）</label>
+        <div class="tag-row" id="tagRow">
+          <span class="tag" data-tag="飞行">✈️ 飞行</span>
+          <span class="tag" data-tag="坠落">⬇️ 坠落</span>
+          <span class="tag" data-tag="追逐">🏃 追逐</span>
+          <span class="tag" data-tag="水">🌊 水</span>
+          <span class="tag" data-tag="考试">📝 考试</span>
+          <span class="tag" data-tag="牙齿">🦷 牙齿</span>
+          <span class="tag" data-tag="死亡">💀 死亡</span>
+          <span class="tag" data-tag="动物">🐾 动物</span>
+          <span class="tag" data-tag="工作">💼 工作</span>
+          <span class="tag" data-tag="家庭">👨‍👩‍👧‍👦 家庭</span>
+          <span class="tag" data-tag="旅行">🚗 旅行</span>
+          <span class="tag" data-tag="重逢">👋 重逢</span>
+        </div>
+      </div>
+      <button class="btn" id="saveBtn" style="width:100%">💾 保存梦境</button>
+    </div>
+    <div class="card" id="listCard">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="font-size:1.1rem">📖 梦境记录</h3>
+        <button class="btn-sm" id="clearBtn">清空全部</button>
+      </div>
+      <div class="stats-row" id="statsRow">
+        <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">总记录</div></div>
+        <div class="stat-card"><div class="stat-num" id="statMonth">0</div><div class="stat-label">本月</div></div>
+        <div class="stat-card"><div class="stat-num" id="statTopTag">--</div><div class="stat-label">最常见标签</div></div>
+      </div>
+      <div id="dreamList"><div class="empty-state">🌌 还没有梦境记录，开始记录你的第一个梦吧</div></div>
+    </div>
+  </main>
+  <footer>Free ToolBase &copy; 2026 · 数据保存在浏览器本地</footer>
+  <script>
+    (function(){
+      const STORAGE_KEY = 'dream_journal_entries';
+      let dreams = [];
+      let selectedTags = [];
+
+      function load() {
+        try { dreams = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { dreams = []; }
+        render();
+      }
+
+      function save() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dreams));
+        render();
+      }
+
+      function render() {
+        const list = document.getElementById('dreamList');
+        if (dreams.length === 0) {
+          list.innerHTML = '<div class="empty-state">🌌 还没有梦境记录，开始记录你的第一个梦吧</div>';
+        } else {
+          list.innerHTML = dreams.map((d,i) =>
+            '<div class="dream-entry">' +
+            '<div class="dream-date">📅 ' + d.date + ' · ' + d.mood + '</div>' +
+            '<div class="dream-title">' + escapeHtml(d.title) + '</div>' +
+            '<div class="dream-text">' + escapeHtml(d.content.slice(0,120)) + (d.content.length > 120 ? '...' : '') + '</div>' +
+            '<div class="dream-tags">' + d.tags.map(t => '<span class="dream-tag-badge">'+t+'</span>').join('') + '</div>' +
+            '<button class="dream-delete btn-sm" data-idx="'+i+'">删除</button>' +
+            '</div>'
+          ).join('');
+        }
+        document.getElementById('statTotal').textContent = dreams.length;
+        const now = new Date();
+        const thisMonth = dreams.filter(d => d.date.startsWith(now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'))).length;
+        document.getElementById('statMonth').textContent = thisMonth;
+        const tagCounts = {};
+        dreams.forEach(d => d.tags.forEach(t => tagCounts[t] = (tagCounts[t]||0)+1));
+        const topTag = Object.entries(tagCounts).sort((a,b) => b[1]-a[1])[0];
+        document.getElementById('statTopTag').textContent = topTag ? topTag[0] : '--';
+      }
+
+      function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+      document.getElementById('dreamDate').value = new Date().toISOString().slice(0,10);
+
+      document.getElementById('tagRow').addEventListener('click', function(e){
+        const tag = e.target.closest('.tag');
+        if (!tag) return;
+        tag.classList.toggle('selected');
+        const tagName = tag.dataset.tag;
+        if (tag.classList.contains('selected')) {
+          if (!selectedTags.includes(tagName)) selectedTags.push(tagName);
+        } else {
+          selectedTags = selectedTags.filter(t => t !== tagName);
+        }
+      });
+
+      document.getElementById('saveBtn').addEventListener('click', function(){
+        const title = document.getElementById('dreamTitle').value.trim();
+        const content = document.getElementById('dreamContent').value.trim();
+        if (!title || !content) return;
+        const entry = {
+          date: document.getElementById('dreamDate').value,
+          title,
+          content,
+          mood: document.getElementById('dreamMood').options[document.getElementById('dreamMood').selectedIndex].text,
+          tags: [...selectedTags]
+        };
+        dreams.unshift(entry);
+        if (dreams.length > 500) dreams = dreams.slice(0,500);
+        save();
+        document.getElementById('dreamTitle').value = '';
+        document.getElementById('dreamContent').value = '';
+        selectedTags = [];
+        document.querySelectorAll('#tagRow .tag').forEach(t => t.classList.remove('selected'));
+      });
+
+      document.getElementById('dreamList').addEventListener('click', function(e){
+        const btn = e.target.closest('.dream-delete');
+        if (!btn) return;
+        const idx = parseInt(btn.dataset.idx);
+        dreams.splice(idx, 1);
+        save();
+      });
+
+      document.getElementById('clearBtn').addEventListener('click', function(){
+        if (dreams.length === 0 || !confirm('确定要清空所有梦境记录吗？此操作不可恢复。')) return;
+        dreams = [];
+        save();
+      });
+
+      load();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kitchen Unit Converter - Free ToolBase</title>
+  <meta name="description" content="Free online kitchen unit converter. Convert cups, tablespoons, teaspoons, ml, grams, ounces, pounds, Fahrenheit, Celsius and more for baking and cooking.">
+  <meta property="og:title" content="Kitchen Unit Converter - Cooking & Baking Unit Conversion">
+  <meta property="og:description" content="Free kitchen unit converter - cups, spoons, grams, ounces, temperature in one click.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Kitchen Unit Converter",
+    "description": "Online kitchen unit converter for baking and cooking conversions",
+    "applicationCategory": "UtilityApplication",
+    "operatingSystem": "Web"
+  }
+  </script>
+  <style>
+    :root { --primary: #F59E0B; --primary-dark: #D97706; --bg: #fefce8; --card: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #fde68a; --radius: 16px; --shadow: 0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.03); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: linear-gradient(135deg, #d97706, #f59e0b); padding: 24px 20px; text-align: center; }
+    header h1 { color: #fff; font-size: 1.6rem; }
+    header p { color: #fef3c7; font-size: .9rem; margin-top: 4px; }
+    main { flex: 1; max-width: 640px; margin: 0 auto; padding: 24px 16px; width: 100%; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); margin-bottom: 16px; }
+    .converter-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+    .field { flex: 1; min-width: 120px; }
+    .field label { display: block; font-size: .85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+    .field input, .field select { width: 100%; padding: 12px 14px; border: 2px solid var(--border); border-radius: 12px; font-size: 1rem; outline: none; transition: border-color .2s; background: #fff; }
+    .field input:focus, .field select:focus { border-color: var(--primary); }
+    .swap-btn { background: var(--primary); color: #fff; border: none; border-radius: 50%; width: 44px; height: 44px; font-size: 1.2rem; cursor: pointer; transition: background .2s; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .swap-btn:hover { background: var(--primary-dark); }
+    .result-box { background: #fffbeb; border: 2px solid #fde68a; border-radius: 12px; padding: 16px 20px; text-align: center; margin-top: 12px; }
+    .result-value { font-size: 2rem; font-weight: 700; color: #d97706; }
+    .result-label { font-size: .85rem; color: var(--text-secondary); margin-top: 4px; }
+    .category-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tab { padding: 8px 16px; border-radius: 20px; border: 1.5px solid var(--border); background: #fff; cursor: pointer; font-size: .85rem; transition: all .2s; }
+    .tab.active, .tab:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .quick-converts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .quick-item { background: #fffbeb; border-radius: 10px; padding: 10px 14px; font-size: .85rem; cursor: pointer; border: 1px solid #fde68a; transition: all .15s; }
+    .quick-item:hover { border-color: var(--primary); background: #fef3c7; }
+    footer { text-align: center; padding: 20px; color: var(--text-secondary); font-size: .85rem; border-top: 1px solid var(--border); margin-top: auto; }
+    @media (max-width: 375px) { .converter-row { flex-direction: column; } .swap-btn { align-self: center; transform: rotate(90deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🥄 Kitchen Unit Converter</h1>
+    <p>Convert cooking & baking units · Cups/Spoons/Grams/ml/Temperature</p>
+  </header>
+  <main>
+    <div class="card">
+      <div class="category-tabs" id="categoryTabs">
+        <span class="tab active" data-cat="volume">Volume</span>
+        <span class="tab" data-cat="weight">Weight</span>
+        <span class="tab" data-cat="temperature">Temperature</span>
+      </div>
+      <div class="converter-row">
+        <div class="field">
+          <label>Amount</label>
+          <input type="number" id="inputValue" value="1" step="any" min="0">
+        </div>
+        <div class="field">
+          <label>From</label>
+          <select id="fromUnit"></select>
+        </div>
+        <button class="swap-btn" id="swapBtn" title="Swap units">⇄</button>
+        <div class="field">
+          <label>To</label>
+          <select id="toUnit"></select>
+        </div>
+      </div>
+      <div class="result-box" id="resultBox">
+        <div class="result-value" id="resultValue">--</div>
+        <div class="result-label" id="resultLabel"></div>
+      </div>
+      <div class="quick-converts" id="quickConverts"></div>
+    </div>
+  </main>
+  <footer>Free ToolBase &copy; 2026 · Based on standard kitchen units</footer>
+  <script>
+    (function(){
+      const categories = {
+        volume: {
+          name: 'Volume',
+          units: [
+            { id:'cup', name:'Cup', factor: 240 },
+            { id:'tbsp', name:'Tablespoon', factor: 15 },
+            { id:'tsp', name:'Teaspoon', factor: 5 },
+            { id:'ml', name:'Milliliter (ml)', factor: 1 },
+            { id:'l', name:'Liter (L)', factor: 1000 },
+            { id:'floz', name:'Fluid Ounce', factor: 29.5735 },
+            { id:'pint', name:'Pint (pt)', factor: 473.176 },
+            { id:'quart', name:'Quart (qt)', factor: 946.353 },
+            { id:'gallon', name:'Gallon (gal)', factor: 3785.41 }
+          ],
+          quick: [[1,'cup','ml'],[1,'tbsp','tsp'],[0.5,'cup','tbsp'],[250,'ml','cup']]
+        },
+        weight: {
+          name: 'Weight',
+          units: [
+            { id:'g', name:'Gram (g)', factor: 1 },
+            { id:'kg', name:'Kilogram (kg)', factor: 1000 },
+            { id:'oz', name:'Ounce (oz)', factor: 28.3495 },
+            { id:'lb', name:'Pound (lb)', factor: 453.592 }
+          ],
+          quick: [[500,'g','lb'],[1,'kg','lb'],[8,'oz','g'],[1,'lb','g']]
+        },
+        temperature: {
+          name: 'Temperature',
+          units: [
+            { id:'c', name:'Celsius (°C)', factor: 1 },
+            { id:'f', name:'Fahrenheit (°F)', factor: 1 }
+          ],
+          quick: [[180,'c','f'],[350,'f','c'],[100,'c','f'],[200,'c','f']]
+        }
+      };
+
+      let currentCat = 'volume';
+
+      function convert(fromId, toId, value) {
+        if (currentCat === 'temperature') {
+          if (fromId === toId) return value;
+          if (fromId === 'c' && toId === 'f') return value * 9/5 + 32;
+          if (fromId === 'f' && toId === 'c') return (value - 32) * 5/9;
+          return value;
+        }
+        const units = categories[currentCat].units;
+        const from = units.find(u => u.id === fromId);
+        const to = units.find(u => u.id === toId);
+        if (!from || !to) return value;
+        return value * from.factor / to.factor;
+      }
+
+      function updateUnitSelects() {
+        const cat = categories[currentCat];
+        const from = document.getElementById('fromUnit');
+        const to = document.getElementById('toUnit');
+        from.innerHTML = cat.units.map(u => '<option value="'+u.id+'">'+u.name+'</option>').join('');
+        to.innerHTML = cat.units.map(u => '<option value="'+u.id+'">'+u.name+'</option>').join('');
+        to.selectedIndex = Math.min(2, cat.units.length - 1);
+      }
+
+      function updateQuick() {
+        const qc = document.getElementById('quickConverts');
+        const quicks = categories[currentCat].quick;
+        qc.innerHTML = quicks.map(q => {
+          const fromUnit = categories[currentCat].units.find(u => u.id === q[1]);
+          const toUnit = categories[currentCat].units.find(u => u.id === q[2]);
+          return '<div class="quick-item" data-val="'+q[0]+'" data-from="'+q[1]+'" data-to="'+q[2]+'">'+q[0]+' '+fromUnit.name.split(' ')[0]+' = ? '+toUnit.name.split(' ')[0]+'</div>';
+        }).join('');
+      }
+
+      function calc() {
+        const val = parseFloat(document.getElementById('inputValue').value) || 0;
+        const from = document.getElementById('fromUnit').value;
+        const to = document.getElementById('toUnit').value;
+        const result = convert(from, to, val);
+        const toName = categories[currentCat].units.find(u => u.id === to).name;
+        document.getElementById('resultValue').textContent = parseFloat(result.toFixed(4));
+        document.getElementById('resultLabel').textContent = toName;
+      }
+
+      function switchCat(cat) {
+        currentCat = cat;
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.cat === cat));
+        updateUnitSelects();
+        updateQuick();
+        calc();
+      }
+
+      document.getElementById('categoryTabs').addEventListener('click', function(e){
+        const tab = e.target.closest('.tab');
+        if (!tab) return;
+        switchCat(tab.dataset.cat);
+      });
+
+      document.getElementById('swapBtn').addEventListener('click', function(){
+        const from = document.getElementById('fromUnit');
+        const to = document.getElementById('toUnit');
+        const tmp = from.value;
+        from.value = to.value;
+        to.value = tmp;
+        calc();
+      });
+
+      document.getElementById('inputValue').addEventListener('input', calc);
+      document.getElementById('fromUnit').addEventListener('change', calc);
+      document.getElementById('toUnit').addEventListener('change', calc);
+
+      document.getElementById('quickConverts').addEventListener('click', function(e){
+        const item = e.target.closest('.quick-item');
+        if (!item) return;
+        document.getElementById('inputValue').value = item.dataset.val;
+        document.getElementById('fromUnit').value = item.dataset.from;
+        document.getElementById('toUnit').value = item.dataset.to;
+        calc();
+      });
+
+      switchCat('volume');
+    })();
+  </script>
+</body>
+</html>

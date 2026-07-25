@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workout Plan Generator - Free ToolBase</title>
+  <meta name="description" content="Free online workout plan generator. Create personalized fitness plans based on your goals (build muscle, lose fat, tone), fitness level, and available days per week.">
+  <meta property="og:title" content="Workout Plan Generator - Custom Fitness Training Plans">
+  <meta property="og:description" content="Free workout plan generator - build personalized training routines based on your goals and fitness level.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Workout Plan Generator",
+    "description": "Online fitness training plan generator",
+    "applicationCategory": "HealthApplication",
+    "operatingSystem": "Web"
+  }
+  </script>
+  <style>
+    :root { --primary: #10B981; --primary-dark: #059669; --bg: #ecfdf5; --card: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #a7f3d0; --radius: 16px; --shadow: 0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.03); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: linear-gradient(135deg, #059669, #10b981); padding: 24px 20px; text-align: center; }
+    header h1 { color: #fff; font-size: 1.6rem; }
+    header p { color: #d1fae5; font-size: .9rem; margin-top: 4px; }
+    main { flex: 1; max-width: 680px; margin: 0 auto; padding: 24px 16px; width: 100%; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); margin-bottom: 16px; }
+    .field-group { margin-bottom: 14px; }
+    .field-group label { display: block; font-size: .85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+    .field-group select { width: 100%; padding: 12px 14px; border: 2px solid var(--border); border-radius: 12px; font-size: 1rem; outline: none; transition: border-color .2s; background: #fff; }
+    .field-group select:focus { border-color: var(--primary); }
+    .btn { width: 100%; padding: 14px 24px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: background .2s; }
+    .btn:hover { background: var(--primary-dark); }
+    .plan-day { margin-bottom: 14px; border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .plan-day-header { background: #d1fae5; padding: 12px 16px; font-weight: 700; font-size: 1rem; color: #065f46; }
+    .plan-day-body { padding: 14px 16px; }
+    .exercise-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0fdf4; }
+    .exercise-row:last-child { border-bottom: none; }
+    .exercise-name { font-weight: 600; font-size: .95rem; }
+    .exercise-detail { font-size: .82rem; color: var(--text-secondary); }
+    .plan-tips { background: #ecfdf5; border-radius: 12px; padding: 14px 18px; margin-top: 16px; font-size: .9rem; color: #065f46; }
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+    .empty-state .icon { font-size: 3rem; }
+    footer { text-align: center; padding: 20px; color: var(--text-secondary); font-size: .85rem; border-top: 1px solid var(--border); margin-top: auto; }
+    @media (max-width: 375px) { .plan-day-header { font-size: .9rem; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>💪 Workout Plan Generator</h1>
+    <p>Customize your goals & level to generate your fitness routine</p>
+  </header>
+  <main>
+    <div class="card">
+      <div class="field-group">
+        <label>🎯 Goal</label>
+        <select id="goal">
+          <option value="build">Build Muscle</option>
+          <option value="lose">Lose Fat</option>
+          <option value="tone">Tone & Define</option>
+          <option value="strength">Strength</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>🏋️ Fitness Level</label>
+        <select id="level">
+          <option value="beginner">Beginner (just starting)</option>
+          <option value="intermediate">Intermediate (3-12 months)</option>
+          <option value="advanced">Advanced (1+ year)</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>📅 Days Per Week</label>
+        <select id="days">
+          <option value="3">3 days/week</option>
+          <option value="4">4 days/week</option>
+          <option value="5">5 days/week</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>🏠 Equipment</label>
+        <select id="equipment">
+          <option value="gym">Gym (machines & weights)</option>
+          <option value="home">Home (bodyweight & bands)</option>
+          <option value="mixed">Mixed</option>
+        </select>
+      </div>
+      <button class="btn" id="generateBtn">✨ Generate My Workout Plan</button>
+    </div>
+    <div class="card" id="planCard">
+      <div id="planContent"><div class="empty-state"><div class="icon">🏋️</div><p>Select parameters and click generate</p></div></div>
+    </div>
+  </main>
+  <footer>Free ToolBase &copy; 2026 · Consult a trainer before starting</footer>
+  <script>
+    (function(){
+      const exercises = {
+        build: {
+          gym: [
+            { name: 'Barbell Bench Press', sets: '4x8-10', rest: '90s' },
+            { name: 'Barbell Squat', sets: '4x8-10', rest: '120s' },
+            { name: 'Barbell Deadlift', sets: '3x6-8', rest: '120s' },
+            { name: 'Dumbbell Shoulder Press', sets: '3x10-12', rest: '90s' },
+            { name: 'Barbell Row', sets: '3x8-10', rest: '90s' },
+            { name: 'Pull-ups', sets: '3x8-12', rest: '90s' },
+            { name: 'Bicep Curls', sets: '3x12-15', rest: '60s' },
+            { name: 'Tricep Pushdowns', sets: '3x12-15', rest: '60s' },
+            { name: 'Leg Press', sets: '3x10-12', rest: '90s' },
+            { name: 'Seated Cable Row', sets: '3x10-12', rest: '90s' }
+          ],
+          home: [
+            { name: 'Push-ups', sets: '4x12-20', rest: '60s' },
+            { name: 'Jump Squats', sets: '3x15-20', rest: '60s' },
+            { name: 'Bulgarian Split Squats', sets: '3x10-12/side', rest: '60s' },
+            { name: 'Band Rows', sets: '3x12-15', rest: '60s' },
+            { name: 'Band Shoulder Press', sets: '3x12-15', rest: '60s' },
+            { name: 'Glute Bridges', sets: '3x15-20', rest: '60s' },
+            { name: 'Diamond Push-ups', sets: '3x10-15', rest: '60s' },
+            { name: 'Band Bicep Curls', sets: '3x15-20', rest: '45s' },
+            { name: 'Bench Dips', sets: '3x12-15', rest: '60s' },
+            { name: 'Lunges', sets: '3x12-15/side', rest: '60s' }
+          ]
+        },
+        lose: {
+          gym: [
+            { name: 'Burpees', sets: '3x15', rest: '45s' },
+            { name: 'Kettlebell Swings', sets: '3x20', rest: '45s' },
+            { name: 'Battle Ropes', sets: '3x30s', rest: '30s' },
+            { name: 'Rowing Machine', sets: '5 min', rest: '60s' },
+            { name: 'Dumbbell Thrusters', sets: '3x12-15', rest: '45s' },
+            { name: 'Squats', sets: '3x15-20', rest: '45s' },
+            { name: 'Mountain Climbers', sets: '3x30s', rest: '30s' },
+            { name: 'Jump Rope', sets: '3x1 min', rest: '30s' },
+            { name: 'TRX Rows', sets: '3x15', rest: '45s' },
+            { name: 'Box Jumps', sets: '3x10', rest: '45s' }
+          ],
+          home: [
+            { name: 'Jumping Jacks', sets: '3x45s', rest: '30s' },
+            { name: 'High Knees', sets: '3x30s', rest: '30s' },
+            { name: 'Burpees', sets: '3x10', rest: '45s' },
+            { name: 'Bodyweight Squats', sets: '3x20', rest: '45s' },
+            { name: 'Mountain Climbers', sets: '3x30s', rest: '30s' },
+            { name: 'Plank', sets: '3x45s', rest: '30s' },
+            { name: 'Jump Lunges', sets: '3x12/side', rest: '45s' },
+            { name: 'Push-ups', sets: '3x15', rest: '45s' },
+            { name: 'Bear Crawls', sets: '3x20m', rest: '45s' },
+            { name: 'Jump Rope (simulated)', sets: '3x1 min', rest: '30s' }
+          ]
+        },
+        tone: {
+          gym: [
+            { name: 'Dumbbell Flyes', sets: '3x15', rest: '60s' },
+            { name: 'Cable Crossovers', sets: '3x15', rest: '60s' },
+            { name: 'Leg Curls', sets: '3x15', rest: '60s' },
+            { name: 'Lateral Raises', sets: '3x15', rest: '45s' },
+            { name: 'Seated Cable Row', sets: '3x15', rest: '60s' },
+            { name: 'Hip Thrusts', sets: '3x15', rest: '60s' },
+            { name: 'Crunches', sets: '3x20', rest: '45s' },
+            { name: 'Dumbbell Curls', sets: '3x15', rest: '45s' },
+            { name: 'Tricep Rope Pushdowns', sets: '3x15', rest: '45s' },
+            { name: 'Plank', sets: '3x60s', rest: '30s' }
+          ],
+          home: [
+            { name: 'Push-ups', sets: '3x15', rest: '45s' },
+            { name: 'Squats', sets: '3x20', rest: '45s' },
+            { name: 'Glute Bridges', sets: '3x20', rest: '45s' },
+            { name: 'Band Lateral Raises', sets: '3x15', rest: '45s' },
+            { name: 'Band Rows', sets: '3x15', rest: '45s' },
+            { name: 'Dead Bugs', sets: '3x12/side', rest: '30s' },
+            { name: 'Bird Dogs', sets: '3x10/side', rest: '30s' },
+            { name: 'Bench Dips', sets: '3x15', rest: '45s' },
+            { name: 'Supermans', sets: '3x15', rest: '30s' },
+            { name: 'Side Planks', sets: '3x30s/side', rest: '30s' }
+          ]
+        },
+        strength: {
+          gym: [
+            { name: 'Barbell Squat', sets: '5x5', rest: '180s' },
+            { name: 'Barbell Bench Press', sets: '5x5', rest: '180s' },
+            { name: 'Barbell Deadlift', sets: '3x5', rest: '180s' },
+            { name: 'Barbell OHP', sets: '5x5', rest: '150s' },
+            { name: 'Barbell Row', sets: '5x5', rest: '150s' },
+            { name: 'Weighted Pull-ups', sets: '4x6-8', rest: '150s' },
+            { name: 'Dips', sets: '4x8-10', rest: '120s' },
+            { name: "Farmer's Walks", sets: '3x30m', rest: '120s' }
+          ],
+          home: [
+            { name: 'Pistol Squats', sets: '4x5-8/side', rest: '120s' },
+            { name: 'Handstand Push-ups', sets: '4x5-8', rest: '120s' },
+            { name: 'Pull-ups', sets: '4x8-12', rest: '120s' },
+            { name: 'Weighted Bulgarian Split Squats', sets: '4x8/side', rest: '120s' },
+            { name: 'Dips', sets: '4x10', rest: '120s' },
+            { name: 'Wide Push-ups', sets: '4x12-15', rest: '90s' },
+            { name: 'Band Deadlifts', sets: '4x12-15', rest: '90s' }
+          ]
+        }
+      };
+
+      function shuffle(arr) { for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
+
+      function generatePlan() {
+        const goal = document.getElementById('goal').value;
+        const level = document.getElementById('level').value;
+        const days = parseInt(document.getElementById('days').value);
+        const equip = document.getElementById('equipment').value;
+
+        let eqKey = equip === 'home' ? 'home' : 'gym';
+        if (equip === 'mixed') eqKey = Math.random() > 0.5 ? 'gym' : 'home';
+
+        const pool = [...(exercises[goal]?.[eqKey] || exercises.build.gym)];
+        shuffle(pool);
+
+        const perDay = level === 'beginner' ? 4 : level === 'intermediate' ? 5 : 6;
+        const dayNamesEN = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+        const dayFocus = goal === 'build' ? ['Chest + Triceps','Back + Biceps','Legs + Shoulders'] :
+                         goal === 'lose' ? ['Full Body HIIT','Full Body HIIT','Full Body HIIT','Full Body HIIT','Full Body HIIT'] :
+                         goal === 'tone' ? ['Upper Body','Lower Body + Core','Full Body','Upper Body','Lower Body'] :
+                         ['Squat Day','Bench Day','Deadlift Day','OHP Day','Accessory Day'];
+
+        let html = '';
+        for (let i = 0; i < days; i++) {
+          const exs = pool.slice(i * perDay, (i + 1) * perDay);
+          html += '<div class="plan-day"><div class="plan-day-header">📅 ' + dayNamesEN[i] + ' — ' + (dayFocus[i] || 'Training Day') + '</div><div class="plan-day-body">';
+          exs.forEach(e => {
+            html += '<div class="exercise-row"><span class="exercise-name">'+e.name+'</span><span class="exercise-detail">'+e.sets+' · Rest '+e.rest+'</span></div>';
+          });
+          html += '</div></div>';
+        }
+
+        const tips = {
+          build: '💡 Muscle Building: Maintain a 300-500kcal surplus, 1.6-2.2g/kg protein, stop 1-2 reps before failure.',
+          lose: '💡 Fat Loss: 300-500kcal deficit, refuel within 30 min post-workout, prioritize sleep.',
+          tone: '💡 Toning: Focus on form over weight, 45-60 min sessions, pair with cardio for best results.',
+          strength: '💡 Strength: Full rest between sets, progressive overload (+2.5-5kg/week), log your lifts.'
+        };
+
+        html += '<div class="plan-tips">'+tips[goal]+'</div>';
+        document.getElementById('planContent').innerHTML = html;
+      }
+
+      document.getElementById('generateBtn').addEventListener('click', generatePlan);
+    })();
+  </script>
+</body>
+</html>

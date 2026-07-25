@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>宝宝成长追踪器 - Free ToolBase</title>
+  <meta name="description" content="免费在线宝宝成长追踪工具，记录宝宝喂养、睡眠、换尿布、身高体重，生成成长曲线，帮助新手爸妈轻松管理宝宝日常。">
+  <meta property="og:title" content="宝宝成长追踪器 - 婴儿日常记录与成长管理">
+  <meta property="og:description" content="免费宝宝成长追踪工具，记录喂养、睡眠、换尿布，查看成长曲线。">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "宝宝成长追踪器",
+    "description": "在线婴儿日常记录与成长追踪工具",
+    "applicationCategory": "ParentingApplication",
+    "operatingSystem": "Web"
+  }
+  </script>
+  <style>
+    :root { --primary: #EC4899; --primary-dark: #DB2777; --bg: #fdf2f8; --card: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #fbcfe8; --radius: 16px; --shadow: 0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.03); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: linear-gradient(135deg, #be185d, #ec4899); padding: 24px 20px; text-align: center; }
+    header h1 { color: #fff; font-size: 1.6rem; }
+    header p { color: #fce7f3; font-size: .9rem; margin-top: 4px; }
+    main { flex: 1; max-width: 680px; margin: 0 auto; padding: 24px 16px; width: 100%; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); margin-bottom: 16px; }
+    .tracker-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+    .tab-btn { flex: 1; padding: 10px 8px; border-radius: 12px; border: 1.5px solid var(--border); background: #fff; cursor: pointer; font-size: .85rem; text-align: center; transition: all .2s; }
+    .tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .quick-btns { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .quick-btn { padding: 12px 20px; border-radius: 30px; border: none; font-size: .9rem; font-weight: 600; cursor: pointer; transition: all .15s; color: #fff; }
+    .quick-btn.feed { background: #f59e0b; }
+    .quick-btn.sleep { background: #8b5cf6; }
+    .quick-btn.diaper { background: #06b6d4; }
+    .quick-btn:hover { opacity: .85; }
+    .input-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+    .input-row input, .input-row select { flex: 1; min-width: 100px; padding: 10px 12px; border: 2px solid var(--border); border-radius: 12px; font-size: .95rem; outline: none; background: #fff; }
+    .input-row input:focus, .input-row select:focus { border-color: var(--primary); }
+    .btn-save { padding: 10px 20px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-size: .95rem; font-weight: 600; cursor: pointer; }
+    .log-entry { border-left: 3px solid var(--primary); padding: 8px 14px; margin: 8px 0; background: #fdf2f8; border-radius: 0 10px 10px 0; font-size: .9rem; display: flex; justify-content: space-between; align-items: center; }
+    .log-entry.feed { border-left-color: #f59e0b; background: #fffbeb; }
+    .log-entry.sleep { border-left-color: #8b5cf6; background: #f5f3ff; }
+    .log-entry.diaper { border-left-color: #06b6d4; background: #ecfeff; }
+    .log-delete { color: #dc2626; cursor: pointer; font-size: .8rem; }
+    .growth-section { margin-top: 12px; }
+    .growth-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px; align-items: end; margin-bottom: 8px; }
+    .growth-row input { padding: 8px 10px; border: 2px solid var(--border); border-radius: 10px; font-size: .9rem; }
+    .growth-table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-top: 8px; }
+    .growth-table th, .growth-table td { padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--border); }
+    .growth-table th { background: #fdf2f8; font-weight: 600; }
+    .stat-bar { display: flex; gap: 10px; margin-bottom: 12px; }
+    .stat-box { flex: 1; text-align: center; background: #fdf2f8; border-radius: 12px; padding: 12px 8px; }
+    .stat-box .num { font-size: 1.3rem; font-weight: 700; color: var(--primary); }
+    .stat-box .lbl { font-size: .75rem; color: var(--text-secondary); }
+    footer { text-align: center; padding: 20px; color: var(--text-secondary); font-size: .85rem; border-top: 1px solid var(--border); margin-top: auto; }
+    @media (max-width: 375px) { .tracker-tabs { flex-wrap: wrap; } .tab-btn { flex: 0 0 30%; } .growth-row { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>👶 宝宝成长追踪器</h1>
+    <p>记录喂养、睡眠、换尿布，轻松追踪宝宝日常</p>
+  </header>
+  <main>
+    <div class="card">
+      <div class="stat-bar" id="statBar">
+        <div class="stat-box"><div class="num" id="feedCount">0</div><div class="lbl">今日喂养</div></div>
+        <div class="stat-box"><div class="num" id="sleepCount">0</div><div class="lbl">今日小睡</div></div>
+        <div class="stat-box"><div class="num" id="diaperCount">0</div><div class="lbl">今日尿布</div></div>
+        <div class="stat-box"><div class="num" id="sleepTotal">0h</div><div class="lbl">总睡眠</div></div>
+      </div>
+      <div class="tracker-tabs" id="tabs">
+        <div class="tab-btn active" data-tab="feed">🍼 喂养</div>
+        <div class="tab-btn" data-tab="sleep">😴 睡眠</div>
+        <div class="tab-btn" data-tab="diaper">🧷 尿布</div>
+        <div class="tab-btn" data-tab="growth">📏 成长</div>
+      </div>
+      <div id="tabContent"></div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:1rem;margin-bottom:12px">📋 今日记录</h3>
+      <div id="todayLogs"><div style="text-align:center;color:var(--text-secondary);padding:16px">暂无记录，开始记录吧</div></div>
+      <button class="btn-save" id="clearTodayBtn" style="margin-top:8px;width:100%;background:#f1f5f9;color:var(--text-secondary)">清空今日记录</button>
+    </div>
+  </main>
+  <footer>Free ToolBase &copy; 2026 · 数据保存在浏览器本地</footer>
+  <script>
+    (function(){
+      const STORAGE = 'baby_tracker_cn';
+      let logs = [];
+      let currentTab = 'feed';
+
+      function load() { try { logs = JSON.parse(localStorage.getItem(STORAGE)||'[]'); } catch(e) { logs = []; } renderAll(); }
+      function save() { localStorage.setItem(STORAGE, JSON.stringify(logs)); renderAll(); }
+
+      function today() { return new Date().toISOString().slice(0,10); }
+      function now() { return new Date().toTimeString().slice(0,5); }
+
+      function renderAll() {
+        renderStats();
+        renderTodayLogs();
+        renderTab();
+      }
+
+      function renderStats() {
+        const td = today();
+        const todayLogs = logs.filter(l => l.date === td);
+        document.getElementById('feedCount').textContent = todayLogs.filter(l => l.type === 'feed').length;
+        document.getElementById('sleepCount').textContent = todayLogs.filter(l => l.type === 'sleep').length;
+        document.getElementById('diaperCount').textContent = todayLogs.filter(l => l.type === 'diaper').length;
+        const sleepMins = todayLogs.filter(l => l.type === 'sleep').reduce((s,l) => s + (parseInt(l.duration)||0), 0);
+        document.getElementById('sleepTotal').textContent = Math.floor(sleepMins/60)+'h'+(sleepMins%60?' '+(sleepMins%60)+'m':'');
+      }
+
+      function renderTodayLogs() {
+        const td = today();
+        const todayLogs = logs.filter(l => l.date === td).reverse();
+        const el = document.getElementById('todayLogs');
+        if (!todayLogs.length) {
+          el.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:16px">暂无记录，开始记录吧</div>';
+          return;
+        }
+        el.innerHTML = todayLogs.map((l,i) => {
+          const icons = { feed: '🍼', sleep: '😴', diaper: '🧷' };
+          const labels = { feed: '喂养 '+l.amount+'ml', sleep: '睡眠 '+l.duration+'分钟', diaper: '换尿布 · '+l.diaperType };
+          return '<div class="log-entry '+l.type+'"><span>'+icons[l.type]+' '+l.time+' — '+labels[l.type]+'</span><span class="log-delete" data-idx="'+logs.indexOf(l)+'">删除</span></div>';
+        }).join('');
+      }
+
+      function renderTab() {
+        const el = document.getElementById('tabContent');
+        if (currentTab === 'feed') {
+          el.innerHTML = '<div class="quick-btns"><button class="quick-btn feed" data-amount="60">🍼 60ml</button><button class="quick-btn feed" data-amount="120">🍼 120ml</button><button class="quick-btn feed" data-amount="180">🍼 180ml</button><button class="quick-btn feed" data-amount="240">🍼 240ml</button></div>' +
+            '<div class="input-row"><input type="number" id="feedAmount" placeholder="毫升 (ml)" min="1" value="120"><select id="feedSide"><option value="母乳">🤱 母乳</option><option value="配方奶">🍼 配方奶</option><option value="辅食">🥄 辅食</option></select><button class="btn-save" id="feedSave">记录</button></div>';
+        } else if (currentTab === 'sleep') {
+          el.innerHTML = '<div class="quick-btns"><button class="quick-btn sleep" data-dur="30">😴 30分钟</button><button class="quick-btn sleep" data-dur="60">😴 1小时</button><button class="quick-btn sleep" data-dur="90">😴 1.5小时</button><button class="quick-btn sleep" data-dur="120">😴 2小时</button></div>' +
+            '<div class="input-row"><input type="number" id="sleepDuration" placeholder="分钟" min="1" value="30"><button class="btn-save" id="sleepSave">记录</button></div>';
+        } else if (currentTab === 'diaper') {
+          el.innerHTML = '<div class="quick-btns"><button class="quick-btn diaper" data-dtype="湿">💧 湿</button><button class="quick-btn diaper" data-dtype="干">✅ 干</button><button class="quick-btn diaper" data-dtype="便便">💩 便便</button><button class="quick-btn diaper" data-dtype="混合">🔄 混合</button></div>' +
+            '<div class="input-row"><select id="diaperType"><option value="湿">💧 湿</option><option value="干">✅ 干</option><option value="便便">💩 便便</option><option value="混合">🔄 混合</option></select><button class="btn-save" id="diaperSave">记录</button></div>';
+        } else if (currentTab === 'growth') {
+          const growthLogs = logs.filter(l => l.type === 'growth').sort((a,b) => a.date.localeCompare(b.date));
+          el.innerHTML = '<div class="growth-section"><div class="growth-row"><input type="date" id="growthDate" value="'+today()+'"><input type="number" id="growthHeight" placeholder="身高cm" step="0.1" min="0"><input type="number" id="growthWeight" placeholder="体重kg" step="0.01" min="0"><button class="btn-save" id="growthSave">记录</button></div>' +
+            (growthLogs.length ? '<table class="growth-table"><tr><th>日期</th><th>身高(cm)</th><th>体重(kg)</th><th></th></tr>' +
+            growthLogs.map(l => '<tr><td>'+l.date+'</td><td>'+l.height+'</td><td>'+l.weight+'</td><td><span class="log-delete" data-idx="'+logs.indexOf(l)+'">删除</span></td></tr>').join('') +
+            '</table>' : '<div style="text-align:center;color:var(--text-secondary);padding:16px">暂无成长数据</div>') +
+            '</div>';
+        }
+      }
+
+      function addLog(type, extra) {
+        logs.push({ type, date: today(), time: now(), ...extra });
+        if (logs.length > 1000) logs = logs.slice(-1000);
+        save();
+      }
+
+      document.getElementById('tabs').addEventListener('click', function(e){
+        const btn = e.target.closest('.tab-btn');
+        if (!btn) return;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentTab = btn.dataset.tab;
+        renderTab();
+      });
+
+      document.getElementById('tabContent').addEventListener('click', function(e){
+        const quick = e.target.closest('.quick-btn');
+        if (quick) {
+          if (currentTab === 'feed') addLog('feed', { amount: quick.dataset.amount, side: '母乳' });
+          else if (currentTab === 'sleep') addLog('sleep', { duration: quick.dataset.dur });
+          else if (currentTab === 'diaper') addLog('diaper', { diaperType: quick.dataset.dtype });
+          return;
+        }
+        if (e.target.id === 'feedSave') { const amt = document.getElementById('feedAmount').value; const side = document.getElementById('feedSide').value; if(amt>0) addLog('feed',{amount:amt,side}); }
+        if (e.target.id === 'sleepSave') { const dur = document.getElementById('sleepDuration').value; if(dur>0) addLog('sleep',{duration:dur}); }
+        if (e.target.id === 'diaperSave') { const dt = document.getElementById('diaperType').value; addLog('diaper',{diaperType:dt}); }
+        if (e.target.id === 'growthSave') {
+          const date = document.getElementById('growthDate').value;
+          const height = document.getElementById('growthHeight').value;
+          const weight = document.getElementById('growthWeight').value;
+          if (date && height && weight) addLog('growth', { date, height, weight });
+        }
+      });
+
+      document.getElementById('todayLogs').addEventListener('click', function(e){
+        const del = e.target.closest('.log-delete');
+        if (!del) return;
+        const idx = parseInt(del.dataset.idx);
+        if (idx >= 0 && idx < logs.length) { logs.splice(idx, 1); save(); }
+      });
+
+      document.getElementById('clearTodayBtn').addEventListener('click', function(){
+        const td = today();
+        if (!logs.some(l => l.date === td)) return;
+        if (!confirm('清空今天的所有记录？')) return;
+        logs = logs.filter(l => l.date !== td);
+        save();
+      });
+
+      load();
+    })();
+  </script>
+</body>
+</html>
