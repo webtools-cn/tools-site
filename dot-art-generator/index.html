@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>点阵艺术生成器 - Free ToolBase</title>
+  <meta name="description" content="免费在线点阵艺术生成器，在网格画布上点击绘制像素风格的点阵图案。支持导出PNG、多种画布尺寸和颜色，轻松创作像素艺术。">
+  <meta property="og:title" content="点阵艺术生成器 - Free ToolBase">
+  <meta property="og:description" content="免费在线点阵艺术生成器，在网格画布上点击绘制像素风格的点阵图案。">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "点阵艺术生成器",
+    "description": "免费在线点阵艺术生成器，在网格画布上点击绘制像素风格的点阵图案。",
+    "applicationCategory": "WebApplication",
+    "url": "https://free-toolbase.com/dot-art-generator/",
+    "operatingSystem": "All"
+  }
+  </script>
+  <style>
+  :root { --primary: #4F46E5; --bg: #f8fafc; --card: #fff; --text: #1e293b; --text2: #64748b; --border: #e2e8f0; --radius: 12px; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+  header { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+  header a { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 18px; }
+  header span { color: var(--text2); font-size: 14px; }
+  main { flex: 1; max-width: 750px; margin: 0 auto; padding: 32px 16px; width: 100%; }
+  h1 { font-size: 28px; margin-bottom: 8px; }
+  .subtitle { color: var(--text2); margin-bottom: 24px; font-size: 14px; }
+  .tool-panel { background: var(--card); border-radius: var(--radius); padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  .toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .toolbar button { padding: 8px 16px; border: 1px solid var(--border); border-radius: 6px; background: #fff; cursor: pointer; font-size: 13px; font-weight: 600; transition: .2s; }
+  .toolbar button:hover { border-color: var(--primary); color: var(--primary); }
+  .toolbar button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .toolbar input[type="color"] { width: 36px; height: 36px; border: 2px solid var(--border); border-radius: 6px; cursor: pointer; padding: 2px; }
+  .toolbar select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+  .canvas-wrap { display: flex; justify-content: center; margin: 16px 0; overflow: auto; }
+  #dotCanvas { display: grid; gap: 1px; background: #e2e8f0; padding: 1px; border-radius: 4px; }
+  #dotCanvas .dot { width: 24px; height: 24px; background: #fff; border-radius: 2px; cursor: pointer; transition: background .1s; }
+  #dotCanvas .dot:hover { opacity: .8; }
+  .color-palette { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .color-palette .swatch { width: 28px; height: 28px; border-radius: 4px; border: 2px solid transparent; cursor: pointer; transition: .15s; }
+  .color-palette .swatch:hover { transform: scale(1.15); }
+  .color-palette .swatch.selected { border-color: var(--primary); }
+  footer { text-align: center; padding: 20px; color: var(--text2); font-size: 13px; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+<header><a href="/">Free ToolBase</a><span>/ 点阵艺术生成器</span></header>
+<main>
+  <h1>🎨 点阵艺术生成器</h1>
+  <p class="subtitle">在网格上点击绘制像素点阵图案，支持导出PNG图片</p>
+  <div class="tool-panel">
+    <div class="toolbar">
+      <select id="gridSize">
+        <option value="16">16×16</option>
+        <option value="24" selected>24×24</option>
+        <option value="32">32×32</option>
+        <option value="48">48×48</option>
+      </select>
+      <input type="color" id="paintColor" value="#4F46E5">
+      <button id="fillBtn">🪣 填充</button>
+      <button id="eraseBtn">🧹 橡皮</button>
+      <button id="clearBtn">🗑 清空</button>
+      <button id="invertBtn">🔄 反色</button>
+      <button id="exportBtn" style="background:var(--primary);color:#fff;border-color:var(--primary);">📥 导出PNG</button>
+    </div>
+    <div class="color-palette" id="palette"></div>
+    <div class="canvas-wrap"><div id="dotCanvas"></div></div>
+  </div>
+</main>
+<footer>© 2025 Free ToolBase - 免费在线工具集合</footer>
+<script>
+const PALETTE_COLORS = ['#4F46E5','#ef4444','#f59e0b','#22c55e','#06b6d4','#8b5cf6','#ec4899','#f97316','#84cc16','#14b8a6','#3b82f6','#6366f1','#000000','#ffffff','#94a3b8','#334155'];
+let gridSize = 24;
+let paintColor = '#4F46E5';
+let mode = 'paint'; // 'paint' | 'erase'
+let grid = [];
+
+function buildPalette() {
+  const p = document.getElementById('palette');
+  p.innerHTML = PALETTE_COLORS.map(c => 
+    `<div class="swatch${c===paintColor?' selected':''}" style="background:${c}" data-color="${c}"></div>`
+  ).join('');
+  p.addEventListener('click', (e) => {
+    const swatch = e.target.closest('.swatch');
+    if (!swatch) return;
+    paintColor = swatch.dataset.color;
+    document.getElementById('paintColor').value = paintColor;
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+    swatch.classList.add('selected');
+    mode = 'paint';
+    document.getElementById('paintColor').value = paintColor;
+    document.getElementById('fillBtn').classList.remove('active');
+    document.getElementById('eraseBtn').classList.remove('active');
+  });
+}
+
+function buildGrid() {
+  gridSize = parseInt(document.getElementById('gridSize').value);
+  grid = Array(gridSize).fill(null).map(() => Array(gridSize).fill('#ffffff'));
+  const canvas = document.getElementById('dotCanvas');
+  canvas.style.gridTemplateColumns = `repeat(${gridSize}, 24px)`;
+  canvas.innerHTML = '';
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      dot.dataset.row = r;
+      dot.dataset.col = c;
+      dot.addEventListener('mousedown', () => paintDot(r, c));
+      dot.addEventListener('mouseenter', (e) => {
+        if (e.buttons === 1) paintDot(r, c);
+      });
+      canvas.appendChild(dot);
+    }
+  }
+}
+
+function paintDot(r, c) {
+  if (mode === 'erase') {
+    grid[r][c] = '#ffffff';
+  } else {
+    grid[r][c] = paintColor;
+  }
+  updateDot(r, c);
+}
+
+function updateDot(r, c) {
+  const canvas = document.getElementById('dotCanvas');
+  const idx = r * gridSize + c;
+  canvas.children[idx].style.background = grid[r][c];
+}
+
+function updateAllDots() {
+  const canvas = document.getElementById('dotCanvas');
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      canvas.children[r * gridSize + c].style.background = grid[r][c];
+    }
+  }
+}
+
+document.getElementById('gridSize').addEventListener('change', () => { buildGrid(); });
+document.getElementById('paintColor').addEventListener('input', (e) => { paintColor = e.target.value; mode = 'paint'; document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected')); document.getElementById('fillBtn').classList.remove('active'); document.getElementById('eraseBtn').classList.remove('active'); });
+document.getElementById('fillBtn').addEventListener('click', () => { mode = 'paint'; document.getElementById('fillBtn').classList.add('active'); document.getElementById('eraseBtn').classList.remove('active'); });
+document.getElementById('eraseBtn').addEventListener('click', () => { mode = 'erase'; document.getElementById('eraseBtn').classList.add('active'); document.getElementById('fillBtn').classList.remove('active'); });
+document.getElementById('clearBtn').addEventListener('click', () => { grid = Array(gridSize).fill(null).map(() => Array(gridSize).fill('#ffffff')); updateAllDots(); });
+document.getElementById('invertBtn').addEventListener('click', () => {
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      if (grid[r][c] !== '#ffffff') {
+        const hex = grid[r][c].replace('#','');
+        const r2 = 255 - parseInt(hex.substring(0,2), 16);
+        const g = 255 - parseInt(hex.substring(2,4), 16);
+        const b = 255 - parseInt(hex.substring(4,6), 16);
+        grid[r][c] = '#' + [r2,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+      }
+    }
+  }
+  updateAllDots();
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const size = gridSize * 24;
+  const offCanvas = document.createElement('canvas');
+  offCanvas.width = size;
+  offCanvas.height = size;
+  const ctx = offCanvas.getContext('2d');
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      ctx.fillStyle = grid[r][c];
+      ctx.fillRect(c * 24, r * 24, 24, 24);
+    }
+  }
+  const link = document.createElement('a');
+  link.download = `dot-art-${gridSize}x${gridSize}.png`;
+  link.href = offCanvas.toDataURL();
+  link.click();
+});
+
+function showToast(msg, type) {
+  let t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:8px;color:#fff;font-size:14px;z-index:9999;background:${type==='error'?'#ef4444':'#22c55e'}`;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+buildPalette();
+buildGrid();
+</script>
+</body>
+</html>
