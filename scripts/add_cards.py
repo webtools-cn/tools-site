@@ -1,100 +1,114 @@
 #!/usr/bin/env python3
-"""批量添加10个新工具的首页卡片（中英文）+ 更新数字 + sitemap"""
-import re, os
+"""在首页添加新工具卡片"""
+import os
 
-BASE = '/home/chison/tools-site'
+BASE = "/home/chison/tools-site"
 
-# 10个新工具卡片数据 (格式: cn_name, en_name, cn_desc, en_desc, category, emoji, slug)
-TOOLS = [
-    ('REM↔PX转换器', 'REM↔PX Converter', '免费在线REM与PX双向转换器，支持自定义根字体大小，实时换算。前端开发必备。', 'Free online REM↔PX converter. Custom root font size, real-time conversion. Essential for frontend devs.', 'dev-tools', '📐', 'rem-to-pixel'),
-    ('域名Typo生成器', 'Domain Typo Generator', '免费在线域名Typo生成器，输入域名自动生成键盘误触、遗漏字母等Typo变体。网络安全测试必备。', 'Free online domain typo generator. Generate keyboard slip, missing letter, and swapped letter variants from any domain.', 'security-tools', '⌨️', 'domain-typo-generator'),
-    ('子网掩码计算器', 'Subnet Mask Calculator', '免费在线子网掩码计算器，输入IP/CIDR计算网络地址、广播地址、可用主机数。网络工程师必备。', 'Free online subnet mask calculator. Calculate network address, broadcast, usable hosts from IP/CIDR. Network engineer essential.', 'network-tools', '🌐', 'subnet-mask-calc'),
-    ('API速率限制计算器', 'API Rate Limiter Calculator', '免费在线API速率限制计算器，分析固定窗口、令牌桶、滑动窗口策略。后端架构设计参考。', 'Free online API rate limiter calculator. Analyze fixed window, token bucket, sliding window strategies for backend design.', 'dev-tools', '⚡', 'api-rate-limiter-calc'),
-    ('CSS优先级计算器', 'CSS Specificity Calculator', '免费在线CSS选择器优先级计算器，计算ID/Class/Element权重值。前端开发排错必备。', 'Free online CSS specificity calculator. Calculate ID/Class/Element weight for any selector. Frontend debugging essential.', 'dev-tools', '🎯', 'css-specificity-calc'),
-    ('RSS转JSON转换器', 'RSS to JSON Converter', '免费在线RSS/Atom转JSON工具，粘贴XML自动解析为结构化JSON。数据集成必备。', 'Free online RSS/Atom to JSON converter. Paste XML, get structured JSON. Essential for data integration.', 'dev-tools', '📡', 'rss-to-json'),
-    ('SQL差异对比', 'SQL Diff Compare', '免费在线SQL差异对比工具，逐行对比两个SQL版本。数据库迁移和Code Review必备。', 'Free online SQL diff tool. Compare two SQL versions line by line. Essential for DB migration and code review.', 'dev-tools', '🗄️', 'sql-diff'),
-    ('假身份生成器', 'Fake Identity Generator', '免费在线假身份信息生成器，支持中/美/英/日多国格式。生成姓名/地址/电话/邮箱，测试数据必备。', 'Free online fake identity generator. Supports China/US/UK/Japan formats. Generate names, addresses, phones, emails for testing.', 'utility-tools', '🪪', 'fake-identity-generator'),
-    ('CI/CD配置生成器', 'CI/CD Pipeline Generator', '免费在线CI/CD配置生成器，支持GitHub Actions/GitLab CI/Jenkins。可视化选择阶段，一键生成YAML。', 'Free online CI/CD pipeline config generator. Supports GitHub Actions, GitLab CI, Jenkins. Visual stage selector, one-click YAML.', 'dev-tools', '🚀', 'cicd-pipeline-generator'),
-    ('HTML颜色解析器', 'HTML Color Parser', '免费在线颜色值解析器，支持HEX/RGB/HSL互转。实时预览色块，前端设计必备。', 'Free online color value parser. HEX/RGB/HSL conversion with live color preview. Essential for frontend design.', 'design-tools', '🎨', 'html-color-picker'),
+CARDS = [
+    {
+        "slug": "virtual-piano-keyboard",
+        "category": "fun-tools",
+        "cn": '<div class="tool-card" data-category="fun-tools"><span class="tool-icon">🎹</span><span class="tool-name">虚拟钢琴键盘</span><span class="tool-desc">在线弹钢琴，鼠标/键盘演奏，支持录制回放</span><a href="/virtual-piano-keyboard/" class="btn">立即使用</a></div>',
+        "en": '<div class="tool-card" data-category="fun-tools"><span class="tool-name">Virtual Piano Keyboard</span><span class="tool-desc">Play piano online with mouse/keyboard, record and playback</span><a href="/en/virtual-piano-keyboard/" class="btn">Use Now</a></div>',
+    },
+    {
+        "slug": "neumorphic-css",
+        "category": "design-tools",
+        "cn": '<div class="tool-card" data-category="design-tools"><span class="tool-icon">🎨</span><span class="tool-name">Neumorphic CSS 生成器</span><span class="tool-desc">可视化生成新拟态风格CSS，实时预览一键复制</span><a href="/neumorphic-css/" class="btn">立即使用</a></div>',
+        "en": '<div class="tool-card" data-category="design-tools"><span class="tool-name">Neumorphic CSS Generator</span><span class="tool-desc">Visual Soft UI CSS generator with real-time preview and copy</span><a href="/en/neumorphic-css/" class="btn">Use Now</a></div>',
+    },
+    {
+        "slug": "bricks-calculator",
+        "category": "calc-tools",
+        "cn": '<div class="tool-card" data-category="calc-tools"><span class="tool-icon">🧱</span><span class="tool-name">砖块用量计算器</span><span class="tool-desc">输入墙体尺寸和砖块规格，自动计算所需砖数</span><a href="/bricks-calculator/" class="btn">立即使用</a></div>',
+        "en": '<div class="tool-card" data-category="calc-tools"><span class="tool-name">Brick Calculator</span><span class="tool-desc">Calculate bricks needed from wall dimensions and specs</span><a href="/en/bricks-calculator/" class="btn">Use Now</a></div>',
+    },
+    {
+        "slug": "website-uptime-checker",
+        "category": "network-tools",
+        "cn": '<div class="tool-card" data-category="network-tools"><span class="tool-icon">🔍</span><span class="tool-name">网站在线检测器</span><span class="tool-desc">检测任意网站是否可访问，显示状态码和响应时间</span><a href="/website-uptime-checker/" class="btn">立即使用</a></div>',
+        "en": '<div class="tool-card" data-category="network-tools"><span class="tool-name">Website Uptime Checker</span><span class="tool-desc">Check if any website is online, show status code and response time</span><a href="/en/website-uptime-checker/" class="btn">Use Now</a></div>',
+    },
+    {
+        "slug": "jwt-token-generator",
+        "category": "security-tools",
+        "cn": '<div class="tool-card" data-category="security-tools"><span class="tool-icon">🔐</span><span class="tool-name">JWT 令牌生成器</span><span class="tool-desc">可视化编辑Header/Payload，生成标准JWT Token</span><a href="/jwt-token-generator/" class="btn">立即使用</a></div>',
+        "en": '<div class="tool-card" data-category="security-tools"><span class="tool-name">JWT Token Generator</span><span class="tool-desc">Edit Header/Payload visually, generate standard JWT tokens</span><a href="/en/jwt-token-generator/" class="btn">Use Now</a></div>',
+    },
+    {
+        "slug": "swift-bic-validation",
+        "category": "finance-tools",
+        "cn": '<div class="tool-card" data-category="finance-tools"><span class="tool-icon">🏦</span><span class="tool-name">SWIFT/BIC 代码验证器</span><span class="tool-desc">验证BIC代码格式，解析银行代码、国家代码和分行代码</span><a href="/swift-bic-validation/" class="btn">立即使用</a></div>',
+        "en": '<div class="tool-card" data-category="finance-tools"><span class="tool-name">SWIFT/BIC Code Validator</span><span class="tool-desc">Validate BIC format, parse bank/country/location/branch codes</span><a href="/en/swift-bic-validation/" class="btn">Use Now</a></div>',
+    },
+    {
+        "slug": "ip-address-range-calculator",
+        "category": "network-tools",
+        "cn": '<div class="tool-card" data-category="network-tools"><span class="tool-icon">🌐</span><span class="tool-name">IP地址范围计算器</span><span class="tool-desc">CIDR子网计算：网络地址/广播地址/可用IP/主机数</span><a href="/ip-address-range-calculator/" class="btn">立即使用</a></div>',
+        "en": '<div class="tool-card" data-category="network-tools"><span class="tool-name">IP Address Range Calculator</span><span class="tool-desc">CIDR subnet calc: network/broadcast/usable IPs/host count</span><a href="/en/ip-address-range-calculator/" class="btn">Use Now</a></div>',
+    },
+    {
+        "slug": "color-contrast-analyzer",
+        "category": "design-tools",
+        "cn": '<div class="tool-card" data-category="design-tools"><span class="tool-icon">🎯</span><span class="tool-name">WCAG 颜色对比度分析器</span><span class="tool-desc">分析前景/背景色对比度，评估AA/AAA合规性</span><a href="/color-contrast-analyzer/" class="btn">立即使用</a></div>',
+        "en": '<div class="tool-card" data-category="design-tools"><span class="tool-name">WCAG Color Contrast Analyzer</span><span class="tool-desc">Analyze fg/bg contrast ratio, evaluate AA/AAA compliance</span><a href="/en/color-contrast-analyzer/" class="btn">Use Now</a></div>',
+    },
+    {
+        "slug": "docker-run-generator",
+        "category": "dev-tools",
+        "cn": '<div class="tool-card" data-category="dev-tools"><span class="tool-icon">🐳</span><span class="tool-name">Docker Run 命令生成器</span><span class="tool-desc">可视化配置端口/卷/环境变量，一键生成docker run命令</span><a href="/docker-run-generator/" class="btn">立即使用</a></div>',
+        "en": '<div class="tool-card" data-category="dev-tools"><span class="tool-name">Docker Run Command Generator</span><span class="tool-desc">Visually configure ports/volumes/env vars, generate docker run</span><a href="/en/docker-run-generator/" class="btn">Use Now</a></div>',
+    },
+    {
+        "slug": "cron-sandbox",
+        "category": "dev-tools",
+        "cn": '<div class="tool-card" data-category="dev-tools"><span class="tool-icon">⏰</span><span class="tool-name">Cron 表达式测试沙盒</span><span class="tool-desc">输入Cron表达式，查看人类可读描述和未来执行时间</span><a href="/cron-sandbox/" class="btn">立即使用</a></div>',
+        "en": '<div class="tool-card" data-category="dev-tools"><span class="tool-name">Cron Expression Sandbox</span><span class="tool-desc">Enter cron expression, see human-readable description and next runs</span><a href="/en/cron-sandbox/" class="btn">Use Now</a></div>',
+    },
 ]
 
-# ==== CN首页处理 ====
-cn_path = os.path.join(BASE, 'index.html')
-with open(cn_path) as f:
-    cn = f.read()
+# 更新CN首页
+cn_path = os.path.join(BASE, "index.html")
+with open(cn_path, "r") as f:
+    cn_lines = f.readlines()
 
-# 找最后一个tool-card在grid中的位置（在</div></div>闭合之前）
-# 策略：找'代码缩进格式化'卡片后面的 </div></div>
-marker = '代码缩进格式化'
-idx = cn.rfind(marker)
-if idx < 0:
-    print('ERROR: 找不到CN首页标记位置')
-else:
-    # 从这往后找第一个 </div></div>
-    after = cn[idx:]
-    end_div = after.find('</div>')
-    end_div2 = after.find('</div>', end_div+6)
-    # 插入点在第二个</div>之后？不对，我们要在第一个</div>（卡片自身闭合）之后、第二个</div>（grid闭合）之前
-    insert_pos = idx + end_div + 6  # 卡片自身</div>之后
-    
-    # 构建新卡片HTML
-    cards_html = ''
-    for cn_name, en_name, cn_desc, en_desc, cat, emoji, slug in TOOLS:
-        cards_html += f'<div class="tool-card" data-cat="{cat}"><span class="tool-icon">{emoji}</span><span class="tool-name">{cn_name}</span><span class="tool-desc">{cn_desc}</span><a href="/{slug}/" class="btn">立即使用</a></div>\n'
-    
-    new_cn = cn[:insert_pos] + cards_html + cn[insert_pos:]
-    with open(cn_path, 'w') as f:
-        f.write(new_cn)
-    print(f'CN首页: 插入10个卡片 OK')
+# 找到 tools-grid 所在行号
+tools_grid_line = None
+for i, line in enumerate(cn_lines):
+    if '<div class="tools-grid"' in line:
+        tools_grid_line = i
+        break
 
-# ==== EN首页处理 ====
-en_path = os.path.join(BASE, 'en/index.html')
-with open(en_path) as f:
-    en = f.read()
+if tools_grid_line is None:
+    print("ERROR: tools-grid not found in CN index")
+    exit(1)
 
-# 找最后一个英文tool-card的位置
-marker_en = 'Indent Formatter'  # 英文版最后一个工具可能是这个
-idx_en = en.rfind(marker_en)
-if idx_en < 0:
-    # 尝试找 'code indent'
-    idx_en = en.rfind('indent')
-    if idx_en < 0:
-        # 找倒数第二个 </div></div> 模式
-        print('WARNING: 用备用方式定位EN首页')
-        # 找 tools-grid 闭合
-        grid_start = en.find('class="tools-grid"')
-        after_grid = en[grid_start:]
-        # 找连续两个</div>，中间没有<div（grid+外层容器闭合）
-        import re as regex
-        matches = list(regex.finditer(r'</div>\s*</div>\s*</div>', after_grid))
-        if matches:
-            last_close = matches[-1].start() + grid_start
-            # 往前找最后一个卡片闭合
-            before = en[:last_close]
-            insert_pos_en = before.rfind('</div>') + 6
-        else:
-            print('ERROR: 找不到EN首页插入位置')
-            insert_pos_en = -1
-    else:
-        after_en = en[idx_en:]
-        end_div_en = after_en.find('</div>')
-        insert_pos_en = idx_en + end_div_en + 6
-else:
-    after_en = en[idx_en:]
-    end_div_en = after_en.find('</div>')
-    insert_pos_en = idx_en + end_div_en + 6
+# 在 tools-grid 下一行插入所有新卡片
+cn_cards_html = "\n".join([c["cn"] for c in CARDS]) + "\n"
+cn_lines.insert(tools_grid_line + 1, cn_cards_html)
 
-if insert_pos_en > 0:
-    # 构建英文卡片HTML
-    en_cards_html = ''
-    for cn_name, en_name, cn_desc, en_desc, cat, emoji, slug in TOOLS:
-        en_cards_html += f'<div class="tool-card" data-cat="{cat}"><span class="tool-icon">{emoji}</span><span class="tool-name">{en_name}</span><span class="tool-desc">{en_desc}</span><a href="/en/{slug}/" class="btn">Use Now</a></div>\n'
-    
-    new_en = en[:insert_pos_en] + en_cards_html + en[insert_pos_en:]
-    with open(en_path, 'w') as f:
-        f.write(new_en)
-    print(f'EN首页: 插入10个卡片 OK')
-else:
-    print('ERROR: EN首页插入失败')
+with open(cn_path, "w") as f:
+    f.writelines(cn_lines)
+print(f"CN: 插入{len(CARDS)}张卡片在第{tools_grid_line+1}行")
 
-print('\nDone!')
+# 更新EN首页
+en_path = os.path.join(BASE, "en/index.html")
+with open(en_path, "r") as f:
+    en_lines = f.readlines()
+
+tools_grid_line = None
+for i, line in enumerate(en_lines):
+    if '<div class="tools-grid"' in line:
+        tools_grid_line = i
+        break
+
+if tools_grid_line is None:
+    print("ERROR: tools-grid not found in EN index")
+    exit(1)
+
+en_cards_html = "\n".join([c["en"] for c in CARDS]) + "\n"
+en_lines.insert(tools_grid_line + 1, en_cards_html)
+
+with open(en_path, "w") as f:
+    f.writelines(en_lines)
+print(f"EN: 插入{len(CARDS)}张卡片在第{tools_grid_line+1}行")
