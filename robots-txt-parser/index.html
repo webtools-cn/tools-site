@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robots.txt解析器 - Free ToolBase</title>
+  <meta name="description" content="在线解析robots.txt文件，可视化展示Allow/Disallow规则，测试URL是否被允许爬取">
+  <meta name="keywords" content="robots.txt, robots解析, 爬虫规则, Allow, Disallow, SEO, 网站爬取">
+  <meta property="og:title" content="Robots.txt解析器 - Free ToolBase">
+  <meta property="og:description" content="在线解析robots.txt文件，可视化展示Allow/Disallow规则，测试URL是否被允许爬取">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Robots.txt解析器",
+    "description": "在线解析robots.txt文件，可视化展示Allow/Disallow规则，测试URL是否被允许爬取",
+    "applicationCategory": "UtilityApplication",
+    "operatingSystem": "Any",
+    "offers": { "@type": "Offer", "price": "0" }
+  }
+  </script>
+  <style>
+    :root { --primary: #4F46E5; --bg: #0f172a; --surface: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8; --border: rgba(148,163,184,.1); --success: #22c55e; --warning: #f59e0b; --error: #ef4444; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+    header { background:var(--surface); border-bottom:1px solid var(--border); padding:16px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    header a { color:var(--text-secondary); text-decoration:none; font-size:14px; }
+    header a:hover { color:var(--text); }
+    .logo { font-size:18px; font-weight:700; color:var(--text); }
+    .lang-switch a { margin-left:12px; padding:4px 12px; border-radius:6px; border:1px solid var(--border); }
+    .lang-switch a.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+    main { max-width:800px; margin:0 auto; padding:32px 20px; }
+    h1 { font-size:28px; margin-bottom:8px; }
+    .desc { color:var(--text-secondary); margin-bottom:24px; font-size:15px; }
+    .tool-area { background:var(--surface); border-radius:12px; border:1px solid var(--border); padding:24px; margin-bottom:20px; }
+    .tool-area label { display:block; font-size:14px; color:var(--text-secondary); margin-bottom:8px; }
+    .tool-area input, .tool-area textarea, .tool-area select { width:100%; background:#0f172a; border:1px solid var(--border); border-radius:8px; color:var(--text); padding:12px; font-size:14px; font-family:inherit; resize:vertical; }
+    .tool-area textarea { min-height:120px; }
+    .tool-area input:focus, .tool-area textarea:focus, .tool-area select:focus { outline:none; border-color:var(--primary); }
+    .btn { display:inline-block; padding:10px 24px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; transition:all .2s; }
+    .btn-primary { background:var(--primary); color:#fff; }
+    .btn-primary:hover { opacity:.9; }
+    .btn-secondary { background:var(--surface); color:var(--text); border:1px solid var(--border); }
+    .result { background:#0f172a; border:1px solid var(--border); border-radius:8px; padding:16px; min-height:60px; font-size:14px; white-space:pre-wrap; word-break:break-all; margin-top:16px; display:none; }
+    .result.show { display:block; }
+    .result.error { border-color:var(--error); color:var(--error); }
+    footer { text-align:center; padding:24px; color:var(--text-secondary); font-size:13px; border-top:1px solid var(--border); margin-top:40px; }
+    footer a { color:var(--primary); }
+    .row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+    .row > * { flex:1; min-width:150px; }
+    .tag { display:inline-block; padding:2px 10px; border-radius:12px; font-size:12px; background:rgba(79,70,229,.2); color:#818cf8; margin:2px; }
+    .status { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; }
+    .status.open { background:var(--success); }
+    .status.closed { background:var(--error); }
+    @media(max-width:375px) { main { padding:16px 12px; } h1 { font-size:22px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="logo">Free ToolBase</a>
+    <div class="lang-switch">
+      <a href="/robots-txt-parser/" class="active">中文</a>
+      <a href="/en/robots-txt-parser/">EN</a>
+    </div>
+  </header>
+  <main>
+    <h1>Robots.txt解析器</h1>
+    <p class="desc">在线解析robots.txt文件，可视化展示Allow/Disallow规则，测试URL是否被允许爬取</p>
+    <div class="tool-area">
+      
+      <label>输入robots.txt内容或URL</label>
+      <div class="row">
+        <input type="text" id="urlInput" placeholder="https://example.com/robots.txt" style="flex:3;">
+        <button class="btn btn-primary" id="fetchBtn" style="flex:0;">获取</button>
+      </div>
+      <textarea id="robotsInput" placeholder="或直接粘贴robots.txt内容...&#10;User-agent: *&#10;Disallow: /admin/&#10;Allow: /public/"></textarea>
+      <button class="btn btn-primary" id="parseBtn" style="margin-top:12px;">解析</button>
+      <div class="result" id="result"></div>
+      <div style="margin-top:12px;">
+        <label>测试URL是否允许爬取</label>
+        <div class="row">
+          <input type="text" id="testUrl" placeholder="/admin/page">
+          <button class="btn btn-secondary" id="testBtn">测试</button>
+        </div>
+        <div id="testResult" style="margin-top:8px;font-size:14px;"></div>
+      </div>
+    </div>
+    <div class="result" id="result"></div>
+  </main>
+  <footer>
+    <p>© 2025 <a href="/">Free ToolBase</a> · 免费在线工具 · 纯浏览器端处理，保护隐私</p>
+  </footer>
+  <script>
+    
+    const urlInput = document.getElementById('urlInput');
+    const robotsInput = document.getElementById('robotsInput');
+    const fetchBtn = document.getElementById('fetchBtn');
+    const parseBtn = document.getElementById('parseBtn');
+    const result = document.getElementById('result');
+    const testUrl = document.getElementById('testUrl');
+    const testBtn = document.getElementById('testBtn');
+    const testResult = document.getElementById('testResult');
+    let parsedRules = [];
+
+    async function fetchRobots() {
+      const url = urlInput.value.trim();
+      if (!url) { showResult('请输入URL', true); return; }
+      showResult('获取中...');
+      try {
+        const resp = await fetch(url);
+        const text = await resp.text();
+        robotsInput.value = text;
+        parseRobots();
+      } catch(e) {
+        showResult('获取失败：' + e.message + '\n请检查URL或直接粘贴robots.txt内容', true);
+      }
+    }
+
+    function parseRobots() {
+      const text = robotsInput.value.trim();
+      if (!text) { showResult('请输入robots.txt内容', true); return; }
+      const lines = text.split('\n');
+      parsedRules = [];
+      let currentAgent = '';
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const [directive, ...valueParts] = trimmed.split(':');
+        const value = valueParts.join(':').trim();
+        if (directive.toLowerCase() === 'user-agent') {
+          currentAgent = value;
+        } else if (currentAgent && (directive.toLowerCase() === 'disallow' || directive.toLowerCase() === 'allow')) {
+          parsedRules.push({ agent: currentAgent, type: directive, path: value });
+        }
+      }
+      let out = `解析结果 (共 ${parsedRules.length} 条规则)\n${'─'.repeat(40)}\n`;
+      const agents = [...new Set(parsedRules.map(r=>r.agent))];
+      agents.forEach(agent => {
+        out += `\nUser-agent: ${agent}\n`;
+        parsedRules.filter(r=>r.agent===agent).forEach(r=>{
+          const icon = r.type === 'Disallow' ? '🚫' : '✅';
+          out += `  ${icon} ${r.type}: ${r.path || '(全部)'}\n`;
+        });
+      });
+      if (parsedRules.length === 0) out += '\n未找到规则（可能全部允许爬取）';
+      showResult(out);
+    }
+
+    function testCrawl() {
+      const path = testUrl.value.trim();
+      if (!path) { testResult.innerHTML = '请输入测试路径'; return; }
+      if (parsedRules.length === 0) { testResult.innerHTML = '请先解析robots.txt'; return; }
+      let allowed = true;
+      for (const rule of parsedRules) {
+        if (rule.agent === '*' || rule.agent.toLowerCase().includes('googlebot')) {
+          if (rule.path && path.startsWith(rule.path)) {
+            allowed = rule.type === 'Allow';
+          }
+        }
+      }
+      testResult.innerHTML = allowed
+        ? '<span style="color:var(--success);">✅ 允许爬取</span>'
+        : '<span style="color:var(--error);">🚫 禁止爬取</span>';
+    }
+
+    function showResult(msg, isError = false) {
+      result.textContent = msg;
+      result.className = 'result show' + (isError ? ' error' : '');
+    }
+
+    fetchBtn.addEventListener('click', fetchRobots);
+    parseBtn.addEventListener('click', parseRobots);
+    testBtn.addEventListener('click', testCrawl);
+    robotsInput.addEventListener('input', parseRobots);
+    
+  </script>
+</body>
+</html>

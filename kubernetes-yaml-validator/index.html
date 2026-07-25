@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K8s YAML验证器 - Free ToolBase</title>
+  <meta name="description" content="在线验证Kubernetes YAML配置文件，检查Deployment/Service/Pod等资源格式是否正确">
+  <meta name="keywords" content="Kubernetes, K8s, YAML验证, Deployment, Service, Pod, 配置检查">
+  <meta property="og:title" content="K8s YAML验证器 - Free ToolBase">
+  <meta property="og:description" content="在线验证Kubernetes YAML配置文件，检查Deployment/Service/Pod等资源格式是否正确">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "K8s YAML验证器",
+    "description": "在线验证Kubernetes YAML配置文件，检查Deployment/Service/Pod等资源格式是否正确",
+    "applicationCategory": "UtilityApplication",
+    "operatingSystem": "Any",
+    "offers": { "@type": "Offer", "price": "0" }
+  }
+  </script>
+  <style>
+    :root { --primary: #4F46E5; --bg: #0f172a; --surface: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8; --border: rgba(148,163,184,.1); --success: #22c55e; --warning: #f59e0b; --error: #ef4444; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+    header { background:var(--surface); border-bottom:1px solid var(--border); padding:16px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+    header a { color:var(--text-secondary); text-decoration:none; font-size:14px; }
+    header a:hover { color:var(--text); }
+    .logo { font-size:18px; font-weight:700; color:var(--text); }
+    .lang-switch a { margin-left:12px; padding:4px 12px; border-radius:6px; border:1px solid var(--border); }
+    .lang-switch a.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+    main { max-width:800px; margin:0 auto; padding:32px 20px; }
+    h1 { font-size:28px; margin-bottom:8px; }
+    .desc { color:var(--text-secondary); margin-bottom:24px; font-size:15px; }
+    .tool-area { background:var(--surface); border-radius:12px; border:1px solid var(--border); padding:24px; margin-bottom:20px; }
+    .tool-area label { display:block; font-size:14px; color:var(--text-secondary); margin-bottom:8px; }
+    .tool-area input, .tool-area textarea, .tool-area select { width:100%; background:#0f172a; border:1px solid var(--border); border-radius:8px; color:var(--text); padding:12px; font-size:14px; font-family:inherit; resize:vertical; }
+    .tool-area textarea { min-height:120px; }
+    .tool-area input:focus, .tool-area textarea:focus, .tool-area select:focus { outline:none; border-color:var(--primary); }
+    .btn { display:inline-block; padding:10px 24px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; transition:all .2s; }
+    .btn-primary { background:var(--primary); color:#fff; }
+    .btn-primary:hover { opacity:.9; }
+    .btn-secondary { background:var(--surface); color:var(--text); border:1px solid var(--border); }
+    .result { background:#0f172a; border:1px solid var(--border); border-radius:8px; padding:16px; min-height:60px; font-size:14px; white-space:pre-wrap; word-break:break-all; margin-top:16px; display:none; }
+    .result.show { display:block; }
+    .result.error { border-color:var(--error); color:var(--error); }
+    footer { text-align:center; padding:24px; color:var(--text-secondary); font-size:13px; border-top:1px solid var(--border); margin-top:40px; }
+    footer a { color:var(--primary); }
+    .row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+    .row > * { flex:1; min-width:150px; }
+    .tag { display:inline-block; padding:2px 10px; border-radius:12px; font-size:12px; background:rgba(79,70,229,.2); color:#818cf8; margin:2px; }
+    .status { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; }
+    .status.open { background:var(--success); }
+    .status.closed { background:var(--error); }
+    @media(max-width:375px) { main { padding:16px 12px; } h1 { font-size:22px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="logo">Free ToolBase</a>
+    <div class="lang-switch">
+      <a href="/kubernetes-yaml-validator/" class="active">中文</a>
+      <a href="/en/kubernetes-yaml-validator/">EN</a>
+    </div>
+  </header>
+  <main>
+    <h1>Kubernetes YAML验证器</h1>
+    <p class="desc">在线验证Kubernetes YAML配置文件，检查Deployment/Service/Pod等资源格式是否正确</p>
+    <div class="tool-area">
+      
+      <label>粘贴Kubernetes YAML配置</label>
+      <textarea id="yamlInput" placeholder="apiVersion: apps/v1&#10;kind: Deployment&#10;metadata:&#10;  name: my-app&#10;spec:&#10;  replicas: 3&#10;  selector:&#10;    matchLabels:&#10;      app: my-app&#10;  template:&#10;    metadata:&#10;      labels:&#10;        app: my-app&#10;    spec:&#10;      containers:&#10;      - name: app&#10;        image: nginx:latest&#10;        ports:&#10;        - containerPort: 80"></textarea>
+      <button class="btn btn-primary" id="validateBtn" style="margin-top:12px;">验证</button>
+      <div class="result" id="result"></div>
+      <div style="margin-top:12px;font-size:12px;color:var(--text-secondary);">
+        <strong>支持的资源类型：</strong>
+        <span class="tag">Deployment</span> <span class="tag">Service</span> <span class="tag">Pod</span>
+        <span class="tag">ConfigMap</span> <span class="tag">Secret</span> <span class="tag">Ingress</span>
+        <span class="tag">StatefulSet</span> <span class="tag">DaemonSet</span> <span class="tag">Job</span>
+      </div>
+    </div>
+    <div class="result" id="result"></div>
+  </main>
+  <footer>
+    <p>© 2025 <a href="/">Free ToolBase</a> · 免费在线工具 · 纯浏览器端处理，保护隐私</p>
+  </footer>
+  <script>
+    
+    const yamlInput = document.getElementById('yamlInput');
+    const validateBtn = document.getElementById('validateBtn');
+    const result = document.getElementById('result');
+
+    function parseYAML(text) {
+      const lines = text.split('\n');
+      const root = {};
+      const stack = [{obj: root, indent: -1}];
+      let currentKey = '';
+      lines.forEach((line, idx) => {
+        if (!line.trim() || line.trim().startsWith('#')) return;
+        const indent = line.search(/\S/);
+        const content = line.trim();
+        if (content.includes(':')) {
+          const colonIdx = content.indexOf(':');
+          const key = content.substring(0, colonIdx).trim();
+          let value = content.substring(colonIdx + 1).trim();
+          while (stack.length > 1 && stack[stack.length-1].indent >= indent) {
+            stack.pop();
+          }
+          const parent = stack[stack.length-1].obj;
+          if (value === '') {
+            const newObj = {};
+            if (Array.isArray(parent)) {
+              parent.push(newObj);
+            } else {
+              parent[key] = newObj;
+            }
+            stack.push({obj: newObj, indent: indent});
+          } else {
+            if (Array.isArray(parent)) {
+              parent.push(value);
+            } else {
+              parent[key] = value;
+            }
+          }
+        } else if (content.startsWith('- ')) {
+          const value = content.substring(2).trim();
+          while (stack.length > 1 && stack[stack.length-1].indent >= indent) {
+            stack.pop();
+          }
+          const parent = stack[stack.length-1].obj;
+          if (!Array.isArray(parent[currentKey])) {
+            parent[currentKey] = [];
+          }
+          parent[currentKey].push(value);
+        }
+      });
+      return root;
+    }
+
+    function validate() {
+      const text = yamlInput.value.trim();
+      if (!text) { showResult('请输入YAML内容', true); return; }
+      
+      const issues = [];
+      const warnings = [];
+      
+      try {
+        const obj = parseYAML(text);
+        
+        // Check required fields
+        if (!obj.apiVersion) issues.push('缺少 apiVersion 字段');
+        if (!obj.kind) issues.push('缺少 kind 字段');
+        if (!obj.metadata) issues.push('缺少 metadata 字段');
+        
+        // Kind-specific checks
+        const kind = obj.kind;
+        const validKinds = ['Deployment','Service','Pod','ConfigMap','Secret','Ingress','StatefulSet','DaemonSet','Job','CronJob','PersistentVolumeClaim','Namespace','ServiceAccount','Role','RoleBinding'];
+        
+        if (kind && !validKinds.includes(kind)) {
+          warnings.push(`kind "${kind}" 不是常见K8s资源类型`);
+        }
+        
+        if (kind === 'Deployment') {
+          if (!obj.spec) issues.push('Deployment 缺少 spec');
+          else {
+            if (!obj.spec.template) issues.push('Deployment spec 缺少 template');
+            if (!obj.spec.selector) issues.push('Deployment spec 缺少 selector');
+          }
+        }
+        
+        if (kind === 'Service') {
+          if (obj.spec && !obj.spec.ports) warnings.push('Service 未定义 ports');
+        }
+        
+        if (obj.metadata && !obj.metadata.name) issues.push('metadata 缺少 name');
+        
+        // Check for common mistakes
+        if (text.includes('\t')) warnings.push('检测到Tab缩进，建议使用空格');
+        
+        let out = '';
+        if (issues.length === 0 && warnings.length === 0) {
+          out = '✅ YAML格式验证通过！\n';
+          if (kind) out += `资源类型: ${kind}\n`;
+          if (obj.metadata && obj.metadata.name) out += `名称: ${obj.metadata.name}\n`;
+          if (obj.apiVersion) out += `API版本: ${obj.apiVersion}\n`;
+        } else {
+          if (issues.length > 0) {
+            out += '❌ 错误:\n';
+            issues.forEach((e,i) => out += `  [${i+1}] ${e}\n`);
+          }
+          if (warnings.length > 0) {
+            out += '\n⚠️ 警告:\n';
+            warnings.forEach((w,i) => out += `  [${i+1}] ${w}\n`);
+          }
+        }
+        showResult(out, issues.length > 0);
+      } catch(e) {
+        showResult('YAML解析错误：' + e.message, true);
+      }
+    }
+
+    function showResult(msg, isError = false) {
+      result.textContent = msg;
+      result.className = 'result show' + (isError ? ' error' : '');
+    }
+
+    validateBtn.addEventListener('click', validate);
+    
+  </script>
+</body>
+</html>
