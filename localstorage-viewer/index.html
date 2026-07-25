@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalStorage浏览器 - Free ToolBase</title>
+  <meta name="description" content="在线查看和管理浏览器的LocalStorage数据，支持查看键值、修改值、删除条目和导出JSON，前端调试利器。">
+  <meta name="keywords" content="LocalStorage,本地存储,浏览器存储,localStorage查看,前端调试,在线存储工具">
+  <link rel="canonical" href="https://free-toolbase.com/localstorage-viewer/">
+  <link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/localstorage-viewer/">
+  <link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/localstorage-viewer/">
+  <meta property="og:title" content="LocalStorage浏览器 - Free ToolBase">
+  <meta property="og:description" content="在线查看和管理浏览器的LocalStorage数据，支持查看键值、修改值、删除条目和导出JSON，前端调试利器。">
+  <meta property="og:url" content="https://free-toolbase.com/localstorage-viewer/">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "LocalStorage浏览器",
+    "description": "在线查看和管理浏览器的LocalStorage数据，支持查看键值、修改值、删除条目和导出JSON，前端调试利器。",
+    "applicationCategory": "WebApplication",
+    "operatingSystem": "Any",
+    "url": "https://free-toolbase.com/localstorage-viewer/",
+    "offers": {"@type": "Offer", "price": "0"}
+  }
+  </script>
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --primary-dark: #4338CA;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --radius: 12px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    header .logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+    }
+    header nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      margin-left: 20px;
+      font-size: 0.95rem;
+    }
+    header nav a:hover { color: var(--primary); }
+    main {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+    h1 {
+      font-size: 1.75rem;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    .subtitle {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+    .input-group {
+      margin-bottom: 16px;
+    }
+    .input-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+    .input-group input,
+    .input-group textarea,
+    .input-group select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+      background: var(--card-bg);
+      color: var(--text);
+      transition: border-color 0.2s;
+    }
+    .input-group input:focus,
+    .input-group textarea:focus,
+    .input-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .input-group textarea { resize: vertical; min-height: 80px; }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 2px solid var(--border);
+      padding: 12px 24px;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--primary); }
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .result-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 8px;
+    }
+    .result-header {
+      font-weight: 700;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      color: var(--primary);
+    }
+    .verify-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .verify-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .verify-table td:first-child {
+      font-weight: 600;
+      color: var(--text-secondary);
+      width: 40%;
+    }
+    .verify-table .pass { color: var(--success); font-weight: 600; }
+    .verify-table .fail { color: var(--danger); font-weight: 600; }
+    .verify-table .warn { color: var(--warning); font-weight: 600; }
+    .verify-table th {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 2px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .tab-nav { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 2px solid var(--border); }
+    .tab-btn {
+      padding: 10px 20px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+    }
+    .preset-btn {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 2px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .preset-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .viewport-display {
+      text-align: center;
+      padding: 24px;
+      background: linear-gradient(135deg, #4F46E5, #7C3AED);
+      color: white;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+    }
+    .vp-size { font-size: 2rem; font-weight: 700; font-family: monospace; }
+    .vp-label { font-size: 0.85rem; opacity: 0.85; margin-top: 4px; }
+    .breakpoint-info {
+      padding: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      text-align: center;
+    }
+    .dns-record {
+      padding: 8px 12px;
+      background: #f1f5f9;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-family: monospace;
+      font-size: 0.95rem;
+    }
+    .icon-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .icon-item {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card-bg);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .icon-item:hover { border-color: var(--primary); transform: scale(1.1); background: #EEF2FF; }
+    .cat-btn {
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cat-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    .del-cookie-btn, .del-ls-btn, .del-ss-btn {
+      background: var(--danger);
+      color: white;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .unit { color: var(--text-secondary); font-size: 0.9rem; }
+    .input-group input[type="number"] { width: 120px; display: inline-block; }
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+    }
+    footer a { color: var(--primary); text-decoration: none; }
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 9999;
+    }
+    #toast.show { opacity: 1; }
+    @media (max-width: 600px) {
+      main { padding: 20px 16px; }
+      h1 { font-size: 1.4rem; }
+      .btn-row { flex-direction: column; }
+      .btn-primary, .btn-secondary, .btn-danger { width: 100%; text-align: center; }
+      .vp-size { font-size: 1.5rem; }
+    }
+  </style>
+<meta property="og:image" content="https://free-toolbase.com/og-image.svg">
+<meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="robots" content="index, follow">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://free-toolbase.com/"}, {"@type": "ListItem", "position": 2, "name": "工具", "item": "https://free-toolbase.com/#tools"}, {"@type": "ListItem", "position": 3, "name": "LocalStorage浏览器", "item": "https://free-toolbase.com/localstorage-viewer/"}]}</script>
+</head>
+<body>
+  <header>
+    <a href="/" class="logo">Free ToolBase</a>
+    <nav>
+      <a href="/">首页</a>
+      <a href="/#tools">全部工具</a>
+    </nav>
+  </header>
+  <main>
+    <h1>LocalStorage浏览器</h1>
+    <p class="subtitle">在线查看和管理浏览器的LocalStorage数据，支持查看键值、修改值、删除条目和导出JSON，前端调试利器。</p>
+    <div class="btn-row">
+    <button id="view-btn" class="btn-primary">查看LocalStorage</button>
+    <button id="export-btn" class="btn-secondary" style="display:none;">导出JSON</button>
+    <button id="clear-ls-btn" class="btn-danger" style="display:none;">清空全部</button>
+</div>
+<div class="input-group" style="display:none;" id="add-group">
+    <input type="text" id="ls-key" placeholder="键名">
+    <input type="text" id="ls-value" placeholder="值">
+    <button id="add-btn" class="btn-primary">添加</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">LocalStorage 数据</div>
+    <div id="ls-result"></div>
+</div>
+  </main>
+<!-- AdSense -->
+<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-5998441792679372" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
+<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  <footer>
+    <p>&copy; 2025 <a href="/">Free ToolBase</a> - 免费在线工具</p>
+  </footer>
+  <div id="toast"></div>
+  <script>
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._timeout);
+      t._timeout = setTimeout(() => t.classList.remove('show'), 2500);
+    }
+    function showLS() {
+    const result = document.getElementById('result-area');
+    const div = document.getElementById('ls-result');
+    const keys = Object.keys(localStorage);
+    if (keys.length === 0) {
+        div.innerHTML = '<p>LocalStorage为空。</p>';
+    } else {
+        let html = '<table class="verify-table"><tr><th>键</th><th>值</th><th>操作</th></tr>';
+        keys.forEach(k => {
+            const v = localStorage.getItem(k);
+            html += `<tr><td>${k}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${v.substring(0,60)}${v.length>60?'...':''}</td><td><button class="del-ls-btn" data-key="${k}">删除</button></td></tr>`;
+        });
+        html += '</table>';
+        div.innerHTML = html;
+    }
+    result.style.display = 'block';
+    document.getElementById('export-btn').style.display = 'inline-block';
+    document.getElementById('clear-ls-btn').style.display = 'inline-block';
+    document.getElementById('add-group').style.display = 'flex';
+    document.querySelectorAll('.del-ls-btn').forEach(b => {
+        b.addEventListener('click', () => {
+            localStorage.removeItem(b.dataset.key);
+            showToast('已删除: ' + b.dataset.key);
+            showLS();
+        });
+    });
+}
+document.getElementById('view-btn').addEventListener('click', showLS);
+document.getElementById('clear-ls-btn').addEventListener('click', () => {
+    localStorage.clear();
+    showToast('LocalStorage已清空');
+    showLS();
+});
+document.getElementById('export-btn').addEventListener('click', () => {
+    const data = {};
+    Object.keys(localStorage).forEach(k => { data[k] = localStorage.getItem(k); });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'localstorage-export.json';
+    a.click();
+    showToast('已导出JSON文件');
+});
+document.getElementById('add-btn').addEventListener('click', () => {
+    const key = document.getElementById('ls-key').value.trim();
+    const value = document.getElementById('ls-value').value;
+    if (!key) { showToast('请输入键名'); return; }
+    localStorage.setItem(key, value);
+    showToast('已添加');
+    showLS();
+});
+  </script>
+</body>
+</html>

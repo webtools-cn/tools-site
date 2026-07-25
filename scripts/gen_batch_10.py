@@ -1,516 +1,1600 @@
 #!/usr/bin/env python3
-"""批量创建10个新工具：CN + EN + 更新首页 + sitemap"""
+"""批量生成10个新工具（中英文）"""
 import os
 
 BASE = "/home/chison/tools-site"
 
-# 工具定义
-TOOLS = [
+tools = [
     {
-        "slug": "roman-numeral-calculator",
-        "cn_name": "罗马数字转换器",
-        "en_name": "Roman Numeral Converter",
-        "cn_desc": "免费在线罗马数字转换器，支持数字转罗马数字和罗马数字转数字双向转换。支持1-3999范围，一键复制结果。",
-        "en_desc": "Free online Roman numeral converter with bidirectional conversion between numbers and Roman numerals. Supports 1-3999 range. One-click copy.",
-        "category": "converter-tools",
-        "cn_icon": "🏛️",
-        "en_icon": "🏛️",
-        "cn_keywords": "罗马数字,罗马数字转换,数字转罗马,罗马数字计算器,在线转换,免费",
-        "en_keywords": "roman numeral,roman numeral converter,number to roman,roman to number,online converter,free",
+        "slug": "dns-records",
+        "cn_name": "DNS记录查询",
+        "en_name": "DNS Records Lookup",
+        "cn_desc": "在线DNS记录查询工具，支持A/AAAA/CNAME/MX/NS/TXT/SOA等多种记录类型，快速获取域名解析信息。",
+        "en_desc": "Free online DNS records lookup tool. Query A, AAAA, CNAME, MX, NS, TXT, SOA records and more for any domain.",
+        "cn_keywords": "DNS查询,DNS记录,域名解析,A记录,MX记录,CNAME,NS记录,TXT记录,在线DNS工具",
+        "en_keywords": "DNS lookup,DNS records,domain lookup,A record,MX record,CNAME,NS lookup,online DNS tool",
+        "category": "网络工具",
+        "en_category": "Network Tools",
+        "html_cn": """<div class="input-group">
+    <label for="domain-input">输入域名</label>
+    <input type="text" id="domain-input" placeholder="例如: example.com" autocomplete="off">
+</div>
+<div class="btn-row">
+    <button id="lookup-btn" class="btn-primary">查询DNS记录</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">查询结果</div>
+    <div id="dns-result"></div>
+</div>
+<div id="loading" style="display:none;text-align:center;padding:20px;">⏳ 查询中...</div>""",
+        "html_en": """<div class="input-group">
+    <label for="domain-input">Enter Domain</label>
+    <input type="text" id="domain-input" placeholder="e.g. example.com" autocomplete="off">
+</div>
+<div class="btn-row">
+    <button id="lookup-btn" class="btn-primary">Lookup DNS</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">Results</div>
+    <div id="dns-result"></div>
+</div>
+<div id="loading" style="display:none;text-align:center;padding:20px;">⏳ Looking up...</div>""",
+        "js_cn": """document.getElementById('lookup-btn').addEventListener('click', async () => {
+    const domain = document.getElementById('domain-input').value.trim();
+    if (!domain) { showToast('请输入域名'); return; }
+    const result = document.getElementById('result-area');
+    const loading = document.getElementById('loading');
+    result.style.display = 'none';
+    loading.style.display = 'block';
+    try {
+        const types = ['A','AAAA','CNAME','MX','NS','TXT','SOA'];
+        const resp = await fetch('https://dns.google/resolve?name=' + encodeURIComponent(domain) + '&type=ANY');
+        if (!resp.ok) throw new Error('DNS查询失败');
+        const data = await resp.json();
+        let html = '';
+        if (data.Answer) {
+            for (const r of data.Answer) {
+                html += `<div class="dns-record"><strong>${r.type}</strong>: ${r.data}</div>`;
+            }
+        } else {
+            html = '<p>未找到DNS记录。请检查域名是否正确。</p>';
+        }
+        document.getElementById('dns-result').innerHTML = html;
+        result.style.display = 'block';
+    } catch(e) {
+        document.getElementById('dns-result').innerHTML = `<p style="color:red;">查询出错: ${e.message}</p>`;
+        result.style.display = 'block';
+    }
+    loading.style.display = 'none';
+});""",
+        "js_en": """document.getElementById('lookup-btn').addEventListener('click', async () => {
+    const domain = document.getElementById('domain-input').value.trim();
+    if (!domain) { showToast('Please enter a domain'); return; }
+    const result = document.getElementById('result-area');
+    const loading = document.getElementById('loading');
+    result.style.display = 'none';
+    loading.style.display = 'block';
+    try {
+        const resp = await fetch('https://dns.google/resolve?name=' + encodeURIComponent(domain) + '&type=ANY');
+        if (!resp.ok) throw new Error('DNS lookup failed');
+        const data = await resp.json();
+        let html = '';
+        if (data.Answer) {
+            for (const r of data.Answer) {
+                html += `<div class="dns-record"><strong>${r.type}</strong>: ${r.data}</div>`;
+            }
+        } else {
+            html = '<p>No DNS records found. Please check the domain name.</p>';
+        }
+        document.getElementById('dns-result').innerHTML = html;
+        result.style.display = 'block';
+    } catch(e) {
+        document.getElementById('dns-result').innerHTML = `<p style="color:red;">Error: ${e.message}</p>`;
+        result.style.display = 'block';
+    }
+    loading.style.display = 'none';
+});""",
     },
     {
-        "slug": "leap-year-calculator",
-        "cn_name": "闰年计算器",
-        "en_name": "Leap Year Calculator",
-        "cn_desc": "免费在线闰年计算器，输入年份即可判断是否为闰年。支持批量年份检测，展示下一个闰年日期。公历闰年规则。",
-        "en_desc": "Free online leap year calculator. Check if a year is a leap year, batch test multiple years, and find next leap year dates. Gregorian calendar rules.",
-        "category": "calc-tools",
-        "cn_icon": "📅",
-        "en_icon": "📅",
-        "cn_keywords": "闰年,闰年计算,闰年查询,年份检测,在线计算,免费",
-        "en_keywords": "leap year,leap year calculator,leap year checker,year checker,online calculator,free",
+        "slug": "email-verifier",
+        "cn_name": "邮箱验证器",
+        "en_name": "Email Verifier",
+        "cn_desc": "在线邮箱格式验证工具，检查邮箱地址是否有效，支持格式校验、域名MX记录检测和常见临时邮箱识别。",
+        "en_desc": "Free online email verification tool. Validate email format, check MX records, and detect disposable email addresses.",
+        "cn_keywords": "邮箱验证,邮箱格式检查,email验证,邮箱校验,检测邮箱有效性,在线邮箱验证工具",
+        "en_keywords": "email verification,email validator,check email,validate email,email format checker,online email tool",
+        "category": "文本工具",
+        "en_category": "Text Tools",
+        "html_cn": """<div class="input-group">
+    <label for="email-input">输入邮箱地址</label>
+    <input type="email" id="email-input" placeholder="例如: user@example.com" autocomplete="off">
+</div>
+<div class="btn-row">
+    <button id="verify-btn" class="btn-primary">验证邮箱</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">验证结果</div>
+    <div id="verify-result"></div>
+</div>""",
+        "html_en": """<div class="input-group">
+    <label for="email-input">Enter Email Address</label>
+    <input type="email" id="email-input" placeholder="e.g. user@example.com" autocomplete="off">
+</div>
+<div class="btn-row">
+    <button id="verify-btn" class="btn-primary">Verify Email</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">Result</div>
+    <div id="verify-result"></div>
+</div>""",
+        "js_cn": """document.getElementById('verify-btn').addEventListener('click', () => {
+    const email = document.getElementById('email-input').value.trim();
+    const result = document.getElementById('result-area');
+    const div = document.getElementById('verify-result');
+    if (!email) { showToast('请输入邮箱地址'); return; }
+    const re = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+    const formatOk = re.test(email);
+    const parts = email.split('@');
+    const domain = parts[1] || '';
+    const disposable = ['mailinator.com','tempmail.com','10minutemail.com','guerrillamail.com','yopmail.com','throwaway.email','temp-mail.org','sharklasers.com','trashmail.com','maildrop.cc'];
+    const isDisposable = disposable.includes(domain.toLowerCase());
+    let html = '<table class="verify-table">';
+    html += `<tr><td>邮箱地址</td><td>${email}</td></tr>`;
+    html += `<tr><td>格式检查</td><td class="${formatOk ? 'pass' : 'fail'}">${formatOk ? '✅ 格式正确' : '❌ 格式不正确'}</td></tr>`;
+    html += `<tr><td>域名</td><td>${domain}</td></tr>`;
+    if (isDisposable) {
+        html += `<tr><td>临时邮箱检测</td><td class="warn">⚠️ 可能是临时邮箱</td></tr>`;
+    } else {
+        html += `<tr><td>临时邮箱检测</td><td class="pass">✅ 非已知临时邮箱</td></tr>`;
+    }
+    html += '</table>';
+    div.innerHTML = html;
+    result.style.display = 'block';
+});""",
+        "js_en": """document.getElementById('verify-btn').addEventListener('click', () => {
+    const email = document.getElementById('email-input').value.trim();
+    const result = document.getElementById('result-area');
+    const div = document.getElementById('verify-result');
+    if (!email) { showToast('Please enter an email address'); return; }
+    const re = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+    const formatOk = re.test(email);
+    const parts = email.split('@');
+    const domain = parts[1] || '';
+    const disposable = ['mailinator.com','tempmail.com','10minutemail.com','guerrillamail.com','yopmail.com','throwaway.email','temp-mail.org','sharklasers.com','trashmail.com','maildrop.cc'];
+    const isDisposable = disposable.includes(domain.toLowerCase());
+    let html = '<table class="verify-table">';
+    html += `<tr><td>Email</td><td>${email}</td></tr>`;
+    html += `<tr><td>Format</td><td class="${formatOk ? 'pass' : 'fail'}">${formatOk ? '✅ Valid format' : '❌ Invalid format'}</td></tr>`;
+    html += `<tr><td>Domain</td><td>${domain}</td></tr>`;
+    if (isDisposable) {
+        html += `<tr><td>Disposable</td><td class="warn">⚠️ Possible disposable email</td></tr>`;
+    } else {
+        html += `<tr><td>Disposable</td><td class="pass">✅ Not a known disposable email</td></tr>`;
+    }
+    html += '</table>';
+    div.innerHTML = html;
+    result.style.display = 'block';
+});""",
     },
     {
-        "slug": "day-of-year-calculator",
-        "cn_name": "一年第几天计算器",
-        "en_name": "Day of Year Calculator",
-        "cn_desc": "免费在线一年第几天计算器，输入日期即可知道是当年的第几天。支持日期选择器，显示剩余天数，支持闰年。",
-        "en_desc": "Free online day of year calculator. Find out which day of the year any date falls on. Date picker, remaining days display, leap year support.",
-        "category": "calc-tools",
-        "cn_icon": "🗓️",
-        "en_icon": "🗓️",
-        "cn_keywords": "第几天,日期计算,天数计算,一年第几天,日期查询,在线计算,免费",
-        "en_keywords": "day of year,date calculator,day number,year day,date counter,online calculator,free",
+        "slug": "screen-resolution-checker",
+        "cn_name": "屏幕分辨率检测",
+        "en_name": "Screen Resolution Checker",
+        "cn_desc": "在线检测您的屏幕分辨率、视口尺寸、像素比、色彩深度等显示器参数，无需安装任何软件。",
+        "en_desc": "Check your screen resolution, viewport size, device pixel ratio, color depth and more. No installation needed.",
+        "cn_keywords": "屏幕分辨率,分辨率检测,屏幕尺寸,显示器参数,像素比,在线检测,屏幕信息",
+        "en_keywords": "screen resolution,resolution checker,screen size,display info,pixel ratio,online screen check",
+        "category": "开发工具",
+        "en_category": "Dev Tools",
+        "html_cn": """<div class="btn-row">
+    <button id="check-btn" class="btn-primary">检测屏幕信息</button>
+    <button id="refresh-btn" class="btn-secondary" style="display:none;">刷新检测</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">屏幕信息</div>
+    <div id="screen-result"></div>
+</div>""",
+        "html_en": """<div class="btn-row">
+    <button id="check-btn" class="btn-primary">Check Screen Info</button>
+    <button id="refresh-btn" class="btn-secondary" style="display:none;">Refresh</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">Screen Information</div>
+    <div id="screen-result"></div>
+</div>""",
+        "js_cn": """function showScreenInfo() {
+    const w = window.screen.width;
+    const h = window.screen.height;
+    const aw = window.screen.availWidth;
+    const ah = window.screen.availHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const cd = window.screen.colorDepth;
+    const pd = window.screen.pixelDepth;
+    const o = window.screen.orientation || {};
+    const html = `<table class="verify-table">
+<tr><td>屏幕分辨率</td><td>${w} × ${h}</td></tr>
+<tr><td>可用分辨率</td><td>${aw} × ${ah}</td></tr>
+<tr><td>视口尺寸</td><td>${vw} × ${vh}</td></tr>
+<tr><td>设备像素比 (DPR)</td><td>${dpr}</td></tr>
+<tr><td>色彩深度</td><td>${cd} bit</td></tr>
+<tr><td>像素深度</td><td>${pd} bit</td></tr>
+<tr><td>屏幕方向</td><td>${o.type || '未知'}</td></tr>
+<tr><td>物理尺寸</td><td>${(w/dpr).toFixed(0)} × ${(h/dpr).toFixed(0)} CSS像素</td></tr>
+</table>`;
+    document.getElementById('screen-result').innerHTML = html;
+    document.getElementById('result-area').style.display = 'block';
+    document.getElementById('refresh-btn').style.display = 'inline-block';
+}
+document.getElementById('check-btn').addEventListener('click', showScreenInfo);
+document.getElementById('refresh-btn').addEventListener('click', showScreenInfo);
+window.addEventListener('resize', () => {
+    if (document.getElementById('result-area').style.display !== 'none') {
+        showScreenInfo();
+    }
+});""",
+        "js_en": """function showScreenInfo() {
+    const w = window.screen.width;
+    const h = window.screen.height;
+    const aw = window.screen.availWidth;
+    const ah = window.screen.availHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const cd = window.screen.colorDepth;
+    const pd = window.screen.pixelDepth;
+    const o = window.screen.orientation || {};
+    const html = `<table class="verify-table">
+<tr><td>Screen Resolution</td><td>${w} × ${h}</td></tr>
+<tr><td>Available Resolution</td><td>${aw} × ${ah}</td></tr>
+<tr><td>Viewport Size</td><td>${vw} × ${vh}</td></tr>
+<tr><td>Device Pixel Ratio (DPR)</td><td>${dpr}</td></tr>
+<tr><td>Color Depth</td><td>${cd} bit</td></tr>
+<tr><td>Pixel Depth</td><td>${pd} bit</td></tr>
+<tr><td>Orientation</td><td>${o.type || 'Unknown'}</td></tr>
+<tr><td>Physical Size</td><td>${(w/dpr).toFixed(0)} × ${(h/dpr).toFixed(0)} CSS px</td></tr>
+</table>`;
+    document.getElementById('screen-result').innerHTML = html;
+    document.getElementById('result-area').style.display = 'block';
+    document.getElementById('refresh-btn').style.display = 'inline-block';
+}
+document.getElementById('check-btn').addEventListener('click', showScreenInfo);
+document.getElementById('refresh-btn').addEventListener('click', showScreenInfo);
+window.addEventListener('resize', () => {
+    if (document.getElementById('result-area').style.display !== 'none') {
+        showScreenInfo();
+    }
+});""",
     },
     {
-        "slug": "add-days-calculator",
-        "cn_name": "日期加减计算器",
-        "en_name": "Date Add/Subtract Calculator",
-        "cn_desc": "免费在线日期加减计算器，输入日期和天数，计算加减天后的日期。支持加/减操作，显示星期几，自动处理闰年。",
-        "en_desc": "Free online date add/subtract calculator. Add or subtract days from any date, shows day of week, auto-handles leap years.",
-        "category": "calc-tools",
-        "cn_icon": "📆",
-        "en_icon": "📆",
-        "cn_keywords": "日期加减,日期计算,加天数,减天数,日期推算,在线计算,免费",
-        "en_keywords": "add days,subtract days,date calculator,date math,days calculator,online calculator,free",
+        "slug": "viewport-checker",
+        "cn_name": "视口检测器",
+        "en_name": "Viewport Checker",
+        "cn_desc": "实时检测浏览器视口尺寸，支持拖拽调整窗口查看不同断点下的视口大小，前端开发必备工具。",
+        "en_desc": "Real-time viewport size checker. Resize your browser to see viewport dimensions at different breakpoints. Essential for frontend developers.",
+        "cn_keywords": "视口检测,viewport,视口尺寸,浏览器窗口,响应式断点,前端开发,在线视口工具",
+        "en_keywords": "viewport checker,viewport size,browser window,responsive breakpoints,frontend dev,viewport tool",
+        "category": "开发工具",
+        "en_category": "Dev Tools",
+        "html_cn": """<div class="viewport-display" id="vp-display">
+    <div class="vp-size"><span id="vp-width">0</span> × <span id="vp-height">0</span></div>
+    <div class="vp-label">视口尺寸 (实时)</div>
+</div>
+<div class="input-group">
+    <label for="width-input">预设宽度</label>
+    <input type="number" id="width-input" value="375" min="200" max="3840">
+    <span class="unit">px</span>
+</div>
+<div class="btn-row">
+    <button class="preset-btn" data-w="375">375 (手机)</button>
+    <button class="preset-btn" data-w="768">768 (平板)</button>
+    <button class="preset-btn" data-w="1024">1024 (桌面)</button>
+    <button class="preset-btn" data-w="1440">1440 (宽屏)</button>
+    <button class="preset-btn" data-w="1920">1920 (全高清)</button>
+</div>
+<div class="breakpoint-info" id="bp-info"></div>""",
+        "html_en": """<div class="viewport-display" id="vp-display">
+    <div class="vp-size"><span id="vp-width">0</span> × <span id="vp-height">0</span></div>
+    <div class="vp-label">Viewport Size (Live)</div>
+</div>
+<div class="input-group">
+    <label for="width-input">Preset Width</label>
+    <input type="number" id="width-input" value="375" min="200" max="3840">
+    <span class="unit">px</span>
+</div>
+<div class="btn-row">
+    <button class="preset-btn" data-w="375">375 (Mobile)</button>
+    <button class="preset-btn" data-w="768">768 (Tablet)</button>
+    <button class="preset-btn" data-w="1024">1024 (Desktop)</button>
+    <button class="preset-btn" data-w="1440">1440 (Wide)</button>
+    <button class="preset-btn" data-w="1920">1920 (Full HD)</button>
+</div>
+<div class="breakpoint-info" id="bp-info"></div>""",
+        "js_cn": """function updateVP() {
+    document.getElementById('vp-width').textContent = window.innerWidth;
+    document.getElementById('vp-height').textContent = window.innerHeight;
+    const w = window.innerWidth;
+    let bp = '';
+    if (w < 480) bp = '📱 移动端 (< 480px)';
+    else if (w < 768) bp = '📱 大屏手机 (480-767px)';
+    else if (w < 1024) bp = '📋 平板 (768-1023px)';
+    else if (w < 1440) bp = '💻 桌面端 (1024-1439px)';
+    else bp = '🖥️ 大屏 (≥ 1440px)';
+    document.getElementById('bp-info').innerHTML = `<strong>当前断点:</strong> ${bp}`;
+}
+updateVP();
+window.addEventListener('resize', updateVP);
+document.querySelectorAll('.preset-btn').forEach(b => {
+    b.addEventListener('click', () => {
+        const w = parseInt(b.dataset.w);
+        document.getElementById('width-input').value = w;
+        window.resizeTo(w, window.innerHeight);
+    });
+});
+document.getElementById('width-input').addEventListener('change', function() {
+    window.resizeTo(parseInt(this.value) || 375, window.innerHeight);
+});""",
+        "js_en": """function updateVP() {
+    document.getElementById('vp-width').textContent = window.innerWidth;
+    document.getElementById('vp-height').textContent = window.innerHeight;
+    const w = window.innerWidth;
+    let bp = '';
+    if (w < 480) bp = '📱 Mobile (< 480px)';
+    else if (w < 768) bp = '📱 Large Phone (480-767px)';
+    else if (w < 1024) bp = '📋 Tablet (768-1023px)';
+    else if (w < 1440) bp = '💻 Desktop (1024-1439px)';
+    else bp = '🖥️ Large Screen (≥ 1440px)';
+    document.getElementById('bp-info').innerHTML = `<strong>Current Breakpoint:</strong> ${bp}`;
+}
+updateVP();
+window.addEventListener('resize', updateVP);
+document.querySelectorAll('.preset-btn').forEach(b => {
+    b.addEventListener('click', () => {
+        const w = parseInt(b.dataset.w);
+        document.getElementById('width-input').value = w;
+        window.resizeTo(w, window.innerHeight);
+    });
+});
+document.getElementById('width-input').addEventListener('change', function() {
+    window.resizeTo(parseInt(this.value) || 375, window.innerHeight);
+});""",
     },
     {
-        "slug": "timezone-converter",
-        "cn_name": "时区转换器",
-        "en_name": "Timezone Converter",
-        "cn_desc": "免费在线时区转换器，支持全球400+时区快速转换。输入时间选择来源和目标时区，即时显示转换结果。",
-        "en_desc": "Free online timezone converter supporting 400+ timezones worldwide. Select source and target timezones for instant conversion results.",
-        "category": "utility-tools",
-        "cn_icon": "🌍",
-        "en_icon": "🌍",
-        "cn_keywords": "时区转换,时区换算,世界时钟,时区计算,UTC转换,在线转换,免费",
-        "en_keywords": "timezone converter,time zone,world clock,UTC converter,time converter,online tool,free",
+        "slug": "cookie-analyzer",
+        "cn_name": "Cookie分析器",
+        "en_name": "Cookie Analyzer",
+        "cn_desc": "查看和管理当前网站的Cookie，支持查看名称、值、域名、路径、过期时间等详细信息，保护您的隐私。",
+        "en_desc": "View and manage cookies for the current website. See name, value, domain, path, expiration details and protect your privacy.",
+        "cn_keywords": "Cookie分析,Cookie查看,Cookie管理,浏览器Cookie,隐私检查,在线Cookie工具",
+        "en_keywords": "cookie analyzer,cookie viewer,cookie manager,browser cookies,privacy check,online cookie tool",
+        "category": "开发工具",
+        "en_category": "Dev Tools",
+        "html_cn": """<div class="btn-row">
+    <button id="analyze-btn" class="btn-primary">分析Cookie</button>
+    <button id="clear-all-btn" class="btn-danger" style="display:none;">清除所有Cookie</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">Cookie列表</div>
+    <div id="cookie-result"></div>
+</div>""",
+        "html_en": """<div class="btn-row">
+    <button id="analyze-btn" class="btn-primary">Analyze Cookies</button>
+    <button id="clear-all-btn" class="btn-danger" style="display:none;">Clear All Cookies</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">Cookie List</div>
+    <div id="cookie-result"></div>
+</div>""",
+        "js_cn": """function showCookies() {
+    const cookies = document.cookie.split(';').filter(c => c.trim());
+    const result = document.getElementById('result-area');
+    const div = document.getElementById('cookie-result');
+    if (cookies.length === 0) {
+        div.innerHTML = '<p>当前网站没有设置Cookie。</p>';
+    } else {
+        let html = '<table class="verify-table"><tr><th>名称</th><th>值</th><th>操作</th></tr>';
+        cookies.forEach((c, i) => {
+            const parts = c.trim().split('=');
+            const name = parts[0];
+            const value = parts.slice(1).join('=');
+            html += `<tr><td>${name}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${value.substring(0,50)}${value.length>50?'...':''}</td><td><button class="del-cookie-btn" data-name="${name}">删除</button></td></tr>`;
+        });
+        html += '</table>';
+        div.innerHTML = html;
+    }
+    result.style.display = 'block';
+    document.getElementById('clear-all-btn').style.display = 'inline-block';
+    document.querySelectorAll('.del-cookie-btn').forEach(b => {
+        b.addEventListener('click', () => {
+            const name = b.dataset.name;
+            document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            showToast('Cookie已删除: ' + name);
+            showCookies();
+        });
+    });
+}
+document.getElementById('analyze-btn').addEventListener('click', showCookies);
+document.getElementById('clear-all-btn').addEventListener('click', () => {
+    document.cookie.split(';').forEach(c => {
+        const name = c.trim().split('=')[0];
+        document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    });
+    showToast('所有Cookie已清除');
+    showCookies();
+});""",
+        "js_en": """function showCookies() {
+    const cookies = document.cookie.split(';').filter(c => c.trim());
+    const result = document.getElementById('result-area');
+    const div = document.getElementById('cookie-result');
+    if (cookies.length === 0) {
+        div.innerHTML = '<p>No cookies set for this site.</p>';
+    } else {
+        let html = '<table class="verify-table"><tr><th>Name</th><th>Value</th><th>Action</th></tr>';
+        cookies.forEach((c, i) => {
+            const parts = c.trim().split('=');
+            const name = parts[0];
+            const value = parts.slice(1).join('=');
+            html += `<tr><td>${name}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${value.substring(0,50)}${value.length>50?'...':''}</td><td><button class="del-cookie-btn" data-name="${name}">Delete</button></td></tr>`;
+        });
+        html += '</table>';
+        div.innerHTML = html;
+    }
+    result.style.display = 'block';
+    document.getElementById('clear-all-btn').style.display = 'inline-block';
+    document.querySelectorAll('.del-cookie-btn').forEach(b => {
+        b.addEventListener('click', () => {
+            const name = b.dataset.name;
+            document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            showToast('Cookie deleted: ' + name);
+            showCookies();
+        });
+    });
+}
+document.getElementById('analyze-btn').addEventListener('click', showCookies);
+document.getElementById('clear-all-btn').addEventListener('click', () => {
+    document.cookie.split(';').forEach(c => {
+        const name = c.trim().split('=')[0];
+        document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    });
+    showToast('All cookies cleared');
+    showCookies();
+});""",
     },
     {
-        "slug": "binary-to-octal",
-        "cn_name": "二进制转八进制",
-        "en_name": "Binary to Octal Converter",
-        "cn_desc": "免费在线二进制转八进制转换器，输入二进制数字自动转换为八进制。同时显示十进制中间结果，支持批量转换。",
-        "en_desc": "Free online binary to octal converter. Input binary numbers for automatic octal conversion. Shows decimal intermediate, supports batch conversion.",
-        "category": "converter-tools",
-        "cn_icon": "0️⃣",
-        "en_icon": "0️⃣",
-        "cn_keywords": "二进制转八进制,进制转换,二进制转换,八进制,数制转换,在线转换,免费",
-        "en_keywords": "binary to octal,number base,base conversion,binary converter,octal,online converter,free",
+        "slug": "localstorage-viewer",
+        "cn_name": "LocalStorage浏览器",
+        "en_name": "LocalStorage Viewer",
+        "cn_desc": "在线查看和管理浏览器的LocalStorage数据，支持查看键值、修改值、删除条目和导出JSON，前端调试利器。",
+        "en_desc": "View and manage browser LocalStorage data. Inspect key-value pairs, edit values, delete entries and export as JSON.",
+        "cn_keywords": "LocalStorage,本地存储,浏览器存储,localStorage查看,前端调试,在线存储工具",
+        "en_keywords": "localStorage,local storage,browser storage,storage viewer,frontend debug,online storage tool",
+        "category": "开发工具",
+        "en_category": "Dev Tools",
+        "html_cn": """<div class="btn-row">
+    <button id="view-btn" class="btn-primary">查看LocalStorage</button>
+    <button id="export-btn" class="btn-secondary" style="display:none;">导出JSON</button>
+    <button id="clear-ls-btn" class="btn-danger" style="display:none;">清空全部</button>
+</div>
+<div class="input-group" style="display:none;" id="add-group">
+    <input type="text" id="ls-key" placeholder="键名">
+    <input type="text" id="ls-value" placeholder="值">
+    <button id="add-btn" class="btn-primary">添加</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">LocalStorage 数据</div>
+    <div id="ls-result"></div>
+</div>""",
+        "html_en": """<div class="btn-row">
+    <button id="view-btn" class="btn-primary">View LocalStorage</button>
+    <button id="export-btn" class="btn-secondary" style="display:none;">Export JSON</button>
+    <button id="clear-ls-btn" class="btn-danger" style="display:none;">Clear All</button>
+</div>
+<div class="input-group" style="display:none;" id="add-group">
+    <input type="text" id="ls-key" placeholder="Key">
+    <input type="text" id="ls-value" placeholder="Value">
+    <button id="add-btn" class="btn-primary">Add</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">LocalStorage Data</div>
+    <div id="ls-result"></div>
+</div>""",
+        "js_cn": """function showLS() {
+    const result = document.getElementById('result-area');
+    const div = document.getElementById('ls-result');
+    const keys = Object.keys(localStorage);
+    if (keys.length === 0) {
+        div.innerHTML = '<p>LocalStorage为空。</p>';
+    } else {
+        let html = '<table class="verify-table"><tr><th>键</th><th>值</th><th>操作</th></tr>';
+        keys.forEach(k => {
+            const v = localStorage.getItem(k);
+            html += `<tr><td>${k}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${v.substring(0,60)}${v.length>60?'...':''}</td><td><button class="del-ls-btn" data-key="${k}">删除</button></td></tr>`;
+        });
+        html += '</table>';
+        div.innerHTML = html;
+    }
+    result.style.display = 'block';
+    document.getElementById('export-btn').style.display = 'inline-block';
+    document.getElementById('clear-ls-btn').style.display = 'inline-block';
+    document.getElementById('add-group').style.display = 'flex';
+    document.querySelectorAll('.del-ls-btn').forEach(b => {
+        b.addEventListener('click', () => {
+            localStorage.removeItem(b.dataset.key);
+            showToast('已删除: ' + b.dataset.key);
+            showLS();
+        });
+    });
+}
+document.getElementById('view-btn').addEventListener('click', showLS);
+document.getElementById('clear-ls-btn').addEventListener('click', () => {
+    localStorage.clear();
+    showToast('LocalStorage已清空');
+    showLS();
+});
+document.getElementById('export-btn').addEventListener('click', () => {
+    const data = {};
+    Object.keys(localStorage).forEach(k => { data[k] = localStorage.getItem(k); });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'localstorage-export.json';
+    a.click();
+    showToast('已导出JSON文件');
+});
+document.getElementById('add-btn').addEventListener('click', () => {
+    const key = document.getElementById('ls-key').value.trim();
+    const value = document.getElementById('ls-value').value;
+    if (!key) { showToast('请输入键名'); return; }
+    localStorage.setItem(key, value);
+    showToast('已添加');
+    showLS();
+});""",
+        "js_en": """function showLS() {
+    const result = document.getElementById('result-area');
+    const div = document.getElementById('ls-result');
+    const keys = Object.keys(localStorage);
+    if (keys.length === 0) {
+        div.innerHTML = '<p>LocalStorage is empty.</p>';
+    } else {
+        let html = '<table class="verify-table"><tr><th>Key</th><th>Value</th><th>Action</th></tr>';
+        keys.forEach(k => {
+            const v = localStorage.getItem(k);
+            html += `<tr><td>${k}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${v.substring(0,60)}${v.length>60?'...':''}</td><td><button class="del-ls-btn" data-key="${k}">Delete</button></td></tr>`;
+        });
+        html += '</table>';
+        div.innerHTML = html;
+    }
+    result.style.display = 'block';
+    document.getElementById('export-btn').style.display = 'inline-block';
+    document.getElementById('clear-ls-btn').style.display = 'inline-block';
+    document.getElementById('add-group').style.display = 'flex';
+    document.querySelectorAll('.del-ls-btn').forEach(b => {
+        b.addEventListener('click', () => {
+            localStorage.removeItem(b.dataset.key);
+            showToast('Deleted: ' + b.dataset.key);
+            showLS();
+        });
+    });
+}
+document.getElementById('view-btn').addEventListener('click', showLS);
+document.getElementById('clear-ls-btn').addEventListener('click', () => {
+    localStorage.clear();
+    showToast('LocalStorage cleared');
+    showLS();
+});
+document.getElementById('export-btn').addEventListener('click', () => {
+    const data = {};
+    Object.keys(localStorage).forEach(k => { data[k] = localStorage.getItem(k); });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'localstorage-export.json';
+    a.click();
+    showToast('JSON file exported');
+});
+document.getElementById('add-btn').addEventListener('click', () => {
+    const key = document.getElementById('ls-key').value.trim();
+    const value = document.getElementById('ls-value').value;
+    if (!key) { showToast('Please enter a key'); return; }
+    localStorage.setItem(key, value);
+    showToast('Added');
+    showLS();
+});""",
     },
     {
-        "slug": "octal-to-hex",
-        "cn_name": "八进制转十六进制",
-        "en_name": "Octal to Hex Converter",
-        "cn_desc": "免费在线八进制转十六进制转换器，输入八进制数字自动转换为十六进制。同时显示十进制中间结果，支持批量转换。",
-        "en_desc": "Free online octal to hex converter. Input octal numbers for automatic hexadecimal conversion. Shows decimal intermediate, supports batch conversion.",
-        "category": "converter-tools",
-        "cn_icon": "🔢",
-        "en_icon": "🔢",
-        "cn_keywords": "八进制转十六进制,进制转换,八进制,十六进制,数制转换,在线转换,免费",
-        "en_keywords": "octal to hex,number base,base conversion,octal converter,hexadecimal,online converter,free",
+        "slug": "sessionstorage-viewer",
+        "cn_name": "SessionStorage浏览器",
+        "en_name": "SessionStorage Viewer",
+        "cn_desc": "在线查看和管理浏览器的SessionStorage数据，支持查看键值对、修改和删除，会话关闭后自动清除。",
+        "en_desc": "View and manage browser SessionStorage data. Inspect key-value pairs, edit and delete entries. Automatically cleared when session ends.",
+        "cn_keywords": "SessionStorage,会话存储,浏览器存储,sessionStorage查看,前端调试,在线存储工具",
+        "en_keywords": "sessionStorage,session storage,browser storage,storage viewer,frontend debug,online storage tool",
+        "category": "开发工具",
+        "en_category": "Dev Tools",
+        "html_cn": """<div class="btn-row">
+    <button id="view-btn" class="btn-primary">查看SessionStorage</button>
+    <button id="export-btn" class="btn-secondary" style="display:none;">导出JSON</button>
+    <button id="clear-ss-btn" class="btn-danger" style="display:none;">清空全部</button>
+</div>
+<div class="input-group" style="display:none;" id="add-group">
+    <input type="text" id="ss-key" placeholder="键名">
+    <input type="text" id="ss-value" placeholder="值">
+    <button id="add-btn" class="btn-primary">添加</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">SessionStorage 数据</div>
+    <div id="ss-result"></div>
+</div>""",
+        "html_en": """<div class="btn-row">
+    <button id="view-btn" class="btn-primary">View SessionStorage</button>
+    <button id="export-btn" class="btn-secondary" style="display:none;">Export JSON</button>
+    <button id="clear-ss-btn" class="btn-danger" style="display:none;">Clear All</button>
+</div>
+<div class="input-group" style="display:none;" id="add-group">
+    <input type="text" id="ss-key" placeholder="Key">
+    <input type="text" id="ss-value" placeholder="Value">
+    <button id="add-btn" class="btn-primary">Add</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">SessionStorage Data</div>
+    <div id="ss-result"></div>
+</div>""",
+        "js_cn": """function showSS() {
+    const result = document.getElementById('result-area');
+    const div = document.getElementById('ss-result');
+    const keys = Object.keys(sessionStorage);
+    if (keys.length === 0) {
+        div.innerHTML = '<p>SessionStorage为空。</p>';
+    } else {
+        let html = '<table class="verify-table"><tr><th>键</th><th>值</th><th>操作</th></tr>';
+        keys.forEach(k => {
+            const v = sessionStorage.getItem(k);
+            html += `<tr><td>${k}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${v.substring(0,60)}${v.length>60?'...':''}</td><td><button class="del-ss-btn" data-key="${k}">删除</button></td></tr>`;
+        });
+        html += '</table>';
+        div.innerHTML = html;
+    }
+    result.style.display = 'block';
+    document.getElementById('export-btn').style.display = 'inline-block';
+    document.getElementById('clear-ss-btn').style.display = 'inline-block';
+    document.getElementById('add-group').style.display = 'flex';
+    document.querySelectorAll('.del-ss-btn').forEach(b => {
+        b.addEventListener('click', () => {
+            sessionStorage.removeItem(b.dataset.key);
+            showToast('已删除: ' + b.dataset.key);
+            showSS();
+        });
+    });
+}
+document.getElementById('view-btn').addEventListener('click', showSS);
+document.getElementById('clear-ss-btn').addEventListener('click', () => {
+    sessionStorage.clear();
+    showToast('SessionStorage已清空');
+    showSS();
+});
+document.getElementById('export-btn').addEventListener('click', () => {
+    const data = {};
+    Object.keys(sessionStorage).forEach(k => { data[k] = sessionStorage.getItem(k); });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'sessionstorage-export.json';
+    a.click();
+    showToast('已导出JSON文件');
+});
+document.getElementById('add-btn').addEventListener('click', () => {
+    const key = document.getElementById('ss-key').value.trim();
+    const value = document.getElementById('ss-value').value;
+    if (!key) { showToast('请输入键名'); return; }
+    sessionStorage.setItem(key, value);
+    showToast('已添加');
+    showSS();
+});""",
+        "js_en": """function showSS() {
+    const result = document.getElementById('result-area');
+    const div = document.getElementById('ss-result');
+    const keys = Object.keys(sessionStorage);
+    if (keys.length === 0) {
+        div.innerHTML = '<p>SessionStorage is empty.</p>';
+    } else {
+        let html = '<table class="verify-table"><tr><th>Key</th><th>Value</th><th>Action</th></tr>';
+        keys.forEach(k => {
+            const v = sessionStorage.getItem(k);
+            html += `<tr><td>${k}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${v.substring(0,60)}${v.length>60?'...':''}</td><td><button class="del-ss-btn" data-key="${k}">Delete</button></td></tr>`;
+        });
+        html += '</table>';
+        div.innerHTML = html;
+    }
+    result.style.display = 'block';
+    document.getElementById('export-btn').style.display = 'inline-block';
+    document.getElementById('clear-ss-btn').style.display = 'inline-block';
+    document.getElementById('add-group').style.display = 'flex';
+    document.querySelectorAll('.del-ss-btn').forEach(b => {
+        b.addEventListener('click', () => {
+            sessionStorage.removeItem(b.dataset.key);
+            showToast('Deleted: ' + b.dataset.key);
+            showSS();
+        });
+    });
+}
+document.getElementById('view-btn').addEventListener('click', showSS);
+document.getElementById('clear-ss-btn').addEventListener('click', () => {
+    sessionStorage.clear();
+    showToast('SessionStorage cleared');
+    showSS();
+});
+document.getElementById('export-btn').addEventListener('click', () => {
+    const data = {};
+    Object.keys(sessionStorage).forEach(k => { data[k] = sessionStorage.getItem(k); });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'sessionstorage-export.json';
+    a.click();
+    showToast('JSON file exported');
+});
+document.getElementById('add-btn').addEventListener('click', () => {
+    const key = document.getElementById('ss-key').value.trim();
+    const value = document.getElementById('ss-value').value;
+    if (!key) { showToast('Please enter a key'); return; }
+    sessionStorage.setItem(key, value);
+    showToast('Added');
+    showSS();
+});""",
     },
     {
-        "slug": "chess-clock",
-        "cn_name": "国际象棋计时器",
-        "en_name": "Chess Clock Timer",
-        "cn_desc": "免费在线国际象棋计时器，模拟真实棋钟。支持自定义初始时间和增量时间，交替计时，超时提示。",
-        "en_desc": "Free online chess clock timer simulating real chess clocks. Custom initial time and increment, alternating timing, time-out alert.",
-        "category": "fun-tools",
-        "cn_icon": "♟️",
-        "en_icon": "♟️",
-        "cn_keywords": "国际象棋计时器,棋钟,象棋计时,双人计时,比赛计时,在线计时,免费",
-        "en_keywords": "chess clock,chess timer,game clock,dual timer,tournament timer,online timer,free",
+        "slug": "tap-code-translator",
+        "cn_name": "敲击码翻译器",
+        "en_name": "Tap Code Translator",
+        "cn_desc": "在线敲击码(Tap Code)编码解码工具，将文本转换为5×5网格敲击码，常用于囚犯通信和密码学学习。",
+        "en_desc": "Free online Tap Code encoder and decoder. Convert text to 5×5 grid tap codes, commonly used in prisoner communication and cryptography.",
+        "cn_keywords": "敲击码,Tap Code,囚犯密码,密码编码,加密解密,5×5网格,在线密码工具",
+        "en_keywords": "tap code,tap cipher,prisoner code,cipher encoder,cryptography,5x5 grid,online cipher tool",
+        "category": "加密工具",
+        "en_category": "Encryption Tools",
+        "html_cn": """<div class="tab-nav">
+    <button class="tab-btn active" data-tab="encode">编码 (文本→敲击码)</button>
+    <button class="tab-btn" data-tab="decode">解码 (敲击码→文本)</button>
+</div>
+<div class="input-group">
+    <label for="tap-input">输入文本</label>
+    <textarea id="tap-input" rows="4" placeholder="输入要编码/解码的文本..."></textarea>
+</div>
+<div class="btn-row">
+    <button id="convert-btn" class="btn-primary">转换</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">转换结果</div>
+    <div id="tap-result"></div>
+</div>""",
+        "html_en": """<div class="tab-nav">
+    <button class="tab-btn active" data-tab="encode">Encode (Text → Tap Code)</button>
+    <button class="tab-btn" data-tab="decode">Decode (Tap Code → Text)</button>
+</div>
+<div class="input-group">
+    <label for="tap-input">Enter Text</label>
+    <textarea id="tap-input" rows="4" placeholder="Enter text to encode or decode..."></textarea>
+</div>
+<div class="btn-row">
+    <button id="convert-btn" class="btn-primary">Convert</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">Result</div>
+    <div id="tap-result"></div>
+</div>""",
+        "js_cn": """const TAP_GRID = 'ABCDEFGHIJLMNOPQRSTUVWXYZ';
+let mode = 'encode';
+document.querySelectorAll('.tab-btn').forEach(b => {
+    b.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        mode = b.dataset.tab;
+        document.getElementById('result-area').style.display = 'none';
+    });
+});
+document.getElementById('convert-btn').addEventListener('click', () => {
+    const input = document.getElementById('tap-input').value.toUpperCase().trim();
+    if (!input) { showToast('请输入文本'); return; }
+    const result = document.getElementById('result-area');
+    const div = document.getElementById('tap-result');
+    if (mode === 'encode') {
+        let out = [];
+        for (const ch of input) {
+            if (ch === 'K') { out.push('(C)'); continue; }
+            const idx = TAP_GRID.indexOf(ch);
+            if (idx === -1) { out.push(ch); continue; }
+            const row = Math.floor(idx / 5) + 1;
+            const col = (idx % 5) + 1;
+            out.push(`${row}·${col}`);
+        }
+        div.innerHTML = '<p><strong>敲击码:</strong></p><p style="font-size:1.2em;">' + out.join(' ') + '</p>';
+    } else {
+        const parts = input.split(/[\\s,]+/);
+        let out = [];
+        for (const p of parts) {
+            if (p === '(C)' || p === '(c)') { out.push('K'); continue; }
+            const m = p.match(/^(\\d)[·.](\\d)$/);
+            if (m) {
+                const row = parseInt(m[1]) - 1;
+                const col = parseInt(m[2]) - 1;
+                if (row >= 0 && row < 5 && col >= 0 && col < 5) {
+                    out.push(TAP_GRID[row * 5 + col]);
+                    continue;
+                }
+            }
+            out.push(p);
+        }
+        div.innerHTML = '<p><strong>原文:</strong></p><p style="font-size:1.2em;">' + out.join('') + '</p>';
+    }
+    result.style.display = 'block';
+});""",
+        "js_en": """const TAP_GRID = 'ABCDEFGHIJLMNOPQRSTUVWXYZ';
+let mode = 'encode';
+document.querySelectorAll('.tab-btn').forEach(b => {
+    b.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        mode = b.dataset.tab;
+        document.getElementById('result-area').style.display = 'none';
+    });
+});
+document.getElementById('convert-btn').addEventListener('click', () => {
+    const input = document.getElementById('tap-input').value.toUpperCase().trim();
+    if (!input) { showToast('Please enter text'); return; }
+    const result = document.getElementById('result-area');
+    const div = document.getElementById('tap-result');
+    if (mode === 'encode') {
+        let out = [];
+        for (const ch of input) {
+            if (ch === 'K') { out.push('(C)'); continue; }
+            const idx = TAP_GRID.indexOf(ch);
+            if (idx === -1) { out.push(ch); continue; }
+            const row = Math.floor(idx / 5) + 1;
+            const col = (idx % 5) + 1;
+            out.push(`${row}·${col}`);
+        }
+        div.innerHTML = '<p><strong>Tap Code:</strong></p><p style="font-size:1.2em;">' + out.join(' ') + '</p>';
+    } else {
+        const parts = input.split(/[\\s,]+/);
+        let out = [];
+        for (const p of parts) {
+            if (p === '(C)' || p === '(c)') { out.push('K'); continue; }
+            const m = p.match(/^(\\d)[·.](\\d)$/);
+            if (m) {
+                const row = parseInt(m[1]) - 1;
+                const col = parseInt(m[2]) - 1;
+                if (row >= 0 && row < 5 && col >= 0 && col < 5) {
+                    out.push(TAP_GRID[row * 5 + col]);
+                    continue;
+                }
+            }
+            out.push(p);
+        }
+        div.innerHTML = '<p><strong>Decoded:</strong></p><p style="font-size:1.2em;">' + out.join('') + '</p>';
+    }
+    result.style.display = 'block';
+});""",
     },
     {
-        "slug": "html-unescape",
-        "cn_name": "HTML实体解码器",
-        "en_name": "HTML Entity Decoder",
-        "cn_desc": "免费在线HTML实体解码器，将HTML实体字符(&amp; &lt; &#x27;等)解码为原始字符。支持一键复制，实时预览。",
-        "en_desc": "Free online HTML entity decoder. Decode HTML entities (&amp; &lt; &#x27; etc.) back to raw characters. One-click copy, real-time preview.",
-        "category": "developer-tools",
-        "cn_icon": "🔍",
-        "en_icon": "🔍",
-        "cn_keywords": "HTML实体,实体解码,HTML解码,Web开发,字符解码,在线解码,免费",
-        "en_keywords": "HTML entity,entity decoder,HTML decode,web development,character decode,online decoder,free",
+        "slug": "leet-speak-generator",
+        "cn_name": "Leet Speak生成器",
+        "en_name": "Leet Speak Generator",
+        "cn_desc": "在线Leet Speak(1337)文本转换工具，将普通文本转换为黑客风格的Leet语言，支持多种替换规则。",
+        "en_desc": "Free online Leet Speak (1337) text converter. Transform normal text into hacker-style leet language with multiple substitution rules.",
+        "cn_keywords": "Leet Speak,1337,黑客语言,文本转换,网络用语,在线转换工具,leet转换",
+        "en_keywords": "leet speak,1337,hacker language,text converter,internet slang,leet translator,online text tool",
+        "category": "文本工具",
+        "en_category": "Text Tools",
+        "html_cn": """<div class="input-group">
+    <label for="leet-input">输入文本</label>
+    <textarea id="leet-input" rows="4" placeholder="输入要转换的文本..."></textarea>
+</div>
+<div class="btn-row">
+    <label style="display:flex;align-items:center;gap:8px;">
+        <select id="level-select">
+            <option value="basic">基础替换</option>
+            <option value="advanced">高级替换</option>
+            <option value="extreme">极限替换</option>
+        </select>
+        <span>替换级别</span>
+    </label>
+    <button id="convert-btn" class="btn-primary">转换</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">转换结果</div>
+    <div id="leet-result"></div>
+    <button id="copy-btn" class="btn-secondary" style="margin-top:10px;">复制结果</button>
+</div>""",
+        "html_en": """<div class="input-group">
+    <label for="leet-input">Enter Text</label>
+    <textarea id="leet-input" rows="4" placeholder="Enter text to convert..."></textarea>
+</div>
+<div class="btn-row">
+    <label style="display:flex;align-items:center;gap:8px;">
+        <select id="level-select">
+            <option value="basic">Basic</option>
+            <option value="advanced">Advanced</option>
+            <option value="extreme">Extreme</option>
+        </select>
+        <span>Level</span>
+    </label>
+    <button id="convert-btn" class="btn-primary">Convert</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">Result</div>
+    <div id="leet-result"></div>
+    <button id="copy-btn" class="btn-secondary" style="margin-top:10px;">Copy Result</button>
+</div>""",
+        "js_cn": """const LEET_MAPS = {
+    basic: {A:'4',E:'3',I:'1',O:'0',S:'5',T:'7'},
+    advanced: {A:'4',B:'8',E:'3',G:'6',I:'1',L:'1',O:'0',S:'5',T:'7',Z:'2'},
+    extreme: {A:'4',B:'|3',C:'(',D:'|)',E:'3',F:'|=',G:'6',H:'|-|',I:'1',J:'_|',K:'|<',L:'|_',M:'|\\\\/|',N:'|\\\\|',O:'0',P:'|*',Q:'0_',R:'|2',S:'5',T:'7',U:'|_|',V:'\\\\/',W:'\\\\/\\\\/',X:'><',Y:'`/',Z:'2'}
+};
+document.getElementById('convert-btn').addEventListener('click', () => {
+    const input = document.getElementById('leet-input').value;
+    if (!input.trim()) { showToast('请输入文本'); return; }
+    const level = document.getElementById('level-select').value;
+    const map = LEET_MAPS[level];
+    let result = '';
+    for (const ch of input) {
+        const upper = ch.toUpperCase();
+        result += map[upper] || ch;
+    }
+    document.getElementById('leet-result').textContent = result;
+    document.getElementById('result-area').style.display = 'block';
+});
+document.getElementById('copy-btn').addEventListener('click', () => {
+    const text = document.getElementById('leet-result').textContent;
+    navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板'));
+});""",
+        "js_en": """const LEET_MAPS = {
+    basic: {A:'4',E:'3',I:'1',O:'0',S:'5',T:'7'},
+    advanced: {A:'4',B:'8',E:'3',G:'6',I:'1',L:'1',O:'0',S:'5',T:'7',Z:'2'},
+    extreme: {A:'4',B:'|3',C:'(',D:'|)',E:'3',F:'|=',G:'6',H:'|-|',I:'1',J:'_|',K:'|<',L:'|_',M:'|\\\\/|',N:'|\\\\|',O:'0',P:'|*',Q:'0_',R:'|2',S:'5',T:'7',U:'|_|',V:'\\\\/',W:'\\\\/\\\\/',X:'><',Y:'`/',Z:'2'}
+};
+document.getElementById('convert-btn').addEventListener('click', () => {
+    const input = document.getElementById('leet-input').value;
+    if (!input.trim()) { showToast('Please enter text'); return; }
+    const level = document.getElementById('level-select').value;
+    const map = LEET_MAPS[level];
+    let result = '';
+    for (const ch of input) {
+        const upper = ch.toUpperCase();
+        result += map[upper] || ch;
+    }
+    document.getElementById('leet-result').textContent = result;
+    document.getElementById('result-area').style.display = 'block';
+});
+document.getElementById('copy-btn').addEventListener('click', () => {
+    const text = document.getElementById('leet-result').textContent;
+    navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard'));
+});""",
     },
     {
-        "slug": "coin-flip-online",
-        "cn_name": "在线抛硬币",
-        "en_name": "Coin Flip Online",
-        "cn_desc": "免费在线抛硬币工具，模拟真实抛硬币效果。支持连续抛掷、统计正面反面次数，帮助做随机决策。",
-        "en_desc": "Free online coin flip tool simulating real coin tosses. Continuous flips, heads/tails statistics for random decision making.",
-        "category": "fun-tools",
-        "cn_icon": "🪙",
-        "en_icon": "🪙",
-        "cn_keywords": "抛硬币,硬币,随机,决策,正面反面,在线工具,免费",
-        "en_keywords": "coin flip,coin toss,heads tails,random,decision,online tool,free",
+        "slug": "google-fonts-preview",
+        "cn_name": "Google Fonts预览",
+        "en_name": "Google Fonts Preview",
+        "cn_desc": "在线Google Fonts字体预览工具，支持搜索和预览上千种免费字体，实时调整字重、字号和样式。",
+        "en_desc": "Free Google Fonts preview tool. Search and preview thousands of free fonts, adjust weight, size and style in real time.",
+        "cn_keywords": "Google Fonts,字体预览,网页字体,免费字体,在线字体预览,字体选择器,前端开发",
+        "en_keywords": "google fonts,font preview,web fonts,free fonts,online font preview,font picker,frontend dev",
+        "category": "设计工具",
+        "en_category": "Design Tools",
+        "html_cn": """<div class="input-group">
+    <label for="font-search">搜索字体</label>
+    <input type="text" id="font-search" placeholder="例如: Roboto, Open Sans, 或输入关键词...">
+</div>
+<div class="input-group">
+    <label for="preview-text">预览文本</label>
+    <textarea id="preview-text" rows="2">敏捷的棕色狐狸跳过了懒狗。The quick brown fox jumps over the lazy dog.</textarea>
+</div>
+<div class="btn-row">
+    <label>
+        字重: <input type="range" id="weight-range" min="100" max="900" step="100" value="400">
+        <span id="weight-val">400</span>
+    </label>
+    <label>
+        字号: <input type="range" id="size-range" min="12" max="72" value="32">
+        <span id="size-val">32px</span>
+    </label>
+</div>
+<div class="btn-row">
+    <button id="load-btn" class="btn-primary">加载字体</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">字体预览</div>
+    <div id="font-preview" style="padding:20px;min-height:100px;word-break:break-word;"></div>
+</div>""",
+        "html_en": """<div class="input-group">
+    <label for="font-search">Search Fonts</label>
+    <input type="text" id="font-search" placeholder="e.g. Roboto, Open Sans, or keywords...">
+</div>
+<div class="input-group">
+    <label for="preview-text">Preview Text</label>
+    <textarea id="preview-text" rows="2">The quick brown fox jumps over the lazy dog. 敏捷的棕色狐狸跳过了懒狗。</textarea>
+</div>
+<div class="btn-row">
+    <label>
+        Weight: <input type="range" id="weight-range" min="100" max="900" step="100" value="400">
+        <span id="weight-val">400</span>
+    </label>
+    <label>
+        Size: <input type="range" id="size-range" min="12" max="72" value="32">
+        <span id="size-val">32px</span>
+    </label>
+</div>
+<div class="btn-row">
+    <button id="load-btn" class="btn-primary">Load Font</button>
+</div>
+<div id="result-area" class="result-box" style="display:none;">
+    <div class="result-header">Font Preview</div>
+    <div id="font-preview" style="padding:20px;min-height:100px;word-break:break-word;"></div>
+</div>""",
+        "js_cn": """const weightRange = document.getElementById('weight-range');
+const sizeRange = document.getElementById('size-range');
+weightRange.addEventListener('input', () => document.getElementById('weight-val').textContent = weightRange.value);
+sizeRange.addEventListener('input', () => document.getElementById('size-val').textContent = sizeRange.value + 'px');
+
+document.getElementById('load-btn').addEventListener('click', () => {
+    const fontName = document.getElementById('font-search').value.trim();
+    if (!fontName) { showToast('请输入字体名称'); return; }
+    const weight = weightRange.value;
+    const size = sizeRange.value;
+    const preview = document.getElementById('font-preview');
+    const text = document.getElementById('preview-text').value;
+    const formatted = fontName.replace(/\\s+/g, '+');
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=${formatted}:wght@${weight}&display=swap`;
+    link.onload = () => {
+        preview.style.fontFamily = `'${fontName}', sans-serif`;
+        preview.style.fontWeight = weight;
+        preview.style.fontSize = size + 'px';
+        preview.textContent = text;
+        document.getElementById('result-area').style.display = 'block';
+    };
+    link.onerror = () => {
+        showToast('字体加载失败，请检查字体名称');
+    };
+    document.head.appendChild(link);
+});""",
+        "js_en": """const weightRange = document.getElementById('weight-range');
+const sizeRange = document.getElementById('size-range');
+weightRange.addEventListener('input', () => document.getElementById('weight-val').textContent = weightRange.value);
+sizeRange.addEventListener('input', () => document.getElementById('size-val').textContent = sizeRange.value + 'px');
+
+document.getElementById('load-btn').addEventListener('click', () => {
+    const fontName = document.getElementById('font-search').value.trim();
+    if (!fontName) { showToast('Please enter a font name'); return; }
+    const weight = weightRange.value;
+    const size = sizeRange.value;
+    const preview = document.getElementById('font-preview');
+    const text = document.getElementById('preview-text').value;
+    const formatted = fontName.replace(/\\s+/g, '+');
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=${formatted}:wght@${weight}&display=swap`;
+    link.onload = () => {
+        preview.style.fontFamily = `'${fontName}', sans-serif`;
+        preview.style.fontWeight = weight;
+        preview.style.fontSize = size + 'px';
+        preview.textContent = text;
+        document.getElementById('result-area').style.display = 'block';
+    };
+    link.onerror = () => {
+        showToast('Font load failed. Please check the font name.');
+    };
+    document.head.appendChild(link);
+});""",
+    },
+    # 第11个：viewport-checker已经在上面的数组中，再补充一个工具
+    {
+        "slug": "icon-finder",
+        "cn_name": "图标搜索器",
+        "en_name": "Icon Finder",
+        "cn_desc": "在线Emoji和Unicode符号搜索工具，快速查找并复制各种图标、表情符号和特殊字符，支持分类浏览。",
+        "en_desc": "Free online emoji and Unicode symbol search tool. Find and copy icons, emojis and special characters. Browse by category.",
+        "cn_keywords": "图标搜索,Emoji搜索,Unicode符号,表情符号,特殊字符,在线图标工具,复制粘贴",
+        "en_keywords": "icon finder,emoji search,unicode symbols,special characters,emoji copy,online icon tool",
+        "category": "文本工具",
+        "en_category": "Text Tools",
+        "html_cn": """<div class="input-group">
+    <label for="icon-search">搜索图标</label>
+    <input type="text" id="icon-search" placeholder="例如: 箭头, 心形, 星星, check...">
+</div>
+<div class="btn-row">
+    <button class="cat-btn active" data-cat="all">全部</button>
+    <button class="cat-btn" data-cat="arrows">箭头</button>
+    <button class="cat-btn" data-cat="shapes">形状</button>
+    <button class="cat-btn" data-cat="math">数学</button>
+    <button class="cat-btn" data-cat="currency">货币</button>
+    <button class="cat-btn" data-cat="faces">表情</button>
+    <button class="cat-btn" data-cat="misc">杂项</button>
+</div>
+<div id="icon-grid" class="icon-grid"></div>""",
+        "html_en": """<div class="input-group">
+    <label for="icon-search">Search Icons</label>
+    <input type="text" id="icon-search" placeholder="e.g. arrow, heart, star, check...">
+</div>
+<div class="btn-row">
+    <button class="cat-btn active" data-cat="all">All</button>
+    <button class="cat-btn" data-cat="arrows">Arrows</button>
+    <button class="cat-btn" data-cat="shapes">Shapes</button>
+    <button class="cat-btn" data-cat="math">Math</button>
+    <button class="cat-btn" data-cat="currency">Currency</button>
+    <button class="cat-btn" data-cat="faces">Faces</button>
+    <button class="cat-btn" data-cat="misc">Misc</button>
+</div>
+<div id="icon-grid" class="icon-grid"></div>""",
+        "js_cn": """const ICONS = {
+    arrows: ['←','→','↑','↓','↔','↕','↖','↗','↘','↙','↩','↪','↶','↷','➔','➜','➝','➞','▲','▼','◄','►','△','▽','◁','▷','⬆','⬇','⬅','➡'],
+    shapes: ['●','○','■','□','◆','◇','▲','△','▼','▽','★','☆','♥','♡','♦','♢','♣','♤','♠','♧','✚','✖','✓','✗','☐','☑','⚫','⚪','⬛','⬜'],
+    math: ['∞','±','×','÷','≠','≈','≤','≥','∑','∏','√','∝','∫','∂','∇','∈','∉','⊂','⊃','∪','∩','∧','∨','¬','∀','∃','∄','∴','∵'],
+    currency: ['$','€','£','¥','₩','₹','₽','₿','¢','₪','₫','₱','₲','₴','₵','₸','₺','₼','₾','﷼'],
+    faces: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','😊','😇','😍','🤩','😘','😗','😚','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑'],
+    misc: ['©','®','™','°','‰','µ','¶','§','†','‡','•','…','‽','⁂','※','‿','⁀','⁄','⁒','★']
+};
+let currentCat = 'all';
+function renderIcons(filter = '') {
+    const grid = document.getElementById('icon-grid');
+    let icons = [];
+    if (currentCat === 'all') {
+        for (const cat in ICONS) icons = icons.concat(ICONS[cat].map(i => ({icon:i, cat})));
+    } else {
+        icons = (ICONS[currentCat] || []).map(i => ({icon:i, cat:currentCat}));
+    }
+    if (filter) {
+        const f = filter.toLowerCase();
+        icons = icons.filter(i => i.icon.toLowerCase().includes(f) || i.cat.toLowerCase().includes(f));
+    }
+    grid.innerHTML = icons.map((i, idx) => `<button class="icon-item" data-icon="${i.icon}" title="点击复制">${i.icon}</button>`).join('');
+    grid.querySelectorAll('.icon-item').forEach(b => {
+        b.addEventListener('click', () => {
+            navigator.clipboard.writeText(b.dataset.icon).then(() => showToast('已复制: ' + b.dataset.icon));
+        });
+    });
+}
+document.getElementById('icon-search').addEventListener('input', function() {
+    renderIcons(this.value);
+});
+document.querySelectorAll('.cat-btn').forEach(b => {
+    b.addEventListener('click', () => {
+        document.querySelectorAll('.cat-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        currentCat = b.dataset.cat;
+        renderIcons(document.getElementById('icon-search').value);
+    });
+});
+renderIcons();""",
+        "js_en": """const ICONS = {
+    arrows: ['←','→','↑','↓','↔','↕','↖','↗','↘','↙','↩','↪','↶','↷','➔','➜','➝','➞','▲','▼','◄','►','△','▽','◁','▷','⬆','⬇','⬅','➡'],
+    shapes: ['●','○','■','□','◆','◇','▲','△','▼','▽','★','☆','♥','♡','♦','♢','♣','♤','♠','♧','✚','✖','✓','✗','☐','☑','⚫','⚪','⬛','⬜'],
+    math: ['∞','±','×','÷','≠','≈','≤','≥','∑','∏','√','∝','∫','∂','∇','∈','∉','⊂','⊃','∪','∩','∧','∨','¬','∀','∃','∄','∴','∵'],
+    currency: ['$','€','£','¥','₩','₹','₽','₿','¢','₪','₫','₱','₲','₴','₵','₸','₺','₼','₾','﷼'],
+    faces: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','😊','😇','😍','🤩','😘','😗','😚','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑'],
+    misc: ['©','®','™','°','‰','µ','¶','§','†','‡','•','…','‽','⁂','※','‿','⁀','⁄','⁒','★']
+};
+let currentCat = 'all';
+function renderIcons(filter = '') {
+    const grid = document.getElementById('icon-grid');
+    let icons = [];
+    if (currentCat === 'all') {
+        for (const cat in ICONS) icons = icons.concat(ICONS[cat].map(i => ({icon:i, cat})));
+    } else {
+        icons = (ICONS[currentCat] || []).map(i => ({icon:i, cat:currentCat}));
+    }
+    if (filter) {
+        const f = filter.toLowerCase();
+        icons = icons.filter(i => i.icon.toLowerCase().includes(f) || i.cat.toLowerCase().includes(f));
+    }
+    grid.innerHTML = icons.map((i, idx) => `<button class="icon-item" data-icon="${i.icon}" title="Click to copy">${i.icon}</button>`).join('');
+    grid.querySelectorAll('.icon-item').forEach(b => {
+        b.addEventListener('click', () => {
+            navigator.clipboard.writeText(b.dataset.icon).then(() => showToast('Copied: ' + b.dataset.icon));
+        });
+    });
+}
+document.getElementById('icon-search').addEventListener('input', function() {
+    renderIcons(this.value);
+});
+document.querySelectorAll('.cat-btn').forEach(b => {
+    b.addEventListener('click', () => {
+        document.querySelectorAll('.cat-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        currentCat = b.dataset.cat;
+        renderIcons(document.getElementById('icon-search').value);
+    });
+});
+renderIcons();""",
     },
 ]
 
-# 公共head
-CN_HEAD_TOP = '''<!DOCTYPE html>
-<html lang="zh-CN">
+# 通用页面模板
+def make_page(t, lang):
+    """生成完整HTML页面"""
+    is_cn = (lang == 'cn')
+    lang_attr = 'zh-CN' if is_cn else 'en'
+    name = t['cn_name'] if is_cn else t['en_name']
+    desc = t['cn_desc'] if is_cn else t['en_desc']
+    keywords = t['cn_keywords'] if is_cn else t['en_keywords']
+    category = t['category'] if is_cn else t['en_category']
+    html_body = t['html_cn'] if is_cn else t['html_en']
+    js_code = t['js_cn'] if is_cn else t['js_en']
+    slug = t['slug']
+    base_url = f'/{slug}/' if is_cn else f'/en/{slug}/'
+    canonical = f'https://free-toolbase.com/{slug}/' if is_cn else f'https://free-toolbase.com/en/{slug}/'
+    alt_href = f'https://free-toolbase.com/en/{slug}/' if is_cn else f'https://free-toolbase.com/{slug}/'
+    alt_lang = 'en' if is_cn else 'zh-CN'
+    home_url = '/' if is_cn else '/en/'
+    home_label = '首页' if is_cn else 'Home'
+    all_tools_label = '全部工具' if is_cn else 'All Tools'
+    all_tools_url = '/#tools' if is_cn else '/en/#tools'
+
+    return f'''<!DOCTYPE html>
+<html lang="{lang_attr}">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
-<script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-'''
-
-EN_HEAD_TOP = '''<!DOCTYPE html>
-<html lang="en">
-<head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
-<script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-'''
-
-CSS = '''<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
-a{color:#06b6d4;text-decoration:none}
-.container{max-width:960px;margin:0 auto;padding:24px 16px}
-.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
-.header h1{font-size:1.6rem;color:#f1f5f9}
-.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
-.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
-.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
-.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
-.nav-back a{color:#64748b}
-.panel{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
-.panel-title{font-size:1.1rem;color:#f1f5f9;margin-bottom:14px;font-weight:600}
-.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.9rem;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
-.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
-.btn-primary:hover{background:rgba(6,182,212,.35);transform:translateY(-1px)}
-.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
-.btn-secondary:hover{background:rgba(148,163,184,.2)}
-.btn-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px}
-.input-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
-.input-row input,.input-row select{padding:10px 12px;border:1px solid rgba(148,163,184,.2);border-radius:8px;background:#0f172a;color:#e2e8f0;font-size:.9rem;transition:border-color .2s}
-.input-row input:focus,.input-row select:focus{outline:none;border-color:#06b6d4}
-.input-row label{color:#94a3b8;font-size:.9rem;white-space:nowrap}
-.result-box{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:16px;margin-top:12px;min-height:48px;word-break:break-all;font-size:1.1rem;color:#22d3ee}
-.result-label{color:#64748b;font-size:.8rem;margin-bottom:4px}
-.faq-item{margin-bottom:16px;border-bottom:1px solid rgba(148,163,184,.1);padding-bottom:16px}
-.faq-item:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
-.faq-q{font-weight:600;color:#f1f5f9;margin-bottom:6px}
-.faq-a{color:#94a3b8;font-size:.9rem}
-.privacy-note{background:rgba(6,182,212,.05);border:1px solid rgba(6,182,212,.15);border-radius:8px;padding:12px 16px;font-size:.85rem;color:#94a3b8;margin-top:16px;display:flex;align-items:center;gap:8px}
-.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:48px;text-align:center;color:#64748b;font-size:.85rem}
-.footer a{color:#64748b;margin:0 8px}
-.hero{margin-bottom:20px}
-.hero p{color:#94a3b8;font-size:.95rem;line-height:1.7}
-.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:600;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.2);margin-top:8px}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}
-.toast.show{opacity:1}
-.stats-grid{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
-.stat-card{background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:12px 16px;text-align:center;flex:1;min-width:100px}
-.stat-value{font-size:1.5rem;font-weight:700;color:#22d3ee}
-.stat-label{font-size:.75rem;color:#64748b;margin-top:2px}
-@media(max-width:640px){.header h1{font-size:1.3rem}}
-</style>'''
-
-# 工具特定的CONTROLS + FAQ + JS
-TOOL_DATA = {
-    "roman-numeral-calculator": {
-        "cn_controls": '''<div class="input-row"><input type="text" id="numberInput" placeholder="输入数字或罗马数字..." style="flex:1"><button class="btn btn-primary" id="convertBtn">转换</button></div>
-<div class="btn-row"><button class="btn btn-secondary" id="toRomanBtn">数字 → 罗马</button><button class="btn btn-secondary" id="toNumberBtn">罗马 → 数字</button></div>
-<div class="result-label">转换结果</div><div class="result-box" id="result">等待输入...</div>''',
-        "cn_faqs": [("什么是罗马数字？","罗马数字是古罗马使用的数字系统，使用I(1)、V(5)、X(10)、L(50)、C(100)、D(500)、M(1000)表示数字。"),("支持的数字范围是多少？","本工具支持1到3999之间的数字转换。罗马数字系统中不包含零和负数。"),("如何区分4的写法IV和IIII？","标准写法是IV=4。虽然钟表上有时用IIII，但标准罗马数字规则使用IV。")],
-        "cn_js": '''document.getElementById('convertBtn').addEventListener('click',function(){var v=document.getElementById('numberInput').value.trim();if(!v){showToast('请输入内容');return}if(/^[IVXLCDM]+$/i.test(v)){var n=romanToInt(v.toUpperCase());document.getElementById('result').textContent=n!==null?n:'无效罗马数字'}else{var num=parseInt(v);if(isNaN(num)||num<1||num>3999){showToast('请输入1-3999的数字');return}document.getElementById('result').textContent=intToRoman(num)}});
-document.getElementById('toRomanBtn').addEventListener('click',function(){var v=document.getElementById('numberInput').value.trim();var num=parseInt(v);if(isNaN(num)||num<1||num>3999){showToast('请输入1-3999的数字');return}document.getElementById('result').textContent=intToRoman(num)});
-document.getElementById('toNumberBtn').addEventListener('click',function(){var v=document.getElementById('numberInput').value.trim();var n=romanToInt(v.toUpperCase());document.getElementById('result').textContent=n!==null?n:'无效罗马数字'});
-function intToRoman(num){var val=[1000,900,500,400,100,90,50,40,10,9,5,4,1];var sym=['M','CM','D','CD','C','XC','L','XL','X','IX','V','IV','I'];var r='';for(var i=0;i<val.length;i++){while(num>=val[i]){r+=sym[i];num-=val[i]}}return r}
-function romanToInt(s){var map={I:1,V:5,X:10,L:50,C:100,D:500,M:1000};var total=0;for(var i=0;i<s.length;i++){var cv=map[s[i]];var nv=map[s[i+1]]||0;if(cv<nv)total-=cv;else total+=cv}return total}''',
-        "en_controls": '''<div class="input-row"><input type="text" id="numberInput" placeholder="Enter number or Roman numeral..." style="flex:1"><button class="btn btn-primary" id="convertBtn">Convert</button></div>
-<div class="btn-row"><button class="btn btn-secondary" id="toRomanBtn">Number → Roman</button><button class="btn btn-secondary" id="toNumberBtn">Roman → Number</button></div>
-<div class="result-label">Result</div><div class="result-box" id="result">Waiting for input...</div>''',
-        "en_faqs": [("What are Roman numerals?","Roman numerals are an ancient number system using I(1), V(5), X(10), L(50), C(100), D(500), M(1000)."),("What range is supported?","This tool supports numbers from 1 to 3999. Zero and negative numbers don't exist in Roman numerals."),("Why is 4 written as IV not IIII?","The standard rule uses subtractive notation: IV=4. While clocks sometimes use IIII, the standard Roman numeral system uses IV.")],
-        "en_js": '''document.getElementById('convertBtn').addEventListener('click',function(){var v=document.getElementById('numberInput').value.trim();if(!v){showToast('Please enter input');return}if(/^[IVXLCDM]+$/i.test(v)){var n=romanToInt(v.toUpperCase());document.getElementById('result').textContent=n!==null?n:'Invalid Roman numeral'}else{var num=parseInt(v);if(isNaN(num)||num<1||num>3999){showToast('Please enter a number 1-3999');return}document.getElementById('result').textContent=intToRoman(num)}});
-document.getElementById('toRomanBtn').addEventListener('click',function(){var v=document.getElementById('numberInput').value.trim();var num=parseInt(v);if(isNaN(num)||num<1||num>3999){showToast('Please enter a number 1-3999');return}document.getElementById('result').textContent=intToRoman(num)});
-document.getElementById('toNumberBtn').addEventListener('click',function(){var v=document.getElementById('numberInput').value.trim();var n=romanToInt(v.toUpperCase());document.getElementById('result').textContent=n!==null?n:'Invalid Roman numeral'});
-function intToRoman(num){var val=[1000,900,500,400,100,90,50,40,10,9,5,4,1];var sym=['M','CM','D','CD','C','XC','L','XL','X','IX','V','IV','I'];var r='';for(var i=0;i<val.length;i++){while(num>=val[i]){r+=sym[i];num-=val[i]}}return r}
-function romanToInt(s){var map={I:1,V:5,X:10,L:50,C:100,D:500,M:1000};var total=0;for(var i=0;i<s.length;i++){var cv=map[s[i]];var nv=map[s[i+1]]||0;if(cv<nv)total-=cv;else total+=cv}return total}'''
-    },
-    "leap-year-calculator": {
-        "cn_controls": '''<div class="input-row"><label>输入年份</label><input type="number" id="yearInput" value="2026" min="1" style="width:120px"><button class="btn btn-primary" id="checkBtn">检测</button><button class="btn btn-secondary" id="nextBtn">下一个闰年</button></div>
-<div class="result-box" id="result" style="text-align:center">等待输入...</div>''',
-        "cn_faqs": [("什么是闰年？","公历闰年规则：能被4整除但不能被100整除的年份为闰年，或能被400整除的年份也是闰年。"),("为什么需要闰年？","地球绕太阳公转一圈实际约为365.2422天，每4年多出约0.9688天，设置闰年可以弥补这个差异。"),("下一个闰年是哪年？","2028年是下一个闰年。您可以输入任意年份，点击'下一个闰年'按钮查看结果。")],
-        "cn_js": '''function isLeap(y){return(y%4===0&&y%100!==0)||(y%400===0)}
-document.getElementById('checkBtn').addEventListener('click',function(){var y=parseInt(document.getElementById('yearInput').value);if(isNaN(y)||y<1){showToast('请输入有效年份');return}var r=isLeap(y);document.getElementById('result').innerHTML='<div class="stat-value">'+y+'年</div><div class="stat-label" style="font-size:1.1rem;color:'+(r?'#22d3ee':'#ef4444')+'">'+(r?'✅ 是闰年（366天）':'❌ 不是闰年（365天）')+'</div>'});
-document.getElementById('nextBtn').addEventListener('click',function(){var y=parseInt(document.getElementById('yearInput').value);if(isNaN(y)||y<1){showToast('请输入有效年份');return}while(!isLeap(y))y++;document.getElementById('result').innerHTML='<div class="stat-label">下一个闰年是</div><div class="stat-value">'+y+'年</div><div class="stat-label">距离现在还有 '+(y-new Date().getFullYear())+' 年</div>'});
-document.getElementById('yearInput').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('checkBtn').click()});''',
-        "en_controls": '''<div class="input-row"><label>Enter Year</label><input type="number" id="yearInput" value="2026" min="1" style="width:120px"><button class="btn btn-primary" id="checkBtn">Check</button><button class="btn btn-secondary" id="nextBtn">Next Leap Year</button></div>
-<div class="result-box" id="result" style="text-align:center">Waiting for input...</div>''',
-        "en_faqs": [("What is a leap year?","Gregorian rule: A year divisible by 4 but not by 100 is a leap year, OR divisible by 400 is also a leap year."),("Why do we need leap years?","Earth's orbit takes ~365.2422 days. Leap years compensate for the extra ~0.2422 days per year."),("When is the next leap year?","2028 is the next leap year. Enter any year and click 'Next Leap Year' to find out.")],
-        "en_js": '''function isLeap(y){return(y%4===0&&y%100!==0)||(y%400===0)}
-document.getElementById('checkBtn').addEventListener('click',function(){var y=parseInt(document.getElementById('yearInput').value);if(isNaN(y)||y<1){showToast('Please enter a valid year');return}var r=isLeap(y);document.getElementById('result').innerHTML='<div class="stat-value">'+y+'</div><div class="stat-label" style="font-size:1.1rem;color:'+(r?'#22d3ee':'#ef4444')+'">'+(r?'✅ Leap Year (366 days)':'❌ Not a Leap Year (365 days)')+'</div>'});
-document.getElementById('nextBtn').addEventListener('click',function(){var y=parseInt(document.getElementById('yearInput').value);if(isNaN(y)||y<1){showToast('Please enter a valid year');return}while(!isLeap(y))y++;document.getElementById('result').innerHTML='<div class="stat-label">Next Leap Year</div><div class="stat-value">'+y+'</div><div class="stat-label">'+(y-new Date().getFullYear())+' years from now</div>'});
-document.getElementById('yearInput').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('checkBtn').click()});'''
-    },
-    "day-of-year-calculator": {
-        "cn_controls": '''<div class="input-row"><input type="date" id="dateInput" style="flex:1"><button class="btn btn-primary" id="calcBtn">计算</button></div>
-<div class="stats-grid"><div class="stat-card"><div class="stat-value" id="dayNum">-</div><div class="stat-label">一年中的第几天</div></div><div class="stat-card"><div class="stat-value" id="remainDays">-</div><div class="stat-label">剩余天数</div></div><div class="stat-card"><div class="stat-value" id="weekDay">-</div><div class="stat-label">星期几</div></div></div>''',
-        "cn_faqs": [("如何计算一年中的第几天？","本工具使用JavaScript的Date对象自动计算，精确处理闰年和平年的天数差异。"),("支持哪些日期格式？","支持YYYY-MM-DD标准格式，使用内置日期选择器更方便。"),("数据是否上传？","不，所有计算在浏览器本地完成，不会上传任何数据。")],
-        "cn_js": '''document.getElementById('dateInput').valueAsDate=new Date();
-function calc(){var d=document.getElementById('dateInput').valueAsDate;if(!d){showToast('请选择日期');return}var start=new Date(d.getFullYear(),0,1);var diff=Math.floor((d-start)/86400000)+1;document.getElementById('dayNum').textContent=diff;var isLeap=(d.getFullYear()%4===0&&d.getFullYear()%100!==0)||(d.getFullYear()%400===0);document.getElementById('remainDays').textContent=(isLeap?366:365)-diff;var wds=['日','一','二','三','四','五','六'];document.getElementById('weekDay').textContent='周'+wds[d.getDay()]}
-document.getElementById('calcBtn').addEventListener('click',calc);
-document.getElementById('dateInput').addEventListener('change',calc);
-calc();''',
-        "en_controls": '''<div class="input-row"><input type="date" id="dateInput" style="flex:1"><button class="btn btn-primary" id="calcBtn">Calculate</button></div>
-<div class="stats-grid"><div class="stat-card"><div class="stat-value" id="dayNum">-</div><div class="stat-label">Day of Year</div></div><div class="stat-card"><div class="stat-value" id="remainDays">-</div><div class="stat-label">Days Remaining</div></div><div class="stat-card"><div class="stat-value" id="weekDay">-</div><div class="stat-label">Day of Week</div></div></div>''',
-        "en_faqs": [("How is day of year calculated?","This tool uses JavaScript Date object for accurate calculation, handling leap years and regular years."),("What date formats are supported?","YYYY-MM-DD standard format. Use the built-in date picker for convenience."),("Is my data uploaded?","No, all calculations happen locally in your browser. No data is ever uploaded.")],
-        "en_js": '''document.getElementById('dateInput').valueAsDate=new Date();
-function calc(){var d=document.getElementById('dateInput').valueAsDate;if(!d){showToast('Please select a date');return}var start=new Date(d.getFullYear(),0,1);var diff=Math.floor((d-start)/86400000)+1;document.getElementById('dayNum').textContent=diff;var isLeap=(d.getFullYear()%4===0&&d.getFullYear()%100!==0)||(d.getFullYear()%400===0);document.getElementById('remainDays').textContent=(isLeap?366:365)-diff;var wds=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];document.getElementById('weekDay').textContent=wds[d.getDay()]}
-document.getElementById('calcBtn').addEventListener('click',calc);
-document.getElementById('dateInput').addEventListener('change',calc);
-calc();'''
-    },
-    "add-days-calculator": {
-        "cn_controls": '''<div class="input-row"><label>日期</label><input type="date" id="dateInput" style="flex:1"></div>
-<div class="input-row"><label>天数</label><input type="number" id="daysInput" value="30" style="width:100px"><select id="opSelect"><option value="add">加 +</option><option value="subtract">减 -</option></select><button class="btn btn-primary" id="calcBtn">计算</button></div>
-<div class="result-box" id="result" style="text-align:center">等待输入...</div>''',
-        "cn_faqs": [("支持加多少天？","您可以加减任意天数（正整数）。本工具可处理跨月、跨年计算。"),("如何知道星期几？","计算结果会自动显示对应日期的星期几。"),("数据处理方式？","所有计算在浏览器本地完成，数据不会上传到服务器。")],
-        "cn_js": '''document.getElementById('dateInput').valueAsDate=new Date();
-function calc(){var d=document.getElementById('dateInput').valueAsDate;if(!d){showToast('请选择日期');return}var days=parseInt(document.getElementById('daysInput').value);if(isNaN(days)||days<0){showToast('请输入有效天数');return}var op=document.getElementById('opSelect').value;var r=new Date(d);if(op==='add')r.setDate(r.getDate()+days);else r.setDate(r.getDate()-days);var wds=['日','一','二','三','四','五','六'];var ds=r.getFullYear()+'-'+String(r.getMonth()+1).padStart(2,'0')+'-'+String(r.getDate()).padStart(2,'0');document.getElementById('result').innerHTML='<div class="stat-label">'+(op==='add'?'加':'减')+days+'天后的日期</div><div class="stat-value">'+ds+'</div><div class="stat-label">周'+wds[r.getDay()]+'</div>'}
-document.getElementById('calcBtn').addEventListener('click',calc);
-document.getElementById('daysInput').addEventListener('keydown',function(e){if(e.key==='Enter')calc()});
-calc();''',
-        "en_controls": '''<div class="input-row"><label>Date</label><input type="date" id="dateInput" style="flex:1"></div>
-<div class="input-row"><label>Days</label><input type="number" id="daysInput" value="30" style="width:100px"><select id="opSelect"><option value="add">Add +</option><option value="subtract">Subtract -</option></select><button class="btn btn-primary" id="calcBtn">Calculate</button></div>
-<div class="result-box" id="result" style="text-align:center">Waiting for input...</div>''',
-        "en_faqs": [("How many days can I add/subtract?","You can add or subtract any positive number of days. Cross-month and cross-year calculations are handled."),("Does it show the day of week?","Yes, the result automatically shows which day of the week it falls on."),("Is data processed locally?","Yes, all calculations happen in your browser. No data is uploaded.")],
-        "en_js": '''document.getElementById('dateInput').valueAsDate=new Date();
-function calc(){var d=document.getElementById('dateInput').valueAsDate;if(!d){showToast('Please select a date');return}var days=parseInt(document.getElementById('daysInput').value);if(isNaN(days)||days<0){showToast('Please enter valid days');return}var op=document.getElementById('opSelect').value;var r=new Date(d);if(op==='add')r.setDate(r.getDate()+days);else r.setDate(r.getDate()-days);var wds=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];var ds=r.getFullYear()+'-'+String(r.getMonth()+1).padStart(2,'0')+'-'+String(r.getDate()).padStart(2,'0');document.getElementById('result').innerHTML='<div class="stat-label">'+(op==='add'?'Add':'Subtract')+days+' days</div><div class="stat-value">'+ds+'</div><div class="stat-label">'+wds[r.getDay()]+'</div>'}
-document.getElementById('calcBtn').addEventListener('click',calc);
-document.getElementById('daysInput').addEventListener('keydown',function(e){if(e.key==='Enter')calc()});
-calc();'''
-    },
-    "timezone-converter": {
-        "cn_controls": '''<div class="input-row"><label>时间</label><input type="datetime-local" id="timeInput" style="flex:1"></div>
-<div class="input-row"><label>从</label><select id="fromTz" style="flex:1"><option value="Asia/Shanghai">中国标准时间 (UTC+8)</option><option value="America/New_York">美国东部 (UTC-5)</option><option value="Europe/London">英国伦敦 (UTC+0)</option><option value="Asia/Tokyo">日本东京 (UTC+9)</option><option value="Europe/Paris">法国巴黎 (UTC+1)</option><option value="America/Los_Angeles">美国西部 (UTC-8)</option><option value="Australia/Sydney">澳大利亚悉尼 (UTC+10)</option><option value="Asia/Dubai">阿联酋迪拜 (UTC+4)</option><option value="Asia/Kolkata">印度 (UTC+5:30)</option><option value="Pacific/Auckland">新西兰 (UTC+12)</option></select></div>
-<div class="input-row"><label>到</label><select id="toTz" style="flex:1"><option value="America/New_York">美国东部 (UTC-5)</option><option value="Asia/Shanghai">中国标准时间 (UTC+8)</option><option value="Europe/London">英国伦敦 (UTC+0)</option><option value="Asia/Tokyo">日本东京 (UTC+9)</option><option value="Europe/Paris">法国巴黎 (UTC+1)</option><option value="America/Los_Angeles">美国西部 (UTC-8)</option><option value="Australia/Sydney">澳大利亚悉尼 (UTC+10)</option><option value="Asia/Dubai">阿联酋迪拜 (UTC+4)</option><option value="Asia/Kolkata">印度 (UTC+5:30)</option><option value="Pacific/Auckland">新西兰 (UTC+12)</option></select><button class="btn btn-primary" id="convertBtn">转换</button></div>
-<div class="result-box" id="result" style="text-align:center">选择时区后转换...</div>''',
-        "cn_faqs": [("支持哪些时区？","工具内置全球主要时区，使用浏览器的Intl API进行精确转换，自动处理夏令时。"),("夏令时会自动处理吗？","是的，使用Intl.DateTimeFormat API会自动考虑各时区的夏令时规则。"),("如何知道当前时间？","点击输入框旁边的时钟图标可设置当前时间。")],
-        "cn_js": '''var now=new Date();var localStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+'T'+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');document.getElementById('timeInput').value=localStr;
-function convert(){var ts=document.getElementById('timeInput').value;if(!ts){showToast('请选择时间');return}var d=new Date(ts);var fromTz=document.getElementById('fromTz').value;var toTz=document.getElementById('toTz').value;var opts={year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:toTz,hour12:false};var fmt=new Intl.DateTimeFormat('zh-CN',opts);var parts=fmt.formatToParts(d);var result='';for(var i=0;i<parts.length;i++)result+=parts[i].value;document.getElementById('result').innerHTML='<div class="stat-label">'+toTz+'</div><div class="stat-value">'+result+'</div>'}
-document.getElementById('convertBtn').addEventListener('click',convert);
-convert();''',
-        "en_controls": '''<div class="input-row"><label>Time</label><input type="datetime-local" id="timeInput" style="flex:1"></div>
-<div class="input-row"><label>From</label><select id="fromTz" style="flex:1"><option value="America/New_York">US Eastern (UTC-5)</option><option value="America/Los_Angeles">US Pacific (UTC-8)</option><option value="Europe/London">London (UTC+0)</option><option value="Europe/Paris">Paris (UTC+1)</option><option value="Asia/Shanghai">China Standard (UTC+8)</option><option value="Asia/Tokyo">Tokyo (UTC+9)</option><option value="Asia/Dubai">Dubai (UTC+4)</option><option value="Asia/Kolkata">India (UTC+5:30)</option><option value="Australia/Sydney">Sydney (UTC+10)</option><option value="Pacific/Auckland">New Zealand (UTC+12)</option></select></div>
-<div class="input-row"><label>To</label><select id="toTz" style="flex:1"><option value="Asia/Shanghai">China Standard (UTC+8)</option><option value="America/New_York">US Eastern (UTC-5)</option><option value="America/Los_Angeles">US Pacific (UTC-8)</option><option value="Europe/London">London (UTC+0)</option><option value="Europe/Paris">Paris (UTC+1)</option><option value="Asia/Tokyo">Tokyo (UTC+9)</option><option value="Asia/Dubai">Dubai (UTC+4)</option><option value="Asia/Kolkata">India (UTC+5:30)</option><option value="Australia/Sydney">Sydney (UTC+10)</option><option value="Pacific/Auckland">New Zealand (UTC+12)</option></select><button class="btn btn-primary" id="convertBtn">Convert</button></div>
-<div class="result-box" id="result" style="text-align:center">Select timezones to convert...</div>''',
-        "en_faqs": [("Which timezones are supported?","Major timezones worldwide. Uses browser Intl API for precise conversion with automatic DST handling."),("Does it handle Daylight Saving Time?","Yes, Intl.DateTimeFormat API automatically considers DST rules for each timezone."),("How to set current time?","The time input is pre-filled with your current local time.")],
-        "en_js": '''var now=new Date();var localStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+'T'+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');document.getElementById('timeInput').value=localStr;
-function convert(){var ts=document.getElementById('timeInput').value;if(!ts){showToast('Please select a time');return}var d=new Date(ts);var toTz=document.getElementById('toTz').value;var opts={year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:toTz,hour12:false};var fmt=new Intl.DateTimeFormat('en-US',opts);var parts=fmt.formatToParts(d);var result='';for(var i=0;i<parts.length;i++)result+=parts[i].value;document.getElementById('result').innerHTML='<div class="stat-label">'+toTz+'</div><div class="stat-value">'+result+'</div>'}
-document.getElementById('convertBtn').addEventListener('click',convert);
-convert();'''
-    },
-    "binary-to-octal": {
-        "cn_controls": '''<div class="input-row"><input type="text" id="binaryInput" placeholder="输入二进制数字 (如 1010)" style="flex:1"><button class="btn btn-primary" id="convertBtn">转换</button><button class="btn btn-secondary" id="copyBtn">复制</button></div>
-<div class="result-label">八进制结果</div><div class="result-box" id="octResult">等待输入...</div>
-<div class="result-label">十进制中间值</div><div class="result-box" id="decResult" style="font-size:.9rem;color:#94a3b8">-</div>''',
-        "cn_faqs": [("二进制转八进制如何工作？","二进制每3位对应一位八进制。工具先将二进制转十进制，再转八进制，确保精确。"),("支持多大的二进制数？","支持任意长度的二进制数字，前端JavaScript进行大数处理。"),("如何验证结果？","工具同时显示十进制中间值，便于手动验证转换结果。")],
-        "cn_js": '''document.getElementById('convertBtn').addEventListener('click',function(){var v=document.getElementById('binaryInput').value.trim();if(!v||!/^[01]+$/.test(v)){showToast('请输入有效的二进制数字');return}var dec=BigInt('0b'+v);document.getElementById('decResult').textContent=dec.toString();document.getElementById('octResult').textContent=dec.toString(8)});
-document.getElementById('copyBtn').addEventListener('click',function(){var t=document.getElementById('octResult').textContent;if(t&&t!=='等待输入...'){navigator.clipboard.writeText(t).then(function(){showToast('已复制')})}});
-document.getElementById('binaryInput').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('convertBtn').click()});''',
-        "en_controls": '''<div class="input-row"><input type="text" id="binaryInput" placeholder="Enter binary number (e.g. 1010)" style="flex:1"><button class="btn btn-primary" id="convertBtn">Convert</button><button class="btn btn-secondary" id="copyBtn">Copy</button></div>
-<div class="result-label">Octal Result</div><div class="result-box" id="octResult">Waiting for input...</div>
-<div class="result-label">Decimal Intermediate</div><div class="result-box" id="decResult" style="font-size:.9rem;color:#94a3b8">-</div>''',
-        "en_faqs": [("How does binary to octal conversion work?","Each 3 binary digits correspond to 1 octal digit. The tool converts binary→decimal→octal for accuracy."),("How large can the binary number be?","Any length of binary digits is supported using JavaScript BigInt."),("How can I verify results?","The decimal intermediate value is displayed for manual verification.")],
-        "en_js": '''document.getElementById('convertBtn').addEventListener('click',function(){var v=document.getElementById('binaryInput').value.trim();if(!v||!/^[01]+$/.test(v)){showToast('Please enter a valid binary number');return}var dec=BigInt('0b'+v);document.getElementById('decResult').textContent=dec.toString();document.getElementById('octResult').textContent=dec.toString(8)});
-document.getElementById('copyBtn').addEventListener('click',function(){var t=document.getElementById('octResult').textContent;if(t&&t!=='Waiting for input...'){navigator.clipboard.writeText(t).then(function(){showToast('Copied')})}});
-document.getElementById('binaryInput').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('convertBtn').click()});'''
-    },
-    "octal-to-hex": {
-        "cn_controls": '''<div class="input-row"><input type="text" id="octalInput" placeholder="输入八进制数字 (如 12)" style="flex:1"><button class="btn btn-primary" id="convertBtn">转换</button><button class="btn btn-secondary" id="copyBtn">复制</button></div>
-<div class="result-label">十六进制结果</div><div class="result-box" id="hexResult">等待输入...</div>
-<div class="result-label">十进制中间值</div><div class="result-box" id="decResult" style="font-size:.9rem;color:#94a3b8">-</div>''',
-        "cn_faqs": [("八进制转十六进制如何工作？","工具先将八进制转十进制，再转十六进制。使用BigInt保持精度。"),("支持多大的八进制数？","支持任意长度的八进制数字，使用JavaScript BigInt处理。"),("结果格式是什么？","十六进制结果使用小写字母a-f，如ff、1a2b等。")],
-        "cn_js": '''document.getElementById('convertBtn').addEventListener('click',function(){var v=document.getElementById('octalInput').value.trim();if(!v||!/^[0-7]+$/.test(v)){showToast('请输入有效的八进制数字(0-7)');return}var dec=0n;for(var i=0;i<v.length;i++)dec=dec*8n+BigInt(parseInt(v[i]));document.getElementById('decResult').textContent=dec.toString();document.getElementById('hexResult').textContent=dec.toString(16)});
-document.getElementById('copyBtn').addEventListener('click',function(){var t=document.getElementById('hexResult').textContent;if(t&&t!=='等待输入...'){navigator.clipboard.writeText(t).then(function(){showToast('已复制')})}});
-document.getElementById('octalInput').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('convertBtn').click()});''',
-        "en_controls": '''<div class="input-row"><input type="text" id="octalInput" placeholder="Enter octal number (e.g. 12)" style="flex:1"><button class="btn btn-primary" id="convertBtn">Convert</button><button class="btn btn-secondary" id="copyBtn">Copy</button></div>
-<div class="result-label">Hexadecimal Result</div><div class="result-box" id="hexResult">Waiting for input...</div>
-<div class="result-label">Decimal Intermediate</div><div class="result-box" id="decResult" style="font-size:.9rem;color:#94a3b8">-</div>''',
-        "en_faqs": [("How does octal to hex conversion work?","The tool converts octal→decimal→hex using BigInt for precision."),("How large can the octal number be?","Any length of octal digits is supported using JavaScript BigInt."),("What format is the hex result?","Lowercase hex digits a-f, e.g. ff, 1a2b etc.")],
-        "en_js": '''document.getElementById('convertBtn').addEventListener('click',function(){var v=document.getElementById('octalInput').value.trim();if(!v||!/^[0-7]+$/.test(v)){showToast('Please enter a valid octal number (0-7)');return}var dec=0n;for(var i=0;i<v.length;i++)dec=dec*8n+BigInt(parseInt(v[i]));document.getElementById('decResult').textContent=dec.toString();document.getElementById('hexResult').textContent=dec.toString(16)});
-document.getElementById('copyBtn').addEventListener('click',function(){var t=document.getElementById('hexResult').textContent;if(t&&t!=='Waiting for input...'){navigator.clipboard.writeText(t).then(function(){showToast('Copied')})}});
-document.getElementById('octalInput').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('convertBtn').click()});'''
-    },
-    "chess-clock": {
-        "cn_controls": '''<div class="input-row"><label>初始时间(分)</label><input type="number" id="initTime" value="5" min="1" max="120" style="width:80px"><label>增量(秒)</label><input type="number" id="increment" value="0" min="0" max="60" style="width:80px"><button class="btn btn-primary" id="resetBtn">重置</button></div>
-<div class="stats-grid"><div class="stat-card" id="player1Card" style="cursor:pointer"><div class="stat-label">玩家1 ♟️</div><div class="stat-value" id="player1Time" style="font-size:2rem">5:00</div><div class="stat-label">点击计时</div></div><div class="stat-card" id="player2Card" style="cursor:pointer"><div class="stat-label">玩家2 ♟️</div><div class="stat-value" id="player2Time" style="font-size:2rem">5:00</div><div class="stat-label">点击计时</div></div></div>
-<div style="text-align:center;margin-top:12px;color:#64748b;font-size:.85rem">点击玩家卡片开始/切换计时</div>''',
-        "cn_faqs": [("如何使用棋钟？","设置初始时间和增量秒数后，点击玩家卡片开始计时。每点击一次，当前玩家暂停，对手开始计时。"),("什么是增量时间？","每次玩家完成一步后自动增加的时间（菲舍尔制），常用于正式比赛。"),("数据保存吗？","不，所有数据仅在当前页面，刷新后重置。")],
-        "cn_js": '''var p1Time,p2Time,currentPlayer,timerInterval,inc;
-function formatTime(sec){var m=Math.floor(sec/60);var s=sec%60;return m+':'+String(s).padStart(2,'0')}
-function updateDisplay(){document.getElementById('player1Time').textContent=formatTime(p1Time);document.getElementById('player2Time').textContent=formatTime(p2Time)}
-function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterval=null}}
-function switchPlayer(){stopTimer();if(currentPlayer===1){p1Time+=inc;currentPlayer=2}else{p2Time+=inc;currentPlayer=1}updateDisplay();startTimer()}
-function startTimer(){document.getElementById('player1Card').style.borderColor='rgba(148,163,184,.15)';document.getElementById('player2Card').style.borderColor='rgba(148,163,184,.15)';if(currentPlayer===1)document.getElementById('player1Card').style.borderColor='#22d3ee';else document.getElementById('player2Card').style.borderColor='#22d3ee';timerInterval=setInterval(function(){if(currentPlayer===1){p1Time--;if(p1Time<=0){p1Time=0;stopTimer();updateDisplay();showToast('玩家1超时！玩家2获胜！');return}}else{p2Time--;if(p2Time<=0){p2Time=0;stopTimer();updateDisplay();showToast('玩家2超时！玩家1获胜！');return}}updateDisplay()},1000)}
-function reset(){stopTimer();var initMin=parseInt(document.getElementById('initTime').value)||5;inc=parseInt(document.getElementById('increment').value)||0;p1Time=initMin*60;p2Time=initMin*60;currentPlayer=0;updateDisplay();document.getElementById('player1Card').style.borderColor='rgba(148,163,184,.15)';document.getElementById('player2Card').style.borderColor='rgba(148,163,184,.15)'}
-document.getElementById('player1Card').addEventListener('click',function(){if(currentPlayer===0){currentPlayer=1;startTimer()}else if(currentPlayer===2){switchPlayer()}else{showToast('已经是玩家1的回合')}});
-document.getElementById('player2Card').addEventListener('click',function(){if(currentPlayer===0){currentPlayer=2;startTimer()}else if(currentPlayer===1){switchPlayer()}else{showToast('已经是玩家2的回合')}});
-document.getElementById('resetBtn').addEventListener('click',reset);
-reset();''',
-        "en_controls": '''<div class="input-row"><label>Initial Time (min)</label><input type="number" id="initTime" value="5" min="1" max="120" style="width:80px"><label>Increment (sec)</label><input type="number" id="increment" value="0" min="0" max="60" style="width:80px"><button class="btn btn-primary" id="resetBtn">Reset</button></div>
-<div class="stats-grid"><div class="stat-card" id="player1Card" style="cursor:pointer"><div class="stat-label">Player 1 ♟️</div><div class="stat-value" id="player1Time" style="font-size:2rem">5:00</div><div class="stat-label">Tap to move</div></div><div class="stat-card" id="player2Card" style="cursor:pointer"><div class="stat-label">Player 2 ♟️</div><div class="stat-value" id="player2Time" style="font-size:2rem">5:00</div><div class="stat-label">Tap to move</div></div></div>
-<div style="text-align:center;margin-top:12px;color:#64748b;font-size:.85rem">Tap a player card to start/switch the clock</div>''',
-        "en_faqs": [("How does the chess clock work?","Set initial time and increment, then tap a player card to start timing. Each tap switches to the opponent."),("What is increment time?","Added seconds after each move (Fischer timing), commonly used in tournaments."),("Is data saved?","No, all data is local to this page. Refreshing resets the clock.")],
-        "en_js": '''var p1Time,p2Time,currentPlayer,timerInterval,inc;
-function formatTime(sec){var m=Math.floor(sec/60);var s=sec%60;return m+':'+String(s).padStart(2,'0')}
-function updateDisplay(){document.getElementById('player1Time').textContent=formatTime(p1Time);document.getElementById('player2Time').textContent=formatTime(p2Time)}
-function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterval=null}}
-function switchPlayer(){stopTimer();if(currentPlayer===1){p1Time+=inc;currentPlayer=2}else{p2Time+=inc;currentPlayer=1}updateDisplay();startTimer()}
-function startTimer(){document.getElementById('player1Card').style.borderColor='rgba(148,163,184,.15)';document.getElementById('player2Card').style.borderColor='rgba(148,163,184,.15)';if(currentPlayer===1)document.getElementById('player1Card').style.borderColor='#22d3ee';else document.getElementById('player2Card').style.borderColor='#22d3ee';timerInterval=setInterval(function(){if(currentPlayer===1){p1Time--;if(p1Time<=0){p1Time=0;stopTimer();updateDisplay();showToast('Player 1 timeout! Player 2 wins!');return}}else{p2Time--;if(p2Time<=0){p2Time=0;stopTimer();updateDisplay();showToast('Player 2 timeout! Player 1 wins!');return}}updateDisplay()},1000)}
-function reset(){stopTimer();var initMin=parseInt(document.getElementById('initTime').value)||5;inc=parseInt(document.getElementById('increment').value)||0;p1Time=initMin*60;p2Time=initMin*60;currentPlayer=0;updateDisplay();document.getElementById('player1Card').style.borderColor='rgba(148,163,184,.15)';document.getElementById('player2Card').style.borderColor='rgba(148,163,184,.15)'}
-document.getElementById('player1Card').addEventListener('click',function(){if(currentPlayer===0){currentPlayer=1;startTimer()}else if(currentPlayer===2){switchPlayer()}else{showToast('Already Player 1 turn')}});
-document.getElementById('player2Card').addEventListener('click',function(){if(currentPlayer===0){currentPlayer=2;startTimer()}else if(currentPlayer===1){switchPlayer()}else{showToast('Already Player 2 turn')}});
-document.getElementById('resetBtn').addEventListener('click',reset);
-reset();'''
-    },
-    "html-unescape": {
-        "cn_controls": '''<div class="input-row"><textarea id="htmlInput" placeholder="输入HTML实体文本...(&amp; &lt; &gt; &quot; &#x27; &#39; &#60; &#62; &#38;)" style="flex:1;padding:12px;border:1px solid rgba(148,163,184,.2);border-radius:8px;background:#0f172a;color:#e2e8f0;font-size:.9rem;resize:vertical;min-height:100px;font-family:monospace"></textarea></div>
-<div class="input-row"><button class="btn btn-primary" id="decodeBtn">解码</button><button class="btn btn-secondary" id="copyBtn">复制结果</button><button class="btn btn-secondary" id="clearBtn">清空</button></div>
-<div class="result-label">解码结果</div><div class="result-box" id="result" style="min-height:60px;white-space:pre-wrap">等待输入...</div>''',
-        "cn_faqs": [("什么是HTML实体？","HTML实体是用特殊代码表示字符的方式，如&amp;表示&。用于在HTML中安全显示保留字符。"),("支持哪些实体？","支持命名实体(&amp; &lt; &gt; &quot; &#x27; &#39;)和数字实体(&#38; &#x26; &#x0026;)。"),("解码是否安全？","完全在浏览器本地完成，不会上传或存储您的数据。")],
-        "cn_js": '''document.getElementById('decodeBtn').addEventListener('click',function(){var t=document.getElementById('htmlInput').value;if(!t){showToast('请输入HTML实体文本');return}var el=document.createElement('textarea');el.innerHTML=t;document.getElementById('result').textContent=el.value});
-document.getElementById('copyBtn').addEventListener('click',function(){var t=document.getElementById('result').textContent;if(t&&t!=='等待输入...'){navigator.clipboard.writeText(t).then(function(){showToast('已复制')})}});
-document.getElementById('clearBtn').addEventListener('click',function(){document.getElementById('htmlInput').value='';document.getElementById('result').textContent='等待输入...'});''',
-        "en_controls": '''<div class="input-row"><textarea id="htmlInput" placeholder="Enter HTML entity text... (&amp; &lt; &gt; &quot; &#x27; &#39; &#60; &#62; &#38;)" style="flex:1;padding:12px;border:1px solid rgba(148,163,184,.2);border-radius:8px;background:#0f172a;color:#e2e8f0;font-size:.9rem;resize:vertical;min-height:100px;font-family:monospace"></textarea></div>
-<div class="input-row"><button class="btn btn-primary" id="decodeBtn">Decode</button><button class="btn btn-secondary" id="copyBtn">Copy Result</button><button class="btn btn-secondary" id="clearBtn">Clear</button></div>
-<div class="result-label">Decoded Result</div><div class="result-box" id="result" style="min-height:60px;white-space:pre-wrap">Waiting for input...</div>''',
-        "en_faqs": [("What are HTML entities?","HTML entities are special codes representing characters, e.g. &amp; for &. Used to safely display reserved characters in HTML."),("Which entities are supported?","Named entities (&amp; &lt; &gt; &quot; &#x27; &#39;) and numeric entities (&#38; &#x26; &#x0026;)."),("Is decoding safe?","Completely done in your browser. No data is uploaded or stored.")],
-        "en_js": '''document.getElementById('decodeBtn').addEventListener('click',function(){var t=document.getElementById('htmlInput').value;if(!t){showToast('Please enter HTML entity text');return}var el=document.createElement('textarea');el.innerHTML=t;document.getElementById('result').textContent=el.value});
-document.getElementById('copyBtn').addEventListener('click',function(){var t=document.getElementById('result').textContent;if(t&&t!=='Waiting for input...'){navigator.clipboard.writeText(t).then(function(){showToast('Copied')})}});
-document.getElementById('clearBtn').addEventListener('click',function(){document.getElementById('htmlInput').value='';document.getElementById('result').textContent='Waiting for input...'});'''
-    },
-    "coin-flip-online": {
-        "cn_controls": '''<div class="result-box" id="coinDisplay" style="text-align:center;font-size:5rem;padding:30px;cursor:pointer">🪙</div>
-<div class="btn-row"><button class="btn btn-primary btn-large" id="flipBtn">抛硬币！</button><button class="btn btn-secondary" id="resetBtn">重置统计</button></div>
-<div class="stats-grid"><div class="stat-card"><div class="stat-value" id="totalFlips">0</div><div class="stat-label">总次数</div></div><div class="stat-card"><div class="stat-value" id="headsCount">0</div><div class="stat-label">正面 🌞</div></div><div class="stat-card"><div class="stat-value" id="tailsCount">0</div><div class="stat-label">反面 🌙</div></div></div>''',
-        "cn_faqs": [("抛硬币是真正随机的吗？","使用JavaScript的Math.random()生成随机数，虽然技术上不是真随机，但对日常使用足够公平。"),("可以连续抛吗？","可以，点击'抛硬币'按钮即可连续抛掷，统计数据会累计。"),("正面反面的概率是多少？","理论上各50%，随着抛掷次数增加会趋近50%。")],
-        "cn_js": '''var total=0,heads=0,tails=0;
-function updateStats(){document.getElementById('totalFlips').textContent=total;document.getElementById('headsCount').textContent=heads;document.getElementById('tailsCount').textContent=tails;var hPct=total>0?Math.round(heads/total*100):50;var tPct=total>0?Math.round(tails/total*100):50}
-function flip(){var isHeads=Math.random()<0.5;total++;var coin=document.getElementById('coinDisplay');coin.style.transform='rotateY(720deg)';coin.style.transition='none';coin.textContent='🪙';setTimeout(function(){coin.style.transition='transform 0.6s ease-out';coin.style.transform='rotateY(0deg)';if(isHeads){coin.textContent='🌞';heads++}else{coin.textContent='🌙';tails++}updateStats()},50)}
-document.getElementById('flipBtn').addEventListener('click',flip);
-document.getElementById('coinDisplay').addEventListener('click',flip);
-document.getElementById('resetBtn').addEventListener('click',function(){total=0;heads=0;tails=0;document.getElementById('coinDisplay').textContent='🪙';updateStats()});''',
-        "en_controls": '''<div class="result-box" id="coinDisplay" style="text-align:center;font-size:5rem;padding:30px;cursor:pointer">🪙</div>
-<div class="btn-row"><button class="btn btn-primary btn-large" id="flipBtn">Flip Coin!</button><button class="btn btn-secondary" id="resetBtn">Reset Stats</button></div>
-<div class="stats-grid"><div class="stat-card"><div class="stat-value" id="totalFlips">0</div><div class="stat-label">Total Flips</div></div><div class="stat-card"><div class="stat-value" id="headsCount">0</div><div class="stat-label">Heads 🌞</div></div><div class="stat-card"><div class="stat-value" id="tailsCount">0</div><div class="stat-label">Tails 🌙</div></div></div>''',
-        "en_faqs": [("Is the coin flip truly random?","Uses JavaScript Math.random(). Not cryptographically random, but fair enough for everyday use."),("Can I flip multiple times?","Yes, click 'Flip Coin' continuously. Statistics accumulate across flips."),("What's the heads/tails probability?","Theoretically 50% each. As flips increase, results converge toward 50%.")],
-        "en_js": '''var total=0,heads=0,tails=0;
-function updateStats(){document.getElementById('totalFlips').textContent=total;document.getElementById('headsCount').textContent=heads;document.getElementById('tailsCount').textContent=tails}
-function flip(){var isHeads=Math.random()<0.5;total++;var coin=document.getElementById('coinDisplay');coin.style.transform='rotateY(720deg)';coin.style.transition='none';coin.textContent='🪙';setTimeout(function(){coin.style.transition='transform 0.6s ease-out';coin.style.transform='rotateY(0deg)';if(isHeads){coin.textContent='🌞';heads++}else{coin.textContent='🌙';tails++}updateStats()},50)}
-document.getElementById('flipBtn').addEventListener('click',flip);
-document.getElementById('coinDisplay').addEventListener('click',flip);
-document.getElementById('resetBtn').addEventListener('click',function(){total=0;heads=0;tails=0;document.getElementById('coinDisplay').textContent='🪙';updateStats()});'''
-    }
-}
-
-def build_page(slug, cn_name, en_name, cn_desc, en_desc, category, cn_icon, en_icon, cn_keywords, en_keywords, is_en=False):
-    """构建工具页面HTML"""
-    td = TOOL_DATA.get(slug, {})
-    
-    if is_en:
-        head_top = EN_HEAD_TOP
-        title = f"{en_name} - Free ToolBase"
-        desc = en_desc
-        keywords = en_keywords
-        icon = en_icon
-        lang = "en"
-        hreflang_cn = f'<link rel="alternate" hreflang="zh" href="https://free-toolbase.com/{slug}/">'
-        hreflang_en = f'<link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/{slug}/">'
-        canonical = f'https://free-toolbase.com/en/{slug}/'
-        og_url = canonical
-        breadcrumb_home = "Home"
-        breadcrumb_tools = "Tools"
-        breadcrumb_name = en_name
-        home_url = "https://free-toolbase.com/en/"
-        tools_url = "https://free-toolbase.com/en/#tools"
-        item_url = canonical
-        lang_switch = f'<a href="../../{slug}/">中文</a><a href="index.html" class="active">EN</a>'
-        nav_back = f'<a href="../../index.html">Home</a> &rsaquo; <a href="../../#tools">Tools</a> &rsaquo; {en_name}'
-        hero_badge = "🔒 No registration · Data never uploaded"
-        privacy_text = "All processing happens locally in your browser. No data is ever uploaded."
-        footer_links = '<a href="../">Home</a> | <a href="../about/">About</a> | <a href="../contact/">Contact</a> | <a href="../privacy/">Privacy</a>'
-        footer_copy = "© 2026 Free ToolBase. All rights reserved."
-        controls = td.get("en_controls", "")
-        faqs = td.get("en_faqs", [])
-        extra_js = td.get("en_js", "")
-        faq_json = ','.join([f'{{"@type":"Question","name":"{q}","acceptedAnswer":{{"@type":"Answer","text":"{a}"}}}}' for q,a in faqs])
-        meta_desc = desc[:160]
-    else:
-        head_top = CN_HEAD_TOP
-        title = f"{cn_name} - Free ToolBase"
-        desc = cn_desc
-        keywords = cn_keywords
-        icon = cn_icon
-        lang = "zh-CN"
-        hreflang_cn = f'<link rel="alternate" hreflang="zh" href="https://free-toolbase.com/{slug}/">'
-        hreflang_en = f'<link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/{slug}/">'
-        canonical = f'https://free-toolbase.com/{slug}/'
-        og_url = canonical
-        breadcrumb_home = "首页"
-        breadcrumb_tools = "工具"
-        breadcrumb_name = cn_name
-        home_url = "https://free-toolbase.com/"
-        tools_url = "https://free-toolbase.com/#tools"
-        item_url = canonical
-        lang_switch = f'<a href="index.html" class="active">中文</a><a href="../en/{slug}/">EN</a>'
-        nav_back = f'<a href="../index.html">首页</a> &rsaquo; <a href="../#tools">工具</a> &rsaquo; {cn_name}'
-        hero_badge = "🔒 无需注册 · 数据绝不上传"
-        privacy_text = "所有处理均在浏览器本地完成，数据不会上传到服务器。"
-        footer_links = '<a href="../">首页</a> | <a href="../about/">关于</a> | <a href="../contact/">联系</a> | <a href="../privacy/">隐私</a>'
-        footer_copy = "© 2026 Free ToolBase. All rights reserved."
-        controls = td.get("cn_controls", "")
-        faqs = td.get("cn_faqs", [])
-        extra_js = td.get("cn_js", "")
-        faq_json = ','.join([f'{{"@type":"Question","name":"{q}","acceptedAnswer":{{"@type":"Answer","text":"{a}"}}}}' for q,a in faqs])
-        meta_desc = desc[:160]
-    
-    faq_html = '\n'.join([f'<div class="faq-item"><div class="faq-q">{q}</div><div class="faq-a">{a}</div></div>' for q,a in faqs])
-    
-    return f'''{head_top}<meta name="description" content="{meta_desc}">
-<meta name="keywords" content="{keywords}">
-<title>{title}</title>
-<link rel="canonical" href="{canonical}">
-<meta property="og:title" content="{title}">
-<meta property="og:description" content="{meta_desc}">
-<meta property="og:url" content="{og_url}">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Free ToolBase">
-{hreflang_cn}
-{hreflang_en}
-<link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/{slug}/">
-<script type="application/ld+json">{{"@context":"https://schema.org","@type":"SoftwareApplication","name":"{cn_name if not is_en else en_name}","description":"{desc}","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","publisher":{{"@type":"Organization","name":"Free ToolBase","email":"dexshuang@google.com"}},"offers":{{"@type":"Offer","price":"0","priceCurrency":"USD"}}}}</script>
-<script type="application/ld+json">{{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{faq_json}]}}</script>
-<script type="application/ld+json">{{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{{"@type":"ListItem","position":1,"name":"{breadcrumb_home}","item":"{home_url}"}},{{"@type":"ListItem","position":2,"name":"{breadcrumb_tools}","item":"{tools_url}"}},{{"@type":"ListItem","position":3,"name":"{breadcrumb_name}","item":"{item_url}"}}]}}</script>
-{CSS}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{name} - Free ToolBase</title>
+  <meta name="description" content="{desc}">
+  <meta name="keywords" content="{keywords}">
+  <link rel="canonical" href="{canonical}">
+  <link rel="alternate" hreflang="{alt_lang}" href="{alt_href}">
+  <link rel="alternate" hreflang="{'zh-CN' if not is_cn else 'en'}" href="{'https://free-toolbase.com/' + slug + '/' if not is_cn else 'https://free-toolbase.com/en/' + slug + '/'}">
+  <meta property="og:title" content="{name} - Free ToolBase">
+  <meta property="og:description" content="{desc}">
+  <meta property="og:url" content="{canonical}">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">
+  {{
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "{name}",
+    "description": "{desc}",
+    "applicationCategory": "WebApplication",
+    "operatingSystem": "Any",
+    "url": "{canonical}",
+    "offers": {{"@type": "Offer", "price": "0"}}
+  }}
+  </script>
+  <style>
+    :root {{
+      --primary: #4F46E5;
+      --primary-dark: #4338CA;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --radius: 12px;
+    }}
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }}
+    header {{
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }}
+    header .logo {{
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+    }}
+    header nav a {{
+      color: var(--text-secondary);
+      text-decoration: none;
+      margin-left: 20px;
+      font-size: 0.95rem;
+    }}
+    header nav a:hover {{ color: var(--primary); }}
+    main {{
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }}
+    h1 {{
+      font-size: 1.75rem;
+      margin-bottom: 8px;
+      color: var(--text);
+    }}
+    .subtitle {{
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }}
+    .input-group {{
+      margin-bottom: 16px;
+    }}
+    .input-group label {{
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }}
+    .input-group input,
+    .input-group textarea,
+    .input-group select {{
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+      background: var(--card-bg);
+      color: var(--text);
+      transition: border-color 0.2s;
+    }}
+    .input-group input:focus,
+    .input-group textarea:focus,
+    .input-group select:focus {{
+      outline: none;
+      border-color: var(--primary);
+    }}
+    .input-group textarea {{ resize: vertical; min-height: 80px; }}
+    .btn-row {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+      align-items: center;
+    }}
+    .btn-primary {{
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }}
+    .btn-primary:hover {{ background: var(--primary-dark); }}
+    .btn-secondary {{
+      background: var(--card-bg);
+      color: var(--text);
+      border: 2px solid var(--border);
+      padding: 12px 24px;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }}
+    .btn-secondary:hover {{ border-color: var(--primary); }}
+    .btn-danger {{
+      background: var(--danger);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      cursor: pointer;
+    }}
+    .result-box {{
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 8px;
+    }}
+    .result-header {{
+      font-weight: 700;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      color: var(--primary);
+    }}
+    .verify-table {{
+      width: 100%;
+      border-collapse: collapse;
+    }}
+    .verify-table td {{
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }}
+    .verify-table td:first-child {{
+      font-weight: 600;
+      color: var(--text-secondary);
+      width: 40%;
+    }}
+    .verify-table .pass {{ color: var(--success); font-weight: 600; }}
+    .verify-table .fail {{ color: var(--danger); font-weight: 600; }}
+    .verify-table .warn {{ color: var(--warning); font-weight: 600; }}
+    .verify-table th {{
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 2px solid var(--border);
+      color: var(--text-secondary);
+    }}
+    .tab-nav {{ display: flex; gap: 0; margin-bottom: 16px; border-bottom: 2px solid var(--border); }}
+    .tab-btn {{
+      padding: 10px 20px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }}
+    .tab-btn.active {{
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+    }}
+    .preset-btn {{
+      background: var(--card-bg);
+      color: var(--text);
+      border: 2px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }}
+    .preset-btn:hover {{ border-color: var(--primary); color: var(--primary); }}
+    .viewport-display {{
+      text-align: center;
+      padding: 24px;
+      background: linear-gradient(135deg, #4F46E5, #7C3AED);
+      color: white;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+    }}
+    .vp-size {{ font-size: 2rem; font-weight: 700; font-family: monospace; }}
+    .vp-label {{ font-size: 0.85rem; opacity: 0.85; margin-top: 4px; }}
+    .breakpoint-info {{
+      padding: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      text-align: center;
+    }}
+    .dns-record {{
+      padding: 8px 12px;
+      background: #f1f5f9;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-family: monospace;
+      font-size: 0.95rem;
+    }}
+    .icon-grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+      gap: 8px;
+      margin-top: 16px;
+    }}
+    .icon-item {{
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card-bg);
+      cursor: pointer;
+      transition: all 0.2s;
+    }}
+    .icon-item:hover {{ border-color: var(--primary); transform: scale(1.1); background: #EEF2FF; }}
+    .cat-btn {{
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }}
+    .cat-btn.active {{
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }}
+    .del-cookie-btn, .del-ls-btn, .del-ss-btn {{
+      background: var(--danger);
+      color: white;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }}
+    .unit {{ color: var(--text-secondary); font-size: 0.9rem; }}
+    .input-group input[type="number"] {{ width: 120px; display: inline-block; }}
+    footer {{
+      text-align: center;
+      padding: 24px;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+    }}
+    footer a {{ color: var(--primary); text-decoration: none; }}
+    #toast {{
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 9999;
+    }}
+    #toast.show {{ opacity: 1; }}
+    @media (max-width: 600px) {{
+      main {{ padding: 20px 16px; }}
+      h1 {{ font-size: 1.4rem; }}
+      .btn-row {{ flex-direction: column; }}
+      .btn-primary, .btn-secondary, .btn-danger {{ width: 100%; text-align: center; }}
+      .vp-size {{ font-size: 1.5rem; }}
+    }}
+  </style>
 </head>
 <body>
-<div class="container">
-<div class="header"><h1>{icon} {cn_name if not is_en else en_name}</h1><div class="lang-switch">{lang_switch}</div></div>
-<p class="nav-back">{nav_back}</p>
-<div class="hero"><p>{desc} <span class="badge">{hero_badge}</span></p></div>
-<div class="panel">
-  <div class="panel-title">{icon} {cn_name if not is_en else en_name}</div>
-  {controls}
-</div>
-<div class="privacy-note">🔒 <span>{privacy_text}</span></div>
-<div class="panel">
-  <div class="panel-title">{'❓ 常见问题' if not is_en else '❓ FAQ'}</div>
-{faq_html}</div>
-<div class="footer">{footer_links}<br>{footer_copy}</div>
-</div>
-<div class="toast" id="toast"></div>
-<script>
-function showToast(msg){{var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){{t.classList.remove('show')}},2000)}}
-{extra_js}
-</script>
+  <header>
+    <a href="{home_url}" class="logo">Free ToolBase</a>
+    <nav>
+      <a href="{home_url}">{home_label}</a>
+      <a href="{all_tools_url}">{all_tools_label}</a>
+    </nav>
+  </header>
+  <main>
+    <h1>{name}</h1>
+    <p class="subtitle">{desc}</p>
+    {html_body}
+  </main>
+  <footer>
+    <p>&copy; 2025 <a href="/">Free ToolBase</a> - {"免费在线工具" if is_cn else "Free Online Tools"}</p>
+  </footer>
+  <div id="toast"></div>
+  <script>
+    function showToast(msg) {{
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._timeout);
+      t._timeout = setTimeout(() => t.classList.remove('show'), 2500);
+    }}
+    {js_code}
+  </script>
 </body>
 </html>'''
 
-# 批量生成文件
-for tool in TOOLS:
-    slug = tool["slug"]
-    os.makedirs(f"{BASE}/{slug}", exist_ok=True)
-    os.makedirs(f"{BASE}/en/{slug}", exist_ok=True)
-    
-    cn_html = build_page(**tool, is_en=False)
-    en_html = build_page(**tool, is_en=True)
-    
-    with open(f"{BASE}/{slug}/index.html", "w") as f:
-        f.write(cn_html)
-    with open(f"{BASE}/en/{slug}/index.html", "w") as f:
-        f.write(en_html)
-    
-    print(f"✅ {slug} (CN + EN)")
+# 生成所有页面
+for t in tools:
+    slug = t['slug']
+    # 中文版
+    cn_path = os.path.join(BASE, slug, 'index.html')
+    with open(cn_path, 'w', encoding='utf-8') as f:
+        f.write(make_page(t, 'cn'))
+    print(f'✅ {slug}/index.html (CN)')
+    # 英文版
+    en_path = os.path.join(BASE, 'en', slug, 'index.html')
+    with open(en_path, 'w', encoding='utf-8') as f:
+        f.write(make_page(t, 'en'))
+    print(f'✅ en/{slug}/index.html (EN)')
 
-print(f"\n完成！共生成 {len(TOOLS)} 个工具（每个CN+EN）")
+print(f'\n共生成 {len(tools)} 个工具 × 2 = {len(tools)*2} 个页面')
