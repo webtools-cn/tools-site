@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>网页无障碍检查器 - Free ToolBase</title>
+  <meta name="description" content="在线检查网页无障碍问题。测试颜色对比度、字体大小、图片alt文本、链接可访问性等WCAG标准合规情况，生成详细报告。">
+  <meta property="og:title" content="网页无障碍检查器 - Free ToolBase">
+  <meta property="og:description" content="检查颜色对比度、字体、alt文本等无障碍问题，符合WCAG标准。">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"网页无障碍检查器","applicationCategory":"DeveloperApplication","operatingSystem":"Web Browser","description":"在线检查网页无障碍问题，测试颜色对比度、字体大小等WCAG标准合规情况。"}</script>
+  <style>
+    :root { --primary: #4F46E5; --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --danger: #ef4444; --warning: #f59e0b; --success: #10b981; --radius: 12px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    header .logo { font-size: 1.25rem; font-weight: 700; color: var(--primary); text-decoration: none; }
+    header nav { display: flex; gap: 16px; }
+    header nav a { color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; }
+    header nav a:hover { color: var(--primary); }
+    main { max-width: 960px; margin: 0 auto; padding: 32px 16px; }
+    h1 { font-size: 1.8rem; margin-bottom: 8px; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+    .card h2 { font-size: 1.1rem; margin-bottom: 16px; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
+    .row .field { display: flex; flex-direction: column; gap: 4px; }
+    .row .field label { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; }
+    .row input, .row textarea { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; }
+    .row input { min-width: 120px; }
+    .row textarea { width: 100%; min-height: 100px; resize: vertical; font-family: monospace; }
+    .row input:focus, .row textarea:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
+    button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .color-preview { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; }
+    .color-swatch { width: 48px; height: 48px; border-radius: 8px; border: 1px solid var(--border); }
+    .color-inputs { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .result { padding: 8px 12px; border-radius: 6px; margin-bottom: 8px; font-size: 0.9rem; }
+    .result.pass { background: #d1fae5; color: #065f46; }
+    .result.fail { background: #fee2e2; color: #991b1b; }
+    .result.warn { background: #fef3c7; color: #92400e; }
+    .ratio-display { font-size: 2rem; font-weight: 700; text-align: center; margin: 16px 0; }
+    .wcag-badges { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    .wcag-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+    .wcag-badge.pass { background: #d1fae5; color: #065f46; }
+    .wcag-badge.fail { background: #fee2e2; color: #991b1b; }
+    .tab-bar { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 16px; }
+    .tab { padding: 8px 16px; cursor: pointer; font-size: 0.9rem; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -2px; }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    footer { text-align: center; padding: 32px 16px; color: var(--text-secondary); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 16px; }
+    footer a { color: var(--primary); text-decoration: none; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 0.9rem; z-index: 100; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+    @media (max-width: 640px) {
+      main { padding: 16px 12px; }
+      h1 { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <a href="/" class="logo">Free ToolBase</a>
+  <nav>
+    <a href="/">首页</a>
+    <a href="/en/">English</a>
+  </nav>
+</header>
+<main>
+  <h1>网页无障碍检查器</h1>
+  <p class="subtitle">检查颜色对比度、字体大小、alt文本等无障碍问题，符合 WCAG 2.1 标准。</p>
+
+  <div class="card">
+    <div class="tab-bar" id="tabs">
+      <div class="tab active" data-tab="contrast">颜色对比度</div>
+      <div class="tab" data-tab="text">文本可读性</div>
+      <div class="tab" data-tab="html">HTML 代码分析</div>
+    </div>
+
+    <!-- Contrast Tab -->
+    <div class="tab-content active" id="tab-contrast">
+      <h2>颜色对比度检查</h2>
+      <div class="row">
+        <div class="field">
+          <label>前景色 (文字)</label>
+          <input type="text" id="fgColor" value="#4F46E5" placeholder="#4F46E5" maxlength="7">
+        </div>
+        <div class="field">
+          <label>背景色</label>
+          <input type="text" id="bgColor" value="#FFFFFF" placeholder="#FFFFFF" maxlength="7">
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button class="btn-primary" id="checkContrastBtn">检查对比度</button>
+        </div>
+      </div>
+      <div class="color-preview" style="background: #fff; padding: 20px; border-radius: 8px;" id="previewArea">
+        <span id="previewText" style="font-size: 1.1rem;">示例文字 Sample Text</span>
+      </div>
+      <div class="ratio-display" id="ratioDisplay">21.00:1</div>
+      <div class="wcag-badges" id="wcagBadges"></div>
+    </div>
+
+    <!-- Text Tab -->
+    <div class="tab-content" id="tab-text">
+      <h2>文本可读性检查</h2>
+      <div class="field" style="margin-bottom:12px;">
+        <label>输入文本进行检查</label>
+        <textarea id="textInput" placeholder="在此粘贴或输入文本，检查可读性问题...">这是一段示例文本，用于测试字体大小和可读性。</textarea>
+      </div>
+      <div class="field" style="margin-bottom:12px;">
+        <label>字体大小 (px)</label>
+        <input type="number" id="fontSizeInput" value="16" min="8" max="72" style="width:100px;">
+      </div>
+      <button class="btn-primary" id="checkTextBtn">检查文本</button>
+      <div id="textResults" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- HTML Tab -->
+    <div class="tab-content" id="tab-html">
+      <h2>HTML 代码无障碍分析</h2>
+      <div class="field" style="margin-bottom:12px;">
+        <label>粘贴 HTML 代码片段</label>
+        <textarea id="htmlInput" placeholder="在此粘贴HTML代码..."><img src="photo.jpg">
+<input type="text">
+<a href="#">点击这里</a>
+<button></button></textarea>
+      </div>
+      <button class="btn-primary" id="checkHtmlBtn">分析 HTML</button>
+      <div id="htmlResults" style="margin-top:12px;"></div>
+    </div>
+  </div>
+</main>
+<footer>
+  <p>Free ToolBase © 2024 — <a href="/">更多免费工具</a></p>
+</footer>
+<div class="toast" id="toast"></div>
+<script>
+(function() {
+  // Tab switching
+  document.getElementById('tabs').addEventListener('click', function(e) {
+    var tab = e.target.closest('.tab');
+    if (!tab) return;
+    var tabName = tab.dataset.tab;
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+    tab.classList.add('active');
+    document.getElementById('tab-' + tabName).classList.add('active');
+  });
+
+  // Parse color
+  function parseColor(hex) {
+    hex = hex.replace('#', '').trim();
+    if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+    if (hex.length !== 6) return null;
+    var r = parseInt(hex.substr(0,2), 16);
+    var g = parseInt(hex.substr(2,2), 16);
+    var b = parseInt(hex.substr(4,2), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return null;
+    return { r: r, g: g, b: b };
+  }
+
+  function relativeLuminance(c) {
+    var rs = c.r / 255, gs = c.g / 255, bs = c.b / 255;
+    function cLin(ch) { return ch <= 0.03928 ? ch / 12.92 : Math.pow((ch + 0.055) / 1.055, 2.4); }
+    return 0.2126 * cLin(rs) + 0.7152 * cLin(gs) + 0.0722 * cLin(bs);
+  }
+
+  function contrastRatio(l1, l2) {
+    var lighter = Math.max(l1, l2);
+    var darker = Math.min(l1, l2);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  // Contrast checker
+  document.getElementById('checkContrastBtn').addEventListener('click', checkContrast);
+  document.getElementById('fgColor').addEventListener('input', checkContrast);
+  document.getElementById('bgColor').addEventListener('input', checkContrast);
+
+  function checkContrast() {
+    var fg = parseColor(document.getElementById('fgColor').value);
+    var bg = parseColor(document.getElementById('bgColor').value);
+    var ratioDisplay = document.getElementById('ratioDisplay');
+    var wcagBadges = document.getElementById('wcagBadges');
+    var previewArea = document.getElementById('previewArea');
+    var previewText = document.getElementById('previewText');
+
+    if (!fg || !bg) {
+      ratioDisplay.textContent = '无效颜色';
+      wcagBadges.innerHTML = '';
+      return;
+    }
+
+    previewArea.style.backgroundColor = '#' + toHex(bg);
+    previewText.style.color = '#' + toHex(fg);
+
+    var l1 = relativeLuminance(fg);
+    var l2 = relativeLuminance(bg);
+    var ratio = contrastRatio(l1, l2);
+
+    ratioDisplay.textContent = ratio.toFixed(2) + ':1';
+
+    var html = '';
+    html += '<div class="wcag-badge ' + (ratio >= 7 ? 'pass' : 'fail') + '">AAA 正常文本 ' + (ratio >= 7 ? '✅' : '❌') + '</div>';
+    html += '<div class="wcag-badge ' + (ratio >= 4.5 ? 'pass' : 'fail') + '">AA 正常文本 ' + (ratio >= 4.5 ? '✅' : '❌') + '</div>';
+    html += '<div class="wcag-badge ' + (ratio >= 4.5 ? 'pass' : 'fail') + '">AAA 大文本 ' + (ratio >= 4.5 ? '✅' : '❌') + '</div>';
+    html += '<div class="wcag-badge ' + (ratio >= 3 ? 'pass' : 'fail') + '">AA 大文本 ' + (ratio >= 3 ? '✅' : '❌') + '</div>';
+    wcagBadges.innerHTML = html;
+  }
+
+  function toHex(c) {
+    return [c.r, c.g, c.b].map(function(v) { return v.toString(16).padStart(2, '0'); }).join('');
+  }
+
+  // Text checker
+  document.getElementById('checkTextBtn').addEventListener('click', function() {
+    var text = document.getElementById('textInput').value;
+    var fontSize = parseInt(document.getElementById('fontSizeInput').value) || 16;
+    var results = document.getElementById('textResults');
+    var items = [];
+
+    if (fontSize < 12) items.push({ cls: 'fail', txt: '❌ 字体小于12px，难以阅读。建议至少16px。' });
+    else if (fontSize < 16) items.push({ cls: 'warn', txt: '⚠️ 字体为' + fontSize + 'px，建议至少16px以确保可读性。' });
+    else items.push({ cls: 'pass', txt: '✅ 字体大小 ' + fontSize + 'px 符合推荐标准。' });
+
+    if (text.length < 10) items.push({ cls: 'warn', txt: '⚠️ 文本内容过短，无法充分分析。' });
+    else items.push({ cls: 'pass', txt: '✅ 文本长度足够 (共' + text.length + '字符)。' });
+
+    var lines = text.split('\n').filter(function(l) { return l.trim(); });
+    if (lines.length > 0) {
+      var longestLine = Math.max.apply(null, lines.map(function(l) { return l.length; }));
+      var charsPerLine = 65;
+      if (longestLine > charsPerLine * 1.5) items.push({ cls: 'warn', txt: '⚠️ 部分行超过 ' + Math.round(charsPerLine * 1.5) + ' 个字符，建议每行不超过65字符以提高可读性。' });
+      else items.push({ cls: 'pass', txt: '✅ 行长度合理 (最长' + longestLine + '字符)，阅读体验好。' });
+    }
+
+    results.innerHTML = items.map(function(i) { return '<div class="result ' + i.cls + '">' + i.txt + '</div>'; }).join('');
+  });
+
+  // HTML checker
+  document.getElementById('checkHtmlBtn').addEventListener('click', function() {
+    var html = document.getElementById('htmlInput').value;
+    var results = document.getElementById('htmlResults');
+    var items = [];
+
+    // Check images without alt
+    var imgRegex = /<img\b[^>]*>/gi;
+    var imgMatch = html.match(imgRegex);
+    if (imgMatch) {
+      var missingAlt = imgMatch.filter(function(t) { return !/\balt=/.test(t); }).length;
+      if (missingAlt > 0) items.push({ cls: 'fail', txt: '❌ 发现 ' + missingAlt + ' 个图片缺少 alt 属性。所有图片必须有描述性的 alt 文本。' });
+      else items.push({ cls: 'pass', txt: '✅ 所有 ' + imgMatch.length + ' 个图片都有 alt 属性。' });
+    } else {
+      items.push({ cls: 'pass', txt: '✅ 未发现图片标签。' });
+    }
+
+    // Check empty links
+    var linkRegex = /<a\b[^>]*>([\s]*?)<\/a>/gi;
+    var emptyLinks = html.match(linkRegex);
+    if (emptyLinks && emptyLinks.length > 0) items.push({ cls: 'fail', txt: '❌ 发现 ' + emptyLinks.length + ' 个空链接，应包含描述性文本。' });
+
+    // Check empty buttons
+    var btnRegex = /<button\b[^>]*>([\s]*?)<\/button>/gi;
+    var emptyBtns = html.match(btnRegex);
+    if (emptyBtns && emptyBtns.length > 0) items.push({ cls: 'fail', txt: '❌ 发现 ' + emptyBtns.length + ' 个空按钮，应包含描述性文本。' });
+
+    // Check inputs without labels
+    var inputRegex = /<input\b[^>]*>/gi;
+    var inputMatch = html.match(inputRegex);
+    if (inputMatch) {
+      var inputsWithout = inputMatch.filter(function(t) { return !/\bid=/.test(t) || !/\btype=["']hidden/.test(t) && !/\btype=["']submit/.test(t); });
+      if (inputsWithout.length > 0) items.push({ cls: 'warn', txt: '⚠️ 发现 ' + inputMatch.length + ' 个输入标签，确保每个都有对应的 label 标签。' });
+    }
+
+    if (items.length === 0) items.push({ cls: 'pass', txt: '✅ 未发现明显的无障碍问题。' });
+
+    results.innerHTML = items.map(function(i) { return '<div class="result ' + i.cls + '">' + i.txt + '</div>'; }).join('');
+  });
+
+  // Initial contrast check
+  checkContrast();
+})();
+</script>
+</body>
+</html>

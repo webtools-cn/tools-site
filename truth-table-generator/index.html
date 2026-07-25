@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>真值表生成器 - Free ToolBase</title>
+  <meta name="description" content="在线生成逻辑表达式的真值表，支持AND/OR/NOT/XOR/IMPLIES等逻辑运算符，直观展示布尔函数的所有可能输入组合与输出结果。">
+  <meta property="og:title" content="真值表生成器 - Free ToolBase">
+  <meta property="og:description" content="在线生成逻辑表达式的真值表，支持AND/OR/NOT/XOR/IMPLIES等逻辑运算符。">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"真值表生成器","applicationCategory":"EducationalApplication","operatingSystem":"Web Browser","description":"在线生成逻辑表达式的真值表，支持AND/OR/NOT/XOR/IMPLIES等逻辑运算符。"}</script>
+  <style>
+    :root { --primary: #4F46E5; --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --danger: #ef4444; --success: #10b981; --radius: 12px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    header .logo { font-size: 1.25rem; font-weight: 700; color: var(--primary); text-decoration: none; }
+    header nav { display: flex; gap: 16px; }
+    header nav a { color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; }
+    header nav a:hover { color: var(--primary); }
+    main { max-width: 960px; margin: 0 auto; padding: 32px 16px; }
+    h1 { font-size: 1.8rem; margin-bottom: 8px; }
+    .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+    .card h2 { font-size: 1.1rem; margin-bottom: 16px; }
+    .input-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .input-group input { flex: 1; min-width: 200px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; }
+    .input-group input:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
+    button { padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-sm { padding: 6px 14px; font-size: 0.85rem; }
+    .ops { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .op-btn { padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); cursor: pointer; font-size: 0.85rem; transition: all 0.15s; }
+    .op-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .op-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.9rem; }
+    th, td { padding: 8px 12px; text-align: center; border: 1px solid var(--border); }
+    th { background: #f1f5f9; font-weight: 600; }
+    td.result-true { background: #d1fae5; color: #065f46; font-weight: 700; }
+    td.result-false { background: #fee2e2; color: #991b1b; font-weight: 700; }
+    .error { color: var(--danger); font-size: 0.9rem; margin-top: 8px; }
+    .hint { color: var(--text-secondary); font-size: 0.85rem; margin-top: 4px; }
+    .output-area { position: relative; }
+    .copy-btn { position: absolute; top: 8px; right: 8px; }
+    .summary { font-size: 0.95rem; color: var(--text-secondary); margin-top: 8px; }
+    textarea { width: 100%; min-height: 120px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: monospace; font-size: 0.9rem; resize: vertical; }
+    footer { text-align: center; padding: 32px 16px; color: var(--text-secondary); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 16px; }
+    footer a { color: var(--primary); text-decoration: none; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 0.9rem; z-index: 100; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+    @media (max-width: 640px) {
+      main { padding: 16px 12px; }
+      h1 { font-size: 1.4rem; }
+      .input-group { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <a href="/" class="logo">Free ToolBase</a>
+  <nav>
+    <a href="/">首页</a>
+    <a href="/en/">English</a>
+  </nav>
+</header>
+<main>
+  <h1>真值表生成器</h1>
+  <p class="subtitle">输入逻辑表达式，自动生成完整真值表。支持 AND、OR、NOT、XOR、IMPLIES 等逻辑运算符。</p>
+
+  <div class="card">
+    <h2>输入逻辑表达式</h2>
+    <div class="ops" id="opButtons">
+      <button class="op-btn" data-op="AND">AND</button>
+      <button class="op-btn" data-op="OR">OR</button>
+      <button class="op-btn" data-op="NOT">NOT</button>
+      <button class="op-btn" data-op="XOR">XOR</button>
+      <button class="op-btn" data-op="→" data-impl="IMPLIES">→ (IMPLIES)</button>
+      <button class="op-btn" data-op="(">(</button>
+      <button class="op-btn" data-op=")">)</button>
+    </div>
+    <div class="input-group">
+      <input type="text" id="expressionInput" placeholder="例如: (A AND B) OR (NOT C)" autocomplete="off">
+      <button class="btn-primary" id="generateBtn">生成真值表</button>
+    </div>
+    <p class="hint">支持的变量: A-Z (最多5个变量)。运算符: AND, OR, NOT, XOR, → (IMPLIES), 括号。</p>
+    <p class="error" id="errorMsg" style="display:none;"></p>
+  </div>
+
+  <div class="card output-area" id="resultCard" style="display:none;">
+    <h2>真值表 <button class="btn-secondary btn-sm copy-btn" id="copyBtn">📋 复制</button></h2>
+    <p class="summary" id="summary"></p>
+    <div id="tableContainer"></div>
+  </div>
+</main>
+<footer>
+  <p>Free ToolBase © 2024 — <a href="/">更多免费工具</a></p>
+</footer>
+<div class="toast" id="toast"></div>
+<script>
+(function() {
+  const exprInput = document.getElementById('expressionInput');
+  const generateBtn = document.getElementById('generateBtn');
+  const errorMsg = document.getElementById('errorMsg');
+  const resultCard = document.getElementById('resultCard');
+  const tableContainer = document.getElementById('tableContainer');
+  const summaryEl = document.getElementById('summary');
+  const copyBtn = document.getElementById('copyBtn');
+  const toast = document.getElementById('toast');
+
+  const opButtons = document.getElementById('opButtons');
+  opButtons.addEventListener('click', function(e) {
+    const btn = e.target.closest('.op-btn');
+    if (!btn) return;
+    const op = btn.dataset.op;
+    exprInput.value += ' ' + op + ' ';
+    exprInput.focus();
+  });
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(function() { toast.classList.remove('show'); }, 2000);
+  }
+
+  function parseExpression(expr) {
+    var vars = [];
+    var seen = {};
+    var matches = expr.match(/[A-Za-z]/g);
+    if (matches) {
+      matches.forEach(function(v) {
+        var upper = v.toUpperCase();
+        if (!seen[upper] && upper >= 'A' && upper <= 'Z') {
+          seen[upper] = true;
+          vars.push(upper);
+        }
+      });
+    }
+    vars.sort();
+    if (vars.length === 0) {
+      errorMsg.textContent = '错误: 表达式中未找到任何变量(A-Z)。';
+      errorMsg.style.display = 'block';
+      return null;
+    }
+    if (vars.length > 5) {
+      errorMsg.textContent = '错误: 最多支持5个变量，当前有 ' + vars.length + ' 个。';
+      errorMsg.style.display = 'block';
+      return null;
+    }
+    return vars;
+  }
+
+  function buildTruthTable(vars) {
+    var n = vars.length;
+    var rows = [];
+    for (var i = 0; i < (1 << n); i++) {
+      var row = {};
+      for (var j = 0; j < n; j++) {
+        row[vars[j]] = (i >> (n - 1 - j)) & 1 ? true : false;
+      }
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  function tokenize(expr) {
+    var tokens = [];
+    var i = 0;
+    while (i < expr.length) {
+      var ch = expr[i];
+      if (ch === ' ' || ch === '\t') { i++; continue; }
+      if (ch === '(' || ch === ')') { tokens.push({ type: 'paren', value: ch }); i++; continue; }
+      if (ch === '→') { tokens.push({ type: 'op', value: 'IMPLIES' }); i++; continue; }
+      if (expr.substr(i, 7).toUpperCase() === 'IMPLIES') { tokens.push({ type: 'op', value: 'IMPLIES' }); i += 7; continue; }
+      if (expr.substr(i, 3).toUpperCase() === 'AND') { tokens.push({ type: 'op', value: 'AND' }); i += 3; continue; }
+      if (expr.substr(i, 2).toUpperCase() === 'OR') { tokens.push({ type: 'op', value: 'OR' }); i += 2; continue; }
+      if (expr.substr(i, 3).toUpperCase() === 'NOT') { tokens.push({ type: 'op', value: 'NOT' }); i += 3; continue; }
+      if (expr.substr(i, 3).toUpperCase() === 'XOR') { tokens.push({ type: 'op', value: 'XOR' }); i += 3; continue; }
+      if (ch >= 'A' && ch <= 'Z' || ch >= 'a' && ch <= 'z') {
+        tokens.push({ type: 'var', value: ch.toUpperCase() });
+        i++;
+        continue;
+      }
+      i++; // skip unknown
+    }
+    return tokens;
+  }
+
+  function evaluatePostfix(postfix, values) {
+    // AND, OR, NOT, XOR, IMPLIES: precedence from low to high
+    var stack = [];
+    var precedence = { 'IMPLIES': 1, 'OR': 2, 'XOR': 2, 'AND': 3, 'NOT': 4 };
+    var ops = [];
+    for (var i = 0; i < postfix.length; i++) {
+      var t = postfix[i];
+      if (t.type === 'var') {
+        stack.push(values[t.value]);
+      } else if (t.type === 'op') {
+        if (t.value === 'NOT') {
+          var a = stack.pop();
+          if (a === undefined) return undefined;
+          stack.push(!a);
+        } else {
+          var b = stack.pop();
+          var a = stack.pop();
+          if (a === undefined || b === undefined) return undefined;
+          if (t.value === 'AND') stack.push(a && b);
+          else if (t.value === 'OR') stack.push(a || b);
+          else if (t.value === 'XOR') stack.push(a !== b);
+          else if (t.value === 'IMPLIES') stack.push(!a || b);
+        }
+      }
+    }
+    return stack.length === 1 ? stack[0] : undefined;
+  }
+
+  function infixToPostfix(tokens) {
+    var output = [];
+    var ops = [];
+    var precedence = { 'IMPLIES': 1, 'OR': 2, 'XOR': 2, 'AND': 3, 'NOT': 4 };
+
+    for (var i = 0; i < tokens.length; i++) {
+      var t = tokens[i];
+      if (t.type === 'var') {
+        output.push(t);
+      } else if (t.type === 'op') {
+        while (ops.length > 0 && ops[ops.length-1].type === 'op' && 
+               precedence[ops[ops.length-1].value] >= precedence[t.value] && ops[ops.length-1].value !== 'NOT') {
+          output.push(ops.pop());
+        }
+        ops.push(t);
+      } else if (t.value === '(') {
+        ops.push(t);
+      } else if (t.value === ')') {
+        while (ops.length > 0 && ops[ops.length-1].value !== '(') {
+          output.push(ops.pop());
+        }
+        if (ops.length > 0) ops.pop(); // remove '('
+      }
+    }
+    while (ops.length > 0) {
+      output.push(ops.pop());
+    }
+    return output;
+  }
+
+  function generate() {
+    errorMsg.style.display = 'none';
+    resultCard.style.display = 'none';
+    var expr = exprInput.value.trim();
+    if (!expr) {
+      errorMsg.textContent = '错误: 请输入逻辑表达式。';
+      errorMsg.style.display = 'block';
+      return;
+    }
+    var vars = parseExpression(expr);
+    if (!vars) return;
+
+    var tokens = tokenize(expr);
+    var postfix = infixToPostfix(tokens);
+    var rows = buildTruthTable(vars);
+    var results = [];
+
+    for (var r = 0; r < rows.length; r++) {
+      var val = evaluatePostfix(postfix, rows[r]);
+      results.push(val);
+    }
+
+    // Build table
+    var html = '<table><thead><tr>';
+    for (var v = 0; v < vars.length; v++) {
+      html += '<th>' + vars[v] + '</th>';
+    }
+    html += '<th>结果</th></tr></thead><tbody>';
+    var trueCount = 0;
+    for (var r = 0; r < rows.length; r++) {
+      html += '<tr>';
+      for (var v = 0; v < vars.length; v++) {
+        html += '<td>' + (rows[r][vars[v]] ? 'T' : 'F') + '</td>';
+      }
+      var cls = results[r] ? 'result-true' : 'result-false';
+      var label = results[r] ? 'T' : 'F';
+      if (results[r] === undefined) { cls = ''; label = '?'; }
+      html += '<td class="' + cls + '">' + label + '</td></tr>';
+      if (results[r]) trueCount++;
+    }
+    html += '</tbody></table>';
+    tableContainer.innerHTML = html;
+    summaryEl.textContent = '共 ' + rows.length + ' 行，其中 ' + trueCount + ' 行为真(T)，' + (rows.length - trueCount) + ' 行为假(F)。变量: ' + vars.join(', ');
+    resultCard.style.display = 'block';
+  }
+
+  generateBtn.addEventListener('click', generate);
+  exprInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') generate();
+  });
+
+  copyBtn.addEventListener('click', function() {
+    var text = '';
+    var varsText = [];
+    var headerCells = resultCard.querySelectorAll('thead th');
+    headerCells.forEach(function(cell) { varsText.push(cell.textContent); });
+    text += varsText.join('\t') + '\n';
+    var rows = resultCard.querySelectorAll('tbody tr');
+    rows.forEach(function(row) {
+      var cells = row.querySelectorAll('td');
+      var vals = [];
+      cells.forEach(function(cell) { vals.push(cell.textContent); });
+      text += vals.join('\t') + '\n';
+    });
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function() { showToast('已复制真值表到剪贴板！'); });
+    }
+  });
+})();
+</script>
+</body>
+</html>
