@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trip Cost Calculator - Smart Travel Budget Planner | Free ToolBase</title>
+  <meta name="description" content="Free online trip cost calculator — track transportation, lodging, food, attractions expenses. Auto-total and generate travel budget reports.">
+  <meta property="og:title" content="Trip Cost Calculator - Free ToolBase">
+  <meta property="og:description" content="Free online trip cost calculator — track transportation, lodging, food, attractions expenses. Auto-total and generate reports.">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Trip Cost Calculator","description":"Free online trip cost calculator — track transportation, lodging, food, attractions expenses. Auto-total and generate reports.","applicationCategory":"TravelApplication","operatingSystem":"Web","url":"https://free-toolbase.com/trip-cost-calculator/"}</script>
+  <style>
+    :root { --primary: #F59E0B; --primary-dark: #D97706; --bg: #f8fafc; --card-bg: #fff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,.1); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
+    header .logo { font-size: 22px; font-weight: 700; color: var(--primary); text-decoration: none; }
+    header nav a { color: var(--text-light); text-decoration: none; margin-left: 20px; font-size: 14px; }
+    main { flex: 1; max-width: 800px; margin: 0 auto; padding: 30px 20px; width: 100%; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .subtitle { color: var(--text-light); margin-bottom: 24px; font-size: 15px; }
+    .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; margin-bottom: 20px; }
+    .expense-row { display: grid; grid-template-columns: 2fr 1fr 1fr 40px; gap: 8px; margin-bottom: 8px; align-items: center; }
+    @media (max-width: 500px) { .expense-row { grid-template-columns: 1fr 1fr 1fr; } }
+    .expense-row input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+    .expense-row select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-primary { background: var(--primary); color: #fff; } .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary { background: var(--border); color: var(--text); }
+    .del-btn { background: #fee2e2; color: #ef4444; border: none; border-radius: 6px; cursor: pointer; font-size: 18px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+    .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    .summary-item { text-align: center; padding: 16px; background: var(--bg); border-radius: var(--radius); }
+    .summary-value { font-size: 24px; font-weight: 700; color: var(--primary); } .summary-label { font-size: 12px; color: var(--text-light); margin-top: 4px; }
+    .total-row { background: #fffbeb; padding: 12px 16px; border-radius: var(--radius); display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 18px; font-weight: 700; }
+    footer { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; border-top: 1px solid var(--border); }
+    .toast { position: fixed; top: 20px; right: 20px; background: #22c55e; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; z-index: 1000; opacity: 0; transform: translateY(-10px); transition: all .3s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/en/" class="logo">Free ToolBase</a>
+    <nav><a href="/en/">Home</a><a href="/">中文</a></nav>
+  </header>
+  <main>
+    <h1>💰 Trip Cost Calculator</h1>
+    <p class="subtitle">Track transportation, lodging, food, attractions — auto-total your travel budget</p>
+
+    <div class="card">
+      <div class="form-group" style="margin-bottom:12px"><label>Destination</label><input type="text" id="destination" placeholder="e.g., Tokyo"></div>
+      <div style="display:flex;gap:12px;margin-bottom:12px">
+        <div class="form-group" style="flex:1"><label>Days</label><input type="number" id="days" value="5" min="1"></div>
+        <div class="form-group" style="flex:1"><label>Travelers</label><input type="number" id="people" value="1" min="1"></div>
+      </div>
+      <div id="expenseList">
+        <div class="expense-row">
+          <select class="cat-select"><option>Transport</option><option>Lodging</option><option>Food</option><option>Attractions</option><option>Shopping</option><option>Other</option></select>
+          <input type="text" placeholder="Item name" class="item-name"><input type="number" placeholder="Amount" class="item-amount" min="0">
+          <button class="del-btn" onclick="removeRow(this)">×</button>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addRow()" style="margin-top:8px">+ Add Item</button>
+      <button class="btn btn-primary" onclick="calculate()" style="margin-top:8px;margin-left:8px">Calculate</button>
+      <div class="total-row" style="margin-top:16px"><span>💰 Total</span><span id="totalCost">$0</span></div>
+    </div>
+
+    <div class="card" id="summaryCard" style="display:none">
+      <h3 style="margin-bottom:16px">📊 Expense Breakdown</h3>
+      <div class="summary">
+        <div class="summary-item"><div class="summary-value" id="sumTransport">$0</div><div class="summary-label">Transport</div></div>
+        <div class="summary-item"><div class="summary-value" id="sumLodging">$0</div><div class="summary-label">Lodging</div></div>
+        <div class="summary-item"><div class="summary-value" id="sumFood">$0</div><div class="summary-label">Food</div></div>
+        <div class="summary-item"><div class="summary-value" id="sumAttractions">$0</div><div class="summary-label">Attractions</div></div>
+        <div class="summary-item"><div class="summary-value" id="sumShopping">$0</div><div class="summary-label">Shopping</div></div>
+        <div class="summary-item"><div class="summary-value" id="sumOther">$0</div><div class="summary-label">Other</div></div>
+      </div>
+      <div style="margin-top:12px;color:var(--text-light);font-size:13px">
+        Per person: <strong id="perPerson">$0</strong> · Per day: <strong id="perDay">$0</strong>
+      </div>
+      <button class="btn btn-secondary" onclick="exportReport()" style="margin-top:12px">📄 Export Report</button>
+    </div>
+  </main>
+  <footer>© 2025 Free ToolBase · All tools free to use</footer>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    function addRow() {
+      const row = document.createElement('div'); row.className = 'expense-row';
+      row.innerHTML = '<select class="cat-select"><option>Transport</option><option>Lodging</option><option>Food</option><option>Attractions</option><option>Shopping</option><option>Other</option></select><input type="text" placeholder="Item name" class="item-name"><input type="number" placeholder="Amount" class="item-amount" min="0"><button class="del-btn" onclick="removeRow(this)">×</button>';
+      document.getElementById('expenseList').appendChild(row);
+    }
+    function removeRow(btn) { const rows = document.querySelectorAll('#expenseList .expense-row'); if (rows.length <= 1) return; btn.closest('.expense-row').remove(); }
+    function calculate() {
+      const cats = {}; const rows = document.querySelectorAll('#expenseList .expense-row'); let total = 0;
+      rows.forEach(row => { const cat = row.querySelector('.cat-select').value; const amt = parseFloat(row.querySelector('.item-amount').value) || 0; cats[cat] = (cats[cat] || 0) + amt; total += amt; });
+      const days = parseInt(document.getElementById('days').value) || 1, people = parseInt(document.getElementById('people').value) || 1;
+      document.getElementById('totalCost').textContent = '$' + total.toLocaleString();
+      document.getElementById('sumTransport').textContent = '$' + (cats['Transport'] || 0).toLocaleString();
+      document.getElementById('sumLodging').textContent = '$' + (cats['Lodging'] || 0).toLocaleString();
+      document.getElementById('sumFood').textContent = '$' + (cats['Food'] || 0).toLocaleString();
+      document.getElementById('sumAttractions').textContent = '$' + (cats['Attractions'] || 0).toLocaleString();
+      document.getElementById('sumShopping').textContent = '$' + (cats['Shopping'] || 0).toLocaleString();
+      document.getElementById('sumOther').textContent = '$' + (cats['Other'] || 0).toLocaleString();
+      document.getElementById('perPerson').textContent = '$' + Math.round(total / people).toLocaleString();
+      document.getElementById('perDay').textContent = '$' + Math.round(total / days).toLocaleString();
+      document.getElementById('summaryCard').style.display = 'block'; showToast('Calculated! Total: $' + total.toLocaleString());
+    }
+    function exportReport() {
+      const dest = document.getElementById('destination').value || 'Trip'; let text = dest + ' Trip Cost Report\n' + '='.repeat(40) + '\n\n';
+      document.querySelectorAll('#expenseList .expense-row').forEach(row => { const cat = row.querySelector('.cat-select').value, name = row.querySelector('.item-name').value || '-', amt = parseFloat(row.querySelector('.item-amount').value) || 0; text += cat + ' | ' + name + ' | $' + amt.toLocaleString() + '\n'; });
+      text += '\nTotal: ' + document.getElementById('totalCost').textContent;
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type:'text/plain;charset=utf-8'})); a.download = 'trip-cost-report.txt'; a.click();
+    }
+    function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
+  </script>
+</body>
+</html>

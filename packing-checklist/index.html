@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>旅行打包清单 - 智能旅行行李清单生成 | Free ToolBase</title>
+  <meta name="description" content="免费在线旅行打包清单生成器，根据目的地、天气、行程天数自动生成行李清单。支持自定义添加，导出打印，再也不用担心忘带东西。">
+  <meta property="og:title" content="旅行打包清单 - Free ToolBase">
+  <meta property="og:description" content="免费在线旅行打包清单生成器，根据目的地、天气、行程自动生成行李清单，导出打印。">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"旅行打包清单","description":"免费在线旅行打包清单生成器，根据目的地、天气、行程自动生成行李清单。","applicationCategory":"TravelApplication","operatingSystem":"Web","url":"https://free-toolbase.com/packing-checklist/"}</script>
+  <style>
+    :root { --primary: #06B6D4; --primary-dark: #0891B2; --bg: #f8fafc; --card-bg: #fff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,.1); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
+    header .logo { font-size: 22px; font-weight: 700; color: var(--primary); text-decoration: none; }
+    header nav a { color: var(--text-light); text-decoration: none; margin-left: 20px; font-size: 14px; }
+    main { flex: 1; max-width: 800px; margin: 0 auto; padding: 30px 20px; width: 100%; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .subtitle { color: var(--text-light); margin-bottom: 24px; font-size: 15px; }
+    .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; margin-bottom: 20px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--text-light); margin-bottom: 4px; }
+    .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; }
+    .btn { padding: 12px 28px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all .2s; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary { background: var(--border); color: var(--text); }
+    .checklist { list-style: none; }
+    .checklist li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .checklist input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary); }
+    .checklist label { flex: 1; font-size: 15px; cursor: pointer; }
+    .checklist label.checked { text-decoration: line-through; color: var(--text-light); }
+    .category-title { font-size: 16px; font-weight: 700; color: var(--primary); margin: 16px 0 8px; padding-bottom: 6px; border-bottom: 2px solid var(--primary); }
+    .progress-bar { height: 6px; background: var(--border); border-radius: 3px; margin: 12px 0; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--primary); border-radius: 3px; transition: width .3s; }
+    .add-item { display: flex; gap: 8px; margin-top: 12px; }
+    .add-item input { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+    footer { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; border-top: 1px solid var(--border); }
+    .toast { position: fixed; top: 20px; right: 20px; background: #22c55e; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; z-index: 1000; opacity: 0; transform: translateY(-10px); transition: all .3s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="logo">Free ToolBase</a>
+    <nav><a href="/">首页</a><a href="/en/">EN</a></nav>
+  </header>
+  <main>
+    <h1>🧳 旅行打包清单</h1>
+    <p class="subtitle">根据旅行类型、天数和天气自动生成行李清单，自定义添加，导出打印</p>
+
+    <div class="card">
+      <div class="form-row">
+        <div class="form-group"><label>旅行类型</label>
+          <select id="tripType"><option value="leisure">休闲度假</option><option value="business">商务出差</option><option value="beach">海滩旅行</option><option value="hiking">徒步登山</option><option value="winter">冬季滑雪</option></select>
+        </div>
+        <div class="form-group"><label>天数</label><input type="number" id="tripDays" value="5" min="1" max="60"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>天气</label>
+          <select id="weather"><option value="warm">温暖（20-30°C）</option><option value="hot">炎热（30°C+）</option><option value="cool">凉爽（10-20°C）</option><option value="cold">寒冷（0-10°C）</option><option value="freezing">严寒（0°C以下）</option></select>
+        </div>
+        <div class="form-group"><label>行李类型</label>
+          <select id="luggageType"><option value="carryon">登机箱</option><option value="checked">托运行李</option><option value="backpack">背包</option></select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="generateChecklist()">生成清单</button>
+    </div>
+
+    <div class="card" id="checklistCard">
+      <h3 style="margin-bottom:8px">📋 打包清单</h3>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div id="checklistContent" style="text-align:center;padding:30px;color:var(--text-light)">请选择参数并点击"生成清单"</div>
+      <div class="add-item">
+        <input type="text" id="customItem" placeholder="添加自定义物品...">
+        <button class="btn btn-primary" onclick="addCustomItem()" style="padding:10px 16px;font-size:14px">+ 添加</button>
+      </div>
+      <button class="btn btn-secondary" onclick="exportChecklist()" style="margin-top:12px">📄 导出清单</button>
+    </div>
+  </main>
+  <footer>© 2025 Free ToolBase · 所有工具免费使用</footer>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const baseItems = {
+      leisure: ['休闲服装 x3', '舒适鞋子', '太阳镜', '泳衣', '防晒霜', '相机', '充电器', '耳机', '洗漱用品', '常用药品'],
+      business: ['正装 x2', '衬衫 x3', '皮鞋', '领带/丝巾', '笔记本电脑', '充电器', '名片', '文件资料', '洗漱用品', '剃须刀'],
+      beach: ['泳衣 x2', '沙滩巾', '防晒霜 SPF50+', '太阳镜', '凉鞋', '遮阳帽', '防水袋', '充电宝', '洗漱用品', '防蚊液'],
+      hiking: ['冲锋衣', '登山鞋', '速干衣 x2', '登山杖', '头灯', '水壶', '急救包', '地图/指南针', '能量棒', '防蚊液'],
+      winter: ['羽绒服', '保暖内衣 x2', '手套', '围巾', '毛线帽', '雪地靴', '护手霜', '暖宝宝', '滑雪镜', '润唇膏']
+    };
+    const weatherAddons = {
+      hot: ['防晒霜 SPF50+', '遮阳帽', '小风扇'],
+      warm: ['防晒霜', '太阳镜', '薄外套'],
+      cool: ['薄外套', '长裤', '围巾'],
+      cold: ['厚外套', '保暖内衣', '手套', '围巾'],
+      freezing: ['羽绒服', '保暖内衣 x2', '手套', '围巾', '毛线帽', '暖宝宝', '厚袜子 x2']
+    };
+    const essentials = ['身份证/护照', '机票/车票', '手机', '钱包', '钥匙', '充电器', '充电宝'];
+    let currentItems = [];
+
+    function generateChecklist() {
+      const type = document.getElementById('tripType').value;
+      const days = parseInt(document.getElementById('tripDays').value) || 5;
+      const weather = document.getElementById('weather').value;
+      const luggage = document.getElementById('luggageType').value;
+
+      let items = [...essentials];
+      // Add base items, adjusting quantity by days
+      const base = baseItems[type] || baseItems.leisure;
+      base.forEach(item => {
+        const match = item.match(/^(.+?)\s*x(\d+)$/);
+        if (match) {
+          const qty = Math.max(1, Math.round(parseInt(match[2]) * days / 5));
+          items.push(match[1] + ' x' + qty);
+        } else {
+          items.push(item);
+        }
+      });
+      // Add weather items
+      const wa = weatherAddons[weather] || [];
+      items = items.concat(wa);
+      // Deduplicate
+      items = [...new Set(items)];
+
+      currentItems = items;
+      renderChecklist();
+      showToast('清单已生成！共' + items.length + '项');
+    }
+
+    function renderChecklist() {
+      let html = '<ul class="checklist">';
+      currentItems.forEach((item, i) => {
+        html += '<li><input type="checkbox" id="item' + i + '" onchange="toggleItem(' + i + ')"><label for="item' + i + '">' + escapeHtml(item) + '</label></li>';
+      });
+      html += '</ul>';
+      document.getElementById('checklistContent').innerHTML = html;
+      updateProgress();
+    }
+
+    function toggleItem(i) {
+      const cb = document.getElementById('item' + i);
+      cb.nextElementSibling.classList.toggle('checked', cb.checked);
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const cbs = document.querySelectorAll('.checklist input[type="checkbox"]');
+      if (cbs.length === 0) { document.getElementById('progressFill').style.width = '0%'; return; }
+      const checked = document.querySelectorAll('.checklist input[type="checkbox"]:checked').length;
+      document.getElementById('progressFill').style.width = (checked / cbs.length * 100) + '%';
+    }
+
+    function addCustomItem() {
+      const input = document.getElementById('customItem');
+      const val = input.value.trim();
+      if (!val) return;
+      currentItems.push(val);
+      input.value = '';
+      renderChecklist();
+      showToast('已添加：' + val);
+    }
+
+    function exportChecklist() {
+      if (currentItems.length === 0) { showToast('请先生成清单'); return; }
+      let text = '旅行打包清单\n' + '='.repeat(30) + '\n\n';
+      currentItems.forEach((item, i) => {
+        const cb = document.getElementById('item' + i);
+        const done = cb && cb.checked ? '☑' : '☐';
+        text += done + ' ' + item + '\n';
+      });
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'packing-checklist.txt';
+      a.click(); URL.revokeObjectURL(url);
+    }
+
+    function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
+  </script>
+</body>
+</html>

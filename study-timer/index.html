@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>学习计时器 - 专注学习时间管理 | Free ToolBase</title>
+  <meta name="description" content="免费在线学习计时器，帮助专注学习。自定义学习时长、休息间隔，追踪每日学习进度，提升学习效率。">
+  <meta property="og:title" content="学习计时器 - Free ToolBase">
+  <meta property="og:description" content="免费在线学习计时器，帮助专注学习。自定义学习时长、休息间隔，追踪每日学习进度。">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"学习计时器","description":"免费在线学习计时器，帮助专注学习。自定义学习时长、休息间隔，追踪每日学习进度。","applicationCategory":"EducationalApplication","operatingSystem":"Web","url":"https://free-toolbase.com/study-timer/"}</script>
+  <style>
+    :root { --primary: #6366F1; --primary-dark: #4F46E5; --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; --danger: #ef4444; --success: #22c55e; --warning: #f59e0b; --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,.1); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
+    header .logo { font-size: 22px; font-weight: 700; color: var(--primary); text-decoration: none; }
+    header nav a { color: var(--text-light); text-decoration: none; margin-left: 20px; font-size: 14px; }
+    main { flex: 1; max-width: 720px; margin: 0 auto; padding: 30px 20px; width: 100%; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .subtitle { color: var(--text-light); margin-bottom: 24px; font-size: 15px; }
+    .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; margin-bottom: 20px; }
+    .timer-display { text-align: center; padding: 30px 0; }
+    .time { font-size: 72px; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums; letter-spacing: 2px; }
+    .phase-label { font-size: 16px; color: var(--text-light); margin-top: 8px; }
+    .controls { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+    .btn { padding: 12px 28px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all .2s; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary { background: var(--border); color: var(--text); }
+    .btn-secondary:hover { background: #cbd5e1; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .settings { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 500px) { .settings { grid-template-columns: 1fr; } }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--text-light); margin-bottom: 4px; }
+    .form-group input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    .stat-item { text-align: center; padding: 16px; background: var(--bg); border-radius: var(--radius); }
+    .stat-value { font-size: 28px; font-weight: 700; color: var(--primary); }
+    .stat-label { font-size: 12px; color: var(--text-light); margin-top: 4px; }
+    .session-log { max-height: 200px; overflow-y: auto; margin-top: 12px; }
+    .session-log li { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text-light); }
+    .progress-bar { height: 8px; background: var(--border); border-radius: 4px; margin-top: 12px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--primary); border-radius: 4px; transition: width .3s; }
+    footer { text-align: center; padding: 20px; color: var(--text-light); font-size: 13px; border-top: 1px solid var(--border); }
+    .toast { position: fixed; top: 20px; right: 20px; background: var(--success); color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; z-index: 1000; opacity: 0; transform: translateY(-10px); transition: all .3s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/" class="logo">Free ToolBase</a>
+    <nav>
+      <a href="/">首页</a>
+      <a href="/en/">EN</a>
+    </nav>
+  </header>
+  <main>
+    <h1>📚 学习计时器</h1>
+    <p class="subtitle">专注学习时间管理，自定义学习与休息间隔，追踪每日学习进度</p>
+
+    <div class="card">
+      <div class="timer-display">
+        <div class="time" id="timerDisplay">25:00</div>
+        <div class="phase-label" id="phaseLabel">学习时间</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width: 0%"></div></div>
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-primary" id="btnStart" onclick="startTimer()">开始</button>
+        <button class="btn btn-secondary" id="btnPause" onclick="pauseTimer()" disabled>暂停</button>
+        <button class="btn btn-danger" id="btnReset" onclick="resetTimer()">重置</button>
+        <button class="btn btn-secondary" id="btnSkip" onclick="skipPhase()" disabled>跳过</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:16px">⚙️ 设置</h3>
+      <div class="settings">
+        <div class="form-group">
+          <label>学习时长（分钟）</label>
+          <input type="number" id="studyDuration" value="25" min="1" max="120" onchange="updateSettings()">
+        </div>
+        <div class="form-group">
+          <label>短休息（分钟）</label>
+          <input type="number" id="shortBreak" value="5" min="1" max="30" onchange="updateSettings()">
+        </div>
+        <div class="form-group">
+          <label>长休息（分钟）</label>
+          <input type="number" id="longBreak" value="15" min="1" max="60" onchange="updateSettings()">
+        </div>
+        <div class="form-group">
+          <label>几轮后长休息</label>
+          <input type="number" id="roundsBeforeLong" value="4" min="1" max="10" onchange="updateSettings()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:16px">📊 今日统计</h3>
+      <div class="stats">
+        <div class="stat-item">
+          <div class="stat-value" id="totalSessions">0</div>
+          <div class="stat-label">完成轮次</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="totalMinutes">0</div>
+          <div class="stat-label">学习分钟</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="totalBreaks">0</div>
+          <div class="stat-label">休息次数</div>
+        </div>
+      </div>
+      <h4 style="margin-top:16px;margin-bottom:8px;font-size:14px">今日记录</h4>
+      <ul class="session-log" id="sessionLog"></ul>
+    </div>
+  </main>
+  <footer>© 2025 Free ToolBase · 所有工具免费使用</footer>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let timer = null;
+    let secondsLeft = 25 * 60;
+    let totalSeconds = 25 * 60;
+    let isRunning = false;
+    let isPaused = false;
+    let currentPhase = 'study'; // study | shortBreak | longBreak
+    let completedRounds = 0;
+    let settings = { studyDuration: 25, shortBreak: 5, longBreak: 15, roundsBeforeLong: 4 };
+    let todayStats = { sessions: 0, minutes: 0, breaks: 0, log: [] };
+
+    // Load from localStorage
+    const saved = JSON.parse(localStorage.getItem('studyTimer') || '{}');
+    if (saved.settings) settings = saved.settings;
+    if (saved.todayStats && saved.date === new Date().toDateString()) todayStats = saved.todayStats;
+    document.getElementById('studyDuration').value = settings.studyDuration;
+    document.getElementById('shortBreak').value = settings.shortBreak;
+    document.getElementById('longBreak').value = settings.longBreak;
+    document.getElementById('roundsBeforeLong').value = settings.roundsBeforeLong;
+    setPhase('study');
+    updateDisplay();
+    updateStats();
+    updateButtons();
+
+    function updateSettings() {
+      settings.studyDuration = parseInt(document.getElementById('studyDuration').value) || 25;
+      settings.shortBreak = parseInt(document.getElementById('shortBreak').value) || 5;
+      settings.longBreak = parseInt(document.getElementById('longBreak').value) || 15;
+      settings.roundsBeforeLong = parseInt(document.getElementById('roundsBeforeLong').value) || 4;
+      saveState();
+      if (!isRunning && !isPaused) { setPhase('study'); updateDisplay(); }
+    }
+
+    function setPhase(phase) {
+      currentPhase = phase;
+      if (phase === 'study') {
+        secondsLeft = settings.studyDuration * 60;
+        totalSeconds = settings.studyDuration * 60;
+        document.getElementById('phaseLabel').textContent = '📖 学习时间';
+      } else if (phase === 'shortBreak') {
+        secondsLeft = settings.shortBreak * 60;
+        totalSeconds = settings.shortBreak * 60;
+        document.getElementById('phaseLabel').textContent = '☕ 短休息';
+      } else {
+        secondsLeft = settings.longBreak * 60;
+        totalSeconds = settings.longBreak * 60;
+        document.getElementById('phaseLabel').textContent = '🌴 长休息';
+      }
+      updateDisplay();
+    }
+
+    function updateDisplay() {
+      const m = Math.floor(secondsLeft / 60);
+      const s = secondsLeft % 60;
+      document.getElementById('timerDisplay').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+      const pct = totalSeconds > 0 ? ((totalSeconds - secondsLeft) / totalSeconds) * 100 : 0;
+      document.getElementById('progressFill').style.width = pct + '%';
+    }
+
+    function updateButtons() {
+      document.getElementById('btnStart').disabled = isRunning;
+      document.getElementById('btnPause').disabled = !isRunning;
+      document.getElementById('btnSkip').disabled = !isRunning && !isPaused;
+    }
+
+    function startTimer() {
+      isRunning = true;
+      isPaused = false;
+      updateButtons();
+      timer = setInterval(tick, 1000);
+    }
+
+    function pauseTimer() {
+      isRunning = false;
+      isPaused = true;
+      clearInterval(timer);
+      updateButtons();
+    }
+
+    function resetTimer() {
+      isRunning = false;
+      isPaused = false;
+      clearInterval(timer);
+      completedRounds = 0;
+      setPhase('study');
+      updateButtons();
+    }
+
+    function skipPhase() { clearInterval(timer); completePhase(); }
+
+    function tick() {
+      if (secondsLeft > 0) {
+        secondsLeft--;
+        updateDisplay();
+      } else {
+        clearInterval(timer);
+        completePhase();
+      }
+    }
+
+    function completePhase() {
+      const now = new Date().toLocaleTimeString();
+      if (currentPhase === 'study') {
+        completedRounds++;
+        todayStats.sessions++;
+        todayStats.minutes += settings.studyDuration;
+        todayStats.log.unshift(now + ' - ✅ 完成学习 ' + settings.studyDuration + '分钟');
+        showToast('太棒了！完成一轮学习 🎉');
+        if (completedRounds % settings.roundsBeforeLong === 0) {
+          setPhase('longBreak');
+        } else {
+          setPhase('shortBreak');
+        }
+        todayStats.breaks++;
+      } else {
+        todayStats.log.unshift(now + ' - 🔄 休息结束，继续学习');
+        showToast('休息结束，继续加油！💪');
+        setPhase('study');
+      }
+      updateStats();
+      saveState();
+      isRunning = false;
+      isPaused = false;
+      updateButtons();
+    }
+
+    function updateStats() {
+      document.getElementById('totalSessions').textContent = todayStats.sessions;
+      document.getElementById('totalMinutes').textContent = todayStats.minutes;
+      document.getElementById('totalBreaks').textContent = todayStats.breaks;
+      const logEl = document.getElementById('sessionLog');
+      logEl.innerHTML = todayStats.log.slice(0, 20).map(l => '<li>' + l + '</li>').join('');
+    }
+
+    function saveState() {
+      localStorage.setItem('studyTimer', JSON.stringify({
+        settings, todayStats,
+        date: new Date().toDateString()
+      }));
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+  </script>
+</body>
+</html>
