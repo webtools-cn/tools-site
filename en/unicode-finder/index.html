@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unicode Character Finder - Free ToolBase</title>
+  <meta name="description" content="Free online Unicode character lookup tool. Enter a character or codepoint to view UTF-8/UTF-16 encodings, HTML entities, character name, and block info.">
+  <meta property="og:title" content="Unicode Character Finder - Free ToolBase">
+  <meta property="og:description" content="Free online Unicode character lookup with encoding details">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Unicode Character Finder","applicationCategory":"UtilityApplication","operatingSystem":"Any","description":"Free online Unicode character lookup tool","url":"https://free-toolbase.com/en/unicode-finder/"}
+  </script>
+  <style>
+  :root { --primary: #4F46E5; --primary-hover: #4338CA; --bg: #f8fafc; --surface: #fff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 8px; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; }
+  header a { color: var(--primary); text-decoration: none; font-weight: 600; }
+  main { max-width: 800px; margin: 0 auto; padding: 32px 16px; }
+  h1 { font-size: 1.8rem; margin-bottom: 8px; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 1rem; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: 1rem; cursor: pointer; font-weight: 600; margin-top: 12px; }
+  .btn:hover { background: var(--primary-hover); }
+  .char-display { font-size: 4rem; text-align: center; padding: 16px; background: var(--bg); border-radius: var(--radius); margin: 12px 0; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .info-item { background: var(--bg); padding: 10px; border-radius: var(--radius); }
+  .info-item .key { font-size: .8rem; color: var(--text-secondary); }
+  .info-item .val { font-weight: 600; font-family: monospace; }
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 2px solid var(--border); }
+  .tab { padding: 8px 16px; cursor: pointer; border: none; background: none; color: var(--text-secondary); font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .ranges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .range-chip { padding: 4px 12px; background: var(--primary); color: #fff; border-radius: 20px; font-size: .8rem; cursor: pointer; }
+  #toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: var(--radius); opacity: 0; transition: opacity .3s; z-index: 999; pointer-events: none; }
+  #toast.show { opacity: 1; }
+  footer { text-align: center; padding: 24px; color: var(--text-secondary); font-size: .85rem; }
+  @media (max-width: 375px) { main { padding: 16px 8px; } .card { padding: 16px; } .info-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<header><a href="/en/">← Back to Home</a></header>
+<main>
+  <h1>🔍 Unicode Character Finder</h1>
+  <p class="subtitle">Enter a character or codepoint to view Unicode details</p>
+  <div class="card">
+    <div class="tab-bar">
+      <button class="tab active" data-mode="char">By Character</button>
+      <button class="tab" data-mode="codepoint">By Codepoint</button>
+    </div>
+    <div id="charMode">
+      <label for="charInput">Enter Character</label>
+      <input type="text" id="charInput" placeholder="e.g. ©, A, 😀, α">
+    </div>
+    <div id="codeMode" style="display:none">
+      <label for="codeInput">Enter Codepoint</label>
+      <input type="text" id="codeInput" placeholder="e.g. U+00A9, 0x41, 65">
+    </div>
+    <button class="btn" id="lookupBtn">🔍 Lookup</button>
+    <div id="result"></div>
+  </div>
+  <div class="card">
+    <h3>Common Character Blocks</h3>
+    <div class="ranges" id="ranges">
+      <span class="range-chip" data-start="0x0021" data-end="0x007E">Basic Latin</span>
+      <span class="range-chip" data-start="0x4E00" data-end="0x9FFF">CJK Unified</span>
+      <span class="range-chip" data-start="0x3040" data-end="0x309F">Hiragana</span>
+      <span class="range-chip" data-start="0x30A0" data-end="0x30FF">Katakana</span>
+      <span class="range-chip" data-start="0x1F600" data-end="0x1F64F">Emoticons</span>
+      <span class="range-chip" data-start="0x03B1" data-end="0x03C9">Greek</span>
+      <span class="range-chip" data-start="0x0410" data-end="0x044F">Cyrillic</span>
+      <span class="range-chip" data-start="0x2190" data-end="0x21FF">Arrows</span>
+    </div>
+  </div>
+</main>
+<footer>Free ToolBase © 2025 · Pure frontend tool</footer>
+<div id="toast"></div>
+<script>
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+
+document.querySelectorAll('.tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+    this.classList.add('active');
+    document.getElementById('charMode').style.display = this.dataset.mode === 'char' ? 'block' : 'none';
+    document.getElementById('codeMode').style.display = this.dataset.mode === 'codepoint' ? 'block' : 'none';
+  });
+});
+
+function lookup(cp){
+  var c = String.fromCodePoint(cp);
+  var hex = cp.toString(16).toUpperCase().padStart(4, '0');
+  var uHex = 'U+' + hex;
+  var utf8 = Array.from(new TextEncoder().encode(c)).map(function(b){return b.toString(16).toUpperCase().padStart(2,'0')}).join(' ');
+  var htmlEntity = '&#' + cp + ';';
+  var htmlHex = '&#x' + hex + ';';
+  try {
+    var jsEscape = JSON.stringify(c).slice(1,-1);
+  } catch(e) { jsEscape = 'N/A'; }
+
+  return {
+    char: c,
+    codepoint: uHex,
+    decimal: cp,
+    utf8: utf8,
+    utf16: Array.from(c).length > 1 ? 'Beyond BMP' : c.charCodeAt(0).toString(16).toUpperCase().padStart(4,'0'),
+    htmlEntity: htmlEntity,
+    htmlHex: htmlHex,
+    jsEscape: jsEscape
+  };
+}
+
+function showResult(info){
+  document.getElementById('result').innerHTML =
+    '<div class="char-display">' + info.char + '</div>' +
+    '<div class="info-grid">' +
+    '<div class="info-item"><div class="key">Unicode</div><div class="val">' + info.codepoint + '</div></div>' +
+    '<div class="info-item"><div class="key">Decimal</div><div class="val">' + info.decimal + '</div></div>' +
+    '<div class="info-item"><div class="key">UTF-8</div><div class="val">' + info.utf8 + '</div></div>' +
+    '<div class="info-item"><div class="key">UTF-16</div><div class="val">' + info.utf16 + '</div></div>' +
+    '<div class="info-item"><div class="key">HTML Entity</div><div class="val">' + info.htmlEntity + '</div></div>' +
+    '<div class="info-item"><div class="key">HTML Hex</div><div class="val">' + info.htmlHex + '</div></div>' +
+    '<div class="info-item"><div class="key">JS Escape</div><div class="val">' + info.jsEscape + '</div></div>' +
+    '</div>';
+}
+
+document.getElementById('lookupBtn').addEventListener('click', function(){
+  var cp;
+  if (document.querySelector('.tab.active').dataset.mode === 'char') {
+    var c = document.getElementById('charInput').value;
+    if (!c) { toast('Please enter a character'); return; }
+    cp = c.codePointAt(0);
+  } else {
+    var inp = document.getElementById('codeInput').value.trim().toUpperCase();
+    if (!inp) { toast('Please enter a codepoint'); return; }
+    if (inp.startsWith('U+')) { cp = parseInt(inp.slice(2), 16); }
+    else if (inp.startsWith('0X')) { cp = parseInt(inp, 16); }
+    else if (/^[0-9]+$/.test(inp)) { cp = parseInt(inp, 10); }
+    else { cp = parseInt(inp, 16); }
+  }
+  if (isNaN(cp) || cp < 0 || cp > 0x10FFFF) { toast('Invalid codepoint'); return; }
+  try { showResult(lookup(cp)); } catch(e) { toast('Lookup failed'); }
+});
+
+document.querySelectorAll('.range-chip').forEach(function(chip){
+  chip.addEventListener('click', function(){
+    var start = parseInt(this.dataset.start);
+    var chars = [];
+    for (var i = start; i <= Math.min(parseInt(this.dataset.end), start + 99); i++){
+      try { chars.push(String.fromCodePoint(i)); } catch(e) { break; }
+    }
+    document.getElementById('result').innerHTML =
+      '<h4>' + this.textContent + ' Chars (' + parseInt(this.dataset.start).toString(16).toUpperCase() + '-' + parseInt(this.dataset.end).toString(16).toUpperCase() + ')</h4>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;font-size:1.5rem;margin-top:8px;">' +
+      chars.map(function(ch){return '<span style="cursor:pointer;padding:4px;" onclick="document.getElementById(\'charInput\').value=\''+ch+'\';document.getElementById(\'lookupBtn\').click()">'+ch+'</span>'}).join('') +
+      '</div>';
+  });
+});
+</script>
+</body>
+</html>

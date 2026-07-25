@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文本行排序工具 - Free ToolBase</title>
+  <meta name="description" content="免费在线文本行排序工具，支持字母序/数字序/倒序/随机排序/去重等，可自定义分隔符和排序方式">
+  <meta property="og:title" content="文本行排序工具 - Free ToolBase">
+  <meta property="og:description" content="免费在线文本行排序工具，支持多种排序和去重方式">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"文本行排序工具","applicationCategory":"UtilityApplication","operatingSystem":"Any","description":"免费在线文本行排序工具","url":"https://free-toolbase.com/line-sort-tool/"}
+  </script>
+  <style>
+  :root { --primary: #4F46E5; --primary-hover: #4338CA; --bg: #f8fafc; --surface: #fff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 8px; --success: #10b981; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; }
+  header a { color: var(--primary); text-decoration: none; font-weight: 600; }
+  main { max-width: 900px; margin: 0 auto; padding: 32px 16px; }
+  h1 { font-size: 1.8rem; margin-bottom: 8px; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: .9rem; font-family: monospace; resize: vertical; min-height: 150px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: 1rem; cursor: pointer; font-weight: 600; margin-top: 12px; }
+  .btn:hover { background: var(--primary-hover); }
+  .btn-sm { padding: 6px 12px; font-size: .85rem; margin-top: 0; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+  .row > div { flex: 1; min-width: 120px; }
+  select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 1rem; }
+  .output-area { background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: var(--radius); font-family: monospace; font-size: .85rem; white-space: pre-wrap; max-height: 400px; overflow-y: auto; margin-top: 12px; }
+  .stats { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+  .stat { font-size: .85rem; color: var(--text-secondary); }
+  .stat strong { color: var(--primary); }
+  #toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: var(--radius); opacity: 0; transition: opacity .3s; z-index: 999; pointer-events: none; }
+  #toast.show { opacity: 1; }
+  footer { text-align: center; padding: 24px; color: var(--text-secondary); font-size: .85rem; }
+  @media (max-width: 375px) { main { padding: 16px 8px; } .card { padding: 16px; } }
+  </style>
+</head>
+<body>
+<header><a href="/">← 返回首页</a></header>
+<main>
+  <h1>📋 文本行排序工具</h1>
+  <p class="subtitle">对文本行进行排序、去重、随机排列</p>
+  <div class="card">
+    <label for="input">输入文本（每行一个条目）</label>
+    <textarea id="input" placeholder="banana&#10;apple&#10;cherry&#10;apple&#10;date"></textarea>
+    <div class="row" style="margin-top:12px;">
+      <div>
+        <label for="sortType">排序方式</label>
+        <select id="sortType">
+          <option value="asc">字母升序 (A→Z)</option>
+          <option value="desc">字母降序 (Z→A)</option>
+          <option value="num-asc">数字升序</option>
+          <option value="num-desc">数字降序</option>
+          <option value="random">随机排列</option>
+          <option value="reverse">反转顺序</option>
+          <option value="length-asc">长度升序</option>
+          <option value="length-desc">长度降序</option>
+        </select>
+      </div>
+      <div>
+        <label for="unique">去重</label>
+        <select id="unique">
+          <option value="false" selected>保留重复行</option>
+          <option value="true">去除重复行</option>
+          <option value="dup-only">仅显示重复行</option>
+          <option value="unique-only">仅显示唯一行</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" id="sortBtn">🔄 排序</button>
+    <div id="outputSection"></div>
+  </div>
+</main>
+<footer>Free ToolBase © 2025 · 纯前端工具，数据不会上传</footer>
+<div id="toast"></div>
+<script>
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+
+document.getElementById('sortBtn').addEventListener('click', function(){
+  var text = document.getElementById('input').value;
+  if (!text.trim()) { toast('请输入文本'); return; }
+  var lines = text.split('\n');
+  var sortType = document.getElementById('sortType').value;
+  var unique = document.getElementById('unique').value;
+
+  // Handle unique first
+  if (unique === 'true') {
+    var seen = {};
+    lines = lines.filter(function(l){ var key = l; if (seen[key]) return false; seen[key] = true; return true; });
+  } else if (unique === 'dup-only') {
+    var counts = {};
+    lines.forEach(function(l){ counts[l] = (counts[l]||0)+1; });
+    var seen2 = {};
+    lines = lines.filter(function(l){
+      if (counts[l] > 1 && !seen2[l]) { seen2[l] = true; return true; }
+      return false;
+    });
+  } else if (unique === 'unique-only') {
+    var counts2 = {};
+    lines.forEach(function(l){ counts2[l] = (counts2[l]||0)+1; });
+    lines = lines.filter(function(l){ return counts2[l] === 1; });
+  }
+
+  // Sort
+  switch(sortType) {
+    case 'asc':
+      lines.sort(function(a,b){ return a.localeCompare(b); });
+      break;
+    case 'desc':
+      lines.sort(function(a,b){ return b.localeCompare(a); });
+      break;
+    case 'num-asc':
+      lines.sort(function(a,b){
+        var na = parseFloat(a), nb = parseFloat(b);
+        if (isNaN(na) && isNaN(nb)) return a.localeCompare(b);
+        if (isNaN(na)) return 1;
+        if (isNaN(nb)) return -1;
+        return na - nb;
+      });
+      break;
+    case 'num-desc':
+      lines.sort(function(a,b){
+        var na = parseFloat(a), nb = parseFloat(b);
+        if (isNaN(na) && isNaN(nb)) return b.localeCompare(a);
+        if (isNaN(na)) return 1;
+        if (isNaN(nb)) return -1;
+        return nb - na;
+      });
+      break;
+    case 'random':
+      for (var i = lines.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = lines[i]; lines[i] = lines[j]; lines[j] = tmp;
+      }
+      break;
+    case 'reverse':
+      lines.reverse();
+      break;
+    case 'length-asc':
+      lines.sort(function(a,b){ return a.length - b.length || a.localeCompare(b); });
+      break;
+    case 'length-desc':
+      lines.sort(function(a,b){ return b.length - a.length || a.localeCompare(b); });
+      break;
+  }
+
+  var output = lines.join('\n');
+  document.getElementById('outputSection').innerHTML =
+    '<div class="stats"><div class="stat">📄 行数: <strong>' + lines.length + '</strong></div>' +
+    '<div class="stat">📏 字符: <strong>' + output.length + '</strong></div></div>' +
+    '<div class="output-area">' + output.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>') + '</div>' +
+    '<button class="btn btn-sm" id="copyBtn" style="margin-top:8px;">📋 复制结果</button>';
+  document.getElementById('copyBtn').addEventListener('click', function(){
+    navigator.clipboard.writeText(output).then(function(){ toast('已复制!'); });
+  });
+});
+</script>
+</body>
+</html>

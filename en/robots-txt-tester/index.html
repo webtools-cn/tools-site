@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robots.txt Tester - Free ToolBase</title>
+  <meta name="description" content="Free online robots.txt tester. Fetch and analyze robots.txt from any website, test if a URL is allowed for Googlebot, Bingbot, and other crawlers.">
+  <meta property="og:title" content="Robots.txt Tester - Free ToolBase">
+  <meta property="og:description" content="Free online robots.txt tester. Test if URLs are crawlable by search engines.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Robots.txt Tester",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Any",
+    "description": "Free online robots.txt tester. Fetch and analyze robots.txt from any website",
+    "url": "https://free-toolbase.com/en/robots-txt-tester/"
+  }
+  </script>
+  <style>
+  :root { --primary: #4F46E5; --primary-hover: #4338CA; --bg: #f8fafc; --surface: #fff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --success: #10b981; --error: #ef4444; --radius: 8px; --shadow: 0 1px 3px rgba(0,0,0,.1); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; }
+  header a { color: var(--primary); text-decoration: none; font-weight: 600; }
+  main { max-width: 800px; margin: 0 auto; padding: 32px 16px; }
+  h1 { font-size: 1.8rem; margin-bottom: 8px; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; box-shadow: var(--shadow); }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  select, input[type="text"], textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 1rem; }
+  textarea { font-family: monospace; resize: vertical; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: 1rem; cursor: pointer; font-weight: 600; margin-top: 12px; }
+  .btn:hover { background: var(--primary-hover); }
+  .row { display: flex; gap: 12px; }
+  .row > * { flex: 1; }
+  .result { margin-top: 16px; }
+  .status-allow { color: var(--success); font-weight: 600; }
+  .status-disallow { color: var(--error); font-weight: 600; }
+  .robots-content { background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: var(--radius); font-family: monospace; font-size: .85rem; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; margin-top: 12px; }
+  #toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: var(--radius); opacity: 0; transition: opacity .3s; z-index: 999; pointer-events: none; }
+  #toast.show { opacity: 1; }
+  footer { text-align: center; padding: 24px; color: var(--text-secondary); font-size: .85rem; }
+  @media (max-width: 375px) { main { padding: 16px 8px; } .card { padding: 16px; } .row { flex-direction: column; } }
+  </style>
+</head>
+<body>
+<header><a href="/en/">← Back to Home</a></header>
+<main>
+  <h1>🤖 Robots.txt Tester</h1>
+  <p class="subtitle">Fetch and analyze robots.txt, test if a URL is allowed for crawling</p>
+  <div class="card">
+    <label for="url">Website URL</label>
+    <input type="text" id="url" placeholder="e.g. https://example.com">
+    <button class="btn" id="fetchBtn">📥 Fetch robots.txt</button>
+    <div id="robotsDisplay"></div>
+  </div>
+  <div class="card">
+    <h3>🧪 Test URL</h3>
+    <div class="row">
+      <div>
+        <label for="testPath">Test Path</label>
+        <input type="text" id="testPath" placeholder="/admin/ or /page.html">
+      </div>
+      <div>
+        <label for="ua">Crawler User-Agent</label>
+        <select id="ua">
+          <option value="Googlebot">Googlebot</option>
+          <option value="Bingbot">Bingbot</option>
+          <option value="Baiduspider">Baiduspider</option>
+          <option value="Slurp">Yahoo Slurp</option>
+          <option value="DuckDuckBot">DuckDuckBot</option>
+          <option value="*">* (All crawlers)</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" id="testBtn">🧪 Test</button>
+    <div class="result" id="testResult"></div>
+  </div>
+</main>
+<footer>Free ToolBase © 2025 · Pure frontend, no data uploaded</footer>
+<div id="toast"></div>
+<script>
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2000);
+}
+
+var robotsText = '';
+var baseUrl = '';
+
+document.getElementById('fetchBtn').addEventListener('click', async function() {
+  var url = document.getElementById('url').value.trim();
+  if (!url) { toast('Please enter a website URL'); return; }
+  if (!/^https?:\/\/.+/.test(url)) { url = 'https://' + url; document.getElementById('url').value = url; }
+  baseUrl = url.replace(/\/$/, '');
+  try {
+    var resp = await fetch(baseUrl + '/robots.txt', { mode: 'cors' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    robotsText = await resp.text();
+    document.getElementById('robotsDisplay').innerHTML = '<p style="color:var(--success);margin-top:8px;">✅ Fetched robots.txt (' + (robotsText.length/1024).toFixed(1) + ' KB)</p><div class="robots-content">' + robotsText.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+  } catch(e) {
+    document.getElementById('robotsDisplay').innerHTML = '<p style="color:var(--error);margin-top:8px;">❌ Fetch failed: ' + e.message + '</p><p style="font-size:.85rem;color:var(--text-secondary)">Possible: no robots.txt / CORS blocked</p>';
+    robotsText = '';
+  }
+});
+
+function parseRobots(text) {
+  var rules = {};
+  var currentAgents = [];
+  text.split('\n').forEach(function(line) {
+    line = line.replace(/#.*/, '').trim();
+    if (!line) return;
+    var parts = line.split(':');
+    if (parts.length < 2) return;
+    var key = parts[0].trim().toLowerCase();
+    var value = parts.slice(1).join(':').trim();
+    if (key === 'user-agent') {
+      currentAgents = [value.toLowerCase()];
+      if (!rules[value.toLowerCase()]) rules[value.toLowerCase()] = { allow: [], disallow: [] };
+    } else if (key === 'allow') {
+      currentAgents.forEach(function(ua) {
+        if (rules[ua]) rules[ua].allow.push(value);
+      });
+    } else if (key === 'disallow') {
+      currentAgents.forEach(function(ua) {
+        if (rules[ua]) rules[ua].disallow.push(value);
+      });
+    }
+  });
+  return rules;
+}
+
+function matchRule(path, patterns) {
+  for (var i = 0; i < patterns.length; i++) {
+    var p = patterns[i];
+    if (!p) continue;
+    var regex = p.replace(/\./g, '\\.').replace(/\*/g, '.*').replace(/\$$/, '');
+    if (new RegExp('^' + regex).test(path)) return true;
+  }
+  return false;
+}
+
+document.getElementById('testBtn').addEventListener('click', function() {
+  var path = document.getElementById('testPath').value.trim();
+  var ua = document.getElementById('ua').value;
+  if (!robotsText) { toast('Please fetch robots.txt first'); return; }
+  if (!path) { toast('Please enter a test path'); return; }
+  if (!path.startsWith('/')) path = '/' + path;
+
+  var rules = parseRobots(robotsText);
+  var uaKey = ua.toLowerCase();
+  var agentRules = rules[uaKey] || rules['*'] || { allow: [], disallow: [] };
+
+  var isDisallowed = matchRule(path, agentRules.disallow);
+  var isAllowed = matchRule(path, agentRules.allow);
+
+  if (isAllowed && isDisallowed) {
+    document.getElementById('testResult').innerHTML = '<p class="status-allow">✅ Allowed (Allow rule overrides Disallow)</p><p style="font-size:.85rem">Path: ' + path + ' | UA: ' + ua + '</p>';
+  } else if (isDisallowed) {
+    document.getElementById('testResult').innerHTML = '<p class="status-disallow">🚫 Disallowed</p><p style="font-size:.85rem">Path: ' + path + ' | UA: ' + ua + '</p>';
+  } else {
+    document.getElementById('testResult').innerHTML = '<p class="status-allow">✅ Allowed (no matching Disallow rule)</p><p style="font-size:.85rem">Path: ' + path + ' | UA: ' + ua + '</p>';
+  }
+});
+</script>
+</body>
+</html>

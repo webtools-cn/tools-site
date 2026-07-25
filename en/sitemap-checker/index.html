@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sitemap Checker - Free ToolBase</title>
+  <meta name="description" content="Free online sitemap checker. Enter a website URL to automatically discover and validate sitemap.xml, check XML format, and list all page URLs.">
+  <meta property="og:title" content="Sitemap Checker - Free ToolBase">
+  <meta property="og:description" content="Free online sitemap checker. Automatically discover and validate sitemap.xml for any website.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Sitemap Checker",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Any",
+    "description": "Free online sitemap checker. Enter a website URL to automatically discover and validate sitemap.xml",
+    "url": "https://free-toolbase.com/en/sitemap-checker/"
+  }
+  </script>
+  <style>
+  :root { --primary: #4F46E5; --primary-hover: #4338CA; --bg: #f8fafc; --surface: #fff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --success: #10b981; --error: #ef4444; --warning: #f59e0b; --radius: 8px; --shadow: 0 1px 3px rgba(0,0,0,.1); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; }
+  header a { color: var(--primary); text-decoration: none; font-weight: 600; }
+  main { max-width: 800px; margin: 0 auto; padding: 32px 16px; }
+  h1 { font-size: 1.8rem; margin-bottom: 8px; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; box-shadow: var(--shadow); }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 1rem; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: 1rem; cursor: pointer; font-weight: 600; margin-top: 12px; }
+  .btn:hover { background: var(--primary-hover); }
+  .result { margin-top: 16px; }
+  .status-ok { color: var(--success); font-weight: 600; }
+  .status-err { color: var(--error); font-weight: 600; }
+  .url-list { max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-top: 12px; background: var(--bg); }
+  .url-list a { display: block; font-size: .85rem; color: var(--primary); padding: 2px 0; word-break: break-all; }
+  .stats { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+  .stat { background: var(--bg); padding: 8px 16px; border-radius: var(--radius); font-size: .9rem; }
+  .stat strong { color: var(--primary); }
+  #toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: var(--radius); opacity: 0; transition: opacity .3s; z-index: 999; pointer-events: none; }
+  #toast.show { opacity: 1; }
+  footer { text-align: center; padding: 24px; color: var(--text-secondary); font-size: .85rem; }
+  @media (max-width: 375px) { main { padding: 16px 8px; } .card { padding: 16px; } }
+  </style>
+</head>
+<body>
+<header><a href="/en/">← Back to Home</a></header>
+<main>
+  <h1>🗺️ Sitemap Checker</h1>
+  <p class="subtitle">Enter a website URL to automatically detect and validate its sitemap.xml</p>
+  <div class="card">
+    <label for="url">Website URL</label>
+    <input type="text" id="url" placeholder="e.g. https://example.com">
+    <button class="btn" id="checkBtn">🔍 Check Sitemap</button>
+    <div class="result" id="result"></div>
+  </div>
+  <div class="card">
+    <h3>How to Use</h3>
+    <p>Enter the full URL of the target website. The tool will automatically try common sitemap paths (e.g. /sitemap.xml, /sitemap_index.xml) and check if the XML is valid while listing all included page URLs.</p>
+    <p style="margin-top:8px;color:var(--text-secondary);">Note: Due to browser CORS restrictions, sitemap content can only be fetched if the target site allows cross-origin access.</p>
+  </div>
+</main>
+<footer>Free ToolBase © 2025 · Pure frontend, no data uploaded</footer>
+<div id="toast"></div>
+<script>
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2000);
+}
+
+var commonPaths = ['/sitemap.xml', '/sitemap_index.xml', '/sitemap-index.xml', '/sitemap.php', '/sitemap.txt', '/wp-sitemap.xml'];
+
+document.getElementById('checkBtn').addEventListener('click', async function() {
+  var url = document.getElementById('url').value.trim();
+  if (!url) { toast('Please enter a website URL'); return; }
+  if (!/^https?:\/\/.+/.test(url)) { url = 'https://' + url; document.getElementById('url').value = url; }
+  var result = document.getElementById('result');
+  result.innerHTML = '<p>🔄 Checking...</p>';
+
+  var found = null;
+  var foundPath = '';
+  for (var i = 0; i < commonPaths.length; i++) {
+    var fullUrl = url.replace(/\/$/, '') + commonPaths[i];
+    try {
+      var resp = await fetch(fullUrl, { mode: 'cors' });
+      if (resp.ok) {
+        var text = await resp.text();
+        if (text.trim().startsWith('<?xml') || text.includes('<urlset') || text.includes('<sitemapindex') || text.includes('<sitemap')) {
+          found = text;
+          foundPath = commonPaths[i];
+          break;
+        }
+      }
+    } catch(e) { continue; }
+  }
+
+  if (!found) {
+    result.innerHTML = '<p class="status-err">❌ No valid sitemap found</p><p style="font-size:.85rem;color:var(--text-secondary)">Tried: ' + commonPaths.join(', ') + '</p><p style="font-size:.85rem;color:var(--text-secondary)">Possible: no sitemap / CORS blocked</p>';
+    return;
+  }
+
+  var parser = new DOMParser();
+  var doc = parser.parseFromString(found, 'text/xml');
+  var errNode = doc.querySelector('parsererror');
+  if (errNode) {
+    result.innerHTML = '<p class="status-err">❌ XML Parse Error</p><pre style="overflow:auto;font-size:.8rem;background:#fff5f5;padding:12px;border-radius:var(--radius);margin-top:8px;">' + errNode.textContent.replace(/</g,'&lt;') + '</pre>';
+    return;
+  }
+
+  var locs = doc.querySelectorAll('loc');
+  var urls = [];
+  locs.forEach(function(loc){ urls.push(loc.textContent.trim()); });
+
+  var html = '<p class="status-ok">✅ Sitemap found: ' + foundPath + '</p>';
+  html += '<div class="stats">';
+  html += '<div class="stat">📄 Pages: <strong>' + urls.length + '</strong></div>';
+  html += '<div class="stat">📏 Size: <strong>' + (found.length / 1024).toFixed(1) + ' KB</strong></div>';
+  html += '</div>';
+  if (urls.length > 0) {
+    html += '<div class="url-list">';
+    urls.forEach(function(u){ html += '<a href="' + u + '" target="_blank">' + u + '</a>'; });
+    html += '</div>';
+  }
+  result.innerHTML = html;
+});
+</script>
+</body>
+</html>

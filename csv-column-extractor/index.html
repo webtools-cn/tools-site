@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV列提取器 - Free ToolBase</title>
+  <meta name="description" content="免费在线CSV列提取工具，粘贴CSV数据即可提取指定列，支持列号或列名选择，自动识别表头，支持自定义分隔符">
+  <meta property="og:title" content="CSV列提取器 - Free ToolBase">
+  <meta property="og:description" content="免费在线CSV列提取工具，快速提取CSV数据中的指定列">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"CSV列提取器","applicationCategory":"BusinessApplication","operatingSystem":"Any","description":"免费在线CSV列提取工具","url":"https://free-toolbase.com/csv-column-extractor/"}
+  </script>
+  <style>
+  :root { --primary: #4F46E5; --primary-hover: #4338CA; --bg: #f8fafc; --surface: #fff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 8px; --success: #10b981; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; }
+  header a { color: var(--primary); text-decoration: none; font-weight: 600; }
+  main { max-width: 900px; margin: 0 auto; padding: 32px 16px; }
+  h1 { font-size: 1.8rem; margin-bottom: 8px; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: .9rem; font-family: monospace; resize: vertical; min-height: 140px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: 1rem; cursor: pointer; font-weight: 600; margin-top: 12px; }
+  .btn:hover { background: var(--primary-hover); }
+  .btn-sm { padding: 6px 12px; font-size: .85rem; margin-top: 0; }
+  .row { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+  .row > div { flex: 1; }
+  input[type="text"], select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 1rem; }
+  .col-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .col-chip { padding: 4px 12px; background: var(--bg); border: 2px solid var(--border); border-radius: 20px; font-size: .85rem; cursor: pointer; user-select: none; }
+  .col-chip.selected { border-color: var(--primary); background: #EEF2FF; color: var(--primary); font-weight: 600; }
+  .output-area { background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: var(--radius); font-family: monospace; font-size: .85rem; white-space: pre-wrap; max-height: 400px; overflow-y: auto; margin-top: 12px; }
+  .stats { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+  .stat { font-size: .85rem; color: var(--text-secondary); }
+  .stat strong { color: var(--primary); }
+  #toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: var(--radius); opacity: 0; transition: opacity .3s; z-index: 999; pointer-events: none; }
+  #toast.show { opacity: 1; }
+  footer { text-align: center; padding: 24px; color: var(--text-secondary); font-size: .85rem; }
+  @media (max-width: 375px) { main { padding: 16px 8px; } .card { padding: 16px; } }
+  </style>
+</head>
+<body>
+<header><a href="/">← 返回首页</a></header>
+<main>
+  <h1>📊 CSV列提取器</h1>
+  <p class="subtitle">粘贴CSV数据，选择要保留的列，一键提取</p>
+  <div class="card">
+    <label for="csvInput">CSV数据</label>
+    <textarea id="csvInput" placeholder="name,age,city,score&#10;Alice,25,NYC,92&#10;Bob,30,LA,85"></textarea>
+    <div class="row" style="margin-top:12px;">
+      <div>
+        <label for="delimiter">分隔符</label>
+        <select id="delimiter">
+          <option value=",">逗号 (,)</option>
+          <option value=";">分号 (;)</option>
+          <option value="\t">制表符 (Tab)</option>
+          <option value="|">竖线 (|)</option>
+        </select>
+      </div>
+      <div>
+        <label for="hasHeader">首行</label>
+        <select id="hasHeader">
+          <option value="true" selected>是表头</option>
+          <option value="false">是数据</option>
+        </select>
+      </div>
+    </div>
+    <div id="columnSelector" style="margin-top:12px;">
+      <label>选择要保留的列（点击切换）</label>
+      <div class="col-chips" id="colChips"></div>
+      <button class="btn btn-sm" id="selectAll" style="margin-top:4px;">全选</button>
+      <button class="btn btn-sm" id="deselectAll" style="margin-top:4px;margin-left:4px;">全不选</button>
+    </div>
+    <button class="btn" id="extractBtn">📤 提取列</button>
+    <div id="outputSection"></div>
+  </div>
+</main>
+<footer>Free ToolBase © 2025 · 纯前端工具，数据不会上传</footer>
+<div id="toast"></div>
+<script>
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+
+function getDelim(d) { if (d === '\\t') return '\t'; return d; }
+
+function parseCols(){
+  var csv = document.getElementById('csvInput').value.trim();
+  if (!csv) { document.getElementById('colChips').innerHTML = '<span style="color:var(--text-secondary);font-size:.85rem;">请先粘贴CSV数据</span>'; return []; }
+  var delim = getDelim(document.getElementById('delimiter').value);
+  var firstLine = csv.split('\n')[0];
+  var cols = firstLine.split(delim);
+  var chips = '';
+  var hasHeader = document.getElementById('hasHeader').value === 'true';
+  cols.forEach(function(col, i){
+    var name = hasHeader ? col.trim() : ('列' + (i+1));
+    chips += '<span class="col-chip selected" data-idx="' + i + '" title="' + name + '">' + name + '</span>';
+  });
+  document.getElementById('colChips').innerHTML = chips;
+  document.querySelectorAll('.col-chip').forEach(function(chip){
+    chip.addEventListener('click', function(){ this.classList.toggle('selected'); });
+  });
+  return cols;
+}
+
+document.getElementById('csvInput').addEventListener('input', parseCols);
+document.getElementById('delimiter').addEventListener('change', parseCols);
+document.getElementById('hasHeader').addEventListener('change', parseCols);
+
+document.getElementById('selectAll').addEventListener('click', function(){
+  document.querySelectorAll('.col-chip').forEach(function(c){c.classList.add('selected')});
+});
+document.getElementById('deselectAll').addEventListener('click', function(){
+  document.querySelectorAll('.col-chip').forEach(function(c){c.classList.remove('selected')});
+});
+
+document.getElementById('extractBtn').addEventListener('click', function(){
+  var csv = document.getElementById('csvInput').value.trim();
+  if (!csv) { toast('请粘贴CSV数据'); return; }
+  var delim = getDelim(document.getElementById('delimiter').value);
+  var selected = [];
+  document.querySelectorAll('.col-chip.selected').forEach(function(c){ selected.push(parseInt(c.dataset.idx)); });
+  if (selected.length === 0) { toast('请至少选择一列'); return; }
+  selected.sort(function(a,b){return a-b;});
+
+  var lines = csv.split('\n');
+  var result = [];
+  lines.forEach(function(line){
+    var cols = line.split(delim);
+    var row = selected.map(function(i){ return cols[i] || ''; }).join(delim);
+    result.push(row);
+  });
+
+  var output = result.join('\n');
+  document.getElementById('outputSection').innerHTML =
+    '<div class="stats"><div class="stat">📄 行数: <strong>' + lines.length + '</strong></div><div class="stat">📊 列数: <strong>' + selected.length + ' / ' + (lines[0] ? lines[0].split(delim).length : 0) + '</strong></div></div>' +
+    '<div class="output-area">' + output.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' +
+    '<button class="btn btn-sm" id="copyBtn" style="margin-top:8px;">📋 复制结果</button>';
+  document.getElementById('copyBtn').addEventListener('click', function(){
+    navigator.clipboard.writeText(output).then(function(){ toast('已复制!'); });
+  });
+});
+
+// Initialize
+parseCols();
+</script>
+</body>
+</html>

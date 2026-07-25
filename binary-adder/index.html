@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>二进制加法器 - Free ToolBase</title>
+  <meta name="description" content="免费在线二进制加法计算器，支持多行二进制数相加，自动处理进位，结果可切换显示为二进制/十进制/十六进制">
+  <meta property="og:title" content="二进制加法器 - Free ToolBase">
+  <meta property="og:description" content="免费在线二进制加法计算器，支持多行二进制数相加">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"二进制加法器","applicationCategory":"EducationalApplication","operatingSystem":"Any","description":"免费在线二进制加法计算器","url":"https://free-toolbase.com/binary-adder/"}
+  </script>
+  <style>
+  :root { --primary: #4F46E5; --primary-hover: #4338CA; --bg: #f8fafc; --surface: #fff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 8px; --success: #10b981; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; }
+  header a { color: var(--primary); text-decoration: none; font-weight: 600; }
+  main { max-width: 800px; margin: 0 auto; padding: 32px 16px; }
+  h1 { font-size: 1.8rem; margin-bottom: 8px; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 1rem; font-family: monospace; resize: vertical; min-height: 120px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: 1rem; cursor: pointer; font-weight: 600; margin-top: 12px; }
+  .btn:hover { background: var(--primary-hover); }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > * { flex: 1; }
+  select { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 1rem; width: 100%; }
+  .result-box { background: var(--bg); padding: 16px; border-radius: var(--radius); margin-top: 12px; font-family: monospace; font-size: 1.1rem; }
+  .result-box .val { font-size: 1.4rem; font-weight: 700; color: var(--success); }
+  .steps { font-size: .85rem; color: var(--text-secondary); margin-top: 8px; }
+  #toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: var(--radius); opacity: 0; transition: opacity .3s; z-index: 999; pointer-events: none; }
+  #toast.show { opacity: 1; }
+  footer { text-align: center; padding: 24px; color: var(--text-secondary); font-size: .85rem; }
+  @media (max-width: 375px) { main { padding: 16px 8px; } .card { padding: 16px; } }
+  </style>
+</head>
+<body>
+<header><a href="/">← 返回首页</a></header>
+<main>
+  <h1>➕ 二进制加法器</h1>
+  <p class="subtitle">每行输入一个二进制数，自动求和</p>
+  <div class="card">
+    <label for="bins">输入二进制数（每行一个）</label>
+    <textarea id="bins" placeholder="1010&#10;1100&#10;111"></textarea>
+    <div class="row" style="margin-top:12px;">
+      <div>
+        <label for="outBase">输出进制</label>
+        <select id="outBase">
+          <option value="2">二进制</option>
+          <option value="10" selected>十进制</option>
+          <option value="16">十六进制</option>
+        </select>
+      </div>
+      <button class="btn" id="calcBtn">➕ 计算</button>
+    </div>
+    <div class="result-box" id="result"></div>
+  </div>
+  <div class="card">
+    <h3>使用说明</h3>
+    <p>每行输入一个二进制数（只能包含0和1），工具会自动对齐并求和。可以选择以二进制、十进制或十六进制显示结果。支持最多50行输入。</p>
+  </div>
+</main>
+<footer>Free ToolBase © 2025 · 纯前端工具</footer>
+<div id="toast"></div>
+<script>
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+
+document.getElementById('calcBtn').addEventListener('click', function(){
+  var lines = document.getElementById('bins').value.trim().split('\n').filter(function(l){return l.trim()});
+  if (lines.length === 0) { toast('请输入二进制数'); return; }
+  if (lines.length > 50) { toast('最多支持50行'); return; }
+  var valid = true;
+  var nums = [];
+  lines.forEach(function(line){
+    line = line.trim();
+    if (!/^[01]+$/.test(line)) { valid = false; return; }
+    nums.push(parseInt(line, 2));
+  });
+  if (!valid) { toast('输入包含无效字符，只能包含0和1'); return; }
+
+  var sum = nums.reduce(function(a,b){return a+b}, 0);
+  var base = parseInt(document.getElementById('outBase').value);
+  var resultHtml = '<div>求和结果:</div>';
+  if (base === 2) resultHtml += '<div class="result-box"><span class="result-box" style="font-size:1.4rem;font-weight:700;color:var(--success)">' + sum.toString(2) + '</span> <span style="font-size:.9rem;color:var(--text-secondary)">(二进制)</span></div>';
+  else if (base === 16) resultHtml += '<div class="result-box"><span style="font-size:1.4rem;font-weight:700;color:var(--success)">' + sum.toString(16).toUpperCase() + '</span> <span style="font-size:.9rem;color:var(--text-secondary)">(十六进制)</span></div>';
+  else resultHtml += '<div class="result-box"><span style="font-size:1.4rem;font-weight:700;color:var(--success)">' + sum + '</span> <span style="font-size:.9rem;color:var(--text-secondary)">(十进制)</span></div>';
+  resultHtml += '<div class="steps">输入: ' + lines.join(' + ') + '</div>';
+  document.getElementById('result').innerHTML = resultHtml;
+});
+</script>
+</body>
+</html>

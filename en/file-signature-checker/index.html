@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Signature Checker - Free ToolBase</title>
+  <meta name="description" content="Free online file signature (magic bytes) checker. Upload a file to view its hex header and identify the real file type. Supports PNG, JPG, PDF, ZIP, EXE and more.">
+  <meta property="og:title" content="File Signature Checker - Free ToolBase">
+  <meta property="og:description" content="Free online file signature checker. Identify real file types by magic bytes.">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"File Signature Checker","applicationCategory":"SecurityApplication","operatingSystem":"Any","description":"Free online file signature checker tool","url":"https://free-toolbase.com/en/file-signature-checker/"}
+  </script>
+  <style>
+  :root { --primary: #4F46E5; --primary-hover: #4338CA; --bg: #f8fafc; --surface: #fff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 8px; --success: #10b981; --error: #ef4444; --warning: #f59e0b; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; }
+  header a { color: var(--primary); text-decoration: none; font-weight: 600; }
+  main { max-width: 800px; margin: 0 auto; padding: 32px 16px; }
+  h1 { font-size: 1.8rem; margin-bottom: 8px; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  .dropzone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 40px; text-align: center; cursor: pointer; transition: all .2s; }
+  .dropzone:hover, .dropzone.dragover { border-color: var(--primary); background: #EEF2FF; }
+  .dropzone p { color: var(--text-secondary); }
+  input[type="file"] { display: none; }
+  .result-card { margin-top: 16px; }
+  .result-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .icon { font-size: 2rem; }
+  .hex-view { background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: var(--radius); font-family: monospace; font-size: .85rem; overflow-x: auto; white-space: pre-wrap; word-break: break-all; margin-top: 8px; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .info-item { background: var(--bg); padding: 10px; border-radius: var(--radius); }
+  .info-item .key { font-size: .8rem; color: var(--text-secondary); }
+  .info-item .val { font-weight: 600; }
+  .status-match { color: var(--success); }
+  .status-mismatch { color: var(--warning); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: .9rem; cursor: pointer; font-weight: 600; margin-top: 8px; }
+  .btn:hover { background: var(--primary-hover); }
+  #toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: var(--radius); opacity: 0; transition: opacity .3s; z-index: 999; pointer-events: none; }
+  #toast.show { opacity: 1; }
+  footer { text-align: center; padding: 24px; color: var(--text-secondary); font-size: .85rem; }
+  @media (max-width: 375px) { main { padding: 16px 8px; } .card { padding: 16px; } .info-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<header><a href="/en/">← Back to Home</a></header>
+<main>
+  <h1>🔬 File Signature Checker</h1>
+  <p class="subtitle">Upload a file to view its hex header and identify the real file type</p>
+  <div class="card">
+    <div class="dropzone" id="dropzone">
+      <p style="font-size:2rem;">📁</p>
+      <p>Drag & drop a file here, or click to select</p>
+      <p style="font-size:.8rem;">Processed locally, never uploaded</p>
+    </div>
+    <input type="file" id="fileInput">
+    <div id="result"></div>
+  </div>
+  <div class="card">
+    <h3>Supported File Types</h3>
+    <p style="font-size:.85rem;color:var(--text-secondary);">PNG, JPG/JPEG, GIF, BMP, WEBP, PDF, ZIP, RAR, 7Z, GZIP, EXE/DLL, ELF, MP3, MP4, WAV, AVI, FLV, DOCX/XLSX/PPTX, ISO, SQLite, and more</p>
+  </div>
+</main>
+<footer>Free ToolBase © 2025 · Pure frontend, never uploaded</footer>
+<div id="toast"></div>
+<script>
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+
+var SIGNATURES = [
+  {sig: '89504E47', ext: 'PNG', type: 'PNG Image', mime: 'image/png', icon: '🖼️', offset: 0},
+  {sig: 'FFD8FF', ext: 'JPG', type: 'JPEG Image', mime: 'image/jpeg', icon: '🖼️', offset: 0},
+  {sig: '47494638', ext: 'GIF', type: 'GIF Image', mime: 'image/gif', icon: '🖼️', offset: 0},
+  {sig: '424D', ext: 'BMP', type: 'BMP Image', mime: 'image/bmp', icon: '🖼️', offset: 0},
+  {sig: '25504446', ext: 'PDF', type: 'PDF Document', mime: 'application/pdf', icon: '📄', offset: 0},
+  {sig: '504B0304', ext: 'ZIP/DOCX', type: 'ZIP or Office Document', mime: 'application/zip', icon: '📦', offset: 0},
+  {sig: '504B0506', ext: 'ZIP', type: 'ZIP Archive (empty)', mime: 'application/zip', icon: '📦', offset: 0},
+  {sig: '52617221', ext: 'RAR', type: 'RAR Archive', mime: 'application/vnd.rar', icon: '📦', offset: 0},
+  {sig: '377ABCAF271C', ext: '7Z', type: '7-Zip Archive', mime: 'application/x-7z-compressed', icon: '📦', offset: 0},
+  {sig: '1F8B08', ext: 'GZ', type: 'GZip File', mime: 'application/gzip', icon: '📦', offset: 0},
+  {sig: '4D5A', ext: 'EXE/DLL', type: 'Windows Executable', mime: 'application/vnd.microsoft.portable-executable', icon: '⚙️', offset: 0},
+  {sig: '7F454C46', ext: 'ELF', type: 'Linux Executable', mime: 'application/x-executable', icon: '⚙️', offset: 0},
+  {sig: '494433', ext: 'MP3', type: 'MP3 Audio', mime: 'audio/mpeg', icon: '🎵', offset: 0},
+  {sig: '000001BA', ext: 'MPG', type: 'MPEG Video', mime: 'video/mpeg', icon: '🎬', offset: 0},
+  {sig: '000001B3', ext: 'MPG', type: 'MPEG Video', mime: 'video/mpeg', icon: '🎬', offset: 0},
+  {sig: '464C5601', ext: 'FLV', type: 'FLV Video', mime: 'video/x-flv', icon: '🎬', offset: 0},
+  {sig: '53514C69', ext: 'SQLite', type: 'SQLite Database', mime: 'application/x-sqlite3', icon: '🗄️', offset: 0},
+  {sig: 'CAFEBABE', ext: 'CLASS', type: 'Java Class File', mime: 'application/java-vm', icon: '☕', offset: 0},
+  {sig: '00000020', ext: 'ISO', type: 'ISO Disc Image', mime: 'application/x-iso9660-image', icon: '💿', offset: 0},
+  {sig: 'EFBBBF', ext: 'TXT(BOM)', type: 'UTF-8 Text with BOM', mime: 'text/plain', icon: '📝', offset: 0},
+];
+
+function bytesToHex(bytes) {
+  return Array.from(bytes).map(function(b){return b.toString(16).toUpperCase().padStart(2,'0')}).join('');
+}
+
+function findMatch(hex) {
+  for (var i = 0; i < SIGNATURES.length; i++) {
+    var s = SIGNATURES[i];
+    if (s.offset !== undefined && s.offset > 0) {
+      var sub = hex.substring(s.offset * 2, s.offset * 2 + s.sig.length);
+      if (sub === s.sig) return s;
+    } else {
+      if (hex.startsWith(s.sig)) return s;
+    }
+  }
+  return null;
+}
+
+var dropzone = document.getElementById('dropzone');
+var fileInput = document.getElementById('fileInput');
+
+dropzone.addEventListener('click', function(){ fileInput.click(); });
+dropzone.addEventListener('dragover', function(e){ e.preventDefault(); this.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', function(){ this.classList.remove('dragover'); });
+dropzone.addEventListener('drop', function(e){ e.preventDefault(); this.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', function(){ if (this.files[0]) handleFile(this.files[0]); });
+
+function handleFile(file) {
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var bytes = new Uint8Array(e.target.result);
+    var hex = bytesToHex(bytes.slice(0, 64));
+    var match = findMatch(hex);
+    var result = document.getElementById('result');
+
+    var html = '<div class="result-card card">';
+    html += '<div class="result-header">';
+
+    if (match) {
+      html += '<div class="icon">' + match.icon + '</div>';
+      html += '<div><h3 class="status-match">✅ Detected: ' + match.type + '</h3>';
+      html += '<p style="color:var(--text-secondary)">Extension: .' + match.ext + ' | MIME: ' + match.mime + '</p></div>';
+    } else {
+      html += '<div class="icon">❓</div>';
+      html += '<div><h3 class="status-mismatch">⚠️ Unknown File Type</h3>';
+      html += '<p style="color:var(--text-secondary)">No matching signature found</p></div>';
+    }
+    html += '</div>';
+
+    html += '<div class="info-grid">';
+    html += '<div class="info-item"><div class="key">Filename</div><div class="val">' + file.name + '</div></div>';
+    html += '<div class="info-item"><div class="key">File Size</div><div class="val">' + (file.size / 1024).toFixed(1) + ' KB</div></div>';
+    html += '<div class="info-item"><div class="key">Declared Type</div><div class="val">' + (file.type || 'Unknown') + '</div></div>';
+    html += '<div class="info-item"><div class="key">Signature</div><div class="val" style="font-family:monospace;font-size:.85rem;">' + hex.substring(0, 16) + '...</div></div>';
+    html += '</div>';
+
+    html += '<div class="hex-view">' + hex.match(/.{1,32}/g).map(function(line){return line.match(/.{1,2}/g).join(' ')}).join('\n') + '</div>';
+    html += '</div>';
+    result.innerHTML = html;
+  };
+  reader.readAsArrayBuffer(file.slice(0, 1024));
+}
+</script>
+</body>
+</html>
