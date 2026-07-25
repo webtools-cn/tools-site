@@ -1,104 +1,100 @@
 #!/usr/bin/env python3
-"""添加新工具卡片到中英文首页"""
-import re
+"""批量添加10个新工具的首页卡片（中英文）+ 更新数字 + sitemap"""
+import re, os
 
 BASE = '/home/chison/tools-site'
 
-# 新工具列表
-NEW_TOOLS = [
-    {
-        'slug': 'meeting-cost-calculator',
-        'category': 'calculators',
-        'cn_name': '会议成本计算器',
-        'cn_desc': '计算会议总成本，量化无效会议开销',
-        'en_name': 'Meeting Cost Calculator',
-        'en_desc': 'Calculate meeting costs, quantify inefficient meetings',
-    },
-    {
-        'slug': 'blood-alcohol-calculator',
-        'category': 'calculators',
-        'cn_name': '血液酒精浓度计算器',
-        'cn_desc': '根据体重、饮酒量和时间估算BAC值',
-        'en_name': 'BAC Calculator',
-        'en_desc': 'Estimate blood alcohol content based on weight & drinks',
-    },
-    {
-        'slug': 'invoice-template',
-        'category': 'generators',
-        'cn_name': '发票模板生成器',
-        'cn_desc': '创建专业发票，一键导出PDF或打印',
-        'en_name': 'Invoice Template Generator',
-        'en_desc': 'Create professional invoices, export as PDF or print',
-    },
-    {
-        'slug': 'moon-phase-calendar',
-        'category': 'calculators',
-        'cn_name': '月相日历',
-        'cn_desc': '查询任意日期月相状态、月龄和可见度',
-        'en_name': 'Moon Phase Calendar',
-        'en_desc': 'Check moon phase, age & illumination for any date',
-    },
-    {
-        'slug': 'amortization-schedule',
-        'category': 'calculators',
-        'cn_name': '分期还款计划表',
-        'cn_desc': '生成等额本息/等额本金还款计划表',
-        'en_name': 'Amortization Schedule',
-        'en_desc': 'Generate equal installment/principal repayment schedule',
-    },
+# 10个新工具卡片数据 (格式: cn_name, en_name, cn_desc, en_desc, category, emoji, slug)
+TOOLS = [
+    ('REM↔PX转换器', 'REM↔PX Converter', '免费在线REM与PX双向转换器，支持自定义根字体大小，实时换算。前端开发必备。', 'Free online REM↔PX converter. Custom root font size, real-time conversion. Essential for frontend devs.', 'dev-tools', '📐', 'rem-to-pixel'),
+    ('域名Typo生成器', 'Domain Typo Generator', '免费在线域名Typo生成器，输入域名自动生成键盘误触、遗漏字母等Typo变体。网络安全测试必备。', 'Free online domain typo generator. Generate keyboard slip, missing letter, and swapped letter variants from any domain.', 'security-tools', '⌨️', 'domain-typo-generator'),
+    ('子网掩码计算器', 'Subnet Mask Calculator', '免费在线子网掩码计算器，输入IP/CIDR计算网络地址、广播地址、可用主机数。网络工程师必备。', 'Free online subnet mask calculator. Calculate network address, broadcast, usable hosts from IP/CIDR. Network engineer essential.', 'network-tools', '🌐', 'subnet-mask-calc'),
+    ('API速率限制计算器', 'API Rate Limiter Calculator', '免费在线API速率限制计算器，分析固定窗口、令牌桶、滑动窗口策略。后端架构设计参考。', 'Free online API rate limiter calculator. Analyze fixed window, token bucket, sliding window strategies for backend design.', 'dev-tools', '⚡', 'api-rate-limiter-calc'),
+    ('CSS优先级计算器', 'CSS Specificity Calculator', '免费在线CSS选择器优先级计算器，计算ID/Class/Element权重值。前端开发排错必备。', 'Free online CSS specificity calculator. Calculate ID/Class/Element weight for any selector. Frontend debugging essential.', 'dev-tools', '🎯', 'css-specificity-calc'),
+    ('RSS转JSON转换器', 'RSS to JSON Converter', '免费在线RSS/Atom转JSON工具，粘贴XML自动解析为结构化JSON。数据集成必备。', 'Free online RSS/Atom to JSON converter. Paste XML, get structured JSON. Essential for data integration.', 'dev-tools', '📡', 'rss-to-json'),
+    ('SQL差异对比', 'SQL Diff Compare', '免费在线SQL差异对比工具，逐行对比两个SQL版本。数据库迁移和Code Review必备。', 'Free online SQL diff tool. Compare two SQL versions line by line. Essential for DB migration and code review.', 'dev-tools', '🗄️', 'sql-diff'),
+    ('假身份生成器', 'Fake Identity Generator', '免费在线假身份信息生成器，支持中/美/英/日多国格式。生成姓名/地址/电话/邮箱，测试数据必备。', 'Free online fake identity generator. Supports China/US/UK/Japan formats. Generate names, addresses, phones, emails for testing.', 'utility-tools', '🪪', 'fake-identity-generator'),
+    ('CI/CD配置生成器', 'CI/CD Pipeline Generator', '免费在线CI/CD配置生成器，支持GitHub Actions/GitLab CI/Jenkins。可视化选择阶段，一键生成YAML。', 'Free online CI/CD pipeline config generator. Supports GitHub Actions, GitLab CI, Jenkins. Visual stage selector, one-click YAML.', 'dev-tools', '🚀', 'cicd-pipeline-generator'),
+    ('HTML颜色解析器', 'HTML Color Parser', '免费在线颜色值解析器，支持HEX/RGB/HSL互转。实时预览色块，前端设计必备。', 'Free online color value parser. HEX/RGB/HSL conversion with live color preview. Essential for frontend design.', 'design-tools', '🎨', 'html-color-picker'),
 ]
 
-def add_cards(filepath, is_en=False):
-    with open(filepath, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
-    # 找到 tools-grid 的结束位置 (</div> 之前)
-    # 找到最后一个 </div> 在 tools-grid 之后
-    grid_start = content.find('class="tools-grid"')
-    if grid_start == -1:
-        print(f"❌ 未找到 tools-grid")
-        return
-    
-    # 找到对应的闭合 </div>
-    depth = 0
-    insert_pos = grid_start
-    i = content.find('<div', grid_start)
-    while i != -1:
-        tag_start = content[i:i+4]
-        if tag_start == '<div':
-            # 检查是否是自闭合或只是开头
-            if not content[i:i+5].startswith('<div '):
-                # 可能是 <div> 或 <div class=...
-                pass
-            depth += 1
-        elif content[i:i+6] == '</div>':
-            depth -= 1
-            if depth == 0:
-                insert_pos = i
-                break
-        i = content.find('<div', i+1) if content.find('<div', i+1) != -1 else content.find('</div>', i+1)
-        if i == -1:
-            break
-    
-    if insert_pos == grid_start:
-        print(f"❌ 未找到 tools-grid 闭合标签")
-        return
-    
-    cards_html = ''
-    for tool in NEW_TOOLS:
-        if is_en:
-            cards_html += f'\n        <div class="tool-card" data-category="{tool["category"]}"><span>{tool["en_name"]}</span><p>{tool["en_desc"]}</p><a href="/en/{tool["slug"]}/" class="btn">Use Now</a></div>'
-        else:
-            cards_html += f'\n        <div class="tool-card" data-category="{tool["category"]}"><span>{tool["cn_name"]}</span><p>{tool["cn_desc"]}</p><a href="/{tool["slug"]}/" class="btn">立即使用</a></div>'
-    
-    new_content = content[:insert_pos] + cards_html + content[insert_pos:]
-    
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(new_content)
-    
-    count = new_content.count('tool-card')
-    print(f"{'EN' if is_en else 'CN'}首页: 添加5张卡片, 总计 {count} 张")
+# ==== CN首页处理 ====
+cn_path = os.path.join(BASE, 'index.html')
+with open(cn_path) as f:
+    cn = f.read()
 
-# 添加中英文首页
-add_cards(f'{BASE}/index.html', is_en=False)
-add_cards(f'{BASE}/en/index.html', is_en=True)
+# 找最后一个tool-card在grid中的位置（在</div></div>闭合之前）
+# 策略：找'代码缩进格式化'卡片后面的 </div></div>
+marker = '代码缩进格式化'
+idx = cn.rfind(marker)
+if idx < 0:
+    print('ERROR: 找不到CN首页标记位置')
+else:
+    # 从这往后找第一个 </div></div>
+    after = cn[idx:]
+    end_div = after.find('</div>')
+    end_div2 = after.find('</div>', end_div+6)
+    # 插入点在第二个</div>之后？不对，我们要在第一个</div>（卡片自身闭合）之后、第二个</div>（grid闭合）之前
+    insert_pos = idx + end_div + 6  # 卡片自身</div>之后
+    
+    # 构建新卡片HTML
+    cards_html = ''
+    for cn_name, en_name, cn_desc, en_desc, cat, emoji, slug in TOOLS:
+        cards_html += f'<div class="tool-card" data-cat="{cat}"><span class="tool-icon">{emoji}</span><span class="tool-name">{cn_name}</span><span class="tool-desc">{cn_desc}</span><a href="/{slug}/" class="btn">立即使用</a></div>\n'
+    
+    new_cn = cn[:insert_pos] + cards_html + cn[insert_pos:]
+    with open(cn_path, 'w') as f:
+        f.write(new_cn)
+    print(f'CN首页: 插入10个卡片 OK')
+
+# ==== EN首页处理 ====
+en_path = os.path.join(BASE, 'en/index.html')
+with open(en_path) as f:
+    en = f.read()
+
+# 找最后一个英文tool-card的位置
+marker_en = 'Indent Formatter'  # 英文版最后一个工具可能是这个
+idx_en = en.rfind(marker_en)
+if idx_en < 0:
+    # 尝试找 'code indent'
+    idx_en = en.rfind('indent')
+    if idx_en < 0:
+        # 找倒数第二个 </div></div> 模式
+        print('WARNING: 用备用方式定位EN首页')
+        # 找 tools-grid 闭合
+        grid_start = en.find('class="tools-grid"')
+        after_grid = en[grid_start:]
+        # 找连续两个</div>，中间没有<div（grid+外层容器闭合）
+        import re as regex
+        matches = list(regex.finditer(r'</div>\s*</div>\s*</div>', after_grid))
+        if matches:
+            last_close = matches[-1].start() + grid_start
+            # 往前找最后一个卡片闭合
+            before = en[:last_close]
+            insert_pos_en = before.rfind('</div>') + 6
+        else:
+            print('ERROR: 找不到EN首页插入位置')
+            insert_pos_en = -1
+    else:
+        after_en = en[idx_en:]
+        end_div_en = after_en.find('</div>')
+        insert_pos_en = idx_en + end_div_en + 6
+else:
+    after_en = en[idx_en:]
+    end_div_en = after_en.find('</div>')
+    insert_pos_en = idx_en + end_div_en + 6
+
+if insert_pos_en > 0:
+    # 构建英文卡片HTML
+    en_cards_html = ''
+    for cn_name, en_name, cn_desc, en_desc, cat, emoji, slug in TOOLS:
+        en_cards_html += f'<div class="tool-card" data-cat="{cat}"><span class="tool-icon">{emoji}</span><span class="tool-name">{en_name}</span><span class="tool-desc">{en_desc}</span><a href="/en/{slug}/" class="btn">Use Now</a></div>\n'
+    
+    new_en = en[:insert_pos_en] + en_cards_html + en[insert_pos_en:]
+    with open(en_path, 'w') as f:
+        f.write(new_en)
+    print(f'EN首页: 插入10个卡片 OK')
+else:
+    print('ERROR: EN首页插入失败')
+
+print('\nDone!')
