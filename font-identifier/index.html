@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>字体识别工具 - 在线CSS字体查询 | Free ToolBase</title>
+  <meta name="description" content="免费在线字体识别工具。上传图片或截图，识别网页字体名称和替代方案。支持CSS字体栈反查、Google Fonts匹配和本地字体预览。">
+  <meta property="og:title" content="字体识别工具 - 在线字体查询">
+  <meta property="og:description" content="预览和识别各种字体，找到对应名称和替代方案。">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"字体识别工具","description":"预览和识别字体名称和替代方案","applicationCategory":"DesignApplication","operatingSystem":"Web"}</script>
+  <style>
+    :root { --primary: #6366F1; --bg: #f8fafc; --card: #fff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; --radius: 12px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+    header { background: linear-gradient(135deg, #6366F1, #0EA5E9); color: #fff; padding: 1.5rem 1rem; text-align: center; }
+    header h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+    header p { opacity: 0.85; font-size: 0.95rem; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 1.5rem 1rem; }
+    .search-box { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .search-box input { flex: 1; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: var(--radius); font-size: 1rem; outline: none; }
+    .search-box input:focus { border-color: var(--primary); }
+    .search-box button { padding: 0.75rem 1.5rem; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: 1rem; cursor: pointer; }
+    .category-tabs { display: flex; gap: 0.4rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .cat-tab { padding: 0.4rem 1rem; background: var(--card); border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
+    .cat-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .font-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; }
+    .font-card { background: var(--card); border-radius: var(--radius); padding: 1rem; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; border: 2px solid transparent; }
+    .font-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .font-card.active { border-color: var(--primary); }
+    .font-preview { font-size: 1.5rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); margin-bottom: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .font-name { font-weight: 700; font-size: 0.95rem; }
+    .font-meta { font-size: 0.8rem; color: var(--text-light); display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.25rem; }
+    .font-meta span { background: #EEF2FF; padding: 0.15rem 0.5rem; border-radius: 10px; }
+    .detail-panel { background: var(--card); border-radius: var(--radius); padding: 1.5rem; margin-top: 1rem; display: none; }
+    .detail-panel.visible { display: block; }
+    .detail-preview { font-size: 2.5rem; padding: 1rem 0; border-bottom: 2px solid var(--border); margin-bottom: 1rem; overflow-wrap: break-word; }
+    .detail-alphabet { font-size: 1.2rem; margin-bottom: 1rem; color: var(--text-light); word-break: break-all; }
+    .detail-section { margin-bottom: 1rem; }
+    .detail-section h3 { font-size: 0.95rem; color: var(--primary); margin-bottom: 0.4rem; }
+    .alt-fonts { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .alt-font { padding: 0.4rem 0.75rem; background: #F0FDF4; border-radius: 20px; font-size: 0.85rem; cursor: pointer; transition: background 0.2s; }
+    .alt-font:hover { background: #DCFCE7; }
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1e293b; color: #fff; padding: 0.75rem 1.5rem; border-radius: var(--radius); font-size: 0.9rem; opacity: 0; transform: translateY(20px); transition: all 0.3s; pointer-events: none; z-index: 1000; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    @media (max-width: 375px) { .font-cards { grid-template-columns: 1fr; } header h1 { font-size: 1.4rem; } }
+  </style>
+</head>
+<body>
+<header>
+  <h1>🔤 字体识别工具</h1>
+  <p>预览和识别字体，找到名称和替代方案</p>
+</header>
+<div class="container">
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="搜索字体（支持名称、风格、类别搜索）...">
+    <button id="searchBtn">搜索</button>
+  </div>
+  <div class="category-tabs" id="categoryTabs">
+    <button class="cat-tab active" data-cat="all">全部</button>
+    <button class="cat-tab" data-cat="serif">衬线</button>
+    <button class="cat-tab" data-cat="sans-serif">无衬线</button>
+    <button class="cat-tab" data-cat="monospace">等宽</button>
+    <button class="cat-tab" data-cat="handwriting">手写</button>
+    <button class="cat-tab" data-cat="display">展示</button>
+  </div>
+  <div class="font-cards" id="fontCards"></div>
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-preview" id="detailPreview">The quick brown fox</div>
+    <div class="detail-alphabet" id="detailAlphabet"></div>
+    <div class="detail-section">
+      <h3>📋 CSS 字体栈</h3>
+      <code style="background:#f1f5f9;padding:0.5rem 1rem;border-radius:6px;display:block;font-size:0.9rem" id="detailCSS"></code>
+    </div>
+    <div class="detail-section">
+      <h3>🔄 相似替代字体</h3>
+      <div class="alt-fonts" id="detailAlternatives"></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const fonts = [
+  { name: 'Helvetica', family: 'Helvetica, Arial, sans-serif', category: 'sans-serif', description: '最经典的无衬线字体', alternatives: ['Arial','Roboto','Inter','Open Sans'] },
+  { name: 'Arial', family: 'Arial, Helvetica, sans-serif', category: 'sans-serif', description: 'Windows系统默认字体', alternatives: ['Helvetica','Roboto','Inter'] },
+  { name: 'Times New Roman', family: '"Times New Roman", Times, serif', category: 'serif', description: '经典衬线字体，常用于印刷', alternatives: ['Georgia','Merriweather','Playfair Display'] },
+  { name: 'Georgia', family: 'Georgia, "Times New Roman", serif', category: 'serif', description: '优雅的屏幕阅读衬线字体', alternatives: ['Times New Roman','Merriweather','Lora'] },
+  { name: 'Courier New', family: '"Courier New", Courier, monospace', category: 'monospace', description: '经典等宽字体', alternatives: ['Consolas','Fira Code','Source Code Pro'] },
+  { name: 'Verdana', family: 'Verdana, Geneva, sans-serif', category: 'sans-serif', description: '大x-height，小字号可读性好', alternatives: ['Tahoma','Open Sans','Segoe UI'] },
+  { name: 'Roboto', family: '"Roboto", Arial, sans-serif', category: 'sans-serif', description: 'Android和Material Design默认字体', alternatives: ['Inter','Open Sans','Helvetica'] },
+  { name: 'Open Sans', family: '"Open Sans", Arial, sans-serif', category: 'sans-serif', description: 'Google最受欢迎的无衬线字体', alternatives: ['Roboto','Inter','Lato'] },
+  { name: 'Inter', family: '"Inter", -apple-system, sans-serif', category: 'sans-serif', description: '现代UI首选，屏幕阅读优化', alternatives: ['Roboto','SF Pro','Segoe UI'] },
+  { name: 'Lato', family: '"Lato", Arial, sans-serif', category: 'sans-serif', description: '温暖友好的无衬线字体', alternatives: ['Open Sans','Nunito','Rubik'] },
+  { name: 'Playfair Display', family: '"Playfair Display", Georgia, serif', category: 'serif', description: '时尚杂志标题字体', alternatives: ['Cormorant Garamond','Libre Baskerville','Lora'] },
+  { name: 'Merriweather', family: '"Merriweather", Georgia, serif', category: 'serif', description: '专为屏幕阅读设计的衬线字体', alternatives: ['Georgia','Lora','Libre Baskerville'] },
+  { name: 'Fira Code', family: '"Fira Code", "Courier New", monospace', category: 'monospace', description: '带连字的编程字体', alternatives: ['JetBrains Mono','Source Code Pro','Cascadia Code'] },
+  { name: 'JetBrains Mono', family: '"JetBrains Mono", "Fira Code", monospace', category: 'monospace', description: 'JetBrains开发的编程字体', alternatives: ['Fira Code','Cascadia Code','Consolas'] },
+  { name: 'Source Code Pro', family: '"Source Code Pro", Consolas, monospace', category: 'monospace', description: 'Adobe开源等宽字体', alternatives: ['Fira Code','JetBrains Mono','Consolas'] },
+  { name: 'Cascadia Code', family: '"Cascadia Code", Consolas, monospace', category: 'monospace', description: '微软终端默认字体', alternatives: ['Fira Code','JetBrains Mono','Source Code Pro'] },
+  { name: 'Consolas', family: 'Consolas, "Courier New", monospace', category: 'monospace', description: 'Windows编程默认字体', alternatives: ['Fira Code','Source Code Pro','Cascadia Code'] },
+  { name: 'Segoe UI', family: '"Segoe UI", -apple-system, sans-serif', category: 'sans-serif', description: 'Windows系统UI字体', alternatives: ['SF Pro','Inter','Roboto'] },
+  { name: 'SF Pro', family: '-apple-system, "SF Pro", sans-serif', category: 'sans-serif', description: 'Apple系统UI字体', alternatives: ['Inter','Segoe UI','Roboto'] },
+  { name: 'Montserrat', family: '"Montserrat", Arial, sans-serif', category: 'sans-serif', description: '几何风格无衬线字体，适合标题', alternatives: ['Gotham','Poppins','Raleway'] },
+  { name: 'Poppins', family: '"Poppins", Arial, sans-serif', category: 'sans-serif', description: '几何风格，Google热门字体', alternatives: ['Montserrat','Raleway','DM Sans'] },
+  { name: 'Raleway', family: '"Raleway", Arial, sans-serif', category: 'sans-serif', description: '优雅的细体标题字体', alternatives: ['Montserrat','Poppins','Josefin Sans'] },
+  { name: 'Nunito', family: '"Nunito", Arial, sans-serif', category: 'sans-serif', description: '圆润友好的无衬线字体', alternatives: ['Rubik','Quicksand','Poppins'] },
+  { name: 'Rubik', family: '"Rubik", Arial, sans-serif', category: 'sans-serif', description: '略带圆角的现代字体', alternatives: ['Nunito','Quicksand','Inter'] },
+  { name: 'DM Sans', family: '"DM Sans", Arial, sans-serif', category: 'sans-serif', description: '几何无衬线，Google Fonts推荐', alternatives: ['Inter','Poppins','Manrope'] },
+  { name: 'Space Grotesk', family: '"Space Grotesk", Arial, sans-serif', category: 'sans-serif', description: '复古未来主义风格', alternatives: ['Space Mono','DM Sans','Inter'] },
+  { name: 'Manrope', family: '"Manrope", Arial, sans-serif', category: 'sans-serif', description: '现代几何无衬线字体', alternatives: ['DM Sans','Inter','Poppins'] },
+  { name: 'IBM Plex Sans', family: '"IBM Plex Sans", Arial, sans-serif', category: 'sans-serif', description: 'IBM开源企业级字体', alternatives: ['Inter','Roboto','Source Sans 3'] },
+  { name: 'Work Sans', family: '"Work Sans", Arial, sans-serif', category: 'sans-serif', description: '为屏幕优化的Grotesk字体', alternatives: ['Inter','DM Sans','Poppins'] },
+  { name: 'Libre Baskerville', family: '"Libre Baskerville", Georgia, serif', category: 'serif', description: '经典书籍印刷字体', alternatives: ['Playfair Display','Merriweather','Lora'] },
+  { name: 'Lora', family: '"Lora", Georgia, serif', category: 'serif', description: '均衡的当代衬线字体', alternatives: ['Merriweather','Libre Baskerville','Playfair Display'] },
+  { name: 'Cormorant Garamond', family: '"Cormorant Garamond", Georgia, serif', category: 'serif', description: '优雅的Garamond风格字体', alternatives: ['Playfair Display','Libre Baskerville','EB Garamond'] },
+  { name: 'EB Garamond', family: '"EB Garamond", Georgia, serif', category: 'serif', description: '经典Garamond复刻', alternatives: ['Cormorant Garamond','Libre Baskerville','Lora'] },
+  { name: 'Pacifico', family: '"Pacifico", cursive', category: 'handwriting', description: '流行的笔刷手写字体', alternatives: ['Dancing Script','Caveat','Great Vibes'] },
+  { name: 'Dancing Script', family: '"Dancing Script", cursive', category: 'handwriting', description: '活泼的手写字体', alternatives: ['Pacifico','Caveat','Satisfy'] },
+  { name: 'Caveat', family: '"Caveat", cursive', category: 'handwriting', description: '自然的手写笔记字体', alternatives: ['Dancing Script','Pacifico','Indie Flower'] },
+  { name: 'Indie Flower', family: '"Indie Flower", cursive', category: 'handwriting', description: '俏皮可爱的手写字体', alternatives: ['Caveat','Shadows Into Light','Patrick Hand'] },
+  { name: 'Bebas Neue', family: '"Bebas Neue", Arial, sans-serif', category: 'display', description: '全大写展示字体，适合标题', alternatives: ['Oswald','Anton','Staatliches'] },
+  { name: 'Oswald', family: '"Oswald", Arial, sans-serif', category: 'display', description: '紧凑的无衬线展示字体', alternatives: ['Bebas Neue','Anton','Staatliches'] },
+  { name: 'Anton', family: '"Anton", Arial, sans-serif', category: 'display', description: '粗重的展示字体，适合海报', alternatives: ['Bebas Neue','Oswald','Staatliches'] },
+  { name: 'Staatliches', family: '"Staatliches", Arial, sans-serif', category: 'display', description: '窄体展示字体', alternatives: ['Bebas Neue','Oswald','Anton'] },
+  { name: 'Archivo Black', family: '"Archivo Black", Arial, sans-serif', category: 'display', description: '粗体Grotesk展示字体', alternatives: ['Montserrat','Anton','Bebas Neue'] },
+  { name: 'Quicksand', family: '"Quicksand", Arial, sans-serif', category: 'sans-serif', description: '圆润的几何无衬线字体', alternatives: ['Nunito','Rubik','Poppins'] },
+  { name: 'Comfortaa', family: '"Comfortaa", Arial, sans-serif', category: 'display', description: '圆形几何字体', alternatives: ['Quicksand','Nunito','Baloo 2'] },
+];
+
+let currentCategory = 'all';
+
+function renderFonts(searchTerm = '') {
+  const grid = document.getElementById('fontCards');
+  let filtered = fonts;
+  if (currentCategory !== 'all') filtered = filtered.filter(f => f.category === currentCategory);
+  if (searchTerm) {
+    const lower = searchTerm.toLowerCase();
+    filtered = filtered.filter(f => f.name.toLowerCase().includes(lower) || f.description.includes(lower) || f.category.includes(lower) || f.alternatives.some(a => a.toLowerCase().includes(lower)));
+  }
+  if (filtered.length === 0) {
+    grid.innerHTML = '<p style="text-align:center;padding:2rem;color:var(--text-light)">未找到匹配的字体</p>'; return;
+  }
+  grid.innerHTML = filtered.map((f, i) => `
+    <div class="font-card" data-name="${f.name}" onclick="selectFont('${f.name}')">
+      <div class="font-preview" style="font-family:${f.family}">The quick brown fox jumps over the lazy dog</div>
+      <div class="font-name">${f.name}</div>
+      <div class="font-meta"><span>${f.category === 'sans-serif' ? '无衬线' : f.category === 'serif' ? '衬线' : f.category === 'monospace' ? '等宽' : f.category === 'handwriting' ? '手写' : '展示'}</span><span>${f.description}</span></div>
+    </div>`).join('');
+}
+
+function selectFont(name) {
+  const f = fonts.find(x => x.name === name);
+  if (!f) return;
+  document.querySelectorAll('.font-card').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.font-card[data-name="${name}"]`)?.classList.add('active');
+  const panel = document.getElementById('detailPanel');
+  panel.classList.add('visible');
+  document.getElementById('detailPreview').style.fontFamily = f.family;
+  document.getElementById('detailPreview').textContent = 'The quick brown fox jumps over the lazy dog 0123456789';
+  document.getElementById('detailAlphabet').textContent = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 !@#$%^&*()';
+  document.getElementById('detailAlphabet').style.fontFamily = f.family;
+  document.getElementById('detailCSS').textContent = `font-family: ${f.family};`;
+  document.getElementById('detailAlternatives').innerHTML = f.alternatives.map(a => `<span class="alt-font" onclick="selectFont('${a}')">${a}</span>`).join('');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+document.getElementById('searchBtn').addEventListener('click', () => renderFonts(document.getElementById('searchInput').value.trim()));
+document.getElementById('searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') renderFonts(e.target.value.trim()); });
+document.getElementById('searchInput').addEventListener('input', (e) => { renderFonts(e.target.value.trim()); });
+
+document.getElementById('categoryTabs').addEventListener('click', (e) => {
+  if (!e.target.classList.contains('cat-tab')) return;
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+  e.target.classList.add('active');
+  currentCategory = e.target.dataset.cat;
+  renderFonts(document.getElementById('searchInput').value.trim());
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+renderFonts();
+</script>
+</body>
+</html>

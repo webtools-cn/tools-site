@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图片对比工具 - 在线图片并排比较多图对比 | Free ToolBase</title>
+  <meta name="description" content="免费在线图片对比工具，支持并排对比两张图片、滑块对比、重叠对比。支持PNG/JPG/WebP格式，拖拽上传，即时查看差异。">
+  <meta property="og:title" content="图片对比工具 - 在线并排比较">
+  <meta property="og:description" content="拖拽上传两张图片，并排对比，滑块查看差异。">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"图片对比工具","description":"并排对比两张图片，滑块对比、重叠对比","applicationCategory":"PhotographyApplication","operatingSystem":"Web"}</script>
+  <style>
+    :root { --primary: #6366F1; --bg: #f8fafc; --card: #fff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; --radius: 12px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+    header { background: linear-gradient(135deg, #6366F1, #A855F7); color: #fff; padding: 1.5rem 1rem; text-align: center; }
+    header h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+    header p { opacity: 0.85; font-size: 0.95rem; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 1.5rem 1rem; }
+    .upload-area { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+    .upload-zone { background: var(--card); border-radius: var(--radius); padding: 1.5rem; text-align: center; border: 2px dashed var(--border); cursor: pointer; transition: border-color 0.2s, background 0.2s; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .upload-zone:hover { border-color: var(--primary); background: #F5F3FF; }
+    .upload-zone.has-image { border-style: solid; border-color: #22C55E; }
+    .upload-zone .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .upload-zone .hint { color: var(--text-light); font-size: 0.85rem; }
+    .upload-zone img { max-width: 100%; max-height: 200px; border-radius: 8px; display: none; }
+    .upload-zone.has-image img { display: block; }
+    .upload-zone.has-image .hint { display: none; }
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .tab { padding: 0.5rem 1.25rem; background: var(--card); border: 1px solid var(--border); border-radius: 20px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
+    .tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .compare-viewport { background: var(--card); border-radius: var(--radius); overflow: hidden; position: relative; min-height: 300px; display: flex; align-items: center; justify-content: center; }
+    .compare-viewport img { max-width: 100%; display: block; }
+    .side-by-side { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+    .side-by-side img { width: 100%; height: auto; object-fit: contain; max-height: 500px; }
+    .slider-view { position: relative; width: 100%; overflow: hidden; }
+    .slider-view .img-bg { width: 100%; display: block; max-height: 500px; object-fit: contain; }
+    .slider-view .img-top { position: absolute; top: 0; left: 0; height: 100%; overflow: hidden; }
+    .slider-view .img-top img { height: 100%; max-height: 500px; width: auto; object-fit: cover; object-position: left; }
+    .slider-handle { position: absolute; top: 0; bottom: 0; width: 4px; background: #fff; border: 2px solid var(--primary); cursor: ew-resize; }
+    .overlay-view { position: relative; width: 100%; }
+    .overlay-view img { width: 100%; display: block; max-height: 500px; object-fit: contain; }
+    .overlay-view .img-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.5; }
+    .opacity-slider { display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; justify-content: center; }
+    .opacity-slider input { width: 200px; }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-light); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 0.75rem; }
+    .actions { display: flex; gap: 0.5rem; justify-content: center; margin-top: 1rem; flex-wrap: wrap; }
+    .btn { padding: 0.6rem 1.25rem; border: none; border-radius: var(--radius); cursor: pointer; font-size: 0.9rem; transition: opacity 0.2s; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-secondary { background: #E2E8F0; color: var(--text); }
+    .btn:hover { opacity: 0.85; }
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1e293b; color: #fff; padding: 0.75rem 1.5rem; border-radius: var(--radius); font-size: 0.9rem; opacity: 0; transform: translateY(20px); transition: all 0.3s; pointer-events: none; z-index: 1000; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    @media (max-width: 375px) { .upload-area { grid-template-columns: 1fr; } header h1 { font-size: 1.4rem; } }
+  </style>
+</head>
+<body>
+<header>
+  <h1>🖼️ 图片对比工具</h1>
+  <p>拖拽上传两张图片，并排对比差异</p>
+</header>
+<div class="container">
+  <div class="upload-area">
+    <div class="upload-zone" id="zone1">
+      <span class="icon">📷</span>
+      <img id="img1Prev" alt="Image 1">
+      <p class="hint">点击或拖拽上传 <strong>图片1</strong></p>
+      <input type="file" accept="image/*" id="file1" hidden>
+    </div>
+    <div class="upload-zone" id="zone2">
+      <span class="icon">📷</span>
+      <img id="img2Prev" alt="Image 2">
+      <p class="hint">点击或拖拽上传 <strong>图片2</strong></p>
+      <input type="file" accept="image/*" id="file2" hidden>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-mode="side">📊 并排</button>
+    <button class="tab" data-mode="slider">↔️ 滑块</button>
+    <button class="tab" data-mode="overlay">🔍 重叠</button>
+  </div>
+
+  <div class="compare-viewport" id="viewport">
+    <div class="empty-state">
+      <span class="icon">📸</span>
+      <p>请上传两张图片开始对比</p>
+    </div>
+  </div>
+
+  <div class="opacity-slider" id="opacityControl" style="display:none">
+    <span>透明度：</span>
+    <input type="range" id="opacitySlider" min="0" max="100" value="50">
+    <span id="opacityVal">50%</span>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-secondary" id="swapBtn">🔄 交换图片</button>
+    <button class="btn btn-secondary" id="clearBtn">🗑️ 清除</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+let img1Data = null, img2Data = null, currentMode = 'side';
+
+function loadImage(file, imgEl, zoneEl, slot) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    imgEl.src = e.target.result;
+    zoneEl.classList.add('has-image');
+    if (slot === 1) img1Data = e.target.result;
+    else img2Data = e.target.result;
+    if (img1Data && img2Data) renderCompare();
+  };
+  reader.readAsDataURL(file);
+}
+
+function setupZone(zoneId, fileId, imgId, slot) {
+  const zone = document.getElementById(zoneId);
+  const file = document.getElementById(fileId);
+  const img = document.getElementById(imgId);
+  zone.addEventListener('click', () => file.click());
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.borderColor = '#6366F1'; });
+  zone.addEventListener('dragleave', () => { zone.style.borderColor = ''; });
+  zone.addEventListener('drop', (e) => { e.preventDefault(); zone.style.borderColor = ''; if (e.dataTransfer.files[0]) loadImage(e.dataTransfer.files[0], img, zone, slot); });
+  file.addEventListener('change', () => { if (file.files[0]) loadImage(file.files[0], img, zone, slot); });
+}
+setupZone('zone1', 'file1', 'img1Prev', 1);
+setupZone('zone2', 'file2', 'img2Prev', 2);
+
+function renderCompare() {
+  const vp = document.getElementById('viewport');
+  const oc = document.getElementById('opacityControl');
+  if (!img1Data || !img2Data) return;
+  if (currentMode === 'side') {
+    oc.style.display = 'none';
+    vp.innerHTML = `<div class="side-by-side"><img src="${img1Data}" alt="Image 1"><img src="${img2Data}" alt="Image 2"></div>`;
+  } else if (currentMode === 'slider') {
+    oc.style.display = 'none';
+    const ratio = 0.5;
+    vp.innerHTML = `<div class="slider-view" id="sliderView"><img class="img-bg" src="${img2Data}" alt="Image 2"><div class="img-top" id="imgTop" style="width:${ratio*100}%"><img src="${img1Data}" alt="Image 1"></div><div class="slider-handle" id="sliderHandle" style="left:${ratio*100}%"></div></div>`;
+    initSlider();
+  } else if (currentMode === 'overlay') {
+    oc.style.display = 'flex';
+    const op = document.getElementById('opacitySlider').value / 100;
+    vp.innerHTML = `<div class="overlay-view"><img src="${img2Data}" alt="Image 2"><img class="img-overlay" src="${img1Data}" alt="Image 1" style="opacity:${op}"></div>`;
+  }
+}
+
+function initSlider() {
+  const handle = document.getElementById('sliderHandle');
+  const top = document.getElementById('imgTop');
+  if (!handle || !top) return;
+  let dragging = false;
+  handle.addEventListener('mousedown', () => { dragging = true; });
+  document.addEventListener('mouseup', () => { dragging = false; });
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const sv = document.getElementById('sliderView');
+    const rect = sv.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    const pct = (x / rect.width) * 100;
+    handle.style.left = pct + '%';
+    top.style.width = pct + '%';
+  });
+  // Touch support
+  handle.addEventListener('touchstart', (e) => { dragging = true; e.preventDefault(); });
+  document.addEventListener('touchend', () => { dragging = false; });
+  document.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const sv = document.getElementById('sliderView');
+    const rect = sv.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = Math.max(0, Math.min(touch.clientX - rect.left, rect.width));
+    const pct = (x / rect.width) * 100;
+    handle.style.left = pct + '%';
+    top.style.width = pct + '%';
+  });
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentMode = tab.dataset.mode;
+    renderCompare();
+  });
+});
+
+document.getElementById('opacitySlider').addEventListener('input', (e) => {
+  document.getElementById('opacityVal').textContent = e.target.value + '%';
+  const overlay = document.querySelector('.img-overlay');
+  if (overlay) overlay.style.opacity = e.target.value / 100;
+});
+
+document.getElementById('swapBtn').addEventListener('click', () => {
+  if (!img1Data && !img2Data) return;
+  [img1Data, img2Data] = [img2Data, img1Data];
+  const i1 = document.getElementById('img1Prev');
+  const i2 = document.getElementById('img2Prev');
+  const z1 = document.getElementById('zone1');
+  const z2 = document.getElementById('zone2');
+  [i1.src, i2.src] = [i2.src, i1.src];
+  if (img1Data) z1.classList.add('has-image'); else z1.classList.remove('has-image');
+  if (img2Data) z2.classList.add('has-image'); else z2.classList.remove('has-image');
+  renderCompare();
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  img1Data = img2Data = null;
+  document.getElementById('img1Prev').src = '';
+  document.getElementById('img2Prev').src = '';
+  document.getElementById('zone1').classList.remove('has-image');
+  document.getElementById('zone2').classList.remove('has-image');
+  document.getElementById('viewport').innerHTML = '<div class="empty-state"><span class="icon">📸</span><p>请上传两张图片开始对比</p></div>';
+  document.getElementById('opacityControl').style.display = 'none';
+  document.getElementById('file1').value = '';
+  document.getElementById('file2').value = '';
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>情绪板制作工具 - 在线灵感拼贴设计 | Free ToolBase</title>
+  <meta name="description" content="免费在线情绪板制作工具，拖拽图片创建灵感拼贴板。支持多图导入、自由排列、背景色定制，适合设计师和创意工作者。">
+  <meta property="og:title" content="情绪板制作工具 - 在线灵感拼贴">
+  <meta property="og:description" content="拖拽图片创建灵感拼贴板，自由排列，定制背景色。">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"情绪板制作工具","description":"在线创建灵感拼贴情绪板","applicationCategory":"DesignApplication","operatingSystem":"Web"}</script>
+  <style>
+    :root { --primary: #6366F1; --bg: #f8fafc; --card: #fff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0; --radius: 12px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+    header { background: linear-gradient(135deg, #EC4899, #8B5CF6); color: #fff; padding: 1.5rem 1rem; text-align: center; }
+    header h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+    header p { opacity: 0.85; font-size: 0.95rem; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem; }
+    .toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; }
+    .btn { padding: 0.6rem 1.25rem; border: none; border-radius: var(--radius); cursor: pointer; font-size: 0.9rem; transition: opacity 0.2s; white-space: nowrap; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-secondary { background: #E2E8F0; color: var(--text); }
+    .btn-danger { background: #EF4444; color: #fff; }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .color-picker-row { display: flex; align-items: center; gap: 0.3rem; }
+    .color-picker-row input[type="color"] { width: 32px; height: 32px; border: none; border-radius: 6px; cursor: pointer; padding: 0; }
+    .board { background: var(--card); border-radius: var(--radius); min-height: 400px; position: relative; overflow: auto; border: 2px solid var(--border); transition: background-color 0.3s; padding: 1rem; }
+    .board-item { position: absolute; cursor: move; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); user-select: none; border: 2px solid transparent; transition: border-color 0.15s; }
+    .board-item:hover { border-color: var(--primary); }
+    .board-item.selected { border-color: #EF4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.3); }
+    .board-item img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+    .board-item .delete-btn { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 50%; cursor: pointer; font-size: 14px; display: none; align-items: center; justify-content: center; line-height: 1; }
+    .board-item:hover .delete-btn { display: flex; }
+    .board-item .resize-handle { position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; background: rgba(99,102,241,0.7); border-radius: 4px 0 0 0; cursor: nwse-resize; display: none; }
+    .board-item.selected .resize-handle { display: block; }
+    .empty-board { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 350px; color: var(--text-light); }
+    .empty-board .icon { font-size: 3rem; margin-bottom: 0.75rem; }
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1e293b; color: #fff; padding: 0.75rem 1.5rem; border-radius: var(--radius); font-size: 0.9rem; opacity: 0; transform: translateY(20px); transition: all 0.3s; pointer-events: none; z-index: 1000; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    @media (max-width: 375px) { .toolbar { justify-content: center; } header h1 { font-size: 1.4rem; } .btn { padding: 0.5rem 0.75rem; font-size: 0.8rem; } }
+  </style>
+</head>
+<body>
+<header>
+  <h1>🎨 情绪板制作工具</h1>
+  <p>拖拽图片创建灵感拼贴板</p>
+</header>
+<div class="container">
+  <div class="toolbar">
+    <button class="btn btn-primary" id="addImageBtn">📷 添加图片</button>
+    <input type="file" accept="image/*" id="imageInput" hidden multiple>
+    <button class="btn btn-secondary" id="clearBoardBtn">🗑️ 清空</button>
+    <button class="btn btn-secondary" id="exportBtn">💾 导出截图</button>
+    <span style="margin-left:0.5rem;font-size:0.85rem;color:var(--text-light)">背景:</span>
+    <div class="color-picker-row">
+      <input type="color" id="bgColor" value="#ffffff">
+      <span style="font-size:0.8rem;color:var(--text-light)" id="bgColorLabel">#ffffff</span>
+    </div>
+    <span style="font-size:0.8rem;color:var(--text-light);margin-left:0.25rem">尺寸:</span>
+    <select id="boardSize" style="padding:0.4rem;border-radius:6px;border:1px solid var(--border);font-size:0.85rem">
+      <option value="800x600">800×600</option>
+      <option value="1024x768" selected>1024×768</option>
+      <option value="1200x900">1200×900</option>
+      <option value="1400x1050">1400×1050</option>
+    </select>
+  </div>
+  <div class="board" id="board">
+    <div class="empty-board" id="emptyState">
+      <span class="icon">📋</span>
+      <p>点击「添加图片」或拖拽图片到此区域</p>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const board = document.getElementById('board');
+let items = [];
+let selectedItem = null;
+let zIndexCounter = 1;
+
+function updateEmptyState() {
+  const empty = document.getElementById('emptyState');
+  if (items.length === 0) {
+    if (!empty) {
+      const div = document.createElement('div');
+      div.className = 'empty-board';
+      div.id = 'emptyState';
+      div.innerHTML = '<span class="icon">📋</span><p>点击「添加图片」或拖拽图片到此区域</p>';
+      board.appendChild(div);
+    }
+  } else {
+    if (empty) empty.remove();
+  }
+}
+
+function addImage(dataUrl, x, y, w, h) {
+  const el = document.createElement('div');
+  el.className = 'board-item';
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  el.style.width = w + 'px';
+  el.style.height = h + 'px';
+  el.style.zIndex = zIndexCounter++;
+  el.innerHTML = `<img src="${dataUrl}" draggable="false"><button class="delete-btn" title="删除">×</button><div class="resize-handle"></div>`;
+  el.querySelector('.delete-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    el.remove();
+    items = items.filter(i => i.el !== el);
+    updateEmptyState();
+  });
+  makeDraggable(el);
+  makeResizable(el);
+  el.addEventListener('mousedown', (e) => {
+    if (e.target.classList.contains('delete-btn') || e.target.classList.contains('resize-handle')) return;
+    selectItem(el);
+  });
+  board.appendChild(el);
+  items.push({ el, x, y, w, h });
+  updateEmptyState();
+  return el;
+}
+
+function selectItem(el) {
+  if (selectedItem) selectedItem.classList.remove('selected');
+  selectedItem = el;
+  el.classList.add('selected');
+  el.style.zIndex = zIndexCounter++;
+}
+
+function makeDraggable(el) {
+  let startX, startY, initialLeft, initialTop, dragging = false;
+  el.addEventListener('mousedown', (e) => {
+    if (e.target.classList.contains('delete-btn') || e.target.classList.contains('resize-handle')) return;
+    dragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    initialLeft = parseInt(el.style.left);
+    initialTop = parseInt(el.style.top);
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    el.style.left = Math.max(0, initialLeft + dx) + 'px';
+    el.style.top = Math.max(0, initialTop + dy) + 'px';
+  });
+  document.addEventListener('mouseup', () => { dragging = false; });
+  // Touch support
+  el.addEventListener('touchstart', (e) => {
+    if (e.target.classList.contains('delete-btn') || e.target.classList.contains('resize-handle')) return;
+    dragging = true;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    initialLeft = parseInt(el.style.left);
+    initialTop = parseInt(el.style.top);
+  });
+  document.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    el.style.left = Math.max(0, initialLeft + dx) + 'px';
+    el.style.top = Math.max(0, initialTop + dy) + 'px';
+  });
+  document.addEventListener('touchend', () => { dragging = false; });
+}
+
+function makeResizable(el) {
+  const handle = el.querySelector('.resize-handle');
+  let resizing = false, startX, startY, initW, initH;
+  handle.addEventListener('mousedown', (e) => {
+    resizing = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    initW = parseInt(el.style.width);
+    initH = parseInt(el.style.height);
+    e.stopPropagation();
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!resizing) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    el.style.width = Math.max(60, initW + dx) + 'px';
+    el.style.height = Math.max(60, initH + dy) + 'px';
+  });
+  document.addEventListener('mouseup', () => { resizing = false; });
+  handle.addEventListener('touchstart', (e) => {
+    resizing = true;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    initW = parseInt(el.style.width);
+    initH = parseInt(el.style.height);
+    e.stopPropagation();
+  });
+  document.addEventListener('touchmove', (e) => {
+    if (!resizing) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    el.style.width = Math.max(60, initW + dx) + 'px';
+    el.style.height = Math.max(60, initH + dy) + 'px';
+  });
+  document.addEventListener('touchend', () => { resizing = false; });
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.board-item')) {
+    if (selectedItem) { selectedItem.classList.remove('selected'); selectedItem = null; }
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedItem) {
+    selectedItem.remove();
+    items = items.filter(i => i.el !== selectedItem);
+    selectedItem = null;
+    updateEmptyState();
+  }
+});
+
+document.getElementById('addImageBtn').addEventListener('click', () => document.getElementById('imageInput').click());
+document.getElementById('imageInput').addEventListener('change', () => {
+  const files = document.getElementById('imageInput').files;
+  for (const file of files) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 300;
+        const ratio = Math.min(maxW / img.width, 1);
+        const w = Math.round(img.width * ratio);
+        const h = Math.round(img.height * ratio);
+        const x = 20 + items.length * 30;
+        const y = 20 + items.length * 30;
+        addImage(e.target.result, x, y, w, h);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  document.getElementById('imageInput').value = '';
+});
+
+board.addEventListener('dragover', (e) => { e.preventDefault(); });
+board.addEventListener('drop', (e) => {
+  e.preventDefault();
+  const files = e.dataTransfer.files;
+  for (const file of files) {
+    if (!file.type.startsWith('image/')) continue;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 300;
+        const ratio = Math.min(maxW / img.width, 1);
+        const rect = board.getBoundingClientRect();
+        const x = Math.max(0, e.clientX - rect.left - (img.width * ratio) / 2);
+        const y = Math.max(0, e.clientY - rect.top - (img.height * ratio) / 2);
+        addImage(ev.target.result, x, y, Math.round(img.width * ratio), Math.round(img.height * ratio));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+document.getElementById('clearBoardBtn').addEventListener('click', () => {
+  items.forEach(i => i.el.remove());
+  items = [];
+  selectedItem = null;
+  updateEmptyState();
+});
+
+document.getElementById('bgColor').addEventListener('input', (e) => {
+  board.style.backgroundColor = e.target.value;
+  document.getElementById('bgColorLabel').textContent = e.target.value;
+});
+
+document.getElementById('boardSize').addEventListener('change', (e) => {
+  const [w, h] = e.target.value.split('x');
+  board.style.width = w + 'px';
+  board.style.height = h + 'px';
+});
+
+document.getElementById('exportBtn').addEventListener('click', async () => {
+  if (items.length === 0) { showToast('请先添加图片'); return; }
+  try {
+    const canvas = document.createElement('canvas');
+    const rect = board.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = board.style.backgroundColor || '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (const item of items) {
+      const el = item.el;
+      const img = el.querySelector('img');
+      const l = parseInt(el.style.left);
+      const t = parseInt(el.style.top);
+      const w = parseInt(el.style.width);
+      const h = parseInt(el.style.height);
+      ctx.drawImage(img, l, t, w, h);
+    }
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'mood-board.png';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('✅ 导出成功！');
+    }, 'image/png');
+  } catch (e) {
+    showToast('导出失败，请重试');
+  }
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+board.style.width = '1024px';
+board.style.maxWidth = '100%';
+board.style.height = '768px';
+board.style.overflow = 'auto';
+updateEmptyState();
+</script>
+</body>
+</html>
