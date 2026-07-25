@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Go Module Generator - Online go.mod File Builder | Free ToolBase</title>
+  <meta name="description" content="Free online Go Module generator. Visually configure Go module path, version, and dependencies. Generate standard go.mod files with direct and indirect dependency management.">
+  <meta property="og:title" content="Go Module Generator - Free ToolBase">
+  <meta property="og:description" content="Generate Go module go.mod files with visual dependency management.">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Go Module Generator","applicationCategory":"DeveloperApplication","operatingSystem":"Any","description":"Online go.mod file generator","offers":{"@type":"Offer","price":"0"}}</script>
+  <style>
+    :root { --primary: #4F46E5; --primary-light: #EEF2FF; --bg: #f8fafc; --surface: #fff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 8px; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+    header { background:var(--surface); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; }
+    header .logo { font-size:1.2rem; font-weight:700; color:var(--primary); text-decoration:none; }
+    header nav a { color:var(--text-secondary); text-decoration:none; margin-left:16px; font-size:.9rem; }
+    header nav a:hover { color:var(--primary); }
+    .container { max-width:1000px; margin:0 auto; padding:20px 16px; }
+    h1 { font-size:1.5rem; margin-bottom:4px; }
+    .subtitle { color:var(--text-secondary); font-size:.9rem; margin-bottom:20px; }
+    .config-section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:16px; }
+    .config-section h3 { font-size:1rem; margin-bottom:12px; color:var(--primary); }
+    .form-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:10px; }
+    .form-group { display:flex; flex-direction:column; gap:4px; }
+    .form-group label { font-size:.8rem; font-weight:600; color:var(--text-secondary); }
+    .form-group input, .form-group select { padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius); font-size:.85rem; }
+    .dep-row { display:flex; gap:6px; align-items:center; margin-bottom:4px; }
+    .dep-row input { flex:1; padding:6px 8px; border:1px solid var(--border); border-radius:4px; font-size:.82rem; }
+    .dep-row select { width:80px; padding:6px; border:1px solid var(--border); border-radius:4px; font-size:.82rem; }
+    .btn { padding:8px 16px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); font-size:.85rem; cursor:pointer; }
+    .btn-primary { background:var(--primary); color:#fff; border-color:var(--primary); font-weight:500; }
+    .btn-primary:hover { opacity:.9; }
+    .btn:hover { background:var(--primary-light); }
+    .output-area textarea { width:100%; min-height:280px; padding:12px; border:1px solid var(--border); border-radius:var(--radius); font-family:'Fira Code',monospace; font-size:.82rem; background:#1e1e2e; color:#a6e3a1; resize:vertical; }
+    .toast { position:fixed; bottom:20px; right:20px; background:#1e293b; color:#fff; padding:10px 20px; border-radius:var(--radius); font-size:.85rem; opacity:0; transform:translateY(10px); transition:all .3s; z-index:999; }
+    .toast.show { opacity:1; transform:translateY(0); }
+    footer { text-align:center; padding:20px; color:var(--text-secondary); font-size:.8rem; border-top:1px solid var(--border); margin-top:30px; }
+  </style>
+</head>
+<body>
+<header><a href="/en/" class="logo">Free ToolBase</a><nav><a href="/en/">Home</a><a href="/">中文</a></nav></header>
+<div class="container">
+  <h1>Go Module Generator</h1>
+  <p class="subtitle">Visually configure Go module settings and generate a standard go.mod file with dependency management.</p>
+
+  <div class="config-section">
+    <h3>Module Info</h3>
+    <div class="form-grid">
+      <div class="form-group"><label>Module Path</label><input id="modPath" value="github.com/username/project" placeholder="github.com/user/project"></div>
+      <div class="form-group"><label>Go Version</label><select id="goVersion"><option>1.22</option><option>1.21</option><option selected>1.23</option><option>1.24</option></select></div>
+      <div class="form-group"><label>Toolchain (optional)</label><input id="toolchain" placeholder="go1.23.4"></div>
+    </div>
+  </div>
+
+  <div class="config-section">
+    <h3>Direct Dependencies <button class="btn" onclick="addDep('direct')" style="margin-left:8px;font-size:.75rem;">+ Add</button></h3>
+    <div id="directDeps"></div>
+  </div>
+
+  <div class="config-section">
+    <h3>Indirect Dependencies <button class="btn" onclick="addDep('indirect')" style="margin-left:8px;font-size:.75rem;">+ Add</button></h3>
+    <div id="indirectDeps"></div>
+    <p style="font-size:.75rem;color:var(--text-secondary);margin-top:6px;">Indirect dependencies get // indirect comment</p>
+  </div>
+
+  <div style="display:flex;gap:8px;margin:12px 0;">
+    <button class="btn btn-primary" onclick="generate()">Generate go.mod</button>
+    <button class="btn" onclick="copyOutput()">Copy</button>
+    <button class="btn" onclick="downloadMod()">Download go.mod</button>
+  </div>
+
+  <div class="output-area">
+    <textarea id="output" placeholder='Click "Generate go.mod" to see result...' readonly></textarea>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<footer>Free ToolBase &copy; 2024 — All processing is client-side</footer>
+
+<script>
+let directDepId = 0, indirectDepId = 0;
+
+function addDep(type) {
+  const container = document.getElementById(type === 'direct' ? 'directDeps' : 'indirectDeps');
+  const id = (type === 'direct' ? directDepId++ : indirectDepId++) + '-' + type;
+  container.insertAdjacentHTML('beforeend', `<div class="dep-row" id="dep-${id}">
+    <input placeholder="Module path (e.g. github.com/gin-gonic/gin)" value="" style="flex:2;">
+    <input placeholder="Version (e.g. v1.9.1)" value="" style="flex:1;">
+    <button class="btn" onclick="document.getElementById('dep-${id}').remove()" style="padding:4px 8px;font-size:.7rem;color:var(--error);">✕</button>
+  </div>`);
+}
+
+function getDeps(type) {
+  const deps = [];
+  document.querySelectorAll(`#${type}Deps > div`).forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    if (inputs[0].value.trim() && inputs[1].value.trim()) {
+      deps.push({ path: inputs[0].value.trim(), version: inputs[1].value.trim() });
+    }
+  });
+  return deps;
+}
+
+function generate() {
+  const modPath = document.getElementById('modPath').value.trim() || 'example.com/module';
+  const goVersion = document.getElementById('goVersion').value;
+  const toolchain = document.getElementById('toolchain').value.trim();
+  const directDeps = getDeps('direct');
+  const indirectDeps = getDeps('indirect');
+
+  let goMod = `module ${modPath}\n\ngo ${goVersion}`;
+  if (toolchain) { goMod += `\n\ntoolchain ${toolchain}`; }
+
+  if (directDeps.length > 0) {
+    goMod += '\n\nrequire (\n';
+    directDeps.forEach(d => { goMod += `\t${d.path} ${d.version}\n`; });
+    goMod += ')';
+  }
+
+  if (indirectDeps.length > 0) {
+    if (directDeps.length === 0) {
+      goMod += '\n\nrequire (\n';
+    } else {
+      goMod = goMod.slice(0, -1);
+      goMod += '\n';
+    }
+    indirectDeps.forEach(d => { goMod += `\t${d.path} ${d.version} // indirect\n`; });
+    goMod += ')';
+  }
+
+  goMod += '\n';
+  document.getElementById('output').value = goMod;
+  showToast('Generated successfully!');
+}
+
+function copyOutput() {
+  const output = document.getElementById('output').value;
+  if (!output) { showToast('Generate first'); return; }
+  navigator.clipboard.writeText(output).then(() => showToast('Copied!'));
+}
+
+function downloadMod() {
+  const output = document.getElementById('output').value;
+  if (!output) { showToast('Generate first'); return; }
+  const blob = new Blob([output], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'go.mod'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('Downloaded!');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timeout); t._timeout = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+addDep('direct');
+addDep('direct');
+const directInputs = document.querySelectorAll('#directDeps input');
+directInputs[0].value = 'github.com/gin-gonic/gin';
+directInputs[1].value = 'v1.9.1';
+directInputs[2].value = 'github.com/redis/go-redis/v9';
+directInputs[3].value = 'v9.5.1';
+
+addDep('indirect');
+const indirectInputs = document.querySelectorAll('#indirectDeps input');
+indirectInputs[0].value = 'github.com/go-playground/validator/v10';
+indirectInputs[1].value = 'v10.20.0';
+</script>
+</body>
+</html>

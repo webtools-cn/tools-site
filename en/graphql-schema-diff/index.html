@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GraphQL Schema Diff - Online Schema Comparison Tool | Free ToolBase</title>
+  <meta name="description" content="Free online GraphQL Schema diff tool. Compare two GraphQL schemas (SDL format) side-by-side. Highlights added, removed, and modified types and fields.">
+  <meta property="og:title" content="GraphQL Schema Diff - Free ToolBase">
+  <meta property="og:description" content="Compare GraphQL schemas online. Highlight type and field changes.">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"GraphQL Schema Diff","applicationCategory":"DeveloperApplication","operatingSystem":"Any","description":"Online GraphQL Schema comparison tool","offers":{"@type":"Offer","price":"0"}}</script>
+  <style>
+    :root { --primary: #4F46E5; --primary-light: #EEF2FF; --bg: #f8fafc; --surface: #fff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --added: #22c55e; --removed: #ef4444; --changed: #f59e0b; --radius: 8px; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+    header { background:var(--surface); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; }
+    header .logo { font-size:1.2rem; font-weight:700; color:var(--primary); text-decoration:none; }
+    header nav a { color:var(--text-secondary); text-decoration:none; margin-left:16px; font-size:.9rem; }
+    header nav a:hover { color:var(--primary); }
+    .container { max-width:1200px; margin:0 auto; padding:20px 16px; }
+    h1 { font-size:1.5rem; margin-bottom:4px; }
+    .subtitle { color:var(--text-secondary); font-size:.9rem; margin-bottom:20px; }
+    .editor-wrap { display:flex; gap:12px; flex-direction:column; }
+    @media(min-width:768px){ .editor-wrap { flex-direction:row; } }
+    .panel { flex:1; min-width:0; display:flex; flex-direction:column; }
+    .panel-label { font-size:.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px; }
+    .panel textarea { width:100%; min-height:320px; padding:12px; border:1px solid var(--border); border-radius:var(--radius); font-family:'Fira Code',monospace; font-size:.82rem; background:#1e1e2e; color:#cdd6f4; resize:vertical; }
+    .panel textarea:focus { outline:2px solid var(--primary); outline-offset:-2px; }
+    .diff-output { margin-top:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; max-height:500px; overflow:auto; font-family:'Fira Code',monospace; font-size:.82rem; line-height:1.6; }
+    .diff-added { background:#dcfce7; color:#166534; padding:1px 4px; border-radius:2px; }
+    .diff-removed { background:#fef2f2; color:#991b1b; padding:1px 4px; border-radius:2px; text-decoration:line-through; }
+    .diff-changed { background:#fef9c3; color:#854d0e; padding:1px 4px; border-radius:2px; }
+    .diff-section { margin:8px 0; padding:8px; border-left:3px solid var(--border); }
+    .diff-section.added { border-left-color:var(--added); }
+    .diff-section.removed { border-left-color:var(--removed); }
+    .diff-section.changed { border-left-color:var(--changed); }
+    .stats { display:flex; gap:16px; flex-wrap:wrap; margin:12px 0; font-size:.85rem; }
+    .stat { display:flex; align-items:center; gap:4px; }
+    .stat-dot { width:10px; height:10px; border-radius:50%; }
+    .btn { padding:8px 16px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); font-size:.85rem; cursor:pointer; }
+    .btn-primary { background:var(--primary); color:#fff; border-color:var(--primary); font-weight:500; }
+    .btn-primary:hover { opacity:.9; }
+    .btn:hover { background:var(--primary-light); }
+    .toast { position:fixed; bottom:20px; right:20px; background:#1e293b; color:#fff; padding:10px 20px; border-radius:var(--radius); font-size:.85rem; opacity:0; transform:translateY(10px); transition:all .3s; z-index:999; }
+    .toast.show { opacity:1; transform:translateY(0); }
+    footer { text-align:center; padding:20px; color:var(--text-secondary); font-size:.8rem; border-top:1px solid var(--border); margin-top:30px; }
+  </style>
+</head>
+<body>
+<header><a href="/en/" class="logo">Free ToolBase</a><nav><a href="/en/">Home</a><a href="/">中文</a></nav></header>
+<div class="container">
+  <h1>GraphQL Schema Diff</h1>
+  <p class="subtitle">Compare two GraphQL schemas (SDL format). Highlights added, removed, and modified types and fields.</p>
+
+  <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <button class="btn btn-primary" onclick="compare()">Compare Schemas</button>
+    <button class="btn" onclick="swapSchemas()">⇄ Swap</button>
+    <button class="btn" onclick="clearAll()">Clear</button>
+  </div>
+
+  <div class="editor-wrap">
+    <div class="panel">
+      <div class="panel-label">Old Schema</div>
+      <textarea id="oldSchema" placeholder="Paste old GraphQL Schema...
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  role: String
+}"></textarea>
+    </div>
+    <div class="panel">
+      <div class="panel-label">New Schema</div>
+      <textarea id="newSchema" placeholder="Paste new GraphQL Schema...
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  role: UserRole
+  avatar: String
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}"></textarea>
+    </div>
+  </div>
+
+  <div class="stats" id="stats" style="display:none;">
+    <div class="stat"><span class="stat-dot" style="background:var(--added);"></span> Added: <strong id="addedCount">0</strong></div>
+    <div class="stat"><span class="stat-dot" style="background:var(--removed);"></span> Removed: <strong id="removedCount">0</strong></div>
+    <div class="stat"><span class="stat-dot" style="background:var(--changed);"></span> Changed: <strong id="changedCount">0</strong></div>
+  </div>
+
+  <div class="diff-output" id="diffOutput" style="display:none;"></div>
+</div>
+<div class="toast" id="toast"></div>
+<footer>Free ToolBase &copy; 2024 — Client-side only, no data upload</footer>
+
+<script>
+function parseSchema(text) {
+  const types = {};
+  const lines = text.split('\n');
+  let currentType = null;
+  let currentKind = null;
+  
+  for (let line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    
+    const typeMatch = trimmed.match(/^(type|input|enum|interface|union|scalar)\s+(\w+)/);
+    if (typeMatch) {
+      currentType = typeMatch[2];
+      currentKind = typeMatch[1];
+      types[currentType] = { kind: currentKind, fields: [], interfaces: [] };
+      continue;
+    }
+    
+    if (currentType && (trimmed === '{' || trimmed === '}')) { if (trimmed === '}') { currentType = null; currentKind = null; } continue; }
+    
+    if (currentType) {
+      const fieldMatch = trimmed.match(/^(\w+)\s*(\([^)]*\))?\s*:\s*(.+?)(!?)\s*$/);
+      if (fieldMatch) {
+        types[currentType].fields.push({ name: fieldMatch[1], type: fieldMatch[3].trim(), required: fieldMatch[4] === '!', args: fieldMatch[2] || '' });
+      }
+    }
+  }
+  return types;
+}
+
+function compare() {
+  const oldText = document.getElementById('oldSchema').value.trim();
+  const newText = document.getElementById('newSchema').value.trim();
+  if (!oldText && !newText) { showToast('Please enter schemas'); return; }
+  if (!oldText || !newText) { showToast('Both schemas are required'); return; }
+
+  const oldSchema = parseSchema(oldText);
+  const newSchema = parseSchema(newText);
+  
+  const oldTypes = Object.keys(oldSchema);
+  const newTypes = Object.keys(newSchema);
+  const added = newTypes.filter(t => !oldTypes.includes(t));
+  const removed = oldTypes.filter(t => !newTypes.includes(t));
+  const common = oldTypes.filter(t => newTypes.includes(t));
+  
+  let changed = [];
+  common.forEach(typeName => {
+    const oldFields = oldSchema[typeName].fields;
+    const newFields = newSchema[typeName].fields;
+    const oldNames = oldFields.map(f => f.name);
+    const newNames = newFields.map(f => f.name);
+    const addedF = newNames.filter(f => !oldNames.includes(f));
+    const removedF = oldNames.filter(f => !newNames.includes(f));
+    const modifiedF = newNames.filter(f => {
+      if (!oldNames.includes(f)) return false;
+      const of = oldFields.find(x => x.name === f);
+      const nf = newFields.find(x => x.name === f);
+      return of.type !== nf.type || of.required !== nf.required;
+    });
+    if (addedF.length > 0 || removedF.length > 0 || modifiedF.length > 0) {
+      changed.push({ type: typeName, added: addedF, removed: removedF, modified: modifiedF });
+    }
+  });
+
+  document.getElementById('addedCount').textContent = added.length;
+  document.getElementById('removedCount').textContent = removed.length;
+  document.getElementById('changedCount').textContent = changed.length;
+  document.getElementById('stats').style.display = 'flex';
+  
+  let html = '';
+  if (added.length > 0) {
+    html += '<div class="diff-section added"><strong>🟢 Added Types (' + added.length + '):</strong><br>';
+    added.forEach(t => {
+      html += '  + ' + t;
+      const fields = newSchema[t].fields;
+      if (fields.length > 0) html += ' { ' + fields.map(f => f.name + ': ' + f.type + (f.required ? '!' : '')).join(', ') + ' }';
+      html += '<br>';
+    });
+    html += '</div>';
+  }
+  if (removed.length > 0) {
+    html += '<div class="diff-section removed"><strong>🔴 Removed Types (' + removed.length + '):</strong><br>';
+    removed.forEach(t => {
+      html += '  - ' + t;
+      const fields = oldSchema[t].fields;
+      if (fields.length > 0) html += ' { ' + fields.map(f => f.name + ': ' + f.type + (f.required ? '!' : '')).join(', ') + ' }';
+      html += '<br>';
+    });
+    html += '</div>';
+  }
+  if (changed.length > 0) {
+    html += '<div class="diff-section changed"><strong>🟡 Changed Types (' + changed.length + '):</strong><br>';
+    changed.forEach(c => {
+      html += '  ~ ' + c.type + '<br>';
+      c.added.forEach(f => { html += '    <span class="diff-added">+ ' + f + '</span><br>'; });
+      c.removed.forEach(f => { html += '    <span class="diff-removed">- ' + f + '</span><br>'; });
+      c.modified.forEach(f => { html += '    <span class="diff-changed">~ ' + f + '</span><br>'; });
+    });
+    html += '</div>';
+  }
+  if (!html) html = '<div style="padding:12px;color:var(--text-secondary);">✅ Schemas are identical — no differences</div>';
+  
+  document.getElementById('diffOutput').innerHTML = html;
+  document.getElementById('diffOutput').style.display = 'block';
+  showToast('Comparison complete');
+}
+
+function swapSchemas() {
+  const o = document.getElementById('oldSchema'); const n = document.getElementById('newSchema');
+  const tmp = o.value; o.value = n.value; n.value = tmp;
+}
+function clearAll() {
+  document.getElementById('oldSchema').value = '';
+  document.getElementById('newSchema').value = '';
+  document.getElementById('diffOutput').innerHTML = '';
+  document.getElementById('diffOutput').style.display = 'none';
+  document.getElementById('stats').style.display = 'none';
+}
+function showToast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(t._timeout); t._timeout = setTimeout(() => t.classList.remove('show'), 2000); }
+</script>
+</body>
+</html>

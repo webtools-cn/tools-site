@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HCL Converter - Online HCL/JSON/YAML Converter | Free ToolBase</title>
+  <meta name="description" content="Free online HCL converter. Convert between HCL, JSON, and YAML formats. Perfect for Terraform configurations, Nomad jobs, and other HashiCorp tool configs.">
+  <meta property="og:title" content="HCL Converter - Free ToolBase">
+  <meta property="og:description" content="Convert between HCL, JSON, and YAML formats online. Terraform config support.">
+  <meta property="og:type" content="website">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"HCL Converter","applicationCategory":"DeveloperApplication","operatingSystem":"Any","description":"Online HCL/JSON/YAML conversion tool","offers":{"@type":"Offer","price":"0"}}</script>
+  <style>
+    :root { --primary: #4F46E5; --primary-light: #EEF2FF; --bg: #f8fafc; --surface: #fff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 8px; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+    header { background:var(--surface); border-bottom:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; }
+    header .logo { font-size:1.2rem; font-weight:700; color:var(--primary); text-decoration:none; }
+    header nav a { color:var(--text-secondary); text-decoration:none; margin-left:16px; font-size:.9rem; }
+    header nav a:hover { color:var(--primary); }
+    .container { max-width:1100px; margin:0 auto; padding:20px 16px; }
+    h1 { font-size:1.5rem; margin-bottom:4px; }
+    .subtitle { color:var(--text-secondary); font-size:.9rem; margin-bottom:20px; }
+    .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; align-items:center; }
+    .toolbar select, .toolbar button { padding:8px 14px; border:1px solid var(--border); border-radius:var(--radius); font-size:.85rem; cursor:pointer; background:var(--surface); }
+    .toolbar button { background:var(--primary); color:#fff; border-color:var(--primary); font-weight:500; }
+    .toolbar button:hover { opacity:.9; }
+    .toolbar button.secondary { background:var(--surface); color:var(--text); border-color:var(--border); }
+    .toolbar .arrow { font-size:1.2rem; color:var(--primary); font-weight:700; }
+    .editor-wrap { display:flex; gap:12px; flex-direction:column; }
+    @media(min-width:768px){ .editor-wrap { flex-direction:row; } }
+    .panel { flex:1; display:flex; flex-direction:column; min-width:0; }
+    .panel-label { font-size:.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px; text-transform:uppercase; }
+    .panel textarea { width:100%; min-height:380px; padding:12px; border:1px solid var(--border); border-radius:var(--radius); font-family:'Fira Code',monospace; font-size:.82rem; background:#1e1e2e; color:#cdd6f4; resize:vertical; }
+    .panel textarea:focus { outline:2px solid var(--primary); outline-offset:-2px; }
+    textarea#output { background:#1a1a2e; color:#a6e3a1; }
+    .toast { position:fixed; bottom:20px; right:20px; background:#1e293b; color:#fff; padding:10px 20px; border-radius:var(--radius); font-size:.85rem; opacity:0; transform:translateY(10px); transition:all .3s; z-index:999; }
+    .toast.show { opacity:1; transform:translateY(0); }
+    footer { text-align:center; padding:20px; color:var(--text-secondary); font-size:.8rem; border-top:1px solid var(--border); margin-top:30px; }
+  </style>
+</head>
+<body>
+<header><a href="/en/" class="logo">Free ToolBase</a><nav><a href="/en/">Home</a><a href="/">中文</a></nav></header>
+<div class="container">
+  <h1>HCL Converter</h1>
+  <p class="subtitle">Convert between HCL ↔ JSON ↔ YAML. Works with Terraform, Nomad, and other HashiCorp config formats.</p>
+
+  <div class="toolbar">
+    <select id="fromFormat"><option value="hcl">HCL</option><option value="json">JSON</option><option value="yaml">YAML</option></select>
+    <span class="arrow">→</span>
+    <select id="toFormat"><option value="json">JSON</option><option value="yaml">YAML</option><option value="hcl">HCL</option></select>
+    <button onclick="convert()">Convert</button>
+    <button class="secondary" onclick="swapFormats()">⇄ Swap</button>
+    <button class="secondary" onclick="copyOutput()">Copy</button>
+    <button class="secondary" onclick="clearAll()">Clear</button>
+  </div>
+
+  <div class="editor-wrap">
+    <div class="panel">
+      <div class="panel-label" id="fromLabel">Input HCL</div>
+      <textarea id="input" placeholder='Enter HCL...
+
+resource "aws_instance" "example" {
+  ami           = "ami-0c55b159cbfafe1f0"
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "example-instance"
+    Environment = "dev"
+  }
+}'></textarea>
+    </div>
+    <div class="panel">
+      <div class="panel-label" id="toLabel">Output JSON</div>
+      <textarea id="output" placeholder="Result..." readonly></textarea>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<footer>Free ToolBase &copy; 2024 — Client-side processing | HCL parsing is approximate</footer>
+
+<script>
+function swapFormats() {
+  const from = document.getElementById('fromFormat');
+  const to = document.getElementById('toFormat');
+  const tmp = from.value; from.value = to.value; to.value = tmp;
+  updateLabels();
+  const input = document.getElementById('input');
+  const output = document.getElementById('output');
+  const tmpVal = input.value; input.value = output.value; output.value = tmpVal;
+}
+
+function updateLabels() {
+  document.getElementById('fromLabel').textContent = 'Input ' + document.getElementById('fromFormat').value.toUpperCase();
+  document.getElementById('toLabel').textContent = 'Output ' + document.getElementById('toFormat').value.toUpperCase();
+}
+
+document.getElementById('fromFormat').addEventListener('change', updateLabels);
+document.getElementById('toFormat').addEventListener('change', updateLabels);
+
+function parseHCL(text) {
+  const lines = text.split('\n');
+  const result = {};
+  const stack = [result];
+
+  for (let line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) continue;
+
+    const blockMatch = trimmed.match(/^(\w+)\s+(?:"([^"]+)"\s*)?(?:"([^"]+)"\s*)?\{/);
+    const simpleBlock = trimmed.match(/^(\w+)\s*\{/);
+    
+    if (blockMatch || simpleBlock) {
+      let blockName; const blockLabels = [];
+      if (blockMatch) { blockName = blockMatch[1]; if (blockMatch[2]) blockLabels.push(blockMatch[2]); if (blockMatch[3]) blockLabels.push(blockMatch[3]); }
+      else { blockName = simpleBlock[1]; }
+      const newBlock = {};
+      const parent = stack[stack.length - 1];
+      if (blockLabels.length > 0) {
+        if (!parent[blockName]) parent[blockName] = [];
+        parent[blockName].push(newBlock);
+        if (blockLabels.length === 2) { newBlock._type = blockLabels[0]; newBlock._name = blockLabels[1]; }
+        else { newBlock._label = blockLabels[0]; }
+      } else { parent[blockName] = newBlock; }
+      stack.push(newBlock);
+      continue;
+    }
+
+    if (trimmed === '}') { stack.pop(); continue; }
+
+    const kvMatch = trimmed.match(/^(\w+)\s*=\s*(.+)$/);
+    if (kvMatch) {
+      const key = kvMatch[1];
+      let value = kvMatch[2].trim().replace(/\s*#.*$/, '');
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1);
+      else if (/^\d+(\.\d+)?$/.test(value)) value = Number(value);
+      else if (value === 'true') value = true;
+      else if (value === 'false') value = false;
+      else if (value === 'null') value = null;
+      stack[stack.length - 1][key] = value;
+      continue;
+    }
+
+    const inlineBlock = trimmed.match(/^(\w+)\s*=\s*\{/);
+    if (inlineBlock) { const nb = {}; stack[stack.length - 1][inlineBlock[1]] = nb; stack.push(nb); }
+  }
+  return result;
+}
+
+function hclToJSON(text) {
+  try { return JSON.stringify(parseHCL(text), null, 2); }
+  catch(e) { return '// HCL parse error: ' + e.message; }
+}
+
+function jsonToHCL(text, indent = '  ') {
+  try { return objToHCL(JSON.parse(text), indent); }
+  catch(e) { return '# JSON parse error: ' + e.message; }
+}
+
+function objToHCL(obj, indent = '  ', depth = 0) {
+  if (obj === null || obj === undefined) return 'null';
+  if (typeof obj === 'boolean') return obj.toString();
+  if (typeof obj === 'number') return obj.toString();
+  if (typeof obj === 'string') return '"' + obj + '"';
+  const prefix = indent.repeat(depth);
+  if (Array.isArray(obj)) {
+    return obj.map(item => {
+      if (typeof item === 'object' && !Array.isArray(item)) {
+        const {_type: t, _name: n, ...rest} = item;
+        if (t && n) return prefix + 'resource "' + t + '" "' + n + '" {\n' + objToHCLBody(rest, indent, depth + 1) + '\n' + prefix + '}';
+        return prefix + '{\n' + objToHCLBody(item, indent, depth + 1) + '\n' + prefix + '}';
+      }
+      return prefix + JSON.stringify(item);
+    }).join('\n');
+  }
+  return '{\n' + objToHCLBody(obj, indent, depth + 1) + '\n' + prefix + '}';
+}
+
+function objToHCLBody(obj, indent, depth) {
+  const prefix = indent.repeat(depth);
+  return Object.entries(obj).map(([k, v]) => {
+    if (k.startsWith('_')) return null;
+    if (typeof v === 'object' && v !== null && !Array.isArray(v)) return prefix + k + ' {\n' + objToHCLBody(v, indent, depth + 1) + '\n' + prefix + '}';
+    if (Array.isArray(v)) return v.map(item => typeof item === 'object' && item !== null ? prefix + k + ' {\n' + objToHCLBody(item, indent, depth + 1) + '\n' + prefix + '}' : prefix + k + ' = ' + JSON.stringify(item)).join('\n');
+    return prefix + k + ' = ' + (typeof v === 'string' ? '"' + v + '"' : JSON.stringify(v));
+  }).filter(Boolean).join('\n');
+}
+
+function yamlToJSON(text) {
+  try {
+    const lines = text.split('\n');
+    const result = {};
+    const stack = [result];
+    let prevIndent = 0, currentKey = '';
+    for (let line of lines) {
+      const trimmed = line.trimEnd();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const indent = line.search(/\S/);
+      if (indent < prevIndent) { const pop = Math.floor((prevIndent - indent) / 2) || 1; for (let i = 0; i < pop && stack.length > 1; i++) stack.pop(); }
+      const colonIdx = trimmed.indexOf(':');
+      if (colonIdx > 0) {
+        const key = trimmed.substring(0, colonIdx).trim();
+        let value = trimmed.substring(colonIdx + 1).trim();
+        if (!value) { const no = {}; stack[stack.length - 1][key] = no; stack.push(no); currentKey = key; }
+        else { if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1); stack[stack.length - 1][key] = value; }
+      } else if (trimmed.startsWith('- ')) {
+        const item = trimmed.substring(2).trim();
+        const parent = stack[stack.length - 1];
+        if (!parent[currentKey] || !Array.isArray(parent[currentKey])) parent[currentKey] = [];
+        parent[currentKey].push(item);
+      }
+      prevIndent = indent;
+    }
+    return JSON.stringify(result, null, 2);
+  } catch(e) { return '# YAML parse error: ' + e.message; }
+}
+
+function jsonToYAML(obj, indent = 0) {
+  if (obj === null) return 'null';
+  if (typeof obj === 'boolean') return obj.toString();
+  if (typeof obj === 'number') return obj.toString();
+  if (typeof obj === 'string') return obj;
+  const prefix = '  '.repeat(indent);
+  if (Array.isArray(obj)) return obj.map(item => typeof item === 'object' && item !== null ? prefix + '- \n' + jsonToYAML(item, indent + 1).split('\n').map(l => '  ' + l).join('\n') : prefix + '- ' + jsonToYAML(item, 0)).join('\n');
+  return Object.entries(obj).map(([k, v]) => typeof v === 'object' && v !== null ? prefix + k + ':\n' + jsonToYAML(v, indent + 1) : prefix + k + ': ' + jsonToYAML(v, 0)).join('\n');
+}
+
+function convert() {
+  const from = document.getElementById('fromFormat').value;
+  const to = document.getElementById('toFormat').value;
+  const input = document.getElementById('input').value.trim();
+  if (!input) { showToast('Please enter input'); return; }
+  if (from === to) { document.getElementById('output').value = input; showToast('Same format'); return; }
+  let result;
+  try {
+    switch(from + '->' + to) {
+      case 'hcl->json': result = hclToJSON(input); break;
+      case 'hcl->yaml': result = jsonToYAML(JSON.parse(hclToJSON(input))); break;
+      case 'json->hcl': result = jsonToHCL(input); break;
+      case 'json->yaml': result = jsonToYAML(JSON.parse(input)); break;
+      case 'yaml->json': result = yamlToJSON(input); break;
+      case 'yaml->hcl': result = jsonToHCL(JSON.parse(yamlToJSON(input))); break;
+    }
+  } catch(e) { result = 'Error: ' + e.message; }
+  document.getElementById('output').value = result;
+  showToast('Converted!');
+}
+
+function copyOutput() {
+  const o = document.getElementById('output').value;
+  if (!o) { showToast('Convert first'); return; }
+  navigator.clipboard.writeText(o).then(() => showToast('Copied!'));
+}
+
+function clearAll() { document.getElementById('input').value = ''; document.getElementById('output').value = ''; }
+function showToast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(t._timeout); t._timeout = setTimeout(() => t.classList.remove('show'), 2000); }
+</script>
+</body>
+</html>
