@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文字样式生成器 - Free ToolBase</title>
+  <meta name="description" content="在线文字样式生成器，生成粗体/斜体/删除线/下划线/上标下标等多种Unicode文字样式，一键复制到社交媒体">
+  <meta property="og:title" content="文字样式生成器 - Unicode花式文本">
+  <meta property="og:description" content="生成粗体/斜体/删除线等多种Unicode文字样式，一键复制">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"文字样式生成器","applicationCategory":"UtilitiesApplication","operatingSystem":"Any"}</script>
+  <style>
+    :root { --primary: #4F46E5; --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --text2: #94a3b8; --border: rgba(148,163,184,.1); --accent: #06b6d4; --radius: 12px }
+    * { box-sizing: border-box; margin: 0; padding: 0 }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column }
+    header { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 24px }
+    header h1 { font-size: 1.25rem; color: #f1f5f9 }
+    main { flex: 1; max-width: 800px; margin: 0 auto; padding: 32px 16px; width: 100% }
+    .card { background: var(--card); border-radius: var(--radius); padding: 24px; border: 1px solid var(--border) }
+    .card + .card { margin-top: 16px }
+    h2 { font-size: 1.1rem; color: #f1f5f9; margin-bottom: 16px }
+    textarea { width: 100%; min-height: 60px; background: #0f172a; border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 12px; font-family: monospace; font-size: 0.85rem; resize: vertical }
+    textarea:focus { outline: none; border-color: var(--accent) }
+    .style-list { display: flex; flex-direction: column; gap: 8px }
+    .style-row { display: flex; align-items: center; gap: 12px; background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px }
+    .style-label { font-size: 0.8rem; color: var(--text2); min-width: 80px; flex-shrink: 0 }
+    .style-preview { flex: 1; font-size: 1.1rem; word-break: break-all }
+    .copy-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--accent); cursor: pointer; font-size: 0.8rem }
+    .copy-btn:hover { background: rgba(6,182,212,.1) }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #334155; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 0.9rem; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none }
+    .toast.show { opacity: 1 }
+    footer { background: var(--card); border-top: 1px solid var(--border); padding: 16px 24px; text-align: center; color: var(--text2); font-size: 0.8rem }
+    @media (max-width: 375px) { main { padding: 16px 8px } .card { padding: 16px } }
+  </style>
+</head>
+<body>
+<header><h1>✨ 文字样式生成器</h1></header>
+<main>
+  <div class="card">
+    <h2>输入文字</h2>
+    <textarea id="textInput" placeholder="输入你想转换的文字...">Hello World 你好世界</textarea>
+  </div>
+  <div class="card">
+    <h2>生成的样式</h2>
+    <div class="style-list" id="styleList"></div>
+  </div>
+</main>
+<footer>Free ToolBase &copy; 2026</footer>
+<div class="toast" id="toast"></div>
+<script>
+const textInput = document.getElementById('textInput');
+const styleList = document.getElementById('styleList');
+const toast = document.getElementById('toast');
+
+const normal = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+const styles = {
+  '粗体 (Bold)': '𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵',
+  '斜体 (Italic)': '𝘈𝘉𝘊𝘋𝘌𝘍𝘎𝘏𝘐𝘑𝘒𝘓𝘔𝘕𝘖𝘗𝘘𝘙𝘚𝘛𝘜𝘝𝘞𝘟𝘠𝘡𝘢𝘣𝘤𝘥𝘦𝘧𝘨𝘩𝘪𝘫𝘬𝘭𝘮𝘯𝘰𝘱𝘲𝘳𝘴𝘵𝘶𝘷𝘸𝘹𝘺𝘻0123456789',
+  '粗斜体 (Bold Italic)': '𝘼𝘽𝘾𝘿𝙀𝙁𝙂𝙃𝙄𝙅𝙆𝙇𝙈𝙉𝙊𝙋𝙌𝙍𝙎𝙏𝙐𝙑𝙒𝙓𝙔𝙕𝙖𝙗𝙘𝙙𝙚𝙛𝙜𝙝𝙞𝙟𝙠𝙡𝙢𝙣𝙤𝙥𝙦𝙧𝙨𝙩𝙪𝙫𝙬𝙭𝙮𝙯0123456789',
+  '等宽 (Monospace)': '𝙰𝙱𝙲𝙳𝙴𝙵𝙶𝙷𝙸𝙹𝙺𝙻𝙼𝙽𝙾𝙿𝚀𝚁𝚂𝚃𝚄𝚅𝚆𝚇𝚈𝚉𝚊𝚋𝚌𝚍𝚎𝚏𝚐𝚑𝚒𝚓𝚔𝚕𝚖𝚗𝚘𝚙𝚚𝚛𝚜𝚝𝚞𝚟𝚠𝚡𝚢𝚣𝟶𝟷𝟸𝟹𝟺𝟻𝟼𝟽𝟾𝟿',
+  '手写体 (Script)': '𝒜𝐵𝒞𝒟𝐸𝐹𝒢𝐻𝐼𝒥𝒦𝐿𝑀𝒩𝒪𝒫𝒬𝑅𝒮𝒯𝒰𝒱𝒲𝒳𝒴𝒵𝒶𝒷𝒸𝒹𝑒𝒻𝑔𝒽𝒾𝒿𝓀𝓁𝓂𝓃𝑜𝓅𝓆𝓇𝓈𝓉𝓊𝓋𝓌𝓍𝓎𝓏0123456789',
+  '双线 (Double Struck)': '𝔸𝔹ℂ𝔻𝔼𝔽𝔾ℍ𝕀𝕁𝕂𝕃𝕄ℕ𝕆ℙℚℝ𝕊𝕋𝕌𝕍𝕎𝕏𝕐ℤ𝕒𝕓𝕔𝕕𝕖𝕗𝕘𝕙𝕚𝕛𝕜𝕝𝕞𝕟𝕠𝕡𝕢𝕣𝕤𝕥𝕦𝕧𝕨𝕩𝕪𝕫𝟘𝟙𝟚𝟛𝟜𝟝𝟞𝟟𝟠𝟡',
+  '圆圈 (Circled)': 'ⒶⒷⒸⒹⒺⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊⓋⓌⓍⓎⓏⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ⓪①②③④⑤⑥⑦⑧⑨',
+  '上下颠倒 (Upside Down)': '∀𐐒Ɔ◖ƎℲ⅁HIſ⋊⅂WNOԀÒᴚS⊥∩ᴧMX⅄Zɐqɔpǝɟɓɥıɾʞlɯuodbɹsʇnʌʍxʎz0⇂↊⇂Һގ9↊8⇂',
+};
+
+function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }
+
+function convert(text, styleChars) {
+  let result = '';
+  for (const ch of text) {
+    const idx = normal.indexOf(ch);
+    result += idx >= 0 ? styleChars[idx] : ch;
+  }
+  return result;
+}
+
+function updateStyles() {
+  const text = textInput.value;
+  styleList.innerHTML = Object.entries(styles).map(([name, chars]) => {
+    const converted = convert(text, chars);
+    return `<div class="style-row">
+      <span class="style-label">${name}</span>
+      <span class="style-preview">${converted || '(空)'}</span>
+      <button class="copy-btn" data-text="${converted.replace(/"/g, '&quot;')}">复制</button>
+    </div>`;
+  }).join('');
+  styleList.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(btn.dataset.text).then(() => showToast('已复制')).catch(() => showToast('复制失败'));
+    });
+  });
+}
+
+textInput.addEventListener('input', updateStyles);
+updateStyles();
+</script>
+</body>
+</html>
