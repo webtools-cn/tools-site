@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON-LD生成器 - Free ToolBase</title>
+  <meta name="description" content="在线JSON-LD结构化数据生成器，快速生成Article/Product/Breadcrumb/FAQ等Schema.org标记，提升Google搜索展现。">
+  <meta property="og:title" content="JSON-LD生成器 - Free ToolBase">
+  <meta property="og:description" content="在线JSON-LD结构化数据生成器，快速生成Schema.org标记">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://free-toolbase.com/json-ld/">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"JSON-LD生成器","applicationCategory":"DeveloperApplication","operatingSystem":"Web","description":"在线JSON-LD结构化数据生成器","url":"https://free-toolbase.com/json-ld/"}</script>
+  <style>
+    :root {
+      --primary: #4F46E5; --primary-hover: #4338CA; --bg: #0f172a;
+      --surface: #1e293b; --surface2: #334155; --text: #f1f5f9;
+      --text2: #94a3b8; --border: rgba(148,163,184,.1); --success: #22c55e;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+    header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
+    }
+    header a { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 1.1rem; }
+    header nav a { margin-left: 20px; color: var(--text2); font-size: 0.9rem; }
+    header nav a:hover { color: var(--text); }
+    main { flex: 1; max-width: 900px; margin: 0 auto; padding: 32px 16px; width: 100%; }
+    h1 { font-size: 1.8rem; margin-bottom: 8px; }
+    .subtitle { color: var(--text2); margin-bottom: 24px; font-size: 0.95rem; }
+    .type-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+    .type-tab {
+      padding: 8px 16px; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 20px; cursor: pointer; font-size: 0.85rem; color: var(--text2);
+    }
+    .type-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.9rem; color: var(--text2); margin-bottom: 5px; }
+    .form-group input, .form-group textarea {
+      width: 100%; padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text); font-size: 0.9rem; font-family: inherit;
+    }
+    .form-group textarea { min-height: 70px; resize: vertical; }
+    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+    .btn {
+      padding: 10px 20px; background: var(--primary); color: #fff;
+      border: none; border-radius: var(--radius); cursor: pointer; font-size: 0.9rem;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-secondary { background: var(--surface2); }
+    .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
+    .output-area {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 16px; margin-top: 16px; position: relative;
+    }
+    .output-area pre {
+      white-space: pre-wrap; word-break: break-all; font-size: 0.85rem;
+      color: var(--success); font-family: 'SF Mono', 'Fira Code', monospace;
+      max-height: 400px; overflow-y: auto;
+    }
+    .copy-btn {
+      position: absolute; top: 8px; right: 8px;
+      padding: 4px 12px; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text2); cursor: pointer; font-size: 0.8rem;
+    }
+    .copy-btn:hover { background: var(--primary); color: #fff; }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; background: var(--success); color: #fff;
+      padding: 10px 20px; border-radius: var(--radius); z-index: 9999;
+      opacity: 0; transform: translateY(10px); transition: all 0.3s;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    footer { text-align: center; padding: 20px; color: var(--text2); font-size: 0.8rem; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/">🧰 Free ToolBase</a>
+    <nav><a href="/">首页</a><a href="/en/">English</a></nav>
+  </header>
+  <main>
+    <h1>📋 JSON-LD生成器</h1>
+    <p class="subtitle">快速生成Schema.org结构化数据标记，提升Google搜索结果的富文本展现</p>
+
+    <div class="type-tabs" id="typeTabs">
+      <span class="type-tab active" data-type="article">📄 文章</span>
+      <span class="type-tab" data-type="product">🛍️ 产品</span>
+      <span class="type-tab" data-type="breadcrumb">🍞 面包屑</span>
+      <span class="type-tab" data-type="faq">❓ FAQ</span>
+      <span class="type-tab" data-type="organization">🏢 组织</span>
+      <span class="type-tab" data-type="localBusiness">📍 本地商家</span>
+      <span class="type-tab" data-type="recipe">🍳 食谱</span>
+    </div>
+
+    <div id="formContainer"></div>
+
+    <div class="btn-group">
+      <button class="btn" id="generateBtn">🔧 生成JSON-LD</button>
+      <button class="btn btn-secondary" id="validateBtn">✅ 验证JSON</button>
+      <button class="btn btn-secondary" id="clearBtn">🗑️ 清空</button>
+    </div>
+
+    <div class="output-area" id="outputArea" style="display:none;">
+      <button class="copy-btn" id="copyBtn">📋 复制</button>
+      <pre id="outputCode"></pre>
+    </div>
+  </main>
+  <footer>© 2025 Free ToolBase · 所有工具免费使用</footer>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    var currentType = 'article';
+
+    var schemas = {
+      article: {
+        fields: [
+          {key:'headline',label:'标题',placeholder:'文章标题',required:true},
+          {key:'author',label:'作者',placeholder:'作者姓名'},
+          {key:'datePublished',label:'发布日期',placeholder:'2025-01-15',type:'date'},
+          {key:'dateModified',label:'修改日期',placeholder:'2025-01-15',type:'date'},
+          {key:'image',label:'图片URL',placeholder:'https://example.com/image.jpg'},
+          {key:'description',label:'描述',placeholder:'文章摘要描述'},
+          {key:'publisher',label:'发布者名称',placeholder:'发布者组织名称'},
+          {key:'url',label:'文章URL',placeholder:'https://example.com/article'}
+        ]
+      },
+      product: {
+        fields: [
+          {key:'name',label:'产品名称',placeholder:'产品名称',required:true},
+          {key:'description',label:'产品描述',placeholder:'产品描述'},
+          {key:'image',label:'图片URL',placeholder:'https://example.com/product.jpg'},
+          {key:'sku',label:'SKU',placeholder:'SKU-12345'},
+          {key:'brand',label:'品牌',placeholder:'品牌名称'},
+          {key:'price',label:'价格',placeholder:'99.99'},
+          {key:'priceCurrency',label:'货币',placeholder:'CNY'},
+          {key:'availability',label:'库存状态',placeholder:'InStock / OutOfStock'}
+        ]
+      },
+      breadcrumb: {
+        fields: [
+          {key:'items',label:'面包屑项',placeholder:'首页,分类页,当前页',type:'textarea',required:true}
+        ],
+        help: '用英文逗号分隔，如：首页,工具,JSON-LD生成器'
+      },
+      faq: {
+        fields: [
+          {key:'items',label:'FAQ条目',placeholder:'问: xxx\n答: yyy\n\n问: aaa\n答: bbb',type:'textarea',required:true}
+        ],
+        help: '每对Q&A用空行分隔，Q用"问:"开头，A用"答:"开头'
+      },
+      organization: {
+        fields: [
+          {key:'name',label:'组织名称',placeholder:'公司名称',required:true},
+          {key:'url',label:'官网URL',placeholder:'https://example.com'},
+          {key:'logo',label:'Logo URL',placeholder:'https://example.com/logo.png'},
+          {key:'description',label:'描述',placeholder:'组织描述'},
+          {key:'sameAs',label:'社交链接',placeholder:'https://twitter.com/xxx, https://linkedin.com/xxx'}
+        ]
+      },
+      localBusiness: {
+        fields: [
+          {key:'name',label:'商家名称',placeholder:'商家名称',required:true},
+          {key:'address',label:'地址',placeholder:'详细地址'},
+          {key:'telephone',label:'电话',placeholder:'+86-10-12345678'},
+          {key:'openingHours',label:'营业时间',placeholder:'Mo-Fr 09:00-18:00'},
+          {key:'priceRange',label:'价格区间',placeholder:'¥¥'},
+          {key:'image',label:'图片URL',placeholder:'https://example.com/photo.jpg'}
+        ]
+      },
+      recipe: {
+        fields: [
+          {key:'name',label:'食谱名称',placeholder:'食谱名称',required:true},
+          {key:'author',label:'作者',placeholder:'作者姓名'},
+          {key:'description',label:'描述',placeholder:'食谱描述'},
+          {key:'prepTime',label:'准备时间',placeholder:'PT30M'},
+          {key:'cookTime',label:'烹饪时间',placeholder:'PT1H'},
+          {key:'totalTime',label:'总时间',placeholder:'PT1H30M'},
+          {key:'recipeYield',label:'份数',placeholder:'4'},
+          {key:'image',label:'图片URL',placeholder:'https://example.com/recipe.jpg'},
+          {key:'ingredients',label:'食材(每行一个)',placeholder:'面粉 200g\n鸡蛋 2个',type:'textarea'},
+          {key:'instructions',label:'步骤(每行一步)',placeholder:'1. 混合面粉和鸡蛋\n2. 揉面10分钟',type:'textarea'}
+        ]
+      }
+    };
+
+    function showToast(msg) {
+      var t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      setTimeout(function() { t.classList.remove('show'); }, 2000);
+    }
+
+    function renderForm(type) {
+      var schema = schemas[type];
+      var html = '';
+      schema.fields.forEach(function(f) {
+        html += '<div class="form-group">';
+        html += '<label>' + f.label + (f.required ? ' *' : '') + '</label>';
+        if (f.type === 'textarea') {
+          html += '<textarea id="fld_' + f.key + '" placeholder="' + (f.placeholder || '') + '" rows="4"></textarea>';
+        } else if (f.type === 'date') {
+          html += '<input type="date" id="fld_' + f.key + '">';
+        } else {
+          html += '<input type="text" id="fld_' + f.key + '" placeholder="' + (f.placeholder || '') + '">';
+        }
+        html += '</div>';
+      });
+      if (schema.help) {
+        html += '<p style="color:var(--text2);font-size:0.8rem;margin-bottom:10px;">💡 ' + schema.help + '</p>';
+      }
+      document.getElementById('formContainer').innerHTML = html;
+    }
+
+    function generateJSONLD() {
+      var schema = schemas[currentType];
+      var data = {'@context': 'https://schema.org'};
+
+      if (currentType === 'article') {
+        data['@type'] = 'Article';
+        var author = getVal('author');
+        if (author) data.author = {'@type': 'Person', name: author};
+        var pub = getVal('publisher');
+        if (pub) data.publisher = {'@type': 'Organization', name: pub};
+      } else if (currentType === 'product') {
+        data['@type'] = 'Product';
+        var price = getVal('price');
+        var currency = getVal('priceCurrency') || 'CNY';
+        if (price) data.offers = {'@type': 'Offer', price: price, priceCurrency: currency};
+        var avail = getVal('availability');
+        if (avail) data.offers = data.offers || {};
+        if (avail) data.offers.availability = 'https://schema.org/' + avail;
+      } else if (currentType === 'breadcrumb') {
+        data['@type'] = 'BreadcrumbList';
+        var items = getVal('items').split(',').filter(Boolean);
+        data.itemListElement = items.map(function(item, i) {
+          return {'@type': 'ListItem', position: i + 1, name: item.trim()};
+        });
+      } else if (currentType === 'faq') {
+        data['@type'] = 'FAQPage';
+        var text = getVal('items');
+        var blocks = text.split(/\n\n+/).filter(Boolean);
+        data.mainEntity = blocks.map(function(b) {
+          var lines = b.split('\n');
+          var q = '', a = '';
+          lines.forEach(function(l) {
+            if (l.match(/^问[：:]/)) q = l.replace(/^问[：:]\s*/, '');
+            if (l.match(/^答[：:]/)) a = l.replace(/^答[：:]\s*/, '');
+          });
+          return {'@type': 'Question', name: q || lines[0], acceptedAnswer: {'@type': 'Answer', text: a || lines.slice(1).join('\n')}};
+        });
+      } else if (currentType === 'organization') {
+        data['@type'] = 'Organization';
+        var sameAs = getVal('sameAs');
+        if (sameAs) data.sameAs = sameAs.split(',').map(function(s) { return s.trim(); });
+      } else if (currentType === 'localBusiness') {
+        data['@type'] = 'LocalBusiness';
+        var addr = getVal('address');
+        if (addr) data.address = {'@type': 'PostalAddress', streetAddress: addr};
+      } else if (currentType === 'recipe') {
+        data['@type'] = 'Recipe';
+        var ingredients = getVal('ingredients');
+        if (ingredients) data.recipeIngredient = ingredients.split('\n').filter(Boolean);
+        var instructions = getVal('instructions');
+        if (instructions) data.recipeInstructions = instructions.split('\n').filter(Boolean).map(function(s, i) {
+          return {'@type': 'HowToStep', position: i + 1, text: s.replace(/^\d+[\.\)]\s*/, '')};
+        });
+      }
+
+      // 通用字段
+      var simpleFields = ['headline','name','description','url','image','datePublished','dateModified','sku','brand','logo','telephone','openingHours','priceRange','prepTime','cookTime','totalTime','recipeYield'];
+      simpleFields.forEach(function(k) {
+        var v = getVal(k);
+        if (v) data[k] = v;
+      });
+
+      var json = JSON.stringify(data, null, 2);
+      document.getElementById('outputCode').textContent = json;
+      document.getElementById('outputArea').style.display = 'block';
+      return json;
+    }
+
+    function getVal(key) {
+      var el = document.getElementById('fld_' + key);
+      return el ? el.value.trim() : '';
+    }
+
+    function copyOutput() {
+      var text = document.getElementById('outputCode').textContent;
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(function() {
+        showToast('✅ 已复制到剪贴板');
+      }).catch(function() { showToast('❌ 复制失败'); });
+    }
+
+    function validateJSON() {
+      var text = document.getElementById('outputCode').textContent;
+      if (!text) {
+        generateJSONLD();
+        text = document.getElementById('outputCode').textContent;
+      }
+      try {
+        JSON.parse(text);
+        showToast('✅ JSON格式有效');
+      } catch(e) {
+        showToast('❌ JSON无效: ' + e.message);
+      }
+    }
+
+    // 事件绑定
+    document.getElementById('generateBtn').addEventListener('click', generateJSONLD);
+    document.getElementById('validateBtn').addEventListener('click', validateJSON);
+    document.getElementById('clearBtn').addEventListener('click', function() {
+      document.querySelectorAll('#formContainer input, #formContainer textarea').forEach(function(el) { el.value = ''; });
+      document.getElementById('outputArea').style.display = 'none';
+    });
+    document.getElementById('copyBtn').addEventListener('click', copyOutput);
+
+    document.querySelectorAll('.type-tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.type-tab').forEach(function(t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        currentType = tab.getAttribute('data-type');
+        renderForm(currentType);
+        document.getElementById('outputArea').style.display = 'none';
+      });
+    });
+
+    renderForm('article');
+  </script>
+</body>
+</html>
