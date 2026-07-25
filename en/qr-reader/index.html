@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code Reader - Free ToolBase</title>
+  <meta name="description" content="Online QR code reader. Upload or paste a QR code image to decode its content. Supports URL, text, WiFi, contact, and more.">
+  <meta property="og:title" content="QR Code Reader - Free ToolBase">
+  <meta property="og:description" content="在线二维码解析器，上传或粘贴二维码图片即可解析出二维码中的内容。">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"二维码解析器","description":"在线二维码解析器，上传或粘贴二维码图片即可解析出二维码中的内容。","applicationCategory":"UtilityApplication","operatingSystem":"Any","url":"https://free-toolbase.com/en/qr-reader/"}</script>
+  <style>
+    :root { --primary: #4F46E5; --primary-dark: #4338CA; --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.06); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    header a { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 18px; }
+    header nav a { font-size: 14px; margin-left: 16px; color: var(--text-secondary); }
+    main { flex: 1; max-width: 600px; margin: 0 auto; padding: 40px 20px 60px; width: 100%; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .desc { color: var(--text-secondary); margin-bottom: 28px; font-size: 15px; line-height: 1.6; }
+    .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px; margin-bottom: 20px; }
+    .upload-area { border: 2px dashed var(--border); border-radius: var(--radius); padding: 40px 20px; text-align: center; cursor: pointer; transition: all .2s; margin-bottom: 16px; }
+    .upload-area:hover, .upload-area.dragover { border-color: var(--primary); background: #EEF2FF; }
+    .upload-area p { color: var(--text-secondary); font-size: 15px; }
+    .upload-area .icon { font-size: 40px; margin-bottom: 8px; }
+    input[type="file"] { display: none; }
+    .paste-area { width: 100%; min-height: 80px; padding: 12px 16px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; resize: vertical; margin-bottom: 16px; transition: border-color .2s; font-family: inherit; }
+    .paste-area:focus { border-color: var(--primary); }
+    .paste-label { font-weight: 600; font-size: 14px; margin-bottom: 6px; display: block; }
+    button { background: var(--primary); color: #fff; border: none; padding: 12px 28px; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: 600; }
+    button:hover { background: var(--primary-dark); }
+    button:disabled { background: #94a3b8; cursor: not-allowed; }
+    .result-box { margin-top: 20px; padding: 16px; background: var(--bg); border-radius: 8px; }
+    .result-box .label { font-weight: 600; font-size: 14px; margin-bottom: 4px; color: var(--text-secondary); }
+    .result-box .content { font-size: 16px; word-break: break-all; }
+    .result-box .content a { color: var(--primary); }
+    .error { color: #dc2626; font-size: 14px; margin-top: 8px; }
+    .preview-img { max-width: 300px; max-height: 300px; margin: 16px auto; display: none; border-radius: 8px; }
+    footer { text-align: center; padding: 24px; color: var(--text-secondary); font-size: 13px; border-top: 1px solid var(--border); }
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    #toast.show { opacity: 1; }
+    @media (max-width: 375px) { main { padding: 20px 12px 40px; } .card { padding: 20px; } h1 { font-size: 22px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/">🔧 Free ToolBase</a>
+    <nav><a href="/">Home</a><a href="/">中文</a></nav>
+  </header>
+  <main>
+    <h1>📱 QR Code Reader</h1>
+    <p class="desc">Upload a QR code image or paste a screenshot to decode its content. Supports URL, text, WiFi, contact, email, and more.</p>
+    <div class="card">
+      <div class="upload-area" id="uploadArea">
+        <div class="icon">📤</div>
+        <p>Click to select QR code image<br><span style="font-size:12px;color:#94a3b8;">or Ctrl+V to paste screenshot</span></p>
+        <input type="file" id="fileInput" accept="image/*">
+      </div>
+      <img class="preview-img" id="previewImg" alt="预览">
+      <label class="paste-label">Or paste image URL:</label>
+      <input type="url" class="paste-area" id="urlInput" placeholder="https://example.com/qrcode.png">
+      <button id="parseBtn">Decode QR Code</button>
+      <div class="error" id="errorMsg" style="display:none;"></div>
+      <div class="result-box" id="resultBox" style="display:none;">
+        <div class="label">Decoded Result</div>
+        <div class="content" id="resultContent"></div>
+      </div>
+    </div>
+  </main>
+  <footer>© 2025 FreeToolBase · All tools are free to use</footer>
+  <div id="toast"></div>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script>
+    // 如果CDN加载失败，显示提示
+    if (typeof jsQR === 'undefined') {
+      document.getElementById('errorMsg').textContent = 'QR code library loading, please refresh and try again...';
+      document.getElementById('errorMsg').style.display = 'block';
+    }
+
+    const toast = document.getElementById('toast');
+    function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }
+
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const previewImg = document.getElementById('previewImg');
+    const urlInput = document.getElementById('urlInput');
+    const parseBtn = document.getElementById('parseBtn');
+    const errorMsg = document.getElementById('errorMsg');
+    const resultBox = document.getElementById('resultBox');
+    const resultContent = document.getElementById('resultContent');
+
+    uploadArea.addEventListener('click', () => fileInput.click());
+    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+    uploadArea.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) processFile(file);
+    });
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file) processFile(file);
+    });
+
+    // 支持粘贴截图
+    document.addEventListener('paste', e => {
+      const items = e.clipboardData.items;
+      for (let item of items) {
+        if (item.type.startsWith('image/')) {
+          const blob = item.getAsFile();
+          processFile(blob);
+          break;
+        }
+      }
+    });
+
+    function processFile(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewImg.src = e.target.result;
+        previewImg.style.display = 'block';
+        decodeQR(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function decodeQR(src) {
+      errorMsg.style.display = 'none';
+      resultBox.style.display = 'none';
+      if (typeof jsQR === 'undefined') {
+        errorMsg.textContent = 'QR code library not loaded. Please use image URL method.';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, canvas.width, canvas.height);
+        if (code) {
+          displayResult(code.data);
+        } else {
+          errorMsg.textContent = 'No QR code detected. Please ensure the image contains a clear QR code.';
+          errorMsg.style.display = 'block';
+        }
+      };
+      img.onerror = function() {
+        errorMsg.textContent = 'Image failed to load. Please check the image format.';
+        errorMsg.style.display = 'block';
+      };
+      img.src = src;
+    }
+
+    function displayResult(data) {
+      resultBox.style.display = 'block';
+      errorMsg.style.display = 'none';
+      let formatted = data;
+      // 检测URL
+      if (/^https?:\/\//i.test(data)) {
+        formatted = `<a href="${data}" target="_blank" rel="noopener">${data}</a>`;
+      }
+      // 检测WiFi
+      const wifiMatch = data.match(/^WIFI:T:(WPA|WEP|nopass);S:(.+?);P:(.+?);/i);
+      if (wifiMatch) {
+        formatted = `📶 WiFi网络<br>SSID: <strong>${wifiMatch[2]}</strong><br>密码: <strong>${wifiMatch[3]}</strong><br>加密: ${wifiMatch[1]}`;
+      }
+      resultContent.innerHTML = formatted;
+    }
+
+    parseBtn.addEventListener('click', () => {
+      const url = urlInput.value.trim();
+      if (url) {
+        previewImg.src = url;
+        previewImg.style.display = 'block';
+        decodeQR(url);
+      } else if (previewImg.src) {
+        decodeQR(previewImg.src);
+      } else {
+        showToast('Please upload an image or enter image URL');
+      }
+    });
+  </script>
+</body>
+</html>

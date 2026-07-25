@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>倒计时器 - Free ToolBase</title>
+  <meta name="description" content="在线倒计时器，设置目标日期时间即可开始倒计时，支持天/时/分/秒实时显示，倒计时结束播放提示音，适合活动倒计时、节日倒计时。">
+  <meta property="og:title" content="倒计时器 - Free ToolBase">
+  <meta property="og:description" content="在线倒计时器，设置目标日期时间，实时显示天/时/分/秒，倒计时结束播放提示音。">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"倒计时器","description":"在线倒计时器，实时显示天/时/分/秒，倒计时结束播放提示音。","applicationCategory":"UtilityApplication","operatingSystem":"Any","url":"https://free-toolbase.com/countdown-clock/"}</script>
+  <style>
+    :root { --primary: #4F46E5; --primary-dark: #4338CA; --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.06); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    header a { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 18px; }
+    header nav a { font-size: 14px; margin-left: 16px; color: var(--text-secondary); }
+    main { flex: 1; max-width: 560px; margin: 0 auto; padding: 40px 20px 60px; width: 100%; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .desc { color: var(--text-secondary); margin-bottom: 28px; font-size: 15px; line-height: 1.6; }
+    .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px; margin-bottom: 20px; text-align: center; }
+    input[type="datetime-local"] { width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 8px; font-size: 16px; outline: none; margin-bottom: 16px; transition: border-color .2s; }
+    input:focus { border-color: var(--primary); }
+    .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; justify-content: center; }
+    .preset-btn { padding: 8px 16px; border: 1px solid var(--border); border-radius: 20px; background: var(--bg); cursor: pointer; font-size: 13px; transition: all .2s; }
+    .preset-btn:hover, .preset-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    button.main-btn { background: var(--primary); color: #fff; border: none; padding: 14px 40px; border-radius: 8px; font-size: 18px; cursor: pointer; font-weight: 600; transition: background .2s; }
+    button.main-btn:hover { background: var(--primary-dark); }
+    button.main-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+    .countdown-display { display: flex; gap: 12px; justify-content: center; margin: 24px 0; flex-wrap: wrap; }
+    .time-block { background: var(--primary); color: #fff; padding: 20px 16px; border-radius: 12px; min-width: 70px; }
+    .time-block .num { font-size: 36px; font-weight: 700; line-height: 1; }
+    .time-block .label { font-size: 12px; margin-top: 4px; opacity: 0.85; }
+    .finished { font-size: 24px; font-weight: 700; color: #dc2626; margin: 20px 0; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+    footer { text-align: center; padding: 24px; color: var(--text-secondary); font-size: 13px; border-top: 1px solid var(--border); }
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    #toast.show { opacity: 1; }
+    @media (max-width: 375px) { main { padding: 20px 12px 40px; } .card { padding: 20px; } h1 { font-size: 22px; } .time-block { min-width: 55px; padding: 14px 10px; } .time-block .num { font-size: 24px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/">🔧 Free ToolBase</a>
+    <nav><a href="/">首页</a><a href="/en/">English</a></nav>
+  </header>
+  <main>
+    <h1>⏱️ 倒计时器</h1>
+    <p class="desc">设置目标日期和时间，实时显示剩余天数、小时、分钟、秒数。倒计时结束自动播放提示音。</p>
+    <div class="card">
+      <input type="datetime-local" id="targetInput">
+      <div class="presets">
+        <button class="preset-btn" data-minutes="5">5分钟</button>
+        <button class="preset-btn" data-minutes="30">30分钟</button>
+        <button class="preset-btn" data-hours="1">1小时</button>
+        <button class="preset-btn" data-hours="24">明天此时</button>
+        <button class="preset-btn" data-days="7">7天后</button>
+      </div>
+      <button class="main-btn" id="startBtn">开始倒计时</button>
+      <div class="countdown-display" id="countdownDisplay">
+        <div class="time-block"><div class="num" id="days">0</div><div class="label">天</div></div>
+        <div class="time-block"><div class="num" id="hours">0</div><div class="label">时</div></div>
+        <div class="time-block"><div class="num" id="minutes">0</div><div class="label">分</div></div>
+        <div class="time-block"><div class="num" id="seconds">0</div><div class="label">秒</div></div>
+      </div>
+      <div class="finished" id="finishedMsg" style="display:none;">⏰ 时间到！</div>
+    </div>
+  </main>
+  <footer>© 2025 Free ToolBase · 所有工具免费使用</footer>
+  <div id="toast"></div>
+  <script>
+    let timer = null;
+    let targetTime = null;
+    const toast = document.getElementById('toast');
+    function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }
+
+    const daysEl = document.getElementById('days');
+    const hoursEl = document.getElementById('hours');
+    const minutesEl = document.getElementById('minutes');
+    const secondsEl = document.getElementById('seconds');
+    const finishedMsg = document.getElementById('finishedMsg');
+    const startBtn = document.getElementById('startBtn');
+    const targetInput = document.getElementById('targetInput');
+
+    // 设置默认值为明天
+    const now = new Date();
+    now.setDate(now.getDate() + 1);
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    targetInput.value = now.toISOString().slice(0, 16);
+
+    function updateDisplay(diff) {
+      if (diff <= 0) {
+        daysEl.textContent = '0';
+        hoursEl.textContent = '0';
+        minutesEl.textContent = '0';
+        secondsEl.textContent = '0';
+        finishedMsg.style.display = 'block';
+        clearInterval(timer);
+        timer = null;
+        startBtn.disabled = false;
+        startBtn.textContent = '开始倒计时';
+        playBeep();
+        return;
+      }
+      finishedMsg.style.display = 'none';
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      daysEl.textContent = d;
+      hoursEl.textContent = h;
+      minutesEl.textContent = m;
+      secondsEl.textContent = s;
+    }
+
+    function playBeep() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 800;
+        gain.gain.value = 0.3;
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+      } catch(e) {}
+    }
+
+    function startCountdown() {
+      if (timer) { clearInterval(timer); timer = null; }
+      const val = targetInput.value;
+      if (!val) { showToast('请选择目标时间'); return; }
+      targetTime = new Date(val).getTime();
+      const diff = targetTime - Date.now();
+      if (diff <= 0) { showToast('目标时间已过，请重新设置'); return; }
+      startBtn.disabled = true;
+      startBtn.textContent = '倒计时中...';
+      updateDisplay(diff);
+      timer = setInterval(() => {
+        const d = targetTime - Date.now();
+        updateDisplay(d);
+      }, 200);
+    }
+
+    startBtn.addEventListener('click', startCountdown);
+
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const now = new Date();
+        if (btn.dataset.minutes) now.setMinutes(now.getMinutes() + parseInt(btn.dataset.minutes));
+        if (btn.dataset.hours) now.setHours(now.getHours() + parseInt(btn.dataset.hours));
+        if (btn.dataset.days) now.setDate(now.getDate() + parseInt(btn.dataset.days));
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        targetInput.value = now.toISOString().slice(0, 16);
+      });
+    });
+  </script>
+</body>
+</html>

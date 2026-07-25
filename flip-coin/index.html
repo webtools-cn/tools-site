@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>抛硬币 - Free ToolBase</title>
+  <meta name="description" content="在线抛硬币模拟器，一键抛硬币随机产生正面或反面，支持统计连续抛掷结果，支持批量抛掷N次查看正反面概率分布。">
+  <meta property="og:title" content="抛硬币 - Free ToolBase">
+  <meta property="og:description" content="在线抛硬币模拟器，一键抛硬币随机产生正面或反面，支持统计和批量抛掷。">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"抛硬币","description":"在线抛硬币模拟器，一键抛硬币随机产生正面或反面。","applicationCategory":"UtilityApplication","operatingSystem":"Any","url":"https://free-toolbase.com/flip-coin/"}</script>
+  <style>
+    :root { --primary: #4F46E5; --primary-dark: #4338CA; --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.06); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    header a { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 18px; }
+    header nav a { font-size: 14px; margin-left: 16px; color: var(--text-secondary); }
+    main { flex: 1; max-width: 560px; margin: 0 auto; padding: 40px 20px 60px; width: 100%; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .desc { color: var(--text-secondary); margin-bottom: 28px; font-size: 15px; line-height: 1.6; }
+    .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px; margin-bottom: 20px; text-align: center; }
+    .coin-container { margin: 20px auto; width: 120px; height: 120px; perspective: 600px; cursor: pointer; }
+    .coin { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s ease-out; }
+    .coin.flipping { animation: flipAnim 0.8s ease-out; }
+    @keyframes flipAnim { 0% { transform: rotateY(0deg) rotateX(0deg); } 25% { transform: rotateY(180deg) rotateX(20deg); } 50% { transform: rotateY(360deg) rotateX(-10deg); } 75% { transform: rotateY(540deg) rotateX(5deg); } 100% { transform: rotateY(720deg) rotateX(0deg); } }
+    .coin-face { position: absolute; width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: 700; backface-visibility: hidden; border: 4px solid #d4a853; }
+    .coin-front { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #92400e; }
+    .coin-back { background: linear-gradient(135deg, #e5e7eb, #9ca3af); color: #4b5563; transform: rotateY(180deg); }
+    .result-text { font-size: 22px; font-weight: 700; margin: 12px 0; }
+    .heads { color: #d97706; } .tails { color: #6b7280; }
+    .stats { display: flex; gap: 20px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+    .stat-item { text-align: center; min-width: 80px; }
+    .stat-item .num { font-size: 28px; font-weight: 700; }
+    .stat-item .lbl { font-size: 13px; color: var(--text-secondary); }
+    .batch-row { display: flex; gap: 10px; margin-top: 20px; justify-content: center; align-items: center; flex-wrap: wrap; }
+    .batch-row input { width: 80px; padding: 10px; border: 2px solid var(--border); border-radius: 8px; font-size: 16px; text-align: center; outline: none; }
+    .batch-row input:focus { border-color: var(--primary); }
+    .batch-row button { background: var(--primary); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 600; }
+    .batch-row button:hover { background: var(--primary-dark); }
+    footer { text-align: center; padding: 24px; color: var(--text-secondary); font-size: 13px; border-top: 1px solid var(--border); }
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    #toast.show { opacity: 1; }
+    @media (max-width: 375px) { main { padding: 20px 12px 40px; } .card { padding: 20px; } h1 { font-size: 22px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/">🔧 Free ToolBase</a>
+    <nav><a href="/">首页</a><a href="/en/">English</a></nav>
+  </header>
+  <main>
+    <h1>🪙 抛硬币</h1>
+    <p class="desc">点击硬币或按钮随机抛掷，正面/反面概率各50%。支持单次抛掷和批量N次抛掷查看概率分布。</p>
+    <div class="card">
+      <div class="coin-container" id="coinContainer">
+        <div class="coin" id="coin">
+          <div class="coin-face coin-front">正</div>
+          <div class="coin-face coin-back">反</div>
+        </div>
+      </div>
+      <div class="result-text" id="resultText">点击硬币开始</div>
+      <div class="stats">
+        <div class="stat-item"><div class="num heads" id="headsCount">0</div><div class="lbl">正面</div></div>
+        <div class="stat-item"><div class="num tails" id="tailsCount">0</div><div class="lbl">反面</div></div>
+        <div class="stat-item"><div class="num" id="totalCount">0</div><div class="lbl">总计</div></div>
+        <div class="stat-item"><div class="num" id="headsPercent">50%</div><div class="lbl">正面比例</div></div>
+      </div>
+      <div class="batch-row">
+        <input type="number" id="batchCount" value="100" min="1" max="10000">
+        <span>次</span>
+        <button id="batchBtn">批量抛掷</button>
+      </div>
+    </div>
+  </main>
+  <footer>© 2025 Free ToolBase · 所有工具免费使用</footer>
+  <div id="toast"></div>
+  <script>
+    let heads = 0, tails = 0;
+    const coin = document.getElementById('coin');
+    const coinContainer = document.getElementById('coinContainer');
+    const resultText = document.getElementById('resultText');
+    const headsCount = document.getElementById('headsCount');
+    const tailsCount = document.getElementById('tailsCount');
+    const totalCount = document.getElementById('totalCount');
+    const headsPercent = document.getElementById('headsPercent');
+    const batchInput = document.getElementById('batchCount');
+    const batchBtn = document.getElementById('batchBtn');
+
+    function updateStats() {
+      const total = heads + tails;
+      headsCount.textContent = heads;
+      tailsCount.textContent = tails;
+      totalCount.textContent = total;
+      headsPercent.textContent = total > 0 ? Math.round(heads / total * 100) + '%' : '50%';
+    }
+
+    function flip() {
+      coin.classList.remove('flipping');
+      void coin.offsetWidth;
+      coin.classList.add('flipping');
+      const isHeads = Math.random() < 0.5;
+      if (isHeads) { heads++; resultText.innerHTML = '<span class="heads">🪙 正面！</span>'; }
+      else { tails++; resultText.innerHTML = '<span class="tails">🪙 反面！</span>'; }
+      updateStats();
+    }
+
+    function batchFlip(n) {
+      let h = 0;
+      for (let i = 0; i < n; i++) { if (Math.random() < 0.5) h++; }
+      heads += h;
+      tails += n - h;
+      updateStats();
+    }
+
+    coinContainer.addEventListener('click', flip);
+    batchBtn.addEventListener('click', () => {
+      const n = parseInt(batchInput.value);
+      if (isNaN(n) || n < 1 || n > 10000) { document.getElementById('toast').textContent = '请输入1-10000之间的数字'; document.getElementById('toast').classList.add('show'); setTimeout(() => document.getElementById('toast').classList.remove('show'), 2000); return; }
+      batchFlip(n);
+    });
+  </script>
+</body>
+</html>

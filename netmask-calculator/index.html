@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>子网掩码计算器 - Free ToolBase</title>
+  <meta name="description" content="在线子网掩码计算器，输入IP地址和CIDR前缀，自动计算网络地址、广播地址、可用IP范围、子网掩码、可用主机数等信息。">
+  <meta property="og:title" content="子网掩码计算器 - Free ToolBase">
+  <meta property="og:description" content="在线子网掩码计算器，自动计算网络地址、广播地址、可用IP范围、子网掩码等信息。">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"子网掩码计算器","description":"在线子网掩码计算器，自动计算网络地址、广播地址、可用IP范围等。","applicationCategory":"UtilityApplication","operatingSystem":"Any","url":"https://free-toolbase.com/netmask-calculator/"}</script>
+  <style>
+    :root { --primary: #4F46E5; --primary-dark: #4338CA; --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.06); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    header a { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 18px; }
+    header nav a { font-size: 14px; margin-left: 16px; color: var(--text-secondary); }
+    main { flex: 1; max-width: 700px; margin: 0 auto; padding: 40px 20px 60px; width: 100%; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .desc { color: var(--text-secondary); margin-bottom: 28px; font-size: 15px; line-height: 1.6; }
+    .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px; margin-bottom: 20px; }
+    .input-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .input-row input { flex: 1; min-width: 180px; padding: 12px 16px; border: 2px solid var(--border); border-radius: 8px; font-size: 16px; outline: none; transition: border-color .2s; }
+    .input-row input:focus { border-color: var(--primary); }
+    .input-row span { font-size: 16px; font-weight: 600; color: var(--text-secondary); }
+    .results { display: grid; gap: 10px; }
+    .result-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--bg); border-radius: 8px; font-size: 14px; flex-wrap: wrap; gap: 4px; }
+    .result-item .label { font-weight: 600; color: var(--text-secondary); }
+    .result-item .value { font-family: 'SF Mono',Consolas,monospace; color: var(--text); word-break: break-all; }
+    .result-item.highlight { background: #EEF2FF; border-left: 3px solid var(--primary); }
+    footer { text-align: center; padding: 24px; color: var(--text-secondary); font-size: 13px; border-top: 1px solid var(--border); }
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    #toast.show { opacity: 1; }
+    @media (max-width: 375px) { main { padding: 20px 12px 40px; } .card { padding: 20px; } h1 { font-size: 22px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/">🔧 Free ToolBase</a>
+    <nav><a href="/">首页</a><a href="/en/">English</a></nav>
+  </header>
+  <main>
+    <h1>🌐 子网掩码计算器</h1>
+    <p class="desc">输入IP地址和CIDR前缀（如 192.168.1.0/24），自动计算网络地址、广播地址、子网掩码、可用IP范围、可用主机数。</p>
+    <div class="card">
+      <div class="input-row">
+        <input type="text" id="ipInput" placeholder="192.168.1.0/24" value="192.168.1.0/24">
+      </div>
+      <div class="results" id="results"></div>
+    </div>
+  </main>
+  <footer>© 2025 Free ToolBase · 所有工具免费使用</footer>
+  <div id="toast"></div>
+  <script>
+    const toast = document.getElementById('toast');
+    function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }
+
+    function ipToInt(ip) {
+      const parts = ip.split('.').map(Number);
+      if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) return null;
+      return (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3];
+    }
+
+    function intToIp(int) {
+      return [(int >>> 24) & 255, (int >>> 16) & 255, (int >>> 8) & 255, int & 255].join('.');
+    }
+
+    function calculate() {
+      const input = document.getElementById('ipInput').value.trim();
+      const match = input.match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\/(\d{1,2})$/);
+      const resultsDiv = document.getElementById('results');
+      if (!match) {
+        resultsDiv.innerHTML = '<div class="result-item"><span class="label">请输入有效格式</span><span class="value">如 192.168.1.0/24</span></div>';
+        return;
+      }
+      const ip = match[1];
+      const cidr = parseInt(match[2]);
+      if (cidr < 0 || cidr > 32) {
+        resultsDiv.innerHTML = '<div class="result-item"><span class="label">CIDR前缀无效</span><span class="value">范围 0-32</span></div>';
+        return;
+      }
+      const ipInt = ipToInt(ip);
+      if (ipInt === null) {
+        resultsDiv.innerHTML = '<div class="result-item"><span class="label">IP地址无效</span></div>';
+        return;
+      }
+      const mask = cidr === 0 ? 0 : (~0 << (32 - cidr)) >>> 0;
+      const network = (ipInt & mask) >>> 0;
+      const broadcast = (network | (~mask >>> 0)) >>> 0;
+      const firstHost = cidr >= 31 ? network : (network + 1) >>> 0;
+      const lastHost = cidr >= 31 ? broadcast : (broadcast - 1) >>> 0;
+      const totalHosts = cidr >= 31 ? (cidr === 32 ? 1 : 2) : Math.pow(2, 32 - cidr);
+      const usableHosts = cidr >= 31 ? totalHosts : totalHosts - 2;
+      const maskIp = intToIp(mask);
+      const wildcard = intToIp((~mask) >>> 0);
+      const isPrivate = (
+        (ipInt >= ipToInt('10.0.0.0') && ipInt <= ipToInt('10.255.255.255')) ||
+        (ipInt >= ipToInt('172.16.0.0') && ipInt <= ipToInt('172.31.255.255')) ||
+        (ipInt >= ipToInt('192.168.0.0') && ipInt <= ipToInt('192.168.255.255'))
+      );
+
+      const items = [
+        { label: 'IP 地址', value: ip, highlight: true },
+        { label: 'CIDR 前缀', value: '/' + cidr },
+        { label: '子网掩码', value: maskIp },
+        { label: '通配符掩码', value: wildcard },
+        { label: '网络地址', value: intToIp(network) },
+        { label: '广播地址', value: intToIp(broadcast) },
+        { label: '可用IP范围', value: intToIp(firstHost) + ' - ' + intToIp(lastHost) },
+        { label: '总IP数', value: totalHosts.toLocaleString() },
+        { label: '可用主机数', value: usableHosts.toLocaleString() },
+        { label: 'IP类型', value: isPrivate ? '私有地址 (RFC 1918)' : '公网地址' },
+        { label: '二进制掩码', value: mask.toString(2).padStart(32, '0').replace(/(.{8})/g, '$1 ').trim() },
+      ];
+
+      resultsDiv.innerHTML = items.map(item =>
+        `<div class="result-item${item.highlight ? ' highlight' : ''}"><span class="label">${item.label}</span><span class="value">${item.value}</span></div>`
+      ).join('');
+    }
+
+    document.getElementById('ipInput').addEventListener('input', calculate);
+    calculate();
+  </script>
+</body>
+</html>

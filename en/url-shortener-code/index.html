@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL Shortener Code Generator - Free ToolBase</title>
+  <meta name="description" content="Online URL shortener code generator. Supports Base62, MD5 truncation, random string algorithms with Python/JS/Go/Java implementations.">
+  <meta property="og:title" content="URL Shortener Code Generator - Free ToolBase">
+  <meta property="og:description" content="Online URL shortener code generator with Base62, MD5 truncation, and random string algorithms.">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"短链接代码生成器","description":"Online URL shortener code generator with multiple algorithms.","applicationCategory":"DeveloperApplication","operatingSystem":"Any","url":"https://free-toolbase.com/en/url-shortener-code/"}</script>
+  <style>
+    :root { --primary: #4F46E5; --primary-dark: #4338CA; --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.06); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    header a { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 18px; }
+    header nav a { font-size: 14px; margin-left: 16px; color: var(--text-secondary); }
+    main { flex: 1; max-width: 720px; margin: 0 auto; padding: 40px 20px 60px; width: 100%; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .desc { color: var(--text-secondary); margin-bottom: 28px; font-size: 15px; line-height: 1.6; }
+    .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px; margin-bottom: 20px; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+    input, select, textarea { width: 100%; padding: 12px 16px; border: 2px solid var(--border); border-radius: 8px; font-size: 16px; outline: none; transition: border-color .2s; margin-bottom: 16px; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .row > * { flex: 1; min-width: 120px; }
+    button { background: var(--primary); color: #fff; border: none; padding: 12px 28px; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: 600; transition: background .2s; }
+    button:hover { background: var(--primary-dark); }
+    pre { background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; margin-top: 8px; }
+    .result { margin-top: 16px; }
+    .result .short { font-size: 20px; font-weight: 700; color: var(--primary); font-family: 'SF Mono',Consolas,monospace; }
+    footer { text-align: center; padding: 24px; color: var(--text-secondary); font-size: 13px; border-top: 1px solid var(--border); }
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    #toast.show { opacity: 1; }
+    @media (max-width: 375px) { main { padding: 20px 12px 40px; } .card { padding: 20px; } h1 { font-size: 22px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/">🔧 Free ToolBase</a>
+    <nav><a href="/">Home</a><a href="/">中文</a></nav>
+  </header>
+  <main>
+    <h1>🔗 URL Shortener Code Generator</h1>
+    <p class="desc">Enter a long URL to generate short link code. Supports Base62, MD5 truncation, and random string algorithms with multi-language code snippets.</p>
+    <div class="card">
+      <label for="urlInput">Long URL</label>
+      <input type="url" id="urlInput" placeholder="https://example.com/very/long/path?query=value" value="https://example.com/articles/how-to-build-a-url-shortener">
+      <div class="row">
+        <select id="algoSelect">
+          <option value="base62">Base62 编码</option>
+          <option value="md5">MD5 哈希截取</option>
+          <option value="random">随机字符串</option>
+        </select>
+        <select id="lengthSelect">
+          <option value="6">6 chars</option>
+          <option value="7">7 chars</option>
+          <option value="8" selected>8 chars</option>
+        </select>
+      </div>
+      <button id="generateBtn">Generate Short Code</button>
+      <div class="result">
+        <p style="font-weight:600;margin-bottom:4px;">Short Code: <span class="short" id="shortCode">—</span></p>
+        <p style="font-size:13px;color:var(--text-secondary);">Short Link: <span id="shortUrl">—</span></p>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:12px;">📝 Code Implementation</h3>
+      <pre id="codeBlock">Click generate to see code</pre>
+    </div>
+  </main>
+  <footer>© 2025 Free ToolBase · All tools are free to use</footer>
+  <div id="toast"></div>
+  <script>
+    const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    const toast = document.getElementById('toast');
+    function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }
+
+    function base62Encode(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+      hash = Math.abs(hash);
+      let result = '';
+      for (let i = 0; i < 8; i++) { result = BASE62[hash % 62] + result; hash = Math.floor(hash / 62); }
+      return result;
+    }
+
+    function md5Short(str, len) {
+      let h1 = 0x67452301, h2 = 0xEFCDAB89, h3 = 0x98BADCFE, h4 = 0x10325476;
+      for (let i = 0; i < str.length; i++) {
+        const c = str.charCodeAt(i);
+        h1 = ((h1 << 5) - h1 + c) | 0;
+        h2 = ((h2 << 5) - h2 + c) | 0;
+        h3 = ((h3 << 5) - h3 + c) | 0;
+        h4 = ((h4 << 5) - h4 + c) | 0;
+      }
+      const hex = ((h1 >>> 0).toString(16) + (h2 >>> 0).toString(16) + (h3 >>> 0).toString(16) + (h4 >>> 0).toString(16));
+      let result = '';
+      for (let i = 0; i < len; i++) result += BASE62[parseInt(hex.substr(i * 2, 2), 16) % 62];
+      return result;
+    }
+
+    function randomStr(len) {
+      let result = '';
+      for (let i = 0; i < len; i++) result += BASE62[Math.floor(Math.random() * 62)];
+      return result;
+    }
+
+    const codes = {
+      base62: {
+        python: `BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"\n\ndef base62_encode(url: str, length: int = 8) -> str:\n    import hashlib\n    h = hashlib.sha256(url.encode()).hexdigest()\n    num = int(h, 16)\n    result = ""\n    for _ in range(length):\n        result = BASE62[num % 62] + result\n        num //= 62\n    return result`,
+        js: `const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';\n\nfunction base62Encode(str, len = 8) {\n  let hash = 0;\n  for (let i = 0; i < str.length; i++) {\n    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;\n  }\n  hash = Math.abs(hash);\n  let result = '';\n  for (let i = 0; i < len; i++) {\n    result = BASE62[hash % 62] + result;\n    hash = Math.floor(hash / 62);\n  }\n  return result;\n}`,
+        go: `package main\n\nimport (\n\t"crypto/sha256"\n\t"math/big"\n)\n\nconst base62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"\n\nfunc base62Encode(url string, length int) string {\n\th := sha256.Sum256([]byte(url))\n\tnum := new(big.Int).SetBytes(h[:])\n\tresult := make([]byte, length)\n\tfor i := length - 1; i >= 0; i-- {\n\t\tmod := new(big.Int)\n\t\tnum.DivMod(num, big.NewInt(62), mod)\n\t\tresult[i] = base62[mod.Int64()]\n\t}\n\treturn string(result)\n}`,
+        java: `public class ShortUrl {\n    private static final String BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";\n\n    public static String base62Encode(String url, int length) throws Exception {\n        java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");\n        byte[] hash = md.digest(url.getBytes());\n        java.math.BigInteger num = new java.math.BigInteger(1, hash);\n        StringBuilder sb = new StringBuilder();\n        java.math.BigInteger b62 = java.math.BigInteger.valueOf(62);\n        for (int i = 0; i < length; i++) {\n            sb.insert(0, BASE62.charAt(num.mod(b62).intValue()));\n            num = num.divide(b62);\n        }\n        return sb.toString();\n    }\n}`
+      },
+      md5: {
+        python: `import hashlib\n\nBASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"\n\ndef md5_short(url: str, length: int = 8) -> str:\n    md5 = hashlib.md5(url.encode()).hexdigest()\n    result = ""\n    for i in range(length):\n        result += BASE62[int(md5[i*2:i*2+2], 16) % 62]\n    return result`,
+        js: `function md5Short(str, len = 8) {\n  // Simple hash simulation\n  let h1 = 0x67452301, h2 = 0xEFCDAB89, h3 = 0x98BADCFE, h4 = 0x10325476;\n  for (let i = 0; i < str.length; i++) {\n    const c = str.charCodeAt(i);\n    h1 = ((h1 << 5) - h1 + c) | 0;\n    h2 = ((h2 << 5) - h2 + c) | 0;\n    h3 = ((h3 << 5) - h3 + c) | 0;\n    h4 = ((h4 << 5) - h4 + c) | 0;\n  }\n  const hex = ((h1>>>0).toString(16)+(h2>>>0).toString(16)+(h3>>>0).toString(16)+(h4>>>0).toString(16));\n  let result = '';\n  const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';\n  for (let i = 0; i < len; i++) result += BASE62[parseInt(hex.substr(i*2,2),16) % 62];\n  return result;\n}`,
+        go: `package main\n\nimport (\n\t"crypto/md5"\n\t"fmt"\n)\n\nconst base62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"\n\nfunc md5Short(url string, length int) string {\n\th := md5.Sum([]byte(url))\n\thex := fmt.Sprintf("%x", h)\n\tresult := make([]byte, length)\n\tfor i := 0; i < length; i++ {\n\t\tb := hex[i*2 : i*2+2]\n\t\tval := int(b[0])<<8 | int(b[1])\n\t\tresult[i] = base62[val%62]\n\t}\n\treturn string(result)\n}`,
+        java: `public class ShortUrl {\n    private static final String BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";\n\n    public static String md5Short(String url, int length) throws Exception {\n        java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");\n        byte[] digest = md.digest(url.getBytes());\n        StringBuilder hex = new StringBuilder();\n        for (byte b : digest) hex.append(String.format("%02x", b));\n        StringBuilder result = new StringBuilder();\n        for (int i = 0; i < length; i++) {\n            int val = Integer.parseInt(hex.substring(i*2, i*2+2), 16);\n            result.append(BASE62.charAt(val % 62));\n        }\n        return result.toString();\n    }\n}`
+      },
+      random: {
+        python: `import random\nimport string\n\nCHARS = string.digits + string.ascii_letters\n\ndef random_short(length: int = 8) -> str:\n    return ''.join(random.choices(CHARS, k=length))`,
+        js: `function randomShort(len = 8) {\n  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';\n  let result = '';\n  for (let i = 0; i < len; i++) result += chars[Math.floor(Math.random() * 62)];\n  return result;\n}`,
+        go: `package main\n\nimport (\n\t"math/rand"\n\t"time"\n)\n\nconst chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"\n\nfunc randomShort(length int) string {\n\tr := rand.New(rand.NewSource(time.Now().UnixNano()))\n\tresult := make([]byte, length)\n\tfor i := range result {\n\t\tresult[i] = chars[r.Intn(len(chars))]\n\t}\n\treturn string(result)\n}`,
+        java: `import java.security.SecureRandom;\n\npublic class ShortUrl {\n    private static final String CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";\n    private static final SecureRandom RANDOM = new SecureRandom();\n\n    public static String randomShort(int length) {\n        StringBuilder sb = new StringBuilder(length);\n        for (int i = 0; i < length; i++) sb.append(CHARS.charAt(RANDOM.nextInt(62)));\n        return sb.toString();\n    }\n}`
+      }
+    };
+
+    document.getElementById('generateBtn').addEventListener('click', () => {
+      const url = document.getElementById('urlInput').value.trim();
+      if (!url) { showToast('Please enter a URL'); return; }
+      const algo = document.getElementById('algoSelect').value;
+      const len = parseInt(document.getElementById('lengthSelect').value);
+      let short;
+      if (algo === 'base62') short = base62Encode(url).substring(0, len);
+      else if (algo === 'md5') short = md5Short(url, len);
+      else short = randomStr(len);
+      document.getElementById('shortCode').textContent = short;
+      document.getElementById('shortUrl').textContent = 'https://short.link/' + short;
+      const langOrder = ['python','js','go','java'];
+      let codeText = '';
+      langOrder.forEach(l => {
+        codeText += `// ${l.toUpperCase()}\n${codes[algo][l]}\n\n`;
+      });
+      document.getElementById('codeBlock').textContent = codeText.trim();
+    });
+
+    // 初始生成
+    document.getElementById('generateBtn').click();
+  </script>
+</body>
+</html>

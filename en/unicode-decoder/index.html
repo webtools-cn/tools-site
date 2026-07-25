@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unicode Decoder - Free ToolBase</title>
+  <meta name="description" content="Online Unicode decoder. Convert between Unicode escape sequences (U+XXXX, \uXXXX, &#XXXX;, %uXXXX) and raw characters. Supports multiple languages.">
+  <meta property="og:title" content="Unicode Decoder - Free ToolBase">
+  <meta property="og:description" content="在线Unicode解码器，支持多种Unicode转义格式互相Convert。">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Unicode解码器","description":"在线Unicode解码器，支持多种Unicode转义格式互相Convert。","applicationCategory":"DeveloperApplication","operatingSystem":"Any","url":"https://free-toolbase.com/en/unicode-decoder/"}</script>
+  <style>
+    :root { --primary: #4F46E5; --primary-dark: #4338CA; --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-secondary: #64748b; --border: #e2e8f0; --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.06); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    header a { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 18px; }
+    header nav a { font-size: 14px; margin-left: 16px; color: var(--text-secondary); }
+    main { flex: 1; max-width: 700px; margin: 0 auto; padding: 40px 20px 60px; width: 100%; }
+    h1 { font-size: 28px; margin-bottom: 8px; }
+    .desc { color: var(--text-secondary); margin-bottom: 28px; font-size: 15px; line-height: 1.6; }
+    .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px; margin-bottom: 20px; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+    textarea { width: 100%; min-height: 100px; padding: 12px 16px; border: 2px solid var(--border); border-radius: 8px; font-size: 15px; outline: none; resize: vertical; font-family: 'SF Mono',Consolas,monospace; transition: border-color .2s; margin-bottom: 16px; }
+    textarea:focus { border-color: var(--primary); }
+    .mode-btns { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .mode-btn { padding: 8px 16px; border: 1px solid var(--border); border-radius: 20px; background: var(--card-bg); cursor: pointer; font-size: 13px; transition: all .2s; }
+    .mode-btn:hover, .mode-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    button { background: var(--primary); color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-size: 15px; cursor: pointer; font-weight: 600; }
+    button:hover { background: var(--primary-dark); }
+    button.secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+    button.secondary:hover { background: var(--border); }
+    .output-box { margin-top: 16px; border: 1px solid var(--border); border-radius: 8px; min-height: 60px; padding: 14px; word-break: break-all; font-family: 'SF Mono',Consolas,monospace; font-size: 15px; background: var(--bg); }
+    footer { text-align: center; padding: 24px; color: var(--text-secondary); font-size: 13px; border-top: 1px solid var(--border); }
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+    #toast.show { opacity: 1; }
+    @media (max-width: 375px) { main { padding: 20px 12px 40px; } .card { padding: 20px; } h1 { font-size: 22px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/">🔧 Free ToolBase</a>
+    <nav><a href="/">Home</a><a href="/">中文</a></nav>
+  </header>
+  <main>
+    <h1>🔤 Unicode Decoder</h1>
+    <p class="desc">支持Unicode转义序列与原始字符的互相Convert。支持 \\uXXXX、U+XXXX、&#XXXX;、%uXXXX 等多种格式。</p>
+    <div class="card">
+      <label for="inputArea">Input Text</label>
+      <div class="mode-btns">
+        <button class="mode-btn active" data-mode="decode">Unicode → Text (Decode)</button>
+        <button class="mode-btn" data-mode="encode">Text → Unicode (Encode)</button>
+        <button class="mode-btn" data-mode="charinfo">Character Info</button>
+      </div>
+      <textarea id="inputArea" placeholder="Enter Unicode escapes, e.g. \u4f60\u597d or U+4F60 U+597D">\u4f60\u597d\u4e16\u754c</textarea>
+      <div class="btn-row">
+        <button id="convertBtn">Convert</button>
+        <button class="secondary" id="copyBtn">Copy Result</button>
+        <button class="secondary" id="clearBtn">Clear</button>
+      </div>
+      <div class="output-box" id="outputBox">点击"Convert"查看结果</div>
+    </div>
+  </main>
+  <footer>© 2025 Free ToolBase · All tools are free to use</footer>
+  <div id="toast"></div>
+  <script>
+    let currentMode = 'decode';
+    const toast = document.getElementById('toast');
+    function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }
+
+    const inputArea = document.getElementById('inputArea');
+    const outputBox = document.getElementById('outputBox');
+    const convertBtn = document.getElementById('convertBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMode = btn.dataset.mode;
+        if (currentMode === 'decode') inputArea.placeholder = '输入Unicode转义序列，如 \\u4f60\\u597d 或 U+4F60 U+597D';
+        else if (currentMode === 'encode') inputArea.placeholder = 'Enter plain text, e.g. Hello World';
+        else inputArea.placeholder = 'Enter a single character, e.g. 😀';
+      });
+    });
+
+    function decodeUnicode(str) {
+      // Match: \uXXXX, U+XXXX, &#xXXXX;, &#XXXX;, %uXXXX
+      return str
+        .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+        .replace(/\\u\{([0-9a-fA-F]+)\}/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+        .replace(/U\+([0-9a-fA-F]{4,6})/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+        .replace(/&#x([0-9a-fA-F]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+        .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+        .replace(/%u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)));
+    }
+
+    function encodeUnicode(str) {
+      let result = '';
+      for (const ch of str) {
+        const cp = ch.codePointAt(0);
+        if (cp > 127) {
+          result += '\\u' + cp.toString(16).toUpperCase().padStart(4, '0');
+        } else {
+          result += ch;
+        }
+      }
+      return result;
+    }
+
+    function encodeFullUnicode(str) {
+      let result = '';
+      for (const ch of str) {
+        const cp = ch.codePointAt(0);
+        result += 'U+' + cp.toString(16).toUpperCase().padStart(4, '0') + ' ';
+      }
+      return result.trim();
+    }
+
+    function charInfo(ch) {
+      if (ch.length === 0) return '请输入字符';
+      const cp = ch.codePointAt(0);
+      let info = `字符: ${ch}\n`;
+      info += `Unicode码点: U+${cp.toString(16).toUpperCase().padStart(4, '0')}\n`;
+      info += `十进制: ${cp}\n`;
+      info += `\\u转义: \\u${cp.toString(16).toUpperCase().padStart(4, '0')}\n`;
+      info += `HTML实体: &#${cp}; 或 &#x${cp.toString(16).toUpperCase()};\n`;
+      info += `UTF-8字节: `;
+      const encoder = new TextEncoder();
+      const bytes = encoder.encode(ch);
+      bytes.forEach(b => info += b.toString(16).toUpperCase().padStart(2, '0') + ' ');
+      try { info += `\n字符名称: ${require ? '' : ch}`; } catch(e) {}
+      // 使用 Intl.Segmenter 或其他方式获取名称
+      const category = getUnicodeCategory(cp);
+      if (category) info += `\nUnicode类别: ${category}`;
+      return info;
+    }
+
+    function getUnicodeCategory(cp) {
+      const cats = {
+        Lu: '大写字母', Ll: '小写字母', Lt: '首字母大写', Lm: '修饰字母', Lo: '其他字母',
+        Mn: '非间距标记', Mc: '间距标记', Me: '包围标记',
+        Nd: '十进制数字', Nl: '字母数字', No: '其他数字',
+        Pc: '连接标点', Pd: '破折号', Ps: '开始标点', Pe: '结束标点', Pi: '开始引号', Pf: '结束引号', Po: '其他标点',
+        Sm: '数学符号', Sc: '货币符号', Sk: '修饰符号', So: '其他符号',
+        Zs: '空格分隔符', Zl: '行分隔符', Zp: '段落分隔符',
+        Cc: '控制字符', Cf: '格式字符', Cs: '代理对', Co: '私有区', Cn: '未分配',
+      };
+      // 简化版：仅判断基本类别
+      if (cp >= 0x4E00 && cp <= 0x9FFF) return 'Lo (CJK统一表意文字)';
+      if (cp >= 0x3040 && cp <= 0x309F) return 'Lo (平假名)';
+      if (cp >= 0x30A0 && cp <= 0x30FF) return 'Lo (片假名)';
+      if (cp >= 0xAC00 && cp <= 0xD7AF) return 'Lo (韩文)';
+      if (cp >= 0x1F600 && cp <= 0x1F64F) return 'So (表情符号)';
+      if (cp >= 0x1F300 && cp <= 0x1F5FF) return 'So (杂项符号)';
+      if (cp >= 0x1F680 && cp <= 0x1F6FF) return 'So (交通符号)';
+      return '';
+    }
+
+    function convert() {
+      const text = inputArea.value.trim();
+      if (!text) { outputBox.textContent = '请Input Text'; return; }
+      let result;
+      if (currentMode === 'decode') {
+        result = decodeUnicode(text);
+      } else if (currentMode === 'encode') {
+        result = encodeUnicode(text) + '\n\n--- U+ Format ---\n' + encodeFullUnicode(text);
+      } else {
+        result = charInfo(text[0] || '');
+      }
+      outputBox.textContent = result;
+    }
+
+    convertBtn.addEventListener('click', convert);
+    copyBtn.addEventListener('click', () => {
+      const text = outputBox.textContent;
+      if (!text || text === '点击"Convert"查看结果') { showToast('Nothing to copy'); return; }
+      navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard')).catch(() => showToast('Copy failed'));
+    });
+    clearBtn.addEventListener('click', () => { inputArea.value = ''; outputBox.textContent = '点击"Convert"查看结果'; });
+  </script>
+</body>
+</html>
