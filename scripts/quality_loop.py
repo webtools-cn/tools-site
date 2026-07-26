@@ -160,6 +160,42 @@ def check_functionality(path, lang, item):
     
     return issues
 
+def check_js(path, lang, item):
+    """门9: JS语法质量"""
+    issues = []
+    with open(path, 'r', encoding='utf-8', errors='ignore') as f: c = f.read()
+    if 'noindex' in c: return issues
+    
+    scripts = re.findall(r'<script>(.*?)</script>', c, re.DOTALL)
+    for s in scripts:
+        if len(s.strip()) < 50: continue
+        if 'gtag' in s or 'adsbygoogle' in s or 'dataLayer' in s: continue
+        if 'e.preventDefault()' in s and len(s) < 300: continue
+        
+        # 括号匹配
+        depth = 0
+        for ch in s:
+            if ch == '(': depth += 1
+            elif ch == ')': depth -= 1
+        if depth != 0:
+            issues.append('js_paren_mismatch')
+            break
+        
+        # 重复函数定义
+        funcs = re.findall(r'function\s+(\w+)\s*\(', s)
+        from collections import Counter
+        dup = [f for f, cnt in Counter(funcs).items() if cnt > 1 and f not in ('addEventListener','querySelector')]
+        if dup:
+            issues.append('js_dup_func')
+            break
+        
+        # alert()
+        if re.search(r'\balert\s*\(', s):
+            issues.append('js_alert')
+            break
+    
+    return issues
+
 def check_schema(path, lang, item):
     """门8: Schema质量"""
     issues = []
@@ -334,6 +370,64 @@ def auto_fix(path, lang, item, issues):
                 c = c.replace('</head>', '\n' + bc_str + '\n</head>')
             fixed.append(issue)
         
+        elif issue == 'js_paren_mismatch':
+            # 尝试修复括号不匹配
+            for m2 in re.finditer(r'(<script>)(.*?)(</script>)', c, re.DOTALL):
+                s = m2.group(2)
+                if len(s.strip()) < 50: continue
+                if 'gtag' in s or 'adsbygoogle' in s or 'dataLayer' in s: continue
+                if 'e.preventDefault()' in s and len(s) < 300: continue
+                depth = 0
+                for ch in s:
+                    if ch == '(': depth += 1
+                    elif ch == ')': depth -= 1
+                if depth == 0: continue
+                
+                trial = s.rstrip()
+                for _ in range(5):
+                    td = 0
+                    for ch in trial:
+                        if ch == '(': td += 1
+                        elif ch == ')': td -= 1
+                    if td == 0: break
+                    elif td < 0:
+                        lp = trial.rstrip().rfind(')')
+                        if lp >= 0: trial = trial[:lp] + trial[lp+1:]
+                        else: break
+                    else:
+                        trial = trial.rstrip() + ')'
+                
+                td = 0
+                for ch in trial:
+                    if ch == '(': td += 1
+                    elif ch == ')': td -= 1
+                if td == 0:
+                    c = c.replace(m2.group(0), m2.group(1) + trial + m2.group(3), 1)
+                    fixed.append(issue)
+                else:
+                    remaining.append(issue)
+                break
+        
+        elif issue == 'js_dup_func':
+            # 去重：只保留第一个定义
+            func_defs = list(re.finditer(r'function\s+(\w+)\s*\([^)]*\)\s*\{[^}]*\}', c))
+            seen = set()
+            for fd in reversed(func_defs):
+                fname = re.search(r'function\s+(\w+)', fd.group(0)).group(1)
+                if fname in seen:
+                    c = c[:fd.start()] + c[fd.end():]
+                    fixed.append(issue)
+                seen.add(fname)
+            if 'js_dup_func' not in fixed:
+                remaining.append(issue)
+        
+        elif issue == 'js_alert':
+            if 'showToast' in c:
+                c = re.sub(r'\balert\s*\(', 'showToast(', c)
+                fixed.append(issue)
+            else:
+                remaining.append(issue)
+        
         else:
             remaining.append(issue)
     
@@ -417,6 +511,7 @@ def run():
         ('css', check_css),
         ('language', check_language),
         ('functionality', check_functionality),
+        ('js', check_js),
         ('schema', check_schema),
     ]
     
