@@ -125,6 +125,11 @@ a{color:#06b6d4;text-decoration:none}
 .tool-area{background:#1e293b;border-radius:12px;padding:24px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
 @media(max-width:600px){.header h1{font-size:1.2rem}
 .ad-slot{margin:0 auto;text-align:center;max-width:960px}.ad-slot:not(:has(ins[frame])){display:none}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{max-width:300px}
+
+.copy-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;transition:all .2s;margin-left:8px;vertical-align:top}
+.copy-btn:hover{background:rgba(6,182,212,.25)}
+.copy-btn.copied{background:rgba(34,197,94,.15);color:#22c55e;border-color:rgba(34,197,94,.3)}
+
 </style>
 
 <script type="application/ld+json">{
@@ -399,5 +404,58 @@ setTimeout(function(){document.getElementById('feedback-success').style.display=
      data-ad-format="auto"
      data-full-width-responsive="true"></ins>
 <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+
+<script>
+(function(){
+  // 为所有result区域添加复制按钮
+  var processed = new Set();
+  function addCopyBtns(){
+    var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]');
+    results.forEach(function(el){
+      if(processed.has(el)) return;
+      if(el.querySelector('.copy-btn')) return;
+      if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return;
+      if(el.children.length===0 && el.textContent.trim().length<5) return;
+      var btn = document.createElement('button');
+      btn.className = 'copy-btn';
+      btn.innerHTML = '📋 复制';
+      btn.title = '复制结果';
+      btn.onclick = function(e){
+        e.stopPropagation();
+        var text = el.textContent || el.value || '';
+        if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') text = el.value;
+        navigator.clipboard.writeText(text.trim()).then(function(){
+          btn.innerHTML = '✅ 已复制';
+          btn.classList.add('copied');
+          setTimeout(function(){btn.innerHTML='📋 复制';btn.classList.remove('copied');},2000);
+        }).catch(function(){
+          var ta = document.createElement('textarea');
+          ta.value = text.trim();
+          ta.style.position='fixed';ta.style.opacity='0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          btn.innerHTML = '✅ 已复制';
+          btn.classList.add('copied');
+          setTimeout(function(){btn.innerHTML='📋 复制';btn.classList.remove('copied');},2000);
+        });
+      };
+      el.appendChild(btn);
+      processed.add(el);
+    });
+  }
+  // Run initially
+  addCopyBtns();
+  // Re-run after button clicks (most tools update results on click)
+  document.addEventListener('click', function(){setTimeout(addCopyBtns,100);});
+  // Observe DOM changes
+  if(window.MutationObserver){
+    var obs = new MutationObserver(function(){addCopyBtns();});
+    obs.observe(document.body,{childList:true,subtree:true});
+  }
+})();
+</script>
+
 </body>
 </html>

@@ -74,6 +74,11 @@ a{color:#06b6d4;text-decoration:none}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
 .toast.show{opacity:1}
 @media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.header{flex-direction:column;gap:8px}}
+
+.copy-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;transition:all .2s;margin-left:8px;vertical-align:top}
+.copy-btn:hover{background:rgba(6,182,212,.25)}
+.copy-btn.copied{background:rgba(34,197,94,.15);color:#22c55e;border-color:rgba(34,197,94,.3)}
+
 </style>
 </head>
 <body>
@@ -228,5 +233,58 @@ function downloadTrack(type){
 }
 function audioBufferToWav(buffer){var nc=buffer.numberOfChannels,sr=buffer.sampleRate,fmt=1,bd=16,bps=bd/8,ba=nc*bps,ds=buffer.length*ba,hs=44,ab=new ArrayBuffer(hs+ds),v=new DataView(ab);function ws(o,s){for(var i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))}ws(0,"RIFF");v.setUint32(4,36+ds,true);ws(8,"WAVE");ws(12,"fmt ");v.setUint32(16,16,true);v.setUint16(20,fmt,true);v.setUint16(22,nc,true);v.setUint32(24,sr,true);v.setUint32(28,sr*ba,true);v.setUint16(32,ba,true);v.setUint16(34,bd,true);ws(36,"data");v.setUint32(40,ds,true);var o=44;for(var i=0;i<buffer.length;i++)for(var c=0;c<nc;c++){var s=Math.max(-1,Math.min(1,buffer.getChannelData(c)[i]));s=s<0?s*0x8000:s*0x7FFF;v.setInt16(o,s,true);o+=2}return ab}
 </script>
+
+<script>
+(function(){
+  // 为所有result区域添加复制按钮
+  var processed = new Set();
+  function addCopyBtns(){
+    var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]');
+    results.forEach(function(el){
+      if(processed.has(el)) return;
+      if(el.querySelector('.copy-btn')) return;
+      if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return;
+      if(el.children.length===0 && el.textContent.trim().length<5) return;
+      var btn = document.createElement('button');
+      btn.className = 'copy-btn';
+      btn.innerHTML = '📋 复制';
+      btn.title = '复制结果';
+      btn.onclick = function(e){
+        e.stopPropagation();
+        var text = el.textContent || el.value || '';
+        if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') text = el.value;
+        navigator.clipboard.writeText(text.trim()).then(function(){
+          btn.innerHTML = '✅ 已复制';
+          btn.classList.add('copied');
+          setTimeout(function(){btn.innerHTML='📋 复制';btn.classList.remove('copied');},2000);
+        }).catch(function(){
+          var ta = document.createElement('textarea');
+          ta.value = text.trim();
+          ta.style.position='fixed';ta.style.opacity='0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          btn.innerHTML = '✅ 已复制';
+          btn.classList.add('copied');
+          setTimeout(function(){btn.innerHTML='📋 复制';btn.classList.remove('copied');},2000);
+        });
+      };
+      el.appendChild(btn);
+      processed.add(el);
+    });
+  }
+  // Run initially
+  addCopyBtns();
+  // Re-run after button clicks (most tools update results on click)
+  document.addEventListener('click', function(){setTimeout(addCopyBtns,100);});
+  // Observe DOM changes
+  if(window.MutationObserver){
+    var obs = new MutationObserver(function(){addCopyBtns();});
+    obs.observe(document.body,{childList:true,subtree:true});
+  }
+})();
+</script>
+
 </body>
 </html>
