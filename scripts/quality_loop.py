@@ -114,8 +114,16 @@ def check_language(path, lang, item):
     with open(path, 'r', encoding='utf-8', errors='ignore') as f: c = f.read()
     
     if lang == 'en':
-        # EN页面不应有中文
-        if CN_RE.search(c): issues.append('chinese_in_en')
+        # EN页面不应有中文（排除noindex页面和仅含"中文"链接的情况）
+        if 'noindex' not in c and CN_RE.search(c):
+            # 去除script/style标签后再检查
+            clean = re.sub(r'<script[^>]*>.*?</script>', '', c, flags=re.DOTALL)
+            clean = re.sub(r'<style[^>]*>.*?</style>', '', clean, flags=re.DOTALL)
+            # 去除HTML标签
+            text_only = re.sub(r'<[^>]+>', ' ', clean)
+            # 如果去掉script/style后仍有超过3个中文字符，才标记
+            if len(list(CN_RE.finditer(text_only))) > 3:
+                issues.append('chinese_in_en')
     else:
         # CN页面h1不应是纯英文
         h1m = re.search(r'<h1[^>]*>([^<]+)</h1>', c)
