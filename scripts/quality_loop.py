@@ -306,6 +306,34 @@ def auto_fix(path, lang, item, issues):
                     c = c.replace(s[0]+s[1]+s[2], '')
                     fixed.append(issue); break
         
+        elif issue == 'no_breadcrumb' and 'BreadcrumbList' not in c:
+            # 从title提取名称
+            tm = re.search(r'<title>([^<]+)</title>', c)
+            tn = tm.group(1).split(' - ')[0].split(' | ')[0].strip()[:60] if tm else item.replace('-',' ').title()
+            if lang == 'en':
+                home_name = 'Home'; tools_name = 'Tools'
+                home_url = 'https://free-toolbase.com/en/'; tools_url = 'https://free-toolbase.com/en/#tools'
+            else:
+                home_name = '首页'; tools_name = '工具'
+                home_url = 'https://free-toolbase.com/'; tools_url = 'https://free-toolbase.com/#tools'
+            bc = {
+                "@context":"https://schema.org","@type":"BreadcrumbList",
+                "itemListElement":[
+                    {"@type":"ListItem","position":1,"name":home_name,"item":home_url},
+                    {"@type":"ListItem","position":2,"name":tools_name,"item":tools_url},
+                    {"@type":"ListItem","position":3,"name":tn}
+                ]
+            }
+            bc_str = '<script type="application/ld+json">\n' + json.dumps(bc, ensure_ascii=False, indent=2) + '\n</script>'
+            # 插在SoftwareApplication的</script>后面
+            sa_end = c.find('</script>', c.find('SoftwareApplication'))
+            if sa_end > 0:
+                insert_pos = sa_end + len('</script>')
+                c = c[:insert_pos] + '\n' + bc_str + c[insert_pos:]
+            else:
+                c = c.replace('</head>', '\n' + bc_str + '\n</head>')
+            fixed.append(issue)
+        
         else:
             remaining.append(issue)
     
