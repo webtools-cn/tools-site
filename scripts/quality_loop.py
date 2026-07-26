@@ -172,17 +172,67 @@ def check_js(path, lang, item):
         if 'gtag' in s or 'adsbygoogle' in s or 'dataLayer' in s: continue
         if 'e.preventDefault()' in s and len(s) < 300: continue
         
-        # 括号匹配
+        # 括号匹配 — 跳过字符串/正则/模板字面量中的括号
         depth = 0
-        for ch in s:
-            if ch == '(': depth += 1
-            elif ch == ')': depth -= 1
+        in_single = in_double = in_template = in_regex = escaped = False
+        i = 0
+        while i < len(s):
+            ch = s[i]
+            
+            if escaped:
+                escaped = False
+                i += 1
+                continue
+            
+            if ch == '\\':
+                escaped = True
+                i += 1
+                continue
+            
+            if in_single:
+                if ch == "'": in_single = False
+                i += 1
+                continue
+            if in_double:
+                if ch == '"': in_double = False
+                i += 1
+                continue
+            if in_template:
+                if ch == '`': in_template = False
+                i += 1
+                continue
+            if in_regex:
+                if ch == '/' and (i == 0 or s[i-1] != '['):
+                    in_regex = False
+                i += 1
+                continue
+            
+            if ch == "'": in_single = True
+            elif ch == '"': in_double = True
+            elif ch == '`': in_template = True
+            elif ch == '/':
+                # 检测正则字面量（非除法、非 // 注释）
+                prev = s[i-1] if i > 0 else ' '
+                if i+1 < len(s) and s[i+1] not in '/* \t':
+                    if prev in '=,([!&|~?:' or (i >= 6 and s[i-6:i] == 'return') or (i >= 4 and s[i-4:i] == 'case'):
+                        in_regex = True
+            elif ch == '(' and not in_regex: depth += 1
+            elif ch == ')' and not in_regex: depth -= 1
+            
+            i += 1
+        
         if depth != 0:
             issues.append('js_paren_mismatch')
             break
         
-        # 重复函数定义
-        funcs = re.findall(r'function\s+(\w+)\s*\(', s)
+        # 重复函数定义 — 跳过字符串/注释中的 function 关键字
+        clean = re.sub(r'//[^\n]*', '', s)
+        clean = re.sub(r'/\*.*?\*/', '', clean, re.DOTALL)
+        # 移除字符串字面量
+        clean = re.sub(r"'[^'\\]*(?:\\.[^'\\]*)*'", "''", clean)
+        clean = re.sub(r'"[^"\\]*(?:\\.[^"\\]*)*"', '""', clean)
+        clean = re.sub(r'`[^`\\]*(?:\\.[^`\\]*)*`', '``', clean)
+        funcs = re.findall(r'function\s+(\w+)\s*\(', clean)
         from collections import Counter
         dup = [f for f, cnt in Counter(funcs).items() if cnt > 1 and f not in ('addEventListener','querySelector')]
         if dup:
