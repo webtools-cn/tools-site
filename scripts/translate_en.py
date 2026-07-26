@@ -1,195 +1,308 @@
 #!/usr/bin/env python3
-"""Translate CN tool pages to EN"""
-import re
+"""批量翻译5个新工具的英文版"""
+import os, re
 
-TOOLS = [
+SITE = "/home/chison/tools-site"
+
+tools = [
     {
-        "slug": "capm-calculator",
-        "replacements": [
-            ('lang="zh-CN"', 'lang="en"'),
-            ('CAPM资本资产定价计算器 | Free ToolBase', 'CAPM Calculator | Free ToolBase'),
-            ('CAPM资本资产定价计算器 - Free ToolBase', 'CAPM Calculator - Free ToolBase'),
-            ('使用资本资产定价模型计算期望收益率。输入无风险利率、市场收益率和贝塔系数，一键得出资产合理回报。纯前端计算，数据安全。', 'Calculate expected return using the Capital Asset Pricing Model. Input risk-free rate, market return and beta to get fair asset return. Client-side only, data secure.'),
-            ('CAPM计算器,资本资产定价模型,期望收益率,贝塔系数,无风险利率,市场溢价,投资估值,金融计算器', 'CAPM calculator,Capital Asset Pricing Model,expected return,beta,risk-free rate,market premium,investment valuation,financial calculator'),
-            ('使用资本资产定价模型计算期望收益率。输入无风险利率、市场收益率和贝塔系数，一键得出资产合理回报。', 'Calculate expected return using the Capital Asset Pricing Model. Input risk-free rate, market return and beta to get fair asset return.'),
-            ('使用资本资产定价模型（CAPM）计算资产期望收益率。输入无风险利率、市场期望收益率和贝塔系数，一键得出资产的合理回报水平。广泛应用于投资估值和资产定价。', 'Calculate expected return using the Capital Asset Pricing Model (CAPM). Input risk-free rate, expected market return and beta to get the fair return. Widely used in investment valuation and asset pricing.'),
-            ('什么是CAPM？', 'What is CAPM?'),
-            ('CAPM（Capital Asset Pricing Model，资本资产定价模型）是金融学中用于计算资产期望收益率的经典模型。公式为：E(Ri) = Rf + β × (Rm - Rf)，其中Rf为无风险利率，β为贝塔系数，(Rm-Rf)为市场风险溢价。', 'CAPM (Capital Asset Pricing Model) calculates expected return: E(Ri) = Rf + β × (Rm - Rf). Rf is risk-free rate, β is beta, and (Rm-Rf) is market risk premium. Widely used in finance for asset pricing.'),
-            ('贝塔系数β代表什么？', 'What does Beta (β) mean?'),
-            ('β衡量资产相对于市场的波动性。β=1表示与市场同步波动；β>1表示波动大于市场（进攻型）；β<1表示波动小于市场（防御型）；β<0表示与市场反向波动。', 'Beta measures volatility relative to the market. β=1 means moving with market; β>1 means more volatile (aggressive); β<1 means less volatile (defensive); β<0 means inverse movement.'),
-            ('无风险利率应该用多少？', 'What risk-free rate should I use?'),
-            ('通常使用10年期国债收益率作为无风险利率的代理变量。不同国家不同时期数值不同，常见范围在2%-5%之间。', 'Typically the 10-year government bond yield is used as a proxy. Values vary by country and period, commonly 2%-5%.'),
-            ('首页', 'Home'),
-            ('工具', 'Tools'),
-            ('📋 输入参数', '📋 Input Parameters'),
-            ('📊 计算', '📊 Calculate'),
-            ('🔄 重置', '🔄 Reset'),
-            ('📈 计算结果', '📈 Results'),
-            ('期望收益率 (CAPM)', 'Expected Return (CAPM)'),
-            ('市场风险溢价', 'Market Risk Premium'),
-            ('资产风险溢价', 'Asset Risk Premium'),
-            ('无需注册 · 纯前端计算', 'No signup · Client-side only'),
-            ('纯前端计算，数据不上传服务器', 'Client-side only, no data uploaded'),
-            ('复制', 'Copy'),
-            ('已复制', 'Copied'),
-            ('复制结果', 'Copy result'),
-        ]
+        "name": "investment-returns-calculator",
+        "zh_title": "投资回报计算器",
+        "en_title": "Investment Returns Calculator",
+        "zh_desc": "免费在线投资回报计算器，计算复利终值、年化收益率、总投入和总收益。支持定期定额投入，自动生成投资增长表，无需注册，数据不上传服务器。",
+        "en_desc": "Free online investment returns calculator. Calculate compound future value, annualized return, total investment, and total gains. Supports regular contributions with auto-generated growth tables. No sign-up required.",
+        "icon": "📈",
+        "en_hero": "Free online investment returns calculator. Calculate compound future value, annualized return, total contributions and gains. Supports recurring investments with year-by-year growth tables. | No registration · Data stays on your device",
+        "labels": {
+            "初始本金 (¥)": "Initial Principal ($)",
+            "预期年收益率 (%)": "Expected Annual Return (%)",
+            "投资年限": "Investment Period (Years)",
+            "每月定投 (¥)": "Monthly Contribution ($)",
+            "通货膨胀率 (%)": "Inflation Rate (%)",
+            "计算回报": "Calculate Returns",
+            "清空": "Clear",
+            "投资终值": "Future Value",
+            "总投入": "Total Invested",
+            "总收益": "Total Gain",
+            "年化收益率": "Annualized Return",
+            "实际终值(扣除通胀)": "Real Value (Inflation-Adjusted)",
+            "收益倍数": "Gain Multiple",
+            "📋 复制结果": "📋 Copy Results",
+            "投资增长明细": "Investment Growth Details",
+            "年份": "Year",
+            "年初本金": "Start Balance",
+            "年投入": "Annual Contribution",
+            "年收益": "Annual Gain",
+            "年末余额": "End Balance",
+        },
+        "faqs": [
+            ("什么是复利投资？", "What is compound interest?", "复利是指在每一个计息期后，将所生利息加入本金再计利息的计算方式。比如投资10000元，年收益率10%，第一年赚1000元，第二年本金变成11000元，就能赚1100元。复利效应随时间增长越滚越大，是长期投资的核心理念。", "Compound interest means earning interest on your interest. For example, if you invest $10,000 at 10% annual return, you earn $1,000 in year one. In year two, your principal becomes $11,000 and you earn $1,100. The compounding effect grows exponentially over time — it's the core principle of long-term investing."),
+            ("定期定额投入有什么好处？", "What are the benefits of dollar-cost averaging?", "定期定额投入（定投）可以平摊买入成本，避免一次性买在高点。无论市场涨跌都坚持投入，长期来看可以降低平均持仓成本，同时累积可观的投资本金。每月投入1000元，年化8%，30年后可累积约150万元。", "Dollar-cost averaging (regular investing) smooths out your purchase price and avoids buying at market peaks. By consistently investing regardless of market conditions, you lower your average cost basis while building substantial capital. Investing $200/month at 8% annual return for 30 years accumulates approximately $300,000."),
+            ("年化收益率如何计算？", "How is annualized return calculated?", "年化收益率 = (终值/本金)^(1/年数) - 1。如果没有定期投入则直接用此公式。有定期投入时，使用内部收益率(IRR)来计算年化回报率，这更准确反映投资的真实收益水平。", "Annualized Return = (Final Value / Principal)^(1/Years) - 1. For lump-sum investments, use this formula directly. With regular contributions, use Internal Rate of Return (IRR) for a more accurate measure of true investment performance."),
+            ("通货膨胀对投资回报有什么影响？", "How does inflation affect investment returns?", "通货膨胀会侵蚀投资的实际购买力。实际回报率 = 名义回报率 - 通货膨胀率。例如名义回报率10%，通胀率3%，实际回报率约7%。本工具同时显示名义回报和考虑通胀后的实际回报，帮你了解投资的真实价值增长。", "Inflation erodes the real purchasing power of your investments. Real Return = Nominal Return - Inflation Rate. For example, 10% nominal return with 3% inflation yields approximately 7% real return. This tool shows both nominal and inflation-adjusted returns so you understand true value growth."),
+        ],
     },
     {
-        "slug": "sharpe-ratio",
-        "replacements": [
-            ('lang="zh-CN"', 'lang="en"'),
-            ('夏普比率计算器 | Free ToolBase', 'Sharpe Ratio Calculator | Free ToolBase'),
-            ('夏普比率计算器 - Free ToolBase', 'Sharpe Ratio Calculator - Free ToolBase'),
-            ('计算投资组合的夏普比率，衡量风险调整后的收益。输入组合收益率、无风险利率和标准差，评估投资效率。纯前端计算，数据安全。', 'Calculate the Sharpe Ratio of your portfolio to measure risk-adjusted returns. Input portfolio return, risk-free rate and standard deviation. Client-side only, data secure.'),
-            ('夏普比率,风险调整收益,投资组合,标准差,夏普指数,金融计算器,投资效率', 'Sharpe ratio,risk-adjusted return,portfolio,standard deviation,Sharpe index,financial calculator,investment efficiency'),
-            ('计算投资组合的夏普比率，衡量风险调整后的收益。输入组合收益率、无风险利率和标准差，评估投资效率。', 'Calculate the Sharpe Ratio of your portfolio to measure risk-adjusted returns. Input return, risk-free rate and standard deviation.'),
-            ('计算投资组合的夏普比率（Sharpe Ratio），衡量风险调整后的收益表现。输入组合年化收益率、无风险利率和年化标准差，评估每单位风险带来的超额回报。', 'Calculate the Sharpe Ratio to measure risk-adjusted performance. Input annualized return, risk-free rate and standard deviation to evaluate excess return per unit of risk.'),
-            ('夏普比率多高算好？', 'What is a good Sharpe Ratio?'),
-            ('一般认为：<0为负（低于无风险收益），0-0.5较差，0.5-1.0一般，1.0-2.0良好，2.0-3.0优秀，>3.0卓越。但不同市场环境下标准不同。', 'Generally: <0 is poor (below risk-free), 0-0.5 suboptimal, 0.5-1.0 acceptable, 1.0-2.0 good, 2.0-3.0 excellent, >3.0 outstanding. Context varies by market.'),
-            ('夏普比率和索提诺比率的区别？', 'Sharpe vs Sortino Ratio?'),
-            ('夏普比率用标准差衡量总风险（上行+下行），索提诺比率只用下行标准差。对于偏态分布的投资组合，索提诺比率更能反映真实风险。', 'Sharpe uses total standard deviation (up+down), Sortino only uses downside deviation. For skewed distributions, Sortino better reflects true risk.'),
-            ('年化标准差怎么算？', 'How to annualize standard deviation?'),
-            ('年化标准差 = 月收益率标准差 × √12。如果只有日收益率，则×√252。', 'Annual σ = monthly σ × √12. For daily returns, multiply by √252.'),
-            ('首页', 'Home'),
-            ('工具', 'Tools'),
-            ('📋 输入参数', '📋 Input Parameters'),
-            ('📊 计算', '📊 Calculate'),
-            ('🔄 重置', '🔄 Reset'),
-            ('📈 计算结果', '📈 Results'),
-            ('夏普比率', 'Sharpe Ratio'),
-            ('超额收益率', 'Excess Return'),
-            ('无需注册 · 纯前端计算', 'No signup · Client-side only'),
-            ('纯前端计算，数据不上传服务器', 'Client-side only, no data uploaded'),
-            ('复制', 'Copy'),
-            ('已复制', 'Copied'),
-            ('复制结果', 'Copy result'),
-        ]
+        "name": "retirement-age-calculator",
+        "zh_title": "退休年龄计算器",
+        "en_title": "Retirement Age Calculator",
+        "zh_desc": "免费在线退休年龄计算器，根据当前年龄、储蓄、收入、目标退休金计算最早退休年龄。支持社保、年金等收入来源，无需注册，数据不上传服务器。",
+        "en_desc": "Free online retirement age calculator. Estimate your earliest retirement age based on current savings, income, and retirement goals. FIRE financial independence planning. No sign-up required.",
+        "icon": "🎯",
+        "en_hero": "Free online retirement age calculator. Predict your earliest retirement age based on savings, income and expenses. FIRE financial independence planning. | No registration · Data stays on your device",
+        "labels": {
+            "当前年龄": "Current Age",
+            "现有储蓄 (¥)": "Current Savings ($)",
+            "年收入 (¥)": "Annual Income ($)",
+            "储蓄率 (%)": "Savings Rate (%)",
+            "预期年收益率 (%)": "Expected Annual Return (%)",
+            "退休后年支出 (¥)": "Annual Retirement Spending ($)",
+            "安全提款率 (%)": "Safe Withdrawal Rate (%)",
+            "计算退休年龄": "Calculate Retirement Age",
+            "清空": "Clear",
+            "预计退休年龄": "Estimated Retirement Age",
+            "距离退休还有": "Years Until Retirement",
+            "目标退休金": "Target Retirement Fund",
+            "每年储蓄": "Annual Savings",
+            "退休时总资产": "Assets at Retirement",
+            "年被动收入": "Annual Passive Income",
+            "📋 复制结果": "📋 Copy Results",
+        },
+        "faqs": [
+            ("如何计算退休年龄？", "How is retirement age calculated?", "退休年龄取决于三个核心因素：当前储蓄、每年储蓄金额、退休后的年支出。计算公式为退休年龄 = 当前年龄 + log(1 + (年支出 × 预期收益率) / 年储蓄) / log(1 + 预期收益率)。同时需要考虑社会保障和养老金的领取时间。", "Retirement age depends on three core factors: current savings, annual savings, and post-retirement spending. The formula is: Retirement Age = Current Age + log(1 + (Annual Spending × Expected Return) / Annual Savings) / log(1 + Expected Return). Social Security and pension timing should also be considered."),
+            ("什么是FIRE运动？", "What is the FIRE movement?", "FIRE（Financial Independence, Retire Early）是一套实现财务独立和提前退休的方法论。核心原则是：储蓄率达到50%以上，投资低成本的指数基金，当资产达到年支出的25倍（4%法则）时可财务独立。常见有Lean FIRE（低消费提前退休）和Fat FIRE（高消费提前退休）。", "FIRE (Financial Independence, Retire Early) is a methodology for achieving financial freedom and early retirement. Core principles: save 50%+ of income, invest in low-cost index funds, and reach 25× annual expenses (the 4% rule). Variants include Lean FIRE (frugal early retirement) and Fat FIRE (luxurious early retirement)."),
+            ("4%法则是什么意思？", "What is the 4% rule?", "4%法则（也称4%安全提款率）是财务规划中的经验法则：如果你每年只从退休金中提取4%，在历史股市表现下，你的资产至少可以维持30年不枯竭。对应地，你需要的退休金总额约等于年支出的25倍（100%/4%=25）。", "The 4% rule (safe withdrawal rate) is a rule of thumb in financial planning: if you withdraw only 4% of your retirement portfolio annually, your assets should last at least 30 years based on historical market performance. This means you need approximately 25× your annual expenses saved (100%/4% = 25)."),
+            ("退休需要攒多少钱？", "How much do I need to retire?", "按4%法则，需要的退休金 = 年支出 × 25。例如年支出20万元，需要500万退休金。如果考虑3%的安全提款率，则需要年支出的33倍。本工具会根据你的输入自动计算目标退休金和预计退休年龄。", "Using the 4% rule: Retirement Fund Needed = Annual Expenses × 25. For example, $40,000 annual spending requires $1,000,000. With a more conservative 3% withdrawal rate, you need 33× annual expenses. This calculator automatically computes your target fund and estimated retirement age."),
+        ],
     },
     {
-        "slug": "beta-calculator",
-        "replacements": [
-            ('lang="zh-CN"', 'lang="en"'),
-            ('贝塔系数计算器 | Free ToolBase', 'Beta Calculator | Free ToolBase'),
-            ('贝塔系数计算器 - Free ToolBase', 'Beta Calculator - Free ToolBase'),
-            ('计算股票/资产的贝塔系数，衡量系统性风险。输入资产收益率和市场收益率序列，自动计算β值和R²。纯前端计算，数据安全。', 'Calculate Beta coefficient for stocks/assets to measure systematic risk. Input asset and market return series to compute β and R². Client-side only, data secure.'),
-            ('贝塔系数,系统风险,股票波动率,CAPM,回归分析,金融计算器,β系数', 'Beta coefficient,systematic risk,stock volatility,CAPM,regression,financial calculator,beta'),
-            ('计算股票/资产的贝塔系数，衡量系统性风险。输入资产收益率和市场收益率序列，自动计算β值和R²。', 'Calculate Beta coefficient for stocks/assets to measure systematic risk. Input asset and market return series to compute β and R².'),
-            ('计算股票或资产的贝塔系数（β），衡量系统性风险。输入资产和市场月度收益率序列，自动进行回归分析，计算β值、R²拟合度和相关系数。', 'Calculate Beta coefficient (β) for stocks or assets to measure systematic risk. Input monthly return series for regression analysis, computing β, R² and correlation.'),
-            ('贝塔系数怎么计算？', 'How is Beta calculated?'),
-            ('β = Cov(Ri, Rm) / Var(Rm)，即资产收益率与市场收益率的协方差除以市场收益率的方差。本质上是OLS回归的斜率系数。', 'β = Cov(Ri, Rm) / Var(Rm), the slope coefficient from OLS regression of asset returns on market returns.'),
-            ('多少数据点足够计算β？', 'How many data points needed?'),
-            ('一般建议至少36-60个月的月度收益率数据。数据太少则统计意义不足，R²偏低。', 'Generally 36-60 months of monthly returns are recommended. Too few points lack statistical significance with low R².'),
-            ('β=0是什么意思？', 'What does β=0 mean?'),
-            ('β=0表示资产收益率与市场无关，理论上期望收益等于无风险利率。现实中很少有资产β严格为0。', 'β=0 means asset returns are uncorrelated with the market. In theory, expected return equals the risk-free rate.'),
-            ('首页', 'Home'),
-            ('工具', 'Tools'),
-            ('📋 输入参数', '📋 Input Parameters'),
-            ('资产月收益率 (% 每行一个)', 'Asset Monthly Returns (% one per line)'),
-            ('市场月收益率 (% 每行一个)', 'Market Monthly Returns (% one per line)'),
-            ('📊 计算', '📊 Calculate'),
-            ('🔄 重置', '🔄 Reset'),
-            ('📈 计算结果', '📈 Results'),
-            ('贝塔系数 (β)', 'Beta Coefficient (β)'),
-            ('R² 拟合度', 'R² (Goodness of Fit)'),
-            ('相关系数', 'Correlation'),
-            ('数据点数', 'Data Points'),
-            ('无需注册 · 纯前端计算', 'No signup · Client-side only'),
-            ('纯前端计算，数据不上传服务器', 'Client-side only, no data uploaded'),
-            ('复制', 'Copy'),
-            ('已复制', 'Copied'),
-            ('复制结果', 'Copy result'),
-        ]
+        "name": "college-roi-calculator",
+        "zh_title": "大学教育ROI计算器",
+        "en_title": "College ROI Calculator",
+        "zh_desc": "免费在线大学教育投资回报率计算器，对比上大学的成本和未来收入增长，计算净现值和回报周期。帮助你做出明智的教育投资决策，无需注册。",
+        "en_desc": "Free online college ROI calculator. Compare the cost of college against future income gains. Calculate NPV and payback period to make informed education investment decisions. No sign-up required.",
+        "icon": "🎓",
+        "en_hero": "Free online college ROI calculator. Compare education costs against future earnings to calculate net present value and payback period. | No registration · Data stays on your device",
+        "labels": {
+            "年学费 (¥)": "Annual Tuition ($)",
+            "年生活费+书本费 (¥)": "Living + Books ($/yr)",
+            "大学年数": "Years in College",
+            "高中毕业年薪 (¥)": "High School Graduate Salary ($)",
+            "大学毕业起薪 (¥)": "College Graduate Starting Salary ($)",
+            "年薪增长率 (%)": "Annual Salary Growth (%)",
+            "工作年限": "Working Years",
+            "折现率 (%)": "Discount Rate (%)",
+            "计算ROI": "Calculate ROI",
+            "清空": "Clear",
+            "大学总成本": "Total College Cost",
+            "终身收入差(名义)": "Lifetime Earnings Gap (Nominal)",
+            "净现值(NPV)": "Net Present Value (NPV)",
+            "投资回报率(ROI)": "Return on Investment (ROI)",
+            "回本周期": "Payback Period",
+            "NPV>0则值得投资": "NPV > 0 = Worth It",
+            "📋 复制结果": "📋 Copy Results",
+        },
+        "faqs": [
+            ("大学教育的投资回报率怎么算？", "How is college ROI calculated?", "大学教育ROI = (毕业后终身收入增长 - 大学总成本) / 大学总成本。其中大学总成本包括学费、生活费、书本费，以及因上学放弃的4年工资收入（机会成本）。毕业后收入增长是指拥有大学学位相比高中学历的年收入差。", "College ROI = (Lifetime Earnings Increase - Total College Cost) / Total College Cost. Total cost includes tuition, living expenses, books, and the opportunity cost of 4 years of forgone wages. Earnings increase is the annual salary difference between college and high school graduates."),
+            ("读大学值不值？", "Is college worth it?", "大学投资回报因专业和学校而异。数据显示STEM（科学、技术、工程、数学）专业的ROI通常很高，终身收入比高中学历多100-300万美元。而一些人文社科专业的ROI相对较低。本工具帮助你量化分析：投入的学费和生活费是否能在职业生涯中获得合理回报。", "College ROI varies significantly by major and school. Data shows STEM (Science, Technology, Engineering, Math) majors typically have very high ROI, with lifetime earnings $1-3M above high school graduates. Some liberal arts majors have lower ROI. This tool helps you quantify whether tuition and living costs will yield reasonable career returns."),
+            ("大学成本包括哪些？", "What does college cost include?", "大学成本包括：1) 直接成本：学费、住宿费、书本费、生活费；2) 机会成本：上学期间放弃的工资收入。例如，如果高中毕业年薪3万元，4年大学就放弃了12万元收入。总成本 = 直接成本 + 机会成本。这些都应纳入ROI计算。", "College costs include: 1) Direct costs: tuition, housing, books, living expenses; 2) Opportunity cost: wages forgone during college years. For example, if a high school graduate earns $20,000/year, 4 years of college means $80,000 in forgone income. Total Cost = Direct Costs + Opportunity Cost. All should be included in ROI calculations."),
+            ("不同专业的ROI差异有多大？", "How much does ROI vary by major?", "差异非常大。工程、计算机科学等专业终身ROI可达1000%以上；商科约500-800%；教育、社工等专业可能只有200-400%。选择专业时，不仅要考虑兴趣，也要评估经济回报。本工具让你自定义收入差参数，模拟不同专业的ROI。", "The variance is enormous. Engineering and Computer Science majors can achieve 1000%+ lifetime ROI; Business majors around 500-800%; Education and Social Work may only see 200-400%. When choosing a major, consider both passion and economic returns. This tool lets you customize salary parameters to simulate different majors."),
+        ],
     },
     {
-        "slug": "dividend-calculator",
-        "replacements": [
-            ('lang="zh-CN"', 'lang="en"'),
-            ('股息收益计算器 | Free ToolBase', 'Dividend Yield Calculator | Free ToolBase'),
-            ('股息收益计算器 - Free ToolBase', 'Dividend Yield Calculator - Free ToolBase'),
-            ('计算股票股息收益率和年化分红收入。输入股价、每股股息和持股数量，一键评估股息投资回报。纯前端计算，数据安全。', 'Calculate dividend yield and annual dividend income. Input stock price, dividend per share and shares held to evaluate returns. Client-side only, data secure.'),
-            ('股息计算器,股息率,分红收益,股票分红,每股股息,投资回报,金融计算器', 'dividend calculator,dividend yield,stock dividend,income investing,dividend per share,investment return,financial calculator'),
-            ('计算股票股息收益率和年化分红收入。输入股价、每股股息和持股数量，一键评估股息投资回报。', 'Calculate dividend yield and annual dividend income. Input stock price, dividend per share and shares held to evaluate returns.'),
-            ('计算股票股息收益率（Dividend Yield）和年度分红收入。输入当前股价、每股年度股息和持股数量，评估股息投资回报率和被动收入潜力。', 'Calculate dividend yield and annual dividend income. Input stock price, annual dividend per share and number of shares to evaluate return and passive income potential.'),
-            ('股息率多少算好？', 'What is a good dividend yield?'),
-            ('不同行业差异很大：公用事业/REITs通常3%-6%，科技股通常0%-1.5%，消费必需品2%-3%。高股息率（>8%）可能意味着股价大跌或股息不可持续。', 'Varies by sector: Utilities/REITs 3-6%, Tech 0-1.5%, Consumer Staples 2-3%. Yields >8% may signal unsustainable dividends or falling stock price.'),
-            ('派息率和股息率有什么区别？', 'Dividend Yield vs Payout Ratio?'),
-            ('股息率=每股股息/股价，反映投资回报率；派息率=每股股息/EPS，反映公司将多少利润用于分红。', 'Dividend Yield = DPS/Price (investor return). Payout Ratio = DPS/EPS (how much profit is distributed).'),
-            ('中国A股股息率一般多少？', 'What about dividend taxes?'),
-            ('上证50成分股平均股息率约2.5%-3.5%，银行股可达4%-6%。港股通标的股息率普遍更高。', 'Dividends are taxed in most countries. US qualified dividends at 0-20%. Tax treatment varies by jurisdiction.'),
-            ('首页', 'Home'),
-            ('工具', 'Tools'),
-            ('📋 输入参数', '📋 Input Parameters'),
-            ('当前股价 (元)', 'Current Stock Price ($)'),
-            ('每股年度股息 (元)', 'Annual Dividend Per Share ($)'),
-            ('持股数量', 'Number of Shares'),
-            ('📊 计算', '📊 Calculate'),
-            ('🔄 重置', '🔄 Reset'),
-            ('📈 计算结果', '📈 Results'),
-            ('股息收益率', 'Dividend Yield'),
-            ('年度分红收入', 'Annual Dividend Income'),
-            ('月均分红收入', 'Monthly Dividend Income'),
-            ('总投资金额', 'Total Investment'),
-            ('派息率', 'Payout Ratio'),
-            ('无需注册 · 纯前端计算', 'No signup · Client-side only'),
-            ('纯前端计算，数据不上传服务器', 'Client-side only, no data uploaded'),
-            ('复制', 'Copy'),
-            ('已复制', 'Copied'),
-            ('复制结果', 'Copy result'),
-        ]
+        "name": "savings-bond-calculator",
+        "zh_title": "储蓄债券计算器",
+        "en_title": "Savings Bond Calculator",
+        "zh_desc": "免费在线储蓄债券计算器，计算美国Series EE/I储蓄债券的到期价值、利息收入和年化收益率。支持不同面额和持有期限，无需注册。",
+        "en_desc": "Free online savings bond calculator. Calculate maturity value, interest earned, and annualized return for US Series EE/I savings bonds. Supports different denominations and holding periods. No sign-up required.",
+        "icon": "🏦",
+        "en_hero": "Free online savings bond calculator. Calculate maturity value, interest, and annualized return for US Series EE/I savings bonds. | No registration · Data stays on your device",
+        "labels": {
+            "债券类型": "Bond Type",
+            "Series EE (固定利率，20年保证翻倍)": "Series EE (Fixed Rate, Guaranteed to Double in 20 Years)",
+            "Series I (通胀保护债券)": "Series I (Inflation-Protected Bond)",
+            "购买金额 ($)": "Purchase Amount ($)",
+            "持有年限": "Holding Period (Years)",
+            "固定利率 (%)": "Fixed Rate (%)",
+            "通胀率 (%)": "Inflation Rate (%)",
+            "计算收益": "Calculate Returns",
+            "清空": "Clear",
+            "到期价值": "Maturity Value",
+            "利息收入": "Interest Earned",
+            "年化收益率": "Annualized Return",
+            "本金翻倍": "Principal Doubled?",
+            "📋 复制结果": "📋 Copy Results",
+        },
+        "faqs": [
+            ("什么是美国储蓄债券？", "What are US Savings Bonds?", "美国储蓄债券是由美国财政部发行的低风险投资产品，主要有两种：Series EE债券（固定利率，20年到期至少翻倍）和Series I债券（通胀保护，利率=固定利率+通胀率）。它们由美国政府全额担保，适合保守型投资者。", "US Savings Bonds are low-risk investments issued by the US Treasury. There are two main types: Series EE bonds (fixed rate, guaranteed to at least double in 20 years) and Series I bonds (inflation-protected, rate = fixed rate + inflation rate). They are fully backed by the US government, ideal for conservative investors."),
+            ("Series EE和Series I债券有什么区别？", "What's the difference between Series EE and Series I?", "EE债券提供固定利率（目前约2.5%），保证20年到期时至少翻倍。I债券的利率由两部分组成：固定利率（目前0.4%）+ 每半年调整的通胀率，能保护购买力不受通胀侵蚀。I债券更适合通胀高企时期，EE债券更适合长期持有。", "EE bonds offer a fixed rate (currently ~2.5%) and guarantee doubling in value at 20 years. I bond rates have two components: a fixed rate (currently 0.4%) + a semiannual inflation adjustment, protecting purchasing power. I bonds are better during high inflation; EE bonds are better for very long-term holding."),
+            ("储蓄债券的利息要交税吗？", "Are savings bond interest taxable?", "储蓄债券利息需缴纳联邦所得税，但免州税和地方税。如果用于合格教育支出，利息可能免税（有收入限制）。投资者可以选择每年报告利息或赎回时一次性报告。本工具计算的是税前收益。", "Savings bond interest is subject to federal income tax but exempt from state and local taxes. Interest may be tax-free if used for qualified education expenses (income limits apply). Investors can report interest annually or defer until redemption. This calculator shows pre-tax returns."),
+            ("储蓄债券何时到期？", "When do savings bonds mature?", "Series EE和Series I债券的原始期限为30年。20年时EE债券保证翻倍。债券在购买满1年后可赎回，但5年内赎回收3个月利息罚金。满5年后无罚金。本工具默认按30年到期计算。", "Series EE and I bonds have an original maturity of 30 years. EE bonds are guaranteed to double at 20 years. Bonds can be redeemed after 1 year, but redemption within 5 years incurs a 3-month interest penalty. No penalty after 5 years. This tool calculates based on your specified holding period."),
+        ],
     },
     {
-        "slug": "debt-payoff-calculator",
-        "replacements": [
-            ('lang="zh-CN"', 'lang="en"'),
-            ('债务清偿计算器 | Free ToolBase', 'Debt Payoff Calculator | Free ToolBase'),
-            ('债务清偿计算器 - Free ToolBase', 'Debt Payoff Calculator - Free ToolBase'),
-            ('制定债务清偿计划，计算还清时间和总利息。输入债务本金、年利率和每月还款额，对比不同还款策略。纯前端计算，数据安全。', 'Create a debt payoff plan. Input principal, APR and monthly payment to calculate payoff time and total interest. Client-side only, data secure.'),
-            ('债务清偿,还债计划,信用卡还款,贷款还清,利息计算,债务管理,金融计算器', 'debt payoff,repayment plan,credit card payoff,loan repayment,interest calculator,debt management,financial calculator'),
-            ('制定债务清偿计划，计算还清时间和总利息。输入债务本金、年利率和每月还款额，对比不同还款策略。', 'Create a debt payoff plan. Input principal, APR and monthly payment to calculate payoff time and total interest.'),
-            ('制定债务清偿计划，计算需要多长时间还清债务以及总利息支出。输入债务本金、年利率和每月还款额，查看详细还款时间表，并获得加速还款建议。', 'Create a debt payoff plan. Input principal, APR and monthly payment to see payoff timeline, total interest, and accelerated payoff suggestions.'),
-            ('雪球法和雪崩法哪个更好？', 'Snowball vs Avalanche method?'),
-            ('雪球法（先还最小余额）心理激励效果好；雪崩法（先还最高利率）数学上最优，总利息最少。本计算器展示的是固定月供策略。', 'Snowball (smallest balance first) provides psychological wins; Avalanche (highest APR first) is mathematically optimal. This calculator shows fixed monthly payment strategy.'),
-            ('为什么月供不足覆盖利息？', 'Why does minimum payment barely reduce debt?'),
-            ('当月还款额≤本金×月利率时，还款只够支付利息，本金永远不会减少。这就是信用卡最低还款陷阱——按最低还款还可能需要几十年才能还清。', 'When payment ≤ principal × monthly rate, you only cover interest. This is the credit card minimum payment trap — it can take decades to pay off.'),
-            ('提前还款划算吗？', 'Should I pay off debt or invest?'),
-            ('如果债务利率>投资收益率，提前还款更划算。信用卡（18%+）应优先还清；房贷（3%-5%）可考虑投资。', 'Compare rates: if debt APR > expected investment return, prioritize payoff. Credit cards (18%+) first; mortgages (3-5%) may allow concurrent investing.'),
-            ('首页', 'Home'),
-            ('工具', 'Tools'),
-            ('📋 输入参数', '📋 Input Parameters'),
-            ('债务本金 (元)', 'Principal ($)'),
-            ('年利率 (%)', 'APR (%)'),
-            ('每月还款额 (元)', 'Monthly Payment ($)'),
-            ('📊 计算', '📊 Calculate'),
-            ('🔄 重置', '🔄 Reset'),
-            ('📈 计算结果', '📈 Results'),
-            ('预计还清时间', 'Estimated Payoff Time'),
-            ('总利息', 'Total Interest'),
-            ('总还款额', 'Total Payment'),
-            ('利息占比', 'Interest Ratio'),
-            ('加速还款建议', 'Accelerated Payoff'),
-            ('如果每月多还10%，可在', 'If you pay 10% more monthly, you can be debt-free in'),
-            ('内还清。', '.'),
-            ('无需注册 · 纯前端计算', 'No signup · Client-side only'),
-            ('纯前端计算，数据不上传服务器', 'Client-side only, no data uploaded'),
-            ('复制', 'Copy'),
-            ('已复制', 'Copied'),
-            ('复制结果', 'Copy result'),
-        ]
-    }
+        "name": "mortgage-points-calculator",
+        "zh_title": "房贷折扣点计算器",
+        "en_title": "Mortgage Points Calculator",
+        "zh_desc": "免费在线房贷折扣点计算器，计算购买房贷折扣点的成本和节省金额。对比支付折扣点降低利率带来的长期节省，帮你做出最优决策，无需注册。",
+        "en_desc": "Free online mortgage points calculator. Calculate the cost and savings of buying discount points. Compare long-term savings from paying points to lower your interest rate. Make optimal mortgage decisions. No sign-up required.",
+        "icon": "🏠",
+        "en_hero": "Free online mortgage points calculator. Compare the cost of buying discount points against long-term savings from lower interest rates. | No registration · Data stays on your device",
+        "labels": {
+            "贷款金额 (¥)": "Loan Amount ($)",
+            "贷款期限 (年)": "Loan Term (Years)",
+            "原始年利率 (%)": "Original Interest Rate (%)",
+            "购买折扣点数": "Points to Purchase",
+            "每点降低利率 (%)": "Rate Reduction Per Point (%)",
+            "计算对比": "Compare Options",
+            "清空": "Clear",
+            "方案": "Scenario",
+            "利率": "Rate",
+            "月供": "Monthly Payment",
+            "折扣点成本": "Points Cost",
+            "总利息": "Total Interest",
+            "总支出": "Total Cost",
+            "月供节省": "Monthly Savings",
+            "总利息节省": "Total Interest Saved",
+            "净节省": "Net Savings",
+            "回本周期": "Payback Period",
+            "📋 复制结果": "📋 Copy Results",
+            "不买点": "No Points",
+            "买": "Buy ",
+            "个点": " Points",
+        },
+        "faqs": [
+            ("什么是房贷折扣点（Mortgage Points）？", "What are mortgage discount points?", "房贷折扣点是你提前支付的一笔费用，用来降低贷款利率。1个点=贷款金额的1%。每个点通常降低利率0.25%。例如，贷款50万元，买1个点花费5000元，利率从6%降到5.75%，每月可省约80元。", "Mortgage discount points are upfront fees paid to lower your interest rate. 1 point = 1% of the loan amount. Each point typically reduces the rate by 0.25%. For example, on a $500,000 loan, buying 1 point costs $5,000 and might reduce your rate from 6% to 5.75%, saving about $80/month."),
+            ("买房贷折扣点值不值？", "Are mortgage points worth buying?", "买折扣点是否划算取决于你打算持有多久。需要计算「收支平衡点」：折扣点成本 / 每月节省金额 = 需要多少个月收回成本。如果你计划持有超过这个月数，买点就划算。一般持有5年以上值得考虑，短期则不宜购买。", "Whether points are worth it depends on how long you'll keep the mortgage. Calculate the break-even point: Points Cost ÷ Monthly Savings = Months to recoup. If you plan to stay beyond this period, buying points makes sense. Generally worth considering if you'll hold for 5+ years; not recommended for short-term ownership."),
+            ("折扣点可以抵税吗？", "Are mortgage points tax deductible?", "在美国，房贷折扣点可以作为房贷利息在联邦税中抵扣，但要满足特定条件：贷款用于购买或改善主要住房，折扣点是当地惯例，且金额不超过当地平均水平。建议咨询税务专业人士。本工具展示的是税前对比。", "In the US, mortgage points may be deductible as mortgage interest on federal taxes, subject to conditions: the loan must be for purchasing or improving your primary residence, points must be customary in your area, and the amount must not exceed typical local averages. Consult a tax professional. This tool shows pre-tax comparisons."),
+            ("买多少折扣点合适？", "How many points should I buy?", "一般建议购买0-2个点。每个点降低约0.25%利率。具体取决于：1)你能拿出的额外现金；2)计划持有时长；3)当前利率环境。本工具可以帮你对比「不买点」「买1个点」「买2个点」三种方案的总支出，一目了然。", "Generally 0-2 points is recommended. Each point reduces the rate by ~0.25%. The optimal number depends on: 1) available cash; 2) planned holding period; 3) current rate environment. This tool lets you compare 'No Points' vs 'Buy Points' scenarios side by side."),
+        ],
+    },
 ]
 
-for tool in TOOLS:
-    slug = tool['slug']
-    src = f'/home/chison/tools-site/{slug}/index.html'
-    dst = f'/home/chison/tools-site/en/{slug}/index.html'
-    
-    with open(src, 'r', encoding='utf-8') as f:
+def translate_page(filepath, tool_info):
+    with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
-    
-    for old, new in tool['replacements']:
-        content = content.replace(old, new)
-    
-    with open(dst, 'w', encoding='utf-8') as f:
+
+    # lang
+    content = content.replace('lang="zh-CN"', 'lang="en"')
+
+    # canonical
+    name = tool_info["name"]
+    content = content.replace(f'href="https://free-toolbase.com/{name}/"', f'href="https://free-toolbase.com/en/{name}/"')
+
+    # og:url
+    content = content.replace(f'content="https://free-toolbase.com/{name}/"', f'content="https://free-toolbase.com/en/{name}/"')
+
+    # hreflang
+    content = content.replace(f'href="https://free-toolbase.com/{name}/"', f'href="https://free-toolbase.com/en/{name}/"')
+
+    # title
+    content = content.replace(f'<title>免费{tool_info["zh_title"]}', f'<title>Free {tool_info["en_title"]}')
+    content = content.replace(' | 无需注册</title>', ' | No Sign-Up</title>')
+
+    # og:title
+    content = content.replace(f'content="免费{tool_info["zh_title"]}', f'content="Free {tool_info["en_title"]}')
+    content = content.replace(' | 无需注册"', ' | No Sign-Up"')
+
+    # description
+    content = content.replace(f'content="{tool_info["zh_desc"]}"', f'content="{tool_info["en_desc"]}"')
+
+    # h1
+    content = content.replace(f'<h1>{tool_info["icon"]} {tool_info["zh_title"]}</h1>', f'<h1>{tool_info["icon"]} {tool_info["en_title"]}</h1>')
+
+    # lang switch
+    content = content.replace(f'<a href="index.html" class="active">中文</a><a href="../en/{name}/" class="">EN</a>',
+                               f'<a href="../{name}/" class="">中文</a><a href="index.html" class="active">EN</a>')
+
+    # nav-back 首页→Home, 工具→Tools
+    content = content.replace('>首页</a>', '>Home</a>')
+    content = content.replace('>工具</a>', '>Tools</a>')
+
+    # hero
+    old_hero_pattern = re.search(r'<div class="hero"><p>.*?</p>', content)
+    if old_hero_pattern:
+        old_hero = old_hero_pattern.group()
+        new_hero = f'<div class="hero"><p>{tool_info["en_hero"]}</p>'
+        content = content.replace(old_hero, new_hero)
+
+    # badge
+    content = content.replace('零依赖·可离线使用', 'Zero Dependencies · Works Offline')
+
+    # labels
+    for zh, en in tool_info["labels"].items():
+        content = content.replace(zh, en)
+
+    # FAQ titles and answers
+    for zh_q, en_q, zh_a, en_a in tool_info["faqs"]:
+        content = content.replace(f'<h3>{zh_q}</h3>', f'<h3>{en_q}</h3>')
+        content = content.replace(f'<p>{zh_a}</p>', f'<p>{en_a}</p>')
+
+    # breadcrumb
+    content = content.replace('"name": "首页"', '"name": "Home"')
+    content = content.replace('"name": "工具"', '"name": "Tools"')
+    content = content.replace(f'"name": "{tool_info["zh_title"]}"', f'"name": "{tool_info["en_title"]}"')
+
+    # Schema names
+    content = content.replace(f'"name": "{tool_info["zh_title"]}"', f'"name": "{tool_info["en_title"]}"')
+
+    # HowTo name
+    content = content.replace(f'"如何使用{tool_info["zh_title"]}"', f'"How to Use the {tool_info["en_title"]}"')
+
+    # FAQ title in Schema
+    content = content.replace(f'"如何使用{tool_info["zh_title"]}"', f'"How to Use the {tool_info["en_title"]}"')
+
+    # 常见问题 → FAQ
+    content = content.replace('常见问题', 'Frequently Asked Questions')
+
+    # 首页/全部工具/联系我们/隐私政策/服务条款/关于我们
+    content = content.replace('>首页</a>', '>Home</a>')
+    content = content.replace('>全部工具</a>', '>All Tools</a>')
+    content = content.replace('>联系我们</a>', '>Contact</a>')
+    content = content.replace('>隐私政策</a>', '>Privacy Policy</a>')
+    content = content.replace('>服务条款</a>', '>Terms of Service</a>')
+    content = content.replace('>关于我们</a>', '>About</a>')
+
+    # footer text
+    content = content.replace(' | 无需注册 · 数据绝不上传服务器', ' | No Registration · Data Stays On Your Device')
+    content = content.replace('问题反馈:', 'Feedback:')
+
+    # showToast messages
+    content = content.replace('"已复制"', '"Copied!"')
+    content = content.replace('"复制失败"', '"Copy failed"')
+
+    # 投资回报计算结果 → results title in JS
+    content = content.replace('"投资回报计算结果"', '"Investment Returns Calculation Results"')
+    content = content.replace('"退休年龄计算结果"', '"Retirement Age Calculation Results"')
+    content = content.replace('"大学教育ROI计算结果"', '"College ROI Calculation Results"')
+    content = content.replace('"储蓄债券计算结果"', '"Savings Bond Calculation Results"')
+    content = content.replace('"房贷折扣点计算结果"', '"Mortgage Points Calculation Results"')
+
+    # formatMoney locale
+    content = content.replace("'zh-CN'", "'en-US'")
+
+    # Updated date stays same
+
+    # Misc
+    content = content.replace('无需注册 · 数据绝不上传服务器', 'No Registration · Data Stays On Your Device')
+    content = content.replace('第', 'Year ')
+    content = content.replace('年</td>', '</td>')
+    content = content.replace('✅ 值得', '✅ Worth It')
+    content = content.replace('❌ 不值得', '❌ Not Worth It')
+    content = content.replace('✅ 是', '✅ Yes')
+    content = content.replace('❌ 否', '❌ No')
+    content = content.replace('无法达成', 'Unreachable')
+    content = content.replace('约', '~')
+    content = content.replace('岁', ' yrs old')
+    content = content.replace('年</td>', ' yrs</td>')
+    content = content.replace('/年', '/yr')
+
+    with open(filepath, 'w', encoding='utf-8') as f:
         f.write(content)
-    print(f'✅ Created en/{slug}/index.html')
+
+for tool in tools:
+    path = os.path.join(SITE, "en", tool["name"], "index.html")
+    translate_page(path, tool)
+    print(f"Translated: {tool['name']}")
+
+print("\nAll 5 English versions done!")
