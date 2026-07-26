@@ -213,8 +213,15 @@ def check_js(path, lang, item):
             elif ch == '/':
                 # 检测正则字面量（非除法、非 // 注释）
                 prev = s[i-1] if i > 0 else ' '
+                prev_non_space = prev
+                j = i - 2
+                while j >= 0 and s[j] in ' \t':
+                    prev_non_space = s[j]
+                    j -= 1
+                if j >= 0 and s[j] not in ' \t':
+                    prev_non_space = s[j]
                 if i+1 < len(s) and s[i+1] not in '/* \t':
-                    if prev in '=,([!&|~?:' or (i >= 6 and s[i-6:i] == 'return') or (i >= 4 and s[i-4:i] == 'case'):
+                    if prev in '=,([!&|~?:' or (i >= 6 and s[i-6:i] == 'return') or (i >= 4 and s[i-4:i] == 'case') or prev_non_space in '=,([!&|~?:':
                         in_regex = True
             elif ch == '(' and not in_regex: depth += 1
             elif ch == ')' and not in_regex: depth -= 1
