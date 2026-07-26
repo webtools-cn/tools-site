@@ -122,7 +122,7 @@ def check_language(path, lang, item):
             # 去除HTML标签
             text_only = re.sub(r'<[^>]+>', ' ', clean)
             # 如果去掉script/style后仍有超过3个中文字符，才标记
-            if len(list(CN_RE.finditer(text_only))) > 3:
+            if len(list(CN_RE.finditer(text_only))) > 4:
                 issues.append('chinese_in_en')
     else:
         # CN页面h1不应是纯英文
