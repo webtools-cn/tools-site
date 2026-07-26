@@ -155,7 +155,7 @@ def check_functionality(path, lang, item):
     
     # 缺复制按钮但有输出区域
     has_output = bool(re.search(r'id="result|class="result|id="output', c))
-    if has_output and 'copy' not in c.lower() and '复制' not in c:
+    if has_output and 'copy' not in c.lower() and '复制' not in c and 'clipboard' not in c.lower():
         issues.append('no_copy_btn')
     
     return issues
