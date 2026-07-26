@@ -316,6 +316,68 @@ def auto_fix(path, lang, item, issues):
 
 # ============ 主流程 ============
 
+def check_homepage(path, lang):
+    """门0: 首页HTML结构完整性"""
+    issues = []
+    with open(path, 'r', encoding='utf-8', errors='ignore') as f: c = f.read()
+    
+    # head标签必须正确闭合
+    if not re.search(r'<head\s*>', c):
+        issues.append('head_not_opened')
+    
+    # head内不应有tool-card HTML（卡片误插head→白屏），排除CSS中的.tool-card
+    head_close = c.find('</head>')
+    if head_close > 0 and re.search(r'<div\s+class="tool-card"', c[:head_close]):
+        issues.append('cards_in_head')
+    
+    # 必须有tools-grid
+    if 'tools-grid' not in c:
+        issues.append('no_tools_grid')
+    
+    # 必须有搜索框
+    if 'search' not in c.lower():
+        issues.append('no_search')
+    
+    # 必须有分类筛选
+    if 'data-category' not in c and 'filter' not in c.lower():
+        issues.append('no_category_filter')
+    
+    return issues
+
+def fix_homepage(path, lang, issues):
+    """自动修复首页问题"""
+    with open(path, 'r', encoding='utf-8', errors='ignore') as f: c = f.read()
+    fixed = []
+    remaining = []
+    
+    for issue in issues:
+        if issue == 'head_not_opened':
+            # 修复 <head 缺 >
+            c = re.sub(r'<head(?!\s*>)[^>]*$', '<head>', c, count=1, flags=re.MULTILINE)
+            if re.search(r'<head\s*>', c):
+                fixed.append(issue)
+            else:
+                remaining.append(issue)
+        
+        elif issue == 'cards_in_head':
+            # 把head里的tool-card移到tools-grid
+            head_close = c.find('</head>')
+            head_content = c[:head_close]
+            cards = re.findall(r'<div class="tool-card"[^>]*>.*?</div>', head_content, re.DOTALL)
+            for card in cards:
+                c = c.replace(card, '', 1)
+            grid_match = re.search(r'<div class="tools-grid"[^>]*>', c)
+            if grid_match and cards:
+                insert_pos = grid_match.end()
+                c = c[:insert_pos] + '\n'.join(cards) + '\n' + c[insert_pos:]
+                fixed.append(issue)
+            else:
+                remaining.append(issue)
+    
+    if fixed:
+        with open(path, 'w', encoding='utf-8') as f: f.write(c)
+    return fixed, remaining
+
 def run():
     all_issues = {}
     all_fixed = {}
@@ -329,6 +391,16 @@ def run():
         ('functionality', check_functionality),
         ('schema', check_schema),
     ]
+    
+    # 首页检测
+    for lang, path in [('cn', os.path.join(SITE, 'index.html')), ('en', os.path.join(SITE, 'en', 'index.html'))]:
+        if not os.path.isfile(path): continue
+        issues = check_homepage(path, lang)
+        if issues:
+            all_issues[f'homepage:{lang}'] = issues
+            fixed, remaining = fix_homepage(path, lang, issues)
+            if fixed: all_fixed[f'homepage:{lang}'] = fixed
+            if remaining: all_remaining[f'homepage:{lang}'] = remaining
     
     # CN
     for item in get_tools():
