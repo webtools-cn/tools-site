@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Safetensors文件查看器 - 在线解析AI模型权重文件 | Free ToolBase</title>
+<meta name="description" content="在线Safetensors文件查看器，解析HuggingFace AI模型权重文件头信息。纯前端解析，不上传服务器，保护模型隐私。支持查看张量名称、数据类型、形状。">
+<meta property="og:title" content="Safetensors文件查看器 - 在线解析AI模型权重文件 | Free ToolBase">
+<meta property="og:description" content="在线Safetensors文件查看器，解析HuggingFace AI模型权重文件头信息。纯前端解析，不上传服务器，保护模型隐私。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://free-toolbase.com/safetensors-viewer/">
+<style>
+:root{--primary:#4F46E5;--primary-hover:#4338CA;--bg:#f8fafc;--surface:#fff;--text:#1e293b;--text-secondary:#64748b;--border:#e2e8f0;--radius:12px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+header h1{font-size:1.25rem;font-weight:700}
+header a{color:var(--primary);text-decoration:none;font-size:.9rem}
+main{flex:1;padding:24px;max-width:900px;margin:0 auto;width:100%}
+h2{font-size:1rem;margin-bottom:12px}
+.card{background:var(--surface);border-radius:var(--radius);padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:16px}
+.drop-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:48px 24px;text-align:center;cursor:pointer;transition:all .2s;background:#fafbfc}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--primary);background:rgba(79,70,229,.03)}
+.drop-zone p{margin:8px 0;color:var(--text-secondary);font-size:.9rem}
+.drop-zone .icon{font-size:2.5rem;margin-bottom:8px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-size:.9rem;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-hover)}
+.btn-outline{background:var(--surface);color:var(--primary);border:1px solid var(--primary)}.btn-outline:hover{background:rgba(79,70,229,.05)}
+#results{display:none}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.summary-item{background:linear-gradient(135deg,#f0f4ff,#e8ecff);border-radius:8px;padding:12px;text-align:center}
+.summary-item .val{font-size:1.3rem;font-weight:700;color:var(--primary)}
+.summary-item .lbl{font-size:.75rem;color:var(--text-secondary);margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{background:#f1f5f9;padding:8px 10px;text-align:left;font-weight:600;font-size:.8rem;color:var(--text-secondary)}
+td{padding:8px 10px;border-bottom:1px solid var(--border)}
+.tensor-search{margin-bottom:12px}
+.tensor-search input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:.9rem}
+.tensor-search input:focus{outline:none;border-color:var(--primary)}
+.copy-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.75rem;transition:all .2s}
+.copy-btn:hover{background:rgba(6,182,212,.25)}
+footer{background:var(--surface);border-top:1px solid var(--border);padding:16px 24px;text-align:center;font-size:.8rem;color:var(--text-secondary)}
+@media(max-width:600px){main{padding:12px}.card{padding:16px}.summary-grid{grid-template-columns:1fr 1fr}}
+</style>
+<link rel="canonical" href="https://free-toolbase.com/safetensors-viewer/">
+<meta property="og:image" content="https://free-toolbase.com/og-image.svg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="alternate" hreflang="zh" href="https://free-toolbase.com/safetensors-viewer/">
+<link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/safetensors-viewer/">
+<link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/safetensors-viewer/">
+<meta name="robots" content="index, follow">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"首页","item":"https://free-toolbase.com/"},{"@type":"ListItem","position":2,"name":"工具","item":"https://free-toolbase.com/#tools"},{"@type":"ListItem","position":3,"name":"Safetensors文件查看器","item":"https://free-toolbase.com/safetensors-viewer/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Safetensors文件查看器","applicationCategory":"DeveloperApplication","operatingSystem":"Web Browser","description":"在线Safetensors文件查看器，解析HuggingFace AI模型权重文件头信息。纯前端解析，不上传服务器。","url":"https://free-toolbase.com/safetensors-viewer/","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+</head>
+<body>
+<header><h1>🧠 Safetensors 文件查看器</h1><a href="/">← 返回首页</a></header>
+<main>
+<div class="card">
+  <h2>📂 上传Safetensors文件</h2>
+  <div class="drop-zone" id="dropZone">
+    <div class="icon">📁</div>
+    <p><strong>拖放.safetensors文件到此处</strong></p>
+    <p>或点击选择文件 · 纯前端解析，不上传服务器</p>
+    <input type="file" id="fileInput" accept=".safetensors" style="display:none">
+    <button class="btn-primary" onclick="document.getElementById('fileInput').click()">选择文件</button>
+  </div>
+  <div class="btn-row" style="margin-top:12px">
+    <span style="font-size:.8rem;color:var(--text-secondary)" id="fileInfo">未选择文件</span>
+  </div>
+</div>
+<div class="card" id="results">
+  <h2>📊 文件摘要</h2>
+  <div class="summary-grid" id="summary"></div>
+  <h2 style="margin-top:16px">📋 张量列表</h2>
+  <div class="tensor-search"><input type="text" id="searchInput" placeholder="搜索张量名称..." oninput="filterTensors()"></div>
+  <div style="max-height:500px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+    <table><thead><tr><th>#</th><th>张量名称</th><th>数据类型</th><th>形状</th><th>大小估计</th></tr></thead><tbody id="tensorBody"></tbody></table>
+  </div>
+  <div class="btn-row">
+    <button class="btn-outline" onclick="exportJSON()">📥 导出JSON</button>
+    <button class="btn-outline" onclick="document.getElementById('searchInput').value='';filterTensors()">🔄 清除筛选</button>
+  </div>
+</div>
+</main>
+<footer>© 2025 Free ToolBase · 纯前端工具，不上传文件</footer>
+<script>
+let tensorData=[];
+function showToast(msg){const t=document.createElement('div');t.textContent=msg;t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 24px;border-radius:8px;z-index:99999;font-size:14px;animation:toastIn .3s ease';document.body.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300)},2000)}
+document.head.insertAdjacentHTML('beforeend','<style>@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}</style>');
+
+const DTYPE_SIZES={'F32':4,'F16':2,'BF16':2,'F8_E4M3':1,'F8_E5M2':1,'I64':8,'I32':4,'I16':2,'I8':1,'U8':1,'F64':8,'BOOL':1};
+const dropZone=document.getElementById('dropZone');
+const fileInput=document.getElementById('fileInput');
+
+dropZone.addEventListener('click',()=>fileInput.click());
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover')});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('dragover');
+  const file=e.dataTransfer.files[0];if(file)processFile(file)});
+fileInput.addEventListener('change',e=>{const file=e.target.files[0];if(file)processFile(file)});
+
+async function processFile(file){
+  if(!file.name.endsWith('.safetensors')){showToast('请选择.safetensors文件');return}
+  document.getElementById('fileInfo').textContent=file.name+' ('+(file.size/1024/1024).toFixed(2)+' MB)';
+  try{
+    const buf=await file.arrayBuffer();
+    const headerLen=new DataView(buf,0,8).getBigUint64(0,true);
+    const headerBytes=new Uint8Array(buf,8,Number(headerLen));
+    const headerJSON=new TextDecoder().decode(headerBytes);
+    const header=JSON.parse(headerJSON);
+    displayResults(header,file.size);
+  }catch(e){showToast('解析失败: '+e.message)}
+}
+
+function displayResults(header,fileSize){
+  tensorData=[];
+  const keys=Object.keys(header);
+  if(keys.length===0){showToast('文件中没有张量数据');return}
+  const dtypes={};let totalElems=0,totalBytes=0;
+  keys.forEach((k,i)=>{
+    const info=header[k];const dtype=info.dtype||'?';const shape=info.shape||[];
+    const elems=shape.reduce((a,b)=>a*b,1);const bsize=DTYPE_SIZES[dtype]||0;
+    dtypes[dtype]=(dtypes[dtype]||0)+1;totalElems+=elems;totalBytes+=elems*bsize;
+    tensorData.push({name:k,dtype,shape:shape.join('×'),shapeRaw:shape,elems,bytes:elems*bsize});
+  });
+  document.getElementById('results').style.display='block';
+  document.getElementById('summary').innerHTML=`
+    <div class="summary-item"><div class="val">${keys.length}</div><div class="lbl">张量数量</div></div>
+    <div class="summary-item"><div class="val">${totalElems.toLocaleString()}</div><div class="lbl">总元素数</div></div>
+    <div class="summary-item"><div class="val">${(totalBytes/1024/1024).toFixed(2)} MB</div><div class="lbl">数据大小(估)</div></div>
+    <div class="summary-item"><div class="val">${(fileSize/1024/1024).toFixed(2)} MB</div><div class="lbl">文件大小</div></div>
+    <div class="summary-item"><div class="val">${Object.keys(dtypes).join(', ')}</div><div class="lbl">数据类型</div></div>
+  `;
+  renderTable(tensorData);
+}
+
+function renderTable(data){
+  const tbody=document.getElementById('tensorBody');
+  tbody.innerHTML=data.map((t,i)=>`<tr>
+    <td>${i+1}</td>
+    <td style="font-family:monospace;font-size:.8rem;max-width:350px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${t.name}">${t.name}</td>
+    <td><span style="background:#e0e7ff;color:var(--primary);padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:600">${t.dtype}</span></td>
+    <td style="font-family:monospace;font-size:.8rem">${t.shape}</td>
+    <td>${t.bytes>1048576?(t.bytes/1048576).toFixed(2)+' MB':t.bytes>1024?(t.bytes/1024).toFixed(1)+' KB':t.bytes+' B'}</td>
+  </tr>`).join('');
+}
+
+function filterTensors(){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  const filtered=q?tensorData.filter(t=>t.name.toLowerCase().includes(q)):tensorData;
+  renderTable(filtered);
+}
+
+function exportJSON(){
+  const data=tensorData.map(t=>({name:t.name,dtype:t.dtype,shape:t.shapeRaw,elems:t.elems}));
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download='safetensors-info.json';a.click();URL.revokeObjectURL(url);showToast('已导出JSON');
+}
+</script>
+</body>
+</html>
