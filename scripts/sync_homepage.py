@@ -1,125 +1,158 @@
 #!/usr/bin/env python3
-"""同步新工具到CN+EN首页，更新工具数量"""
-import re, os, subprocess
+"""Add new tool cards to CN + EN homepages and update sitemap"""
+import re, os, datetime
 
-# 脚本在~/tools-site/scripts目录下
-base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE = "/home/chison/tools-site"
 
-# 5个新工具：CN版卡片HTML
-new_cards_cn = '''<div class="tool-card" data-category="金融计算器" data-name="货币市场收益计算器">
-<a href="/money-market-calculator/">
-<div class="tool-icon">💵</div>
-<h3>货币市场收益计算器</h3>
-<p>计算货币基金和Money Market账户预期收益</p>
-</a>
-</div>
-<div class="tool-card" data-category="金融计算器" data-name="国债(T-Bill)收益计算器">
-<a href="/treasury-bill-calculator/">
-<div class="tool-icon">🏛️</div>
-<h3>国债(T-Bill)收益计算器</h3>
-<p>计算美国短期国库券(T-Bills)贴现收益率、实际年化收益</p>
-</a>
-</div>
-<div class="tool-card" data-category="金融计算器" data-name="HSA vs FSA对比计算器">
-<a href="/hsa-vs-fsa-calculator/">
-<div class="tool-icon">🏥</div>
-<h3>HSA vs FSA对比计算器</h3>
-<p>对比美国健康储蓄账户(HSA)与弹性支出账户(FSA)税收优惠</p>
-</a>
-</div>
-<div class="tool-card" data-category="金融计算器" data-name="定期vs终身寿险对比计算器">
-<a href="/term-vs-whole-life-calculator/">
-<div class="tool-icon">🛡️</div>
-<h3>定期vs终身寿险对比计算器</h3>
-<p>对比Term Life与Whole Life保费、现金价值与净成本</p>
-</a>
-</div>
-<div class="tool-card" data-category="金融计算器" data-name="大额贷款(Jumbo Loan)计算器">
-<a href="/jumbo-loan-calculator/">
-<div class="tool-icon">🏘️</div>
-<h3>大额贷款(Jumbo Loan)计算器</h3>
-<p>超过FHFA限额的高额房贷月供计算，对比普通贷款差异</p>
-</a>
-</div>
-'''
+# New tools with their card HTML
+NEW_TOOLS = [
+    {
+        "slug": "spaced-repetition-scheduler",
+        "cn_name": "间隔重复学习计划表",
+        "en_name": "Spaced Repetition Scheduler",
+        "emoji": "🧠",
+        "cn_desc": "基于遗忘曲线的科学复习计划生成器",
+        "en_desc": "Science-based review scheduler using the forgetting curve",
+        "category_cn": "学习工具",
+        "category_en": "Learning",
+    },
+    {
+        "slug": "pomodoro-tracker",
+        "cn_name": "番茄钟计时器",
+        "en_name": "Pomodoro Timer",
+        "emoji": "🍅",
+        "cn_desc": "在线番茄工作法计时器，提升专注力",
+        "en_desc": "Online Pomodoro technique timer to boost focus",
+        "category_cn": "效率工具",
+        "category_en": "Productivity",
+    },
+    {
+        "slug": "pronunciation-guide",
+        "cn_name": "英语发音查询工具",
+        "en_name": "English Pronunciation Guide",
+        "emoji": "🔊",
+        "cn_desc": "英式/美式音标查询与发音指导",
+        "en_desc": "British & American phonetic lookup with pronunciation tips",
+        "category_cn": "学习工具",
+        "category_en": "Learning",
+    },
+    {
+        "slug": "vocabulary-builder",
+        "cn_name": "英语词汇量测试",
+        "en_name": "Vocabulary Builder",
+        "emoji": "📚",
+        "cn_desc": "科学估算英语词汇量，分级测试",
+        "en_desc": "Scientifically estimate your English vocabulary size",
+        "category_cn": "学习工具",
+        "category_en": "Learning",
+    },
+    {
+        "slug": "multiplication-table-generator",
+        "cn_name": "乘法口诀表生成器",
+        "en_name": "Multiplication Table Generator",
+        "emoji": "✖️",
+        "cn_desc": "可打印乘法口诀表，1×1到20×20",
+        "en_desc": "Printable multiplication tables from 1×1 to 20×20",
+        "category_cn": "教育工具",
+        "category_en": "Education",
+    },
+]
 
-new_cards_en = '''<div class="tool-card" data-category="金融计算器" data-name="Money Market Yield Calculator">
-<a href="/en/money-market-calculator/">
-<div class="tool-icon">💵</div>
-<h3>Money Market Yield Calculator</h3>
-<p>Calculate expected returns for money market funds and accounts</p>
-</a>
-</div>
-<div class="tool-card" data-category="金融计算器" data-name="Treasury Bill (T-Bill) Calculator">
-<a href="/en/treasury-bill-calculator/">
-<div class="tool-icon">🏛️</div>
-<h3>Treasury Bill (T-Bill) Calculator</h3>
-<p>Calculate discount yield and annualized return of US T-Bills</p>
-</a>
-</div>
-<div class="tool-card" data-category="金融计算器" data-name="HSA vs FSA Comparison Calculator">
-<a href="/en/hsa-vs-fsa-calculator/">
-<div class="tool-icon">🏥</div>
-<h3>HSA vs FSA Comparison Calculator</h3>
-<p>Compare Health Savings Account vs Flexible Spending Account tax savings</p>
-</a>
-</div>
-<div class="tool-card" data-category="金融计算器" data-name="Term vs Whole Life Insurance Calculator">
-<a href="/en/term-vs-whole-life-calculator/">
-<div class="tool-icon">🛡️</div>
-<h3>Term vs Whole Life Insurance Calculator</h3>
-<p>Compare Term Life and Whole Life premiums, cash value & net cost</p>
-</a>
-</div>
-<div class="tool-card" data-category="金融计算器" data-name="Jumbo Loan Calculator">
-<a href="/en/jumbo-loan-calculator/">
-<div class="tool-icon">🏘️</div>
-<h3>Jumbo Loan Calculator</h3>
-<p>Calculate payments for mortgages exceeding FHFA conforming limits</p>
-</a>
-</div>
-'''
+# Count current tools
+cn_dirs = [d for d in os.listdir(BASE) if os.path.isdir(os.path.join(BASE, d)) and d not in ['en', '_gen', 'css', 'js', 'scripts', 'quality', '.git', '.gsc-data'] and not d.startswith('.')]
+en_dirs = [d for d in os.listdir(os.path.join(BASE, 'en')) if os.path.isdir(os.path.join(BASE, 'en', d)) and not d.startswith('.')]
+new_count = len(NEW_TOOLS)
+cn_total = len(cn_dirs) + new_count
+en_total = len(en_dirs) + new_count
+print(f"CN tools: {len(cn_dirs)} → {cn_total}")
+print(f"EN tools: {len(en_dirs)} → {en_total}")
 
-# 处理CN首页
-cn_path = os.path.join(base, 'index.html')
-with open(cn_path, 'r') as f:
-    cn = f.read()
+def generate_card_cn(tool):
+    return f'''<div class="tool-card" data-category="{tool['category_cn']}" data-name="{tool['cn_name']}">
+<span class="icon">{tool['emoji']}</span>
+<h3>{tool['cn_name']}</h3>
+<p>{tool['cn_desc']}</p>
+<div class="tool-meta"><span class="new-tag">NEW</span><span>{tool['category_cn']}</span></div>
+<a href="/{tool['slug']}/">立即使用 →</a>
+</div>'''
 
-# 插入新卡片在第一个金融计算器card之前
-anchor = '<div class="tool-card" data-category="金融计算器" data-name="利率换算计算器">'
-cn = cn.replace(anchor, new_cards_cn + anchor)
+def generate_card_en(tool):
+    return f'''<div class="tool-card" data-category="{tool['category_en']}" data-name="{tool['en_name']}">
+<span class="icon">{tool['emoji']}</span>
+<h3>{tool['en_name']}</h3>
+<p>{tool['en_desc']}</p>
+<div class="tool-meta"><span class="new-tag">NEW</span><span>{tool['category_en']}</span></div>
+<a href="/en/{tool['slug']}/">Use Now →</a>
+</div>'''
 
-# 更新工具数量：3086→3091
-cn = cn.replace('3086+', '3091+')
+# Update CN homepage
+cn_path = os.path.join(BASE, "index.html")
+with open(cn_path, "r", encoding="utf-8") as f:
+    cn_content = f.read()
 
-# 更新title中的数字
-cn = re.sub(r'<title>在线小工具矩阵 - \d+\+免费在线工具集合', '<title>在线小工具矩阵 - 3091+免费在线工具集合', cn)
+# Insert cards after last existing card in the main grid (find last </div> before "统计" section)
+# Strategy: find <!-- TOOLS END --> marker or insert before the last closing of tools grid
+# Find a good insertion point: look for the last tool-card before the stats section
+insert_marker = '<div class="hero-stat">'
+if insert_marker in cn_content:
+    cards_html = "\n".join([generate_card_cn(t) for t in NEW_TOOLS])
+    cn_content = cn_content.replace(insert_marker, cards_html + "\n" + insert_marker)
+    
+# Update tool count: 3096 → new number
+cn_content = cn_content.replace('3096+', f'{cn_total}+')
+cn_content = cn_content.replace('3096', str(cn_total))
+# Also fix the FAQ count
+cn_content = re.sub(r'(\d{4})\+?(款|个)', f'{cn_total}+\\2', cn_content)
 
-with open(cn_path, 'w') as f:
-    f.write(cn)
-print("CN首页已更新")
+with open(cn_path, "w", encoding="utf-8") as f:
+    f.write(cn_content)
+print(f"✅ Updated CN homepage: {cn_path}")
 
-# 处理EN首页
-en_path = os.path.join(base, 'en', 'index.html')
-with open(en_path, 'r') as f:
-    en = f.read()
+# Update EN homepage
+en_path = os.path.join(BASE, "en", "index.html")
+with open(en_path, "r", encoding="utf-8") as f:
+    en_content = f.read()
 
-# EN首页找第一个金融计算器card
-anchor_en = '<div class="tool-card" data-category="金融计算器" data-name="'
-# 找到第一个金融计算器
-idx = en.find(anchor_en)
-if idx > 0:
-    # 找到这个完整的卡片开始
-    en = en[:idx] + new_cards_en + en[idx:]
+if insert_marker in en_content:
+    cards_html = "\n".join([generate_card_en(t) for t in NEW_TOOLS])
+    en_content = en_content.replace(insert_marker, cards_html + "\n" + insert_marker)
 
-# 更新工具数量：3081→3086
-en = en.replace('3081+', '3086+')
+en_content = en_content.replace('3091+', f'{en_total}+')
+en_content = en_content.replace('3091', str(en_total))
+en_content = re.sub(r'(\d{4})\+?(款|个)', f'{en_total}+\\2', en_content)
+# Also fix standalone numbers in meta
+en_content = re.sub(r'content="Access \d+\+', f'content="Access {en_total}+', en_content)
 
-# 更新title中的数字
-en = re.sub(r'Tools — PDF, Image, JSON, Text &amp; \d+\+ Developer Utili', 'Tools — PDF, Image, JSON, Text &amp; 3086+ Developer Utili', en)
+with open(en_path, "w", encoding="utf-8") as f:
+    f.write(en_content)
+print(f"✅ Updated EN homepage: {en_path}")
 
-with open(en_path, 'w') as f:
-    f.write(en)
-print("EN首页已更新")
+# Update sitemap
+sitemap_path = os.path.join(BASE, "sitemap.xml")
+today = datetime.date.today().isoformat()
+sitemap_entries = []
+for tool in NEW_TOOLS:
+    sitemap_entries.append(f'''  <url>
+    <loc>https://free-toolbase.com/{tool['slug']}/</loc>
+    <lastmod>{today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>''')
+    sitemap_entries.append(f'''  <url>
+    <loc>https://free-toolbase.com/en/{tool['slug']}/</loc>
+    <lastmod>{today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>''')
 
-print("Done!")
+with open(sitemap_path, "r", encoding="utf-8") as f:
+    sm = f.read()
+
+# Insert before closing </urlset>
+sm = sm.replace("</urlset>", "\n".join(sitemap_entries) + "\n</urlset>")
+
+with open(sitemap_path, "w", encoding="utf-8") as f:
+    f.write(sm)
+print(f"✅ Updated sitemap: {sitemap_path}")
+
+print(f"\n🎉 Homepage sync done. CN: {cn_total} tools, EN: {en_total} tools")
