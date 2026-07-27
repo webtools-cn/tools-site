@@ -557,101 +557,6 @@ def fix_homepage(path, lang, issues):
         with open(path, 'w', encoding='utf-8') as f: f.write(c)
     return fixed, remaining
 
-def run():
-    all_issues = {}
-    all_fixed = {}
-    all_remaining = {}
-    
-    checks = [
-        ('seo', check_seo),
-        ('structure', check_structure),
-        ('css', check_css),
-        ('language', check_language),
-        ('functionality', check_functionality),
-        ('js', check_js),
-        ('schema', check_schema),
-        ('hreflang', check_hreflang_correctness),
-        ('content', check_content_thickness),
-        ('internal_links', check_internal_links),
-        ('canonical', check_canonical_correctness),
-    ]
-    
-    # 首页检测
-    for lang, path in [('cn', os.path.join(SITE, 'index.html')), ('en', os.path.join(SITE, 'en', 'index.html'))]:
-        if not os.path.isfile(path): continue
-        issues = check_homepage(path, lang)
-        if issues:
-            all_issues[f'homepage:{lang}'] = issues
-            fixed, remaining = fix_homepage(path, lang, issues)
-            if fixed: all_fixed[f'homepage:{lang}'] = fixed
-            if remaining: all_remaining[f'homepage:{lang}'] = remaining
-    
-    # CN
-    for item in get_tools():
-        path = os.path.join(SITE, item, 'index.html')
-        issues = []
-        for name, fn in checks:
-            issues.extend(fn(path, 'cn', item))
-        if issues:
-            all_issues[f'cn:{item}'] = issues
-            fixed, remaining = auto_fix(path, 'cn', item, issues)
-            if fixed: all_fixed[f'cn:{item}'] = fixed
-            if remaining: all_remaining[f'cn:{item}'] = remaining
-    
-    # EN
-    for item in get_en_tools():
-        path = os.path.join(SITE, 'en', item, 'index.html')
-        issues = []
-        for name, fn in checks:
-            issues.extend(fn(path, 'en', item))
-        if issues:
-            all_issues[f'en:{item}'] = issues
-            fixed, remaining = auto_fix(path, 'en', item, issues)
-            if fixed: all_fixed[f'en:{item}'] = fixed
-            if remaining: all_remaining[f'en:{item}'] = remaining
-    
-    # 统计
-    total_issues = sum(len(v) for v in all_issues.values())
-    total_fixed = sum(len(v) for v in all_fixed.values())
-    total_remaining = sum(len(v) for v in all_remaining.values())
-    
-    # 按类型统计残留
-    remaining_by_type = {}
-    for issues in all_remaining.values():
-        for i in issues:
-            remaining_by_type[i] = remaining_by_type.get(i, 0) + 1
-    
-    print(f"扫描: {len(get_tools())} CN + {len(get_en_tools())} EN = {len(get_tools())+len(get_en_tools())} 页")
-    print(f"问题: {total_issues}个")
-    print(f"修复: {total_fixed}个")
-    print(f"残留: {total_remaining}个")
-    
-    if remaining_by_type:
-        print(f"\n残留问题分布:")
-        for k, v in sorted(remaining_by_type.items(), key=lambda x:-x[1]):
-            print(f"  {k}: {v}")
-    
-    # 输出JSON供cron读取
-    result = {
-        'total_issues': total_issues,
-        'total_fixed': total_fixed,
-        'total_remaining': total_remaining,
-        'remaining_by_type': remaining_by_type,
-        'remaining_pages': {k: v for k, v in all_remaining.items()},
-    }
-    
-    out_path = os.path.join(SITE, 'quality', 'quality_loop_result.json')
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    with open(out_path, 'w', encoding='utf-8') as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
-    
-    return total_remaining
-
-if __name__ == '__main__':
-    remaining = run()
-    sys.exit(0 if remaining == 0 else 1)
-
-
 # ============ 新增检测门 v2 (2026-07-27) ============
 
 def check_hreflang_correctness(path, lang, item):
@@ -765,3 +670,98 @@ def check_canonical_correctness(path, lang, item):
         issues.append('canonical_self_noindex')
     
     return issues
+
+
+def run():
+    all_issues = {}
+    all_fixed = {}
+    all_remaining = {}
+    
+    checks = [
+        ('seo', check_seo),
+        ('structure', check_structure),
+        ('css', check_css),
+        ('language', check_language),
+        ('functionality', check_functionality),
+        ('js', check_js),
+        ('schema', check_schema),
+        ('hreflang', check_hreflang_correctness),
+        ('content', check_content_thickness),
+        ('internal_links', check_internal_links),
+        ('canonical', check_canonical_correctness),
+    ]
+    
+    # 首页检测
+    for lang, path in [('cn', os.path.join(SITE, 'index.html')), ('en', os.path.join(SITE, 'en', 'index.html'))]:
+        if not os.path.isfile(path): continue
+        issues = check_homepage(path, lang)
+        if issues:
+            all_issues[f'homepage:{lang}'] = issues
+            fixed, remaining = fix_homepage(path, lang, issues)
+            if fixed: all_fixed[f'homepage:{lang}'] = fixed
+            if remaining: all_remaining[f'homepage:{lang}'] = remaining
+    
+    # CN
+    for item in get_tools():
+        path = os.path.join(SITE, item, 'index.html')
+        issues = []
+        for name, fn in checks:
+            issues.extend(fn(path, 'cn', item))
+        if issues:
+            all_issues[f'cn:{item}'] = issues
+            fixed, remaining = auto_fix(path, 'cn', item, issues)
+            if fixed: all_fixed[f'cn:{item}'] = fixed
+            if remaining: all_remaining[f'cn:{item}'] = remaining
+    
+    # EN
+    for item in get_en_tools():
+        path = os.path.join(SITE, 'en', item, 'index.html')
+        issues = []
+        for name, fn in checks:
+            issues.extend(fn(path, 'en', item))
+        if issues:
+            all_issues[f'en:{item}'] = issues
+            fixed, remaining = auto_fix(path, 'en', item, issues)
+            if fixed: all_fixed[f'en:{item}'] = fixed
+            if remaining: all_remaining[f'en:{item}'] = remaining
+    
+    # 统计
+    total_issues = sum(len(v) for v in all_issues.values())
+    total_fixed = sum(len(v) for v in all_fixed.values())
+    total_remaining = sum(len(v) for v in all_remaining.values())
+    
+    # 按类型统计残留
+    remaining_by_type = {}
+    for issues in all_remaining.values():
+        for i in issues:
+            remaining_by_type[i] = remaining_by_type.get(i, 0) + 1
+    
+    print(f"扫描: {len(get_tools())} CN + {len(get_en_tools())} EN = {len(get_tools())+len(get_en_tools())} 页")
+    print(f"问题: {total_issues}个")
+    print(f"修复: {total_fixed}个")
+    print(f"残留: {total_remaining}个")
+    
+    if remaining_by_type:
+        print(f"\n残留问题分布:")
+        for k, v in sorted(remaining_by_type.items(), key=lambda x:-x[1]):
+            print(f"  {k}: {v}")
+    
+    # 输出JSON供cron读取
+    result = {
+        'total_issues': total_issues,
+        'total_fixed': total_fixed,
+        'total_remaining': total_remaining,
+        'remaining_by_type': remaining_by_type,
+        'remaining_pages': {k: v for k, v in all_remaining.items()},
+    }
+    
+    out_path = os.path.join(SITE, 'quality', 'quality_loop_result.json')
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with open(out_path, 'w', encoding='utf-8') as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
+    
+    return total_remaining
+
+if __name__ == '__main__':
+    remaining = run()
+    sys.exit(0 if remaining == 0 else 1)
