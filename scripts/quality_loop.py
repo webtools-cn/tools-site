@@ -570,6 +570,10 @@ def run():
         ('functionality', check_functionality),
         ('js', check_js),
         ('schema', check_schema),
+        ('hreflang', check_hreflang_correctness),
+        ('content', check_content_thickness),
+        ('internal_links', check_internal_links),
+        ('canonical', check_canonical_correctness),
     ]
     
     # 首页检测
@@ -646,3 +650,118 @@ def run():
 if __name__ == '__main__':
     remaining = run()
     sys.exit(0 if remaining == 0 else 1)
+
+
+# ============ 新增检测门 v2 (2026-07-27) ============
+
+def check_hreflang_correctness(path, lang, item):
+    """门10: hreflang正确性 - zh→CN页, en→EN页, 无重复, 无相对路径"""
+    issues = []
+    with open(path, 'r', encoding='utf-8', errors='ignore') as f: c = f.read()
+    if 'noindex' in c: return issues
+    
+    hrefs = re.findall(r'hreflang="([^"]+)" href="([^"]+)"', c)
+    if not hrefs: return issues  # no_hreflang已被门3检测
+    
+    cn_url = f'https://free-toolbase.com/{item}/'
+    en_url = f'https://free-toolbase.com/en/{item}/'
+    
+    # 检查zh→CN
+    zh_hrefs = [url for lg, url in hrefs if lg == 'zh']
+    if zh_hrefs:
+        for url in zh_hrefs:
+            if '/en/' in url:
+                issues.append('hreflang_zh_points_en')
+                break
+            if url != cn_url and not url.endswith('/' + item + '/'):
+                issues.append('hreflang_zh_wrong')
+                break
+    
+    # 检查en→EN
+    en_hrefs = [url for lg, url in hrefs if lg == 'en']
+    if en_hrefs:
+        for url in en_hrefs:
+            if '/en/' not in url:
+                issues.append('hreflang_en_points_cn')
+                break
+            if url != en_url:
+                issues.append('hreflang_en_wrong')
+                break
+    
+    # 检查重复
+    lang_list = [lg for lg, _ in hrefs]
+    if len(lang_list) != len(set(lang_list)):
+        issues.append('hreflang_duplicate')
+    
+    # 检查相对路径
+    for lg, url in hrefs:
+        if './' in url or not url.startswith('https://'):
+            issues.append('hreflang_relative')
+            break
+    
+    # 检查www域名
+    for lg, url in hrefs:
+        if 'www.free-toolbase.com' in url:
+            issues.append('hreflang_www')
+            break
+    
+    return issues
+
+
+def check_content_thickness(path, lang, item):
+    """门11: 内容厚度 - 可见文字是否足够"""
+    issues = []
+    with open(path, 'r', encoding='utf-8', errors='ignore') as f: c = f.read()
+    if 'noindex' in c: return issues
+    
+    # 提取可见文字
+    clean = re.sub(r'<script[^>]*>.*?</script>', '', c, flags=re.DOTALL)
+    clean = re.sub(r'<style[^>]*>.*?</style>', '', clean, flags=re.DOTALL)
+    clean = re.sub(r'<[^>]+>', ' ', clean)
+    text_len = len(re.sub(r'\s+', ' ', clean).strip())
+    
+    if text_len < 300:
+        issues.append('content_very_thin')
+    elif text_len < 500:
+        issues.append('content_thin')
+    
+    return issues
+
+
+def check_internal_links(path, lang, item):
+    """门12: 内部链接 - 是否有相关工具推荐"""
+    issues = []
+    with open(path, 'r', encoding='utf-8', errors='ignore') as f: c = f.read()
+    if 'noindex' in c: return issues
+    
+    # 检查是否有相关工具/推荐工具区域
+    has_related = bool(re.search(
+        r'related.?tool|相关工具|推荐工具|also.?like|you.?might|similar.?tool|更多工具',
+        c, re.I
+    ))
+    if not has_related:
+        issues.append('no_related_tools')
+    
+    return issues
+
+
+def check_canonical_correctness(path, lang, item):
+    """门13: canonical正确性 - 无www/指向存在页面"""
+    issues = []
+    with open(path, 'r', encoding='utf-8', errors='ignore') as f: c = f.read()
+    if 'noindex' in c: return issues
+    
+    cm = re.search(r'<link rel="canonical" href="([^"]+)"', c)
+    if not cm: return issues  # no_canonical已被门3检测
+    
+    url = cm.group(1)
+    
+    # www域名
+    if 'www.free-toolbase.com' in url:
+        issues.append('canonical_www')
+    
+    # 自引用noindex页面的canonical指向自身
+    if 'noindex' in c and url.endswith('/' + item + '/'):
+        issues.append('canonical_self_noindex')
+    
+    return issues
