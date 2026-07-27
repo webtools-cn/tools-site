@@ -46,7 +46,15 @@ IMPOSSIBLE_PATTERNS = {
     'image-oil-paint': '需复杂算法',
 }
 
+# 精确白名单：名字含不可行关键词但纯前端完全可行
+FEASIBLE_WHITELIST = {
+    'click-speed-test', 'typing-speed-test', 'reading-speed-test',
+    'network-speed-test', 'download-speed-test', 'upload-speed-test',
+}
+
 def check_feasibility(tool_name):
+    if tool_name in FEASIBLE_WHITELIST:
+        return True, 'OK'
     for pattern, reason in IMPOSSIBLE_PATTERNS.items():
         if pattern in tool_name:
             return False, reason
