@@ -1,88 +1,128 @@
 #!/usr/bin/env python3
-"""在CN和EN首页添加5个新工具的tool-card"""
+"""更新首页：添加5个新工具卡片 + 更新计数 + 更新sitemap"""
+import os
 import re
 
-new_tools = [
-    ('max-drawdown-calculator', '📉 最大回撤计算器', '计算投资组合最大回撤率和回撤金额，分析投资风险', 'finance-tools',
-     'Max Drawdown Calculator', 'Calculate maximum drawdown rate and amount, analyze investment risk'),
-    ('treynor-ratio-calculator', '📊 特雷诺比率计算器', '衡量每单位系统性风险的超额回报，评估投资组合表现', 'finance-tools',
-     'Treynor Ratio Calculator', 'Measure excess return per unit of systematic risk, evaluate portfolio performance'),
-    ('information-ratio-calculator', '📈 信息比率计算器', '衡量相对基准的超额回报稳定性，评估主动管理能力', 'finance-tools',
-     'Information Ratio Calculator', 'Measure consistency of excess return vs benchmark, evaluate active management'),
-    ('kidney-function-calculator', '🩺 肾功能计算器(eGFR)', 'CKD-EPI公式估算肾小球滤过率，评估肾功能分期', 'health-tools',
-     'Kidney Function Calculator', 'CKD-EPI formula to estimate eGFR, assess kidney function stage'),
-    ('iron-deficiency-calculator', '🩸 缺铁性贫血评估器', '基于血红蛋白和铁蛋白评估缺铁风险，识别贫血程度', 'health-tools',
-     'Iron Deficiency Calculator', 'Assess iron deficiency risk based on hemoglobin and ferritin, identify anemia severity'),
+SITE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# 新工具卡片
+CN_CARDS = [
+    ('health-tools', '👶', '儿童BMI百分位计算器', '根据CDC标准，评估2-20岁儿童BMI百分位数和Z-score，科学判断生长发育状况。', '/bmi-percentile-calculator/'),
+    ('health-tools', '🔥', '运动消耗热量计算器', '基于MET代谢当量，计算50+种运动消耗热量，支持自定义体重和时长。', '/calorie-burned-calculator/'),
+    ('health-tools', '⚡', '基础代谢率计算器(HB)', '基于Harris-Benedict公式计算BMR和TDEE，科学指导饮食和运动计划。', '/bmr-calculator-harris-benedict/'),
+    ('health-tools', '🩺', '胆固醇单位换算器', '在mmol/L和mg/dL之间快速换算总胆固醇/HDL/LDL/甘油三酯。', '/cholesterol-units-converter/'),
+    ('fin-tools', '📈', '投资回报率计算器', '一键计算投资ROI、年化回报率和净利润，可视化投资表现。', '/roi-calculator-investment/'),
 ]
 
-for lang, home_file in [('cn', 'index.html'), ('en', 'en/index.html')]:
-    filepath = f'/home/chison/tools-site/{home_file}'
-    with open(filepath, 'r', encoding='utf-8') as f:
+EN_CARDS = [
+    ('health-tools', '👶', 'BMI Percentile Calculator', 'Calculate BMI percentile and Z-score for children 2-20 using CDC growth charts.', '/en/bmi-percentile-calculator/'),
+    ('health-tools', '🔥', 'Calories Burned Calculator', 'Calculate calories burned for 50+ activities using MET values. Customize weight and duration.', '/en/calorie-burned-calculator/'),
+    ('health-tools', '⚡', 'BMR Calculator (Harris-Benedict)', 'Calculate BMR and TDEE using the Harris-Benedict equation for science-based diet planning.', '/en/bmr-calculator-harris-benedict/'),
+    ('health-tools', '🩺', 'Cholesterol Units Converter', 'Convert between mmol/L and mg/dL for total cholesterol, HDL, LDL, and triglycerides.', '/en/cholesterol-units-converter/'),
+    ('fin-tools', '📈', 'Investment ROI Calculator', 'Calculate ROI, annualized return, and net profit. Visualize investment performance instantly.', '/en/roi-calculator-investment/'),
+]
+
+def gen_card(cat, icon, name, desc, href):
+    return f'<div class="tool-card" data-category="{cat}"><span class="tool-icon">{icon}</span><span class="tool-name">{name}</span><span class="tool-desc">{desc}</span><a href="{href}" class="btn">{"使用工具" if "/en/" not in href else "Use Tool"}</a></div>'
+
+def update_homepage(path, cards):
+    with open(path, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    cards = ''
-    for t in new_tools:
-        slug = t[0]
-        name = t[1] if lang == 'cn' else t[4]
-        desc = t[2] if lang == 'cn' else t[5]
-        category = t[3]
-        href = f'/{slug}/' if lang == 'cn' else f'/en/{slug}/'
-        cards += f'<div class="tool-card" data-category="{category}"><span class="tool-name">{name}</span><span class="tool-desc">{desc}</span><a href="{href}" class="btn">{"立即使用" if lang == "cn" else "Use Now"}</a></div>\n'
-
-    # Insert cards before the last tool-card in the file (or before a specific marker)
-    # Better: find the position just before the category-tag "其他工具" section or end of tools grid
-    # Insert before "other-tools" or at the end of tools grid
-    if lang == 'cn':
-        # Find the last health-tools card and insert after it
-        last_health = content.rfind('data-category="health-tools"')
-        if last_health > 0:
-            # Find end of that line's </div>
-            insert_pos = content.index('</div>', content.index('\n', last_health)) + 6
-            content = content[:insert_pos] + '\n' + cards + content[insert_pos:]
-    else:
-        last_health = content.rfind('data-category="health-tools"')
-        if last_health > 0:
-            insert_pos = content.index('</div>', content.index('\n', last_health)) + 6
-            content = content[:insert_pos] + '\n' + cards + content[insert_pos:]
-
+    # Find last tool-card and insert after it
+    # Strategy: find a known stable anchor card and insert after the last one
+    # Use the "使用工具" or "Use Tool" closing div pattern
+    
+    # Find the last tool-card
+    is_en = '/en/' in path
+    btn_text = 'Use Tool' if is_en else '使用工具'
+    
+    # Find the position of the last occurrence of btn_text
+    last_idx = content.rindex(btn_text + '</a></div>')
+    # Find the end of that div
+    insert_pos = content.index('\n', last_idx) + 1
+    
+    # Build card HTML
+    card_htmls = []
+    for cat, icon, name, desc, href in cards:
+        card_htmls.append(gen_card(cat, icon, name, desc, href))
+    insert_block = '\n' + '\n'.join(card_htmls)
+    
+    new_content = content[:insert_pos] + insert_block + content[insert_pos:]
+    
     # Update tool count
-    old_count = content.count('data-category=')
-    # The count displayed in the page: find and update
-    # CN: <span class="tool-count">...</span>
-    # EN: <span class="tool-count">...</span>
-    # We need to find and increment the number
+    # Find stat-number and increment
+    def repl_count(m):
+        current = int(m.group(1).replace(',', ''))
+        return f'<span class="stat-number">{current + 5:,}</span>'
+    
+    # Only update the first occurrence (the total tools count)
+    new_content = re.sub(r'(<span class="stat-number">)([0-9,]+)(</span>)', 
+                         lambda m: f'{m.group(1)}{int(m.group(2).replace(",","")) + 5:,}{m.group(3)}', 
+                         new_content, count=1)
+    
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(new_content)
+    print(f"  ✅ {path} 已更新")
 
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(content)
 
-    print(f'Updated: {home_file} - added {len(new_tools)} cards')
-
-# Now update tool count
-for home_file in ['index.html', 'en/index.html']:
-    filepath = f'/home/chison/tools-site/{home_file}'
-    with open(filepath, 'r', encoding='utf-8') as f:
+def update_sitemap():
+    """Update sitemap.xml with new tool URLs"""
+    spath = os.path.join(SITE, 'sitemap.xml')
+    with open(spath, 'r', encoding='utf-8') as f:
         content = f.read()
-
-    # Find and update count in stats section
-    # Pattern: <span class="count" id="totalTools">NNNN</span> or similar
-    # Let's search for the count pattern
-    import re
-    # Common patterns for tool count
-    patterns = [
-        r'(<span[^>]*class="[^"]*count[^"]*"[^>]*>)(\d+)(</span>)',
-        r'(id="totalTools"[^>]*>)(\d+)',
-        r'(id="toolCount"[^>]*>)(\d+)',
-    ]
-    for p in patterns:
-        m = re.search(p, content)
-        if m:
-            old_num = int(m.group(2))
-            new_num = old_num + 5
-            content = content[:m.start(2)] + str(new_num) + content[m.end(2):]
-            print(f'Updated count in {home_file}: {old_num} -> {new_num}')
-            break
-
-    with open(filepath, 'w', encoding='utf-8') as f:
+    
+    slugs = ['bmi-percentile-calculator', 'calorie-burned-calculator', 
+             'bmr-calculator-harris-benedict', 'cholesterol-units-converter', 
+             'roi-calculator-investment']
+    
+    new_entries = ''
+    for slug in slugs:
+        new_entries += f'''  <url>
+    <loc>https://free-toolbase.com/{slug}/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://free-toolbase.com/en/{slug}/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+'''
+    
+    # Insert before </urlset>
+    content = content.replace('</urlset>', new_entries + '</urlset>')
+    
+    with open(spath, 'w', encoding='utf-8') as f:
         f.write(content)
+    print(f"  ✅ sitemap.xml 已更新 (新增10个URL)")
 
-print('Done!')
+
+def update_llms_txt():
+    """Update llms.txt with new tool entries"""
+    lpath = os.path.join(SITE, 'llms.txt')
+    with open(lpath, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    slugs = ['bmi-percentile-calculator', 'calorie-burned-calculator', 
+             'bmr-calculator-harris-benedict', 'cholesterol-units-converter', 
+             'roi-calculator-investment']
+    
+    new_entries = '\n'
+    for slug in slugs:
+        new_entries += f'{slug}/\n'
+        new_entries += f'en/{slug}/\n'
+    
+    content += new_entries
+    
+    with open(lpath, 'w', encoding='utf-8') as f:
+        f.write(content)
+    print(f"  ✅ llms.txt 已更新")
+
+
+if __name__ == '__main__':
+    update_homepage(os.path.join(SITE, 'index.html'), CN_CARDS)
+    update_homepage(os.path.join(SITE, 'en/index.html'), EN_CARDS)
+    update_sitemap()
+    update_llms_txt()
+    print('\n首页同步完成！')
