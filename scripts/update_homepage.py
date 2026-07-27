@@ -1,125 +1,88 @@
 #!/usr/bin/env python3
-"""Insert 10 new tool cards into CN and EN homepages, update counts, sitemap"""
+"""在CN和EN首页添加5个新工具的tool-card"""
 import re
 
-BASE = '/home/chison/tools-site'
-
-NEW_CN_CARDS = [
-    ('dev-tools', '🔧', 'JS代码格式化', 'JavaScript代码美化，支持缩进、括号换行、空格优化', '/js-beautify/'),
-    ('dev-tools', '🎨', 'CSS代码格式化', 'CSS样式表美化，支持缩进、属性排序、选择器分组', '/css-beautify/'),
-    ('dev-tools', '🏗️', 'HTML代码格式化', 'HTML代码美化，支持缩进、标签闭合检查、属性排序', '/html-beautify/'),
-    ('dev-tools', '📐', '屏幕分辨率测试', '实时检测屏幕分辨率、像素比、色深、窗口大小', '/screen-resolution-test/'),
-    ('dev-tools', '🌐', '路由追踪', '可视化网络路径追踪，诊断延迟和路由问题', '/traceroute/'),
-    ('dev-tools', '🔍', 'Open Graph调试器', 'OG标签解析和社交媒体分享预览', '/open-graph-debugger/'),
-    ('dev-tools', '🖼️', '占位图生成器', '自定义尺寸/颜色/文字，生成占位图片', '/placeholder-image/'),
-    ('utility-tools', '⏳', '倒计时计算器', '计算距目标日期的天/小时/分钟，含节假日预设', '/days-until/'),
-    ('dev-tools', '🔐', 'Bcrypt密码验证', '验证bcrypt哈希、检测轮数、分析格式', '/bcrypt-checker/'),
-    ('dev-tools', '🔧', 'Unix权限计算器', '可视化设置rwx权限，生成chmod命令', '/unix-permissions-calculator/'),
+new_tools = [
+    ('max-drawdown-calculator', '📉 最大回撤计算器', '计算投资组合最大回撤率和回撤金额，分析投资风险', 'finance-tools',
+     'Max Drawdown Calculator', 'Calculate maximum drawdown rate and amount, analyze investment risk'),
+    ('treynor-ratio-calculator', '📊 特雷诺比率计算器', '衡量每单位系统性风险的超额回报，评估投资组合表现', 'finance-tools',
+     'Treynor Ratio Calculator', 'Measure excess return per unit of systematic risk, evaluate portfolio performance'),
+    ('information-ratio-calculator', '📈 信息比率计算器', '衡量相对基准的超额回报稳定性，评估主动管理能力', 'finance-tools',
+     'Information Ratio Calculator', 'Measure consistency of excess return vs benchmark, evaluate active management'),
+    ('kidney-function-calculator', '🩺 肾功能计算器(eGFR)', 'CKD-EPI公式估算肾小球滤过率，评估肾功能分期', 'health-tools',
+     'Kidney Function Calculator', 'CKD-EPI formula to estimate eGFR, assess kidney function stage'),
+    ('iron-deficiency-calculator', '🩸 缺铁性贫血评估器', '基于血红蛋白和铁蛋白评估缺铁风险，识别贫血程度', 'health-tools',
+     'Iron Deficiency Calculator', 'Assess iron deficiency risk based on hemoglobin and ferritin, identify anemia severity'),
 ]
 
-NEW_EN_CARDS = [
-    ('dev-tools', '🔧', 'JS Code Beautifier', 'JavaScript formatter with indent, braces, semicolons', '/en/js-beautify/'),
-    ('dev-tools', '🎨', 'CSS Code Beautifier', 'CSS formatter with indent, sort, property grouping', '/en/css-beautify/'),
-    ('dev-tools', '🏗️', 'HTML Code Beautifier', 'HTML formatter with indent, tag closure, attribute sort', '/en/html-beautify/'),
-    ('dev-tools', '📐', 'Screen Resolution Test', 'Real-time screen resolution, DPR, color depth detection', '/en/screen-resolution-test/'),
-    ('dev-tools', '🌐', 'Traceroute', 'Visual network path tracing and latency diagnostics', '/en/traceroute/'),
-    ('dev-tools', '🔍', 'Open Graph Debugger', 'OG tag parsing and social media share previews', '/en/open-graph-debugger/'),
-    ('dev-tools', '🖼️', 'Placeholder Image', 'Custom size/color/text placeholder image generator', '/en/placeholder-image/'),
-    ('utility-tools', '⏳', 'Countdown Calculator', 'Days/hours/minutes until target date with holiday presets', '/en/days-until/'),
-    ('dev-tools', '🔐', 'Bcrypt Checker', 'Verify bcrypt hashes, detect rounds, analyze format', '/en/bcrypt-checker/'),
-    ('dev-tools', '🔧', 'Unix Permissions Calculator', 'Visual rwx permission setting, chmod command generation', '/en/unix-permissions-calculator/'),
-]
+for lang, home_file in [('cn', 'index.html'), ('en', 'en/index.html')]:
+    filepath = f'/home/chison/tools-site/{home_file}'
+    with open(filepath, 'r', encoding='utf-8') as f:
+        content = f.read()
 
-def generate_card(cat, icon, name, desc, href):
-    return f'<div class="tool-card" data-cat="{cat}"><span class="tool-icon">{icon}</span><span class="tool-name">{name}</span><span class="tool-desc">{desc}</span><a href="{href}" class="btn">立即使用</a></div>'
+    cards = ''
+    for t in new_tools:
+        slug = t[0]
+        name = t[1] if lang == 'cn' else t[4]
+        desc = t[2] if lang == 'cn' else t[5]
+        category = t[3]
+        href = f'/{slug}/' if lang == 'cn' else f'/en/{slug}/'
+        cards += f'<div class="tool-card" data-category="{category}"><span class="tool-name">{name}</span><span class="tool-desc">{desc}</span><a href="{href}" class="btn">{"立即使用" if lang == "cn" else "Use Now"}</a></div>\n'
 
-def generate_card_en(cat, icon, name, desc, href):
-    return f'<div class="tool-card" data-cat="{cat}"><span class="tool-icon">{icon}</span><span class="tool-name">{name}</span><span class="tool-desc">{desc}</span><a href="{href}" class="btn">Use Now</a></div>'
+    # Insert cards before the last tool-card in the file (or before a specific marker)
+    # Better: find the position just before the category-tag "其他工具" section or end of tools grid
+    # Insert before "other-tools" or at the end of tools grid
+    if lang == 'cn':
+        # Find the last health-tools card and insert after it
+        last_health = content.rfind('data-category="health-tools"')
+        if last_health > 0:
+            # Find end of that line's </div>
+            insert_pos = content.index('</div>', content.index('\n', last_health)) + 6
+            content = content[:insert_pos] + '\n' + cards + content[insert_pos:]
+    else:
+        last_health = content.rfind('data-category="health-tools"')
+        if last_health > 0:
+            insert_pos = content.index('</div>', content.index('\n', last_health)) + 6
+            content = content[:insert_pos] + '\n' + cards + content[insert_pos:]
 
-# Update CN homepage
-print("=== CN Homepage ===")
-cn_path = f'{BASE}/index.html'
-with open(cn_path, 'r') as f:
-    cn = f.read()
+    # Update tool count
+    old_count = content.count('data-category=')
+    # The count displayed in the page: find and update
+    # CN: <span class="tool-count">...</span>
+    # EN: <span class="tool-count">...</span>
+    # We need to find and increment the number
 
-# Find last tool-card before </div> + <script>
-# Insert before the last empty line before <script>
-marker = '\n<script>\n// Make tool cards clickable'
-new_cards = '\n'.join(generate_card(*c) for c in NEW_CN_CARDS)
-cn = cn.replace(marker, '\n' + new_cards + '\n' + marker)
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
 
-# Update count
-old_count = len(re.findall(r'class="tool-card"', cn)) - len(NEW_CN_CARDS)  # count before insertion
-new_count = len(re.findall(r'class="tool-card"', cn))
-print(f"Cards: {old_count} → {new_count}")
+    print(f'Updated: {home_file} - added {len(new_tools)} cards')
 
-# Update stat number
-cn = re.sub(r'<span class="stat-number">\d+\+?</span><span class="stat-label">免费在线工具</span>',
-            f'<span class="stat-number">{new_count}+</span><span class="stat-label">免费在线工具</span>', cn)
+# Now update tool count
+for home_file in ['index.html', 'en/index.html']:
+    filepath = f'/home/chison/tools-site/{home_file}'
+    with open(filepath, 'r', encoding='utf-8') as f:
+        content = f.read()
 
-with open(cn_path, 'w') as f:
-    f.write(cn)
-print(f"Written: {cn_path}")
+    # Find and update count in stats section
+    # Pattern: <span class="count" id="totalTools">NNNN</span> or similar
+    # Let's search for the count pattern
+    import re
+    # Common patterns for tool count
+    patterns = [
+        r'(<span[^>]*class="[^"]*count[^"]*"[^>]*>)(\d+)(</span>)',
+        r'(id="totalTools"[^>]*>)(\d+)',
+        r'(id="toolCount"[^>]*>)(\d+)',
+    ]
+    for p in patterns:
+        m = re.search(p, content)
+        if m:
+            old_num = int(m.group(2))
+            new_num = old_num + 5
+            content = content[:m.start(2)] + str(new_num) + content[m.end(2):]
+            print(f'Updated count in {home_file}: {old_num} -> {new_num}')
+            break
 
-# Update EN homepage
-print("\n=== EN Homepage ===")
-en_path = f'{BASE}/en/index.html'
-with open(en_path, 'r') as f:
-    en = f.read()
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
 
-# Find insertion point
-marker_en = '\n<script>\n// Make tool cards clickable'
-new_cards_en = '\n'.join(generate_card_en(*c) for c in NEW_EN_CARDS)
-en = en.replace(marker_en, '\n' + new_cards_en + '\n' + marker_en)
-
-old_en = len(re.findall(r'class="tool-card"', en)) - len(NEW_EN_CARDS)
-new_en = len(re.findall(r'class="tool-card"', en))
-print(f"Cards: {old_en} → {new_en}")
-
-# Update stat number
-en = re.sub(r'<span class="stat-number">\d+\+?</span><span class="stat-label">free online tools</span>',
-            f'<span class="stat-number">{new_en}+</span><span class="stat-label">free online tools</span>', en, flags=re.IGNORECASE)
-en = re.sub(r'<span class="stat-number">\d+\+?</span><span class="stat-label">browser-based utilities</span>',
-            f'<span class="stat-number">{new_en}+</span><span class="stat-label">browser-based utilities</span>', en, flags=re.IGNORECASE)
-
-with open(en_path, 'w') as f:
-    f.write(en)
-print(f"Written: {en_path}")
-
-# Verify
-cn_final = len(re.findall(r'class="tool-card"', open(cn_path).read()))
-en_final = len(re.findall(r'class="tool-card"', open(en_path).read()))
-print(f"\n=== VERIFY ===")
-print(f"CN cards: {cn_final}")
-print(f"EN cards: {en_final}")
-print(f"Match: {'✅' if cn_final == en_final else '❌ MISMATCH!'}")
-
-# Update sitemap.xml
-print("\n=== Sitemap ===")
-sitemap_path = f'{BASE}/sitemap.xml'
-with open(sitemap_path, 'r') as f:
-    sitemap = f.read()
-
-new_urls = ''
-for _, _, name, _, href in NEW_CN_CARDS:
-    new_urls += f'  <url><loc>https://free-toolbase.com{href}</loc></url>\n'
-    en_href = href.replace('/js-beautify/', '/en/js-beautify/') if '/js-beautify/' in href else \
-              href.replace('/css-beautify/', '/en/css-beautify/') if '/css-beautify/' in href else \
-              href.replace('/html-beautify/', '/en/html-beautify/') if '/html-beautify/' in href else \
-              href.replace('/screen-resolution-test/', '/en/screen-resolution-test/') if '/screen-resolution-test/' in href else \
-              href.replace('/traceroute/', '/en/traceroute/') if '/traceroute/' in href else \
-              href.replace('/open-graph-debugger/', '/en/open-graph-debugger/') if '/open-graph-debugger/' in href else \
-              href.replace('/placeholder-image/', '/en/placeholder-image/') if '/placeholder-image/' in href else \
-              href.replace('/days-until/', '/en/days-until/') if '/days-until/' in href else \
-              href.replace('/bcrypt-checker/', '/en/bcrypt-checker/') if '/bcrypt-checker/' in href else \
-              href.replace('/unix-permissions-calculator/', '/en/unix-permissions-calculator/')
-    new_urls += f'  <url><loc>https://free-toolbase.com{en_href}</loc></url>\n'
-
-# Insert before </urlset>
-sitemap = sitemap.replace('</urlset>', new_urls + '</urlset>')
-with open(sitemap_path, 'w') as f:
-    f.write(sitemap)
-url_count = sitemap.count('<loc>')
-print(f"Sitemap URLs: {url_count}")
-
-print("\n✅ Done!")
+print('Done!')
