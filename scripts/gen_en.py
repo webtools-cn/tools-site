@@ -1,328 +1,120 @@
 #!/usr/bin/env python3
-"""Generate English versions of tool pages from Chinese originals"""
-import re
+"""快速生成英文版工具页面：替换中文文本为英文"""
+import sys, os, re
 
-# For each tool, copy CN -> EN and replace all Chinese content
-tools_en = {
-    'kisan-vikas-patra': [
-        ('<html lang="zh-CN">', '<html lang="en">'),
-        ('Kisan Vikas Patra (KVP) 计算器——计算印度邮政KVP证书的到期价值和翻倍时间。输入投资金额，查看当前利率下的最终收益，免费在线工具',
-         'Calculate maturity value and doubling time for Indian Post Office KVP certificates. Enter investment amount to see final returns at current interest rate. Free online tool'),
-        ('Kisan Vikas Patra 计算器 - Free ToolBase', 'Kisan Vikas Patra (KVP) Calculator - Free ToolBase'),
-        ('Kisan Vikas Patra (KVP) Calculator - Free ToolBase', 'Kisan Vikas Patra (KVP) Calculator - Free ToolBase'),
-        ('印度邮政KVP证书计算器，输入投资金额即可查看到期价值和翻倍时间。支持不同利率参数调整',
-         'Indian Post Office KVP certificate calculator. Enter investment amount to see maturity value and doubling time. Supports custom interest rate parameters'),
-        ('印度邮政Kisan Vikas Patra证书计算器，输入投资金额查看到期价值和翻倍时间',
-         'Indian Post Office Kisan Vikas Patra certificate calculator. Enter investment amount to see maturity value and doubling time'),
-        ('🏦 KVP投资计算器', '🏦 KVP Investment Calculator'),
-        ('印度邮政Kisan Vikas Patra (KVP) 证书投资计算器。输入投资金额，查看到期价值和翻倍时间。支持自定义利率参数',
-         'Indian Post Office KVP certificate investment calculator. Enter investment amount to see maturity value and doubling time. Supports custom interest rate parameters'),
-        ('Kisan Vikas Patra (KVP) 是印度邮政局发行的小额储蓄计划，本金在特定期限内翻倍。本工具计算KVP证书的到期价值、翻倍时间及年化收益率。',
-         'Kisan Vikas Patra (KVP) is a small savings scheme issued by India Post where the principal doubles within a specific period. This tool calculates maturity value, doubling time, and annualized return.'),
-        ('印度邮政</span><span class="badge">翻倍投资</span><span class="badge">固定收益',
-         'India Post</span><span class="badge">Doubling Investment</span><span class="badge">Fixed Income'),
-        ('投资参数', 'Investment Parameters'),
-        ('投资金额 (₹)', 'Investment Amount (₹)'),
-        ('年化利率 (%)', 'Annual Interest Rate (%)'),
-        ('🏦 计算收益', '🏦 Calculate Returns'),
-        ('计算结果', 'Results'),
-        ('到期价值', 'Maturity Value'),
-        ('翻倍时间', 'Doubling Time'),
-        ('总收益', 'Total Gain'),
-        ('年化收益率', 'CAGR'),
-        ('Kisan Vikas Patra (KVP) 是印度政府担保的低风险储蓄计划，本金约10年翻倍',
-         'Kisan Vikas Patra (KVP) is a low-risk government-guaranteed savings scheme where your investment doubles in about 10 years'),
-        ('KVP由印度邮政局发行，最低投资额1000卢比，无上限。利率由财政部每季度调整，当前利率约7.5%（年复利）。本工具帮助计算任意利率下的到期收益。',
-         'KVP is issued by India Post with minimum ₹1,000 investment and no upper limit. Interest rate is adjusted quarterly by the Ministry of Finance, currently ~7.5% (compounded annually). This tool helps calculate maturity returns at any rate.'),
-        ('Kisan Vikas Patra (KVP) 计算器', 'Kisan Vikas Patra (KVP) Calculator'),
-        ('什么是Kisan Vikas Patra (KVP)？', 'What is Kisan Vikas Patra (KVP)?'),
-        ('KVP是印度邮政局发行的政府担保小额储蓄计划，投资金额在到期后翻倍。目前利率约7.5%，约115个月到期。最低投资1000卢比，无上限。',
-         'KVP is a government-guaranteed small savings scheme issued by India Post. The investment doubles upon maturity. Current rate ~7.5%, maturity ~115 months. Minimum ₹1,000, no upper limit.'),
-        ('如何使用KVP计算器？', 'How to use the KVP calculator?'),
-        ('输入投资金额，调整利率参数，即可获得到期价值、翻倍时间和年化收益率。支持图表可视化展示增长曲线。',
-         'Enter investment amount, adjust rate parameters to get maturity value, doubling time, and annualized return. Chart visualization shows the growth curve.'),
-        ('关于KVP投资计算器', 'About KVP Calculator'),
-        ('首页', 'Home'),
-        ('工具', 'Tools'),
-        ('🏦 KVP计算器', '🏦 KVP Calculator'),
-        ('全部工具', 'All Tools'),
-        ('隐私政策', 'Privacy Policy'),
-        ('服务条款', 'Terms of Service'),
-        ('关于我们', 'About Us'),
-        ('🏦 KVP投资计算器 | 无需注册 · 数据绝不上传服务器',
-         '🏦 KVP Investment Calculator | No registration · Data never uploaded'),
-        ('问题反馈: dexshuang@google.com', 'Feedback: dexshuang@google.com'),
-        ('相关工具推荐', 'Related Tools'),
-        ('💰 SIP投资计算器', '💰 SIP Calculator'),
-        ('📈 一次性投资计算器', '📈 Lumpsum Calculator'),
-        ('🏦 定期存款计算器', '🏦 FD Calculator'),
-        ('中文', '中文'),
-        ('EN', 'EN'),
-    ],
-    'black-scholes': [
-        ('<html lang="zh-CN">', '<html lang="en">'),
-        ('Black-Scholes期权定价模型计算器——计算欧式看涨和看跌期权的理论价格。输入标的价格、行权价、波动率等参数，获得期权公允价格和希腊字母',
-         'Calculate European call and put option theoretical prices using Black-Scholes model. Enter spot price, strike, volatility, and other parameters to get fair option prices and Greeks'),
-        ('Black-Scholes 期权定价计算器 - Free ToolBase', 'Black-Scholes Option Pricing Calculator - Free ToolBase'),
-        ('基于Black-Scholes模型计算欧式看涨/看跌期权理论价格，支持希腊字母（Delta/Gamma/Theta/Vega/Rho）计算',
-         'Calculate European call/put option theoretical prices based on Black-Scholes model. Supports Greeks (Delta/Gamma/Theta/Vega/Rho) calculation'),
-        ('基于Black-Scholes-Merton模型计算欧式看涨/看跌期权理论价格，支持希腊字母计算',
-         'Calculate European call/put option theoretical prices based on Black-Scholes-Merton model, with Greeks calculation'),
-        ('📊 Black-Scholes期权定价', '📊 Black-Scholes Option Pricing'),
-        ('基于Black-Scholes-Merton模型计算欧式看涨和看跌期权理论价格，支持希腊字母计算',
-         'Calculate European call/put option theoretical prices based on Black-Scholes-Merton model, with Greeks'),
-        ('Black-Scholes模型是金融工程的基础，用于定价欧式期权。本工具输入标的价格、行权价、到期时间、无风险利率和波动率，计算看涨/看跌期权的理论价格及完整希腊字母（Delta、Gamma、Theta、Vega、Rho）。',
-         'The Black-Scholes model is the foundation of financial engineering for pricing European options. Enter spot price, strike, time to maturity, risk-free rate, and volatility to get theoretical call/put prices and complete Greeks.'),
-        ('期权定价</span><span class="badge">希腊字母</span><span class="badge">量化金融',
-         'Option Pricing</span><span class="badge">Greeks</span><span class="badge">Quant Finance'),
-        ('期权参数', 'Option Parameters'),
-        ('标的价格 ($)', 'Spot Price ($)'),
-        ('行权价 ($)', 'Strike Price ($)'),
-        ('到期时间 (年)', 'Time to Maturity (years)'),
-        ('无风险利率 (%)', 'Risk-Free Rate (%)'),
-        ('波动率 (%)', 'Volatility (%)'),
-        ('📊 计算期权价格', '📊 Calculate Option Price'),
-        ('期权价格', 'Option Prices'),
-        ('看涨期权价格', 'Call Price'),
-        ('看跌期权价格', 'Put Price'),
-        ('看涨内在价值', 'Call Intrinsic'),
-        ('看跌内在价值', 'Put Intrinsic'),
-        ('希腊字母 (Greeks)', 'Greeks'),
-        ('Black-Scholes-Merton模型是期权定价的基石，1973年提出并获得诺贝尔经济学奖',
-         'The Black-Scholes-Merton model is the cornerstone of option pricing, proposed in 1973 and awarded the Nobel Prize'),
-        ('模型假设标的资产价格服从几何布朗运动，无套利条件下推导出欧式期权价格的解析解。本工具使用JavaScript实现累积正态分布近似算法，在浏览器端完成所有计算。',
-         'The model assumes geometric Brownian motion, deriving closed-form European option prices. This tool implements cumulative normal distribution approximation in JavaScript, completing all calculations in the browser.'),
-        ('Black-Scholes模型适用于哪些期权？', 'Which options does Black-Scholes apply to?'),
-        ('仅适用于欧式期权（只能在到期日行权）。对于美式期权（可提前行权），需使用二叉树或有限差分法，本工具不适用。模型还假设无股息、无交易成本。',
-         'Only European options (exercisable only at expiration). American options need binomial tree or finite difference methods — not applicable. Model assumes no dividends and no transaction costs.'),
-        ('如何使用期权计算器？', 'How to use the option calculator?'),
-        ('输入5个参数：标的价格、行权价、到期时间（以年为单位）、无风险利率和隐含波动率。点击计算即可获得看涨/看跌期权价格及完整希腊字母。',
-         'Enter 5 parameters: spot price, strike, time to maturity (years), risk-free rate, and volatility. Click calculate for call/put prices and complete Greeks.'),
-        ('关于Black-Scholes期权定价', 'About Black-Scholes Calculator'),
-        ('首页', 'Home'),
-        ('工具', 'Tools'),
-        ('📊 Black-Scholes', '📊 Black-Scholes'),
-        ('全部工具', 'All Tools'),
-        ('隐私政策', 'Privacy Policy'),
-        ('服务条款', 'Terms of Service'),
-        ('关于我们', 'About Us'),
-        ('📊 Black-Scholes期权定价 | 无需注册 · 数据绝不上传服务器',
-         '📊 Black-Scholes Option Pricing | No registration · Data never uploaded'),
-        ('问题反馈: dexshuang@google.com', 'Feedback: dexshuang@google.com'),
-        ('相关工具推荐', 'Related Tools'),
-        ('🇬🇷 期权希腊字母', '🇬🇷 Option Greeks'),
-        ('⚖️ 买卖权平价', '⚖️ Put-Call Parity'),
-        ('📅 复利计算器', '📅 Compound Interest'),
-        ('中文', '中文'),
-    ],
-    'discounted-cashflow': [
-        ('<html lang="zh-CN">', '<html lang="en">'),
-        ('DCF现金流折现估值计算器——计算企业内在价值。输入自由现金流、增长率和折现率，获得每股内在价值和安全边际分析',
-         'Calculate enterprise intrinsic value using DCF. Enter free cash flow, growth rates and discount rate to get per-share intrinsic value and margin of safety analysis'),
-        ('DCF现金流折现估值计算器 - Free ToolBase', 'DCF Discounted Cash Flow Valuation Calculator - Free ToolBase'),
-        ('基于自由现金流折现模型计算企业内在价值。支持多阶段增长、终值计算和每股估值',
-         'Calculate enterprise intrinsic value using DCF model. Supports multi-stage growth, terminal value, and per-share valuation'),
-        ('基于自由现金流折现模型计算企业内在价值，支持两阶段增长模型和每股估值',
-         'Calculate enterprise intrinsic value using DCF model with two-stage growth and per-share valuation'),
-        ('📉 DCF现金流折现估值', '📉 DCF Discounted Cash Flow Valuation'),
-        ('基于自由现金流折现模型计算企业内在价值，支持两阶段增长模型和每股估值',
-         'Calculate enterprise intrinsic value using DCF model, supporting two-stage growth and per-share valuation'),
-        ('DCF（现金流折现）模型是价值投资的核心工具，由巴菲特等投资大师广泛使用。输入自由现金流、增长率、折现率和流通股数，计算企业内在价值及每股价格。',
-         'DCF is the core tool of value investing, widely used by Buffett. Enter FCF, growth rates, WACC, and shares outstanding to calculate intrinsic value and per-share price.'),
-        ('价值投资</span><span class="badge">巴菲特</span><span class="badge">基本面分析',
-         'Value Investing</span><span class="badge">Buffett</span><span class="badge">Fundamental Analysis'),
-        ('估值参数', 'Valuation Parameters'),
-        ('当前自由现金流 (百万)', 'Current FCF (Millions)'),
-        ('前5年增长率 (%)', '5-Year Growth Rate (%)'),
-        ('永续增长率 (%)', 'Terminal Growth Rate (%)'),
-        ('折现率/WACC (%)', 'Discount Rate / WACC (%)'),
-        ('流通股数 (百万)', 'Shares Outstanding (Millions)'),
-        ('📉 计算估值', '📉 Calculate Valuation'),
-        ('估值结果', 'Valuation Results'),
-        ('企业价值', 'Enterprise Value'),
-        ('股权价值', 'Equity Value'),
-        ('每股内在价值', 'Intrinsic Value / Share'),
-        ('DCF模型通过预测未来现金流并折现回当前来评估企业价值',
-         'DCF evaluates enterprise value by projecting future cash flows and discounting to present'),
-        ('模型分为两个阶段：预测期（通常5年）和永续期（终值）。终值采用戈登增长模型：终值=最后一期FCF×(1+g)/(r-g)。所有现金流折现到当前求和即得企业价值。',
-         'Two stages: forecast period (5 years) and terminal period. Terminal value uses Gordon Growth Model: TV = Last FCF × (1+g)/(r-g). All cash flows discounted to present.'),
-        ('DCF模型的核心假设是什么？', 'What are the core assumptions of DCF?'),
-        ('核心假设包括：未来现金流可预测、折现率（WACC）反映风险、永续增长率保守估计。模型对增长率和折现率非常敏感，微小变化会导致估值大幅波动。',
-         'Core assumptions: future cash flows are predictable, WACC reflects risk, terminal growth is conservative. Model is highly sensitive to growth rate and discount rate inputs.'),
-        ('如何使用DCF计算器？', 'How to use the DCF calculator?'),
-        ('输入当前自由现金流、预期增长率、永续增长率、折现率（WACC）和流通股数。工具自动计算预测期现金流、终值，并折现到当前，得出每股内在价值。',
-         'Enter current FCF, growth rate, terminal growth, WACC, and shares outstanding. Tool calculates forecast cash flows, terminal value, and per-share intrinsic value.'),
-        ('关于DCF现金流折现估值', 'About DCF Calculator'),
-        ('首页', 'Home'),
-        ('工具', 'Tools'),
-        ('📉 DCF估值', '📉 DCF Valuation'),
-        ('全部工具', 'All Tools'),
-        ('隐私政策', 'Privacy Policy'),
-        ('服务条款', 'Terms of Service'),
-        ('关于我们', 'About Us'),
-        ('📉 DCF现金流折现估值 | 无需注册 · 数据绝不上传服务器',
-         '📉 DCF Valuation | No registration · Data never uploaded'),
-        ('问题反馈: dexshuang@google.com', 'Feedback: dexshuang@google.com'),
-        ('相关工具推荐', 'Related Tools'),
-        ('🛡️ 安全边际', '🛡️ Margin of Safety'),
-        ('💎 内在价值计算器', '💎 Intrinsic Value'),
-        ('📈 CAGR计算器', '📈 CAGR'),
-        ('中文', '中文'),
-    ],
-    'retirement-corpus': [
-        ('<html lang="zh-CN">', '<html lang="en">'),
-        ('退休金总需求计算器——计算所需退休储蓄总额。输入当前年龄、退休年龄、预期寿命、月支出和通胀率，获得退休所需总金额',
-         'Calculate total retirement savings needed. Enter current age, retirement age, life expectancy, monthly expenses and inflation rate to get the total amount needed for retirement'),
-        ('退休金计算器 - Free ToolBase', 'Retirement Corpus Calculator - Free ToolBase'),
-        ('计算退休储蓄目标金额，考虑通胀和预期寿命，帮助制定退休计划',
-         'Calculate retirement savings target, considering inflation and life expectancy, to help plan for retirement'),
-        ('计算退休所需储蓄总额，考虑通胀、预期寿命和退休后支出',
-         'Calculate total savings needed for retirement, considering inflation, life expectancy and post-retirement expenses'),
-        ('👴 退休金计算器', '👴 Retirement Corpus Calculator'),
-        ('计算退休所需储蓄总额，考虑通胀、预期寿命和退休后月支出',
-         'Calculate total savings needed for retirement, considering inflation, life expectancy and monthly expenses'),
-        ('退休金计算器帮助你规划退休储蓄目标。输入当前年龄、退休年龄、预期寿命、月支出和通胀率，计算退休时所需总金额。一并显示每月需要储蓄多少才能达成目标。',
-         'The Retirement Corpus Calculator helps plan your retirement savings target. Enter age, retirement age, life expectancy, expenses, and inflation to calculate total corpus needed and monthly savings required.'),
-        ('退休规划</span><span class="badge">财务自由</span><span class="badge">养老储蓄',
-         'Retirement Planning</span><span class="badge">Financial Freedom</span><span class="badge">Pension Savings'),
-        ('个人参数', 'Personal Parameters'),
-        ('当前年龄', 'Current Age'),
-        ('退休年龄', 'Retirement Age'),
-        ('预期寿命', 'Life Expectancy'),
-        ('月支出 (¥)', 'Monthly Expense (¥)'),
-        ('通胀率 (%)', 'Inflation Rate (%)'),
-        ('退休后收益率 (%)', 'Post-Retirement Return (%)'),
-        ('👴 计算退休金', '👴 Calculate Corpus'),
-        ('退休金分析', 'Retirement Analysis'),
-        ('退休所需总金额', 'Corpus Needed'),
-        ('退休时月支出', 'Monthly at Retirement'),
-        ('退休前每月需储蓄', 'Monthly Saving Required'),
-        ('退休生活年限', 'Years in Retirement'),
-        ('退休金计算基于"先确定目标、再倒推储蓄"的思路',
-         'Retirement corpus calculation: determine the goal first, then work backward to savings required'),
-        ('退休时月支出 = 当前月支出 × (1+通胀率)^剩余工作年限。退休总金额需覆盖退休后所有年份的支出，考虑退休后资金继续产生收益。每月需储蓄额 = 目标总金额 / 剩余工作月数（含预期收益）。',
-         'Monthly at retirement = Current × (1+inflation)^working years. Total corpus covers all retirement years considering post-retirement returns. Monthly savings = Target / remaining months (with expected returns).'),
-        ('如何设定退休目标？', 'How to set retirement goals?'),
-        ('一般建议退休后月支出为退休前收入的70-80%。要考虑医疗费用增加、旅游等支出。通胀假设通常取4-6%，退休后收益率保守取5-7%。',
-         'Target 70-80% of pre-retirement income. Consider medical costs and travel. Inflation 4-6%, post-retirement returns 5-7% are common assumptions.'),
-        ('退休金计算准确吗？', 'Is this calculation accurate?'),
-        ('这是基于假设的估算工具。实际受通胀、投资回报、寿命等多因素影响。建议每3-5年重新评估退休计划，并根据实际情况调整。',
-         'This is an estimation tool. Actual results vary with inflation, returns, and longevity. Reassess every 3-5 years.'),
-        ('关于退休金计算器', 'About Retirement Calculator'),
-        ('首页', 'Home'),
-        ('工具', 'Tools'),
-        ('👴 退休计算器', '👴 Retirement Calculator'),
-        ('全部工具', 'All Tools'),
-        ('隐私政策', 'Privacy Policy'),
-        ('服务条款', 'Terms of Service'),
-        ('关于我们', 'About Us'),
-        ('👴 退休金计算器 | 无需注册 · 数据绝不上传服务器',
-         '👴 Retirement Corpus Calculator | No registration · Data never uploaded'),
-        ('问题反馈: dexshuang@google.com', 'Feedback: dexshuang@google.com'),
-        ('相关工具推荐', 'Related Tools'),
-        ('💰 SIP投资计算器', '💰 SIP Calculator'),
-        ('📋 年金计算器', '📋 Annuity Calculator'),
-        ('🎂 年龄计算器', '🎂 Age Calculator'),
-        ('中文', '中文'),
-    ],
-    'prepayment-calculator': [
-        ('<html lang="zh-CN">', '<html lang="en">'),
-        ('贷款提前还款计算器——计算提前还贷节省的利息和缩短的期限。输入贷款金额、利率、期限和计划提前还款额，查看节省金额和新还款计划',
-         'Calculate interest saved and term shortened by prepaying your loan. Enter loan amount, rate, term and prepayment amount to see savings and new repayment plan'),
-        ('提前还款计算器 - Free ToolBase', 'Loan Prepayment Calculator - Free ToolBase'),
-        ('计算房贷/贷款提前还贷节省的利息和缩短的还款期限，支持一次性还款和每月多还',
-         'Calculate interest saved and years shortened by prepaying your mortgage/loan, supporting lump-sum and extra monthly payments'),
-        ('计算房贷/贷款提前还贷节省的利息和缩短的年限，支持一次性提前还款和每月多还',
-         'Calculate interest saved and years shortened by prepaying your mortgage/loan, supporting lump-sum prepayment'),
-        ('🏠 提前还款计算器', '🏠 Loan Prepayment Calculator'),
-        ('计算房贷/贷款提前还贷节省的利息和缩短的年限，支持一次性提前还款',
-         'Calculate interest saved and years shortened by prepaying your mortgage/loan, supporting lump-sum prepayment'),
-        ('提前还贷能显著减少总利息支出。本工具比较原始还款计划与提前还款后的结果：输入贷款金额、利率、期限和提前还款额，查看节省的利息、缩短的期限以及新的月供（选择缩短年限模式）。',
-         'Prepaying loans significantly reduces total interest. Compare original vs post-prepayment: enter loan amount, rate, term, and prepayment to see interest saved, shortened term, and new payment.'),
-        ('房贷计算</span><span class="badge">节省利息</span><span class="badge">财务规划',
-         'Mortgage</span><span class="badge">Interest Savings</span><span class="badge">Financial Planning'),
-        ('贷款参数', 'Loan Parameters'),
-        ('贷款金额 (万元)', 'Loan Amount (10K ¥)'),
-        ('年利率 (%)', 'Annual Interest Rate (%)'),
-        ('贷款年限', 'Loan Term (years)'),
-        ('提前还款金额 (万元)', 'Prepayment Amount (10K ¥)'),
-        ('还款方式', 'Payment Type'),
-        ('等额本息', 'Equal Installment'),
-        ('等额本金', 'Equal Principal'),
-        ('🏠 计算节省', '🏠 Calculate Savings'),
-        ('对比结果', 'Comparison Results'),
-        ('项目', 'Item'),
-        ('原始计划', 'Original Plan'),
-        ('提前还款后', 'After Prepayment'),
-        ('节省', 'Savings'),
-        ('月供', 'Monthly Payment'),
-        ('总利息', 'Total Interest'),
-        ('剩余期限', 'Remaining Term'),
-        ('提前还贷分两种模式：缩短年限（月供不变）和减少月供（年限不变）',
-         'Loan prepayment: two modes — shorten term (same payment) or reduce payment (same term)'),
-        ('本工具默认采用"缩短年限"模式（月供不变、期限缩短），这是最省利息的方式。提前还款后，剩余本金减少，在保持月供不变的情况下，还款期数自然缩短。',
-         'This tool defaults to shorten-term mode (same payment, shorter term) — the most interest-saving approach. After prepayment, remaining principal decreases, naturally shortening the term.'),
-        ('提前还贷哪种方式更划算？', 'Which prepayment method saves more?'),
-        ('缩短年限（月供不变）比减少月供（年限不变）更省利息。因为本金减少后，同样的月供能更快还完，减少计息时间。建议优先选择缩短年限。',
-         'Shortening the term saves more than reducing payment. Prioritize term reduction.'),
-        ('提前还款有违约金吗？', 'Are there prepayment penalties?'),
-        ('部分银行对提前还款收取违约金（通常为提前还款金额的1-3%）。请在决策前咨询贷款银行。本工具仅计算利息节省，不包含违约金。',
-         'Some banks charge 1-3% prepayment penalties. Consult your bank. This tool calculates interest savings only.'),
-        ('关于提前还款计算器', 'About Prepayment Calculator'),
-        ('首页', 'Home'),
-        ('工具', 'Tools'),
-        ('🏠 提前还款', '🏠 Prepayment'),
-        ('全部工具', 'All Tools'),
-        ('隐私政策', 'Privacy Policy'),
-        ('服务条款', 'Terms of Service'),
-        ('关于我们', 'About Us'),
-        ('🏠 提前还款计算器 | 无需注册 · 数据绝不上传服务器',
-         '🏠 Loan Prepayment Calculator | No registration · Data never uploaded'),
-        ('问题反馈: dexshuang@google.com', 'Feedback: dexshuang@google.com'),
-        ('相关工具推荐', 'Related Tools'),
-        ('🏡 房贷EMI计算器', '🏡 Home Loan EMI'),
-        ('🔄 反向EMI', '🔄 Reverse EMI'),
-        ('🚗 车贷EMI', '🚗 Car EMI'),
-        ('中文', '中文'),
-    ],
+TRANSLATIONS = {
+    # meeting-agenda-generator
+    'smart-goal-generator': {
+        'SMART目标生成器': 'SMART Goal Generator',
+        '按SMART原则（具体、可衡量、可实现、相关、有时限）制定清晰目标。一键生成目标陈述，复制导出。': 'Create clear goals using the SMART framework (Specific, Measurable, Achievable, Relevant, Time-bound). One-click goal statement generation, copy and export.',
+        '首页': 'Home', '工具': 'Tools',
+        '在线SMART目标生成器': 'SMART Goal Generator',
+        '免费在线SMART目标生成器，按SMART原则（具体、可衡量、可实现、相关、有时限）制定清晰目标。一键生成目标陈述，复制导出。纯前端处理，数据不上传。': 'Free online SMART goal generator. Create clear goals using the SMART framework. One-click goal statement generation, copy and export. Pure frontend, no data upload.',
+        '按SMART原则制定清晰目标。纯前端处理，数据不上传。': 'Create clear goals using the SMART framework. Pure frontend, no data upload.',
+        '数据绝不上传服务器': 'Data never leaves your device',
+        '无需注册 · 数据绝不上传服务器': 'No registration · Data never leaves your device',
+        'SMART目标,smart goal,目标设定,目标管理,在线工具,免费': 'SMART goal,goal generator,goal setting,online tool,free',
+        '零依赖·可离线使用': 'Zero dependencies · Works offline',
+        '免费在线SMART目标生成器 - SMART Goal Generator | 无需注册': 'Free SMART Goal Generator - No Registration Required',
+        '已保存的目标': 'Saved Goals',
+        '制定SMART目标': 'Create SMART Goal',
+        '具体的（Specific）— 你要达成什么？': 'Specific — What to achieve?',
+        '如：将网站月访问量从5万提升到10万': 'e.g. Increase monthly website traffic from 50K to 100K',
+        '可衡量的（Measurable）— 如何衡量成功？': 'Measurable — How to measure success?',
+        '如：Google Analytics月度UV达到10万': 'e.g. Google Analytics monthly UV reaches 100K',
+        '可实现的（Achievable）— 资源是否支持？': 'Achievable — Resources available?',
+        '如：通过SEO优化+内容营销+社交媒体推广': 'e.g. Via SEO + content marketing + social media',
+        '相关的（Relevant）— 为何重要？': 'Relevant — Why does it matter?',
+        '如：增加品牌曝光，提升产品转化率': 'e.g. Increase brand exposure, boost conversion rate',
+        '有时限的（Time-bound）— 何时完成？': 'Time-bound — When to complete?',
+        '如：2025年3月31日前': 'e.g. By March 31, 2025',
+        '生成目标陈述': 'Generate Statement',
+        '保存目标': 'Save Goal',
+        '复制目标': 'Copy',
+        '清空': 'Clear',
+        '目标陈述': 'Goal Statement: ',
+        '已保存的目标': 'Saved Goals',
+        '尚未保存目标': 'No saved goals yet',
+        '目标已删除': 'Goal deleted',
+        '目标已保存 💾': 'Goal saved 💾',
+        '已清空': 'Cleared',
+        '已复制到剪贴板 📋': 'Copied to clipboard 📋',
+        '请先填写并生成目标': 'Please fill in and generate first',
+        '请至少填写具体目标': 'Please fill in at least the specific goal',
+        '确定清空所有内容吗？': 'Clear all content?',
+        'SMART目标生成器是一款免费的在线工具，无需安装任何软件即可直接在浏览器中使用。该工具完全在本地运行，您的数据不会上传到服务器，保障隐私安全。使用SMART目标生成器可以帮助您制定清晰、可执行的目标，提高目标达成率。本工具采用纯前端技术实现，打开即用，无需注册账号或下载插件。SMART原则是目标管理领域的黄金标准，被全球500强企业广泛采用。所有处理均在浏览器本地完成，响应速度快且安全可靠。': 'The SMART Goal Generator is a free online tool that requires no installation. It runs entirely in your browser and your data never leaves your device. Use it to create clear, actionable goals. Open and use instantly — no registration or downloads required.',
+        '相关工具推荐': 'Related Tools',
+        '行动计划生成器': 'Action Plan Generator',
+        '会议议程生成器': 'Meeting Agenda Generator',
+        '隐私政策': 'Privacy Policy',
+    }
 }
 
-for name, replacements in tools_en.items():
-    cn_path = f'{name}/index.html'
-    en_path = f'en/{name}/index.html'
-    
-    with open(cn_path) as f:
-        html = f.read()
-    
-    for old, new in replacements:
-        if old not in html:
-            print(f'WARNING [{name}]: "{old[:60]}..." not found in source')
-            continue
-        html = html.replace(old, new)
-    
-    # Fix hreflang tags for EN version
-    # CN: hreflang="zh" -> cn url, hreflang="en" -> en url
-    # EN: hreflang="en" -> en url, hreflang="zh" -> cn url
-    html = html.replace(f'hreflang="zh" href="https://free-toolbase.com/{name}/"', 
-                        f'hreflang="en" href="https://free-toolbase.com/en/{name}/"')
-    html = html.replace(f'hreflang="en" href="https://free-toolbase.com/en/{name}/"', 
-                        f'hreflang="zh" href="https://free-toolbase.com/{name}/"')
-    # Fix canonical
-    html = html.replace(f'<link rel="canonical" href="https://free-toolbase.com/{name}/">',
-                        f'<link rel="canonical" href="https://free-toolbase.com/en/{name}/">')
-    # Fix og:url
-    html = html.replace(f'<meta property="og:url" content="https://free-toolbase.com/{name}/">',
-                        f'<meta property="og:url" content="https://free-toolbase.com/en/{name}/">')
-    # Fix lang switch: EN page should show "EN" as active, link to CN
-    html = html.replace('<a href="index.html" class="active">EN</a><a href="../../kisan-vikas-patra/">中文</a>',
-                        f'<a href="index.html" class="active">EN</a><a href="../../{name}/">中文</a>')
-    # Fix footer EN link
-    html = html.replace(f'<a href="../en/{name}/">EN</a>', f'<a href="../../{name}/">中文</a>')
-    # Fix nav-back: en pages use ../../ for root
-    html = html.replace('<a href="../index.html">Home</a>', '<a href="../../index.html">Home</a>')
-    
-    with open(en_path, 'w') as f:
-        f.write(html)
-    print(f'✅ Generated {en_path}')
+def translate_file(src, dst, tool_name):
+    trans = TRANSLATIONS.get(tool_name, {})
+    with open(src, 'r') as f:
+        content = f.read()
 
-print('\nDone! All 5 EN pages generated.')
+    # Replace zh-CN with en
+    content = content.replace('lang="zh-CN"', 'lang="en"')
+    content = content.replace('lang="zh"', 'lang="en"')
+
+    # Replace canonical
+    content = re.sub(r'https://free-toolbase\.com/', 'https://free-toolbase.com/en/', content)
+
+    # Fix hreflang - keep href pointing to en version
+    # Fix lang-switch links
+    content = content.replace('href="index.html" class="active">中文</a><a href="../en/', 'href="../../'+tool_name+'/">中文</a><a href="index.html" class="active">EN</a>')
+    content = content.replace('href="index.html" class="active">中文</a><a href="../../en/', 'href="../../'+tool_name+'/">中文</a><a href="index.html" class="active">EN</a>')
+
+    # Fix nav-back links
+    content = content.replace('href="../index.html">首页</a> › <a href="../index.html#tools">工具</a>', 'href="../index.html">Home</a> › <a href="../index.html#tools">Tools</a>')
+    content = content.replace('href="../../index.html">首页</a> › <a href="../../index.html#tools">工具</a>', 'href="../index.html">Home</a> › <a href="../index.html#tools">Tools</a>')
+
+    # Apply text translations
+    for zh, en in trans.items():
+        content = content.replace(zh, en)
+
+    # Fix STORAGE_KEY to add -en suffix
+    content = content.replace("STORAGE_KEY='", "STORAGE_KEY='"+tool_name+"-en-")
+
+    # Fix placeholders
+    content = content.replace('如：', 'e.g. ')
+    content = content.replace('如: ', 'e.g. ')
+
+    # Fix remaining Chinese UI text
+    content = re.sub(r'placeholder="如：([^"]*)"', r'placeholder="e.g. \1"', content)
+
+    # Fix related tools links to /en/
+    content = content.replace('href="/action-plan/', 'href="/en/action-plan/')
+    content = content.replace('href="/meeting-agenda-generator/', 'href="/en/meeting-agenda-generator/')
+    content = content.replace('href="/meeting-notes/', 'href="/en/meeting-notes/')
+    content = content.replace('href="/smart-goal-generator/', 'href="/en/smart-goal-generator/')
+    content = content.replace('href="/subscription-revenue-calculator/', 'href="/en/subscription-revenue-calculator/')
+    content = content.replace('href="/project-estimate-calculator/', 'href="/en/project-estimate-calculator/')
+    content = content.replace('href="/profit-per-unit-calculator/', 'href="/en/profit-per-unit-calculator/')
+    content = content.replace('href="/profit-margin-calculator/', 'href="/en/profit-margin-calculator/')
+    content = content.replace('href="/break-even-calculator/', 'href="/en/break-even-calculator/')
+    content = content.replace('href="/commission-calculator/', 'href="/en/commission-calculator/')
+    content = content.replace('href="/burn-rate-calculator/', 'href="/en/burn-rate-calculator/')
+    content = content.replace('href="/runway-calculator/', 'href="/en/runway-calculator/')
+    content = content.replace('href="/revenue-calculator/', 'href="/en/revenue-calculator/')
+    content = content.replace('href="/swot-analysis/', 'href="/en/swot-analysis/')
+    content = content.replace('href="/business-plan-generator/', 'href="/en/business-plan-generator/')
+
+    # Fix href="/" to href="/en/"
+    content = re.sub(r'href="/"(?!en)', 'href="/en/"', content)
+    content = re.sub(r'href="/privacy"', 'href="/en/privacy"', content)
+
+    with open(dst, 'w') as f:
+        f.write(content)
+
+if __name__ == '__main__':
+    base = '/home/chison/tools-site'
+    tools = ['smart-goal-generator', 'subscription-revenue-calculator', 'project-estimate-calculator', 'profit-per-unit-calculator', 'pitch-deck-outline']
+
+    for tool in tools:
+        src = f'{base}/{tool}/index.html'
+        dst = f'{base}/en/{tool}/index.html'
+        translate_file(src, dst, tool)
+        print(f'✅ {tool} EN done')
