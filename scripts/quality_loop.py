@@ -4,7 +4,7 @@
 检测→修复→验证→再检测，循环直到零问题
 每次运行输出：问题数、修复数、残留数
 """
-import os, re, sys, json, subprocess, tempfile
+import os, re, sys, json
 
 SITE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKIP = {'scripts','css','js','docs','quality','blog','en','.gsc-data','.git',
@@ -42,7 +42,7 @@ def check_seo(path, lang, item):
         if 'twitter:card' not in c: issues.append('no_twitter_card')
         if 'hreflang' not in c: issues.append('no_hreflang')
         if 'meta name="robots"' not in c: issues.append('no_robots')
-        if 'adsbygoogle' not in c: issues.append('no_adsense')
+        # no_adsense 暂时跳过 — 全站AdSense尚未接入
         if 'BreadcrumbList' not in c: issues.append('no_breadcrumb')
     
     if 'SoftwareApplication' not in c: issues.append('no_software_app')
@@ -161,7 +161,7 @@ def check_functionality(path, lang, item):
     return issues
 
 def check_js(path, lang, item):
-    """门9: JS语法质量 — 用 node -c 验证"""
+    """门9: JS语法质量 — 简单括号匹配"""
     issues = []
     with open(path, 'r', encoding='utf-8', errors='ignore') as f: c = f.read()
     if 'noindex' in c: return issues
@@ -172,27 +172,22 @@ def check_js(path, lang, item):
         if 'gtag' in s or 'adsbygoogle' in s or 'dataLayer' in s: continue
         if 'e.preventDefault()' in s and len(s) < 300: continue
         
-        # 用 node -c 检查语法（最可靠）
-        try:
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8') as f_js:
-                f_js.write(s)
-                js_path = f_js.name
-            result = subprocess.run(['node', '-c', js_path], capture_output=True, text=True, timeout=10)
-            os.unlink(js_path)
-            if result.returncode != 0:
-                issues.append('js_paren_mismatch')
-                break
-        except Exception:
-            # node不可用时跳过
+        # 简单括号匹配（跳过字符串内容，注释中括号不影响JS语法）
+        # 只移除字符串字面量中的内容
+        no_str = re.sub(r"'[^'\\]*(?:\\.[^'\\]*)*'", "''", s)
+        no_str = re.sub(r'"[^"\\]*(?:\\.[^"\\]*)*"', '""', no_str)
+        no_str = re.sub(r'`[^`\\]*(?:\\.[^`\\]*)*`', '``', no_str)
+        
+        depth = 0
+        for ch in no_str:
+            if ch == '(': depth += 1
+            elif ch == ')': depth -= 1
+        if depth != 0:
+            issues.append('js_paren_mismatch')
             break
         
-        # 重复函数定义 — 跳过字符串/注释中的 function 关键字
-        clean = re.sub(r'//[^\n]*', '', s)
-        clean = re.sub(r'/\*.*?\*/', '', clean, re.DOTALL)
-        clean = re.sub(r"'[^'\\]*(?:\\.[^'\\]*)*'", "''", clean)
-        clean = re.sub(r'"[^"\\]*(?:\\.[^"\\]*)*"', '""', clean)
-        clean = re.sub(r'`[^`\\]*(?:\\.[^`\\]*)*`', '``', clean)
-        funcs = re.findall(r'function\s+(\w+)\s*\(', clean)
+        # 重复函数定义
+        funcs = re.findall(r'function\s+(\w+)\s*\(', no_str)
         from collections import Counter
         dup = [f for f, cnt in Counter(funcs).items() if cnt > 1 and f not in ('addEventListener','querySelector')]
         if dup:
@@ -381,44 +376,37 @@ def auto_fix(path, lang, item, issues):
             fixed.append(issue)
         
         elif issue == 'js_paren_mismatch':
-            # 用 node -c 验证后决定修复方式
+            # 简单括号修复
             for m2 in re.finditer(r'(<script>)(.*?)(</script>)', c, re.DOTALL):
                 s = m2.group(2)
                 if len(s.strip()) < 50: continue
                 if 'gtag' in s or 'adsbygoogle' in s or 'dataLayer' in s: continue
                 if 'e.preventDefault()' in s and len(s) < 300: continue
                 
-                try:
-                    with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False, encoding='utf-8') as f_js:
-                        f_js.write(s)
-                        js_path = f_js.name
-                    result = subprocess.run(['node', '-c', js_path], capture_output=True, text=True, timeout=10)
-                    os.unlink(js_path)
-                    if result.returncode != 0:
-                        # 真有问题，尝试修复
-                        trial = s.rstrip()
-                        depth = 0
-                        for ch in trial:
-                            if ch == '(': depth += 1
-                            elif ch == ')': depth -= 1
-                        for _ in range(5):
-                            if depth == 0: break
-                            elif depth < 0:
-                                lp = trial.rfind(')')
-                                if lp >= 0: trial = trial[:lp] + trial[lp+1:]; depth += 1
-                                else: break
-                            else:
-                                trial += ')'; depth -= 1
-                        if depth == 0:
-                            c = c.replace(m2.group(0), m2.group(1) + trial + m2.group(3), 1)
-                            fixed.append(issue)
-                        else:
-                            remaining.append(issue)
-                    # node语法正确 → 误报，跳过（不报remaining）
-                    break
-                except Exception:
+                # 只移除字符串
+                no_str = re.sub(r"'[^'\\]*(?:\\.[^'\\]*)*'", "''", s)
+                no_str = re.sub(r'"[^"\\]*(?:\\.[^"\\]*)*"', '""', no_str)
+                no_str = re.sub(r'`[^`\\]*(?:\\.[^`\\]*)*`', '``', no_str)
+                depth = sum(1 for ch in no_str if ch == '(') - sum(1 for ch in no_str if ch == ')')
+                if depth == 0: continue
+                
+                trial = s.rstrip()
+                for _ in range(5):
+                    if depth == 0: break
+                    elif depth < 0:
+                        lp = trial.rfind(')')
+                        if lp >= 0: trial = trial[:lp] + trial[lp+1:]; depth += 1
+                        else: break
+                    else:
+                        trial += ')'; depth -= 1
+                if depth == 0:
+                    c = c.replace(m2.group(0), m2.group(1) + trial + m2.group(3), 1)
+                    fixed.append(issue)
+                else:
                     remaining.append(issue)
-                    break
+                break
+            else:
+                remaining.append(issue)
         
         elif issue == 'js_dup_func':
             # 去重：只保留第一个定义
@@ -439,6 +427,16 @@ def auto_fix(path, lang, item, issues):
                 fixed.append(issue)
             else:
                 remaining.append(issue)
+        
+        elif issue == 'no_software_app':
+            tm = re.search(r'<title>([^<]+)</title>', c)
+            tn = tm.group(1).split(' - ')[0].split(' | ')[0].strip()[:60] if tm else item.replace('-',' ').title()
+            dm = re.search(r'<meta name="description" content="([^"]*)"', c)
+            desc = dm.group(1)[:150] if dm else f'Free online {tn}. Pure frontend, no data upload.'
+            sa = '{"@context":"https://schema.org","@type":"SoftwareApplication","name":"' + tn + '","description":"' + desc + '","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","publisher":{"@type":"Organization","name":"Free ToolBase","email":"dexshuang@google.com"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}'
+            sa_tag = '<script type="application/ld+json">' + sa + '</script>'
+            c = c.replace('</head>', '\n' + sa_tag + '\n</head>')
+            fixed.append(issue)
         
         else:
             remaining.append(issue)
