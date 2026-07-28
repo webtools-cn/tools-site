@@ -1,4 +1,4 @@
-// Related Tools Loader - cross-recommendation
+// Related Tools Loader - cross-recommendation (fixed: absolute paths)
 (function() {
   'use strict';
   var s = document.getElementById('related-tools-section');
@@ -17,7 +17,7 @@
       + (en ? '🔗 You May Also Like' : '🔗 相关工具推荐')
       + '</h3><div class="related-tools-grid">';
     t.related.forEach(function(r) {
-      var link = en ? '../en/' + r.slug + '/' : '../' + r.slug + '/';
+      var link = en ? '/en/' + r.slug + '/' : '/' + r.slug + '/';
       h += '<a href="' + link + '" class="related-tool-card">'
         + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
         + '<span class="related-tool-name">' + r.name + '</span></a>';
