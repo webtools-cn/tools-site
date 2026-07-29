@@ -139,7 +139,7 @@ async function testBehavior(page, toolName, level) {
     
     if (btn && btn.asElement()) {
       await btn.asElement().click();
-      await page.waitForTimeout(200);
+      await await new Promise(r=>setTimeout(r,200));
     }
   }
   
