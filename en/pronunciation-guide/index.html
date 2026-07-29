@@ -254,28 +254,31 @@ function selectWord(word){
 function speak(accent){
   var word=searchInput.value.trim();
   if(!word){showToast("Please enter a word first");return}
-  if(!window.speechSynthesis){showToast("Your browser does not support speech synthesis");return}
-  var u=new SpeechSynthesisUtterance(word);
-  u.lang=accent==="uk"?"en-GB":"en-US";
-  u.rate=0.85;
-  u.pitch=1;
-  u.volume=1;
-  u.onstart=function(){showToast(accent==="uk"?"Playing British pronunciation...":"Playing American pronunciation...")};
-  u.onerror=function(e){if(e.error==="not-allowed"){showToast("Browser blocked audio playback. Click anywhere on the page first")}else{showToast("Audio playback failed. Try refreshing the page")}};
-  var voices=speechSynthesis.getVoices();
-  var targetLang=accent==="uk"?"en-GB":"en-US";
-  var matchedVoice=null;
-  for(var i=0;i<voices.length;i++){
-    if(voices[i].lang===targetLang){matchedVoice=voices[i];break}
-  }
-  if(!matchedVoice){
-    for(var i=0;i<voices.length;i++){
-      if(voices[i].lang.indexOf("en")===0){matchedVoice=voices[i];break}
+  var lang=accent==="uk"?"en-gb":"en-us";
+  var audioUrl="https://api.dictionaryapi.dev/media/pronunciations/"+encodeURIComponent(word.toLowerCase())+"/"+lang+".mp3";
+  var audio=new Audio();
+  audio.onerror=function(){
+    if(window.speechSynthesis){
+      var u=new SpeechSynthesisUtterance(word);
+      u.lang=accent==="uk"?"en-GB":"en-US";
+      u.rate=0.85;u.pitch=1;u.volume=1;
+      u.onstart=function(){showToast(accent==="uk"?"Playing British pronunciation...":"Playing American pronunciation...")};
+      u.onerror=function(){showToast("Audio unavailable. Please try again later")};
+      var voices=speechSynthesis.getVoices();
+      var targetLang=accent==="uk"?"en-GB":"en-US";
+      var matchedVoice=null;
+      for(var i=0;i<voices.length;i++){if(voices[i].lang===targetLang){matchedVoice=voices[i];break}}
+      if(!matchedVoice){for(var i=0;i<voices.length;i++){if(voices[i].lang.indexOf("en")===0){matchedVoice=voices[i];break}}}
+      if(matchedVoice)u.voice=matchedVoice;
+      speechSynthesis.cancel();
+      setTimeout(function(){speechSynthesis.speak(u)},100);
+    }else{
+      showToast("Audio playback not supported. Please use Chrome or Safari");
     }
-  }
-  if(matchedVoice)u.voice=matchedVoice;
-  speechSynthesis.cancel();
-  setTimeout(function(){speechSynthesis.speak(u)},100);
+  };
+  audio.onplay=function(){showToast(accent==="uk"?"Playing British pronunciation...":"Playing American pronunciation...")};
+  audio.src=audioUrl;
+  audio.play().catch(function(){audio.onerror()});
 }
 if(window.speechSynthesis){
   speechSynthesis.getVoices();
