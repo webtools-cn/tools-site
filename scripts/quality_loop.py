@@ -148,6 +148,18 @@ def check_functionality(path, lang, item):
         issues.append('empty_shell')
         return issues
     
+    # 检测toolInput模板空壳：有按钮但无真正功能
+    if 'id="toolInput"' in c:
+        if '处理完成:' in c or '基于输入参数生成的结果' in c:
+            issues.append('toolinput_stub')
+            return issues
+        js_funcs = re.findall(r'function\s+(\w+)\s*\(', c)
+        utility_funcs = {'showToast', 'copyText', 'copyResult', 'exportResult', 'clearTool', 'runTool', 'gtag'}
+        business_funcs = [f for f in js_funcs if f not in utility_funcs and not f.startswith('_')]
+        if len(business_funcs) == 0:
+            issues.append('toolinput_stub')
+            return issues
+    
     btns = len(re.findall(r'<button', c))
     inputs = len(re.findall(r'<input|<textarea|<select', c))
     if btns + inputs < 3:
