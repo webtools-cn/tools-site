@@ -173,6 +173,54 @@ def check_css_vars(path, lang, item):
     return issues
 
 
+
+def check_html_quality(path, lang, item):
+    """门5.8: HTML/CSS/JS质量综合检测"""
+    issues = []
+    with open(path, 'r', encoding='utf-8', errors='ignore') as f: c = f.read()
+    if 'noindex' in c: return issues
+    
+    # CSS花括号不匹配
+    for m in re.finditer(r'<style[^>]*>(.*?)</style>', c, re.DOTALL):
+        css = m.group(1)
+        if css.count('{') != css.count('}'):
+            issues.append('css_brace_mismatch')
+            break
+    
+    # console.log残留
+    if re.search(r'console\.log\s*\(', c):
+        issues.append('console_log残留')
+    
+    # debugger残留
+    if re.search(r'\bdebugger\b', c):
+        issues.append('debugger残留')
+    
+    # document.write
+    if 'document.write' in c:
+        issues.append('document_write')
+    
+    # 重复ID
+    ids = re.findall(r'id=["\']([^"\']+)["\']', c)
+    if len(ids) != len(set(ids)):
+        issues.append('duplicate_id')
+    
+    # 外部CDN依赖（排除GA和AdSense）
+    for m in re.finditer(r'<script[^>]+src=["\']https?://([^/]+)', c):
+        d = m.group(1)
+        if d not in ('www.googletagmanager.com','pagead2.googlesyndication.com','free-toolbase.com'):
+            issues.append('external_cdn')
+            break
+    
+    # 空href
+    if 'href="#"' in c or 'javascript:void' in c:
+        issues.append('empty_href')
+    
+    # 按钮无文字
+    if re.search(r'<button[^>]*>\s*</button>', c):
+        issues.append('button_no_text')
+    
+    return issues
+
 def check_fake_rating(path, lang, item):
     """门5.7: 假评分检测 - aggregateRating必须删除"""
     issues = []
@@ -379,6 +427,26 @@ def auto_fix(path, lang, item, issues):
                 fixed.append(issue)
             else:
                 remaining.append(issue)
+
+        elif issue == 'css_brace_mismatch':
+            for m in re.finditer(r'(<style[^>]*>)(.*?)(</style>)', c, re.DOTALL):
+                css = m.group(2)
+                diff = css.count('{') - css.count('}')
+                if diff > 0:
+                    new_css = css.rstrip() + '\n' + '}' * diff + '\n'
+                    c = c.replace(m.group(0), m.group(1) + new_css + m.group(3))
+                    fixed.append(issue); break
+            else: remaining.append(issue)
+        elif issue == 'console_log\u6b8b\u7559':
+            c_new = re.sub(r'\s*console\.log\([^)]*\);?\s*\n?', '\n', c)
+            if c_new != c: c = c_new; fixed.append(issue)
+            else: remaining.append(issue)
+        elif issue == 'debugger\u6b8b\u7559':
+            c_new = re.sub(r'\s*debugger;?\s*\n?', '\n', c)
+            if c_new != c: c = c_new; fixed.append(issue)
+            else: remaining.append(issue)
+        elif issue in ('document_write','duplicate_id','external_cdn','empty_href','button_no_text'):
+            remaining.append(issue)  # 需人工修复
 
         elif issue == 'head_unclosed':
             # 在第一个<style>前插入</head><body>
@@ -789,6 +857,7 @@ def run():
         ('theme', check_theme),
         ('css_vars', check_css_vars),
         ('fake_rating', check_fake_rating),
+        ('html_quality', check_html_quality),
         ('language', check_language),
         ('functionality', check_functionality),
         ('js', check_js),
