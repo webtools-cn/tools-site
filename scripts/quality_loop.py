@@ -144,6 +144,43 @@ def check_theme(path, lang, item):
     
     return issues
 
+
+def check_css_vars(path, lang, item):
+    """门5.6: CSS变量完整性 - 检测引用了未定义的布局变量"""
+    issues = []
+    with open(path, 'r', encoding='utf-8', errors='ignore') as f: c = f.read()
+    if 'noindex' in c: return issues
+    
+    layout_vars = {'card-bg','shadow','primary-hover','primary-light','surface','text2',
+                   'text-light','text-muted','accent','muted','sub','bg-card'}
+    
+    var_refs = set(re.findall(r'var\(--([^),]+)', c))
+    if not var_refs: return issues
+    
+    all_defined = set()
+    for root_m in re.finditer(r':root\s*\{([^}]+)\}', c):
+        for vm in re.finditer(r'--([\w-]+)\s*:', root_m.group(1)):
+            all_defined.add(vm.group(1))
+    for style_m in re.finditer(r'<style[^>]*>(.*?)</style>', c, re.DOTALL):
+        for vm in re.finditer(r'--([\w-]+)\s*:', style_m.group(1)):
+            all_defined.add(vm.group(1))
+    
+    undefined = var_refs - all_defined
+    layout_undefined = undefined & layout_vars
+    if layout_undefined:
+        issues.append('undefined_css_vars')
+    
+    return issues
+
+
+def check_fake_rating(path, lang, item):
+    """门5.7: 假评分检测 - aggregateRating必须删除"""
+    issues = []
+    with open(path, 'r', encoding='utf-8', errors='ignore') as f: c = f.read()
+    if 'aggregateRating' in c:
+        issues.append('fake_aggregate_rating')
+    return issues
+
 def check_language(path, lang, item):
     """门6: 语言一致性"""
     issues = []
@@ -307,6 +344,42 @@ def auto_fix(path, lang, item, issues):
             c = c.replace('--shadow: 0 1px 3px rgba(0,0,0,.06)', '--shadow: 0 1px 3px rgba(0,0,0,.3)')
             fixed.append(issue)
         
+        elif issue == 'undefined_css_vars':
+            var_map = {'card-bg':'#1e293b','shadow':'0 1px 3px rgba(0,0,0,.3)',
+                'primary-hover':'rgba(6,182,212,.3)','primary-light':'rgba(6,182,212,.15)',
+                'surface':'#1e293b','surface2':'#334155','text2':'#94a3b8',
+                'text-light':'#94a3b8','text-muted':'#64748b','accent':'#06b6d4',
+                'muted':'#64748b','sub':'#94a3b8','bg-card':'#1e293b'}
+            var_refs = set(re.findall(r'var\(--([^),]+)', c))
+            all_defined = set()
+            for root_m in re.finditer(r':root\s*\{([^}]+)\}', c):
+                for vm in re.finditer(r'--([\w-]+)\s*:', root_m.group(1)): all_defined.add(vm.group(1))
+            for style_m in re.finditer(r'<style[^>]*>(.*?)</style>', c, re.DOTALL):
+                for vm in re.finditer(r'--([\w-]+)\s*:', style_m.group(1)): all_defined.add(vm.group(1))
+            undefined = var_refs - all_defined
+            need = {v: var_map.get(v,'#94a3b8') for v in undefined if v in var_map}
+            if need:
+                nv = ''.join(f'--{k}:{v};' for k,v in need.items())
+                if ':root{' in c or ':root {' in c:
+                    c = re.sub(r'(:root\s*\{)', r'\g<1>' + nv, c)
+                else:
+                    c = c.replace('<style>', '<style>:root{' + nv + '}', 1)
+                fixed.append(issue)
+            else:
+                remaining.append(issue)
+
+        elif issue == 'fake_aggregate_rating':
+            # 删除ld+json中的aggregateRating
+            for m in re.finditer(r'<script type="application/ld\+json">(.*?)</script>', c, re.DOTALL):
+                old = m.group(1)
+                new = re.sub(r',?\s*"aggregateRating"\s*:\s*\{[^}]*\}', '', old)
+                if old != new:
+                    c = c.replace(m.group(0), '<script type="application/ld+json">' + new + '</script>')
+            if 'aggregateRating' not in c:
+                fixed.append(issue)
+            else:
+                remaining.append(issue)
+
         elif issue == 'head_unclosed':
             # 在第一个<style>前插入</head><body>
             sp = c.find('<style')
@@ -714,6 +787,8 @@ def run():
         ('structure', check_structure),
         ('css', check_css),
         ('theme', check_theme),
+        ('css_vars', check_css_vars),
+        ('fake_rating', check_fake_rating),
         ('language', check_language),
         ('functionality', check_functionality),
         ('js', check_js),
