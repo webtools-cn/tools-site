@@ -365,6 +365,7 @@ p.subtitle{color:#94a3b8;margin-bottom:24px}
 @media (max-width:480px){.hero-stats{gap:12px}}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
 .toast.show{opacity:1}
+.cat-group{margin-bottom:8px}.cat-header{display:flex;align-items:center;gap:10px;padding:14px 18px;background:#1e293b;border-radius:10px;cursor:pointer;transition:all .2s;border:1px solid rgba(148,163,184,.1);user-select:none}.cat-header:hover{border-color:rgba(6,182,212,.3);background:#1a2640}.cat-icon{font-size:1.3rem}.cat-name{font-size:1rem;color:#f1f5f9;font-weight:600;flex:1}.cat-count{color:#64748b;font-size:.85rem;background:rgba(148,163,184,.1);padding:2px 10px;border-radius:10px}.cat-arrow{color:#64748b;font-size:.7rem;transition:transform .2s}.cat-arrow.expanded{transform:rotate(180deg)}.cat-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:12px 0 4px 0;animation:fadeIn .2s}@keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}.load-more{grid-column:1/-1;text-align:center;padding:12px;color:#22d3ee;background:rgba(6,182,212,.08);border:1px dashed rgba(6,182,212,.25);border-radius:8px;cursor:pointer;font-size:.9rem;transition:background .2s}.load-more:hover{background:rgba(6,182,212,.15)}
 </style>
 
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
@@ -3693,60 +3694,163 @@ document.querySelectorAll('.tool-card').forEach(function(card) {
   });
 });
 
-// Category filter
-document.querySelectorAll('.category-tag').forEach(function(tag) {
-  tag.addEventListener('click', function() {
-    document.querySelectorAll('.category-tag').forEach(function(t) { t.classList.remove('active'); });
-    this.classList.add('active');
-    var cat = this.getAttribute('data-cat');
-    var cards = document.querySelectorAll('.tool-card');
-    var visible = 0;
-    cards.forEach(function(card) {
-      if (cat === 'all' || (card.getAttribute('data-cat') || card.getAttribute('data-category')) === cat) {
-        card.style.display = '';
-        visible++;
-      } else {
-        card.style.display = 'none';
-      }
-    });
-    var countEl = document.getElementById('resultCount');
-    if (countEl) countEl.textContent = visible + ' 个工具';
+// === 首页优化：分类折叠 + 虚拟滚动 ===
+(function(){
+  var grid = document.getElementById('toolsGrid');
+  if(!grid) return;
+  var allCards = Array.from(grid.querySelectorAll('.tool-card'));
+  var parent = grid.parentElement;
+  var extraCards = Array.from(parent.querySelectorAll('.tool-card'));
+  extraCards.forEach(function(c){ if(c.parentNode === parent && !allCards.includes(c)) allCards.push(c) });
+  if(allCards.length === 0) return;
+  var CAT_NAMES = {
+    'dev-tools':'开发者工具','utility-tools':'实用工具','finance-tools':'金融工具',
+    'calc-tools':'计算工具','text-tools':'文字工具','health-tools':'健康工具',
+    'design-tools':'设计工具','image-tools':'图片工具','gen-tools':'生成工具',
+    'media-tools':'媒体工具','fun-tools':'趣味娱乐','office-tools':'办公工具',
+    'pdf-tools':'PDF工具','math-tools':'数学工具','conv-tools':'转换工具',
+    'security-tools':'安全工具','creative-tools':'创意工具','life-tools':'生活工具',
+    'seo-tools':'SEO工具','network-tools':'网络工具','check-tools':'检测工具',
+    'productivity-tools':'效率工具','audio-tools':'音频工具','education-tools':'教育工具',
+    'business-tools':'商业工具','electronics-tools':'电子工具','developer-tools':'开发者工具',
+    'travel-tools':'旅行工具','kitchen-tools':'厨房工具','css-tools':'CSS工具',
+    'color-tools':'颜色工具','study-tools':'学习工具','science-tools':'科学工具',
+    'data-tools':'数据工具','generator-tools':'生成器','sports-tools':'运动工具',
+    'utility':'实用工具','converter-tools':'转换工具','new-tools':'最新工具',
+    'health-fitness':'健康运动','finance':'金融','other':'其他'
+  };
+  var CAT_ICONS = {
+    'dev-tools':'⚙️','utility-tools':'🔧','finance-tools':'💰','calc-tools':'🔢',
+    'text-tools':'📝','health-tools':'💊','design-tools':'🎨','image-tools':'🖼️',
+    'gen-tools':'🪄','media-tools':'🎬','fun-tools':'🎮','office-tools':'📊',
+    'pdf-tools':'📄','math-tools':'📐','conv-tools':'🔄','security-tools':'🔒',
+    'creative-tools':'✨','life-tools':'🏠','seo-tools':'🔍','network-tools':'🌐',
+    'check-tools':'✅','productivity-tools':'⚡','audio-tools':'🔊','education-tools':'📚',
+    'business-tools':'💼','developer-tools':'💻','travel-tools':'✈️','kitchen-tools':'🍳',
+    'css-tools':'🎨','color-tools':'🎨','study-tools':'📖','science-tools':'🔬',
+    'data-tools':'📊','generator-tools':'🪄','sports-tools':'⚽','utility':'🔧',
+    'converter-tools':'🔄','new-tools':'🆕','health-fitness':'💪','finance':'💰','other':'📁'
+  };
+  var groups = {};
+  allCards.forEach(function(card){
+    var cat = card.getAttribute('data-cat') || 'other';
+    if(!groups[cat]) groups[cat] = [];
+    groups[cat].push(card);
   });
-});
+  var sorted = Object.keys(groups).sort(function(a,b){ return groups[b].length - groups[a].length });
+  var PER_PAGE = 40;
+  var expandedCats = {};
+  var searchQuery = '';
+  var activeCategory = 'all';
 
-// Search
-var searchInput = document.getElementById('searchInput');
-if (searchInput) {
-  searchInput.addEventListener('input', function() {
-    var q = this.value.toLowerCase().trim();
-    var cards = document.querySelectorAll('.tool-card');
-    var visible = 0;
-    cards.forEach(function(card) {
-      var text = card.textContent.toLowerCase();
-      if (!q || text.indexOf(q) > -1) {
-        card.style.display = '';
-        visible++;
-      } else {
-        card.style.display = 'none';
+  function renderGrouped(filterFn){
+    var html = '';
+    sorted.forEach(function(cat){
+      var cards = groups[cat];
+      var filtered = filterFn ? cards.filter(filterFn) : cards;
+      if(filtered.length === 0) return;
+      var name = CAT_NAMES[cat] || cat.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase()});
+      var icon = CAT_ICONS[cat] || '📁';
+      var isExpanded = expandedCats[cat];
+      html += '<div class="cat-group" data-cat="'+cat+'">';
+      html += '<div class="cat-header" onclick="window.__toggleCat(\''+cat+'\')">';
+      html += '<span class="cat-icon">'+icon+'</span>';
+      html += '<span class="cat-name">'+name+'</span>';
+      html += '<span class="cat-count">'+filtered.length+' 个工具</span>';
+      html += '<span class="cat-arrow'+(isExpanded?' expanded':'')+'">▼</span>';
+      html += '</div>';
+      if(isExpanded){
+        html += '<div class="cat-cards">';
+        var show = filtered.slice(0, PER_PAGE);
+        show.forEach(function(card){ html += card.outerHTML });
+        if(filtered.length > PER_PAGE){
+          html += '<div class="load-more" onclick="event.stopPropagation();window.__loadMore(\''+cat+'\')">显示更多（还有 '+(filtered.length-PER_PAGE)+' 个）</div>';
+        }
+        html += '</div>';
       }
+      html += '</div>';
     });
+    grid.innerHTML = html;
+    var total = filterFn ? allCards.filter(filterFn).length : allCards.length;
     var countEl = document.getElementById('resultCount');
-    if (countEl) countEl.textContent = visible + ' 个工具';
-    // Reset category filter when searching
-    if (q) {
-      document.querySelectorAll('.category-tag').forEach(function(t) { t.classList.remove('active'); });
-      var allTag = document.querySelector('.category-tag[data-cat="all"]');
-      if (allTag) allTag.classList.add('active');
+    if(countEl) countEl.textContent = total + ' 个工具';
+  }
+
+  window.__toggleCat = function(cat){
+    expandedCats[cat] = !expandedCats[cat];
+    renderGrouped(getCurrentFilter());
+  };
+  window.__loadMore = function(cat){
+    var cards = groups[cat];
+    var filterFn = getCurrentFilter();
+    var filtered = filterFn ? cards.filter(filterFn) : cards;
+    var container = document.querySelector('.cat-group[data-cat="'+cat+'"] .cat-cards');
+    if(!container) return;
+    var existing = container.querySelectorAll('.tool-card').length;
+    var more = filtered.slice(existing, existing + PER_PAGE);
+    var loadMoreEl = container.querySelector('.load-more');
+    more.forEach(function(card){
+      var div = document.createElement('div');
+      div.innerHTML = card.outerHTML;
+      while(div.firstChild) container.insertBefore(div.firstChild, loadMoreEl);
+    });
+    var remaining = filtered.length - existing - more.length;
+    if(remaining > 0 && loadMoreEl){
+      loadMoreEl.textContent = '显示更多（还有 '+remaining+' 个）';
+    } else if(loadMoreEl){
+      loadMoreEl.remove();
     }
-  });
-}
+  };
 
-// Initial count
-var countEl = document.getElementById('resultCount');
-if (countEl) {
-  var total = document.querySelectorAll('.tool-card').length;
-  countEl.textContent = total + ' 个工具';
-}
+  function getCurrentFilter(){
+    if(searchQuery){
+      var q = searchQuery;
+      return function(card){ return card.textContent.toLowerCase().indexOf(q) > -1 };
+    }
+    if(activeCategory && activeCategory !== 'all'){
+      var cat = activeCategory;
+      return function(card){ return (card.getAttribute('data-cat')||card.getAttribute('data-category')) === cat };
+    }
+    return null;
+  }
+
+  var searchInput = document.getElementById('searchInput');
+  if(searchInput){
+    searchInput.addEventListener('input', function(){
+      searchQuery = this.value.toLowerCase().trim();
+      if(searchQuery){
+        sorted.forEach(function(cat){
+          var cards = groups[cat];
+          if(cards.some(function(c){ return c.textContent.toLowerCase().indexOf(searchQuery) > -1 })){
+            expandedCats[cat] = true;
+          } else {
+            expandedCats[cat] = false;
+          }
+        });
+      }
+      renderGrouped(getCurrentFilter());
+    });
+  }
+
+  document.querySelectorAll('.category-tag').forEach(function(tag){
+    tag.addEventListener('click', function(){
+      document.querySelectorAll('.category-tag').forEach(function(t){ t.classList.remove('active') });
+      this.classList.add('active');
+      activeCategory = this.getAttribute('data-cat');
+      expandedCats = {};
+      if(activeCategory && activeCategory !== 'all'){
+        expandedCats[activeCategory] = true;
+      }
+      searchQuery = '';
+      if(searchInput) searchInput.value = '';
+      renderGrouped(getCurrentFilter());
+    });
+  });
+
+  renderGrouped(null);
+  var statNums = document.querySelectorAll('.stat-number');
+  if(statNums.length >= 1) statNums[0].textContent = allCards.length + '+';
+})();
 </script>
 
 <div class="tool-card" data-cat="utility-tools" data-name="🏋️ 1RM最大重量计算器">
