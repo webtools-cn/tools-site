@@ -254,11 +254,34 @@ function selectWord(word){
 function speak(accent){
   var word=searchInput.value.trim();
   if(!word){showToast("请先输入单词");return}
+  if(!window.speechSynthesis){showToast("您的浏览器不支持语音合成");return}
   var u=new SpeechSynthesisUtterance(word);
   u.lang=accent==="uk"?"en-GB":"en-US";
-  u.rate=0.8;
+  u.rate=0.85;
+  u.pitch=1;
+  u.volume=1;
+  u.onstart=function(){showToast(accent==="uk"?"正在播放英式发音...":"正在播放美式发音...")};
+  u.onerror=function(e){if(e.error==="not-allowed"){showToast("浏览器阻止了语音播放，请点击页面后再试")}else{showToast("语音播放失败，请尝试刷新页面")}};
+  // 选择匹配的voice
+  var voices=speechSynthesis.getVoices();
+  var targetLang=accent==="uk"?"en-GB":"en-US";
+  var matchedVoice=null;
+  for(var i=0;i<voices.length;i++){
+    if(voices[i].lang===targetLang){matchedVoice=voices[i];break}
+  }
+  if(!matchedVoice){
+    for(var i=0;i<voices.length;i++){
+      if(voices[i].lang.indexOf("en")===0){matchedVoice=voices[i];break}
+    }
+  }
+  if(matchedVoice)u.voice=matchedVoice;
   speechSynthesis.cancel();
-  speechSynthesis.speak(u);
+  setTimeout(function(){speechSynthesis.speak(u)},100);
+}
+// 预加载voices
+if(window.speechSynthesis){
+  speechSynthesis.getVoices();
+  speechSynthesis.onvoiceschanged=function(){speechSynthesis.getVoices()};
 }
 
 function switchTab(tab){

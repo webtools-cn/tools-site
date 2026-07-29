@@ -254,11 +254,32 @@ function selectWord(word){
 function speak(accent){
   var word=searchInput.value.trim();
   if(!word){showToast("Please enter a word first");return}
+  if(!window.speechSynthesis){showToast("Your browser does not support speech synthesis");return}
   var u=new SpeechSynthesisUtterance(word);
   u.lang=accent==="uk"?"en-GB":"en-US";
-  u.rate=0.8;
+  u.rate=0.85;
+  u.pitch=1;
+  u.volume=1;
+  u.onstart=function(){showToast(accent==="uk"?"Playing British pronunciation...":"Playing American pronunciation...")};
+  u.onerror=function(e){if(e.error==="not-allowed"){showToast("Browser blocked audio playback. Click anywhere on the page first")}else{showToast("Audio playback failed. Try refreshing the page")}};
+  var voices=speechSynthesis.getVoices();
+  var targetLang=accent==="uk"?"en-GB":"en-US";
+  var matchedVoice=null;
+  for(var i=0;i<voices.length;i++){
+    if(voices[i].lang===targetLang){matchedVoice=voices[i];break}
+  }
+  if(!matchedVoice){
+    for(var i=0;i<voices.length;i++){
+      if(voices[i].lang.indexOf("en")===0){matchedVoice=voices[i];break}
+    }
+  }
+  if(matchedVoice)u.voice=matchedVoice;
   speechSynthesis.cancel();
-  speechSynthesis.speak(u);
+  setTimeout(function(){speechSynthesis.speak(u)},100);
+}
+if(window.speechSynthesis){
+  speechSynthesis.getVoices();
+  speechSynthesis.onvoiceschanged=function(){speechSynthesis.getVoices()};
 }
 
 function switchTab(tab){
