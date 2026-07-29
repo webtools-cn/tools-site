@@ -108,6 +108,42 @@ def check_css(path, lang, item):
     
     return issues
 
+def check_theme(path, lang, item):
+    """门5.5: 主题一致性 - 检测白色/浅色背景（全站应为深色#0f172a）"""
+    issues = []
+    with open(path, 'r', encoding='utf-8', errors='ignore') as f: c = f.read()
+    if 'noindex' in c: return issues
+    
+    light_bgs = ['#f8fafc','#fafafa','#f5f5f5','#f0f0f0','#eeeeee','#ffffff','#fff','white','#F8FAFC','#FAFAFA','#F5F5F5']
+    
+    # 检查:root --bg
+    root_m = re.search(r':root\s*\{([^}]+)\}', c)
+    if root_m:
+        bg_val = re.search(r'--bg\s*:\s*([^;]+)', root_m.group(1))
+        if bg_val and bg_val.group(1).strip().lower() in [x.lower() for x in light_bgs]:
+            issues.append('light_root_bg')
+    
+    # 检查body background硬编码
+    body_m = re.search(r'body\s*\{[^}]*background(?:-color)?:\s*([^;]+)', c)
+    if body_m:
+        bg = body_m.group(1).strip().lower()
+        if bg in [x.lower() for x in light_bgs]:
+            issues.append('light_body_bg')
+    
+    # 检查:root --card-bg白色
+    if root_m:
+        card_val = re.search(r'--card-bg\s*:\s*([^;]+)', root_m.group(1))
+        if card_val and card_val.group(1).strip().lower() in ['#ffffff','#fff','white']:
+            issues.append('light_card_bg')
+    
+    # 检查:root --text深色（暗色主题文字应为浅色）
+    if root_m:
+        text_val = re.search(r'--text\s*:\s*([^;]+)', root_m.group(1))
+        if text_val and '#1e293b' in text_val.group(1):
+            issues.append('dark_text_on_dark_bg')
+    
+    return issues
+
 def check_language(path, lang, item):
     """门6: 语言一致性"""
     issues = []
@@ -245,6 +281,31 @@ def auto_fix(path, lang, item, issues):
                     c = c.replace(m.group(2), m.group(2).replace('{{','{').replace('}}','}'))
                     fixed.append(issue); break
             else: remaining.append(issue)
+        
+        elif issue in ('light_root_bg','light_body_bg','light_card_bg','dark_text_on_dark_bg'):
+            # 自动修复白色/浅色背景→深色主题
+            c = re.sub(r'--bg:\s*#f8fafc', '--bg:#0f172a', c, flags=re.IGNORECASE)
+            c = re.sub(r'--bg:\s*#fafafa', '--bg:#0f172a', c, flags=re.IGNORECASE)
+            c = re.sub(r'--bg:\s*#f5f5f5', '--bg:#0f172a', c, flags=re.IGNORECASE)
+            c = re.sub(r'--bg:\s*#f0f0f0', '--bg:#0f172a', c, flags=re.IGNORECASE)
+            c = re.sub(r'--bg:\s*#eeeeee', '--bg:#0f172a', c, flags=re.IGNORECASE)
+            c = re.sub(r'--bg:\s*#ffffff', '--bg:#0f172a', c, flags=re.IGNORECASE)
+            c = re.sub(r'--bg:\s*#fff\b', '--bg:#0f172a', c)
+            c = re.sub(r'--bg:\s*white', '--bg:#0f172a', c, flags=re.IGNORECASE)
+            c = re.sub(r'(background(?:-color)?:\s*)#f8fafc', r'\g<1>#0f172a', c, flags=re.IGNORECASE)
+            c = re.sub(r'(background(?:-color)?:\s*)#fafafa', r'\g<1>#0f172a', c, flags=re.IGNORECASE)
+            c = re.sub(r'(background(?:-color)?:\s*)#f5f5f5', r'\g<1>#0f172a', c, flags=re.IGNORECASE)
+            c = re.sub(r'(background(?:-color)?:\s*)#f0f0f0', r'\g<1>#0f172a', c, flags=re.IGNORECASE)
+            c = re.sub(r'(background(?:-color)?:\s*)#ffffff', r'\g<1>#0f172a', c, flags=re.IGNORECASE)
+            c = re.sub(r'(background(?:-color)?:\s*)#fff\b', r'\g<1>#0f172a', c)
+            c = re.sub(r'(background(?:-color)?:\s*)white', r'\g<1>#0f172a', c, flags=re.IGNORECASE)
+            c = re.sub(r'--card-bg:\s*#ffffff', '--card-bg:#1e293b', c, flags=re.IGNORECASE)
+            c = re.sub(r'--card-bg:\s*#fff\b', '--card-bg:#1e293b', c)
+            c = re.sub(r'--card-bg:\s*white', '--card-bg:#1e293b', c, flags=re.IGNORECASE)
+            c = re.sub(r'--text:\s*#1e293b', '--text:#e2e8f0', c)
+            c = c.replace('--shadow:0 1px 3px rgba(0,0,0,.06)', '--shadow:0 1px 3px rgba(0,0,0,.3)')
+            c = c.replace('--shadow: 0 1px 3px rgba(0,0,0,.06)', '--shadow: 0 1px 3px rgba(0,0,0,.3)')
+            fixed.append(issue)
         
         elif issue == 'head_unclosed':
             # 在第一个<style>前插入</head><body>
@@ -652,6 +713,7 @@ def run():
         ('seo', check_seo),
         ('structure', check_structure),
         ('css', check_css),
+        ('theme', check_theme),
         ('language', check_language),
         ('functionality', check_functionality),
         ('js', check_js),
