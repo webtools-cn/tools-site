@@ -257,7 +257,7 @@ async function main() {
     
     // 每50个清一次缓存
     if (tested % 50 === 0) {
-      await page.evaluate(() => { /* clear */ });
+      try { await page.evaluate(() => { /* clear */ }); } catch(e) {}
     }
   }
   
