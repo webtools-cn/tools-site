@@ -98,6 +98,43 @@ async function testL0(page, toolName) {
     return { result: 'fail', reason: `JS错误: ${err}` };
   }
   
+  // L0.5: 检测onclick/oninput绑定的函数是否存在
+  try {
+    const missingFns = await page.evaluate(() => {
+      const missing = [];
+      // 检查所有onclick
+      document.querySelectorAll('[onclick]').forEach(el => {
+        const onclick = el.getAttribute('onclick');
+        const fnMatch = onclick.match(/(\w+)\s*\(/);
+        if (fnMatch && typeof window[fnMatch[1]] !== 'function') {
+          missing.push(fnMatch[1]);
+        }
+      });
+      // 检查所有oninput
+      document.querySelectorAll('[oninput]').forEach(el => {
+        const oninput = el.getAttribute('oninput');
+        const fnMatch = oninput.match(/(\w+)\s*\(/);
+        if (fnMatch && typeof window[fnMatch[1]] !== 'function') {
+          missing.push(fnMatch[1]);
+        }
+      });
+      // 检查所有onchange
+      document.querySelectorAll('[onchange]').forEach(el => {
+        const onchange = el.getAttribute('onchange');
+        const fnMatch = onchange.match(/(\w+)\s*\(/);
+        if (fnMatch && typeof window[fnMatch[1]] !== 'function') {
+          missing.push(fnMatch[1]);
+        }
+      });
+      return [...new Set(missing)];
+    });
+    if (missingFns.length > 0) {
+      return { result: 'fail', reason: `JS错误: ${missingFns[0]} is not defined (event handler)` };
+    }
+  } catch(e) {
+    // 检测失败不影响L0结果
+  }
+  
   return { result: 'pass' };
 }
 
