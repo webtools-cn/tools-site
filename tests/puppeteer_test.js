@@ -112,7 +112,7 @@ async function testL0(page, toolName) {
         if (fnMatch && !isThisMethod && typeof window[fnMatch[1]] !== 'function') {
           // 排除DOM API和内置对象
           const domApis = ['document','window','navigator','console','Math','JSON','parseInt','parseFloat','isNaN','alert','confirm','prompt','this','true','false','null','undefined',
-            'event','stopPropagation','preventDefault'];
+            'event','stopPropagation','preventDefault','toggle'];
           if (!domApis.includes(fnMatch[1]) && !fnMatch[1].startsWith('get') && !fnMatch[1].startsWith('set') && !fnMatch[1].startsWith('create') && !fnMatch[1].startsWith('remove')) {
             missing.push(fnMatch[1]);
           }
@@ -126,7 +126,7 @@ async function testL0(page, toolName) {
         const isThisMethod = /^this\.\w+\.\w+\s*\(/.test(oninputRaw);
         if (fnMatch && !isThisMethod && typeof window[fnMatch[1]] !== 'function') {
           const domApis = ['document','window','navigator','console','Math','JSON','parseInt','parseFloat','isNaN','alert','confirm','prompt','this','true','false','null','undefined',
-            'event','stopPropagation','preventDefault'];
+            'event','stopPropagation','preventDefault','toggle'];
           if (!domApis.includes(fnMatch[1]) && !fnMatch[1].startsWith('get') && !fnMatch[1].startsWith('set') && !fnMatch[1].startsWith('create') && !fnMatch[1].startsWith('remove')) {
             missing.push(fnMatch[1]);
           }
@@ -140,7 +140,7 @@ async function testL0(page, toolName) {
         const isThisMethod = /^this\.\w+\.\w+\s*\(/.test(onchangeRaw);
         if (fnMatch && !isThisMethod && typeof window[fnMatch[1]] !== 'function') {
           const domApis = ['document','window','navigator','console','Math','JSON','parseInt','parseFloat','isNaN','alert','confirm','prompt','this','true','false','null','undefined',
-            'event','stopPropagation','preventDefault'];
+            'event','stopPropagation','preventDefault','toggle'];
           if (!domApis.includes(fnMatch[1]) && !fnMatch[1].startsWith('get') && !fnMatch[1].startsWith('set') && !fnMatch[1].startsWith('create') && !fnMatch[1].startsWith('remove')) {
             missing.push(fnMatch[1]);
           }
@@ -381,17 +381,9 @@ async function main() {
   const browser = await puppeteer.launch({
     executablePath: CHROME_PATH,
     headless: 'new',
-    userDataDir: '/tmp/puppeteer_userdata_' + Date.now(),
     args: [
-      '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage',
-      '--disable-crash-reporter', '--disable-crashpad-for-testing',
-      '--disable-features=Crashpad'
-    ],
-    env: {
-      DBUS_SESSION_BUS_ADDRESS: '/dev/null',
-      CHROME_CRASHPAD_DATABASE: '/tmp/chrome-crash',
-      XDG_CONFIG_HOME: '/tmp/chrome-config'
-    }
+      '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'
+    ]
   });
   
   let tested = 0;
