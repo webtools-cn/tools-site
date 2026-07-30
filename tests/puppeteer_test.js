@@ -384,13 +384,13 @@ async function main() {
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
   });
   
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1280, height: 720 });
-  
   let tested = 0;
   for (const tool of tools) {
     let res;
+    let page;
     try {
+      page = await browser.newPage();
+      await page.setViewport({ width: 1280, height: 720 });
       if (level === 'L0') {
         res = await testL0(page, tool);
       } else {
@@ -399,6 +399,9 @@ async function main() {
     } catch (e) {
       res = { result: 'error', reason: e.message.slice(0, 80) };
     }
+    
+    // 关闭page防止detached frame
+    try { await page.close(); } catch(e) {}
     
     tested++;
     results[res.result]++;
@@ -410,11 +413,6 @@ async function main() {
     } else {
       failures.push({ tool, level, reason: res.reason || res.result });
       console.log(`  ❌ ${tool}: ${res.reason || res.result}`);
-    }
-    
-    // 每50个清一次缓存
-    if (tested % 50 === 0) {
-      try { await page.evaluate(() => { /* clear */ }); } catch(e) {}
     }
   }
   
