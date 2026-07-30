@@ -106,9 +106,13 @@ async function testL0(page, toolName) {
       document.querySelectorAll('[onclick]').forEach(el => {
         const onclick = el.getAttribute('onclick');
         const fnMatch = onclick.match(/(\w+)\s*\(/);
-        if (fnMatch && typeof window[fnMatch[1]] !== 'function') {
+        // SKIP: 'this.xxx.method()' patterns — these are DOM API calls, not global functions
+        const onclickRaw = onclick.trim();
+        const isThisMethod = /^this\.\w+\.\w+\s*\(/.test(onclickRaw);
+        if (fnMatch && !isThisMethod && typeof window[fnMatch[1]] !== 'function') {
           // 排除DOM API和内置对象
-          const domApis = ['document','window','navigator','console','Math','JSON','parseInt','parseFloat','isNaN','alert','confirm','prompt','this','true','false','null','undefined'];
+          const domApis = ['document','window','navigator','console','Math','JSON','parseInt','parseFloat','isNaN','alert','confirm','prompt','this','true','false','null','undefined',
+            'event','stopPropagation','preventDefault'];
           if (!domApis.includes(fnMatch[1]) && !fnMatch[1].startsWith('get') && !fnMatch[1].startsWith('set') && !fnMatch[1].startsWith('create') && !fnMatch[1].startsWith('remove')) {
             missing.push(fnMatch[1]);
           }
@@ -118,8 +122,11 @@ async function testL0(page, toolName) {
       document.querySelectorAll('[oninput]').forEach(el => {
         const oninput = el.getAttribute('oninput');
         const fnMatch = oninput.match(/(\w+)\s*\(/);
-        if (fnMatch && typeof window[fnMatch[1]] !== 'function') {
-          const domApis = ['document','window','navigator','console','Math','JSON','parseInt','parseFloat','isNaN','alert','confirm','prompt','this','true','false','null','undefined'];
+        const oninputRaw = oninput.trim();
+        const isThisMethod = /^this\.\w+\.\w+\s*\(/.test(oninputRaw);
+        if (fnMatch && !isThisMethod && typeof window[fnMatch[1]] !== 'function') {
+          const domApis = ['document','window','navigator','console','Math','JSON','parseInt','parseFloat','isNaN','alert','confirm','prompt','this','true','false','null','undefined',
+            'event','stopPropagation','preventDefault'];
           if (!domApis.includes(fnMatch[1]) && !fnMatch[1].startsWith('get') && !fnMatch[1].startsWith('set') && !fnMatch[1].startsWith('create') && !fnMatch[1].startsWith('remove')) {
             missing.push(fnMatch[1]);
           }
@@ -129,8 +136,11 @@ async function testL0(page, toolName) {
       document.querySelectorAll('[onchange]').forEach(el => {
         const onchange = el.getAttribute('onchange');
         const fnMatch = onchange.match(/(\w+)\s*\(/);
-        if (fnMatch && typeof window[fnMatch[1]] !== 'function') {
-          const domApis = ['document','window','navigator','console','Math','JSON','parseInt','parseFloat','isNaN','alert','confirm','prompt','this','true','false','null','undefined'];
+        const onchangeRaw = onchange.trim();
+        const isThisMethod = /^this\.\w+\.\w+\s*\(/.test(onchangeRaw);
+        if (fnMatch && !isThisMethod && typeof window[fnMatch[1]] !== 'function') {
+          const domApis = ['document','window','navigator','console','Math','JSON','parseInt','parseFloat','isNaN','alert','confirm','prompt','this','true','false','null','undefined',
+            'event','stopPropagation','preventDefault'];
           if (!domApis.includes(fnMatch[1]) && !fnMatch[1].startsWith('get') && !fnMatch[1].startsWith('set') && !fnMatch[1].startsWith('create') && !fnMatch[1].startsWith('remove')) {
             missing.push(fnMatch[1]);
           }
