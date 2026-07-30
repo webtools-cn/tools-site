@@ -158,10 +158,110 @@ async function testL0(page, toolName) {
   return { result: 'pass' };
 }
 
+// ============ 通用L1测试（自动，无需手动定义） ============
+async function testGenericL1(page, toolName) {
+  const filePath = `file://${SITE}/${toolName}/index.html`;
+  const jsErrors = [];
+  page.on('pageerror', err => jsErrors.push(err.message));
+  
+  try {
+    await page.goto(filePath, { waitUntil: 'load', timeout: 10000 });
+  } catch (e) {
+    return { result: 'fail', reason: '加载失败' };
+  }
+  
+  // 1. 找第一个输入框，填测试值
+  const hasInput = await page.evaluate(() => {
+    const inputs = document.querySelectorAll('input[type="text"], input[type="number"], input:not([type]), textarea, select');
+    return inputs.length > 0;
+  });
+  
+  if (!hasInput) {
+    return { result: 'skip', reason: '无输入框' };
+  }
+  
+  // 填入测试值
+  await page.evaluate(() => {
+    const inputs = document.querySelectorAll('input[type="text"], input[type="number"], input:not([type]), textarea');
+    inputs.forEach(el => {
+      if (el.tagName === 'TEXTAREA') {
+        el.value = 'test input';
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if (el.type === 'number') {
+        el.value = '42';
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      } else {
+        el.value = 'test';
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+    // select选第一个非空选项
+    document.querySelectorAll('select').forEach(sel => {
+      if (sel.options.length > 1) {
+        sel.selectedIndex = 1;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+  });
+  
+  await new Promise(r => setTimeout(r, 300));
+  
+  // 2. 点击主按钮
+  const btnClicked = await page.evaluate(() => {
+    const btns = document.querySelectorAll('button');
+    // 优先找"计算/生成/转换/编码/解码/分析"类按钮
+    const actionBtn = Array.from(btns).find(b => 
+      /计算|生成|转换|编码|解码|分析|处理|开始|运行|执行|提交|generate|convert|calculate|encode|decode|analyze|process|run|start|submit/i.test(b.textContent)
+    );
+    if (actionBtn) { actionBtn.click(); return true; }
+    // 没找到就点第一个非reset非copy按钮
+    const firstBtn = Array.from(btns).find(b => 
+      !/reset|clear|copy|复制|重置|清空/i.test(b.textContent)
+    );
+    if (firstBtn) { firstBtn.click(); return true; }
+    return false;
+  });
+  
+  await new Promise(r => setTimeout(r, 500));
+  
+  // 3. 检查JS错误
+  if (jsErrors.length > 0) {
+    return { result: 'fail', reason: `交互JS错误: ${jsErrors[0].slice(0, 80)}` };
+  }
+  
+  // 4. 检查输出
+  const hasOutput = await page.evaluate(() => {
+    // 找输出区域
+    const outputEls = document.querySelectorAll(
+      '[id*="result"],[id*="output"],[id*="display"],[id*="preview"],[id*="code"],[class*="result"],[class*="output"],textarea[readonly],.result-box,.output-box'
+    );
+    for (const el of outputEls) {
+      const text = (el.textContent || el.value || '').trim();
+      if (text && text.length > 0 && text !== '结果将显示在这里' && text !== 'Results will appear here') {
+        return true;
+      }
+    }
+    return false;
+  });
+  
+  if (!hasOutput && btnClicked) {
+    return { result: 'fail', reason: '点击按钮后无输出' };
+  }
+  
+  return { result: 'pass' };
+}
+
 // ============ 通用L1/L2测试 ============
 async function testBehavior(page, toolName, level) {
   const testDef = TOOL_TESTS[toolName];
-  if (!testDef || !testDef[level]) return { result: 'skip' };
+  
+  // 通用L1：没有手动定义的工具也能测
+  if (!testDef || !testDef[level]) {
+    if (level === 'L1') {
+      return await testGenericL1(page, toolName);
+    }
+    return { result: 'skip' };
+  }
   
   const test = testDef[level];
   const filePath = `file://${SITE}/${toolName}/index.html`;
