@@ -89,8 +89,13 @@ def generate_description(info, tool_name):
         return text
     
     # 工具显示名（去掉emoji和"免费在线"前缀）
-    tool_display = re.sub(r'[\U0001F300-\U0001F9FF\u2600-\u27BF\u2B50\u2700-\u27BF\uFE0F\u200D]', '', info['h1']).strip()
-    tool_display = tool_display.replace('免费在线', '').replace('免费', '').strip()
+    import unicodedata
+    h1_clean = info['h1']
+    # 去掉所有emoji和特殊符号（更彻底的清理）
+    h1_clean = re.sub(r'[\U0001F300-\U0001F9FF\u2600-\u27BF\u2B50\u2700-\u27BF\uFE0F\u200D\u200B\u200C\u200D\u200E\u200F\u2028\u2029\u00A0]', '', h1_clean)
+    h1_clean = re.sub(r'[^\w\s\u4e00-\u9fff\-\.\,\;\:\!\?\(\)\[\]\{\}]', '', h1_clean)
+    h1_clean = h1_clean.strip()
+    tool_display = h1_clean.replace('免费在线', '').replace('免费', '').replace('在线', '').strip()
     
     # 策略1：已有不错的描述，扩展
     if not is_template_desc(old) and len(old) >= 40:
@@ -103,9 +108,12 @@ def generate_description(info, tool_name):
             if feat_text:
                 base = f'{base}，支持{feat_text}'
         
-        # 如果base仍然太短，从h1补充
-        if len(base) < 80 and tool_display and tool_display not in base:
-            base = f'免费在线{tool_display}工具，{base}'
+        # 如果base仍然太短，从h1补充（但避免重复）
+        if len(base) < 80 and tool_display:
+            # 检查tool_display的核心词是否已在base中
+            core_words = tool_display.replace('工具', '').replace('在线', '').strip()
+            if core_words and core_words not in base:
+                base = f'免费在线{tool_display}工具，{base}'
         
         if len(base) < 140:
             combined = base + '。' + seo_suffix
@@ -203,7 +211,7 @@ def update_page(filepath, new_desc):
     
     return modified, changes
 
-def main():
+def main(batch_start=0, batch_size=20):
     # 收集需要更新的页面
     pages = []
     for f in glob.glob('*/index.html'):
@@ -231,9 +239,11 @@ def main():
     pages.sort(key=lambda x: x[2]['old_len'])
     
     print(f"Total tools with short meta: {len(pages)}")
-    print(f"Processing first 20...\n")
     
-    batch = pages[:20]
+    # 批次处理
+    batch = pages[batch_start:batch_start+batch_size]
+    print(f"Processing batch {batch_start//batch_size + 1}: items {batch_start+1}-{min(batch_start+batch_size, len(pages))}\n")
+    
     updated = []
     
     for tool, filepath, info in batch:
@@ -249,11 +259,12 @@ def main():
         if ok:
             updated.append((tool, info['old_len'], new_len))
             print(f"✓ {tool}: {info['old_len']}→{new_len} [{','.join(changes)}]")
-            print(f"  {new_desc}")
+            print(f"  {new_desc[:130]}...")
         else:
             print(f"✗ {tool}: no change needed")
     
     print(f"\n=== Summary: {len(updated)} pages updated ===")
+    return updated
 
 if __name__ == '__main__':
     main()
