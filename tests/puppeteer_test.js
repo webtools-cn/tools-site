@@ -13,7 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SITE = path.resolve(__dirname, '..');
-const CHROME_PATH = '/usr/bin/chromium-browser';
+const CHROME_PATH = '/opt/google/chrome/chrome';
 const results = { pass: 0, fail: 0, skip: 0, error: 0 };
 const failures = [];
 
@@ -381,7 +381,17 @@ async function main() {
   const browser = await puppeteer.launch({
     executablePath: CHROME_PATH,
     headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+    userDataDir: '/tmp/puppeteer_userdata_' + Date.now(),
+    args: [
+      '--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage',
+      '--disable-crash-reporter', '--disable-crashpad-for-testing',
+      '--disable-features=Crashpad'
+    ],
+    env: {
+      DBUS_SESSION_BUS_ADDRESS: '/dev/null',
+      CHROME_CRASHPAD_DATABASE: '/tmp/chrome-crash',
+      XDG_CONFIG_HOME: '/tmp/chrome-config'
+    }
   });
   
   let tested = 0;
