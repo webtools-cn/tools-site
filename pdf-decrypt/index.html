@@ -95,9 +95,11 @@ function sendFeedback(type){showToast('感谢反馈！');gtag&&gtag('event','fee
 <script>
 let pdfBytes=null,decryptedBytes=null;
 const dropZone=document.getElementById('dropZone');
+if(dropZone){
 dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover');});
 dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
 dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('dragover');handleFile({files:e.dataTransfer.files});});
+}
 async function handleFile(input){const file=input.files?.[0]||input;if(!file||file.type!=='application/pdf')return showToast("请选择PDF文件");pdfBytes=new Uint8Array(await file.arrayBuffer());document.getElementById('fileInfo').textContent=`已选择：${file.name} (${(file.size/1024).toFixed(1)} KB)`;document.getElementById('fileInfo').classList.remove('hidden');}
 async function decryptPDF(){if(!pdfBytes)return showToast("请先上传PDF文件");const password=document.getElementById('pdfPass').value;if(!password)return showToast("请输入PDF密码");try{if(typeof PDFLib==='undefined'){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}const pdfDoc=await PDFLib.PDFDocument.load(pdfBytes,{ignoreEncryption:true});if(!pdfDoc.isEncrypted)showToast("此PDF未加密");decryptedBytes=await pdfDoc.save();showToast("解密完成！");document.getElementById('downloadBtn').classList.remove('hidden');}catch(e){showToast("解密失败：密码错误或文件损坏");}}
 function downloadPDF(){if(!decryptedBytes)return;const blob=new Blob([decryptedBytes],{type:'application/pdf'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='decrypted.pdf';a.click();URL.revokeObjectURL(url);}
