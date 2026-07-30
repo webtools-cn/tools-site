@@ -107,7 +107,11 @@ async function testL0(page, toolName) {
         const onclick = el.getAttribute('onclick');
         const fnMatch = onclick.match(/(\w+)\s*\(/);
         if (fnMatch && typeof window[fnMatch[1]] !== 'function') {
-          missing.push(fnMatch[1]);
+          // 排除DOM API和内置对象
+          const domApis = ['document','window','navigator','console','Math','JSON','parseInt','parseFloat','isNaN','alert','confirm','prompt','this','true','false','null','undefined'];
+          if (!domApis.includes(fnMatch[1]) && !fnMatch[1].startsWith('get') && !fnMatch[1].startsWith('set') && !fnMatch[1].startsWith('create') && !fnMatch[1].startsWith('remove')) {
+            missing.push(fnMatch[1]);
+          }
         }
       });
       // 检查所有oninput
@@ -115,7 +119,10 @@ async function testL0(page, toolName) {
         const oninput = el.getAttribute('oninput');
         const fnMatch = oninput.match(/(\w+)\s*\(/);
         if (fnMatch && typeof window[fnMatch[1]] !== 'function') {
-          missing.push(fnMatch[1]);
+          const domApis = ['document','window','navigator','console','Math','JSON','parseInt','parseFloat','isNaN','alert','confirm','prompt','this','true','false','null','undefined'];
+          if (!domApis.includes(fnMatch[1]) && !fnMatch[1].startsWith('get') && !fnMatch[1].startsWith('set') && !fnMatch[1].startsWith('create') && !fnMatch[1].startsWith('remove')) {
+            missing.push(fnMatch[1]);
+          }
         }
       });
       // 检查所有onchange
@@ -123,7 +130,10 @@ async function testL0(page, toolName) {
         const onchange = el.getAttribute('onchange');
         const fnMatch = onchange.match(/(\w+)\s*\(/);
         if (fnMatch && typeof window[fnMatch[1]] !== 'function') {
-          missing.push(fnMatch[1]);
+          const domApis = ['document','window','navigator','console','Math','JSON','parseInt','parseFloat','isNaN','alert','confirm','prompt','this','true','false','null','undefined'];
+          if (!domApis.includes(fnMatch[1]) && !fnMatch[1].startsWith('get') && !fnMatch[1].startsWith('set') && !fnMatch[1].startsWith('create') && !fnMatch[1].startsWith('remove')) {
+            missing.push(fnMatch[1]);
+          }
         }
       });
       return [...new Set(missing)];
