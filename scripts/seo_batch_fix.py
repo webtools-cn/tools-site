@@ -1,157 +1,64 @@
 #!/usr/bin/env python3
-"""批量优化meta description - 第1批20个页面"""
+"""SEO meta description batch optimizer - target 140-160 chars"""
 import re
 
-tools_desc = {
-    "binary-translator": {
-        "old_desc": "免费在线二进制翻译器。文字与二进制双向转换，支持8位、7位模式。实时翻译，无需注册，数据不上传服务器。",
-        "new_desc": "免费在线二进制翻译器，支持文字与二进制实时双向转换，提供8位和7位编码模式。一键将文本转为二进制代码或将二进制还原为可读文字，适用于编程学习、数据编码和计算机科学教学场景，无需注册安装，浏览器本地处理确保数据安全。",
-        "new_og_desc": "免费在线二进制翻译器，支持文字与二进制实时双向转换，提供8位和7位编码模式。一键将文本转为二进制代码或将二进制还原为可读文字，适用于编程学习、数据编码和计算机科学教学场景，无需注册安装。",
-    },
-    "blood-type": {
-        "old_desc": "在线血型信息查询工具，ABO/Rh血型系统，血型遗传规律、输血兼容性、性格特征，免费在线工具，无需注册",
-        "new_desc": "免费在线血型信息查询工具，覆盖ABO和Rh血型系统完整知识库。快速查询血型遗传规律、输血兼容性对照表和血型性格特征分析，帮助理解父母血型与子女血型的关系。医学参考工具，适合健康科普和生物学习，无需注册即用。",
-        "new_og_desc": "免费在线血型信息查询工具，覆盖ABO和Rh血型系统完整知识库。快速查询血型遗传规律、输血兼容性对照表和血型性格特征分析，帮助理解父母血型与子女血型的关系。",
-    },
-    "bmi-calculator-calories": {
-        "old_desc": "免费在线BMI和卡路里计算器，计算身体质量指数、每日维持热量、减重/增重热量目标。支持公制和英制单位。",
-        "new_desc": "免费在线BMI与卡路里计算器，精准计算身体质量指数、每日基础代谢率和维持热量。输入身高体重即可获得减重、增重或维持体重的个性化热量目标，同时支持公制与英制单位切换。适合健身减脂人群、营养规划者和健康管理使用，无需注册。",
-        "new_og_desc": "免费在线BMI与卡路里计算器，精准计算身体质量指数、每日基础代谢率和维持热量。输入身高体重即可获得减重、增重或维持体重的个性化热量目标，支持公制与英制单位切换。",
-    },
-    "css": {
-        "old_desc": "免费在线CSS工具集 — 生成器、预览器、优化器。纯浏览器处理，无需注册，无需注册，数据不上传服务器。",
-        "new_desc": "免费在线CSS工具集，涵盖CSS渐变生成器、阴影效果预览、Flexbox布局可视化、动画调试器等多种实用工具。前端开发者和网页设计师的日常必备工具箱，实时预览CSS效果并一键复制代码，所有处理均在浏览器本地完成，无需注册安装。",
-        "new_og_desc": "免费在线CSS工具集，涵盖CSS渐变生成器、阴影效果预览、Flexbox布局可视化、动画调试器等多种实用工具。前端开发者和网页设计师的日常必备工具箱，实时预览并一键复制代码。",
-    },
-    "debt-snowball-calculator": {
-        "old_desc": "使用债务雪球法计算还清所有债务所需时间和总利息。输入多笔债务，按余额从小到大排序还款，免费在线计算器。",
-        "new_desc": "免费在线债务雪球计算器，采用戴夫·拉姆齐经典雪球法规划还款策略。输入多笔债务的余额、利率和月还款额，自动按余额从小到大排序生成还款时间表，清晰展示每笔债务还清日期和累计利息。帮助建立还款信心，适合个人理财规划和债务管理。",
-        "new_og_desc": "免费在线债务雪球计算器，采用戴夫·拉姆齐经典雪球法规划还款策略。输入多笔债务自动生成还款时间表，清晰展示每笔债务还清日期和累计利息，帮助建立还款信心。",
-    },
-    "debt-snowball": {
-        "old_desc": "在线债务雪球计算器，按雪球法/雪崩法规划债务还款策略，可视化还款时间线，免费在线工具，浏览器本地处理。",
-        "new_desc": "免费在线债务雪球与雪崩法对比计算器，可视化规划债务还款策略。同时对比雪球法（按余额排序）和雪崩法（按利率排序）两种还款方案，生成直观的还款时间线图表和利息对比。帮助选择最优还款策略，适合信用卡债务、消费贷款等多债务场景管理。",
-        "new_og_desc": "免费在线债务雪球与雪崩法对比计算器，可视化规划债务还款策略。同时对比两种还款方案生成还款时间线图表和利息对比，帮助选择最优还款策略。",
-    },
-    "email-address-extractor": {
-        "old_desc": "在线邮箱地址提取工具，免费在线工具，无需注册，浏览器本地处理，免费在线工具，无需注册，浏览器本地处理。",
-        "new_desc": "免费在线邮箱地址提取器，从文本、网页源码或文档中批量提取所有Email地址。支持自定义过滤规则去重排序，一键导出提取结果到TXT或CSV文件。适用于邮件营销列表整理、数据清洗和联系人信息收集，所有处理在浏览器本地完成保护隐私安全。",
-        "new_og_desc": "免费在线邮箱地址提取器，从文本、网页源码或文档中批量提取所有Email地址。支持自定义过滤规则去重排序，一键导出提取结果到TXT或CSV文件。",
-    },
-    "forex-pip-calculator": {
-        "old_desc": "外汇点值计算器，输入货币对、交易量和账户币种，一键计算每点价值。支持主要货币对，纯前端计算，数据安全。",
-        "new_desc": "免费在线外汇点值计算器，精准计算外汇交易中每点价值。输入货币对、交易手数和账户结算币种，实时显示每点盈亏金额、保证金需求和潜在风险敞口。支持EUR/USD、GBP/JPY等所有主流货币对及交叉盘，适合外汇交易者进行仓位管理和风险控制。",
-        "new_og_desc": "免费在线外汇点值计算器，精准计算外汇交易中每点价值。输入货币对、交易手数和账户币种，实时显示每点盈亏金额和保证金需求，适合外汇交易者仓位管理和风险控制。",
-    },
-    "icalendar-generator": {
-        "old_desc": "在线生成.ics日历文件，创建会议/事件/提醒，支持Google Calendar/Outlook导入",
-        "new_desc": "免费在线iCalendar日历生成器，快速创建标准.ics日历文件用于会议邀请和事件提醒。支持设置事件标题、时间地点、重复规则和提前提醒，生成的文件可一键导入Google Calendar、Outlook和Apple日历。适合商务会议安排、活动发布和个人日程管理。",
-        "new_og_desc": "免费在线iCalendar日历生成器，快速创建标准.ics日历文件用于会议邀请和事件提醒。支持重复规则和提前提醒设置，可一键导入Google Calendar、Outlook和Apple日历。",
-    },
-    "less-to-css": {
-        "old_desc": "Less转CSS工具，免费在线工具，无需注册，浏览器本地处理，免费在线工具，无需注册，浏览器本地处理。",
-        "new_desc": "免费在线Less转CSS编译工具，将Less样式代码实时转换为标准CSS。支持变量、嵌套规则、Mixin混合和函数运算等Less全部特性，编译结果自动美化格式化。前端开发者可在线快速验证Less代码，无需安装Node.js环境，浏览器本地编译保障代码安全。",
-        "new_og_desc": "免费在线Less转CSS编译工具，将Less样式代码实时转换为标准CSS。支持变量、嵌套、Mixin等全部Less特性，编译结果自动格式化。无需安装Node.js，浏览器本地编译保障代码安全。",
-    },
-    "md5-generator": {
-        "old_desc": "免费在线MD5哈希生成器，文本生成32位MD5值。支持大小写输出、实时计算、历史对比。纯前端隐私安全。",
-        "new_desc": "免费在线MD5哈希生成器，将任意文本或文件内容实时生成32位MD5摘要值。支持大小写输出切换、批量文本哈希计算和哈希值历史对比功能。适用于文件完整性校验、密码哈希存储和数字签名验证场景，所有计算在浏览器本地完成，数据绝不上传服务器。",
-        "new_og_desc": "免费在线MD5哈希生成器，将任意文本或文件内容实时生成32位MD5摘要值。支持大小写切换、批量计算和哈希值对比，适用于文件校验和密码哈希，浏览器本地计算保障安全。",
-    },
-    "memory-card-game": {
-        "old_desc": "免费在线记忆翻牌游戏，3种难度和多种主题。翻牌配对，记录翻牌次数和完成时间。适合儿童益智和记忆力训练。",
-        "new_desc": "免费在线记忆翻牌游戏，提供简单、中等和困难三种难度级别及多种精美主题皮肤。通过翻牌配对玩法锻炼短期记忆力和专注力，实时记录翻牌次数与完成用时，支持排行榜挑战自我。适合儿童益智启蒙、成人脑力训练和亲子互动娱乐，无需下载即开即玩。",
-        "new_og_desc": "免费在线记忆翻牌游戏，提供三种难度级别及多种精美主题。通过翻牌配对锻炼短期记忆力和专注力，实时记录翻牌次数与完成用时，适合儿童益智和成人脑力训练。",
-    },
-    "morse-decoder": {
-        "old_desc": "免费在线摩尔斯码解码器，一键将摩尔斯电码转换为文本，支持音频播放、自动检测分隔符、双向转换。无需注册。",
-        "new_desc": "免费在线摩尔斯码解码器，支持摩尔斯电码与文本的实时双向转换。输入点划符号自动翻译为可读文字，支持音频播放听译摩尔斯码节奏、自动识别空格与斜杠分隔符。适用于业余无线电爱好者学习、紧急求救信号SOS解读和密码学教育，无需注册即用。",
-        "new_og_desc": "免费在线摩尔斯码解码器，支持摩尔斯电码与文本的实时双向转换。支持音频播放听译摩尔斯码节奏、自动识别分隔符，适用于业余无线电学习和密码学教育。",
-    },
-    "regex-cheat-sheet": {
-        "old_desc": "免费在线Regex Cheat Sheet工具 | 无需注册册，保护隐私，无需注册，数据不上传服务器。",
-        "new_desc": "免费在线正则表达式速查表，涵盖元字符、量词、字符类、分组捕获、断言等全部Regex语法。提供常用正则表达式示例合集，包括邮箱验证、URL匹配、手机号校验等实用模板。适合程序员日常开发参考和正则表达式学习，支持一键复制语法，无需注册。",
-        "new_og_desc": "免费在线正则表达式速查表，涵盖元字符、量词、字符类、分组捕获、断言等全部Regex语法。提供邮箱验证、URL匹配等常用示例模板，适合程序员日常开发参考和学习。",
-    },
-    "rot13": {
-        "old_desc": "免费在线ROT13编解码工具，支持ROT13加密解密、ROT5数字旋转、ROT47扩展编码。无需注册。",
-        "new_desc": "免费在线ROT13编解码工具，一键完成ROT13字母旋转加密与解密，同时支持ROT5数字旋转和ROT47可打印字符扩展编码。经典凯撒密码变体，广泛用于论坛剧透隐藏、谜题设计和文本混淆场景。实时转换结果，支持三种编码模式自由切换，无需注册。",
-        "new_og_desc": "免费在线ROT13编解码工具，一键完成ROT13字母旋转加密解密，同时支持ROT5数字旋转和ROT47可打印字符扩展编码。适用于论坛剧透隐藏和谜题设计场景。",
-    },
-    "rounding-calculator": {
-        "old_desc": "免费在线四舍五入计算器。支持四舍五入、向上取整、向下取整和截断取整，精确到任意小数位。纯前端本地计算。",
-        "new_desc": "免费在线数值取整计算器，提供四舍五入、向上取整、向下取整和截断取整四种精确舍入模式。支持自定义小数位数，可精确到任意小数位，实时显示舍入结果和误差值。适用于财务金额处理、科学计算数据修约和统计分析中的数值规范化，浏览器本地计算安全可靠。",
-        "new_og_desc": "免费在线数值取整计算器，提供四舍五入、向上取整、向下取整和截断取整四种舍入模式。支持自定义小数位数并实时显示舍入误差，适用于财务金额处理和科学数据修约。",
-    },
-    "screen-resolution-comparator": {
-        "old_desc": "免费在线屏幕分辨率对比器，并排对比不同设备的屏幕分辨率、像素密度和显示效果，支持自定义尺寸。无需注册。",
-        "new_desc": "免费在线屏幕分辨率对比器，并排可视化对比不同设备的屏幕分辨率、像素密度和显示比例。内置iPhone、iPad、MacBook和主流安卓手机等设备分辨率预设，支持自定义分辨率尺寸，直观展示屏幕可视区域大小差异。适合UI设计师选型和前端响应式适配参考。",
-        "new_og_desc": "免费在线屏幕分辨率对比器，并排可视化对比不同设备的屏幕分辨率、像素密度和显示比例。内置主流设备分辨率预设，直观展示屏幕可视区域大小差异，适合UI设计和前端适配参考。",
-    },
-    "sphere-volume-calculator": {
-        "old_desc": "免费在线球体体积计算器，输入半径即可计算球体的体积、表面积。支持多种单位，结果精确，适用于学习和工程。",
-        "new_desc": "免费在线球体体积与表面积计算器，输入半径即可一键计算球体体积、表面积和周长。支持厘米、米、英寸和英尺等多种长度单位，自动换算不同单位制下的计算结果。适用于数学几何教学、工程材料估算和科学实验数据计算，结果精确到小数点后多位，无需注册。",
-        "new_og_desc": "免费在线球体体积与表面积计算器，输入半径即可一键计算球体体积、表面积和周长。支持多种长度单位自动换算，适用于数学教学、工程估算和科学实验计算。",
-    },
-    "text-diff-checker": {
-        "old_desc": "在线文本差异对比工具，免费在线工具，无需注册，浏览器本地处理，免费在线工具，无需注册，浏览器本地处理。",
-        "new_desc": "免费在线文本差异对比工具，并排比较两段文本的增删改差异，以高亮颜色标注新增、删除和修改内容。支持逐行和逐词两种对比模式，适用于代码版本对比、文档修订审阅和合同条款变更追踪。所有文本在浏览器本地处理，无需上传服务器保障内容安全。",
-        "new_og_desc": "免费在线文本差异对比工具，并排比较两段文本的增删改差异，以高亮颜色标注新增、删除和修改内容。支持逐行和逐词对比模式，适用于代码对比和文档审阅。",
-    },
-    "text-to-binary-converter": {
-        "old_desc": "免费在线文本转二进制工具，将文本转换为8位二进制表示，支持ASCII和Unicode编码，可复制结果。",
-        "new_desc": "免费在线文本转二进制转换器，实时将文字内容转换为8位二进制编码表示。支持ASCII和Unicode两种编码模式，可处理中文、英文、数字和特殊符号，转换结果支持一键复制和批量导出。适用于计算机科学教学、数据编码学习和底层原理理解，无需注册安装。",
-        "new_og_desc": "免费在线文本转二进制转换器，实时将文字内容转换为8位二进制编码表示。支持ASCII和Unicode两种编码模式，可处理中文、英文和特殊符号，适用于计算机科学教学和数据编码学习。",
-    },
+PAGES = {
+    "ai-agent-workflow-builder": "免费在线AI Agent工作流构建器，可视化拖拽设计多步骤AI代理流程，自由添加条件分支、工具调用、循环节点和变量传递模块。实时预览流程拓扑图，一键导出标准JSON配置用于LangChain或AutoGPT部署。无需注册完全免费，纯前端本地运行数据绝不上传服务器。",
+    "ai-api-cost-calculator": "免费在线AI API成本计算器，实时对比OpenAI、Claude、Gemini和DeepSeek等主流大语言模型的API调用价格。支持输入输出Token分别计费，提供批量模型横向对比和月度预算规划功能，精确估算项目API开销帮助研发团队控制成本。纯前端本地计算无需注册。",
+    "ai-context-window-comparator": "免费在线LLM上下文窗口对比工具，可视化比较GPT-4o、Claude、Gemini和Llama等主流大模型的上下文长度与Token容量。直观展示各模型可处理的文档页数、代码行数和对话轮次上限，帮助开发者根据业务场景选择最合适的AI模型。无需注册纯前端运行。",
+    "ai-detector": "免费在线AI内容检测器，通过多维度统计分析和语言模式识别检测文本是否由AI生成。支持识别GPT、Claude和Gemini等主流模型生成的内容，实时显示AI生成概率和逐句详细分析报告，帮助辨别学术论文、新闻报道和社交媒体内容的真实性。无需注册数据不上传服务器。",
+    "ai-fine-tuning-cost-calculator": "免费在线AI微调成本计算器，精准估算GPT-4o、Llama和Mistral等主流模型的微调训练成本。自动计算数据标注费用、训练时长和推理部署成本，支持多模型方案横向对比和成本优化建议。AI项目预算规划必备实用工具，无需注册纯前端本地计算数据安全可靠。",
+    "ai-function-call-generator": "免费在线AI函数调用生成器，可视化构建OpenAI、Claude和Gemini的Function Calling JSON配置模板。支持参数类型定义、必填校验、枚举值和嵌套对象设置，实时预览调用示例并导出完整可运行代码。前端开发与AI应用集成必备工具，无需注册完全免费使用。",
+    "ai-image-prompt-generator": "免费在线AI图像提示词生成器，专为Midjourney、DALL-E和Stable Diffusion等主流AI绘画平台设计。智能组合艺术风格、光影效果、构图方式和色彩方案等核心参数，一键生成结构化的专业级AI绘画Prompt，有效提升出图质量和风格一致性，无需注册即开即用。",
+    "ai-jailbreak-detector": "免费在线AI越狱检测器，自动识别用户输入中的越狱攻击和提示词注入风险。支持DAN、Developer Mode、角色扮演诱导等30+种已知越狱模式检测，实时评估风险等级并标注可疑片段，提供针对性修复建议。AI应用安全防护必备工具，纯前端本地运行数据不上传。",
+    "ai-llm-benchmark": "免费在线LLM基准测试对比工具，综合比较GPT-4o、Claude、Gemini和Llama等主流大模型的推理性能、响应速度、API价格和上下文窗口能力。涵盖MMLU、HumanEval、GSM8K等权威评测指标分数横向对比。AI模型选型一站式参考平台，无需注册免费使用。",
+    "ai-model-comparator": "免费在线AI模型对比器，横向比较GPT-4o、Claude 3.5、Gemini和Llama等大语言模型的核心能力、API价格、推理速度和上下文窗口。支持多模型并排对比和自定义筛选排序，帮助开发者和企业根据业务需求选择最优AI解决方案。无需注册免费使用纯前端运行。",
+    "ai-model-directory": "免费在线AI模型目录，一站式查阅GPT-4o、Claude、Gemini和Llama等主流AI模型的参数规模、API价格、核心能力和最佳适用场景。持续追踪最新模型发布动态和版本更新信息，AI开发者和研究者选型必备参考工具，无需注册免费随时浏览最新资讯。",
+    "ai-persona-generator": "免费在线AI角色生成器，一键为AI聊天助手创建完整角色卡。支持性格特征、背景故事、对话风格和外貌描述等多维度自定义设定，适用于Character.AI、ChatGPT角色扮演和虚拟角色创作等场景。生成角色卡可直接复制导入各大AI平台使用，无需注册免费。",
+    "ai-prompt-injection-tester": "免费在线AI提示词注入测试器，全面检测提示词中的安全漏洞和注入风险。支持角色扮演攻击检测、系统提示提取检测、越狱提示识别等多种攻击模式。纯前端本地分析数据绝不上传服务器，AI应用安全测试必备工具，无需注册即可免费使用保护你的AI应用安全。",
+    "ai-prompt-variable-extractor": "免费在线AI提示词变量提取器，自动识别提示词中的变量占位符并生成结构化模板。支持{{变量}}、{变量}、[变量]等多种格式和自定义分隔符，一键提取所有变量导出为JSON配置。适用于Prompt工程模板管理和批量提示词生成场景，无需注册纯前端本地运行数据安全。",
+    "ai-sentence-rewriter": "免费在线AI智能句子改写工具，利用先进人工智能算法优化英文句子表达和语法结构。支持正式、简洁、创意、学术等多种改写风格，一键完成句式重组和词汇替换优化。适用于学术论文润色、商务邮件优化和社交媒体内容创作场景。无需注册完全免费，浏览器本地处理。",
+    "ai-system-prompt-builder": "免费在线AI系统提示词构建器，可视化创建和优化ChatGPT、Claude、Gemini的系统级提示词。内置丰富模板库和实时Token计数器，支持结构化构建、多版本管理和一键导出功能。帮助开发者快速构建高质量AI系统指令提升模型表现。无需注册纯前端本地运行安全可靠。",
+    "ai-text-chunker": "免费在线AI文本分块器，为RAG检索增强生成场景优化文本分块策略。支持固定大小、句子级、段落级和语义分块四种模式，可调节重叠率和Token计数。适配LangChain和LlamaIndex等主流RAG框架。无需注册纯前端本地处理，数据绝不上传服务器安全可靠。",
+    "ai-tool-calling-tester": "免费在线AI函数调用测试器，帮助开发者测试和调试LLM的Function Calling与Tool Use能力。可视化定义工具Schema、模拟多轮对话交互、验证参数提取准确性。支持OpenAI和Anthropic两种格式。AI应用开发调试必备工具，无需注册纯前端运行。",
+    "algorithm-visualizer": "免费在线算法可视化器，动态展示排序算法（冒泡/快排/归并/堆排）、搜索算法（二分/BFS/DFS）和路径查找（A*/Dijkstra）的完整执行过程。可调节数组大小和动画播放速度，支持分步调试模式逐步观察算法状态变化。编程教学和算法学习最佳辅助工具无需注册安装。",
+    "alliteration-generator": "免费在线押头韵生成器（Alliteration Generator），选择任意英文字母和主题即可自动生成押头韵短语和句子。内置丰富英文词库，支持创意写作、品牌命名、广告标语和诗歌创作等多种应用场景，一键生成多个备选方案并可复制使用。无需注册，纯前端本地运行数据安全绝不上传。",
 }
 
-# 批量替换
-import sys
+def patch_page(slug, new_desc):
+    path = f"{slug}/index.html"
+    with open(path) as f:
+        content = f.read()
+    
+    old_meta = re.search(r'<meta name="description" content="([^"]+)"', content)
+    if not old_meta:
+        print(f"  SKIP {slug}: no meta description")
+        return False
+    old_desc = old_meta.group(1)
+    
+    if old_desc == new_desc:
+        print(f"  SKIP {slug}: unchanged")
+        return False
+    
+    # Replace both meta description and og:description
+    content = content.replace(
+        f'<meta name="description" content="{old_desc}"',
+        f'<meta name="description" content="{new_desc}"'
+    )
+    content = content.replace(
+        f'<meta property="og:description" content="{old_desc}"',
+        f'<meta property="og:description" content="{new_desc}"'
+    )
+    
+    with open(path, 'w') as f:
+        f.write(content)
+    
+    print(f"  OK {slug}: {len(old_desc)} -> {len(new_desc)} chars")
+    return True
 
-count = 0
-for tool, data in tools_desc.items():
-    fpath = f"{tool}/index.html"
-    try:
-        content = open(fpath).read()
-        
-        # 替换 meta description
-        old = f'<meta name="description" content="{data["old_desc"]}">'
-        new = f'<meta name="description" content="{data["new_desc"]}">'
-        if old in content:
-            content = content.replace(old, new)
-        else:
-            # 尝试用正则匹配
-            m = re.search(r'<meta name="description" content="([^"]+)">', content)
-            if m:
-                content = content.replace(m.group(0), new)
-        
-        # 替换 og:description
-        old_og = f'<meta property="og:description" content="{data["old_desc"]}">'
-        new_og = f'<meta property="og:description" content="{data["new_og_desc"]}">'
-        if old_og in content:
-            content = content.replace(old_og, new_og)
-        else:
-            m2 = re.search(r'<meta property="og:description" content="([^"]+)">', content)
-            if m2:
-                content = content.replace(m2.group(0), new_og)
-        
-        # 替换 ld+json SoftwareApplication description
-        ld_pattern = r'"description":"' + re.escape(data["old_desc"]) + r'"'
-        ld_new = f'"description":"{data["new_og_desc"]}"'
-        content = re.sub(ld_pattern, ld_new, content)
-        
-        # 替换 ld+json HowTo description (如果存在)
-        content = re.sub(
-            r'"description":"' + re.escape(data["old_desc"]) + r'"',
-            f'"description":"{data["new_og_desc"]}"',
-            content
-        )
-        
-        open(fpath, 'w').write(content)
-        new_len = len(data["new_desc"])
-        print(f"✅ {tool}: {len(data['old_desc'])} -> {new_len} chars")
-        count += 1
-    except Exception as e:
-        print(f"❌ {tool}: {e}")
-
-print(f"\n批量完成: {count}/20 个页面已优化")
+if __name__ == "__main__":
+    changed = 0
+    for slug, desc in PAGES.items():
+        if patch_page(slug, desc):
+            changed += 1
+    print(f"\nTotal: {changed} pages updated")
