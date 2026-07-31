@@ -195,6 +195,17 @@ label{display:block;font-size:.9rem;color:#94a3b8;margin-bottom:6px}
       <button class="btn-primary" id="generateBtn">🔄 重新生成 <span class="kbd-hint">Ctrl+Enter</span></button>
       <button class="btn-secondary" id="copyAllBtn">📋 复制全部</button>
       <button class="btn-secondary" id="downloadBtn">💾 导出</button>
+      <button class="btn-secondary" id="shareUrlBtn" title="将当前配置编码到URL，方便分享">🔗 分享配置</button>
+    </div>
+    <!-- Example presets -->
+    <div style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:.78rem;color:#64748b">📥 加载示例：</span>
+      <button class="btn-small example-btn" data-example="wifi">📶 WiFi密码</button>
+      <button class="btn-small example-btn" data-example="bank">🏦 银行级</button>
+      <button class="btn-small example-btn" data-example="simple">😊 简单易记</button>
+      <button class="btn-small example-btn" data-example="api">🔑 API密钥</button>
+      <button class="btn-small example-btn" data-example="quick">⚡ 8位快速</button>
+      <button class="btn-small example-btn" data-example="mega">🛡️ 究极安全</button>
     </div>
     <!-- Export format selector -->
     <div id="exportOptions" style="display:none;margin-top:10px;display:flex;gap:8px;align-items:center">
@@ -228,6 +239,17 @@ label{display:block;font-size:.9rem;color:#94a3b8;margin-bottom:6px}
         <button class="sep-btn" data-sep=".">. 点</button>
         <button class="sep-btn" data-sep="_">_ 下划线</button>
         <button class="sep-btn" data-sep="">无分隔</button>
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      <label>词库分类</label>
+      <div class="separator-opts" id="wordCategoryOpts">
+        <button class="sep-btn active" data-cat="general">🌐 通用</button>
+        <button class="sep-btn" data-cat="tech">💻 科技</button>
+        <button class="sep-btn" data-cat="nature">🌿 自然</button>
+        <button class="sep-btn" data-cat="food">🍎 食物</button>
+        <button class="sep-btn" data-cat="animals">🐾 动物</button>
+        <button class="sep-btn" data-cat="space">🚀 太空</button>
       </div>
     </div>
     <div style="margin-top:10px">
@@ -278,6 +300,25 @@ label{display:block;font-size:.9rem;color:#94a3b8;margin-bottom:6px}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <h2 style="margin:0">📋 生成的密码 (<span id="resultCount">5</span>个)</h2>
         <label class="auto-copy-toggle" title="每次生成后自动复制第一个密码到剪贴板"><input type="checkbox" id="autoCopyToggle"> 自动复制</label>
+      </div>
+      <!-- L5 Security Dashboard -->
+      <div class="insight-grid" id="securityDashboard" style="margin-bottom:12px">
+        <div class="insight-item">
+          <div class="ins-val" id="dashScore" style="font-size:2rem">--</div>
+          <div class="ins-label">安全评分 /100</div>
+        </div>
+        <div class="insight-item">
+          <div class="ins-val" id="dashEntropy">--</div>
+          <div class="ins-label">平均熵 (位)</div>
+        </div>
+        <div class="insight-item">
+          <div class="ins-val" id="dashCrack">--</div>
+          <div class="ins-label">最短破解时间</div>
+        </div>
+        <div class="insight-item">
+          <div class="ins-val" id="dashPool">--</div>
+          <div class="ins-label">字符池大小</div>
+        </div>
       </div>
       <div class="stats-bar" id="statsBar" style="margin-bottom:12px"></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -854,49 +895,16 @@ function generatePassword(len, upper, lower, number, symbol, excludeSimilar, cus
 }
 
 // ==================== PASSPHRASE GENERATION ====================
-var PASSPHRASE_WORDS = [
-  "apple","banana","cherry","dragon","eagle","falcon","guitar","hammer","island","jungle",
-  "kitten","lemon","mango","ninja","orange","penguin","quartz","rocket","sunset","tiger",
-  "umbrella","violin","walnut","xylophone","yogurt","zebra","anchor","bridge","castle","diamond",
-  "emerald","forest","galaxy","horizon","igloo","jasmine","kayak","lantern","mountain","nebula",
-  "ocean","pearl","quiver","rainbow","sapphire","thunder","unicorn","village","whisper","compass",
-  "badge","cabin","dagger","engine","flame","garden","helmet","ink","jasper","kite",
-  "lighthouse","marble","notebook","oil","puzzle","quest","rose","star","tower","valley",
-  "wind","zen","blaze","coral","delta","ember","frost","glacier","haven","iron",
-  "jade","koala","lunar","meteor","nova","olive","phoenix","quill","raven","storm",
-  "tavern","uranium","velvet","willow","apex","berry","cactus","dawn","elder","fossil",
-  "gravel","harbor","ivory","jazz","kernel","laser","metal","noble","onyx","plaza",
-  "queen","ruby","silver","timber","ultra","vapor","wheat","amber","basil","cedar",
-  "dust","echo","flint","grape","hazel","iris","juniper","karma","lotus","mint",
-  "night","opal","pine","quarry","reed","spruce","thyme","vanilla","winter","yarrow",
-  "zinc","acorn","birch","clover","dew","elm","fern","ginger","holly","indigo",
-  "jadeite","kelp","lily","moss","nectar","orchid","palm","quart","reed","sage",
-  "thistle","violet","wheat","aster","bloom","cave","deer","eel","fox","goat",
-  "hawk","ibis","jay","kiwi","lark","moth","newt","owl","puma","quail",
-  "raven","swan","tern","vole","wolf","yak","bear","cat","dog","elk",
-  "apricot","bamboo","bronze","crimson","dolphin","feather","granite","honey","ivy","jewel",
-  "koi","lemur","mermaid","navy","obsidian","parrot","ripple","scroll","tumble","vortex",
-  "wisp","alchemy","breeze","cardinal","dewdrop","energy","flicker","glimmer","harmony","illusion",
-  "journey","kindle","legend","meadow","nimbus","orbit","petal","rapid","serene","tranquil",
-  "unity","vision","wonder","zenith","aurora","blossom","candle","dusk","essence","flare",
-  "glisten","humming","infinite","jubilee","kinetic","lucent","melody","nadir","opal","prism",
-  "quantum","ripple","silhouette","twilight","uplift","velocity","whisper","yearn","zephyr","archer",
-  "beacon","crystal","drift","ember","forge","grove","harbor","inlet","jade","kestrel",
-  "lagoon","monarch","noble","osprey","prism","quill","rune","summit","thicket","vapor",
-  "walnut","aster","badger","cobalt","dune","eclipse","fable","garnet","hearth","inkwell",
-  "jasper","kelpie","leopard","mosaic","newton","onyx","parch","ranger","scout","talon",
-  "umber","verge","wander","xeric","yonder","azure","blaze","cipher","dew","ember",
-  "flame","glacier","hollow","ignite","jade","keystone","lumen","mist","noble","oasis",
-  "pyre","quartz","rift","shard","thunder","umbral","vertex","wisp","xylem","yeast",
-  "zenith","amber","bolt","creek","dale","ember","fjord","glade","heath","inlet",
-  "jade","knoll","ledge","marsh","notch","orchard","pike","quarry","ravine","swale",
-  "tor","vale","warren","alder","beech","cypress","elm","fir","hemlock","ivy",
-  "juniper","linden","maple","oak","poplar","rowan","spruce","teak","willow","yew",
-  "agate","beryl","coral","diamond","emerald","flint","garnet","hematite","ivory","jasper",
-  "kunzite","lazuli","malachite","nephrite","opal","pearl","quartz","ruby","sapphire","topaz",
-  "falcon","falcon","goshawk","heron","ibis","kinglet","lark","magpie","oriole","plover",
-  "raven","sandpiper","tanager","vireo","warbler","albatross","bittern","condor","dove","egret"
-];
+var WORD_CATEGORIES = {
+  general: ["apple","banana","cherry","dragon","eagle","falcon","guitar","hammer","island","jungle","kitten","lemon","mango","ninja","orange","penguin","quartz","rocket","sunset","tiger","umbrella","violin","walnut","xylophone","yogurt","zebra","anchor","bridge","castle","diamond","emerald","forest","galaxy","horizon","igloo","jasmine","kayak","lantern","mountain","nebula","ocean","pearl","quiver","rainbow","sapphire","thunder","unicorn","village","whisper","compass","badge","cabin","dagger","engine","flame","garden","helmet","ink","jasper","kite","lighthouse","marble","notebook","oil","puzzle","quest","rose","star","tower","valley","wind","zen","blaze","coral","delta","ember","frost","glacier","haven","iron","jade","koala","lunar","meteor","nova","olive","phoenix","quill","raven","storm","tavern","uranium","velvet","willow","apex","berry","cactus","dawn","elder","fossil","gravel","harbor","ivory","jazz","kernel","laser","metal","noble","onyx","plaza","queen","ruby","silver","timber","ultra","vapor","wheat","amber","basil","cedar"],
+  tech: ["binary","buffer","cache","daemon","docker","encode","fetch","grep","hash","input","json","kernel","lambda","merge","node","object","proxy","query","router","socket","token","upload","vector","widget","xpath","yaml","array","boolean","class","debug","error","float","github","handler","index","java","kubernetes","linux","memory","nginx","output","python","queue","redis","server","thread","ubuntu","volume","width","xcode","agile","branch","commit","deploy","endpoint","firewall","gateway","host","image","jenkins","key","logger","module","null","ops","patch","query","release","stack","terraform","user","vault","webpack","xmpp","yarn","ascii","bash","cron","devops","etcd","flask","graphql","helm","istio","jwt","kafka","lint","maven","npm","oauth","prometheus","quarkus","rust","swift","toml","unix","vim"],
+  nature: ["acorn","birch","clover","dew","elm","fern","ginger","holly","indigo","jade","kelp","lily","moss","nectar","orchid","palm","quart","reed","sage","thistle","violet","wheat","aster","bloom","cave","deer","eel","fox","goat","hawk","ibis","jay","kiwi","lark","moth","newt","owl","puma","quail","raven","swan","tern","vole","wolf","yak","bear","cat","dog","elk","hollow","ignite","jade","keystone","lumen","mist","oasis","pyre","rift","shard","umbral","vertex","xylem","yeast","amber","bolt","creek","dale","fjord","glade","heath","inlet","knoll","ledge","marsh","notch","orchard","pike","quarry","ravine","swale","tor","vale","warren","alder","beech","cypress","fir","hemlock","juniper","linden","maple","oak","poplar","rowan","spruce","teak","willow","yew"],
+  food: ["almond","basil","carrot","date","egg","fig","grape","honey","ice","jalapeno","kale","leek","melon","noodle","olive","peach","quinoa","rice","salt","tofu","umami","vanilla","wasabi","yogurt","zest","apple","bacon","cherry","durian","espresso","fennel","ginger","hummus","jicama","kiwi","lime","mango","nutmeg","orange","papaya","quince","raisin","sausage","thyme","truffle","vinegar","walnut","wheat","yam","banana","coconut","dill","fennel","garlic","lentil","mustard","onion","pepper","radish","sesame","tamarind","apricot","bagel","cacao","dough","espresso","flour","guava","herb","jam","ketchup","loaf","miso","nectar","pasta","roast","soup","toast"],
+  animals: ["alpaca","badger","cougar","dolphin","elephant","ferret","gazelle","hamster","iguana","jaguar","koala","lemur","meerkat","narwhal","ocelot","penguin","quokka","raccoon","squirrel","toucan","urchin","vulture","wallaby","yak","zebra","beaver","cheetah","dingo","emu","flamingo","gorilla","hippo","ibex","jackal","kangaroo","llama","manatee","newt","ostrich","puma","quail","rabbit","sloth","tapir","viper","wombat","axolotl","bison","caribou","donkey","echidna","fox","gecko","heron","impala","jellyfish","kudu","leopard","mongoose","nightingale","octopus","parrot","rhino","salmon","turtle","urial","vixen","walrus","yak"],
+  space: ["aurora","binary","comet","dust","eclipse","flare","gravity","helium","io","jupiter","kepler","lunar","mars","nebula","orbit","pluto","quasar","rocket","saturn","titan","umbra","venus","wormhole","xray","zenith","apollo","borealis","cosmos","dark","equinox","fusion","galaxy","horizon","infinity","jet","kelvin","light","meteor","nova","oberon","pulsar","quantum","rigel","solar","telescope","universe","vortex","warp","andromeda","betelgeuse","crater","drake","exo","fermi","gemini","hubble","ion","jansky","kuiper","lyra","miranda","neutron","oberth","photon","quark","redshift","supernova","terra","umbriel","voyager"]
+};
+var PASSPHRASE_WORDS = WORD_CATEGORIES.general;
+var currentWordCategory = "general";
 
 function generatePassphrase(wordCount, separator, capitalize, addNumber) {
   var bytes = getRandomBytes(wordCount);
@@ -962,8 +970,18 @@ function estimateCrackTime(entropy) {
 
 function renderStats() {
   var bar = document.getElementById("statsBar");
+  // Update security dashboard
+  var dashScore = document.getElementById("dashScore");
+  var dashEntropy = document.getElementById("dashEntropy");
+  var dashCrack = document.getElementById("dashCrack");
+  var dashPool = document.getElementById("dashPool");
+  
   if (currentPasswords.length === 0 || currentPasswords[0].entropy === 0) {
     bar.innerHTML = "";
+    dashScore.textContent = "--"; dashScore.className = "ins-val";
+    dashEntropy.textContent = "--";
+    dashCrack.textContent = "--";
+    dashPool.textContent = "--";
     return;
   }
   var avgEntropy = 0;
@@ -975,8 +993,41 @@ function renderStats() {
     if (e < minEntropy) minEntropy = e;
     if (e > maxEntropy) maxEntropy = e;
   }
-  var avgEntropy = Math.round(avgEntropy / currentPasswords.length * 10) / 10;
-    var crackTime = estimateCrackTime(minEntropy);
+  avgEntropy = Math.round(avgEntropy / currentPasswords.length * 10) / 10;
+  minEntropy = Math.round(minEntropy * 10) / 10;
+  
+  // Security score: 0-100 based on entropy (cap at 128 bits = 100)
+  var score = Math.min(100, Math.round(minEntropy / 128 * 100));
+  dashScore.textContent = score;
+  dashScore.className = "ins-val " + (score >= 70 ? "good" : score >= 40 ? "warn" : "bad");
+  
+  dashEntropy.textContent = avgEntropy;
+  dashCrack.textContent = estimateCrackTime(minEntropy);
+  
+  // Calculate pool size
+  var poolSize = 0;
+  if (currentMode === "pin") {
+    poolSize = 10;
+  } else if (currentMode === "passphrase") {
+    poolSize = PASSPHRASE_WORDS.length;
+  } else {
+    var customChars = document.getElementById("customChars").value.trim();
+    if (customChars) {
+      poolSize = customChars.length;
+    } else {
+      var cp = buildCharPool(
+        document.getElementById("chUpper").checked,
+        document.getElementById("chLower").checked,
+        document.getElementById("chNumber").checked,
+        document.getElementById("chSymbol").checked,
+        document.getElementById("chExcludeSimilar").checked
+      );
+      poolSize = cp.pool.length;
+    }
+  }
+  dashPool.textContent = poolSize + " 字符";
+  
+  var crackTime = estimateCrackTime(minEntropy);
     var easyCount = 0, mediumCount = 0;
     for (var i = 0; i < currentPasswords.length; i++) {
       var m = getMemorability(currentPasswords[i].password);
@@ -1246,7 +1297,186 @@ function renderHistory() {
   }
 }
 
-// ==================== GENERATE (CURRENT MODE) ====================
+// ==================== URL PARAMETER SHARING (L5) ====================
+function encodeConfigToURL() {
+  var params = new URLSearchParams();
+  params.set('mode', currentMode);
+  
+  if (currentMode === 'random') {
+    params.set('len', document.getElementById('pwLength').value);
+    params.set('count', document.getElementById('pwCount').value);
+    params.set('upper', document.getElementById('chUpper').checked ? '1' : '0');
+    params.set('lower', document.getElementById('chLower').checked ? '1' : '0');
+    params.set('num', document.getElementById('chNumber').checked ? '1' : '0');
+    params.set('sym', document.getElementById('chSymbol').checked ? '1' : '0');
+    params.set('nosim', document.getElementById('chExcludeSimilar').checked ? '1' : '0');
+    var custom = document.getElementById('customChars').value.trim();
+    if (custom) params.set('custom', encodeURIComponent(custom));
+  } else if (currentMode === 'passphrase') {
+    params.set('words', document.getElementById('wordCount').value);
+    params.set('count', document.getElementById('phraseCount').value);
+    params.set('cat', currentWordCategory);
+    var sepBtn = document.querySelector('#passphraseSettings .sep-btn.active');
+    params.set('sep', sepBtn ? sepBtn.dataset.sep : '-');
+    params.set('cap', document.getElementById('chCapitalize').checked ? '1' : '0');
+    params.set('addnum', document.getElementById('chAddNumber').checked ? '1' : '0');
+  } else if (currentMode === 'pin') {
+    params.set('len', document.getElementById('pinLen').value);
+    params.set('count', document.getElementById('pinCount').value);
+    var fmtBtn = document.querySelector('#pinSettings .pin-fmt-btn.active');
+    params.set('fmt', fmtBtn ? fmtBtn.dataset.pinfmt : 'plain');
+  }
+  
+  var newUrl = window.location.origin + window.location.pathname + '?' + params.toString();
+  navigator.clipboard.writeText(newUrl).then(function() {
+    showToast('🔗 配置链接已复制！粘贴分享给他人');
+  }).catch(function() {
+    // Fallback: update URL bar
+    window.history.replaceState({}, '', '?' + params.toString());
+    showToast('🔗 URL已更新，复制浏览器地址栏即可分享');
+  });
+}
+
+function decodeConfigFromURL() {
+  var params = new URLSearchParams(window.location.search);
+  if (!params.has('mode')) return false;
+  
+  var mode = params.get('mode');
+  
+  if (mode === 'random') {
+    switchMode('random');
+    if (params.has('len')) { document.getElementById('pwLength').value = params.get('len'); document.getElementById('lengthDisplay').textContent = params.get('len'); }
+    if (params.has('count')) { document.getElementById('pwCount').value = params.get('count'); document.getElementById('countDisplay').textContent = params.get('count'); }
+    if (params.has('upper')) document.getElementById('chUpper').checked = params.get('upper') === '1';
+    if (params.has('lower')) document.getElementById('chLower').checked = params.get('lower') === '1';
+    if (params.has('num')) document.getElementById('chNumber').checked = params.get('num') === '1';
+    if (params.has('sym')) document.getElementById('chSymbol').checked = params.get('sym') === '1';
+    if (params.has('nosim')) document.getElementById('chExcludeSimilar').checked = params.get('nosim') === '1';
+    if (params.has('custom')) document.getElementById('customChars').value = decodeURIComponent(params.get('custom'));
+    updateCharCount();
+    generateRandom();
+  } else if (mode === 'passphrase') {
+    switchMode('passphrase');
+    if (params.has('words')) { document.getElementById('wordCount').value = params.get('words'); document.getElementById('wordCountDisplay').textContent = params.get('words'); }
+    if (params.has('count')) { document.getElementById('phraseCount').value = params.get('count'); document.getElementById('phraseCountDisplay').textContent = params.get('count'); }
+    if (params.has('cat')) setWordCategory(params.get('cat'));
+    if (params.has('sep')) {
+      document.querySelectorAll('#passphraseSettings .sep-btn').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.sep === params.get('sep'));
+      });
+    }
+    if (params.has('cap')) document.getElementById('chCapitalize').checked = params.get('cap') === '1';
+    if (params.has('addnum')) document.getElementById('chAddNumber').checked = params.get('addnum') === '1';
+    generatePhrases();
+  } else if (mode === 'pin') {
+    switchMode('pin');
+    if (params.has('len')) { document.getElementById('pinLen').value = params.get('len'); document.getElementById('pinLenDisplay').textContent = params.get('len'); }
+    if (params.has('count')) { document.getElementById('pinCount').value = params.get('count'); document.getElementById('pinCountDisplay').textContent = params.get('count'); }
+    if (params.has('fmt')) {
+      document.querySelectorAll('#pinSettings .pin-fmt-btn').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.pinfmt === params.get('fmt'));
+      });
+    }
+    generatePins();
+  }
+  return true;
+}
+
+// ==================== WORD CATEGORY SWITCHING (L5) ====================
+function setWordCategory(cat) {
+  if (!WORD_CATEGORIES[cat]) return;
+  currentWordCategory = cat;
+  PASSPHRASE_WORDS = WORD_CATEGORIES[cat];
+  document.querySelectorAll('#wordCategoryOpts .sep-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.cat === cat);
+  });
+  if (currentMode === 'passphrase') generatePhrases();
+}
+
+// ==================== EXAMPLE PRESETS (L5) ====================
+function loadExample(type) {
+  switch(type) {
+    case 'wifi':
+      switchMode('random');
+      document.getElementById('chUpper').checked = true;
+      document.getElementById('chLower').checked = true;
+      document.getElementById('chNumber').checked = true;
+      document.getElementById('chSymbol').checked = false;
+      document.getElementById('chExcludeSimilar').checked = false;
+      document.getElementById('customChars').value = '';
+      document.getElementById('pwLength').value = 20;
+      document.getElementById('pwCount').value = 3;
+      document.getElementById('lengthDisplay').textContent = '20';
+      document.getElementById('countDisplay').textContent = '3';
+      break;
+    case 'bank':
+      switchMode('random');
+      document.getElementById('chUpper').checked = true;
+      document.getElementById('chLower').checked = true;
+      document.getElementById('chNumber').checked = true;
+      document.getElementById('chSymbol').checked = true;
+      document.getElementById('chExcludeSimilar').checked = true;
+      document.getElementById('customChars').value = '';
+      document.getElementById('pwLength').value = 32;
+      document.getElementById('pwCount').value = 3;
+      document.getElementById('lengthDisplay').textContent = '32';
+      document.getElementById('countDisplay').textContent = '3';
+      break;
+    case 'simple':
+      switchMode('passphrase');
+      document.getElementById('wordCount').value = 3;
+      document.getElementById('phraseCount').value = 3;
+      document.getElementById('wordCountDisplay').textContent = '3';
+      document.getElementById('phraseCountDisplay').textContent = '3';
+      document.getElementById('chCapitalize').checked = false;
+      document.getElementById('chAddNumber').checked = false;
+      setWordCategory('general');
+      document.querySelectorAll('#passphraseSettings .sep-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.sep === '-'); });
+      break;
+    case 'api':
+      switchMode('random');
+      document.getElementById('chUpper').checked = false;
+      document.getElementById('chLower').checked = false;
+      document.getElementById('chNumber').checked = false;
+      document.getElementById('chSymbol').checked = false;
+      document.getElementById('chExcludeSimilar').checked = false;
+      document.getElementById('customChars').value = '0123456789abcdef';
+      document.getElementById('pwLength').value = 64;
+      document.getElementById('pwCount').value = 3;
+      document.getElementById('lengthDisplay').textContent = '64';
+      document.getElementById('countDisplay').textContent = '3';
+      break;
+    case 'quick':
+      switchMode('random');
+      document.getElementById('chUpper').checked = true;
+      document.getElementById('chLower').checked = true;
+      document.getElementById('chNumber').checked = true;
+      document.getElementById('chSymbol').checked = false;
+      document.getElementById('chExcludeSimilar').checked = true;
+      document.getElementById('customChars').value = '';
+      document.getElementById('pwLength').value = 8;
+      document.getElementById('pwCount').value = 5;
+      document.getElementById('lengthDisplay').textContent = '8';
+      document.getElementById('countDisplay').textContent = '5';
+      break;
+    case 'mega':
+      switchMode('random');
+      document.getElementById('chUpper').checked = true;
+      document.getElementById('chLower').checked = true;
+      document.getElementById('chNumber').checked = true;
+      document.getElementById('chSymbol').checked = true;
+      document.getElementById('chExcludeSimilar').checked = false;
+      document.getElementById('customChars').value = '';
+      document.getElementById('pwLength').value = 64;
+      document.getElementById('pwCount').value = 3;
+      document.getElementById('lengthDisplay').textContent = '64';
+      document.getElementById('countDisplay').textContent = '3';
+      break;
+  }
+  updateCharCount();
+  generateAll();
+  showToast('✅ 已加载「' + type + '」示例配置');
+}
 function generateAll() {
   if (currentMode === "random") generateRandom();
   else if (currentMode === "passphrase") generatePhrases();
@@ -1427,6 +1657,19 @@ document.querySelectorAll("#modeTabs .shortcut").forEach(function(btn) {
   btn.addEventListener("click", function() { applyPreset(this.dataset.preset); });
 });
 
+// Example buttons (L5)
+document.querySelectorAll(".example-btn").forEach(function(btn) {
+  btn.addEventListener("click", function() { loadExample(this.dataset.example); });
+});
+
+// Share URL button (L5)
+document.getElementById("shareUrlBtn").addEventListener("click", encodeConfigToURL);
+
+// Word category buttons (L5)
+document.querySelectorAll("#wordCategoryOpts .sep-btn").forEach(function(btn) {
+  btn.addEventListener("click", function() { setWordCategory(this.dataset.cat); });
+});
+
 // Sliders - realtime generation on input
 document.getElementById("pwLength").addEventListener("input", function() {
   document.getElementById("lengthDisplay").textContent = this.value;
@@ -1576,7 +1819,10 @@ document.addEventListener("keydown", function(e) {
 
 // ==================== INIT ====================
 renderHistory();
-generateRandom();
+// Check URL params for shared config
+if (!decodeConfigFromURL()) {
+  generateRandom();
+}
 </script>
 </body>
 </html>
