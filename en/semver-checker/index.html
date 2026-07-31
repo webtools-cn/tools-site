@@ -249,7 +249,8 @@ function compareSemver(a, b) {
   if (pa.major !== pb.major) return pa.major > pb.major ? 1 : -1;
   if (pa.minor !== pb.minor) return pa.minor > pb.minor ? 1 : -1;
   if (pa.patch !== pb.patch) return pa.patch > pb.patch ? 1 : -1;
-  return cmpPrerelease(pa.prerelease, pb.prerelease);
+  var pre = cmpPrerelease(pa.prerelease, pb.prerelease);
+  return pre === 0 ? 0 : (pre > 0 ? 1 : -1);
 }
 
 function parseRangeExpr(expr) {
@@ -269,14 +270,16 @@ function parseRangeExpr(expr) {
     if (!tp) return null;
     return { op: '>=', v1: tildeMatch[1], op2: '<', v2: tp.major + '.' + (tp.minor + 1) + '.0' };
   }
-  var parts = expr.split(/\s+/);
-  if (parts.length === 3) {
-    var op1 = parts[0], v1 = parts[1], op2 = parts[2], v2 = parts.length > 3 ? parts[3] : null;
-    if (!v2 && parts.length > 2) { op2 = parts[1]; v1 = parts[0]; v2 = parts[2]; }
-    if (/^(>=|>|<=|<|=)$/.test(op1) && /^(>=|>|<=|<|=)$/.test(op2) && parseSemver(v1) && parseSemver(v2)) {
-      return { op: op1, v1: v1, op2: op2, v2: v2 };
+  // Try to match 2 comparator+version pairs
+  var matches = expr.match(/(>=|>|<=|<|=)\s*([\d.]+(?:-[a-zA-Z0-9.]+)?(?:\+[a-zA-Z0-9.]+)?)/g);
+  if (matches && matches.length >= 2) {
+    var m1 = /^(>=|>|<=|<|=)\s*(\S+)$/.exec(matches[0]);
+    var m2 = /^(>=|>|<=|<|=)\s*(\S+)$/.exec(matches[1]);
+    if (m1 && m2 && parseSemver(m1[2]) && parseSemver(m2[2])) {
+      return { op: m1[1], v1: m1[2], op2: m2[1], v2: m2[2] };
     }
   }
+  // Single comparator like >=1.0.0
   var singleMatch = /^(>=|>|<=|<|=)\s*(\S+)$/.exec(expr);
   if (singleMatch) {
     var sp = parseSemver(singleMatch[2]);
