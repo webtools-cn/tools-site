@@ -132,16 +132,49 @@ footer{text-align:center;padding:30px;color:#999;font-size:13px;}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
+window.copyResult = function(){var oc=document.getElementById('outputCode');if(oc&&oc.value)navigator.clipboard.writeText(oc.value);};
+window.downloadResult = function(){var oc=document.getElementById('outputCode');if(!oc||!oc.value)return;var b=new Blob([oc.value],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='beautified.txt';a.click();};
+window.clearAll = function(){var ic=document.getElementById('inputCode'),oc=document.getElementById('outputCode');if(ic)ic.value='';if(oc)oc.value='';};
+window.loadSample = function(){showToast('示例加载功能');};
+
 (function(){
-  const langSelect = document.getElementById('langSelect');
-  const indentSize = document.getElementById('indentSize');
-  const useTabs = document.getElementById('useTabs');
-  const inputCode = document.getElementById('inputCode');
-  const outputCode = document.getElementById('outputCode');
-  const btnBeautify = document.getElementById('btnBeautify');
-  const errorMsg = document.getElementById('errorMsg');
-  const inputStats = document.getElementById('inputStats');
-  const outputStats = document.getElementById('outputStats');
+  var langSelect = document.getElementById('langSelect');
+  var indentSize = document.getElementById('indentSize');
+  var useTabs = document.getElementById('useTabs');
+  var inputCode = document.getElementById('inputCode');
+  var outputCode = document.getElementById('outputCode');
+  var btnBeautify = document.getElementById('btnBeautify');
+  var errorMsg = document.getElementById('errorMsg');
+  var inputStats = document.getElementById('inputStats');
+  var outputStats = document.getElementById('outputStats');
+  if(!langSelect||!indentSize||!useTabs||!inputCode||!outputCode||!btnBeautify||!errorMsg) return;
+
+  window.copyResult = function(){
+    if(outputCode.value) navigator.clipboard.writeText(outputCode.value);
+  };
+
+  window.downloadResult = function(){
+    if(!outputCode.value) return;
+    var exts = {javascript:'js',html:'html',css:'css',json:'json',xml:'xml',sql:'sql',python:'py'};
+    var ext = exts[langSelect.value] || 'txt';
+    var blob = new Blob([outputCode.value], {type:'text/plain'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'beautified.' + ext;
+    a.click();
+  };
+
+  window.clearAll = function(){
+    inputCode.value = '';
+    outputCode.value = '';
+    if(inputStats) inputStats.textContent = '';
+    if(outputStats) outputStats.textContent = '';
+  };
+
+  window.loadSample = function(){
+    var code = samples[langSelect.value];
+    if(code) inputCode.value = code;
+  };
 
   function getIndent(){
     return useTabs.checked ? '\t' : ' '.repeat(parseInt(indentSize.value)||2);
@@ -317,31 +350,8 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
     updateStats(inputCode.value, outputCode.value || null);
   });
 
-  window.copyResult = function(){
-    if(outputCode.value) navigator.clipboard.writeText(outputCode.value);
-  };
-
-  window.downloadResult = function(){
-    if(!outputCode.value) return;
-    const exts = {javascript:'js',html:'html',css:'css',json:'json',xml:'xml',sql:'sql',python:'py'};
-    const ext = exts[langSelect.value] || 'txt';
-    const blob = new Blob([outputCode.value], {type:'text/plain'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'beautified.' + ext;
-    a.click();
-  };
-
-  window.clearAll = function(){
-    inputCode.value = '';
-    outputCode.value = '';
-    inputStats.textContent = '';
-    outputStats.textContent = '';
-  };
-
-  const samples = {
-    javascript: 'function fibonacci(n){if(n<=1)return n;let a=0,b=1;for(let i=2;i<=n;i++){let temp=a+b;a=b;b=temp;}return b;}const result=fibonacci(10);
-',
+  var samples = {
+    javascript: 'function fibonacci(n){if(n<=1)return n;let a=0,b=1;for(let i=2;i<=n;i++){let temp=a+b;a=b;b=temp;}return b;}const result=fibonacci(10);\\n',
     html: '<!DOCTYPE html>\x3Chtml>\x3Chead>\x3Ctitle>Test\x3C/title>\x3C/head>\x3Cbody>\x3Cdiv class="container">\x3Ch1>Hello\x3C/h1>\x3Cp>World\x3C/p>\x3Cul>\x3Cli>Item 1\x3C/li>\x3Cli>Item 2\x3C/li>\x3C/ul>\x3C/div>\x3C/body>\x3C/html>',
     css: 'body{margin:0;padding:0;font-family:sans-serif}.container{max-width:1200px;margin:0 auto;padding:20px}h1{color:#333}p{line-height:1.6}',
     json: '{"name":"John","age":30,"address":{"city":"New York","zip":"10001"},"hobbies":["reading","coding","music"]}',
@@ -350,12 +360,6 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
     python: 'def fibonacci(n):\\n    if n<=1:\\n        return n\\n    a,b=0,1\\n    for i in range(2,n+1):\\n        a,b=b,a+b\\n    return b\\nresult=fibonacci(10)\\nprint(result)'
   };
 
-  window.loadSample = function(){
-    const code = samples[langSelect.value];
-    if(code) inputCode.value = code;
-  };
-
-})(;)
-</script>
+})();</script>
 </body>
 </html>
