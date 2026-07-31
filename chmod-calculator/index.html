@@ -134,20 +134,76 @@ function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.c
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
 function toggleFeedback(){const p=document.getElementById("feedback-panel");p.style.display=p.style.display==="none"?"block":"none";}
+function submitFeedback(){
+const type=document.getElementById('feedback-type').value;
 const typeLabel={feedback:"💡 Suggestion",bug:"🐛 Bug Report",other:"💬 Other"}[type];
+const text=document.getElementById('feedback-text')?document.getElementById('feedback-text').value:'';
 const title=encodeURIComponent(typeLabel+" - "+window.location.pathname);
-const body=encodeURIComponent("**Page**: "+window.location.href+"\n**Type**: "+typeLabel+"\n\n"+text);
+const body=encodeURIComponent("**Page**: "+window.location.href+"\\n**Type**: "+typeLabel+"\\n\\n"+text);
 window.open("https://github.com/webtools-cn/tools-site/issues/new?title="+title+"&body="+body,"_blank");
 document.getElementById("feedback-success").style.display="block";
-
-// === 重写的函数实现 ===
-function copyCommand() {
-  showToast('功能已触发');
 }
 
+// === Chmod permission calculator ===
 function updatePerms() {
-  showToast('功能已触发');
+  var ur=document.getElementById('ur').checked?4:0;
+  var uw=document.getElementById('uw').checked?2:0;
+  var ux=document.getElementById('ux').checked?1:0;
+  var gr=document.getElementById('gr').checked?4:0;
+  var gw=document.getElementById('gw').checked?2:0;
+  var gx=document.getElementById('gx').checked?1:0;
+  var or_=document.getElementById('or').checked?4:0;
+  var ow=document.getElementById('ow').checked?2:0;
+  var ox=document.getElementById('ox').checked?1:0;
+  var suid=document.getElementById('suid').checked?4:0;
+  var sgid=document.getElementById('sgid').checked?2:0;
+  var sticky=document.getElementById('sticky').checked?1:0;
+  
+  var u=ur+uw+ux;
+  var g=gr+gw+gx;
+  var o=or_+ow+ox;
+  var special=suid+sgid+sticky;
+  
+  var numeric=(special?special.toString():'')+u+g+o;
+  document.getElementById('numericMode').textContent=numeric;
+  
+  var perms='';
+  perms+=(ur?'r':'-')+(uw?'w':'-')+(ux?'x':'-');
+  perms+=(gr?'r':'-')+(gw?'w':'-')+(gx?'x':'-');
+  perms+=(or_?'r':'-')+(ow?'w':'-')+(ox?'x':'-');
+  
+  var sym='u='+(ur?'r':'')+(uw?'w':'')+(ux?'x':'')+
+          ',g='+(gr?'r':'')+(gw?'w':'')+(gx?'x':'')+
+          ',o='+(or_?'r':'')+(ow?'w':'')+(ox?'x':'');
+  if(special) sym+=(suid?',u+s':',u-s')+(sgid?',g+s':',g-s')+(sticky?',+t':',-t');
+  document.getElementById('symbolicMode').textContent=sym;
+  
+  var bitsHtml='';
+  bitsHtml+='<span class="bits-'+(ur?'on':'off')+'">r</span>';
+  bitsHtml+='<span class="bits-'+(uw?'on':'off')+'">w</span>';
+  bitsHtml+='<span class="bits-'+(ux?'on':'off')+'">x</span>';
+  bitsHtml+='<span class="bits-'+(gr?'on':'off')+'">r</span>';
+  bitsHtml+='<span class="bits-'+(gw?'on':'off')+'">w</span>';
+  bitsHtml+='<span class="bits-'+(gx?'on':'off')+'">x</span>';
+  bitsHtml+='<span class="bits-'+(or_?'on':'off')+'">r</span>';
+  bitsHtml+='<span class="bits-'+(ow?'on':'off')+'">w</span>';
+  bitsHtml+='<span class="bits-'+(ox?'on':'off')+'">x</span>';
+  document.getElementById('bitsVisual').innerHTML=bitsHtml;
 }
+
+window.updatePerms = updatePerms;
+
+function copyCommand() {
+  var cmd=document.getElementById('numericMode').textContent;
+  if(cmd){
+    navigator.clipboard.writeText('chmod '+cmd+' filename').then(function(){
+      showToast('已复制: chmod '+cmd+' filename');
+    }).catch(function(){showToast('复制失败')});
+  }
+}
+
+// Init
+updatePerms();
 </script>
 </body>
 </html>

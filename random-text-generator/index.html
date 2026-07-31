@@ -193,19 +193,138 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 })();
 
 // === 重写的函数实现 ===
+var currentMode = 'cn';
+
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(function(b){b.classList.remove('active')});
+  var btns = document.querySelectorAll('.mode-btn');
+  btns.forEach(function(b){
+    var onclick = b.getAttribute('onclick')||'';
+    if(onclick.indexOf("'"+mode+"'")!==-1) b.classList.add('active');
+  });
+  generate();
+}
+window.switchMode = switchMode;
+
+function generate() {
+  var output = document.getElementById('output');
+  var count = parseInt((document.getElementById('count')||{}).value) || 100;
+  var result = '';
+  switch(currentMode){
+    case 'cn':
+      result = generateCN(count);
+      break;
+    case 'en-words':
+      result = generateEnWords(count);
+      break;
+    case 'en-sentences':
+      result = generateEnSentences(Math.ceil(count/10));
+      break;
+    case 'mixed':
+      result = generateCNParagraph(count);
+      break;
+    case 'chars':
+      result = generateChars(count);
+      break;
+    default:
+      result = generateCN(count);
+  }
+  output.textContent = result;
+}
+
+function generateCN(count) {
+  var chars = '的一是不了在有人我他这个们中来上大为和国地到以说时要就出会可也你对生能而子得于下自之年过发后作里用道行所然家种事成方多经法现起都相进此实回度美高其很化说关各同比无将间本机物又表系者明重体并打门把前合点但两外力水问题等';
+  var result = '';
+  for(var i=0;i<count;i++){
+    result += chars[Math.floor(Math.random()*chars.length)];
+    if(i>0 && i%20===0 && i<count-1) result += '。\n';
+  }
+  return result;
+}
+
+function generateEnWords(count) {
+  var words = ['the','be','to','of','and','a','in','that','have','it','for','not','on','with','he','as','you','do','at','this','but','his','by','from','they','we','say','her','she','or','an','will','my','one','all','would','there','their','what','so','up','out','if','about','who','get','which','go','me','when','make','can','like','time','no','just','him','know','take','people','into','year','your','good','some','could','them','see','other','than','then','now','look','only','come','its','over','think','also','back','after','use','two','how','our','work','first','well','way','even','new','want','because','any','these','give','day','most','us'];
+  var result = [];
+  for(var i=0;i<count;i++){
+    result.push(words[Math.floor(Math.random()*words.length)]);
+  }
+  return result.join(' ');
+}
+
+function generateEnSentences(count) {
+  var templates = [
+    'The @ went to the @ and @ the @.',
+    'A @ is always @ when it @ in the @.',
+    'Many @ believe that @ will @ the @.',
+    'It was a @ day when the @ decided to @.',
+    'The @ of the @ is @ than ever before.',
+    'She @ the @ with great @ and @.',
+    'They @ that the @ would @ the @.',
+    'This @ is @ and @ for all @.'
+  ];
+  var nouns = ['system','method','process','approach','solution','project','team','result','data','information','technology','development','design','user','application','service','product','company','market','research'];
+  var verbs = ['create','develop','implement','manage','analyze','improve','support','provide','maintain','establish'];
+  var adjs = ['important','effective','efficient','reliable','innovative','strategic','comprehensive','significant','essential','critical'];
+  var result = [];
+  for(var i=0;i<count;i++){
+    var t = templates[Math.floor(Math.random()*templates.length)];
+    t = t.replace(/@/g, function(){
+      var types = [nouns,verbs,adjs];
+      var arr = types[Math.floor(Math.random()*3)];
+      return arr[Math.floor(Math.random()*arr.length)];
+    });
+    result.push(t);
+  }
+  return result.join(' ');
+}
+
+function generateCNParagraph(count) {
+  var intro = ['在当今时代，','随着科技的发展，','值得注意的是，','从某种意义上说，','毫无疑问，','可以预见，'];
+  var body = ['人工智能正在改变世界','数据驱动的决策成为主流','数字化转型是必然趋势','可持续发展成为共识','全球化进程不断加速','创新是发展的核心动力'];
+  var end = ['具有重要意义。','值得深入探讨。','将产生深远影响。','已成为不可逆转的趋势。','值得关注。'];
+  var result = '';
+  for(var i=0;i<count;i++){
+    result += intro[Math.floor(Math.random()*intro.length)] + body[Math.floor(Math.random()*body.length)] + end[Math.floor(Math.random()*end.length)];
+    if(i<count-1) result += '\n\n';
+  }
+  return result;
+}
+
+function generateChars(count) {
+  var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?/';
+  var result = '';
+  for(var i=0;i<count;i++){
+    result += chars[Math.floor(Math.random()*chars.length)];
+    if(i>0 && i%40===0 && i<count-1) result += '\n';
+  }
+  return result;
+}
+
 function copyOutput() {
   var text = document.getElementById('output').innerText;
   if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});
 }
 
 function downloadOutput() {
-  showToast('功能已触发');
+  var text = document.getElementById('output').innerText;
+  if (!text) { showToast('没有可下载的内容'); return; }
+  var blob = new Blob([text], {type: 'text/plain'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'random-text.txt';
+  a.click();
+  showToast('已下载');
 }
 
 function regenerate() {
-  showToast('功能已触发');
+  generate();
+  showToast('已重新生成');
 }
+
+// Init
+generate();
 </script>
 </body>
 </html>

@@ -327,6 +327,11 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制: '+text)}).catch(function(){showToast('复制失败')});
+}
+window.copyToClipboard = copyToClipboard;
+
 function copyExport() {
   var text = document.getElementById('previewGrid').innerText || document.getElementById('previewGrid').textContent;
   if (!text) { showToast('没有可复制的内容'); return; }
@@ -345,15 +350,69 @@ function exportPalette() {
 }
 
 function generateExport() {
-  showToast('功能已触发');
+  var colors = [];
+  var swatches = document.querySelectorAll('#previewGrid .color-swatch, #previewGrid [style*="background"]');
+  if(swatches.length === 0){
+    var els = document.querySelectorAll('.scheme-color');
+    els.forEach(function(el){
+      var hex = el.getAttribute('data-hex') || el.style.backgroundColor;
+      if(hex) colors.push(hex);
+    });
+  }
+  if(colors.length === 0){
+    var hexEl = document.getElementById('hexValue');
+    if(hexEl) colors.push(hexEl.textContent);
+  }
+  var format = (document.getElementById('exportFormat')||{}).value || 'css';
+  var result = '';
+  if(format === 'css'){
+    result = ':root {\n';
+    colors.forEach(function(c,i){result += '  --color-'+(i+1)+': '+c+';\n';});
+    result += '}';
+  }else if(format === 'json'){
+    result = JSON.stringify({colors: colors}, null, 2);
+  }else if(format === 'scss'){
+    colors.forEach(function(c,i){result += '$color-'+(i+1)+': '+c+';\n';});
+  }else if(format === 'tailwind'){
+    result = '// tailwind.config.js\nmodule.exports = {\n  theme: {\n    extend: {\n      colors: {\n';
+    colors.forEach(function(c,i){result += '        color'+(i+1)+': \''+c+'\',\n';});
+    result += '      }\n    }\n  }\n}';
+  }
+  var exportOutput = document.getElementById('exportOutput');
+  if(exportOutput) exportOutput.textContent = result || '请先选择配色方案';
+  else showToast('已生成');
 }
 
 function randomColor() {
-  var result = Math.random() > 0.5 ? '正面' : '反面';
-  document.getElementById('previewGrid').textContent = result;
-  document.getElementById('previewGrid').style.display = 'block';
-  showToast('随机结果已生成');
+  var h = Math.floor(Math.random() * 360);
+  var s = 50 + Math.floor(Math.random() * 50);
+  var l = 30 + Math.floor(Math.random() * 40);
+  var hex = hslToHex(h, s, l);
+  document.getElementById('hexValue').textContent = hex;
+  document.getElementById('rgbValue').textContent = hexToRgb(hex);
+  document.getElementById('hslValue').textContent = 'hsl('+h+','+s+'%,'+l+'%)';
+  showToast('随机颜色已生成');
 }
+
+function hslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  var a = s * Math.min(l, 1 - l);
+  var f = function(n) {
+    var k = (n + h / 30) % 12;
+    var color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return '#' + f(0) + f(8) + f(4);
+}
+
+function hexToRgb(hex) {
+  var r = parseInt(hex.slice(1,3), 16);
+  var g = parseInt(hex.slice(3,5), 16);
+  var b = parseInt(hex.slice(5,7), 16);
+  return 'rgb('+r+','+g+','+b+')';
+}
+window.randomColor = randomColor;
+window.generateExport = generateExport;
 </script>
 </body>
 </html>
