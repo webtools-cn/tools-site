@@ -253,37 +253,76 @@
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
-(function() {
 
-  'use strict';
-  var s = document.getElementById('related-tools-section');
-  if (!s) return;
-  var p = window.location.pathname;
-  var en = p.indexOf('/en/') !== -1;
-  p = p.replace(/\/en\//g, '/');
-  var slug = p.split('/').filter(Boolean).pop() || '';
-  if (!slug) { s.innerHTML = ''; return; }
-  var depth = en ? '../../' : '../';
-  var u = depth + 'related-tools.json';
-  fetch(u).then(function(r) {
-    if (!r.ok) throw new Error('not found');
-    return r.json();
-  }).then(function(d) {
-    var data = en ? d.en : d.cn;
-    var t = data[slug];
-    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '\x3Cdiv class="related-tools-inner">\x3Ch3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 相关工具推荐')
-      + '\x3C/h3>\x3Cdiv class="related-tools-grid">';
-    t.related.forEach(function(r) {
-      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '\x3Ca href="' + link + '" class="related-tool-card">'
-        + '\x3Cspan class="related-tool-icon">' + (r.icon || '🔧') + '\x3C/span>'
-        + '\x3Cspan class="related-tool-name">' + r.name + '\x3C/span>\x3C/a>';
-    });
-    h += '\x3C/div>\x3C/div>';
-    s.innerHTML = h;
-  }).catch(function() { s.innerHTML = ''; });
-})();</script>
+var currentMode = 'ppi';
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('ppi-mode').style.display = mode==='ppi' ? '' : 'none';
+  document.getElementById('resolution-mode').style.display = mode==='resolution' ? '' : 'none';
+  document.getElementById('size-mode').style.display = mode==='size' ? '' : 'none';
+  document.querySelectorAll('.mode-tab')[mode==='ppi'?0:mode==='resolution'?1:2].classList.add('active');
+}
+
+function calculate() {
+  var resultDiv = document.getElementById('result');
+  var grid = document.getElementById('result-grid');
+  if (currentMode === 'ppi') {
+    var w = parseFloat(document.getElementById('width-px').value) || 0;
+    var h = parseFloat(document.getElementById('height-px').value) || 0;
+    var diag = parseFloat(document.getElementById('diagonal').value) || 0;
+    if (w <= 0 || h <= 0 || diag <= 0) { showToast('请填写完整参数'); return; }
+    var ppi = Math.round(Math.sqrt(w*w + h*h) / diag);
+    var dpiLevel = ppi < 100 ? '低' : ppi < 200 ? '中低' : ppi < 300 ? '高' : ppi < 400 ? '超高' : '极致';
+    var aspectW = Math.round(w / gcd(w,h));
+    var aspectH = Math.round(h / gcd(w,h));
+    grid.innerHTML =
+      '<div class="result-item"><div class="value">'+ppi+'</div><div class="label">PPI</div></div>'+
+      '<div class="result-item"><div class="value">'+dpiLevel+'</div><div class="label">等级</div></div>'+
+      '<div class="result-item"><div class="value">'+aspectW+':'+aspectH+'</div><div class="label">宽高比</div></div>'+
+      '<div class="result-item"><div class="value">'+w+'×'+h+'</div><div class="label">分辨率</div></div>';
+  } else if (currentMode === 'resolution') {
+    var targetPpi = parseFloat(document.getElementById('target-ppi').value) || 0;
+    var diag2 = parseFloat(document.getElementById('diag-for-res').value) || 0;
+    var ratioStr = document.getElementById('aspect-ratio').value;
+    if (targetPpi <= 0 || diag2 <= 0) { showToast('请填写完整参数'); return; }
+    var parts = ratioStr.split(':');
+    var rw = parseFloat(parts[0]), rh = parseFloat(parts[1]);
+    var diagonalPx = targetPpi * diag2;
+    var ratioFactor = Math.sqrt(rw*rw + rh*rh);
+    var w2 = Math.round(diagonalPx * rw / ratioFactor);
+    var h2 = Math.round(diagonalPx * rh / ratioFactor);
+    grid.innerHTML =
+      '<div class="result-item"><div class="value">'+w2+'×'+h2+'</div><div class="label">推荐分辨率</div></div>'+
+      '<div class="result-item"><div class="value">'+targetPpi+'</div><div class="label">目标PPI</div></div>';
+  } else {
+    var w3 = parseFloat(document.getElementById('w-for-size').value) || 0;
+    var h3 = parseFloat(document.getElementById('h-for-size').value) || 0;
+    var ppi3 = parseFloat(document.getElementById('ppi-for-size').value) || 0;
+    if (w3 <= 0 || h3 <= 0 || ppi3 <= 0) { showToast('请填写完整参数'); return; }
+    var diag3 = Math.round(Math.sqrt(w3*w3 + h3*h3) / ppi3 * 10) / 10;
+    grid.innerHTML =
+      '<div class="result-item"><div class="value">'+diag3+'"</div><div class="label">屏幕尺寸</div></div>'+
+      '<div class="result-item"><div class="value">'+ppi3+'</div><div class="label">PPI</div></div>';
+  }
+  resultDiv.style.display = '';
+}
+
+function gcd(a,b){return b===0?a:gcd(b,a%b);}
+
+function applyPreset(w,h,diag){
+  document.getElementById('width-px').value = w;
+  document.getElementById('height-px').value = h;
+  document.getElementById('diagonal').value = diag;
+  setMode('ppi');
+  calculate();
+}
+
+function resetForm(){
+  document.getElementById('width-px').value = '1920';
+  document.getElementById('height-px').value = '1080';
+  document.getElementById('diagonal').value = '5.5';
+  document.getElementById('result').style.display = 'none';
+}</script>
 </body>
 </html>

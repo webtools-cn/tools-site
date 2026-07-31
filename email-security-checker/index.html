@@ -169,6 +169,73 @@ select{padding:8px 12px}
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
+function checkEmailSecurity(){
+  var domain = document.getElementById('domain').value.trim();
+  if(!domain){showToast('请输入域名');return;}
+  var resultDiv = document.getElementById('result');
+  resultDiv.style.display='block';
+  resultDiv.innerHTML='<div class="loading">🔍 正在检查 '+domain+' 的邮件安全记录...</div><p style="color:#94a3b8;font-size:.8rem;margin-top:8px">提示：浏览器无法直接查询DNS记录，此功能通过公共DNS-over-HTTPS查询。实际邮件安全配置需要在DNS管理后台设置SPF/DKIM/DMARC记录。</p>';
+  
+  // Use Google DoH to query SPF/DKIM/DMARC
+  var dnsApi = 'https://dns.google/resolve?name=';
+  var records = {SPF:'',DKIM:'',DMARC:'',BIMI:''};
+  var done = 0, total = 4;
+  
+  function checkDone(){
+    done++;
+    if(done >= total) showResults();
+  }
+  
+  function showResults(){
+    var html = '<table>';
+    var hasSpf = records.SPF.length > 0;
+    var hasDkim = records.DKIM.length > 0;
+    var hasDmarc = records.DMARC.length > 0;
+    var hasBimi = records.BIMI.length > 0;
+    
+    html += '<tr><td>SPF</td><td>'+(hasSpf ? '<span class="status-ok">✅ '+records.SPF+'</span>' : '<span class="status-err">❌ 未配置</span>')+'</td></tr>';
+    html += '<tr><td>DKIM</td><td>'+(hasDkim ? '<span class="status-ok">✅ '+records.DKIM+'</span>' : '<span class="status-warn">⚠️ 未检测到（可能使用default._domainkey）</span>')+'</td></tr>';
+    html += '<tr><td>DMARC</td><td>'+(hasDmarc ? '<span class="status-ok">✅ '+records.DMARC+'</span>' : '<span class="status-err">❌ 未配置</span>')+'</td></tr>';
+    html += '<tr><td>BIMI</td><td>'+(hasBimi ? '<span class="status-ok">✅ '+records.BIMI+'</span>' : '<span class="status-warn">⚠️ 未配置（可选）</span>')+'</td></tr>';
+    
+    var score = (hasSpf?1:0)+(hasDkim?1:0)+(hasDmarc?1:0);
+    html += '<tr><td colspan="2" style="padding-top:12px;color:#22d3ee;font-weight:700">安全评分: '+score+'/3</td></tr>';
+    if(score<3) html += '<tr><td colspan="2" style="color:#94a3b8;font-size:.8rem">建议完善SPF/DKIM/DMARC配置以提升邮件安全性和送达率</td></tr>';
+    html += '</table>';
+    resultDiv.innerHTML = html;
+  }
+  
+  fetch(dnsApi+encodeURIComponent(domain)+'&type=TXT').then(function(r){return r.json();}).then(function(d){
+    if(d.Answer){
+      d.Answer.forEach(function(a){
+        var txt = a.data.replace(/"/g,'');
+        if(txt.indexOf('v=spf1')===0) records.SPF = txt.substring(0,80)+(txt.length>80?'...':'');
+      });
+    }
+    checkDone();
+  }).catch(function(){checkDone();});
+  
+  fetch(dnsApi+'default._domainkey.'+encodeURIComponent(domain)+'&type=TXT').then(function(r){return r.json();}).then(function(d){
+    if(d.Answer) records.DKIM = '已配置';
+    checkDone();
+  }).catch(function(){checkDone();});
+  
+  fetch(dnsApi+'_dmarc.'+encodeURIComponent(domain)+'&type=TXT').then(function(r){return r.json();}).then(function(d){
+    if(d.Answer){
+      d.Answer.forEach(function(a){
+        var txt = a.data.replace(/"/g,'');
+        if(txt.indexOf('v=DMARC1')===0) records.DMARC = txt.substring(0,80)+(txt.length>80?'...':'');
+      });
+    }
+    checkDone();
+  }).catch(function(){checkDone();});
+  
+  fetch(dnsApi+'default._bimi.'+encodeURIComponent(domain)+'&type=TXT').then(function(r){return r.json();}).then(function(d){
+    if(d.Answer) records.BIMI = '已配置';
+    checkDone();
+  }).catch(function(){checkDone();});
+}
   function getConsistentRating() {
     let hash = 0;
     const path = location.pathname;
