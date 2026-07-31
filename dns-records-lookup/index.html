@@ -178,6 +178,31 @@ select{padding:8px 12px}
 <div class="toast" id="toast"></div>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function lookupDNS() {
+  var domain = document.getElementById('domainInput') ? document.getElementById('domainInput').value.trim() : '';
+  if (!domain) { showToast('请输入域名'); return; }
+  var type = document.getElementById('dnsType') ? document.getElementById('dnsType').value : 'A';
+  var resultEl = document.getElementById('dnsResult');
+  resultEl.innerHTML = '<p style="color:#94a3b8">正在查询... ⏳</p>';
+  var url = 'https://dns.google/resolve?name=' + encodeURIComponent(domain) + '&type=' + type;
+  fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.Answer && data.Answer.length > 0) {
+      var html = '<table style="width:100%;border-collapse:collapse;margin-top:8px"><tr style="color:#94a3b8;font-size:.85rem"><th style="text-align:left;padding:4px 8px">类型</th><th style="text-align:left;padding:4px 8px">值</th><th style="text-align:left;padding:4px 8px">TTL</th></tr>';
+      data.Answer.forEach(function(r) {
+        html += '<tr style="border-top:1px solid rgba(148,163,184,.1)"><td style="padding:6px 8px;color:#22d3ee">' + r.type + '</td><td style="padding:6px 8px;word-break:break-all">' + r.data + '</td><td style="padding:6px 8px;color:#64748b">' + r.TTL + 's</td></tr>';
+      });
+      html += '</table>';
+      resultEl.innerHTML = html;
+      showToast('查询完成');
+    } else {
+      resultEl.innerHTML = '<p style="color:#94a3b8">未找到记录</p>';
+      showToast('未找到DNS记录');
+    }
+  }).catch(function(e) {
+    resultEl.innerHTML = '<p style="color:#f87171">查询失败: ' + e.message + '</p>';
+    showToast('查询失败');
+  });
+}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
   function getConsistentRating() {
     let hash = 0;
@@ -190,6 +215,8 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
     return { value: ratings[rIdx], count: counts[cIdx] };
   }
   function initRating() {
+    const container = document.querySelector('.rating-container');
+    const text = container ? container.querySelector('.rating-text') : null;
     const countEl = document.getElementById('ratingCount');
     const thanks = document.getElementById('ratingThanks');
     if (!container || !text) return;
