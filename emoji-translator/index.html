@@ -171,17 +171,172 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function lookupEmoji() {
-  showToast('功能已触发');
+// === emoji词典 ===
+var emojiDict=[
+  {c:'😀',n:'笑脸',e:'grinning face',kw:'开心 快乐 笑 哈哈'},
+  {c:'😂',n:'笑哭',e:'face with tears of joy',kw:'好笑 笑哭了 哈哈哈哈 太好笑'},
+  {c:'😍',n:'爱心眼',e:'smiling face with heart-eyes',kw:'喜欢 爱 心动 可爱 爱心'},
+  {c:'😢',n:'流泪',e:'crying face',kw:'哭 悲伤 难过 伤心 泪水'},
+  {c:'😡',n:'愤怒',e:'pouting face',kw:'生气 愤怒 不爽 恼怒'},
+  {c:'🥰',n:'陶醉',e:'smiling face with hearts',kw:'爱 幸福 喜欢 甜蜜 爱心'},
+  {c:'😱',n:'惊恐',e:'scream',kw:'震惊 害怕 惊吓 恐惧'},
+  {c:'🤔',n:'思考',e:'thinking face',kw:'思考 想 考虑 沉思'},
+  {c:'😎',n:'墨镜笑脸',e:'smiling face with sunglasses',kw:'酷 帅 自信 阳光'},
+  {c:'🤗',n:'拥抱',e:'hugging face',kw:'拥抱 温暖 开心 友好'},
+  {c:'🥳',n:'派对脸',e:'partying face',kw:'庆祝 派对 生日快乐 欢呼'},
+  {c:'😴',n:'睡着了',e:'sleeping face',kw:'睡觉 困 累 ZZZ 晚安'},
+  {c:'🤩',n:'星星眼',e:'star-struck',kw:'惊艳 崇拜 兴奋 激动 星星'},
+  {c:'😋',n:'好吃',e:'yum',kw:'好吃 美味 馋 食物 吃货'},
+  {c:'😤',n:'生气鼻孔烟',e:'triumph',kw:'生气 不服气 得意 哼'},
+  {c:'🤯',n:'爆炸头',e:'exploding head',kw:'震惊 难以置信 爆炸 惊呆了'},
+  {c:'🥺',n:'委屈',e:'pleading face',kw:'委屈 求求 可怜 拜托'},
+  {c:'😏',n:'得意',e:'smirk',kw:'得意 狡黠 坏笑 挑眉'},
+  {c:'🤤',n:'流口水',e:'drooling face',kw:'想吃 馋 美味 饿'},
+  {c:'😈',n:'恶魔笑',e:'smiling face with horns',kw:'恶魔 邪恶 坏笑 捣蛋'},
+  {c:'❤️',n:'红心',e:'red heart',kw:'爱 喜欢 心 爱情 爱心'},
+  {c:'💔',n:'碎心',e:'broken heart',kw:'心碎 失恋 伤心 难过'},
+  {c:'🎉',n:'拉炮',e:'party popper',kw:'庆祝 生日快乐 恭喜 派对 祝贺'},
+  {c:'🎂',n:'生日蛋糕',e:'birthday cake',kw:'生日 蛋糕 庆祝 生日快乐'},
+  {c:'🍕',n:'披萨',e:'pizza',kw:'披萨 食物 吃 意式 美食'},
+  {c:'🍔',n:'汉堡',e:'hamburger',kw:'汉堡 快餐 食物 吃 美食'},
+  {c:'🍣',n:'寿司',e:'sushi',kw:'寿司 日本料理 美食 日式 鱼'},
+  {c:'🌸',n:'樱花',e:'cherry blossom',kw:'花 樱花 春天 美丽 日本'},
+  {c:'⭐',n:'星星',e:'star',kw:'星星 明星 闪亮 发光 晚上'},
+  {c:'🔥',n:'火',e:'fire',kw:'火 热 火爆 厉害 牛 热门'},
+  {c:'💯',n:'一百分',e:'hundred points',kw:'满分 完美 加油 棒 厉害'},
+  {c:'👍',n:'赞',e:'thumbs up',kw:'好 赞 可以 行 同意'},
+  {c:'👏',n:'鼓掌',e:'clap',kw:'鼓掌 祝贺 精彩 好 加油'},
+  {c:'🙏',n:'合十',e:'folded hands',kw:'感谢 拜托 祈祷 谢谢 请求'},
+  {c:'💪',n:'肌肉',e:'flexed biceps',kw:'加油 力量 强壮 努力 锻炼'},
+  {c:'🚀',n:'火箭',e:'rocket',kw:'起飞 火箭 发射 向上 冲 涨'},
+  {c:'💡',n:'灯泡',e:'light bulb',kw:'想法 灵感 创意 点子 主意'},
+  {c:'✨',n:'闪光',e:'sparkles',kw:'闪亮 漂亮 美丽 闪闪 发光'},
+  {c:'🌈',n:'彩虹',e:'rainbow',kw:'彩虹 多彩 颜色 漂亮 幸福'},
+  {c:'🌊',n:'波浪',e:'water wave',kw:'海 海浪 波浪 水 海边'},
+  {c:'☀️',n:'太阳',e:'sun',kw:'太阳 晴天 阳光 天气 热'},
+  {c:'🌙',n:'月亮',e:'crescent moon',kw:'月亮 晚上 晚安 睡觉'},
+  {c:'💩',n:'便便',e:'pile of poo',kw:'便便 糟糕 搞笑 讨厌'},
+  {c:'🎵',n:'音符',e:'musical note',kw:'音乐 歌 听歌 旋律'},
+  {c:'💰',n:'钱袋',e:'money bag',kw:'钱 发财 赚钱 富有 财富'},
+  {c:'🎁',n:'礼物',e:'wrapped gift',kw:'礼物 送礼 惊喜 生日'},
+  {c:'🏆',n:'奖杯',e:'trophy',kw:'冠军 胜利 获奖 第一 赢'},
+  {c:'📚',n:'书',e:'books',kw:'书 学习 阅读 知识 看书'},
+  {c:'✈️',n:'飞机',e:'airplane',kw:'飞机 旅行 旅游 出发 飞行'},
+  {c:'🏠',n:'房子',e:'house',kw:'家 房子 回家 住所'},
+  {c:'🎮',n:'游戏手柄',e:'video game',kw:'游戏 玩 电竞 娱乐'},
+  {c:'📱',n:'手机',e:'mobile phone',kw:'手机 打电话 智能 科技'},
+  {c:'💻',n:'电脑',e:'laptop',kw:'电脑 工作 编程 上网 笔记本'},
+  {c:'🍺',n:'啤酒',e:'beer mug',kw:'啤酒 喝酒 干杯 聚会'},
+  {c:'☕',n:'咖啡',e:'hot beverage',kw:'咖啡 喝茶 提神 早晨'},
+  {c:'🍉',n:'西瓜',e:'watermelon',kw:'西瓜 夏天 水果 吃瓜'},
+  {c:'🍦',n:'冰淇淋',e:'ice cream',kw:'冰淇淋 甜品 夏天 冷饮 甜点'},
+  {c:'🎄',n:'圣诞树',e:'Christmas tree',kw:'圣诞 圣诞节 节日 祝福'},
+  {c:'🐶',n:'狗',e:'dog face',kw:'狗 宠物 汪 可爱 小狗 狗狗'},
+  {c:'🐱',n:'猫',e:'cat face',kw:'猫 宠物 喵 可爱 猫咪'},
+  {c:'🐼',n:'熊猫',e:'panda',kw:'熊猫 国宝 可爱 动物'},
+  {c:'🦄',n:'独角兽',e:'unicorn',kw:'独角兽 魔法 梦幻 神话'},
+  {c:'🐧',n:'企鹅',e:'penguin',kw:'企鹅 可爱 南极 动物'},
+  {c:'🌍',n:'地球',e:'globe',kw:'地球 世界 全球 环保'},
+  {c:'🎯',n:'靶心',e:'bullseye',kw:'目标 命中 达标 准'},
+  {c:'🔑',n:'钥匙',e:'key',kw:'钥匙 开门 密码 关键'},
+  {c:'🎀',n:'蝴蝶结',e:'ribbon',kw:'蝴蝶结 礼物 装饰 漂亮 可爱'},
+
+  {c:'😊',n:'微笑',e:'smiling face',kw:'微笑 开心 愉快 温暖'},
+  {c:'😅',n:'尴尬',e:'sweat smile',kw:'尴尬 不好意思 呃'},
+  {c:'😰',n:'焦虑',e:'anxious face with sweat',kw:'焦虑 紧张 担心'},
+  {c:'🤪',n:'疯癫',e:'zany face',kw:'搞笑 疯 夸张 好玩'},
+  {c:'🥲',n:'含泪笑',e:'smiling face with tear',kw:'感动 含泪 心酸 笑中带泪'},
+  {c:'😶',n:'沉默',e:'speechless',kw:'沉默 无语 我不想说'},
+  {c:'🤐',n:'闭嘴',e:'zipper-mouth face',kw:'闭嘴 保密 不说 安静'},
+  {c:'🥱',n:'打哈欠',e:'yawning face',kw:'困 无聊 打哈欠'},
+  {c:'😔',n:'失望',e:'pensive face',kw:'失望 低落 难过 唉'},
+  {c:'💕',n:'双心',e:'two hearts',kw:'恋爱 甜蜜 爱心 情侣'},
+  {c:'😘',n:'飞吻',e:'kiss',kw:'亲亲 飞吻 爱你 吻'},
+  {c:'👀',n:'眼睛',e:'eyes',kw:'看 关注 盯 眼睛'},
+  {c:'👻',n:'鬼',e:'ghost',kw:'鬼 万圣节 恐怖 幽灵 搞怪'},
+  {c:'🐳',n:'鲸鱼',e:'whale',kw:'鲸鱼 大海 巨大 海洋'},
+  {c:'🐰',n:'兔子',e:'rabbit',kw:'兔子 可爱 复活节 蹦蹦'},
+  {c:'🍓',n:'草莓',e:'strawberry',kw:'草莓 水果 甜品 好吃'},
+  {c:'🍩',n:'甜甜圈',e:'doughnut',kw:'甜甜圈 甜点 甜品 好吃'},
+  {c:'🥑',n:'牛油果',e:'avocado',kw:'牛油果 健康 食物 沙拉'}
+];
+
+function lookupEmoji(){
+  var input=document.getElementById('emojiLookup').value.trim();
+  var container=document.getElementById('emojiLookupResult');
+  if(!input){container.innerHTML='<span class="empty-hint">输入Emoji查看含义</span>';return;}
+  var results=[];
+  for(var i=0;i<input.length;i++){
+    var ch=input.charAt(i);
+    for(var j=0;j<emojiDict.length;j++){
+      if(emojiDict[j].c===ch)results.push(emojiDict[j]);
+    }
+  }
+  if(results.length===0){container.innerHTML='<span class="empty-hint">未找到该Emoji，请尝试其他表情</span>';return;}
+  var html='';
+  results.forEach(function(e){
+    html+='<div class="emoji-entry"><span class="char">'+e.c+'</span><div class="info"><div class="name">'+e.n+' ('+e.e+')</div><div class="meaning">'+e.kw+'</div></div></div>';
+  });
+  container.innerHTML=html;
 }
 
-function searchEmoji() {
-  showToast('功能已触发');
+function searchEmoji(){
+  var q=document.getElementById('emojiSearch').value.trim().toLowerCase();
+  var container=document.getElementById('emojiSearchResult');
+  if(!q){container.innerHTML='';return;}
+  var results=[];
+  emojiDict.forEach(function(e){
+    if(e.n.indexOf(q)!==-1||e.e.toLowerCase().indexOf(q)!==-1||e.kw.indexOf(q)!==-1){
+      results.push(e);
+    }
+  });
+  if(results.length===0){container.innerHTML='<span class="empty-hint">未找到匹配的Emoji</span>';return;}
+  var html='';
+  results.forEach(function(e){
+    html+='<div class="emoji-entry"><span class="char">'+e.c+'</span><div class="info"><div class="name">'+e.n+' ('+e.e+')</div><div class="keywords">';
+    var kws=e.kw.split(' ');
+    kws.forEach(function(k){html+='<span class="keyword-tag">'+k+'</span>';});
+    html+='</div></div></div>';
+  });
+  container.innerHTML=html;
 }
 
-function translateText() {
-  showToast('功能已触发');
+function translateText(){
+  var text=document.getElementById('textInput').value;
+  var container=document.getElementById('transResult');
+  if(!text){container.innerHTML='<span class="empty-hint">请输入一些文字</span>';return;}
+  // 建立关键词→emoji映射表
+  var kwMap={};
+  emojiDict.forEach(function(e){
+    var kws=e.kw.split(' ');
+    kws.forEach(function(k){
+      if(k.length>=2){
+        if(!kwMap[k])kwMap[k]=[];
+        kwMap[k].push(e);
+      }
+    });
+  });
+  var result=text;
+  // 按关键词长度降序排列，优先匹配更长的关键词
+  var keys=Object.keys(kwMap).sort(function(a,b){return b.length-a.length;});
+  var used={};
+  keys.forEach(function(k){
+    if(used[k])return;
+    var emoji=kwMap[k][0];
+    var regex=new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g');
+    var before=result;
+    result=result.replace(regex,emoji.c+' ');
+    if(result!==before)used[k]=true;
+  });
+  container.innerHTML=result;
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  var btn=document.querySelector('.tab-btn[data-tab="'+tab+'"]');
+  if(btn)btn.classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
 }
 </script>
 </body>
