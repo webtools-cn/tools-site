@@ -67,6 +67,9 @@ const TOOL_TESTS = {
   'css-gradient': {
     L1: { skip: true },
   },
+  'hearing-test': {
+    L1: { btnText: '125 Hz', outputSelector: '#hearingSummary' },
+  },
   'semver-checker': {
     L1: { selector: 'input[type="text"]', input: '1.2.3', btnText: '验证', outputSelector: '#validateResult,#parseGrid' },
     L2: { selector: 'input[type="text"]', input: '1.2.3', btnText: '验证', outputContains: '合法的 SemVer 版本号' },
