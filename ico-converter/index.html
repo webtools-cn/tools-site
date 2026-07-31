@@ -158,6 +158,102 @@ a{color:#06b6d4;text-decoration:none}
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+var convertedResults=[];
+function initIcoConverter(){
+  var uz=document.getElementById('uploadZone');
+  var fi=document.getElementById('fileInput');
+  uz.onclick=function(){fi.click()};
+  uz.ondragover=function(e){e.preventDefault();uz.classList.add('dragover')};
+  uz.ondragleave=function(){uz.classList.remove('dragover')};
+  uz.ondrop=function(e){e.preventDefault();uz.classList.remove('dragover');processFiles(e.dataTransfer.files)};
+  fi.onchange=function(){processFiles(fi.files)};
+}
+function processFiles(files){
+  convertedResults=[];
+  for(var i=0;i<files.length;i++){
+    if(!files[i].type.match(/image\/(png|jpeg|webp)/)&&!files[i].name.match(/\.(png|jpg|jpeg|webp)$/i)){
+      showToast(files[i].name+' 格式不支持');continue;
+    }
+    var reader=new FileReader();
+    reader.onload=(function(f){
+      return function(e){
+        var img=new Image();
+        img.onload=function(){
+          var sizes=document.querySelectorAll('#settings input[type=checkbox]:checked');
+          if(!sizes.length)sizes=[{value:64}];
+          sizes.forEach(function(s){
+            var sz=parseInt(s.value);
+            var c=document.createElement('canvas');c.width=sz;c.height=sz;
+            var ctx=c.getContext('2d');ctx.drawImage(img,0,0,sz,sz);
+            var dataURL=c.toDataURL('image/png');
+            convertedResults.push({name:f.name.replace(/\.[^.]+$/,''),size:sz,dataURL:dataURL,blob:dataURLtoBlob(dataURL)});
+          });
+          renderResults();
+        };
+        img.src=e.target.result;
+      };
+    })(files[i]);
+    reader.readAsDataURL(files[i]);
+  }
+}
+function dataURLtoBlob(d){var p=d.indexOf(',');var b=atob(d.slice(p+1));var a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return new Blob([a],{type:'image/png'})}
+function renderResults(){
+  var r=document.getElementById('results');
+  if(!convertedResults.length){r.innerHTML='';document.getElementById('batchActions').style.display='none';return}
+  document.getElementById('batchActions').style.display='block';
+  var h='';
+  convertedResults.forEach(function(c,i){
+    h+='\x3Cdiv class="result-item">\x3Cimg src="'+c.dataURL+'" alt="'+c.size+'">\x3Cdiv class="info">\x3Cdiv class="name">'+c.name+'_'+c.size+'x'+c.size+'.ico\x3C/div>\x3Cdiv class="size">'+c.size+'×'+c.size+'px | '+(c.blob.size/1024).toFixed(1)+'KB\x3C/div>\x3C/div>\x3Cbutton class="btn btn-primary" onclick="downloadSingle('+i+')">💾 下载\x3C/button>\x3C/div>';
+  });
+  r.innerHTML=h;
+}
+function downloadSingle(i){
+  var c=convertedResults[i];
+  if(!c)return;
+  var ico=buildIco([{width:c.size,height:c.size,data:c.blob}]);
+  var a=document.createElement('a');a.href=URL.createObjectURL(ico);a.download=c.name+'_'+c.size+'.ico';a.click();URL.revokeObjectURL(a.href);
+  showToast('下载完成');
+}
+function downloadAll(){
+  if(!convertedResults.length)return;
+  var entries=convertedResults.map(function(c){return{width:c.size,height:c.size,data:c.blob}});
+  var ico=buildIco(entries);
+  var a=document.createElement('a');a.href=URL.createObjectURL(ico);a.download=convertedResults[0].name+'.ico';a.click();URL.revokeObjectURL(a.href);
+  showToast('批量下载完成');
+}
+function buildIco(entries){
+  var headerSize=6+16*entries.length;
+  var offset=headerSize;
+  var buffers=[];
+  entries.forEach(function(e){var b=e.data;buffers.push({offset:offset,size:b.size,width:e.width,height:e.height,data:b});offset+=b.size});
+  var header=new ArrayBuffer(headerSize);
+  var dv=new DataView(header);
+  dv.setUint16(0,0,true);dv.setUint16(2,1,true);dv.setUint16(4,entries.length,true);
+  buffers.forEach(function(b,i){
+    var o=6+i*16;
+    dv.setUint8(o,b.width>=256?0:b.width);dv.setUint8(o+1,b.height>=256?0:b.height);
+    dv.setUint8(o+2,0);dv.setUint8(o+3,0);dv.setUint16(o+4,1,true);
+    dv.setUint16(o+6,32,true);dv.setUint32(o+8,b.size,true);dv.setUint32(o+12,b.offset,true);
+  });
+  var parts=[header];
+  buffers.forEach(function(b){parts.push(b.data)});
+  return new Blob(parts,{type:'image/x-icon'});
+}
+function clearResults(){convertedResults=[];document.getElementById('results').innerHTML='';document.getElementById('batchActions').style.display='none';showToast('已清空')}
+function loadExample(){
+  var c=document.createElement('canvas');c.width=64;c.height=64;
+  var ctx=c.getContext('2d');
+  ctx.fillStyle='#4F46E5';ctx.beginPath();ctx.arc(32,32,30,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#06b6d4';ctx.beginPath();ctx.arc(20,22,8,0,Math.PI*2);ctx.fill();ctx.arc(44,22,8,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(22,24,3,0,Math.PI*2);ctx.fill();ctx.arc(46,24,3,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#f59e0b';ctx.beginPath();ctx.arc(32,44,6,0,Math.PI);ctx.fill();
+  var blob;c.toBlob(function(b){blob=b;
+    convertedResults=[{name:'example-icon',size:64,dataURL:c.toDataURL(),blob:blob}];
+    renderResults();
+  });
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initIcoConverter)}
+else{initIcoConverter()}
   function getConsistentRating() {
     let hash = 0;
     const path = location.pathname;
