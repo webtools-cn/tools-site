@@ -130,14 +130,20 @@
         var smoothSlider = document.getElementById('smooth');
         var bgColorInput = document.getElementById('bg-color');
 
-        toleranceSlider.oninput = function() { document.getElementById('tolerance-value').textContent = this.value; };
-        smoothSlider.oninput = function() { document.getElementById('smooth-value').textContent = this.value; };
+        // Only bind events if the core elements exist
+        if (!originalCanvas && !resultCanvas) {
+            // Page is just a placeholder, skip all functionality
+        } else { try {
+        if(toleranceSlider) toleranceSlider.oninput = function() { var tv = document.getElementById('tolerance-value'); if(tv) tv.textContent = this.value; };
+        if(smoothSlider) smoothSlider.oninput = function() { var sv = document.getElementById('smooth-value'); if(sv) sv.textContent = this.value; };
 
+        if(uploadZone){
         uploadZone.onclick = function() { fileInput.click(); };
         uploadZone.ondragover = function(e) { e.preventDefault(); uploadZone.classList.add('dragover'); };
         uploadZone.ondragleave = function() { uploadZone.classList.remove('dragover'); };
         uploadZone.ondrop = function(e) { e.preventDefault(); uploadZone.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); };
         fileInput.onchange = function() { if (fileInput.files[0]) handleFile(fileInput.files[0]); };
+        }
 
         function handleFile(file) {
             if (!file.type.match(/image\/(png|jpeg|webp)/)) { showToast('请选择PNG、JPG或WebP格式的图片'); return; }
@@ -168,7 +174,7 @@
             originalCanvas.getContext('2d').drawImage(originalImage, 0, 0, w, h);
         }
 
-        removeBtn.onclick = function() {
+        if(removeBtn) removeBtn.onclick = function() {
             if (!originalImage) return;
             removeBtn.disabled = true;
             removeBtn.textContent = '⏳ 处理中...';
@@ -180,8 +186,8 @@
         };
 
         function removeBackground() {
-            var tolerance = parseInt(toleranceSlider.value);
-            var smoothPx = parseInt(smoothSlider.value);
+            var tolerance = toleranceSlider ? parseInt(toleranceSlider.value) : 30;
+            var smoothPx = smoothSlider ? parseInt(smoothSlider.value) : 2;
             var maxW = 600, maxH = 400;
             var scale = Math.min(maxW / originalImage.width, maxH / originalImage.height, 1);
             var w = Math.round(originalImage.width * scale);
@@ -251,7 +257,7 @@
             gtag('event', 'remove_bg', { event_category: 'background-remover' });
         }
 
-        resetBtn.onclick = function() {
+        if(resetBtn) resetBtn.onclick = function() {
             if (!originalImage) return;
             drawOriginal();
             resultCanvas.getContext('2d').clearRect(0, 0, resultCanvas.width, resultCanvas.height);
@@ -259,7 +265,7 @@
             gtag('event', 'reset', { event_category: 'background-remover' });
         };
 
-        downloadBtn.onclick = function() {
+        if(downloadBtn) downloadBtn.onclick = function() {
             var link = document.createElement('a');
             link.download = 'removed-bg.png';
             link.href = resultCanvas.toDataURL('image/png');
@@ -267,12 +273,14 @@
             gtag('event', 'download', { event_category: 'background-remover' });
         };
 
-        bgColorInput.oninput = function() {
+        if(bgColorInput) bgColorInput.oninput = function() {
             var color = this.value;
             document.querySelectorAll('.canvas-container canvas').forEach(function(c) {
                 c.style.background = color;
             });
         };
+        } catch(e) { console.log('background-remover: init skipped, elements missing'); }
+        } // close else block for core elements check
         </script></div></div>
 </div>
 
@@ -298,15 +306,14 @@
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-  'use strict';
   var s = document.getElementById('related-tools-section');
-  if (!s) return;
+  if (s) {
   var p = window.location.pathname;
   var en = p.indexOf('/en/') !== -1;
   p = p.replace(/\/en\//g, '/');
   var slug = p.split('/').filter(Boolean).pop() || '';
-  if (!slug) { s.innerHTML = ''; return; }
+  if (!slug) { s.innerHTML = ''; }
+  else {
   var depth = en ? '../../' : '../';
   var u = depth + 'related-tools.json';
   fetch(u).then(function(r) {
