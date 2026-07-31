@@ -385,6 +385,203 @@ h1{font-size:2rem;font-weight:700;color:#f1f5f9;margin-bottom:8px}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
+// ===== JSON Formatter Core Logic =====
+function getInput(){return document.getElementById('jsonInput').value;}
+function showError(msg,line,col){
+  var box=document.getElementById('errorBox');
+  box.innerHTML='<div class="error-box"><div class="err-title">❌ JSON 语法错误</div><div>'+msg+'</div><div class="err-line">位置: 第 '+(line||'?')+' 行, 第 '+(col||'?')+' 列</div></div>';
+}
+function clearError(){document.getElementById('errorBox').innerHTML='';}
+function setOutput(panelId,text){
+  if(panelId==='tree'){document.getElementById('treeOutput').innerHTML=text;return;}
+  document.getElementById(panelId+'Output').value=text;
+}
+function switchOutputTab(tab){
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelector('.tab-btn[data-tab="'+tab+'"]').classList.add('active');
+}
+function getActiveTab(){var p=document.querySelector('.tab-panel.active');return p?p.id.replace('tab-',''):'formatted';}
+
+// Stats
+function updateStats(obj){
+  var nodes=0,depth=0,objs=0,arrs=0,strs=0,nums=0,bools=0;
+  function walk(v,d){nodes++;if(d>depth)depth=d;if(v===null||v===undefined){bools++;return;}
+    if(Array.isArray(v)){arrs++;v.forEach(function(x){walk(x,d+1);});return;}
+    if(typeof v==='object'){objs++;for(var k in v){if(v.hasOwnProperty(k))walk(v[k],d+1);}return;}
+    if(typeof v==='string'){strs++;return;}if(typeof v==='number'){nums++;return;}bools++;}
+  walk(obj,1);
+  document.getElementById('statNodes').textContent=nodes;
+  document.getElementById('statDepth').textContent=depth;
+  document.getElementById('statObjects').textContent=objs;
+  document.getElementById('statArrays').textContent=arrs;
+  document.getElementById('statStrings').textContent=strs;
+  document.getElementById('statNumbers').textContent=nums;
+  document.getElementById('statBools').textContent=bools;
+  document.getElementById('statLength').textContent=JSON.stringify(obj).length;
+  document.getElementById('statsBar').style.display='flex';
+}
+
+function formatJSON(){
+  var raw=getInput();if(!raw.trim()){showToast('请先输入JSON');return;}
+  clearError();
+  try{var obj=JSON.parse(raw);var pretty=JSON.stringify(obj,null,2);
+    setOutput('formatted',pretty);setOutput('raw',raw);
+    buildTree(obj);switchOutputTab('formatted');updateStats(obj);showToast('格式化完成');
+  }catch(e){showError(e.message,(e.message.match(/position (\d+)/)||[])[1]);}
+}
+function minifyJSON(){
+  var raw=getInput();if(!raw.trim()){showToast('请先输入JSON');return;}
+  clearError();
+  try{var obj=JSON.parse(raw);var min=JSON.stringify(obj);
+    setOutput('formatted',min);setOutput('raw',raw);
+    buildTree(obj);switchOutputTab('formatted');updateStats(obj);showToast('压缩完成');
+  }catch(e){showError(e.message);}
+}
+function validateJSON(){
+  var raw=getInput();if(!raw.trim()){showToast('请先输入JSON');return;}
+  clearError();
+  try{var obj=JSON.parse(raw);showToast('✅ JSON 语法正确！');updateStats(obj);buildTree(obj);
+    setOutput('formatted',JSON.stringify(obj,null,2));setOutput('raw',raw);
+  }catch(e){showError(e.message);}
+}
+function escapeJSON(){
+  var raw=getInput();if(!raw.trim()){showToast('请先输入JSON');return;}
+  var escaped=raw.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n').replace(/\r/g,'\\r').replace(/\t/g,'\\t');
+  setOutput('formatted',escaped);setOutput('raw',raw);switchOutputTab('formatted');showToast('转义完成');
+}
+function unescapeJSON(){
+  var raw=getInput();if(!raw.trim()){showToast('请先输入JSON');return;}
+  try{var unescaped=JSON.parse('"'+raw.replace(/"/g,'\\"')+'"');
+    setOutput('formatted',unescaped);setOutput('raw',raw);switchOutputTab('formatted');showToast('去转义完成');
+  }catch(e){showToast('去转义失败: '+e.message);}
+}
+function sortJSON(){
+  var raw=getInput();if(!raw.trim()){showToast('请先输入JSON');return;}
+  clearError();
+  try{var obj=JSON.parse(raw);
+    function sortKeys(o){if(Array.isArray(o)){return o.map(sortKeys);}
+      if(o&&typeof o==='object'){var keys=Object.keys(o).sort(),r={};keys.forEach(function(k){r[k]=sortKeys(o[k]);});return r;}return o;}
+    var sorted=sortKeys(obj);var pretty=JSON.stringify(sorted,null,2);
+    setOutput('formatted',pretty);setOutput('raw',raw);buildTree(sorted);switchOutputTab('formatted');updateStats(sorted);showToast('键排序完成');
+  }catch(e){showError(e.message);}
+}
+function clearAll(){
+  document.getElementById('jsonInput').value='';
+  document.getElementById('formattedOutput').value='';
+  document.getElementById('rawOutput').value='';
+  document.getElementById('treeOutput').innerHTML='';
+  document.getElementById('errorBox').innerHTML='';
+  document.getElementById('statsBar').style.display='none';
+  document.getElementById('pathResult').style.display='none';
+  showToast('已清空');
+}
+
+// Tree view
+function buildTree(obj){
+  var html='';var idx=0;
+  function render(v,key,path,depth){
+    var pid='tree-'+path.replace(/[^a-zA-Z0-9]/g,'_');
+    if(v===null){html+='<div class="tree-line" style="padding-left:'+(depth*16)+'px"><span class="tree-key">'+(key!==null?'"'+key+'": ':'')+'</span><span class="tree-null">null</span></div>';return;}
+    if(typeof v==='boolean'){html+='<div class="tree-line" style="padding-left:'+(depth*16)+'px"><span class="tree-key">'+(key!==null?'"'+key+'": ':'')+'</span><span class="tree-boolean">'+v+'</span></div>';return;}
+    if(typeof v==='number'){html+='<div class="tree-line" style="padding-left:'+(depth*16)+'px"><span class="tree-key">'+(key!==null?'"'+key+'": ':'')+'</span><span class="tree-number">'+v+'</span></div>';return;}
+    if(typeof v==='string'){html+='<div class="tree-line" style="padding-left:'+(depth*16)+'px"><span class="tree-key">'+(key!==null?'"'+key+'": ':'')+'</span><span class="tree-string">"'+v.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'"</span></div>';return;}
+    var isArr=Array.isArray(v);var entries=isArr?v.map(function(x,i){return[i,x]}) : Object.keys(v).map(function(k){return[k,v[k]]});
+    var toggleId='tg-'+pid;
+    html+='<div class="tree-line" style="padding-left:'+(depth*16)+'px"><span class="tree-toggle" id="'+toggleId+'" onclick="toggleTreeNode(\''+pid+'\',\''+toggleId+'\')">▼</span>';
+    html+='<span class="tree-key">'+(key!==null?'"'+key+'": ':'')+'</span><span class="tree-bracket">'+(isArr?'[':'{')+'</span>';
+    html+='<span class="tree-type">'+(isArr?entries.length+' items':entries.length+' keys')+'</span></div>';
+    html+='<div class="tree-children" id="'+pid+'">';
+    entries.forEach(function(e){render(e[1],isArr?'['+e[0]+']':'"'+e[0]+'"',path+'.'+e[0],depth+1);});
+    html+='</div>';
+    html+='<div class="tree-line" style="padding-left:'+(depth*16)+'px"><span class="tree-bracket">'+(isArr?']':'}')+'</span></div>';
+  }
+  render(obj,null,'root',0);
+  document.getElementById('treeOutput').innerHTML=html;
+}
+function toggleTreeNode(id,toggleId){
+  var el=document.getElementById(id);var tg=document.getElementById(toggleId);
+  if(el.classList.contains('collapsed')){el.classList.remove('collapsed');tg.textContent='▼';}
+  else{el.classList.add('collapsed');tg.textContent='▶';}
+}
+
+// JSONPath
+function queryJSONPath(){
+  var raw=getInput();var expr=document.getElementById('pathInput').value.trim();
+  if(!raw||!expr){showToast('请输入JSON和JSONPath表达式');return;}
+  clearError();
+  try{var obj=JSON.parse(raw);var results=evalPath(obj,expr);
+    document.getElementById('pathResult').style.display='block';
+    document.getElementById('pathMatchCount').textContent='找到 '+results.length+' 个匹配';
+    document.getElementById('pathResultPre').textContent=results.map(function(r){return JSON.stringify(r,null,2)}).join('\n---\n')||'(无匹配)';
+  }catch(e){showToast('查询失败: '+e.message);}
+}
+function clearPathResult(){
+  document.getElementById('pathInput').value='';document.getElementById('pathResult').style.display='none';
+}
+function evalPath(obj,expr){
+  if(expr==='$')return[obj];
+  expr=expr.replace(/^\$\.?/,'');
+  if(!expr)return[obj];
+  var results=[];
+  function descend(cur,segments){
+    if(segments.length===0){results.push(cur);return;}
+    var seg=segments[0],rest=segments.slice(1);
+    if(seg.startsWith('..')){var key=seg.slice(2);
+      if(cur&&typeof cur==='object'){
+        for(var k in cur){if(cur.hasOwnProperty(k)){if(k===key||key==='*')descend(cur[k],rest);descend(cur[k],segments);}}
+      }return;}
+    if(seg==='*'){
+      if(Array.isArray(cur)){cur.forEach(function(x){descend(x,rest);});}
+      else if(cur&&typeof cur==='object'){for(var k in cur){if(cur.hasOwnProperty(k))descend(cur[k],rest);}}
+      return;}
+    if(/^\d+$/.test(seg)){var idx=parseInt(seg);if(Array.isArray(cur)&&idx<cur.length){descend(cur[idx],rest);}return;}
+    if(cur&&typeof cur==='object'&&cur.hasOwnProperty(seg)){descend(cur[seg],rest);}
+  }
+  descend(obj,expr.split('.'));
+  return results;
+}
+
+// Copy & Download
+function copyResult(){
+  var tab=getActiveTab();
+  var text=tab==='tree'?document.getElementById('treeOutput').innerText:document.getElementById(tab+'Output').value;
+  if(!text){showToast('没有可复制的内容');return;}
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制')})["catch"](function(){showToast('复制失败')});
+}
+function downloadJSON(){
+  var tab=getActiveTab();var text;
+  if(tab==='tree'){text=document.getElementById('treeOutput').innerText;}
+  else{text=document.getElementById(tab+'Output').value;}
+  if(!text){showToast('没有可下载的内容');return;}
+  var blob=new Blob([text],{type:'application/json'});
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');
+  a.href=url;a.download='formatted.json';a.click();URL.revokeObjectURL(url);showToast('下载完成');
+}
+
+// Event bindings - immediate with fallback
+(function bindEvents(){
+  var btnFormat=document.getElementById('btnFormat');
+  if(!btnFormat){
+    // DOM not ready yet, wait for it
+    document.addEventListener('DOMContentLoaded',bindEvents);
+    return;
+  }
+  btnFormat.addEventListener('click',formatJSON);
+  document.getElementById('btnMinify').addEventListener('click',minifyJSON);
+  document.getElementById('btnValidate').addEventListener('click',validateJSON);
+  document.getElementById('btnEscape').addEventListener('click',escapeJSON);
+  document.getElementById('btnUnescape').addEventListener('click',unescapeJSON);
+  document.getElementById('btnSort').addEventListener('click',sortJSON);
+  document.getElementById('btnClear').addEventListener('click',clearAll);
+  document.getElementById('btnCopy').addEventListener('click',copyResult);
+  document.getElementById('btnDownload').addEventListener('click',downloadJSON);
+  document.getElementById('btnPathQuery').addEventListener('click',queryJSONPath);
+  document.getElementById('btnPathClear').addEventListener('click',clearPathResult);
+  document.querySelectorAll('.tab-btn').forEach(function(btn){btn.addEventListener('click',function(){switchOutputTab(this.dataset.tab);});});
+})();
+
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function submitFeedback(){
 const type=document.getElementById('feedback-type').value;
