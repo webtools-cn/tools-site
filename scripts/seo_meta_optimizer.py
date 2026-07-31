@@ -267,12 +267,15 @@ def main():
             count=1
         )
         # 3. JSON-LD SoftwareApplication description
-        new_content = re.sub(
-            r'"description":"[^"]*"(,"applicationCategory")',
-            f'"description":"{new_meta}"\\1',
-            new_content,
-            count=1
-        )
+        # Format: "description": "old content" — extract old and replace
+        old_jsonld = re.search(r'"description":\s*"([^"]*)"', new_content)
+        if old_jsonld:
+            old_ld_desc = old_jsonld.group(1)
+            new_content = new_content.replace(
+                f'"description": "{old_ld_desc}"',
+                f'"description": "{new_meta}"',
+                1
+            )
         
         with open(fpath, 'w') as f:
             f.write(new_content)
