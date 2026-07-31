@@ -168,10 +168,154 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function doAction() {
-  showToast('功能已触发');
+// === 决策器核心逻辑 ===
+var currentTool = 'coin';
+var history = [];
+
+function switchTool(tool) {
+  currentTool = tool;
+  // 更新按钮激活状态
+  document.querySelectorAll('.tool-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.tool === tool);
+  });
+  // 更新操作按钮文字
+  var labels = {coin: '🪙 抛硬币！', dice: '🎲 掷骰子！', yesno: '⚖️ YES / NO', picker: '🔢 抽数字', custom: '📋 抽签！', wheel: '🌀 转起来！'};
+  document.getElementById('actionBtn').textContent = labels[tool] || '开始';
+  // 显示/隐藏自定义输入
+  document.getElementById('customArea').style.display = (tool === 'custom' || tool === 'picker') ? 'block' : 'none';
+  // 显示/隐藏转盘
+  document.getElementById('wheelContainer').style.display = tool === 'wheel' ? 'block' : 'none';
+  // 清空结果显示
+  document.getElementById('resultContent').innerHTML = '';
+  // 显示历史
+  document.getElementById('historyArea').style.display = history.length > 0 ? 'block' : 'none';
+  updateHistory();
 }
+
+function doAction() {
+  var resultIcon = '', resultText = '', resultSub = '';
+  switch (currentTool) {
+    case 'coin':
+      var flip = Math.random() < 0.5 ? '正面' : '反面';
+      resultIcon = '🪙';
+      resultText = flip;
+      resultSub = Math.random() < 0.5 ? '正面 (Heads)' : '反面 (Tails)';
+      break;
+    case 'dice':
+      var roll = Math.floor(Math.random() * 6) + 1;
+      var diceIcons = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+      resultIcon = diceIcons[roll];
+      resultText = roll;
+      resultSub = '点数为 ' + roll;
+      break;
+    case 'yesno':
+      var yn = Math.random() < 0.5 ? 'YES' : 'NO';
+      resultIcon = yn === 'YES' ? '✅' : '❌';
+      resultText = yn;
+      resultSub = yn === 'YES' ? '去做吧！' : '再想想？';
+      break;
+    case 'picker':
+      var min = parseInt(document.getElementById('pickerMin') ? document.getElementById('pickerMin').value : 1) || 1;
+      var max = parseInt(document.getElementById('pickerMax') ? document.getElementById('pickerMax').value : 100) || 100;
+      if (min > max) { var tmp = min; min = max; max = tmp; }
+      var num = Math.floor(Math.random() * (max - min + 1)) + min;
+      resultIcon = '🔢';
+      resultText = num;
+      resultSub = min + ' ~ ' + max + ' 之间';
+      break;
+    case 'custom':
+      var opts = document.getElementById('customOptions').value.split('\n').filter(function(l) { return l.trim(); });
+      if (opts.length === 0) { showToast('请至少输入一个选项'); return; }
+      var pick = opts[Math.floor(Math.random() * opts.length)];
+      resultIcon = '🎯';
+      resultText = pick;
+      resultSub = '从 ' + opts.length + ' 个选项中选出';
+      break;
+    case 'wheel':
+      spinWheel();
+      return;
+  }
+  document.getElementById('resultContent').innerHTML = '<div class="result-icon">' + resultIcon + '</div><div class="result-text">' + resultText + '</div><div class="result-sub">' + resultSub + '</div>';
+  history.push({icon: resultIcon, text: resultText, sub: resultSub, tool: currentTool, time: new Date().toLocaleTimeString()});
+  if (history.length > 20) history.shift();
+  updateHistory();
+}
+
+function updateHistory() {
+  var list = document.getElementById('historyList');
+  if (!list) return;
+  var html = '';
+  for (var i = history.length - 1; i >= 0; i--) {
+    var h = history[i];
+    html += '<div class="h-item"><span class="h-icon">' + h.icon + '</span>' + h.text + ' <span style="color:#64748b;font-size:.75rem">(' + h.tool + ' ' + h.time + ')</span></div>';
+  }
+  list.innerHTML = html;
+  document.getElementById('historyArea').style.display = history.length > 0 ? 'block' : 'none';
+}
+
+// 转盘逻辑（简单版）
+var wheelSpinning = false;
+function spinWheel() {
+  if (wheelSpinning) return;
+  wheelSpinning = true;
+  var canvas = document.getElementById('wheelCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var opts = document.getElementById('customOptions').value.split('\n').filter(function(l) { return l.trim(); });
+  if (opts.length < 2) opts = ['选项A', '选项B', '选项C', '选项D', '选项E', '选项F', '选项G', '选项H'];
+  if (opts.length < 2) opts = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+  var segments = opts.slice(0, 8);
+  while (segments.length < 4) segments.push('选项' + (segments.length + 1));
+  var colors = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#FFEAA7','#DDA0DD','#98D8C8','#F7DC6F'];
+  var angle = 0;
+  var targetAngle = Math.random() * 360 + 1800; // 至少转5圈
+  var startTime = Date.now();
+  var duration = 3000;
+  function animate() {
+    var elapsed = Date.now() - startTime;
+    var progress = Math.min(elapsed / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3);
+    var currentAngle = angle + (targetAngle - angle) * eased;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var segAngle = 360 / segments.length;
+    for (var i = 0; i < segments.length; i++) {
+      var startA = (currentAngle + i * segAngle) * Math.PI / 180;
+      var endA = (currentAngle + (i + 1) * segAngle) * Math.PI / 180;
+      ctx.beginPath();
+      ctx.moveTo(130, 130);
+      ctx.arc(130, 130, 120, startA, endA);
+      ctx.fillStyle = colors[i % colors.length];
+      ctx.fill();
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.save();
+      ctx.translate(130, 130);
+      ctx.rotate(startA + segAngle * Math.PI / 360);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(segments[i].length > 8 ? segments[i].slice(0, 8) + '..' : segments[i], 85, 4);
+      ctx.restore();
+    }
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      wheelSpinning = false;
+      var normalized = (360 - (currentAngle % 360)) % 360;
+      var winnerIdx = Math.floor(normalized / segAngle) % segments.length;
+      var winner = segments[winnerIdx];
+      document.getElementById('resultContent').innerHTML = '<div class="result-icon">🎯</div><div class="result-text">' + winner + '</div><div class="result-sub">转盘结果</div>';
+      history.push({icon: '🌀', text: winner, sub: '转盘结果', tool: 'wheel', time: new Date().toLocaleTimeString()});
+      if (history.length > 20) history.shift();
+      updateHistory();
+    }
+  }
+  animate();
+}
+
+// 初始化
+switchTool('coin');
 </script>
 </div>
 
