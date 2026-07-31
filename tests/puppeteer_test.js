@@ -60,6 +60,7 @@ const TOOL_TESTS = {
   'age-calculator': {
     L1: { selector: 'input[type="date"],input[type="text"]', input: '2000-01-01', btnText: '计算', outputSelector: '#result,.result,.output' },
   },
+  'profit-margin-calculator': {},
   'css-box-shadow': {
     L1: { skip: true },
   },
