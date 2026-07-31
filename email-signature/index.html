@@ -329,28 +329,141 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function copyHTML() {
-  showToast('功能已触发');
-}
+var currentTemplate = 'simple';
+var currentColor = '#2563eb';
 
-function copyRichText() {
-  showToast('功能已触发');
-}
-
-function downloadHTML() {
-  showToast('功能已触发');
+function selectTemplate(tpl) {
+  currentTemplate = tpl;
+  document.querySelectorAll('.template-btn').forEach(function(b){b.classList.toggle('active', b.dataset.tpl === tpl);});
+  render();
 }
 
 function onColorChange() {
-  showToast('功能已触发');
+  currentColor = document.getElementById('f_color').value;
+  document.getElementById('f_color_text').value = currentColor;
+  render();
 }
 
 function onColorTextChange() {
-  showToast('功能已触发');
+  var val = document.getElementById('f_color_text').value;
+  if(/^#[0-9a-fA-F]{6}$/.test(val)) {
+    currentColor = val;
+    document.getElementById('f_color').value = val;
+    render();
+  }
+}
+
+function copyHTML() {
+  var code = document.getElementById('codeBox').textContent;
+  navigator.clipboard.writeText(code).then(function(){showToast('HTML代码已复制');}).catch(function(){showToast('复制失败');});
+}
+
+function copyRichText() {
+  var html = document.getElementById('previewBox').innerHTML;
+  var blob = new Blob([html], {type: 'text/html'});
+  var item = new ClipboardItem({'text/html': blob});
+  navigator.clipboard.write([item]).then(function(){showToast('富文本已复制');}).catch(function(){
+    // fallback
+    var sel = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(document.getElementById('previewBox'));
+    sel.removeAllRanges();
+    sel.addRange(range);
+    document.execCommand('copy');
+    showToast('富文本已复制');
+  });
+}
+
+function downloadHTML() {
+  var code = document.getElementById('codeBox').textContent;
+  var blob = new Blob(['<!DOCTYPE html>\\n<html>\\n<head><meta charset=\\"UTF-8\\">\\n</head>\\n<body>\\n' + code + '\\n</body>\\n</html>'], {type: 'text/html'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'email-signature.html';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('HTML文件已下载');
 }
 
 function render() {
-  showToast('功能已触发');
+  var name = document.getElementById('f_name').value || '';
+  var title = document.getElementById('f_title').value || '';
+  var company = document.getElementById('f_company').value || '';
+  var phone = document.getElementById('f_phone').value || '';
+  var email = document.getElementById('f_email').value || '';
+  var website = document.getElementById('f_website').value || '';
+  var avatar = document.getElementById('f_avatar').value || '';
+  var linkedin = document.getElementById('f_linkedin').value || '';
+  var twitter = document.getElementById('f_twitter').value || '';
+  var github = document.getElementById('f_github').value || '';
+  var facebook = document.getElementById('f_facebook').value || '';
+  var instagram = document.getElementById('f_instagram').value || '';
+  var wechat = document.getElementById('f_wechat').value || '';
+  var fontSize = document.getElementById('f_fontsize').value || '14';
+  var c = currentColor;
+
+  var socialHtml = '';
+  if(linkedin) socialHtml += '<a href=\"'+linkedin+'\" style=\"color:'+c+';text-decoration:none;margin:0 6px;font-size:'+fontSize+'px\">🔗 LinkedIn</a>';
+  if(twitter) socialHtml += '<a href=\"'+twitter+'\" style=\"color:'+c+';text-decoration:none;margin:0 6px;font-size:'+fontSize+'px\">🐦 Twitter</a>';
+  if(github) socialHtml += '<a href=\"'+github+'\" style=\"color:'+c+';text-decoration:none;margin:0 6px;font-size:'+fontSize+'px\">💻 GitHub</a>';
+  if(facebook) socialHtml += '<a href=\"'+facebook+'\" style=\"color:'+c+';text-decoration:none;margin:0 6px;font-size:'+fontSize+'px\">📘 Facebook</a>';
+  if(instagram) socialHtml += '<a href=\"'+instagram+'\" style=\"color:'+c+';text-decoration:none;margin:0 6px;font-size:'+fontSize+'px\">📷 Instagram</a>';
+  if(wechat) socialHtml += '<span style=\"color:#94a3b8;font-size:'+fontSize+'px;margin:0 6px\">💬 '+wechat+'</span>';
+
+  var html = '';
+  if(currentTemplate === 'simple') {
+    html = '<div style=\"font-family:Arial,sans-serif;font-size:'+fontSize+'px;color:#475569;line-height:1.6\">';
+    if(avatar) html += '<img src=\"'+avatar+'\" style=\"width:60px;height:60px;border-radius:50%;margin-bottom:8px;object-fit:cover\"><br>';
+    html += '<strong style=\"font-size:'+(parseInt(fontSize)+2)+'px;color:#1e293b\">'+name+'</strong><br>';
+    if(title) html += title+'<br>';
+    if(company) html += company+'<br>';
+    if(phone) html += '📞 '+phone+'<br>';
+    if(email) html += '✉️ <a href=\"mailto:'+email+'\" style=\"color:'+c+'\">'+email+'</a><br>';
+    if(website) html += '🌐 <a href=\"'+website+'\" style=\"color:'+c+'\">'+website+'</a><br>';
+    if(socialHtml) html += '<div style=\"margin-top:8px\">'+socialHtml+'</div>';
+    html += '</div>';
+  } else if(currentTemplate === 'business') {
+    html = '<table cellpadding=\"0\" cellspacing=\"0\" style=\"font-family:Arial,sans-serif;font-size:'+fontSize+'px;color:#475569\"><tr>';
+    html += '<td style=\"border-left:3px solid '+c+';padding-left:12px;padding-right:20px\">';
+    if(avatar) html += '<img src=\"'+avatar+'\" style=\"width:50px;height:50px;border-radius:50%;margin-bottom:6px;object-fit:cover\"><br>';
+    html += '<strong style=\"font-size:'+(parseInt(fontSize)+2)+'px;color:#1e293b\">'+name+'</strong><br>';
+    if(title) html += '<span style=\"color:#64748b\">'+title+'</span><br>';
+    if(company) html += '<strong style=\"color:'+c+'\">'+company+'</strong><br>';
+    if(phone) html += '📞 '+phone+'<br>';
+    if(email) html += '✉️ <a href=\"mailto:'+email+'\" style=\"color:'+c+'\">'+email+'</a><br>';
+    if(website) html += '🌐 <a href=\"'+website+'\" style=\"color:'+c+'\">'+website+'</a><br>';
+    if(socialHtml) html += '<div style=\"margin-top:8px\">'+socialHtml+'</div>';
+    html += '</td></tr></table>';
+  } else if(currentTemplate === 'creative') {
+    html = '<div style=\"font-family:Arial,sans-serif;font-size:'+fontSize+'px;color:#475569;border-top:3px solid '+c+';padding-top:10px\">';
+    if(avatar) html += '<img src=\"'+avatar+'\" style=\"width:55px;height:55px;border-radius:50%;margin-bottom:6px;object-fit:cover;float:left;margin-right:12px\"><div style=\"overflow:hidden\">';
+    html += '<strong style=\"font-size:'+(parseInt(fontSize)+2)+'px;color:#1e293b\">'+name+'</strong><br>';
+    if(title) html += title+'<br>';
+    if(company) html += company+'<br>';
+    if(avatar) html += '</div><div style=\"clear:both\"></div>';
+    if(phone||email||website) html += '<div style=\"margin-top:6px\">';
+    if(phone) html += '📞 '+phone+'&nbsp;&nbsp;';
+    if(email) html += '✉️ <a href=\"mailto:'+email+'\" style=\"color:'+c+'\">'+email+'</a>&nbsp;&nbsp;';
+    if(website) html += '🌐 <a href=\"'+website+'\" style=\"color:'+c+'\">'+website+'</a>';
+    if(phone||email||website) html += '</div>';
+    if(socialHtml) html += '<div style=\"margin-top:6px\">'+socialHtml+'</div>';
+    html += '</div>';
+  } else if(currentTemplate === 'minimal') {
+    html = '<div style=\"font-family:Arial,sans-serif;font-size:'+fontSize+'px;color:#475569\">';
+    html += '<strong style=\"color:#1e293b\">'+name+'</strong>';
+    var parts = [];
+    if(title) parts.push(title);
+    if(company) parts.push(company);
+    if(email) parts.push('<a href=\"mailto:'+email+'\" style=\"color:'+c+'\">'+email+'</a>');
+    if(phone) parts.push(phone);
+    if(website) parts.push('<a href=\"'+website+'\" style=\"color:'+c+'\">'+website+'</a>');
+    html += ' &nbsp;|&nbsp; ' + parts.join(' &nbsp;|&nbsp; ');
+    html += '</div>';
+  }
+
+  document.getElementById('previewBox').innerHTML = html;
+  document.getElementById('codeBox').textContent = html;
 }
 </script>
 </body>
