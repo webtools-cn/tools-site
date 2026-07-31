@@ -71,6 +71,10 @@ const TOOL_TESTS = {
     L1: { selector: 'input[type="text"]', input: '1.2.3', btnText: '验证', outputSelector: '#validateResult,#parseGrid' },
     L2: { selector: 'input[type="text"]', input: '1.2.3', btnText: '验证', outputContains: '合法的 SemVer 版本号' },
   },
+  'semver-validator': {
+    L1: { selector: 'input[type="text"]', input: '1.2.3', btnText: '验证', outputSelector: '#singleResult' },
+    L2: { selector: 'input[type="text"]', input: '1.2.3', btnText: '验证', outputContains: '有效版本号' },
+  },
 };
 
 // ============ 通用L0测试 ============
@@ -216,7 +220,7 @@ async function testGenericL1(page, toolName) {
     const btns = document.querySelectorAll('button');
     // 优先找"计算/生成/转换/编码/解码/分析"类按钮
     const actionBtn = Array.from(btns).find(b => 
-      /计算|生成|转换|编码|解码|分析|处理|开始|运行|执行|提交|generate|convert|calculate|encode|decode|analyze|process|run|start|submit/i.test(b.textContent)
+      /计算|生成|转换|编码|解码|分析|处理|开始|运行|执行|提交|验证|比较|检查|parse|check|verify|validate|compare|parse|generate|convert|calculate|encode|decode|analyze|process|run|start|submit/i.test(b.textContent)
     );
     if (actionBtn) { actionBtn.click(); return true; }
     // 没找到就点第一个非reset非copy按钮
