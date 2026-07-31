@@ -84,6 +84,10 @@ label{display:block;font-size:.9rem;color:#94a3b8;margin-bottom:6px}
 .password-item .pw-actions{display:flex;gap:6px;flex-shrink:0}
 .pw-btn{background:transparent;border:1px solid rgba(148,163,184,.15);color:#94a3b8;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.8rem;transition:all .15s;font-family:inherit}
 .pw-btn:hover{background:rgba(6,182,212,.15);color:#22d3ee;border-color:rgba(6,182,212,.3)}
+.pw-btn.copied{background:rgba(34,197,94,.15);color:#22c55e;border-color:rgba(34,197,94,.3)}
+.pw-chars{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;font-size:.7rem}
+.pw-char-tag{display:inline-flex;align-items:center;gap:2px;padding:1px 7px;border-radius:10px;background:rgba(148,163,184,.1);color:#94a3b8}
+.pw-char-tag.u{color:#22d3ee}.pw-char-tag.l{color:#a78bfa}.pw-char-tag.d{color:#fbbf24}.pw-char-tag.s{color:#f472b6}
 .pw-strength-bar{height:3px;border-radius:2px;margin-top:6px;transition:all .3s}
 .str-label{font-size:.75rem;display:inline-block;padding:1px 8px;border-radius:10px;margin-top:4px}
 /* Separator option for passphrase */
@@ -120,6 +124,13 @@ label{display:block;font-size:.9rem;color:#94a3b8;margin-bottom:6px}
 .stats-bar span{background:rgba(148,163,184,.08);padding:3px 10px;border-radius:12px}
 .tip-banner{background:rgba(6,182,212,.06);border:1px solid rgba(6,182,212,.15);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:.8rem;color:#94a3b8;display:none}
 .tip-banner strong{color:#f1f5f9}
+.pw-eye-btn{background:transparent;border:1px solid rgba(148,163,184,.15);color:#94a3b8;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.8rem;transition:all .15s;font-family:inherit}
+.pw-eye-btn:hover{background:rgba(6,182,212,.15);color:#22d3ee;border-color:rgba(6,182,212,.3)}
+.pw-eye-btn.showing{color:#22d3ee;border-color:rgba(6,182,212,.3)}
+.pw-text.masked{filter:blur(6px);user-select:none;transition:filter .2s}
+.pw-char-breakdown{margin-top:3px;font-size:.68rem;color:#64748b;display:flex;gap:8px;flex-wrap:wrap}
+.pw-delete-btn{background:transparent;border:1px solid rgba(239,68,68,.2);color:#94a3b8;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:.8rem;transition:all .15s;font-family:inherit}
+.pw-delete-btn:hover{background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.4)}
 .info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
 .info-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
 .info-section p,.info-section li{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
@@ -951,6 +962,13 @@ function generatePin(len, format) {
 }
 
 // ==================== RENDER ====================
+function createCharTag(label, count, cls) {
+  var tag = document.createElement("span");
+  tag.className = "pw-char-tag " + cls;
+  tag.textContent = label + ":" + count;
+  return tag;
+}
+
 function estimateCrackTime(entropy) {
   // Based on 100 billion guesses/second (modern GPU cluster)
   var guessesPerSec = 1e11;
@@ -1088,6 +1106,32 @@ function renderPasswords() {
     var actions = document.createElement("div");
     actions.className = "pw-actions";
 
+    // Eye toggle button (show/hide password)
+    var eyeBtn = document.createElement("button");
+    eyeBtn.className = "pw-eye-btn";
+    eyeBtn.textContent = "👁";
+    eyeBtn.title = "显示/隐藏密码";
+    (function(txtSpan, eBtn) {
+      eyeBtn.addEventListener("click", function() {
+        var masked = txtSpan.classList.toggle("masked");
+        eBtn.classList.toggle("showing", !masked);
+        eBtn.textContent = masked ? "👁" : "🙈";
+      });
+    })(textSpan, eyeBtn);
+
+    // Delete button
+    var delBtn = document.createElement("button");
+    delBtn.className = "pw-delete-btn";
+    delBtn.textContent = "✕";
+    delBtn.title = "删除此密码";
+    (function(idx) {
+      delBtn.addEventListener("click", function() {
+        currentPasswords.splice(idx, 1);
+        renderPasswords();
+        showToast("已删除第" + (idx+1) + "个密码");
+      });
+    })(i);
+
     var sl = document.createElement("span");
     sl.className = "str-label";
     sl.style.background = st.color;
@@ -1118,6 +1162,12 @@ function renderPasswords() {
         navigator.clipboard.writeText(pwText).then(function() {
           showToast("已复制密码");
           addToHistory(pwText);
+          copyBtn.classList.add("copied");
+          copyBtn.textContent = "✅";
+          setTimeout(function() {
+            copyBtn.classList.remove("copied");
+            copyBtn.textContent = "📋";
+          }, 1200);
         }).catch(function(){showToast("复制失败")});
       });
     })(pw.password);
@@ -1139,12 +1189,29 @@ function renderPasswords() {
 
     actions.appendChild(sl);
     actions.appendChild(memBadge);
+    actions.appendChild(eyeBtn);
     actions.appendChild(qrBtn);
     actions.appendChild(copyBtn);
+    actions.appendChild(delBtn);
     item.appendChild(idxSpan);
     item.appendChild(textSpan);
     item.appendChild(actions);
     list.appendChild(item);
+
+    // Character breakdown
+    var breakdown = document.createElement("div");
+    breakdown.className = "pw-char-breakdown";
+    var chr = pw.password;
+    var upperCount = (chr.match(/[A-Z]/g) || []).length;
+    var lowerCount = (chr.match(/[a-z]/g) || []).length;
+    var digitCount = (chr.match(/[0-9]/g) || []).length;
+    var symCount = (chr.match(/[^A-Za-z0-9]/g) || []).length;
+    if (upperCount) breakdown.appendChild(createCharTag("A-Z", upperCount, "u"));
+    if (lowerCount) breakdown.appendChild(createCharTag("a-z", lowerCount, "l"));
+    if (digitCount) breakdown.appendChild(createCharTag("0-9", digitCount, "d"));
+    if (symCount) breakdown.appendChild(createCharTag("#@!", symCount, "s"));
+    breakdown.appendChild(document.createTextNode(" 共"+chr.length+"字符"));
+    list.appendChild(breakdown);
 
     var bar = document.createElement("div");
     bar.className = "pw-strength-bar";
