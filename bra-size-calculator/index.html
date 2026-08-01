@@ -180,9 +180,70 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === 内衣尺码计算核心逻辑 ===
+function getCupLetter(diff) {
+  // 差值(cm) → 罩杯字母
+  var cups = [
+    [10.0, 'AA'], [12.5, 'A'], [15.0, 'B'], [17.5, 'C'],
+    [20.0, 'D'], [22.5, 'E'], [25.0, 'F'], [27.5, 'G'],
+    [30.0, 'H'], [32.5, 'I'], [35.0, 'J'], [37.5, 'K']
+  ];
+  for (var i = 0; i < cups.length; i++) {
+    if (diff <= cups[i][0] + 1.25) return cups[i][1];
+  }
+  return 'K+';
+}
+
 function calcBraSize() {
-  showToast('calcBraSize - coming soon!');
+  var under = parseFloat(document.getElementById('underbust').value);
+  var over = parseFloat(document.getElementById('overbust').value);
+  
+  if (!under || !over || under < 40 || over < 40 || under > 180 || over > 180) {
+    showToast('请输入有效的胸围数值（40-180cm）');
+    return;
+  }
+  if (over < under) {
+    showToast('上胸围应大于或等于下胸围');
+    return;
+  }
+  
+  var diff = over - under;
+  var cup = getCupLetter(diff);
+  
+  // 中国尺码：底围(取整到最近的5) + 罩杯
+  var cnBand = Math.round(under / 5) * 5;
+  if (cnBand < 65) cnBand = 65;
+  if (cnBand > 100) cnBand = 100;
+  var cnSize = cnBand + cup;
+  
+  // 欧洲尺码(EU)：底围(cm舍入到最近的5，但EU常加10-15)
+  var euBand = cnBand + 10;
+  if (euBand < 70) euBand = 70;
+  var euSize = euBand + cup;
+  
+  // 美国尺码(US)：底围(inch) + 罩杯
+  var usBand = Math.round(under / 2.54);
+  if (usBand % 2 === 1) usBand += 1;
+  if (usBand < 28) usBand = 28;
+  if (usBand > 48) usBand = 48;
+  var usSize = usBand + cup;
+  
+  // 英国尺码(UK)：底围(inch) + 罩杯(AA/A/B/C/D/DD/E/F/FF/G/...)
+  var ukBand = usBand;
+  var ukCupMap = {'AA':'AA','A':'A','B':'B','C':'C','D':'D','E':'DD','F':'E','G':'F','H':'FF','I':'G','J':'GG','K':'H'};
+  var ukCup = ukCupMap[cup] || cup;
+  var ukSize = ukBand + ukCup;
+  
+  // 渲染结果
+  document.getElementById('braResult').textContent = cnSize;
+  document.getElementById('braCn').textContent = cnSize;
+  document.getElementById('braEu').textContent = euSize;
+  document.getElementById('braUs').textContent = usSize;
+  document.getElementById('braUk').textContent = ukSize;
+  document.getElementById('braDetail').textContent = 
+    '下胸围: ' + under + 'cm | 上胸围: ' + over + 'cm | 差值: ' + diff.toFixed(1) + 'cm | 罩杯: ' + cup;
+  
+  showToast('计算结果: ' + cnSize + ' (CN)');
 }
 </script>
 </body>

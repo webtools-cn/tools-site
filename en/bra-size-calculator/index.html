@@ -268,58 +268,62 @@ canvas{max-width:100%}
 var lang=document.documentElement.lang;
 function toast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},2000)}
 
+// === Bra Size Calculator Core Logic ===
+function getCupLetter(diff) {
+  // Difference (cm) → cup letter
+  var cups = [
+    [10.0, 'AA'], [12.5, 'A'], [15.0, 'B'], [17.5, 'C'],
+    [20.0, 'D'], [22.5, 'E'], [25.0, 'F'], [27.5, 'G'],
+    [30.0, 'H'], [32.5, 'I'], [35.0, 'J'], [37.5, 'K']
+  ];
+  for (var i = 0; i < cups.length; i++) {
+    if (diff <= cups[i][0] + 1.25) return cups[i][1];
+  }
+  return 'K+';
+}
+
 function calcBraSize(){
   var ub=parseFloat(document.getElementById('underbust').value);
   var ob=parseFloat(document.getElementById('overbust').value);
-  if(isNaN(ub)||isNaN(ob)||ub<50||ob<50){toast('');return}
-  if(ob<=ub){toast('');return}
+  if(isNaN(ub)||isNaN(ob)||ub<40||ob<40||ub>180||ob>180){toast('Please enter valid measurements (40-180 cm)');return}
+  if(ob<=ub){toast('Overbust should be larger than underbust');return}
+  
   var diff=ob-ub;
-  var band=Math.round(ub);
-  // CN: band number + cup letter
-  var cnBand=Math.round(ub);
-  // EU: band number (cm)
-  var euBand=Math.round((ub+2.5)/5)*5;
-  // US/UK: inch based
-  var ubIn=ub/2.54,obIn=ob/2.54;
-  var usBand=Math.round(ubIn);
-  var usDiff=obIn-usBand;
+  var cup=getCupLetter(diff);
   
-  // Cup mapping
-  var cups=['AA','A','B','C','D','E','F','G','H','I','J'];
-  var diffs=[10,12.5,15,17.5,20,22.5,25,27.5,30,32.5,35];
-  var cupIdx=0;
-  for(var i=0;i<diffs.length;i++){
-    if(diff>=diffs[i])cupIdx=i;
-  }
-  var cup=cups[cupIdx];
-  
-  // US cup
-  var usCupIdx=0;
-  var usDiffs=[2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5];
-  for(var i=0;i<usDiffs.length;i++){
-    if(usDiff>=usDiffs[i])usCupIdx=i;
-  }
-  var usCup=cups[usCupIdx];
-  
-  // UK cup (offset from US for larger cups, simplified)
-  var ukCup=usCup;
-  if(usCupIdx>=4){ // D+
-    var ukIdx=usCupIdx-1;
-    if(ukIdx<0)ukIdx=0;
-    ukCup=cups[ukIdx];
-  }
-  
+  // China size: band (rounded to nearest 5) + cup
+  var cnBand=Math.round(ub/5)*5;
+  if(cnBand<65)cnBand=65;
+  if(cnBand>100)cnBand=100;
   var cnSize=cnBand+cup;
+  
+  // EU size
+  var euBand=cnBand+10;
+  if(euBand<70)euBand=70;
   var euSize=euBand+cup;
-  var usSize=usBand+usCup;
-  var ukSize=Math.round((ub+5)/2.54)+ukCup;
+  
+  // US size: band in inches (even number) + cup
+  var usBand=Math.round(ub/2.54);
+  if(usBand%2===1)usBand+=1;
+  if(usBand<28)usBand=28;
+  if(usBand>48)usBand=48;
+  var usSize=usBand+cup;
+  
+  // UK size: band in inches + UK cup mapping
+  var ukBand=usBand;
+  var ukCupMap={'AA':'AA','A':'A','B':'B','C':'C','D':'D','E':'DD','F':'E','G':'F','H':'FF','I':'G','J':'GG','K':'H'};
+  var ukCup=ukCupMap[cup]||cup;
+  var ukSize=ukBand+ukCup;
   
   document.getElementById('braResult').textContent=cnSize;
   document.getElementById('braCn').textContent=cnSize;
   document.getElementById('braEu').textContent=euSize;
   document.getElementById('braUs').textContent=usSize;
   document.getElementById('braUk').textContent=ukSize;
-  document.getElementById('braDetail').textContent='diffvaluefor '+diff.toFixed(1)+' cm，Recommended '+cup+''+cnBand+' cm。';
+  document.getElementById('braDetail').textContent=
+    'Underbust: '+ub+' cm | Overbust: '+ob+' cm | Difference: '+diff.toFixed(1)+' cm | Cup: '+cup;
+  
+  toast('Result: ' + cnSize + ' (CN)');
 }
 calcBraSize();
 
