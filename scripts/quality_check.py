@@ -20,7 +20,7 @@ def ok(cat, msg):
 cn_json = json.load(open('tools-data-cn.json'))
 en_json = json.load(open('tools-data-en.json'))
 cn_json_slugs = set(item[3].rstrip('/') for items in cn_json.values() for item in items)
-en_json_slugs = set(item[3].replace('/en/','').replace('en/','').strip('/') for items in en_json.values() for item in items)
+en_json_slugs = set(item[3].replace('/en/','').strip('/') for items in en_json.values() for item in items)
 cn_file_slugs = set(f.split('/')[0] for f in glob.glob('*/index.html') if f!='index.html' and not f.startswith('en/'))
 en_file_slugs = set(f.split('/')[2] for f in glob.glob('en/*/index.html'))
 skip_dirs = {'css','js','scripts','quality','.gsc-data','.github'}
