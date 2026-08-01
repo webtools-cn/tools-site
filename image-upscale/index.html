@@ -143,38 +143,64 @@ footer{text-align:center;padding:24px;color:var(--text2);font-size:.85rem}
 <div class="toast" id="toast"></div>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-  
-   catch(e) {}
-    
-    const stars = container.querySelectorAll('.star');
-    );
-      text.textContent = (4.5).toFixed(1) + '/5';
-      countEl.textContent = isCN ? '(' + (128) + ' 人评分)' : '(' + (128) + ' ratings)';
-    }
-     : avgData.value);
-    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
-    stars.forEach(star => {
-      star.addEventListener('click', function() {
-        const val = parseInt(this.dataset.value);
-        localStorage.setItem(STORAGE_KEY, val);
-        
-        thanks.style.display = 'inline';
-        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
-        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
-        current.count = (current.count || 128) + 1;
-        localStorage.setItem(AVG_KEY, JSON.stringify(current));
-      });
-      star.addEventListener('mouseenter', function() {
-        const val = parseInt(this.dataset.value);
-        stars.forEach((s, i) => s.classList.toggle('active', i < val));
-      });
-    });
-    container.addEventListener('mouseleave', function() {  : avgData.value); };
+// === 图片放大 - Canvas双三次插值 ===
+var upscaleImageData=null;
+function handleUpscaleFile(input){
+  var file=input.files&&input.files[0];
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var section=document.querySelector('.section');
+      section.innerHTML='<h2>🔍 图片放大增强</h2>'+
+        '<div style="margin-bottom:12px"><label style="color:#94a3b8;font-size:.85rem">放大倍率</label><br>'+
+        '<select id="upscaleFactor" onchange="processUpscale()" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px;color:#e2e8f0">'+
+        '<option value="2">2x (推荐)</option><option value="3">3x</option><option value="4">4x</option></select></div>'+
+        '<div style="display:flex;gap:16px;flex-wrap:wrap"><div style="text-align:center"><div style="color:#94a3b8;font-size:.8rem;margin-bottom:4px">原图 ('+img.width+'x'+img.height+')</div><img id="upscaleOriginal" style="max-width:250px;max-height:250px;border-radius:8px"></div>'+
+        '<div style="text-align:center"><div style="color:#94a3b8;font-size:.8rem;margin-bottom:4px">放大后</div><canvas id="upscaleCanvas" style="max-width:250px;max-height:250px;border-radius:8px"></canvas></div></div>'+
+        '<div style="margin-top:12px"><button class="btn btn-primary" onclick="downloadUpscale()">⬇️ 下载放大图片</button></div>';
+      document.getElementById('upscaleOriginal').src=e.target.result;
+      upscaleImageData=img;
+      processUpscale();
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function processUpscale(){
+  if(!upscaleImageData)return;
+  var factor=parseInt(document.getElementById('upscaleFactor').value)||2;
+  var canvas=document.getElementById('upscaleCanvas');
+  var ctx=canvas.getContext('2d');
+  var newW=upscaleImageData.width*factor;
+  var newH=upscaleImageData.height*factor;
+  canvas.width=newW;canvas.height=newH;
+  // Use browser's built-in bicubic interpolation via imageSmoothingQuality
+  ctx.imageSmoothingEnabled=true;
+  ctx.imageSmoothingQuality='high';
+  ctx.drawImage(upscaleImageData,0,0,newW,newH);
+  showToast('放大完成: '+upscaleImageData.width+'x'+upscaleImageData.height+' → '+newW+'x'+newH);
+}
+
+function downloadUpscale(){
+  var canvas=document.getElementById('upscaleCanvas');
+  if(!canvas){showToast('请先处理图片');return;}
+  var link=document.createElement('a');
+  link.download='upscaled-image.png';
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+  showToast('图片已下载');
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  var section=document.querySelector('.section');
+  if(section&&!section.querySelector('input[type=file]')){
+    section.innerHTML='<h2>🔍 图片放大增强</h2><div style="text-align:center;padding:30px"><input type="file" id="upscaleFileInput" accept="image/*" onchange="handleUpscaleFile(this)" style="display:none"><button class="btn btn-primary" onclick="document.getElementById(\'upscaleFileInput\').click()" style="padding:12px 24px;font-size:1rem">📁 上传图片</button><p style="color:#94a3b8;margin-top:8px;font-size:.85rem">支持2x/3x/4x放大，Canvas双三次插值</p></div>';
   }
-  if (document.readyState === 'loading' { document.addEventListener('DOMContentLoaded', initRating; }
-  else {  }</script>
+});
+</script>
 </body>
 </html>

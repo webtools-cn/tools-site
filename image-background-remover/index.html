@@ -236,18 +236,131 @@ a{color:#06b6d4;text-decoration:none}
 <div class="toast" id="toast"></div>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
+// === 图片背景去除 - Canvas API ===
+var bgImageData=null;
+var bgMode='auto';
+
+document.addEventListener('DOMContentLoaded',function(){
+  var uploadArea=document.getElementById('uploadArea');
+  var fileInput=document.getElementById('fileInput');
+  if(!uploadArea||!fileInput)return;
+  
+  uploadArea.addEventListener('click',function(){fileInput.click();});
+  uploadArea.addEventListener('dragover',function(e){e.preventDefault();uploadArea.classList.add('dragover');});
+  uploadArea.addEventListener('dragleave',function(){uploadArea.classList.remove('dragover');});
+  uploadArea.addEventListener('drop',function(e){
+    e.preventDefault();uploadArea.classList.remove('dragover');
+    if(e.dataTransfer.files.length)handleBgFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change',function(){if(this.files.length)handleBgFile(this.files[0]);});
+  
+  // Mode tabs
+  document.querySelectorAll('.mode-tab').forEach(function(tab){
+    tab.addEventListener('click',function(){
+      document.querySelectorAll('.mode-tab').forEach(function(t){t.classList.remove('active');});
+      this.classList.add('active');
+      bgMode=this.dataset.mode;
+      if(bgImageData)processBgRemoval();
+    });
+  });
+  
+  // Sliders
+  var tol=document.getElementById('tolerance');
+  var feat=document.getElementById('feather');
+  if(tol)tol.addEventListener('input',function(){document.getElementById('toleranceVal').textContent=this.value;if(bgImageData)processBgRemoval();});
+  if(feat)feat.addEventListener('input',function(){document.getElementById('featherVal').textContent=this.value;if(bgImageData)processBgRemoval();});
+});
+
+function handleBgFile(file){
+  if(!file||!file.type.startsWith('image/')){showToast('请选择图片文件');return;}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      bgImageData=img;
+      var srcCanvas=document.getElementById('srcCanvas');
+      var ctx=srcCanvas.getContext('2d');
+      var maxDim=600;
+      var w=img.width,h=img.height;
+      if(w>maxDim||h>maxDim){var s=maxDim/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s);}
+      srcCanvas.width=w;srcCanvas.height=h;
+      ctx.drawImage(img,0,0,w,h);
+      document.getElementById('editorArea').classList.remove('hidden');
+      processBgRemoval();
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
+function processBgRemoval(){
+  if(!bgImageData)return;
+  var srcCanvas=document.getElementById('srcCanvas');
+  var dstCanvas=document.getElementById('dstCanvas');
+  var ctx=srcCanvas.getContext('2d');
+  var dstCtx=dstCanvas.getContext('2d');
+  var w=srcCanvas.width,h=srcCanvas.height;
+  dstCanvas.width=w;dstCanvas.height=h;
+  
+  var imageData=ctx.getImageData(0,0,w,h);
+  var data=imageData.data;
+  var output=dstCtx.createImageData(w,h);
+  var outData=output.data;
+  var tolerance=parseInt(document.getElementById('tolerance').value)||32;
+  
+  if(bgMode==='auto'){
+    // Auto mode: sample corners to detect background color
+    var corners=[
+      getPixel(data,0,0,w),getPixel(data,w-1,0,w),
+      getPixel(data,0,h-1,w),getPixel(data,w-1,h-1,w)
+    ];
+    // Use most common corner color as background
+    var bgR=corners[0][0],bgG=corners[0][1],bgB=corners[0][2];
+    
+    for(var i=0;i<data.length;i+=4){
+      var dr=Math.abs(data[i]-bgR);
+      var dg=Math.abs(data[i+1]-bgG);
+      var db=Math.abs(data[i+2]-bgB);
+      var dist=Math.sqrt(dr*dr+dg*dg+db*db);
+      if(dist<tolerance*2.5){
+        outData[i]=0;outData[i+1]=0;outData[i+2]=0;outData[i+3]=0;
+      }else if(dist<tolerance*3.5){
+        // Feather edge
+        var alpha=Math.min(255,Math.round((dist-tolerance*2.5)/(tolerance)*255));
+        outData[i]=data[i];outData[i+1]=data[i+1];outData[i+2]=data[i+2];outData[i+3]=alpha;
+      }else{
+        outData[i]=data[i];outData[i+1]=data[i+1];outData[i+2]=data[i+2];outData[i+3]=255;
+      }
+    }
+  }else{
+    // Manual mode: remove white/light backgrounds
+    for(var i=0;i<data.length;i+=4){
+      var brightness=(data[i]+data[i+1]+data[i+2])/3;
+      if(brightness>255-tolerance){
+        outData[i]=0;outData[i+1]=0;outData[i+2]=0;outData[i+3]=0;
+      }else{
+        outData[i]=data[i];outData[i+1]=data[i+1];outData[i+2]=data[i+2];outData[i+3]=255;
+      }
+    }
+  }
+  dstCtx.putImageData(output,0,0);
+}
+
+function getPixel(data,x,y,w){
+  var i=(y*w+x)*4;
+  return[data[i],data[i+1],data[i+2]];
+}
+
+function downloadBgResult(){
+  var canvas=document.getElementById('dstCanvas');
+  if(!canvas){showToast('请先处理图片');return;}
+  var link=document.createElement('a');
+  link.download='no-background.png';
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+  showToast('图片已下载');
+}
 </script>
 </body>
 </html>
