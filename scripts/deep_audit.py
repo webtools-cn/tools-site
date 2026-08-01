@@ -61,10 +61,13 @@ def check_page(f, content):
     
     if is_en and not is_home:
         # 3.1 提取所有可见文本中的中文（排除script/style/option）
+        # 先移除语言切换块和内联"中文"链接，避免导航"中文"被当作内容混入
+        content_for_check = re.sub(r'<div[^>]*class="[^"]*lang-switch[^"]*"[^>]*>.*?</div>', '', content, flags=re.DOTALL)
+        content_for_check = re.sub(r'<a[^>]*>[^<]*中文[^<]*</a>', '', content_for_check)
         visible_lines = []
         in_script = False
         in_style = False
-        for line in content.split('\n'):
+        for line in content_for_check.split('\n'):
             if '<script' in line and 'application/ld+json' not in line: in_script = True
             if '</script>' in line: in_script = False
             if '<style' in line: in_style = True
@@ -111,10 +114,22 @@ def check_page(f, content):
                 # 排除 footer 描述行：导航+中文+描述
                 if re.search(r'(GitHub|Home|All Tools|Privacy|Terms|About|Contact|Blog)\s+中文\s+[A-Z]', t_clean):
                     continue
+                # 排除页脚导航行包含中文链接（如 "Free ToolBase 中文", "Home Tools 中文", "Back to Home | 中文"）
+                if re.search(r'(Free ToolBase|Back to Home|More Online Tools|AllTools)\s*.*中文', t_clean):
+                    continue
+                # 排除结尾是 "| 中文" 的导航行
+                if re.search(r'\|\s*中文\s*$', t_clean):
+                    continue
+                # 排除导航中间含"中文"的行（如 "Privacy · Terms · GitHub · 中文 · Contact"）
+                if re.search(r'(·|\|)\s*中文\s*(·|\||$)', t_clean):
+                    continue
+                # 排除 "© 2024 WebTools - ... | 中文" 类版权行
+                if '©' in t_clean and '中文' in t_clean:
+                    continue
                 # 排除 HTML 片段误提取（如 href="..." class="..." >中文）
                 if t_clean.count('"') >= 2 and len(t_clean) < 80:
                     continue
-                # 排除 \"中文 &copy;\" 行
+                # 排除 "中文 &copy;" 行
                 if re.search(r'中文\s*&copy;', t_clean):
                     continue
                 # 排除 "中文 GitHub" 结尾
@@ -132,9 +147,8 @@ def check_page(f, content):
                 # 排除 "Home · All Tools · About · Privacy · Terms · 中文" 纯导航行
                 if re.match(r'^(Home|All Tools|About|Privacy|Terms|Contact|Blog|Dev Tools)\s*(·|\|)\s*.*中文\s*$', t_clean):
                     continue
-                # 排除 "<a href=...>中文</a>" 语言切换链接
-                if re.search(r'<a[^>]*href=[^>]*>[^<]*中文[^<]*</a>', t_clean):
-                    continue
+                # 排除 "<a href=...>中文</a>" 语言切换链接 (t_clean已被strip标签，用原始text检查)
+                # 由于visible_lines已去除HTML标签，此检查已在上游完成，跳过
                 # 排除 footer中"GitHub中文"类混合
                 if re.search(r'GitHub.*中文', t_clean) and 'href=' in t_clean:
                     continue
