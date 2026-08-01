@@ -73,8 +73,22 @@ else:
     ok("EN中文", "0")
 
 # 6. noindex
-cn_ni = [f.split('/')[0] for f in glob.glob('*/index.html') if f!='index.html' and not f.startswith('en/') and 'noindex' in open(f,'r',errors='ignore').read()]
-en_ni = [f.split('/')[2] for f in glob.glob('en/*/index.html') if 'noindex' in open(f,'r',errors='ignore').read()]
+cn_ni = []
+for f in glob.glob('*/index.html'):
+    if f=='index.html' or f.startswith('en/'): continue
+    c = open(f,'r',errors='ignore').read()
+    # 排除option/select里的noindex(是工具功能选项，不是页面meta)
+    c_clean = re.sub(r'<option[^>]*>.*?</option>', '', c, flags=re.DOTALL)
+    c_clean = re.sub(r'<select[^>]*>.*?</select>', '', c_clean, flags=re.DOTALL)
+    if 'noindex' in c_clean:
+        cn_ni.append(f.split('/')[0])
+en_ni = []
+for f in glob.glob('en/*/index.html'):
+    c = open(f,'r',errors='ignore').read()
+    c_clean = re.sub(r'<option[^>]*>.*?</option>', '', c, flags=re.DOTALL)
+    c_clean = re.sub(r'<select[^>]*>.*?</select>', '', c_clean, flags=re.DOTALL)
+    if 'noindex' in c_clean:
+        en_ni.append(f.split('/')[2])
 if cn_ni or en_ni:
     err("noindex", f"CN={cn_ni} EN={en_ni}")
 else:
