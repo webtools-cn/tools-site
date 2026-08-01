@@ -64,11 +64,20 @@ if cn_ads < cn_total or en_ads < en_total:
 else:
     ok("AdSense", f"CN={cn_ads}/{cn_total} EN={en_ads}/{en_total}")
 
-# 5. EN中文残留
+# 5. EN中文残留（排除语言切换链接中的"中文"二字）
 cn_char = re.compile(r'[\u4e00-\u9fff]')
-en_cn = len([f for f in glob.glob('en/*/index.html') if cn_char.search(open(f,'r',errors='ignore').read())])
+en_cn_files = []
+for f in glob.glob('en/*/index.html'):
+    content = open(f,'r',errors='ignore').read()
+    # 排除语言切换链接: <a ...>中文</a>
+    content_clean = re.sub(r'<a[^>]*>\s*中文\s*</a>', '', content)
+    # 排除lang-switch div: <div class="lang-switch">...中文...</div>
+    content_clean = re.sub(r'<div[^>]*class="[^"]*lang-switch[^"]*"[^>]*>.*?</div>', '', content_clean, flags=re.DOTALL)
+    if cn_char.search(content_clean):
+        en_cn_files.append(f)
+en_cn = len(en_cn_files)
 if en_cn > 0:
-    err("EN中文残留", f"{en_cn}页EN页面含中文")
+    err("EN中文残留", f"{en_cn}页EN页面含中文(已排除语言切换链接)")
 else:
     ok("EN中文", "0")
 
@@ -94,10 +103,17 @@ if cn_ni or en_ni:
 else:
     ok("noindex", "0")
 
-# 7. 空壳辅助按钮
-cn_empty = len([f for f in glob.glob('*/index.html') if f!='index.html' and not f.startswith('en/') and "showToast('功能已触发')" in open(f,'r',errors='ignore').read()])
+# 7. 空壳辅助按钮（只统计函数体仅包含showToast的真正空壳）
+cn_empty = 0
+empty_pattern = re.compile(r'function\s+\w+\s*\([^)]*\)\s*\{\s*showToast\([\'"][^\'"]*[\'"]\)\s*;\s*\}')
+for f in glob.glob('*/index.html'):
+    if f=='index.html' or f.startswith('en/'):
+        continue
+    content = open(f,'r',errors='ignore').read()
+    if empty_pattern.search(content):
+        cn_empty += 1
 if cn_empty > 0:
-    err("空壳按钮", f"{cn_empty}页有showToast('功能已触发')空壳函数")
+    err("空壳按钮", f"{cn_empty}页有纯showToast空壳函数(无明显业务逻辑)")
 else:
     ok("空壳按钮", "0")
 
