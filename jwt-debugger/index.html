@@ -220,12 +220,130 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+function base64UrlDecode(str) {
+  // Add padding and replace URL-safe chars
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  try {
+    var decoded = atob(str);
+    return decodeURIComponent(decoded.split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+  } catch(e) {
+    return null;
+  }
+}
+
 function decodeJWT() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;if(typeof mainConvert==='function')mainConvert();else{{out.textContent=inp.value;showToast('Converted!')}};
+  var token = document.getElementById('jwtInput').value.trim();
+  var headerEl = document.getElementById('jwtHeader');
+  var payloadEl = document.getElementById('jwtPayload');
+  var sigEl = document.getElementById('jwtSignature');
+  var statusEl = document.getElementById('jwtSigStatus');
+  
+  if (!token) {
+    headerEl.value = '';
+    payloadEl.value = '';
+    sigEl.value = '';
+    statusEl.textContent = '等待输入';
+    return;
+  }
+  
+  var parts = token.split('.');
+  if (parts.length !== 3) {
+    headerEl.value = 'Invalid JWT format';
+    payloadEl.value = '';
+    sigEl.value = '';
+    statusEl.textContent = '格式错误';
+    return;
+  }
+  
+  var headerJson = base64UrlDecode(parts[0]);
+  var payloadJson = base64UrlDecode(parts[1]);
+  
+  try {
+    var headerObj = JSON.parse(headerJson);
+    headerEl.value = JSON.stringify(headerObj, null, 2);
+  } catch(e) {
+    headerEl.value = 'Invalid Header: ' + (headerJson || 'decode failed');
+  }
+  
+  try {
+    var payloadObj = JSON.parse(payloadJson);
+    // Check expiration
+    if (payloadObj.exp) {
+      var expDate = new Date(payloadObj.exp * 1000);
+      var now = new Date();
+      if (expDate < now) {
+        statusEl.textContent = '⚠ 已过期 (' + expDate.toLocaleString() + ')';
+        statusEl.style.color = '#ef4444';
+      } else {
+        statusEl.textContent = '✓ 有效至 ' + expDate.toLocaleString();
+        statusEl.style.color = '#10b981';
+      }
+    } else {
+      statusEl.textContent = '无过期时间';
+      statusEl.style.color = '#94a3b8';
+    }
+    payloadEl.value = JSON.stringify(payloadObj, null, 2);
+  } catch(e) {
+    payloadEl.value = 'Invalid Payload: ' + (payloadJson || 'decode failed');
+    statusEl.textContent = '解码失败';
+  }
+  
+  sigEl.value = parts[2];
+  
+  // Auto-verify if secret is filled
+  verifyJWTSig();
 }
 
 function verifyJWTSig() {
-  showToast('verifyJWTSig - coming soon!');
+  var token = document.getElementById('jwtInput').value.trim();
+  var secret = document.getElementById('jwtSecret').value.trim();
+  var alg = document.getElementById('jwtAlg').value;
+  var statusEl = document.getElementById('jwtSigStatus');
+  
+  if (!secret || !token) return;
+  
+  var parts = token.split('.');
+  if (parts.length !== 3) return;
+  
+  // Use Web Crypto API for HMAC verification
+  var encoder = new TextEncoder();
+  var data = encoder.encode(parts[0] + '.' + parts[1]);
+  var keyData = encoder.encode(secret);
+  var sigBytes = base64UrlToBytes(parts[2]);
+  
+  var hashAlg = alg === 'HS256' ? 'SHA-256' : alg === 'HS384' ? 'SHA-384' : 'SHA-512';
+  
+  crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: hashAlg }, false, ['verify'])
+    .then(function(key) {
+      return crypto.subtle.verify('HMAC', key, sigBytes, data);
+    })
+    .then(function(valid) {
+      if (valid) {
+        statusEl.textContent = '✅ 签名验证通过 (' + alg + ')';
+        statusEl.style.color = '#10b981';
+      } else {
+        statusEl.textContent = '❌ 签名验证失败 (' + alg + ')';
+        statusEl.style.color = '#ef4444';
+      }
+    })
+    .catch(function() {
+      statusEl.textContent = '⚠ 验证出错（检查密钥和算法）';
+      statusEl.style.color = '#fbbf24';
+    });
+}
+
+function base64UrlToBytes(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  var raw = atob(str);
+  var bytes = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; i++) {
+    bytes[i] = raw.charCodeAt(i);
+  }
+  return bytes;
 }
 </script>
 </body>
