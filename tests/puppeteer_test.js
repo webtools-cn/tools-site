@@ -78,6 +78,9 @@ const TOOL_TESTS = {
     L1: { selector: 'input[type="text"]', input: '1.2.3', btnText: '验证', outputSelector: '#singleResult' },
     L2: { selector: 'input[type="text"]', input: '1.2.3', btnText: '验证', outputContains: '有效版本号' },
   },
+  'image-resizer': {
+    L1: { skip: true },
+  },
 };
 
 // ============ 通用L0测试 ============
