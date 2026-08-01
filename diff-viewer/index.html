@@ -252,11 +252,84 @@ function clearAll() {
 }
 
 function runDiff() {
-  showToast('runDiff - coming soon!');
+  var text1 = document.getElementById('text1').value;
+  var text2 = document.getElementById('text2').value;
+  var resultSection = document.getElementById('resultSection');
+  var resultArea = document.getElementById('resultArea');
+  
+  if (!text1 && !text2) {
+    showToast('请输入要对比的文本');
+    return;
+  }
+  
+  var lines1 = text1.split('\n');
+  var lines2 = text2.split('\n');
+  
+  // Simple LCS-based diff
+  var m = lines1.length, n = lines2.length;
+  var dp = [];
+  for (var i = 0; i <= m; i++) { dp[i] = []; for (var j = 0; j <= n; j++) dp[i][j] = 0; }
+  
+  for (var i = 1; i <= m; i++) {
+    for (var j = 1; j <= n; j++) {
+      if (lines1[i-1] === lines2[j-1]) {
+        dp[i][j] = dp[i-1][j-1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+      }
+    }
+  }
+  
+  // Backtrack
+  var result = [];
+  var i = m, j = n;
+  var added = 0, removed = 0, unchanged = 0;
+  
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && lines1[i-1] === lines2[j-1]) {
+      result.unshift({ type: 'same', line: lines1[i-1], oldNum: i, newNum: j });
+      unchanged++;
+      i--; j--;
+    } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
+      result.unshift({ type: 'add', line: lines2[j-1], oldNum: '', newNum: j });
+      added++;
+      j--;
+    } else {
+      result.unshift({ type: 'remove', line: lines1[i-1], oldNum: i, newNum: '' });
+      removed++;
+      i--;
+    }
+  }
+  
+  // Render
+  var html = '<table class=\"diff-table\"><thead><tr><th style=\"width:40px\">行号</th><th style=\"width:40px\">新行</th><th>内容</th></tr></thead><tbody>';
+  for (var k = 0; k < result.length; k++) {
+    var r = result[k];
+    var cls = r.type === 'add' ? 'diff-add' : r.type === 'remove' ? 'diff-remove' : '';
+    var prefix = r.type === 'add' ? '+' : r.type === 'remove' ? '-' : ' ';
+    var escaped = r.line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    html += '<tr class=\"' + cls + '\"><td class=\"line-num\">' + (r.oldNum || '') + '</td><td class=\"line-num\">' + (r.newNum || '') + '</td><td>' + prefix + ' ' + escaped + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  
+  resultSection.innerHTML = '<h3>📊 Diff 结果</h3><p style=\"color:#94a3b8;font-size:.85rem;margin-bottom:8px\">' +
+    '<span style=\"color:#10b981\">+ ' + added + ' 新增</span> | ' +
+    '<span style=\"color:#ef4444\">- ' + removed + ' 删除</span> | ' +
+    '<span style=\"color:#94a3b8\">= ' + unchanged + ' 未变</span></p>';
+  resultArea.innerHTML = html;
+  resultSection.style.display = 'block';
+  resultArea.style.display = 'block';
+  
+  showToast('对比完成：+'+added+' -'+removed+' ='+unchanged);
 }
 
 function swapTexts() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!inp||!out)return;var t=inp.value;inp.value=out.textContent||out.innerText;out.textContent=t;showToast('Swapped!');
+  var t1 = document.getElementById('text1');
+  var t2 = document.getElementById('text2');
+  var tmp = t1.value;
+  t1.value = t2.value;
+  t2.value = tmp;
+  showToast('已交换');
 }
 </script>
 </body>
