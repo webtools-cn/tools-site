@@ -300,7 +300,67 @@ function copyResult() {
 }
 
 function deduplicate() {
-  showToast('deduplicate - coming soon!');
+  var inputText = document.getElementById('inputText').value;
+  if (!inputText.trim()) { showToast('请先输入文本'); return; }
+  
+  var mode = document.getElementById('mode').value;
+  var caseSensitive = document.getElementById('caseSensitive').checked;
+  var trimSpaces = document.getElementById('trimSpaces').checked;
+  var removeEmpty = document.getElementById('removeEmpty').checked;
+  var sortResult = document.getElementById('sortResult').checked;
+  
+  var items = [];
+  
+  if (mode === 'line') {
+    items = inputText.split('\n');
+  } else {
+    // word mode
+    var sepSelect = document.getElementById('separator');
+    var sepValue = sepSelect.value;
+    var customSep = document.getElementById('customSep').value;
+    var separator;
+    switch(sepValue) {
+      case 'comma': separator = ','; break;
+      case 'space': separator = ' '; break;
+      case 'semicolon': separator = ';'; break;
+      case 'newline': separator = '\n'; break;
+      case 'custom': separator = customSep || ','; break;
+      default: separator = ',';
+    }
+    items = inputText.split(separator);
+  }
+  
+  // Process items
+  var processed = [];
+  var seen = {};
+  var duplicates = [];
+  var totalCount = items.length;
+  
+  for (var i = 0; i < items.length; i++) {
+    var item = items[i];
+    if (trimSpaces) item = item.trim();
+    if (removeEmpty && !item) continue;
+    
+    var key = caseSensitive ? item : item.toLowerCase();
+    if (!seen.hasOwnProperty(key)) {
+      seen[key] = true;
+      processed.push(item);
+    } else {
+      duplicates.push(item);
+    }
+  }
+  
+  if (sortResult) processed.sort();
+  
+  var resultBox = document.getElementById('resultBox');
+  resultBox.innerHTML = processed.join(mode === 'line' ? '\n' : (document.getElementById('separator').value === 'custom' ? (document.getElementById('customSep').value || ',') : (document.getElementById('separator').value === 'comma' ? ',' : document.getElementById('separator').value === 'space' ? ' ' : '\n')));
+  resultBox.style.display = 'block';
+  
+  var stats = document.getElementById('resultStats');
+  stats.innerHTML = '总条目：' + totalCount + ' | 去重后：' + processed.length + ' | 去除重复：' + (totalCount - processed.length) + ' | 重复项数：' + duplicates.length;
+  stats.style.display = 'block';
+  
+  showToast('去重完成：' + processed.length + ' 条');
 }
 
 function downloadResult() {
@@ -315,17 +375,18 @@ function downloadResult() {
 }
 
 function loadExample() {
-  document.getElementById('customSep').value = 'example';
-  document.getElementById('caseSensitive').value = 'example';
-  document.getElementById('trimSpaces').value = 'example';
-  document.getElementById('removeEmpty').value = 'example';
-  document.getElementById('sortResult').value = 'example';
-  document.getElementById('inputText').value = '示例数据';
+  document.getElementById('inputText').value = 'apple\nbanana\napple\ncherry\nbanana\ndate\ncherry\nelderberry';
+  document.getElementById('caseSensitive').checked = false;
+  document.getElementById('trimSpaces').checked = true;
+  document.getElementById('removeEmpty').checked = true;
+  document.getElementById('sortResult').checked = true;
   showToast('已加载示例');
 }
 
 function onModeChange() {
-  showToast('onModeChange - coming soon!');
+  var mode = document.getElementById('mode').value;
+  var sepGroup = document.getElementById('sepGroup');
+  sepGroup.style.display = mode === 'word' ? 'flex' : 'none';
 }
 
 function resultToInput() {

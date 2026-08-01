@@ -228,13 +228,90 @@ function downloadJson() {
 }
 
 function loadExample() {
-  document.getElementById('envA').value = '示例数据';
-  document.getElementById('envB').value = '示例数据';
+  document.getElementById('envA').value = '# 基础 .env\nDB_HOST=localhost\nDB_PORT=5432\nDB_NAME=myapp\nAPP_DEBUG=true\nAPP_ENV=development\nAPP_URL=http://localhost:3000\nLOG_LEVEL=debug';
+  document.getElementById('envB').value = '# 覆盖 .env.override\nDB_HOST=production.example.com\nAPP_DEBUG=false\nAPP_ENV=production\nLOG_LEVEL=info\nNEW_FEATURE_FLAG=enabled';
+  document.getElementById('envC').value = '# 本地 .env.local\nDB_PASSWORD=local_secret_123\nAPI_KEY=dev_key_abc';
   showToast('已加载示例');
 }
 
 function mergeEnv() {
-  showToast('mergeEnv - coming soon!');
+  var envA = document.getElementById('envA').value;
+  var envB = document.getElementById('envB').value;
+  var envC = document.getElementById('envC').value;
+  var conflictStrategy = document.getElementById('conflictStrategy').value;
+  var sortMode = document.getElementById('sortMode').value;
+  
+  // Parse each .env file
+  function parseEnv(text) {
+    var result = {};
+    var lines = text.split('\n');
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (!line || line.startsWith('#')) continue;
+      var eqIdx = line.indexOf('=');
+      if (eqIdx === -1) continue;
+      var key = line.substring(0, eqIdx).trim();
+      var value = line.substring(eqIdx + 1).trim();
+      if (key) result[key] = value;
+    }
+    return result;
+  }
+  
+  var base = parseEnv(envA);
+  var override = parseEnv(envB);
+  var local = parseEnv(envC);
+  
+  // Merge based on conflict strategy
+  var merged = {};
+  var conflicts = [];
+  
+  // Start with base
+  for (var k in base) {
+    if (base.hasOwnProperty(k)) merged[k] = base[k];
+  }
+  
+  // Apply override
+  for (var k in override) {
+    if (override.hasOwnProperty(k)) {
+      if (merged.hasOwnProperty(k)) {
+        if (conflictStrategy === 'override') {
+          merged[k] = override[k];
+          conflicts.push(k + ': 已覆盖 (' + merged[k] + ')');
+        }
+        // 'keep' strategy: skip, keep original
+      } else {
+        merged[k] = override[k];
+      }
+    }
+  }
+  
+  // Apply local (always overrides)
+  for (var k in local) {
+    if (local.hasOwnProperty(k)) {
+      merged[k] = local[k];
+    }
+  }
+  
+  // Sort
+  var keys = Object.keys(merged);
+  if (sortMode === 'alpha') {
+    keys.sort();
+  } else if (sortMode === 'alpha-reverse') {
+    keys.sort().reverse();
+  }
+  
+  // Build output
+  var resultLines = [];
+  for (var i = 0; i < keys.length; i++) {
+    resultLines.push(keys[i] + '=' + merged[keys[i]]);
+  }
+  
+  var resultSection = document.getElementById('resultSection');
+  var resultArea = document.getElementById('resultArea');
+  resultSection.innerHTML = '<h3>✅ 合并结果 (' + keys.length + ' 个变量)</h3>' + (conflicts.length ? '<p style=\"color:#fbbf24;font-size:.85rem\">冲突: ' + conflicts.join(', ') + '</p>' : '');
+  resultArea.innerHTML = '<pre>' + resultLines.join('\n') + '</pre>';
+  resultSection.style.display = 'block';
+  resultArea.style.display = 'block';
 }
 
 function switchTab(tab) {

@@ -160,11 +160,76 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function clearQuad() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  document.getElementById('quadA').value = '1';
+  document.getElementById('quadB').value = '-5';
+  document.getElementById('quadC').value = '6';
+  document.getElementById('quadResult').style.display = 'none';
+  showToast('已重置');
 }
 
 function solveQuadratic() {
-  showToast('solveQuadratic - coming soon!');
+  var a = parseFloat(document.getElementById('quadA').value);
+  var b = parseFloat(document.getElementById('quadB').value);
+  var c = parseFloat(document.getElementById('quadC').value);
+  
+  if (isNaN(a) || isNaN(b) || isNaN(c)) {
+    showToast('请输入有效的数字系数');
+    return;
+  }
+  if (a === 0) {
+    showToast('二次项系数a不能为0');
+    return;
+  }
+  
+  var discriminant = b * b - 4 * a * c;
+  var vertexX = -b / (2 * a);
+  var vertexY = a * vertexX * vertexX + b * vertexX + c;
+  var direction = a > 0 ? '向上开口（最小值）' : '向下开口（最大值）';
+  
+  var resultParts = [];
+  resultParts.push('方程：' + a + 'x² + ' + (b >= 0 ? '+ ' : '- ') + Math.abs(b) + 'x + ' + (c >= 0 ? '+ ' : '- ') + Math.abs(c) + ' = 0');
+  resultParts.push('');
+  resultParts.push('判别式 Δ = b² - 4ac = ' + discriminant.toFixed(4));
+  
+  if (discriminant > 0) {
+    var sqrtD = Math.sqrt(discriminant);
+    var x1 = (-b + sqrtD) / (2 * a);
+    var x2 = (-b - sqrtD) / (2 * a);
+    resultParts.push('Δ > 0：两个不同的实根');
+    resultParts.push('x₁ = ' + x1.toFixed(6));
+    resultParts.push('x₂ = ' + x2.toFixed(6));
+  } else if (discriminant === 0) {
+    var x = -b / (2 * a);
+    resultParts.push('Δ = 0：一个二重实根');
+    resultParts.push('x = ' + x.toFixed(6));
+  } else {
+    var realPart = (-b / (2 * a)).toFixed(6);
+    var imagPart = (Math.sqrt(-discriminant) / (2 * a)).toFixed(6);
+    resultParts.push('Δ < 0：一对共轭复数根');
+    resultParts.push('x₁ = ' + realPart + ' + ' + imagPart + 'i');
+    resultParts.push('x₂ = ' + realPart + ' - ' + imagPart + 'i');
+  }
+  
+  resultParts.push('');
+  resultParts.push('顶点坐标：(' + vertexX.toFixed(4) + ', ' + vertexY.toFixed(4) + ')');
+  resultParts.push('开口方向：' + direction);
+  
+  // 因式分解（仅整系数整数根）
+  if (discriminant >= 0 && Number.isInteger(a) && Number.isInteger(b) && Number.isInteger(c)) {
+    var sqrtD2 = Math.sqrt(discriminant);
+    var r1 = (-b + sqrtD2) / (2 * a);
+    var r2 = (-b - sqrtD2) / (2 * a);
+    if (Number.isInteger(r1) && Number.isInteger(r2)) {
+      var factorA = a;
+      var sign1 = r1 >= 0 ? '-' : '+';
+      var sign2 = r2 >= 0 ? '-' : '+';
+      resultParts.push('');
+      resultParts.push('因式分解：' + factorA + '(x ' + sign1 + ' ' + Math.abs(r1) + ')(x ' + sign2 + ' ' + Math.abs(r2) + ') = 0');
+    }
+  }
+  
+  document.getElementById('quadResultText').textContent = resultParts.join('\n');
+  document.getElementById('quadResult').style.display = 'block';
 }
 </script>
 </body>

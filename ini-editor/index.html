@@ -205,31 +205,196 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 // === 重写的函数实现 ===
 function addKeyValue() {
-  showToast('addKeyValue - coming soon!');
+  var section = document.getElementById('add-section').value.trim();
+  var key = document.getElementById('add-key').value.trim();
+  var value = document.getElementById('add-value').value.trim();
+  if (!key) { showToast('请输入键名'); return; }
+  
+  var editor = document.getElementById('ini-editor');
+  var text = editor.value;
+  
+  if (section) {
+    // Find the section or add it
+    var sectionHeader = '[' + section + ']';
+    var idx = text.indexOf(sectionHeader);
+    if (idx === -1) {
+      // Add new section at end
+      text += '\n\n' + sectionHeader + '\n' + key + '=' + value;
+    } else {
+      // Find end of this section
+      var nextSectionIdx = text.indexOf('\n[', idx + sectionHeader.length);
+      if (nextSectionIdx === -1) nextSectionIdx = text.length;
+      text = text.substring(0, nextSectionIdx) + '\n' + key + '=' + value + text.substring(nextSectionIdx);
+    }
+  } else {
+    // Global key (before first section)
+    var firstSection = text.indexOf('\n[');
+    if (firstSection === -1) {
+      text += '\n' + key + '=' + value;
+    } else {
+      text = text.substring(0, firstSection) + '\n' + key + '=' + value + text.substring(firstSection);
+    }
+  }
+  
+  editor.value = text.trim();
+  document.getElementById('add-key').value = '';
+  document.getElementById('add-value').value = '';
+  showToast('已添加 ' + key + ' = ' + value);
 }
 
 function addSection() {
-  showToast('addSection - coming soon!');
+  var sectionName = prompt('请输入节名（不含方括号）：');
+  if (!sectionName || !sectionName.trim()) return;
+  sectionName = sectionName.trim();
+  var editor = document.getElementById('ini-editor');
+  editor.value = editor.value.trim() + '\n\n[' + sectionName + ']\n';
+  showToast('已添加节 [' + sectionName + ']');
 }
 
 function download() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{{type:'text/plain'}});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+  var editor = document.getElementById('ini-editor');
+  var text = editor.value;
+  var blob = new Blob([text], {type: 'text/plain'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'config.ini';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已下载 config.ini');
 }
 
 function format() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;try{{var obj=JSON.parse(el.textContent||el.innerText);el.textContent=JSON.stringify(obj,null,2);showToast('Formatted!')}}catch(e){{showToast('Format failed: not valid JSON')}};
+  var editor = document.getElementById('ini-editor');
+  var lines = editor.value.split('\n');
+  var result = [];
+  var lastWasSection = false;
+  var lastWasEmpty = false;
+  
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) {
+      if (!lastWasEmpty) result.push('');
+      lastWasEmpty = true;
+      lastWasSection = false;
+      continue;
+    }
+    lastWasEmpty = false;
+    
+    if (line.startsWith('[') && line.endsWith(']')) {
+      if (!lastWasSection && result.length > 0) result.push('');
+      result.push(line);
+      lastWasSection = true;
+    } else if (line.startsWith(';') || line.startsWith('#')) {
+      result.push(line);
+      lastWasSection = false;
+    } else {
+      // Key=Value, ensure spacing
+      var eqIdx = line.indexOf('=');
+      if (eqIdx !== -1) {
+        var key = line.substring(0, eqIdx).trim();
+        var value = line.substring(eqIdx + 1).trim();
+        result.push(key + ' = ' + value);
+      } else {
+        result.push(line);
+      }
+      lastWasSection = false;
+    }
+  }
+  
+  editor.value = result.join('\n').trim();
+  showToast('格式化完成');
 }
 
 function loadSample() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
+  var editor = document.getElementById('ini-editor');
+  editor.value = '; 应用配置文件\n[database]\nhost = localhost\nport = 3306\nname = myapp_db\nusername = admin\npassword = secret123\n\n[server]\nhost = 0.0.0.0\nport = 8080\ndebug = true\nsecret_key = your-secret-key-here\n\n[logging]\nlevel = info\nfile = app.log\nmax_size = 10MB\nbackup_count = 5\n\n[cache]\nenabled = true\ntype = redis\nttl = 3600';
+  showToast('示例已加载');
 }
 
 function sortSections() {
-  showToast('sortSections - coming soon!');
+  var editor = document.getElementById('ini-editor');
+  var text = editor.value;
+  var sections = [];
+  var globalKeys = [];
+  var currentSection = null;
+  var currentKeys = [];
+  var inSection = false;
+  
+  var lines = text.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) continue;
+    if (line.startsWith('[') && line.endsWith(']')) {
+      if (currentSection) {
+        sections.push({ name: currentSection, keys: currentKeys });
+      }
+      currentSection = line;
+      currentKeys = [];
+      inSection = true;
+    } else if (!inSection && !line.startsWith(';') && !line.startsWith('#') && line.indexOf('=') !== -1) {
+      globalKeys.push(line);
+    } else if (inSection && !line.startsWith(';') && !line.startsWith('#')) {
+      currentKeys.push(line);
+    }
+  }
+  if (currentSection) {
+    sections.push({ name: currentSection, keys: currentKeys });
+  }
+  
+  // Sort sections alphabetically
+  sections.sort(function(a, b) { return a.name.localeCompare(b.name); });
+  
+  var result = [];
+  if (globalKeys.length) {
+    result = result.concat(globalKeys.sort());
+    result.push('');
+  }
+  
+  for (var j = 0; j < sections.length; j++) {
+    result.push(sections[j].name);
+    result = result.concat(sections[j].keys.sort());
+    if (j < sections.length - 1) result.push('');
+  }
+  
+  editor.value = result.join('\n');
+  showToast('已按字母顺序排序节');
 }
 
 function validate() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;var v=inp.value.trim();if(!v){{out.textContent='Please enter input';return}}out.textContent=v.length>0?'Valid ✓':'Invalid ✗';showToast('Validated!');
+  var editor = document.getElementById('ini-editor');
+  var text = editor.value;
+  var lines = text.split('\n');
+  var errors = [];
+  var currentSection = '';
+  var lineNum = 0;
+  
+  for (var i = 0; i < lines.length; i++) {
+    lineNum = i + 1;
+    var line = lines[i].trim();
+    if (!line) continue;
+    
+    if (line.startsWith('[')) {
+      if (!line.endsWith(']')) {
+        errors.push('第' + lineNum + '行：节名缺少右括号 ]');
+      } else {
+        currentSection = line.substring(1, line.length - 1).trim();
+        if (!currentSection) errors.push('第' + lineNum + '行：节名为空');
+      }
+    } else if (!line.startsWith(';') && !line.startsWith('#')) {
+      if (line.indexOf('=') === -1) {
+        errors.push('第' + lineNum + '行：缺少 = 号（非键值对格式）');
+      }
+    }
+  }
+  
+  var errorList = document.getElementById('error-list');
+  var validationCard = document.getElementById('validation-card');
+  if (errors.length === 0) {
+    errorList.innerHTML = '<p style=\"color:#10b981\">✅ 验证通过！INI 格式正确。</p>';
+  } else {
+    errorList.innerHTML = '<p style=\"color:#ef4444\">❌ 发现 ' + errors.length + ' 个问题：</p><ul>' + errors.map(function(e) { return '<li>' + e + '</li>'; }).join('') + '</ul>';
+  }
+  validationCard.style.display = 'block';
 }
 </script>
 </body>
