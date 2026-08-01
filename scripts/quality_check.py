@@ -71,10 +71,18 @@ en_cn_files = []
 en_punct_only = []
 for f in glob.glob('en/*/index.html'):
     content = open(f,'r',errors='ignore').read()
-    # 排除语言切换链接: <a ...>中文</a>
+    # 排除 <a>中文</a> 链接文本
     content_clean = re.sub(r'<a[^>]*>\s*中文\s*</a>', '', content)
-    # 排除lang-switch div
+    # 排除 lang-switch div 整体
     content_clean = re.sub(r'<div[^>]*class="[^"]*lang-switch[^"]*"[^>]*>.*?</div>', '', content_clean, flags=re.DOTALL)
+    # 排除 <option>中文</option> 语言选择器
+    content_clean = re.sub(r'<option[^>]*>\s*中文\s*</option>', '', content_clean)
+    # 排除 <button>中文</button> 示例按钮
+    content_clean = re.sub(r'<button[^>]*>\s*中文\s*</button>', '', content_clean)
+    # 排除 script 标签内的 schema 中文
+    content_clean = re.sub(r'<script[^>]*>.*?</script>', '', content_clean, flags=re.DOTALL)
+    # 排除所有HTML标签属性值中的中文（如placeholder等，功能性使用）
+    content_clean = re.sub(r'<[^>]*>', '', content_clean)
     has_cn_char = cn_char.search(content_clean)
     has_cn_punct = cn_punct.search(content_clean)
     if has_cn_char:

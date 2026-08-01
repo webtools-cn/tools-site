@@ -87,7 +87,7 @@ input{width:100%}
 <body>
 <div class="container">
 <div class="header"><h1>免费在线SSL证书检查器 - Check Domain Certificate Expiry | 无需注册</h1>
-<p style="color:#f59e0b;font-size:.85rem;margin:8px 0;padding:8px 12px;background:rgba(245,158,11,.1);border-radius:6px;border:1px solid rgba(245,158,11,.2)">⚠️ 纯前端限制：此功能需要服务端支持，浏览器无法直接实现。本页面仅作展示用途。</p><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/ssl-checker/" class="">EN</a></div></div>
+<div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/ssl-checker/" class="">EN</a></div></div>
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线SSL证书检查器</p>
 <div class="hero"><p>免费在线SSL证书检查器，快速检查任意域名的SSL/TLS证书信息，包括过期时间、颁发者、SAN域名、证书链等。纯前端实现，无需注册。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
@@ -167,11 +167,67 @@ input{width:100%}
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
-}
 
-// === 重写的函数实现 ===
 function checkCert() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;var v=inp.value.trim();if(!v){{out.textContent='Please enter input';return}}out.textContent=v.length>0?'Valid ✓':'Invalid ✗';showToast('Validated!');
+  var domain = document.getElementById('domain');
+  var result = document.getElementById('result');
+  if (!domain || !result) return;
+  var d = domain.value.trim().replace(/^https?:\/\//,'').replace(/\/.*$/,'');
+  if (!d) { showToast('请输入域名'); return; }
+  
+  result.style.display = 'block';
+  result.innerHTML = '<div class="loading">⏳ 正在查询 crt.sh...</div>';
+  
+  // Use crt.sh Certificate Transparency API
+  var url = 'https://crt.sh/?q=%25.' + encodeURIComponent(d) + '&output=json';
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(certs) {
+      if (!certs || certs.length === 0) {
+        result.innerHTML = '<p style="color:#f87171">❌ 未找到证书记录。该域名可能未配置HTTPS或证书尚未同步到CT日志。</p>';
+        return;
+      }
+      // Get unique certificates by issuer
+      var seen = {};
+      var unique = [];
+      certs.forEach(function(c) {
+        var key = c.issuer_name + '|' + c.not_before + '|' + c.not_after;
+        if (!seen[key]) { seen[key] = true; unique.push(c); }
+      });
+      unique.sort(function(a,b) { return b.not_after.localeCompare(a.not_after); });
+      
+      var latest = unique[0];
+      var now = new Date();
+      var expiry = new Date(latest.not_after);
+      var daysLeft = Math.ceil((expiry - now) / (1000*60*60*24));
+      var statusClass = daysLeft > 30 ? 'cert-valid' : daysLeft > 0 ? 'cert-expiring' : 'cert-expired';
+      var statusText = daysLeft > 30 ? '✅ 有效' : daysLeft > 0 ? '⚠️ 即将过期' : '❌ 已过期';
+      
+      // Collect SAN domains
+      var sans = [];
+      unique.forEach(function(c) {
+        var name = c.common_name || c.name_value || '';
+        name.split(/[,\s]+/).forEach(function(n) {
+          n = n.trim().replace(/^\*\./,'');
+          if (n && sans.indexOf(n) === -1) sans.push(n);
+        });
+      });
+      
+      var html = '<table>';
+      html += '<tr><td>域名</td><td><strong>' + d + '</strong></td></tr>';
+      html += '<tr><td>证书状态</td><td><span class="cert-status ' + statusClass + '">' + statusText + ' (剩余' + daysLeft + '天)</span></td></tr>';
+      html += '<tr><td>颁发者</td><td>' + (latest.issuer_name || '未知') + '</td></tr>';
+      html += '<tr><td>生效时间</td><td>' + latest.not_before + '</td></tr>';
+      html += '<tr><td>过期时间</td><td>' + latest.not_after + '</td></tr>';
+      html += '<tr><td>SAN域名</td><td><div class="san-list">' + sans.slice(0,20).join('<br>') + (sans.length > 20 ? '<br>...等' + sans.length + '个域名' : '') + '</div></td></tr>';
+      html += '<tr><td>证书总数</td><td>' + unique.length + ' 个证书记录</td></tr>';
+      html += '</table>';
+      html += '<p style="font-size:.75rem;color:#64748b;margin-top:8px">数据来源：<a href="https://crt.sh/?q=%25.' + d + '" target="_blank" rel="noopener">crt.sh 证书透明日志</a></p>';
+      result.innerHTML = html;
+    })
+    .catch(function(e) {
+      result.innerHTML = '<p style="color:#f87171">❌ 查询失败：' + e.message + '。请检查域名是否正确，或稍后重试。</p>';
+    });
 }
 </script>
 </body>
