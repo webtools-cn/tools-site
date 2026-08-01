@@ -132,6 +132,15 @@ def check_page(f, content):
                 # 排除 "Home · All Tools · About · Privacy · Terms · 中文" 纯导航行
                 if re.match(r'^(Home|All Tools|About|Privacy|Terms|Contact|Blog|Dev Tools)\s*(·|\|)\s*.*中文\s*$', t_clean):
                     continue
+                # 排除 "<a href=...>中文</a>" 语言切换链接
+                if re.search(r'<a[^>]*href=[^>]*>[^<]*中文[^<]*</a>', t_clean):
+                    continue
+                # 排除 footer中"GitHub中文"类混合
+                if re.search(r'GitHub.*中文', t_clean) and 'href=' in t_clean:
+                    continue
+                # 排除包含纯链接文本"中文"的行（HTML提取残留）
+                if t_clean.strip() == '中文':
+                    continue
                 has_en = bool(re.search(r'[a-zA-Z]{2,}', text))
                 if has_en:
                     mixed_lines.append(text[:80])
