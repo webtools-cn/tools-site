@@ -90,7 +90,17 @@ def check_page(f, content):
                     pure_cn_lines.append(text[:80])
             
             if pure_cn_lines:
-                issues.append(('L3-CRITICAL', 'en_pure_cn', f'EN页面有{len(pure_cn_lines)}行纯中文'))
+                # Filter false positives: if all CN text is just isolated "中文" (lang switch link residue)
+                real_pure_cn = []
+                for t in pure_cn_lines:
+                    cn_only = re.sub(r'[^\u4e00-\u9fff]', '', t)
+                    # Skip if it's just "中文" repeated (lang switch residue)
+                    if re.match(r'^中文+$', cn_only):
+                        continue
+                    if len(cn_only) > 1:
+                        real_pure_cn.append(t)
+                if real_pure_cn:
+                    issues.append(('L3-CRITICAL', 'en_pure_cn', f'EN页面有{len(real_pure_cn)}行纯中文'))
             if mixed_lines:
                 issues.append(('L3-HIGH', 'en_mixed', f'EN页面有{len(mixed_lines)}行中英混合'))
     
