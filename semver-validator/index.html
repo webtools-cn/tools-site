@@ -8,9 +8,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="免费在线SemVer语义化版本号验证器，即时验证版本号格式、比较版本大小、批量排序、检查npm范围(^/~)。遵循SemVer 2.0规范，支持预发布标签和构建元数据。纯前端本地处理，无需注册。">
 <meta name="keywords" content="semver验证器,semver checker,语义化版本检查,版本号验证,版本比较,semantic versioning,在线工具,免费">
-<title>SemVer 在线版本号验证器 | 格式校验·批量排序·范围检查 | Free ToolBase</title>
+<title>SemVer Checker 在线版本号验证器 - 格式校验 | 批量排序 | 范围检查</title>
 <link rel="canonical" href="https://free-toolbase.com/semver-validator/">
-<meta property="og:title" content="SemVer 在线版本号验证器 | 格式校验·批量排序·范围检查 | Free ToolBase">
+<meta property="og:title" content="SemVer Checker 在线版本号验证器 - 格式校验 | 批量排序 | 范围检查">
 <meta property="og:description" content="免费在线SemVer语义化版本号验证器。即时验证版本号格式、比较两个版本大小、批量排序多版本、检查npm范围(^/~)。遵循SemVer 2.0规范，支持预发布标签和构建元数据。纯前端本地处理，数据绝不上传。">
 <meta property="og:url" content="https://free-toolbase.com/semver-validator/">
 <meta property="og:type" content="website">
@@ -61,7 +61,8 @@ input:focus,textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 .result-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
 .result-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
 .ver-info{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
-.ver-card{flex:1;min-width:80px;background:#0f172a;border-radius:8px;padding:12px;text-align:center;border:1px solid rgba(148,163,184,.08)}
+.ver-card{flex:1;min-width:80px;background:#0f172a;border-radius:8px;padding:12px;text-align:center;border:1px solid rgba(148,163,184,.08);transition:border-color .2s,transform .15s}
+.ver-card:hover{border-color:rgba(6,182,212,.3);transform:translateY(-1px)}
 .ver-card .ver-label{font-size:.75rem;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
 .ver-card .ver-value{font-size:1.8rem;font-weight:700;color:#22d3ee;font-family:"SF Mono","Cascadia Code","Consolas",monospace}
 .ver-card .ver-tag{font-size:.7rem;color:#94a3b8;margin-top:2px}
@@ -160,6 +161,8 @@ input:focus,textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 </div>
 <div class="btn-row">
 <button class="btn btn-secondary" onclick="clearCompare()">清除</button>
+<button class="btn btn-secondary" onclick="swapCompare()" title="交换版本A和B">🔄 交换</button>
+<button class="btn btn-success" onclick="copyCompareResult()" style="font-size:.8rem">📋 复制结果</button>
 </div>
 <div id="compareResult" style="margin-top:12px;"></div>
 </div>
@@ -168,6 +171,13 @@ input:focus,textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <div class="input-section">
 <h2>📦 NPM 范围检查</h2>
 <p style="color:#94a3b8;font-size:.85rem;margin-bottom:12px">检查某个版本是否满足 npm 的 <code>^</code>（兼容更新）或 <code>~</code>（补丁更新）范围约束。</p>
+<div class="sample-row" id="rangeSampleRow">
+  <span class="sample-label">快速填入：</span>
+  <button class="sample-btn" onclick="fillRange('^1.0.0','1.5.0')">^1.0.0 ← 1.5.0</button>
+  <button class="sample-btn" onclick="fillRange('~2.1.0','2.1.5')">~2.1.0 ← 2.1.5</button>
+  <button class="sample-btn" onclick="fillRange('^0.4.0','0.5.0')">^0.4.0 ← 0.5.0</button>
+  <button class="sample-btn" onclick="fillRange('>=1.0.0 <2.0.0','1.5.0')">>=1.0.0<2.0.0 ← 1.5.0</button>
+</div>
 <div class="row">
 <div class="field">
 <label>范围版本（如 ^1.0.0 或 ~1.5.2）</label>
@@ -191,6 +201,9 @@ input:focus,textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <input type="text" id="currentVer" placeholder="例如: 1.2.3" value="" oninput="suggestBump()">
 </div>
 </div>
+<div class="btn-row">
+<button class="btn btn-success" onclick="copyBumpResult()" style="font-size:.8rem">📋 复制建议</button>
+</div>
 <div id="bumpResult" style="margin-top:12px;"></div>
 </div>
 
@@ -199,12 +212,13 @@ input:focus,textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <h2>📊 批量版本排序</h2>
 <p style="color:#94a3b8;font-size:.85rem;margin-bottom:12px">输入多行版本号（每行一个），一键升序或降序排列。支持预发布版本。</p>
 <div class="field" style="margin-bottom:12px">
-<textarea id="sortInput" rows="5" style="width:100%;padding:10px 12px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;font-size:.9rem;font-family:'SF Mono','Cascadia Code','Consolas',monospace;resize:vertical;outline:none" placeholder="2.0.0&#10;1.0.0&#10;1.0.0-alpha&#10;1.0.0-beta&#10;1.0.0+build.1" oninput="batchSort()"></textarea>
+<textarea id="sortInput" rows="5" style="width:100%;padding:10px 12px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;font-size:.9rem;font-family:'SF Mono','Cascadia Code','Consolas',monospace;resize:vertical;outline:none" placeholder="每行一个版本号，例如：&#10;2.0.0&#10;1.0.0&#10;1.0.0-alpha&#10;1.0.0-beta&#10;1.0.0+build.1" oninput="batchSort()"></textarea>
 </div>
 <div class="btn-row">
 <button class="btn btn-primary" onclick="batchSort('asc')">⬆ 升序排列</button>
 <button class="btn btn-primary" onclick="batchSort('desc')">⬇ 降序排列</button>
 <button class="btn btn-secondary" onclick="clearSort()">清空</button>
+<button class="btn btn-success" onclick="copySortResult()" style="font-size:.8rem">📋 复制结果</button>
 </div>
 <div id="sortResult" style="margin-top:12px;"></div>
 </div>
@@ -477,6 +491,23 @@ function clearCompare(){
   document.getElementById("compareResult").innerHTML="";
 }
 
+function swapCompare(){
+  var a=document.getElementById("verA").value;
+  var b=document.getElementById("verB").value;
+  document.getElementById("verA").value=b;
+  document.getElementById("verB").value=a;
+  compareVersions();
+}
+
+function copyCompareResult(){
+  var el=document.getElementById("compareResult");
+  var text=el.textContent.trim();
+  if(!text||text.indexOf('无效')!==-1&&text.indexOf('>')===-1){showToast("请先输入两个有效版本号");return;}
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(function(){showToast("已复制比较结果")});
+  }else{showToast("复制失败");}
+}
+
 // 复制验证结果
 function copyValidateResult(){
   var input=document.getElementById("verInput").value.trim();
@@ -540,6 +571,38 @@ function batchSort(order){
 function clearSort(){
   document.getElementById("sortInput").value="";
   document.getElementById("sortResult").innerHTML="";
+}
+
+function fillRange(range,ver){
+  document.getElementById("rangeVer").value=range;
+  document.getElementById("checkVer").value=ver;
+  checkRange();
+}
+
+function copyBumpResult(){
+  var el=document.getElementById("bumpResult");
+  if(!el||!el.textContent.trim()||el.textContent.indexOf('无效')!==-1){showToast("请先输入有效版本号");return;}
+  var cards=el.querySelectorAll('.ver-card');
+  if(cards.length<3){showToast("暂无建议");return;}
+  var texts=[];
+  for(var i=0;i<cards.length;i++){
+    var label=cards[i].querySelector('.ver-label');
+    var val=cards[i].querySelector('.ver-value');
+    if(label&&val)texts.push(label.textContent.trim().replace(/\\n.*/,'')+': '+val.textContent.trim());
+  }
+  var text=texts.join(' | ');
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(function(){showToast("已复制升级建议")});
+  }else{showToast("复制失败");}
+}
+
+function copySortResult(){
+  var el=document.getElementById("sortResult");
+  var text=el.textContent.trim();
+  if(!text||text.indexOf('✅')===-1){showToast("请先排序");return;}
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(function(){showToast("已复制排序结果")});
+  }else{showToast("复制失败");}
 }
 
 // 在验证成功时显示复制按钮
