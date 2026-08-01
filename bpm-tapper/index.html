@@ -173,13 +173,76 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function copyBPM() {
-  showToast('功能已触发');
+// === BPM 节拍器逻辑 ===
+var tapTimes = [];
+var maxTaps = 20;
+
+function tap() {
+  var now = Date.now();
+  tapTimes.push(now);
+  if (tapTimes.length > maxTaps) tapTimes.shift();
+  
+  document.getElementById('bpmCount').textContent = tapTimes.length;
+  document.getElementById('bpmIcon').textContent = '🥁';
+  
+  if (tapTimes.length >= 2) {
+    var intervals = [];
+    for (var i = 1; i < tapTimes.length; i++) {
+      intervals.push(tapTimes[i] - tapTimes[i-1]);
+    }
+    var avgInterval = intervals.reduce(function(a,b){return a+b;}, 0) / intervals.length;
+    var currentBpm = Math.round(60000 / (tapTimes[tapTimes.length-1] - tapTimes[tapTimes.length-2]));
+    var avgBpm = Math.round(60000 / avgInterval);
+    document.getElementById('bpmCurrent').textContent = currentBpm;
+    document.getElementById('bpmAvg').textContent = avgBpm;
+    document.getElementById('bpmDisplay').textContent = avgBpm + ' BPM';
+    
+    var log = [];
+    for (var i = 1; i < tapTimes.length; i++) {
+      var b = Math.round(60000 / (tapTimes[i] - tapTimes[i-1]));
+      log.push('Tap ' + i + ': ' + b + ' BPM');
+    }
+    document.getElementById('bpmLog').value = log.join('\n');
+  }
+  
+  // Beat animation
+  var beat = document.getElementById('bpmBeat');
+  beat.style.opacity = '1';
+  setTimeout(function(){ beat.style.opacity = '0'; }, 100);
+  
+  // Reset after 3 seconds of no taps
+  clearTimeout(window._tapTimeout);
+  window._tapTimeout = setTimeout(function(){
+    tapTimes = [];
+    document.getElementById('bpmCount').textContent = '0';
+    document.getElementById('bpmCurrent').textContent = '--';
+    document.getElementById('bpmAvg').textContent = '--';
+    document.getElementById('bpmDisplay').textContent = '点击敲击';
+    document.getElementById('bpmIcon').textContent = '🥁';
+    document.getElementById('bpmLog').value = '等待敲击...';
+  }, 3000);
 }
 
 function resetBPM() {
-  showToast('功能已触发');
+  tapTimes = [];
+  document.getElementById('bpmCount').textContent = '0';
+  document.getElementById('bpmCurrent').textContent = '--';
+  document.getElementById('bpmAvg').textContent = '--';
+  document.getElementById('bpmDisplay').textContent = '点击敲击';
+  document.getElementById('bpmIcon').textContent = '🥁';
+  document.getElementById('bpmLog').value = '等待敲击...';
+  clearTimeout(window._tapTimeout);
+  showToast('已重置');
+}
+
+function copyBPM() {
+  var avg = document.getElementById('bpmAvg').textContent;
+  if (avg === '--') { showToast('请先敲击节拍'); return; }
+  navigator.clipboard.writeText(avg + ' BPM').then(function(){
+    showToast('BPM值已复制: ' + avg);
+  }).catch(function(){
+    showToast('复制失败');
+  });
 }
 </script>
 </body>
