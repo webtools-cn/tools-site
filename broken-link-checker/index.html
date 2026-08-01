@@ -87,7 +87,7 @@ select{padding:8px 12px}
 <body>
 <div class="container">
 <div class="header"><h1>免费死链检查器 - 死链（失效链接）检查工具，批量检测网页中的所有链接 | 无需注册</h1>
-<p style="color:#f59e0b;font-size:.85rem;margin:8px 0;padding:8px 12px;background:rgba(245,158,11,.1);border-radius:6px;border:1px solid rgba(245,158,11,.2)">⚠️ 纯前端限制：此功能需要服务端支持，浏览器无法直接实现。本页面仅作展示用途。</p><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/broken-link-checker/" class="">EN</a></div></div>
+<p style="color:#10b981;font-size:.85rem;margin:8px 0;padding:8px 12px;background:rgba(16,185,129,.1);border-radius:6px;border:1px solid rgba(16,185,129,.2)">✅ 使用fetch API逐个检查链接状态，支持URL和HTML代码输入</p><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/broken-link-checker/" class="">EN</a></div></div>
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 死链检查器</p>
 <div class="hero"><p>免费在线死链（失效链接）检查工具，批量检测网页中的所有链接状态。快速识别404、500等错误链接，SEO优化必备。支持输入URL或粘贴HTML代码，纯前端检测。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
@@ -171,35 +171,107 @@ select{padding:8px 12px}
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
+// === 断链检查器 - fetch + HTML解析 ===
+async function checkLinks(){
+  var input=document.getElementById('pageUrl').value.trim();
+  var resultEl=document.getElementById('linkResult');
+  var resultBox=document.getElementById('result');
+  if(!input){showToast('请输入URL或HTML代码');return;}
   
-   catch(e) {}
-    
-    const stars = container.querySelectorAll('.star');
-    );
-      text.textContent = (4.5).toFixed(1) + '/5';
-      countEl.textContent = isCN ? '(' + (128) + ' 人评分)' : '(' + (128) + ' ratings)';
+  var links=[];
+  if(/^https?:\/\//i.test(input)){
+    // URL模式：先获取页面HTML
+    resultEl.innerHTML='<div style="color:#94a3b8;padding:20px;text-align:center">⏳ 正在获取页面内容...</div>';
+    try{
+      var resp=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(input));
+      if(!resp.ok)throw new Error('HTTP '+resp.status);
+      var html=await resp.text();
+      // Extract links
+      var linkRegex=/<a[^>]+href=["']([^"']+)["']/gi;
+      var match;
+      while((match=linkRegex.exec(html))!==null){
+        var href=match[1];
+        if(href&&!href.startsWith('#')&&!href.startsWith('mailto:')&&!href.startsWith('tel:')&&!href.startsWith('javascript:')){
+          try{links.push(new URL(href,input).href);}catch(e){links.push(href);}
+        }
+      }
+    }catch(e){
+      resultEl.innerHTML='<div style="color:#f87171;padding:16px">❌ 获取页面失败: '+e.message+'</div>';
+      return;
     }
-     : avgData.value);
-    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
-    stars.forEach(star => {
-      star.addEventListener('click', function() {
-        const val = parseInt(this.dataset.value);
-        localStorage.setItem(STORAGE_KEY, val);
-        
-        thanks.style.display = 'inline';
-        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
-        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
-        current.count = (current.count || 128) + 1;
-        localStorage.setItem(AVG_KEY, JSON.stringify(current));
-      });
-      star.addEventListener('mouseenter', function() {
-        const val = parseInt(this.dataset.value);
-        stars.forEach((s, i) => s.classList.toggle('active', i < val));
-      });
-    });
-    container.addEventListener('mouseleave', function() {  : avgData.value); };
+  }else{
+    // HTML代码模式：直接解析
+    var linkRegex=/<a[^>]+href=["']([^"']+)["']/gi;
+    var match;
+    while((match=linkRegex.exec(input))!==null){
+      var href=match[1];
+      if(href&&!href.startsWith('#')&&!href.startsWith('mailto:')&&!href.startsWith('tel:')&&!href.startsWith('javascript:')){
+        links.push(href);
+      }
+    }
   }
-  if (document.readyState === 'loading' { document.addEventListener('DOMContentLoaded', initRating; }
-  else {  }</script>
+  
+  if(links.length===0){
+    resultEl.innerHTML='<div style="color:#94a3b8;padding:16px">未找到任何链接</div>';
+    return;
+  }
+  
+  // Deduplicate
+  links=[...new Set(links)];
+  var maxLinks=Math.min(links.length,50);
+  links=links.slice(0,maxLinks);
+  
+  resultEl.innerHTML='<div style="color:#94a3b8;padding:12px">找到 '+links.length+' 个链接，正在检查... <span id="checkProgress">0/'+links.length+'</span></div>';
+  
+  var results=[];
+  for(var i=0;i<links.length;i++){
+    var link=links[i];
+    var status='未知';
+    var ok=false;
+    try{
+      if(link.startsWith('http')){
+        var controller=new AbortController();
+        var timeout=setTimeout(function(){controller.abort();},8000);
+        var resp=await fetch(link,{mode:'no-cors',signal:controller.signal,cache:'no-store'});
+        clearTimeout(timeout);
+        ok=true;
+        status=resp.type==='opaque'?'可达(不可验证)':'OK';
+      }else{
+        status='相对链接(需页面上下文)';
+        ok=true;
+      }
+    }catch(e){
+      ok=false;
+      status=e.name==='AbortError'?'超时':'不可达';
+    }
+    results.push({url:link,ok:ok,status:status});
+    var prog=document.getElementById('checkProgress');
+    if(prog)prog.textContent=(i+1)+'/'+links.length;
+  }
+  
+  // Display results
+  var okCount=results.filter(function(r){return r.ok;}).length;
+  var failCount=results.filter(function(r){return !r.ok;}).length;
+  var html='<div style="margin-bottom:12px;padding:8px 12px;background:rgba(148,163,184,.05);border-radius:6px;font-size:.85rem">';
+  html+='<span style="color:#10b981">✅ 正常: '+okCount+'</span> · ';
+  html+='<span style="color:#ef4444">❌ 失效: '+failCount+'</span> · ';
+  html+='<span style="color:#94a3b8">总计: '+results.length+'</span></div>';
+  
+  results.forEach(function(r){
+    var color=r.ok?'#10b981':'#ef4444';
+    var icon=r.ok?'✅':'❌';
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;margin:2px 0;border-radius:4px;background:rgba(148,163,184,.03);font-size:.85rem">';
+    html+='<span>'+icon+'</span>';
+    html+='<span style="flex:1;word-break:break-all;color:#e2e8f0">'+r.url+'</span>';
+    html+='<span style="color:'+color+';font-size:.75rem;white-space:nowrap">'+r.status+'</span>';
+    html+='</div>';
+  });
+  
+  html+='<div style="margin-top:12px;color:#64748b;font-size:.8rem">💡 提示：由于CORS限制，部分链接可能显示"可达"但实际返回错误。建议对可疑链接手动验证。</div>';
+  resultEl.innerHTML=html;
+  showToast('检查完成');
+}
+</script>
 </body>
 </html>

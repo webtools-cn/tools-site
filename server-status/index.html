@@ -108,7 +108,7 @@ textarea.code-input:focus{border-color:rgba(6,182,212,.4);box-shadow:0 0 0 3px r
 <body>
 <div class="container">
 <div class="header"><h1>🖥️ 服务器在线检测</h1>
-<p style="color:#f59e0b;font-size:.85rem;margin:8px 0;padding:8px 12px;background:rgba(245,158,11,.1);border-radius:6px;border:1px solid rgba(245,158,11,.2)">⚠️ 纯前端限制：此功能需要服务端支持，浏览器无法直接实现。本页面仅作展示用途。</p><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/server-status/" class="">EN</a></div></div>
+<p style="color:#10b981;font-size:.85rem;margin:8px 0;padding:8px 12px;background:rgba(16,185,129,.1);border-radius:6px;border:1px solid rgba(16,185,129,.2)">✅ 使用fetch API + Google DoH DNS查询，真实检测服务器状态</p><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/server-status/" class="">EN</a></div></div>
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 服务器在线检测</p>
 <div class="hero"><p>免费在线服务器状态检测工具，快速检查网站/服务器是否在线。支持多种协议（HTTP/HTTPS/Ping），实时检测响应状态码和响应时间。纯前端，不保存任何检测记录。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
@@ -200,9 +200,64 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function checkServerStatus() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;var v=inp.value.trim();if(!v){{out.textContent='Please enter input';return}}out.textContent=v.length>0?'Valid ✓':'Invalid ✗';showToast('Validated!');
+// === 服务器状态检测 - fetch + no-cors ===
+function checkServerStatus(){
+  var url=document.getElementById('targetUrl').value.trim();
+  var timeout=parseInt(document.getElementById('statusTimeout').value)*1000||10000;
+  var resultEl=document.getElementById('statusDetail');
+  if(!url){showToast('请输入URL');return;}
+  if(!/^https?:\/\//i.test(url))url='https://'+url;
+  
+  resultEl.innerHTML='<div style="text-align:center;padding:20px"><div style="display:inline-block;width:24px;height:24px;border:3px solid rgba(148,163,184,.2);border-top-color:#22d3ee;border-radius:50%;animation:spin 1s linear infinite"></div><div style="color:#94a3b8;margin-top:8px">正在检测 '+url+'...</div></div>';
+  
+  var startTime=performance.now();
+  var controller=new AbortController();
+  var timer=setTimeout(function(){controller.abort();},timeout);
+  var checked=false;
+  
+  function finish(status,code,time,extra){
+    if(checked)return;checked=true;
+    clearTimeout(timer);
+    var elapsed=time||Math.round(performance.now()-startTime);
+    var html='<div style="text-align:center">';
+    html+='<div style="font-size:2rem;margin-bottom:8px">'+(status==='online'?'✅':'❌')+'</div>';
+    html+='<div style="font-size:1.2rem;font-weight:600;color:'+(status==='online'?'#10b981':'#ef4444')+'">'+(status==='online'?'服务器在线':'服务器离线')+'</div>';
+    html+='<div style="margin-top:12px;display:flex;justify-content:center;gap:24px;flex-wrap:wrap">';
+    html+='<div style="text-align:center"><div style="color:#94a3b8;font-size:.8rem">响应时间</div><div style="color:#22d3ee;font-weight:600">'+elapsed+'ms</div></div>';
+    html+='<div style="text-align:center"><div style="color:#94a3b8;font-size:.8rem">状态码</div><div style="color:#22d3ee;font-weight:600">'+code+'</div></div>';
+    html+='<div style="text-align:center"><div style="color:#94a3b8;font-size:.8rem">协议</div><div style="color:#22d3ee;font-weight:600">'+(url.startsWith('https')?'HTTPS':'HTTP')+'</div></div>';
+    html+='</div>';
+    if(extra)html+='<div style="color:#94a3b8;font-size:.8rem;margin-top:12px;padding:8px;background:rgba(148,163,184,.05);border-radius:6px">'+extra+'</div>';
+    html+='</div>';
+    resultEl.innerHTML=html;
+  }
+  
+  // Try fetch with no-cors first
+  fetch(url,{mode:'no-cors',signal:controller.signal,cache:'no-store'})
+    .then(function(){
+      finish('online','N/A(不可验证)',null,'no-cors模式：服务器可达，但无法读取具体状态码（CORS限制）。服务器大概率在线。');
+    })
+    .catch(function(err){
+      clearTimeout(timer);
+      if(err.name==='AbortError'){
+        finish('offline','超时',null,'连接超时('+timeout/1000+'秒)，服务器可能离线或响应极慢');
+      }else{
+        // Try DNS check as fallback
+        var hostname=url.replace(/^https?:\/\//,'').split('/')[0].split(':')[0];
+        fetch('https://dns.google/resolve?name='+encodeURIComponent(hostname)+'&type=A')
+          .then(function(r){return r.json();})
+          .then(function(data){
+            if(data.Answer&&data.Answer.length>0){
+              finish('online','N/A',null,'DNS解析正常(IP:'+data.Answer[0].data+')，但HTTP连接被拒绝。可能原因：CORS限制、服务器防火墙、或服务未运行。');
+            }else{
+              finish('offline','N/A',null,'DNS解析失败，域名可能不存在或DNS服务器无响应');
+            }
+          })
+          .catch(function(){
+            finish('offline','N/A',null,'无法连接到服务器，且DNS查询也失败。请检查URL是否正确。');
+          });
+      }
+    });
 }
 </script>
 </body>

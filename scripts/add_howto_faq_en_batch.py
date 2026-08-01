@@ -317,21 +317,37 @@ def build_faq_schema(tool_name, faqs):
 
 # ─── Extract tool info from HTML ────────────────────────────────────────────
 
+def clean_tool_name(name):
+    """Clean tool name by removing common suffixes and prefixes"""
+    # Remove "Free Online" prefix
+    name = re.sub(r'^Free Online\s+', '', name)
+    # Remove " - ..." suffix (descriptive taglines)
+    name = re.sub(r'\s*[-–|·]\s*Free Online.*$', '', name)
+    name = re.sub(r'\s*[-–|·]\s*Online.*$', '', name)
+    name = re.sub(r'\s*[-–|·]\s*Free.*$', '', name)
+    # Remove " | ToolBase" suffix
+    name = re.sub(r'\s*\|\s*ToolBase\s*$', '', name)
+    name = re.sub(r'\s*\|\s*Free Online.*$', '', name)
+    # Remove " - Merged" suffix
+    name = re.sub(r'\s*-\s*Merged\s*$', '', name)
+    # Remove emoji prefixes
+    name = re.sub(r'^[^\w\s]+\s*', '', name)
+    # Remove trailing "Tool" if it's redundant
+    # name = re.sub(r'\s+Tool$', '', name)
+    return name.strip()
+
 def extract_tool_info(content, slug):
     """Extract tool name and description from existing schema/meta tags"""
     # Try SoftwareApplication name
     sa_match = re.search(r'"SoftwareApplication".*?"name":\s*"([^"]+)"', content)
-    tool_name = sa_match.group(1) if sa_match else slug.replace('-', ' ').title()
+    raw_name = sa_match.group(1) if sa_match else slug.replace('-', ' ').title()
+    
+    # Clean the name
+    tool_name = clean_tool_name(raw_name)
     
     # Try SoftwareApplication description
     desc_match = re.search(r'"SoftwareApplication".*?"description":\s*"([^"]+)"', content)
     description = desc_match.group(1) if desc_match else f"Free online {tool_name}"
-    
-    # Clean up tool name - remove "Free Online" suffix if present
-    tool_name = re.sub(r'\s*[-–|]\s*Free Online\s*$', '', tool_name)
-    tool_name = re.sub(r'\s*[-–|]\s*Free\s*$', '', tool_name)
-    tool_name = re.sub(r'\s*[-–|]\s*Online\s*$', '', tool_name)
-    tool_name = re.sub(r'\s*-\s*Merged\s*$', '', tool_name)
     
     return tool_name, description
 

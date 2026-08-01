@@ -73,7 +73,7 @@ footer{text-align:center;padding:20px;color:#999;font-size:.8rem}
 <body>
 <div class="container">
 <div class="header"><h1>🌐 域名可用性查询</h1>
-<p style="color:#f59e0b;font-size:.85rem;margin:8px 0;padding:8px 12px;background:rgba(245,158,11,.1);border-radius:6px;border:1px solid rgba(245,158,11,.2)">⚠️ 纯前端限制：此功能需要服务端支持，浏览器无法直接实现。本页面仅作展示用途。</p><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/domain-availability/" class="">EN</a></div></div>
+<p style="color:#10b981;font-size:.85rem;margin:8px 0;padding:8px 12px;background:rgba(16,185,129,.1);border-radius:6px;border:1px solid rgba(16,185,129,.2)">✅ 使用RDAP协议查询域名注册状态，真实数据，支持批量查询</p><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/domain-availability/" class="">EN</a></div></div>
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 域名可用性查询</p>
 <div class="hero"><p>免费在线域名可用性查询工具，检查域名是否可注册，支持.com/.net/.org/.cn等后缀，DNS查询即时结果。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
@@ -138,9 +138,71 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 (function(){var s=document.getElementById('related-tools-section');if(!s)return;var p=window.location.pathname;var en=p.indexOf('/en/')!==-1;p=p.replace(/\/en\//g,'/');var slug=p.split('/').filter(Boolean).pop()||'';if(!slug){s.innerHTML='';return;}var depth=en?'../../':'../';fetch(depth+'related-tools.json').then(function(r){if(!r.ok)throw new Error('');return r.json();}).then(function(d){var data=en?d.en:d.cn;var t=data[slug];if(!t||!t.related||!t.related.length){s.innerHTML='';return;}var h='\x3Cdiv class="related-tools-inner">\x3Ch3 class="related-tools-title">'+(en?'🔗 You May Also Like':'🔗 相关工具推荐')+'\x3C/h3>\x3Cdiv class="related-tools-grid">';t.related.forEach(function(r){var link=en?'../../en/'+r.slug+'/':'../'+r.slug+'/';h+='\x3Ca href="'+link+'" class="related-tool-card">\x3Cspan class="related-tool-icon">'+(r.icon||'🔧')+'\x3C/span>\x3Cspan class="related-tool-name">'+r.name+'\x3C/span>\x3C/a>';});h+='\x3C/div>\x3C/div>';s.innerHTML=h;}).catch(function(){s.innerHTML='';});})();
 
-// === 重写的函数实现 ===
-function checkDomain() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;var v=inp.value.trim();if(!v){{out.textContent='Please enter input';return}}out.textContent=v.length>0?'Valid ✓':'Invalid ✗';showToast('Validated!');
+// === 域名可用性查询 - RDAP + DNS ===
+var TLD_LIST=['.com','.net','.org','.cn','.io','.co','.dev','.app','.me','.info','.biz','.xyz','.cc','.tv','.us','.uk','.de','.jp','.kr','.tw'];
+function initTLDGrid(){
+  var grid=document.getElementById('tldGrid');
+  if(!grid)return;
+  var html='';
+  TLD_LIST.forEach(function(tld){
+    html+='<label class="tld-chip" style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;margin:3px;border:1px solid rgba(148,163,184,.2);border-radius:20px;cursor:pointer;font-size:.85rem"><input type="checkbox" value="'+tld+'" checked style="margin:0"> '+tld+'</label>';
+  });
+  grid.innerHTML=html;
+}
+initTLDGrid();
+
+function checkDomain(){
+  var name=document.getElementById('domainInput').value.trim().toLowerCase().replace(/\s+/g,'');
+  if(!name){showToast('请输入域名');return;}
+  name=name.replace(/^https?:\/\//,'').replace(/\/.*$/,'').replace(/\.+$/,'');
+  var results=document.getElementById('results');
+  var resultGrid=document.getElementById('resultGrid');
+  var domainName=document.getElementById('domainName');
+  domainName.textContent=name;
+  results.style.display='block';
+  resultGrid.innerHTML='<div style="color:#94a3b8;padding:20px;text-align:center">⏳ 正在查询域名可用性...</div>';
+  
+  var selectedTLDs=[];
+  document.querySelectorAll('#tldGrid input[type=checkbox]:checked').forEach(function(cb){
+    selectedTLDs.push(cb.value);
+  });
+  if(selectedTLDs.length===0){showToast('请选择至少一个域名后缀');return;}
+  
+  var checkResults=[];
+  var promises=selectedTLDs.map(function(tld){
+    var domain=name+tld;
+    return fetch('https://rdap.org/domain/'+encodeURIComponent(domain))
+      .then(function(r){
+        if(r.status===404){
+          checkResults.push({domain:domain,available:true,status:'✅ 可注册',color:'#10b981'});
+        }else if(r.ok){
+          checkResults.push({domain:domain,available:false,status:'❌ 已注册',color:'#ef4444'});
+        }else{
+          checkResults.push({domain:domain,available:null,status:'⚠️ 查询失败',color:'#f59e0b'});
+        }
+      })
+      .catch(function(){
+        checkResults.push({domain:domain,available:null,status:'⚠️ 网络错误',color:'#f59e0b'});
+      });
+  });
+  
+  Promise.all(promises).then(function(){
+    var html='<div style="display:grid;gap:8px">';
+    checkResults.sort(function(a,b){return(a.available===true?0:1)-(b.available===true?0:1);});
+    checkResults.forEach(function(r){
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:rgba(148,163,184,.05);border-radius:8px;border:1px solid rgba(148,163,184,.1)">';
+      html+='<span style="font-weight:600;color:#e2e8f0">'+r.domain+'</span>';
+      html+='<span style="color:'+r.color+';font-weight:600">'+r.status+'</span>';
+      if(r.available===true){
+        html+='<a href="https://www.namecheap.com/domains/registration/results/?domain='+r.domain+'" target="_blank" style="font-size:.8rem;padding:4px 10px;background:rgba(16,185,129,.2);color:#10b981;border-radius:4px;text-decoration:none">去注册 →</a>';
+      }
+      html+='</div>';
+    });
+    html+='</div>';
+    html+='<p style="color:#64748b;font-size:.8rem;margin-top:12px">💡 提示：RDAP查询基于域名注册数据，结果仅供参考。最终可用性请以注册商确认为准。</p>';
+    resultGrid.innerHTML=html;
+    showToast('查询完成');
+  });
 }
 </script>
 </body>

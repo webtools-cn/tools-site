@@ -260,7 +260,7 @@ footer {
   <main>
     <div class="tool-header">
       <h1>安全响应头检测器</h1>
-<p style="color:#f59e0b;font-size:.85rem;margin:8px 0;padding:8px 12px;background:rgba(245,158,11,.1);border-radius:6px;border:1px solid rgba(245,158,11,.2)">⚠️ 纯前端限制：此功能需要服务端支持，浏览器无法直接实现。本页面仅作展示用途。</p>
+<p style="color:#10b981;font-size:.85rem;margin:8px 0;padding:8px 12px;background:rgba(16,185,129,.1);border-radius:6px;border:1px solid rgba(16,185,129,.2)">✅ 使用fetch API检测HTTP安全响应头，支持CORS站点直接检测，非CORS站点提供替代方案</p>
       <p>在线检测网站HTTP安全响应头，分析CSP/HSTS/X-Frame-Options等配置。纯前端检测，无需注册。</p>
     </div>
 
@@ -363,6 +363,99 @@ footer {
     t.classList.add('show');
     setTimeout(function() { t.classList.remove('show'); }, 2000);
   }
+  
+  const SECURITY_HEADERS = {
+    'content-security-policy': {name:'Content-Security-Policy',desc:'防止XSS攻击，控制资源加载来源',important:true},
+    'strict-transport-security': {name:'Strict-Transport-Security',desc:'强制使用HTTPS连接',important:true},
+    'x-frame-options': {name:'X-Frame-Options',desc:'防止点击劫持(Clickjacking)',important:true},
+    'x-content-type-options': {name:'X-Content-Type-Options',desc:'防止MIME类型嗅探',important:true},
+    'referrer-policy': {name:'Referrer-Policy',desc:'控制Referer头信息泄露',important:false},
+    'permissions-policy': {name:'Permissions-Policy',desc:'控制浏览器功能访问权限',important:false},
+    'x-xss-protection': {name:'X-XSS-Protection',desc:'浏览器XSS过滤器(已弃用，推荐CSP)',important:false}
+  };
+  
+  document.getElementById('checkBtn').addEventListener('click', async function(){
+    var url = document.getElementById('urlInput').value.trim();
+    if(!url){showToast('请输入URL');return;}
+    if(!/^https?:\/\//i.test(url))url='https://'+url;
+    
+    var results = document.getElementById('results');
+    var checklist = document.getElementById('checklist');
+    results.innerHTML = '<div style="color:#94a3b8;padding:20px;text-align:center">⏳ 正在检测安全头...</div>';
+    
+    try{
+      // Try direct fetch first (works for CORS-enabled sites)
+      var startTime = performance.now();
+      var resp = await fetch(url, {mode:'cors', method:'HEAD', signal: AbortSignal.timeout(10000)});
+      var elapsed = Math.round(performance.now() - startTime);
+      var headers = {};
+      resp.headers.forEach(function(v,k){headers[k.toLowerCase()]=v;});
+      
+      var html = '<div style="margin-bottom:12px;padding:8px 12px;background:rgba(16,185,129,.1);border-radius:6px;border:1px solid rgba(16,185,129,.2);color:#10b981;font-size:.85rem">✅ 成功获取响应头 (响应时间: '+elapsed+'ms)</div>';
+      html += '<table style="width:100%;border-collapse:collapse">';
+      html += '<tr style="color:#94a3b8;font-size:.8rem"><th style="text-align:left;padding:6px 8px">安全头</th><th style="text-align:left;padding:6px 8px">状态</th><th style="text-align:left;padding:6px 8px">值/说明</th></tr>';
+      
+      var score = 0;
+      var total = Object.keys(SECURITY_HEADERS).length;
+      
+      Object.keys(SECURITY_HEADERS).forEach(function(key){
+        var h = SECURITY_HEADERS[key];
+        var found = headers[key];
+        var statusIcon, statusColor, value;
+        if(found){
+          score++;
+          statusIcon = '✅';
+          statusColor = '#10b981';
+          value = found.length > 80 ? found.substring(0,80)+'...' : found;
+        }else{
+          statusIcon = '❌';
+          statusColor = '#ef4444';
+          value = h.desc + (h.important ? ' (重要)' : ' (推荐)');
+        }
+        html += '<tr style="border-bottom:1px solid rgba(148,163,184,.05)"><td style="padding:8px;font-weight:600;color:'+statusColor+'">'+h.name+'</td><td style="padding:8px">'+statusIcon+'</td><td style="padding:8px;font-size:.85rem;color:#94a3b8;word-break:break-all">'+value+'</td></tr>';
+      });
+      html += '</table>';
+      
+      // Score
+      var percent = Math.round(score/total*100);
+      var grade = percent >= 85 ? 'A' : percent >= 70 ? 'B' : percent >= 50 ? 'C' : 'D';
+      var gradeColor = percent >= 85 ? '#10b981' : percent >= 70 ? '#22d3ee' : percent >= 50 ? '#f59e0b' : '#ef4444';
+      html += '<div style="margin-top:16px;padding:12px;background:rgba(148,163,184,.05);border-radius:8px;text-align:center">';
+      html += '<div style="font-size:2rem;font-weight:800;color:'+gradeColor+'">'+grade+'</div>';
+      html += '<div style="color:#94a3b8;font-size:.85rem">安全评分: '+score+'/'+total+' ('+percent+'%)</div>';
+      html += '</div>';
+      
+      // Show all headers
+      html += '<details style="margin-top:12px"><summary style="cursor:pointer;color:#94a3b8;font-size:.85rem">查看所有响应头</summary><div style="margin-top:8px;font-size:.8rem;color:#64748b;font-family:monospace;white-space:pre-wrap">';
+      Object.keys(headers).sort().forEach(function(k){
+        html += k + ': ' + headers[k] + '\n';
+      });
+      html += '</div></details>';
+      
+      results.innerHTML = html;
+      
+      // Update checklist
+      var clHtml = '';
+      Object.keys(SECURITY_HEADERS).forEach(function(key){
+        var h = SECURITY_HEADERS[key];
+        var found = headers[key];
+        clHtml += '<div style="color:'+(found?'#10b981':'#ef4444')+'">'+(found?'✅':'❌')+' '+h.name+(found?'':' - '+h.desc)+'</div>';
+      });
+      checklist.innerHTML = clHtml;
+      
+    }catch(e){
+      // CORS blocked - try with no-cors
+      results.innerHTML = '<div style="padding:16px">';
+      results.innerHTML += '<div style="padding:8px 12px;background:rgba(245,158,11,.1);border-radius:6px;border:1px solid rgba(245,158,11,.2);color:#f59e0b;font-size:.85rem;margin-bottom:12px">⚠️ CORS限制：无法直接读取该网站的响应头</div>';
+      results.innerHTML += '<p style="color:#94a3b8;font-size:.85rem">浏览器同源策略阻止了跨域请求。这是正常的安全限制，不代表网站不安全。</p>';
+      results.innerHTML += '<p style="color:#94a3b8;font-size:.85rem;margin-top:8px">替代检测方式：</p>';
+      results.innerHTML += '<ul style="color:#94a3b8;font-size:.85rem;padding-left:20px;margin-top:4px">';
+      results.innerHTML += '<li><a href="https://securityheaders.com/?q='+encodeURIComponent(url)+'" target="_blank" style="color:#22d3ee">securityheaders.com</a> - 专业安全头检测</li>';
+      results.innerHTML += '<li><a href="https://observatory.mozilla.org/analyze/'+encodeURIComponent(new URL(url).hostname)+'" target="_blank" style="color:#22d3ee">Mozilla Observatory</a> - Mozilla安全扫描</li>';
+      results.innerHTML += '<li>浏览器开发者工具(F12) → Network → 查看响应头</li>';
+      results.innerHTML += '</ul></div>';
+    }
+  });
   </script>
 </body>
 </html>
