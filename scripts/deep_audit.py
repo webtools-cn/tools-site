@@ -83,6 +83,55 @@ def check_page(f, content):
             pure_cn_lines = []
             mixed_lines = []
             for text in visible_lines:
+                # 排除纯语言切换行（如 "中文 EN", "中文  English", "EN 中文"）
+                t_clean = re.sub(r'\s+', ' ', text).strip()
+                if re.match(r'^(中文\s*(EN|English)?|EN\s*中文|English\s*中文)$', t_clean):
+                    continue
+                # 排除header行（标题后跟 "中文 EN" 或 "EN 中文"）
+                if re.search(r'\s(中文\s*EN|EN\s*中文|中文\s*English|English\s*中文)$', t_clean):
+                    continue
+                # 排除导航行（如 "GitHub 中文", "Home | Privacy | Terms | 中文"）
+                nav_words = '(GitHub|Home|All Tools|Blog|Privacy|Terms|About|Contact|\\|)'
+                if re.match(rf'^({nav_words}\s*)+中文\s*$', t_clean):
+                    continue
+                if re.match(rf'^中文\s*({nav_words}\s*)+$', t_clean):
+                    continue
+                # 排除 merged into 提示
+                if 'merged into' in t_clean.lower():
+                    continue
+                # 排除 \"← Back to Home\" 开头且结尾是 \"中文 EN\" 的行
+                if '← Back to Home' in t_clean and re.search(r'\s中文\s*EN$', t_clean):
+                    continue
+                # 排除 \"中文 English\" / \"中文 English  \" 
+                if re.match(r'^中文\s*English\s*$', t_clean):
+                    continue
+                # 排除 copyright 行含中文
+                if '©' in t_clean and re.search(r'·\s*中文', t_clean):
+                    continue
+                # 排除 footer 描述行：导航+中文+描述
+                if re.search(r'(GitHub|Home|All Tools|Privacy|Terms|About|Contact|Blog)\s+中文\s+[A-Z]', t_clean):
+                    continue
+                # 排除 HTML 片段误提取（如 href="..." class="..." >中文）
+                if t_clean.count('"') >= 2 and len(t_clean) < 80:
+                    continue
+                # 排除 \"中文 &copy;\" 行
+                if re.search(r'中文\s*&copy;', t_clean):
+                    continue
+                # 排除 "中文 GitHub" 结尾
+                if re.search(r'\s中文\s*GitHub\s*$', t_clean):
+                    continue
+                # 排除 "🧰 Free ToolBase 中文" (导航栏)
+                if t_clean == '🧰 Free ToolBase 中文':
+                    continue
+                # 排除 "&copy; 2025 Free ToolBase · Home · 中文" 类footer行
+                if '&copy;' in t_clean and '中文' in t_clean:
+                    continue
+                # 排除 "中文"单独一行后面是导航
+                if t_clean == '中文' or t_clean == '中文 EN' or t_clean == '中文 English':
+                    continue
+                # 排除 "Home · All Tools · About · Privacy · Terms · 中文" 纯导航行
+                if re.match(r'^(Home|All Tools|About|Privacy|Terms|Contact|Blog|Dev Tools)\s*(·|\|)\s*.*中文\s*$', t_clean):
+                    continue
                 has_en = bool(re.search(r'[a-zA-Z]{2,}', text))
                 if has_en:
                     mixed_lines.append(text[:80])
