@@ -227,7 +227,124 @@ a{color:#06b6d4;text-decoration:none}
 <div class="toast" id="toast"></div>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")}).catch(function(){showToast("复制失败")})}
+
+var sourceImg = null;
+var svgResult = '';
+
+function handleFile(file) {
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      sourceImg = img;
+      document.getElementById('originalPreview').innerHTML = '<img src="' + e.target.result + '" style="max-width:100%;max-height:300px">';
+      document.getElementById('downloadBtn').disabled = false;
+      document.getElementById('copyBtn').disabled = false;
+      convert();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function convert() {
+  if (!sourceImg) return;
+  var canvas = document.createElement('canvas');
+  var ctx = canvas.getContext('2d');
+  canvas.width = sourceImg.width;
+  canvas.height = sourceImg.height;
+  ctx.drawImage(sourceImg, 0, 0);
+  var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  var data = imageData.data;
+  var threshold = parseInt(document.getElementById('threshold').value);
+  var simplify = parseInt(document.getElementById('simplify').value);
+  var isColor = document.querySelector('input[name="colorMode"]:checked').value === 'color';
+  
+  var paths = [];
+  var visited = new Uint8Array(canvas.width * canvas.height);
+  
+  if (isColor) {
+    // Color mode: trace each color region
+    var colorMap = {};
+    for (var y = 0; y < canvas.height; y += Math.max(1, simplify + 1)) {
+      for (var x = 0; x < canvas.width; x += Math.max(1, simplify + 1)) {
+        var idx = (y * canvas.width + x);
+        if (visited[idx]) continue;
+        var r = data[idx * 4];
+        var g = data[idx * 4 + 1];
+        var b = data[idx * 4 + 2];
+        var a = data[idx * 4 + 3];
+        if (a < 128) continue;
+        var colorKey = r + ',' + g + ',' + b;
+        if (!colorMap[colorKey]) colorMap[colorKey] = [];
+        colorMap[colorKey].push({x: x, y: y});
+        visited[idx] = 1;
+      }
+    }
+    
+    var colorKeys = Object.keys(colorMap);
+    for (var ci = 0; ci < colorKeys.length; ci++) {
+      var pts = colorMap[colorKeys[ci]];
+      if (pts.length < 3) continue;
+      var rgb = colorKeys[ci].split(',');
+      var pathData = '';
+      // Simple rectangle tracing
+      pts.sort(function(a, b) { return a.y - b.y || a.x - b.x; });
+      var minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+      for (var pi = 0; pi < pts.length; pi++) {
+        if (pts[pi].x < minX) minX = pts[pi].x;
+        if (pts[pi].y < minY) minY = pts[pi].y;
+        if (pts[pi].x > maxX) maxX = pts[pi].x;
+        if (pts[pi].y > maxY) maxY = pts[pi].y;
+      }
+      pathData = 'M' + minX + ' ' + minY + ' L' + maxX + ' ' + minY + ' L' + maxX + ' ' + maxY + ' L' + minX + ' ' + maxY + ' Z';
+      paths.push({d: pathData, fill: 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')'});
+    }
+  } else {
+    // BW mode: edge detection
+    for (var y = 0; y < canvas.height; y += Math.max(1, simplify + 1)) {
+      for (var x = 0; x < canvas.width; x += Math.max(1, simplify + 1)) {
+        var idx = (y * canvas.width + x);
+        if (visited[idx]) continue;
+        var gray = data[idx * 4] * 0.299 + data[idx * 4 + 1] * 0.587 + data[idx * 4 + 2] * 0.114;
+        if (gray > threshold) continue;
+        visited[idx] = 1;
+        paths.push({d: 'M' + x + ' ' + y + ' h' + (simplify + 1) + ' v' + (simplify + 1) + ' h-' + (simplify + 1) + ' Z', fill: '#000'});
+      }
+    }
+  }
+  
+  var w = sourceImg.width;
+  var h = sourceImg.height;
+  svgResult = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h + '">';
+  for (var pi = 0; pi < paths.length; pi++) {
+    svgResult += '<path d="' + paths[pi].d + '" fill="' + paths[pi].fill + '"/>';
+  }
+  svgResult += '</svg>';
+  
+  document.getElementById('svgPreview').innerHTML = svgResult;
+  document.getElementById('svgCode').textContent = svgResult;
+  document.getElementById('svgCode').style.display = 'block';
+}
+
+function downloadSvg() {
+  if (!svgResult) return;
+  var blob = new Blob([svgResult], {type: 'image/svg+xml'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'converted.svg';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function copySvgCode() {
+  if (!svgResult) return;
+  navigator.clipboard.writeText(svgResult).then(function(){showToast('SVG代码已复制')}).catch(function(){showToast('复制失败')});
+}
+
 (function() {
   'use strict';
   var s = document.getElementById('related-tools-section');

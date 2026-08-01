@@ -68,6 +68,9 @@ a{color:#06b6d4;text-decoration:none}
 .btn-secondary:hover{background:rgba(148,163,184,.2)}
 .btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2)}
 .btn-danger:hover{background:rgba(239,68,68,.25)}
+.btn-preset{background:rgba(6,182,212,.08);color:#06b6d4;border:1px solid rgba(6,182,212,.15);padding:6px 12px;font-size:.8rem;cursor:pointer}
+.btn-preset:hover{background:rgba(6,182,212,.2)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
 .info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
 .info-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
 .info-section p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
@@ -96,9 +99,16 @@ a{color:#06b6d4;text-decoration:none}
 
 <div class="section-card">
   <h2>👥 添加服务人员</h2>
+  <div class="preset-row" style="margin-bottom:12px">
+    <span style="font-size:.85rem;color:#64748b;margin-right:8px">快捷模板：</span>
+    <button class="btn btn-preset" data-preset="small">🍽️ 小餐厅 (3人)</button>
+    <button class="btn btn-preset" data-preset="medium">🍸 中型餐厅 (5人)</button>
+    <button class="btn btn-preset" data-preset="large">🏨 大型餐厅 (8人)</button>
+    <button class="btn btn-preset" data-preset="bar">🍺 酒吧 (3人)</button>
+  </div>
   <div class="input-row">
     <div><input type="text" id="staffName" placeholder="姓名" style="width:120px"></div>
-    <div><select id="staffRole" style="width:140px">
+    <div><select id="staffRole" style="width:150px">
       <option value="server">🍽️ 服务员 (权重5)</option>
       <option value="bartender">🍸 调酒师 (权重4)</option>
       <option value="runner">🏃 跑堂 (权重3)</option>
@@ -107,15 +117,16 @@ a{color:#06b6d4;text-decoration:none}
       <option value="busser">🧹 清洁 (权重2)</option>
       <option value="custom">✏️ 自定义</option>
     </select></div>
-    <div id="customWeightDiv" style="display:none"><input type="number" id="customWeight" value="1" min="0.5" max="10" step="0.5" style="width:100px" placeholder="权重"></div>
+    <div id="customWeightDiv" style="display:none"><label style="font-size:.8rem;color:#94a3b8">权重</label><input type="number" id="customWeight" value="3" min="0.5" max="10" step="0.5" style="width:80px"></div>
     <button class="btn btn-primary" id="addStaffBtn">+ 添加</button>
   </div>
   <div class="staff-list" id="staffList">
-    <div style="text-align:center;color:#64748b;padding:20px">👥 还没有添加人员，请添加服务人员</div>
+    <div style="text-align:center;color:#64748b;padding:20px">👥 还没有添加人员，请添加服务人员或使用上方快捷模板</div>
   </div>
   <div class="btn-row">
     <button class="btn btn-primary" id="calcBtn">🔍 计算分配</button>
     <button class="btn btn-secondary" id="copyBtn">📋 复制结果</button>
+    <button class="btn btn-secondary" id="undoBtn" disabled>↩ 撤销删除</button>
     <button class="btn btn-danger" id="clearBtn">🗑 清空重置</button>
   </div>
 </div>
@@ -126,6 +137,7 @@ a{color:#06b6d4;text-decoration:none}
     <div class="summary-item"><div class="num" id="resTotal">-</div><div class="lbl">总小费</div></div>
     <div class="summary-item"><div class="num" id="resPeople">-</div><div class="lbl">人数</div></div>
     <div class="summary-item"><div class="num" id="resTotalWeight">-</div><div class="lbl">总权重</div></div>
+    <div class="summary-item" id="resCheckItem" style="display:none"><div class="num" id="resCheck">-</div><div class="lbl">误差校验</div></div>
   </div>
   <div class="staff-list" id="resultList"></div>
 </div>
@@ -133,10 +145,40 @@ a{color:#06b6d4;text-decoration:none}
 <div class="info-section">
   <h2>📖 使用说明</h2>
   <p>• 输入本次总小费金额，支持任意币种（默认¥）。</p>
+  <p>• 使用<strong>快捷模板</strong>一键添加常见团队配置，或手动添加每个服务人员。</p>
   <p>• 按岗位添加服务人员，系统自动分配合理权重。服务员权重最高（5），迎宾/清洁权重较低（2）。</p>
-  <p>• 选择"自定义"可手动设置权重值（0.5-10）。</p>
-  <p>• 点击"计算分配"后，按权重比例自动计算每人应得小费，精确到分。</p>
+  <p>• 选择"自定义"可手动设置权重值（0.5-10），适用于灵活调整分配比例。</p>
+  <p>• 点击"计算分配"后，按权重比例自动计算每人应得小费，精确到分。如因四舍五入产生微小误差，系统会自动调整。</p>
+  <p>• 点击"复制结果"可一键导出分配明细到剪贴板。</p>
   <p>• 所有计算在浏览器本地完成，数据不会上传到任何服务器。</p>
+</div>
+
+<div class="info-section">
+  <h2>❓ 常见问题</h2>
+  <h3 style="font-size:1rem;color:#f1f5f9;margin-bottom:8px">什么是小费分账？</h3>
+  <p>小费分账（Tip Pool）是餐饮服务业的常见做法：将一天/一班次收到的所有小费汇集起来，按照各岗位的贡献权重公平分配给每位员工。服务员直接服务客人通常权重最高，后厨和辅助岗位权重稍低。</p>
+  <h3 style="font-size:1rem;color:#f1f5f9;margin-bottom:8px;margin-top:12px">权重怎么设置才合理？</h3>
+  <p>常见做法：服务员(5) > 调酒师(4) > 跑堂/后厨(3) > 迎宾/清洁(2)。您也可以选择"自定义"灵活调整。权重越高，分到的小费越多。例如权重5的人分到的钱是权重2的人的2.5倍。</p>
+  <h3 style="font-size:1rem;color:#f1f5f9;margin-bottom:8px;margin-top:12px">计算结果准确吗？</h3>
+  <p>系统按权重比例精确计算，保留到分。由于四舍五入，有时总额可能差±0.01元，系统会自动检测并修正到最大误差不超过0.01元。</p>
+</div>
+
+<div class="info-section" style="margin-bottom:24px">
+  <h2>🔗 相关工具</h2>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
+    <a href="../sales-commission-calculator/" style="background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px;padding:10px 14px;color:#e2e8f0;text-decoration:none;font-size:.9rem;display:flex;align-items:center;gap:8px">
+      <span>💼</span> 销售提成计算器
+    </a>
+    <a href="../option-price-calculator/" style="background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px;padding:10px 14px;color:#e2e8f0;text-decoration:none;font-size:.9rem;display:flex;align-items:center;gap:8px">
+      <span>📊</span> 期权价格计算器
+    </a>
+    <a href="../grocery-list/" style="background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px;padding:10px 14px;color:#e2e8f0;text-decoration:none;font-size:.9rem;display:flex;align-items:center;gap:8px">
+      <span>🛒</span> 购物清单生成器
+    </a>
+    <a href="../mileage-log/" style="background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px;padding:10px 14px;color:#e2e8f0;text-decoration:none;font-size:.9rem;display:flex;align-items:center;gap:8px">
+      <span>🚗</span> 里程记录器
+    </a>
+  </div>
 </div>
 
 <footer class="footer"><a href="/">首页</a> <a href="/privacy">隐私政策</a> <a href="/terms">使用条款</a><a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener">GitHub</a>
@@ -154,13 +196,40 @@ var ROLES = {
   busser: {name:'清洁', weight:2, icon:'🧹'},
   custom: {name:'自定义', weight:null, icon:'✏️'}
 };
+var PRESETS = {
+  small: [
+    {name:'服务员A', role:'server'},{name:'服务员B', role:'server'},{name:'后厨', role:'kitchen'}
+  ],
+  medium: [
+    {name:'服务员A', role:'server'},{name:'服务员B', role:'server'},{name:'调酒师', role:'bartender'},
+    {name:'跑堂', role:'runner'},{name:'后厨', role:'kitchen'}
+  ],
+  large: [
+    {name:'服务员A', role:'server'},{name:'服务员B', role:'server'},{name:'服务员C', role:'server'},
+    {name:'调酒师', role:'bartender'},{name:'调酒师B', role:'bartender'},{name:'跑堂', role:'runner'},
+    {name:'后厨', role:'kitchen'},{name:'清洁', role:'busser'}
+  ],
+  bar: [
+    {name:'调酒师', role:'bartender'},{name:'服务员', role:'server'},{name:'清洁', role:'busser'}
+  ]
+};
 var staff = [];
+var undoStack = [];
 
 function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000);}
 
+function updateUndoBtn(){
+  var btn = document.getElementById('undoBtn');
+  btn.disabled = undoStack.length===0;
+  btn.textContent = undoStack.length>0 ? '↩ 撤销删除 ('+undoStack.length+')' : '↩ 撤销删除';
+}
+
 function renderStaffList(){
   var list = document.getElementById('staffList');
-  if(staff.length===0){list.innerHTML='<div style="text-align:center;color:#64748b;padding:20px">👥 还没有添加人员，请添加服务人员</div>';return;}
+  if(staff.length===0){
+    list.innerHTML='<div style="text-align:center;color:#64748b;padding:20px">👥 还没有添加人员，请添加服务人员或使用上方快捷模板</div>';
+    return;
+  }
   var html = '';
   staff.forEach(function(s,i){
     var role = ROLES[s.role];
@@ -168,8 +237,28 @@ function renderStaffList(){
   });
   list.innerHTML = html;
   list.querySelectorAll('.del-btn').forEach(function(btn){
-    btn.addEventListener('click',function(){staff.splice(parseInt(btn.dataset.idx),1);renderStaffList();document.getElementById('resultsSection').style.display='none';});
+    btn.addEventListener('click',function(){
+      var idx = parseInt(btn.dataset.idx);
+      undoStack.push(staff[idx]);
+      if(undoStack.length>20) undoStack.shift();
+      staff.splice(idx,1);
+      renderStaffList();
+      updateUndoBtn();
+      document.getElementById('resultsSection').style.display='none';
+    });
   });
+}
+
+function applyPreset(name){
+  var preset = PRESETS[name];
+  if(!preset) return;
+  if(staff.length>0){
+    if(!confirm('当前人员列表将被替换为模板内容，确定继续？')) return;
+  }
+  staff = JSON.parse(JSON.stringify(preset));
+  renderStaffList();
+  document.getElementById('resultsSection').style.display='none';
+  showToast('已加载模板: '+name);
 }
 
 function addStaff(){
@@ -177,11 +266,20 @@ function addStaff(){
   if(!name){showToast('请输入姓名');return;}
   var roleKey = document.getElementById('staffRole').value;
   var item = {name:name, role:roleKey};
-  if(roleKey==='custom'){item.weight=parseFloat(document.getElementById('customWeight').value)||1;}
+  if(roleKey==='custom'){item.weight=parseFloat(document.getElementById('customWeight').value)||3;}
   staff.push(item);
   document.getElementById('staffName').value='';
   renderStaffList();
   document.getElementById('resultsSection').style.display='none';
+}
+
+function undoDelete(){
+  if(undoStack.length===0) return;
+  staff.push(undoStack.pop());
+  renderStaffList();
+  updateUndoBtn();
+  document.getElementById('resultsSection').style.display='none';
+  showToast('已恢复删除的人员');
 }
 
 function calculate(){
@@ -191,47 +289,80 @@ function calculate(){
 
   var totalWeight = 0;
   staff.forEach(function(s){
-    if(s.role==='custom'){totalWeight+=s.weight||1;}
+    if(s.role==='custom'){totalWeight+=s.weight||3;}
     else{totalWeight+=ROLES[s.role].weight;}
   });
 
+  // 初步计算每人份额
+  var totalDistributed = 0;
   staff.forEach(function(s){
-    var w = (s.role==='custom')?(s.weight||1):ROLES[s.role].weight;
+    var w = (s.role==='custom')?(s.weight||3):ROLES[s.role].weight;
     s.share = Math.round(totalTip*w/totalWeight*100)/100;
+    totalDistributed += s.share;
   });
+
+  // 四舍五入误差修正：将差额补给权重最高的人
+  var diff = Math.round((totalTip - totalDistributed)*100);
+  if(diff!==0){
+    // 找权重最大的人
+    var maxW = -1, maxIdx = 0;
+    staff.forEach(function(s,i){
+      var w = (s.role==='custom')?(s.weight||3):ROLES[s.role].weight;
+      if(w>maxW){maxW=w;maxIdx=i;}
+    });
+    staff[maxIdx].share = Math.round((staff[maxIdx].share*100 + diff))/100;
+  }
 
   document.getElementById('resTotal').textContent = '¥'+totalTip.toFixed(2);
   document.getElementById('resPeople').textContent = staff.length;
   document.getElementById('resTotalWeight').textContent = totalWeight.toFixed(1);
 
+  // 校验总和
+  var actualSum = staff.reduce(function(a,s){return a+s.share;},0);
+  var checkEl = document.getElementById('resCheck');
+  var checkItem = document.getElementById('resCheckItem');
+  checkItem.style.display = 'block';
+  if(Math.abs(actualSum-totalTip)<0.005){
+    checkEl.textContent = '✅ 精确匹配';
+    checkEl.style.color = '#22d3ee';
+  } else {
+    checkEl.textContent = '⚠ 差'+(actualSum-totalTip).toFixed(2);
+    checkEl.style.color = '#f87171';
+  }
+
   var resultList = document.getElementById('resultList');
   var html = '';
   staff.forEach(function(s,i){
     var role = ROLES[s.role];
-    var w = (s.role==='custom')?(s.weight||1):ROLES[s.role].weight;
+    var w = (s.role==='custom')?(s.weight||3):ROLES[s.role].weight;
     var pct = (w/totalWeight*100).toFixed(1);
     html += '<div class="staff-item"><span class="name">'+(role?role.icon:'')+' '+s.name+'</span><span class="role">'+role.name+'</span><span class="weight">权重 '+w+' ('+pct+'%)</span><span class="share">¥'+s.share.toFixed(2)+'</span></div>';
   });
   resultList.innerHTML = html;
   document.getElementById('resultsSection').style.display='block';
-  showToast('计算完成');
+  showToast('计算完成 ✓');
 }
 
 function copyResults(){
   if(staff.length===0||!staff[0].share){showToast('请先计算分配结果');return;}
-  var txt = '小费分账结果\\n总小费: ¥'+parseFloat(document.getElementById('totalTip').value).toFixed(2)+'\\n\\n';
+  var totalTip = parseFloat(document.getElementById('totalTip').value).toFixed(2);
+  var txt = '📊 小费分账明细\n═══════════════\n总小费: ¥'+totalTip+'\n人数: '+staff.length+'\n\n';
   staff.forEach(function(s){
     var role = ROLES[s.role];
-    txt += role.icon+' '+s.name+' ('+role.name+'): ¥'+s.share.toFixed(2)+'\\n';
+    txt += role.icon+' '+s.name+' ('+role.name+')  权重'+ (role.weight||s.weight) +' → ¥'+s.share.toFixed(2)+'\n';
   });
-  navigator.clipboard.writeText(txt).then(function(){showToast('已复制到剪贴板')});
+  var actualSum = staff.reduce(function(a,s){return a+s.share;},0);
+  txt += '\n═══════════════\n合计: ¥'+actualSum.toFixed(2);
+  navigator.clipboard.writeText(txt).then(function(){showToast('已复制到剪贴板 ✓')});
 }
 
 function clearAll(){
   staff=[];
+  undoStack=[];
   document.getElementById('totalTip').value='1000';
   document.getElementById('staffName').value='';
   renderStaffList();
+  updateUndoBtn();
   document.getElementById('resultsSection').style.display='none';
   showToast('已清空');
 }
@@ -244,8 +375,13 @@ document.getElementById('addStaffBtn').addEventListener('click',addStaff);
 document.getElementById('calcBtn').addEventListener('click',calculate);
 document.getElementById('copyBtn').addEventListener('click',copyResults);
 document.getElementById('clearBtn').addEventListener('click',clearAll);
+document.getElementById('undoBtn').addEventListener('click',undoDelete);
 document.getElementById('staffName').addEventListener('keydown',function(e){if(e.key==='Enter')addStaff();});
 document.getElementById('totalTip').addEventListener('keydown',function(e){if(e.key==='Enter')calculate();});
+
+document.querySelectorAll('.btn-preset').forEach(function(btn){
+  btn.addEventListener('click',function(){applyPreset(btn.dataset.preset);});
+});
 </script>
 </body>
 </html>
