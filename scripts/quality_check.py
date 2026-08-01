@@ -64,22 +64,30 @@ if cn_ads < cn_total or en_ads < en_total:
 else:
     ok("AdSense", f"CN={cn_ads}/{cn_total} EN={en_ads}/{en_total}")
 
-# 5. EN中文残留（排除语言切换链接中的"中文"二字）
-cn_char = re.compile(r'[\u4e00-\u9fff]')
+# 5. EN中文残留（排除语言切换链接和纯中文标点）
+cn_char = re.compile(r'[\u4e00-\u9fff]')  # 真正的中文字符（不含标点）
+cn_punct = re.compile(r'[\u3000-\u303f\uff00-\uffef]')  # 中文标点
 en_cn_files = []
+en_punct_only = []
 for f in glob.glob('en/*/index.html'):
     content = open(f,'r',errors='ignore').read()
     # 排除语言切换链接: <a ...>中文</a>
     content_clean = re.sub(r'<a[^>]*>\s*中文\s*</a>', '', content)
-    # 排除lang-switch div: <div class="lang-switch">...中文...</div>
+    # 排除lang-switch div
     content_clean = re.sub(r'<div[^>]*class="[^"]*lang-switch[^"]*"[^>]*>.*?</div>', '', content_clean, flags=re.DOTALL)
-    if cn_char.search(content_clean):
+    has_cn_char = cn_char.search(content_clean)
+    has_cn_punct = cn_punct.search(content_clean)
+    if has_cn_char:
         en_cn_files.append(f)
+    elif has_cn_punct:
+        en_punct_only.append(f)
+
 en_cn = len(en_cn_files)
+en_punct = len(en_punct_only)
 if en_cn > 0:
-    err("EN中文残留", f"{en_cn}页EN页面含中文(已排除语言切换链接)")
-else:
-    ok("EN中文", "0")
+    err("EN中文残留", f"{en_cn}页EN页面含中文汉字(已排除语言切换链接)")
+if en_punct > 0:
+    ok("EN中文标点", f"{en_punct}页仅有全角标点(低影响)")
 
 # 6. noindex
 cn_ni = []
