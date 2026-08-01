@@ -170,16 +170,45 @@ canvas{max-width:100%}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
+var cpsCount=0,cpsTimer=null,cpsRunning=false;
+function handleClick(){
+  if(!cpsRunning){
+    cpsRunning=true;
+    cpsCount=0;
+    var dur=parseInt(document.getElementById('cpsDuration').value)||10;
+    document.getElementById('cpsStatus').textContent='开始点击！';
+    document.getElementById('cpsIcon').textContent='👆';
+    document.getElementById('cpsTimeLeft').textContent=dur+'s';
+    cpsTimer=setTimeout(function(){
+      cpsRunning=false;
+      var cps=(cpsCount/dur).toFixed(1);
+      document.getElementById('cpsRate').textContent=cps;
+      document.getElementById('cpsStatus').textContent='测试结束！你的CPS: '+cps;
+      document.getElementById('cpsIcon').textContent='🖱️';
+      var best=parseFloat(localStorage.getItem('cpsBest')||'0');
+      if(parseFloat(cps)>best){localStorage.setItem('cpsBest',cps);document.getElementById('cpsBest').textContent=cps;}
+      var total=parseInt(localStorage.getItem('cpsTotal')||'0')+1;
+      localStorage.setItem('cpsTotal',total);
+      document.getElementById('cpsTotalTests').textContent=total;
+    },dur*1000);
+    var interval=setInterval(function(){
+      if(!cpsRunning){clearInterval(interval);return;}
+      var elapsed=(Date.now()-startTime)/1000;
+      var remaining=Math.max(0,dur-elapsed);
+      document.getElementById('cpsTimeLeft').textContent=remaining.toFixed(1)+'s';
+      document.getElementById('cpsRate').textContent=(cpsCount/Math.max(1,elapsed)).toFixed(1);
+    },100);
+    var startTime=Date.now();
+  }
+  if(cpsRunning){
+    cpsCount++;
+    document.getElementById('cpsCount').textContent=cpsCount;
+  }
 }
-
+window.onload=function(){
+  document.getElementById('cpsBest').textContent=localStorage.getItem('cpsBest')||'--';
+  document.getElementById('cpsTotalTests').textContent=localStorage.getItem('cpsTotal')||'0';
+};
 </script>
 </div>
 
