@@ -286,31 +286,193 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function calcAdd() {
-  showToast('calcAdd - coming soon!');
+  var dateVal = document.getElementById('addDate').value;
+  var num = parseInt(document.getElementById('addNum').value) || 0;
+  var unit = document.getElementById('addUnit').value;
+  var res = document.getElementById('resultAdd');
+  
+  if (!dateVal) { res.style.display = 'none'; return; }
+  
+  var d = new Date(dateVal + 'T00:00:00');
+  switch(unit) {
+    case 'days': d.setDate(d.getDate() + num); break;
+    case 'weeks': d.setDate(d.getDate() + num * 7); break;
+    case 'months': d.setMonth(d.getMonth() + num); break;
+    case 'years': d.setFullYear(d.getFullYear() + num); break;
+  }
+  
+  var yyyy = d.getFullYear();
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  var dd = String(d.getDate()).padStart(2, '0');
+  var weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  var wd = weekdays[d.getDay()];
+  
+  res.innerHTML = '<strong>结果日期：</strong>' + yyyy + '-' + mm + '-' + dd + ' (' + wd + ')' +
+    '<br><small>从 ' + dateVal + ' ' + (num >= 0 ? '+' : '') + num + ' ' + 
+    (unit === 'days' ? '天' : unit === 'weeks' ? '周' : unit === 'months' ? '月' : '年') + '</small>';
+  res.style.display = 'block';
 }
 
 function calcAge() {
-  showToast('calcAge - coming soon!');
+  var birthVal = document.getElementById('birthDate').value;
+  var res = document.getElementById('resultAge');
+  
+  if (!birthVal) { res.style.display = 'none'; return; }
+  
+  var birth = new Date(birthVal + 'T00:00:00');
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  var years = today.getFullYear() - birth.getFullYear();
+  var months = today.getMonth() - birth.getMonth();
+  var days = today.getDate() - birth.getDate();
+  
+  if (days < 0) {
+    months--;
+    var prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+    days += prevMonth.getDate();
+  }
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  
+  if (years < 0) { res.innerHTML = '出生日期不能晚于今天'; res.style.display = 'block'; return; }
+  
+  var totalDays = Math.floor((today - birth) / (1000 * 60 * 60 * 24));
+  var totalWeeks = Math.floor(totalDays / 7);
+  var totalMonths = years * 12 + months;
+  
+  // Next birthday
+  var nextBday = new Date(today.getFullYear(), birth.getMonth(), birth.getDate());
+  if (nextBday <= today) nextBday.setFullYear(nextBday.getFullYear() + 1);
+  var daysToBday = Math.floor((nextBday - today) / (1000 * 60 * 60 * 24));
+  
+  res.innerHTML = '<strong>年龄：</strong>' + years + ' 岁 ' + months + ' 个月 ' + days + ' 天' +
+    '<br>总天数：' + totalDays.toLocaleString() + ' 天' +
+    '<br>总周数：' + totalWeeks.toLocaleString() + ' 周' +
+    '<br>总月数：' + totalMonths.toLocaleString() + ' 月' +
+    '<br>距离下次生日：' + daysToBday + ' 天 (' + (nextBday.getMonth()+1) + '月' + nextBday.getDate() + '日)';
+  res.style.display = 'block';
 }
 
 function calcCountdown() {
-  showToast('calcCountdown - coming soon!');
+  var dateVal = document.getElementById('countdownDate').value;
+  var name = document.getElementById('countdownName').value || '目标日期';
+  var res = document.getElementById('resultCountdown');
+  
+  if (!dateVal) { res.style.display = 'none'; return; }
+  
+  var target = new Date(dateVal + 'T00:00:00');
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  var diffMs = target - today;
+  var isPast = diffMs < 0;
+  diffMs = Math.abs(diffMs);
+  
+  var totalDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  var years = Math.floor(totalDays / 365);
+  var months = Math.floor((totalDays % 365) / 30);
+  var days = totalDays % 30;
+  
+  var prefix = isPast ? '已过去' : '还剩';
+  var emoji = isPast ? '⏪' : '⏳';
+  
+  res.innerHTML = emoji + ' <strong>' + name + '</strong>：' + prefix + ' ' +
+    (years > 0 ? years + ' 年 ' : '') +
+    (months > 0 ? months + ' 个月 ' : '') +
+    days + ' 天' +
+    '<br><small>目标日期：' + dateVal + ' | 共 ' + totalDays.toLocaleString() + ' 天</small>';
+  res.style.display = 'block';
 }
 
 function calcDiff() {
-  showToast('calcDiff - coming soon!');
+  var startVal = document.getElementById('diffStart').value;
+  var endVal = document.getElementById('diffEnd').value;
+  var res = document.getElementById('resultDiff');
+  
+  if (!startVal || !endVal) { res.style.display = 'none'; return; }
+  
+  var start = new Date(startVal + 'T00:00:00');
+  var end = new Date(endVal + 'T00:00:00');
+  
+  var diffMs = end - start;
+  var totalDays = Math.floor(Math.abs(diffMs) / (1000 * 60 * 60 * 24));
+  var sign = diffMs >= 0 ? '' : '（结束日期早于开始日期）';
+  
+  var weeks = Math.floor(totalDays / 7);
+  var days = totalDays % 7;
+  
+  // Count workdays
+  var workdays = 0;
+  var d = new Date(Math.min(start, end));
+  var endD = new Date(Math.max(start, end));
+  while (d <= endD) {
+    var dow = d.getDay();
+    if (dow !== 0 && dow !== 6) workdays++;
+    d.setDate(d.getDate() + 1);
+  }
+  
+  res.innerHTML = '<strong>日期差：</strong>' + totalDays + ' 天 ' + sign +
+    '<br>=' + weeks + ' 周 ' + days + ' 天' +
+    '<br>工作日：' + workdays + ' 天（不含周末）' +
+    '<br><small>从 ' + (startVal < endVal ? startVal : endVal) + ' 到 ' + (endVal > startVal ? endVal : startVal) + '</small>';
+  res.style.display = 'block';
 }
 
 function calcWorkday() {
-  showToast('calcWorkday - coming soon!');
+  var dateVal = document.getElementById('workdayDate').value;
+  var days = parseInt(document.getElementById('workdayDays').value) || 0;
+  var res = document.getElementById('resultWorkday');
+  
+  if (!dateVal) { res.style.display = 'none'; return; }
+  
+  var d = new Date(dateVal + 'T00:00:00');
+  var remaining = Math.abs(days);
+  var forward = days >= 0;
+  
+  while (remaining > 0) {
+    if (forward) d.setDate(d.getDate() + 1);
+    else d.setDate(d.getDate() - 1);
+    var dow = d.getDay();
+    if (dow !== 0 && dow !== 6) remaining--;
+  }
+  
+  var yyyy = d.getFullYear();
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  var dd = String(d.getDate()).padStart(2, '0');
+  var weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  var wd = weekdays[d.getDay()];
+  
+  res.innerHTML = '<strong>' + days + ' 个工作日' + (forward ? '后' : '前') + '：</strong>' + yyyy + '-' + mm + '-' + dd + ' (' + wd + ')' +
+    '<br><small>从 ' + dateVal + ' 开始（不含周末）</small>';
+  res.style.display = 'block';
 }
 
 function setToday() {
-  showToast('setToday - coming soon!');
+  var today = new Date();
+  var yyyy = today.getFullYear();
+  var mm = String(today.getMonth() + 1).padStart(2, '0');
+  var dd = String(today.getDate()).padStart(2, '0');
+  var todayStr = yyyy + '-' + mm + '-' + dd;
+  
+  var fields = ['diffStart', 'diffEnd', 'addDate', 'workdayDate', 'birthDate', 'countdownDate'];
+  for (var i = 0; i < fields.length; i++) {
+    var el = document.getElementById(fields[i]);
+    if (el && !el.value) el.value = todayStr;
+  }
+  showToast('已设置今天：' + todayStr);
 }
 
 function swapDiff() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!inp||!out)return;var t=inp.value;inp.value=out.textContent||out.innerText;out.textContent=t;showToast('Swapped!');
+  var startEl = document.getElementById('diffStart');
+  var endEl = document.getElementById('diffEnd');
+  var tmp = startEl.value;
+  startEl.value = endEl.value;
+  endEl.value = tmp;
+  calcDiff();
+  showToast('已交换日期');
 }
 
 function switchTab(tab) {
