@@ -22,7 +22,7 @@ en_json = json.load(open('tools-data-en.json'))
 cn_json_slugs = set(item[3].rstrip('/') for items in cn_json.values() for item in items)
 en_json_slugs = set(item[3].replace('/en/','').strip('/') for items in en_json.values() for item in items)
 cn_file_slugs = set(f.split('/')[0] for f in glob.glob('*/index.html') if f!='index.html' and not f.startswith('en/'))
-en_file_slugs = set(f.split('/')[2] for f in glob.glob('en/*/index.html'))
+en_file_slugs = set(f.split('/')[1] for f in glob.glob('en/*/index.html'))
 skip_dirs = {'css','js','scripts','quality','.gsc-data','.github'}
 cn_file_slugs -= skip_dirs
 
@@ -39,7 +39,7 @@ else:
 
 # 2. 深色字bug
 cn_dark = [f.split('/')[0] for f in glob.glob('*/index.html') if f!='index.html' and not f.startswith('en/') and 'color:#1e293b' in open(f,'r',errors='ignore').read()]
-en_dark = [f.split('/')[2] for f in glob.glob('en/*/index.html') if 'color:#1e293b' in open(f,'r',errors='ignore').read()]
+en_dark = [f.split('/')[1] for f in glob.glob('en/*/index.html') if 'color:#1e293b' in open(f,'r',errors='ignore').read()]
 if cn_dark or en_dark:
     err("深色字bug", f"CN={len(cn_dark)} EN={len(en_dark)} (color:#1e293b在深色背景上不可见)")
 else:
@@ -88,7 +88,7 @@ for f in glob.glob('en/*/index.html'):
     c_clean = re.sub(r'<option[^>]*>.*?</option>', '', c, flags=re.DOTALL)
     c_clean = re.sub(r'<select[^>]*>.*?</select>', '', c_clean, flags=re.DOTALL)
     if 'noindex' in c_clean:
-        en_ni.append(f.split('/')[2])
+        en_ni.append(f.split('/')[1])
 if cn_ni or en_ni:
     err("noindex", f"CN={cn_ni} EN={en_ni}")
 else:
