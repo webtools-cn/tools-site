@@ -112,8 +112,34 @@ input:focus{border-color:rgba(6,182,212,.5)}
 </div>
 <div class="toast" id="toast"></div>
 <script>
-function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function showToast(m){var t=document.getElementById("toast");if(!t)return;t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+function fetchFavicon(){
+  var url=document.getElementById('domain').value.trim();
+  if(!url){showToast('请输入网站URL');return;}
+  try{var u=new URL(url.startsWith('http')?url:'https://'+url);}
+  catch(e){showToast('请输入有效的URL');return;}
+  var domain=u.hostname;
+  var results=[];
+  results.push({label:'Google Favicon API',url:'https://www.google.com/s2/favicons?domain='+domain+'&sz=64'});
+  results.push({label:'DuckDuckGo',url:'https://icons.duckduckgo.com/ip3/'+domain+'.ico'});
+  results.push({label:'直接根路径',url:u.origin+'/favicon.ico'});
+  var html='<div class="output-area"><h3>'+domain+' 的图标</h3>';
+  results.forEach(function(r){
+    html+='<div style="display:flex;align-items:center;gap:12px;margin:8px 0;padding:8px;background:#0f172a;border-radius:8px">';
+    html+='<img src="'+r.url+'" style="width:32px;height:32px" onerror="this.style.display=\'none\'" alt="">';
+    html+='<div style="flex:1"><div style="font-size:.85rem">'+r.label+'</div><div style="font-size:.75rem;color:#94a3b8;word-break:break-all">'+r.url+'</div></div>';
+    html+='<button class="btn btn-secondary" style="font-size:.8rem" onclick="downloadFavicon(\''+r.url+'\')">💾 下载</button>';
+    html+='</div>';
+  });
+  html+='</div>';
+  var panel=document.querySelector('.output-area')||document.getElementById('domain');
+  if(panel)panel.insertAdjacentHTML('afterend',html);
+}
+function downloadFavicon(url){
+  var a=document.createElement('a');a.href=url;a.download='favicon';a.target='_blank';document.body.appendChild(a);a.click();document.body.removeChild(a);
+  showToast('正在下载...');
+}
   function getConsistentRating() {
     let hash = 0;
     const path = location.pathname;

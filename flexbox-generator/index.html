@@ -350,17 +350,136 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === Flexbox Generator Core Functions ===
+
+var flexContainer = document.getElementById('flexContainer');
+var cssCode = document.getElementById('cssCode');
+var gapRange = document.getElementById('gapRange');
+var gapVal = document.getElementById('gapVal');
+
+// Update preview and CSS code based on current select values
+function updatePreview() {
+  var fd = document.getElementById('flexDirection').value;
+  var jc = document.getElementById('justifyContent').value;
+  var ai = document.getElementById('alignItems').value;
+  var fw = document.getElementById('flexWrap').value;
+  var ac = document.getElementById('alignContent').value;
+  var gap = gapRange.value;
+
+  gapVal.textContent = gap + 'px';
+
+  // Apply to flex container
+  flexContainer.style.display = 'flex';
+  flexContainer.style.flexDirection = fd;
+  flexContainer.style.justifyContent = jc;
+  flexContainer.style.alignItems = ai;
+  flexContainer.style.flexWrap = fw;
+  flexContainer.style.alignContent = ac;
+  flexContainer.style.gap = gap + 'px';
+
+  // Generate CSS
+  var css = '.flex-container {\n';
+  css += '  display: flex;\n';
+  css += '  flex-direction: ' + fd + ';\n';
+  css += '  justify-content: ' + jc + ';\n';
+  css += '  align-items: ' + ai + ';\n';
+  css += '  flex-wrap: ' + fw + ';\n';
+  css += '  align-content: ' + ac + ';\n';
+  css += '  gap: ' + gap + 'px;\n';
+  css += '}';
+  cssCode.textContent = css;
+}
+
+// Template presets
+function applyTemplate(type) {
+  var fd = document.getElementById('flexDirection');
+  var jc = document.getElementById('justifyContent');
+  var ai = document.getElementById('alignItems');
+  var fw = document.getElementById('flexWrap');
+  var ac = document.getElementById('alignContent');
+
+  switch(type) {
+    case 'centerH':
+      fd.value = 'row';
+      jc.value = 'center';
+      ai.value = 'stretch';
+      fw.value = 'nowrap';
+      ac.value = 'stretch';
+      gapRange.value = 10;
+      break;
+    case 'centerV':
+      fd.value = 'row';
+      jc.value = 'flex-start';
+      ai.value = 'center';
+      fw.value = 'nowrap';
+      ac.value = 'stretch';
+      gapRange.value = 10;
+      break;
+    case 'holyGrail':
+      fd.value = 'row';
+      jc.value = 'flex-start';
+      ai.value = 'stretch';
+      fw.value = 'nowrap';
+      ac.value = 'stretch';
+      gapRange.value = 10;
+      // Set item 1 flex:1
+      var items = flexContainer.querySelectorAll('.flex-item');
+      if(items[1]) items[1].style.flex = '1';
+      break;
+    case 'equal':
+      fd.value = 'row';
+      jc.value = 'space-evenly';
+      ai.value = 'stretch';
+      fw.value = 'nowrap';
+      ac.value = 'stretch';
+      gapRange.value = 10;
+      break;
+    case 'footerFixed':
+      fd.value = 'column';
+      jc.value = 'flex-start';
+      ai.value = 'stretch';
+      fw.value = 'nowrap';
+      ac.value = 'stretch';
+      gapRange.value = 10;
+      // Set last item margin-top:auto
+      var items2 = flexContainer.querySelectorAll('.flex-item');
+      if(items2.length > 0) items2[items2.length-1].style.marginTop = 'auto';
+      break;
+  }
+  updatePreview();
+  showToast('模板已应用: ' + type);
+}
+
 function copyCSS() {
-  showToast('功能已触发');
+  var css = cssCode.textContent;
+  if (!css) { showToast('没有可复制的CSS'); return; }
+  navigator.clipboard.writeText(css).then(function() {
+    showToast('CSS 已复制到剪贴板');
+  }).catch(function() {
+    showToast('复制失败，请手动选择复制');
+  });
 }
 
 function resetAll() {
-  document.querySelectorAll('input').forEach(function(el) { if(el.type==='number') el.value=''; else if(el.type==='text') el.value=''; });
-  document.querySelectorAll('select').forEach(function(el) { el.selectedIndex = 0; });
-  
+  document.getElementById('flexDirection').value = 'row';
+  document.getElementById('justifyContent').value = 'flex-start';
+  document.getElementById('alignItems').value = 'stretch';
+  document.getElementById('flexWrap').value = 'nowrap';
+  document.getElementById('alignContent').value = 'stretch';
+  gapRange.value = 10;
+  updatePreview();
   showToast('已重置');
 }
+
+// Wire up change events
+var selects = document.querySelectorAll('#flexDirection, #justifyContent, #alignItems, #flexWrap, #alignContent');
+for (var i = 0; i < selects.length; i++) {
+  selects[i].addEventListener('change', updatePreview);
+}
+gapRange.addEventListener('input', updatePreview);
+
+// Initial render
+updatePreview();
 </script>
 </body>
 </html>

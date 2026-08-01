@@ -232,9 +232,18 @@ function copyResult(){
   var result=document.getElementById('result');
   var text=result.textContent||result.innerText;
   if(text){
-    navigator.clipboard.writeText(text.replace(/\d+\.\s/g,'').trim());
-    showToast('已复制到剪贴板');
+    text=text.replace(/\d+\.\s/g,'').trim();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){showToast('已复制到剪贴板')}).catch(function(){fallbackCopy(text)});
+    } else { fallbackCopy(text); }
   }
+}
+function fallbackCopy(text) {
+  var ta=document.createElement('textarea');
+  ta.value=text;ta.style.position='fixed';ta.style.left='-9999px';
+  document.body.appendChild(ta);ta.select();
+  document.execCommand('copy');document.body.removeChild(ta);
+  showToast('已复制到剪贴板');
 }
 function generateQR(){
   var result=document.getElementById('result');
@@ -267,7 +276,7 @@ function renderHistory(){
   var el=document.getElementById('history');
   if(!historyList.length){el.innerHTML='<div style="color:#64748b;font-size:.8rem">暂无历史记录</div>';return;}
   el.innerHTML=historyList.map(function(h,i){
-    return '<div class="history-item" onclick="navigator.clipboard.writeText(\''+h.pwd+'\');showToast(\'已复制\')"><span>'+h.pwd.substring(0,30)+(h.pwd.length>30?'...':'')+'</span><span style="font-size:.7rem">'+h.time+'</span></div>';
+    return '<div class="history-item" onclick="var t=this.innerText||this.textContent;var ta=document.createElement(\'textarea\');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand(\'copy\');document.body.removeChild(ta);showToast(\'已复制\')"><span>'+h.pwd.substring(0,30)+(h.pwd.length>30?'...':'')+'</span><span style="font-size:.7rem">'+h.time+'</span></div>';
   }).join('');
 }
 function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2000);}
