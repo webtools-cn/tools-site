@@ -400,19 +400,263 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function clearHistory() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+// Color conversion utilities
+function hexToRgb(hex) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(function(c) { return c + c; }).join('');
+  return {
+    r: parseInt(hex.substring(0, 2), 16),
+    g: parseInt(hex.substring(2, 4), 16),
+    b: parseInt(hex.substring(4, 6), 16)
+  };
 }
 
-function copyFmt() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
-  if (!text) { showToast('没有可复制的内容'); return; }
-  copyText(text);
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(function(x) {
+    var h = x.toString(16);
+    return h.length === 1 ? '0' + h : h;
+  }).join('');
+}
+
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  var max = Math.max(r, g, b), min = Math.min(r, g, b);
+  var h, s, l = (max + min) / 2;
+  if (max === min) { h = s = 0; }
+  else {
+    var d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch(max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+function rgbToHsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  var max = Math.max(r, g, b), min = Math.min(r, g, b);
+  var h, s, v = max;
+  var d = max - min;
+  s = max === 0 ? 0 : d / max;
+  if (max === min) { h = 0; }
+  else {
+    switch(max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  return { h: Math.round(h * 360), s: Math.round(s * 100), v: Math.round(v * 100) };
+}
+
+function rgbToCmyk(r, g, b) {
+  var k = 1 - Math.max(r/255, g/255, b/255);
+  if (k === 1) return { c: 0, m: 0, y: 0, k: 100 };
+  var c = Math.round((1 - r/255 - k) / (1 - k) * 100);
+  var m = Math.round((1 - g/255 - k) / (1 - k) * 100);
+  var y = Math.round((1 - b/255 - k) / (1 - k) * 100);
+  return { c: Math.max(0, c), m: Math.max(0, m), y: Math.max(0, y), k: Math.round(k * 100) };
+}
+
+function updateAllFormats(hex) {
+  if (!hex || hex.length < 4) return;
+  var rgb = hexToRgb(hex);
+  var hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+  var hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
+  var cmyk = rgbToCmyk(rgb.r, rgb.g, rgb.b);
+  
+  document.getElementById('hexInput').value = hex.toUpperCase();
+  document.getElementById('rgbInput').value = 'rgb(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ')';
+  document.getElementById('hslInput').value = 'hsl(' + hsl.h + ', ' + hsl.s + '%, ' + hsl.l + '%)';
+  document.getElementById('hsvInput').value = 'hsv(' + hsv.h + ', ' + hsv.s + '%, ' + hsv.v + '%)';
+  document.getElementById('cmykInput').value = 'cmyk(' + cmyk.c + '%, ' + cmyk.m + '%, ' + cmyk.y + '%, ' + cmyk.k + '%)';
+  
+  document.getElementById('colorPreview').style.backgroundColor = hex;
+  document.getElementById('colorInput').value = hex;
+  
+  // Generate schemes
+  generateSchemes(hsl.h, hsl.s, hsl.l);
+  
+  // Add to history
+  addToHistory(hex);
+}
+
+function generateSchemes(h, s, l) {
+  // Complementary
+  var compH = (h + 180) % 360;
+  document.getElementById('palComp').innerHTML = renderSchemeColors([
+    { h: compH, s: s, l: l }
+  ]);
+  
+  // Analogous
+  document.getElementById('palAnalogous').innerHTML = renderSchemeColors([
+    { h: (h - 30 + 360) % 360, s: s, l: l },
+    { h: h, s: s, l: l },
+    { h: (h + 30) % 360, s: s, l: l }
+  ]);
+  
+  // Triadic
+  document.getElementById('palTriadic').innerHTML = renderSchemeColors([
+    { h: h, s: s, l: l },
+    { h: (h + 120) % 360, s: s, l: l },
+    { h: (h + 240) % 360, s: s, l: l }
+  ]);
+  
+  // Tetradic
+  document.getElementById('palTetradic').innerHTML = renderSchemeColors([
+    { h: h, s: s, l: l },
+    { h: (h + 90) % 360, s: s, l: l },
+    { h: (h + 180) % 360, s: s, l: l },
+    { h: (h + 270) % 360, s: s, l: l }
+  ]);
+  
+  // Shades
+  document.getElementById('palShades').innerHTML = renderSchemeColors([
+    { h: h, s: s, l: 95 }, { h: h, s: s, l: 80 },
+    { h: h, s: s, l: 60 }, { h: h, s: s, l: 40 },
+    { h: h, s: s, l: 20 }, { h: h, s: s, l: 10 }
+  ]);
+  
+  // Monochromatic
+  document.getElementById('palMono').innerHTML = renderSchemeColors([
+    { h: h, s: Math.max(0, s-30), l: l },
+    { h: h, s: s, l: l },
+    { h: h, s: s, l: Math.min(100, l+20) },
+    { h: h, s: Math.min(100, s+20), l: Math.max(0, l-20) }
+  ]);
+}
+
+function renderSchemeColors(colors) {
+  return colors.map(function(c) {
+    var hex = hslToHex(c.h, c.s, c.l);
+    return '<div class=\"scheme-swatch\" style=\"background:' + hex + '\" title=\"' + hex + '\" onclick=\"applyColor(\'' + hex + '\')\"></div>';
+  }).join('');
+}
+
+function hslToHex(h, s, l) {
+  s /= 100;
+  l /= 100;
+  var a = s * Math.min(l, 1 - l);
+  var f = function(n) {
+    var k = (n + h / 30) % 12;
+    var color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return '#' + f(0) + f(8) + f(4);
+}
+
+function applyColor(hex) {
+  updateAllFormats(hex);
+}
+
+function addToHistory(hex) {
+  var history = JSON.parse(localStorage.getItem('colorHistory') || '[]');
+  history = history.filter(function(c) { return c !== hex; });
+  history.unshift(hex);
+  if (history.length > 24) history = history.slice(0, 24);
+  localStorage.setItem('colorHistory', JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  var history = JSON.parse(localStorage.getItem('colorHistory') || '[]');
+  var row = document.getElementById('historyRow');
+  if (history.length === 0) {
+    row.innerHTML = '<span class=\"empty-hint\">选择颜色后会自动记录在此（最多 24 条）</span>';
+    return;
+  }
+  row.innerHTML = history.map(function(hex) {
+    return '<div class=\"swatch\" style=\"background:' + hex + '\" title=\"' + hex + '\" onclick=\"applyColor(\'' + hex + '\')\"></div>';
+  }).join('');
+}
+
+function clearHistory() {
+  localStorage.removeItem('colorHistory');
+  renderHistory();
+  showToast('已清空颜色历史');
+}
+
+function copyFmt(format) {
+  var el = document.getElementById(format + 'Input');
+  if (!el) return;
+  navigator.clipboard.writeText(el.value).then(function() {
+    showToast('已复制 ' + el.value);
+  }).catch(function() {
+    showToast('复制失败');
+  });
 }
 
 function useCurrentAsFg() {
-  showToast('useCurrentAsFg - coming soon!');
+  var hex = document.getElementById('hexInput').value;
+  document.getElementById('fgColor').value = hex;
+  updateContrast();
+  showToast('已设为前景色');
 }
+
+function updateContrast() {
+  var fgEl = document.getElementById('fgColor');
+  var bgEl = document.getElementById('bgColor');
+  var contrastEl = document.getElementById('contrastResult');
+  if (!fgEl || !bgEl) return;
+  
+  var fgRgb = hexToRgb(fgEl.value);
+  var bgRgb = hexToRgb(bgEl.value);
+  
+  function luminance(r, g, b) {
+    var a = [r, g, b].map(function(v) {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+  }
+  
+  var l1 = luminance(fgRgb.r, fgRgb.g, fgRgb.b);
+  var l2 = luminance(bgRgb.r, bgRgb.g, bgRgb.b);
+  var ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  
+  var normalAA = ratio >= 4.5 ? '✅' : '❌';
+  var largeAA = ratio >= 3 ? '✅' : '❌';
+  var normalAAA = ratio >= 7 ? '✅' : '❌';
+  var largeAAA = ratio >= 4.5 ? '✅' : '❌';
+  
+  if (contrastEl) {
+    contrastEl.innerHTML = '<strong>对比度：' + ratio.toFixed(1) + ':1</strong><br>' +
+      'AA 正常文字：' + normalAA + ' | AA 大号文字：' + largeAA + '<br>' +
+      'AAA 正常文字：' + normalAAA + ' | AAA 大号文字：' + largeAAA;
+  }
+}
+
+// Init: bind events
+document.addEventListener('DOMContentLoaded', function() {
+  var colorInput = document.getElementById('colorInput');
+  var hexInput = document.getElementById('hexInput');
+  
+  if (colorInput) {
+    colorInput.addEventListener('input', function() {
+      updateAllFormats(this.value);
+    });
+  }
+  
+  if (hexInput) {
+    hexInput.addEventListener('input', function() {
+      var val = this.value.trim();
+      if (val.match(/^#[0-9a-fA-F]{6}$/)) {
+        updateAllFormats(val);
+      }
+    });
+  }
+  
+  var fgColor = document.getElementById('fgColor');
+  var bgColor = document.getElementById('bgColor');
+  if (fgColor) fgColor.addEventListener('input', updateContrast);
+  if (bgColor) bgColor.addEventListener('input', updateContrast);
+  
+  renderHistory();
+  updateAllFormats('#06b6d4');
+});
 </script>
 </body>
 </html>
