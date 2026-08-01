@@ -326,7 +326,7 @@
   <main>
     <h1>DNS记录查询</h1>
 <div style="background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.3);border-radius:8px;padding:12px 16px;margin:12px 0;color:#22d3ee;font-size:.9rem">📌 此工具已合并至 <a href="/dns-lookup/" style="color:#22d3ee;text-decoration:underline">dns lookup</a>，请使用新版本。</div>
-<p style="color:#f59e0b;font-size:.85rem;margin:8px 0;padding:8px 12px;background:rgba(245,158,11,.1);border-radius:6px;border:1px solid rgba(245,158,11,.2)">⚠️ 纯前端限制：此功能需要服务端支持，浏览器无法直接实现。本页面仅作展示用途。</p>
+<p style="color:#10b981;font-size:.85rem;margin:8px 0;padding:8px 12px;background:rgba(16,185,129,.1);border-radius:6px;border:1px solid rgba(16,185,129,.2)">✅ 使用Google DNS-over-HTTPS API，真实DNS查询，数据实时准确</p>
     <p class="subtitle">在线DNS记录查询工具，支持A/AAAA/CNAME/MX/NS/TXT/SOA等多种记录类型，快速获取域名解析信息。</p>
     <div class="input-group">
     <label for="domain-input">输入域名</label>
@@ -364,17 +364,25 @@
     result.style.display = 'none';
     loading.style.display = 'block';
     try {
+        var TYPE_MAP={1:'A',28:'AAAA',5:'CNAME',15:'MX',2:'NS',16:'TXT',6:'SOA',33:'SRV',257:'CAA'};
         const types = ['A','AAAA','CNAME','MX','NS','TXT','SOA'];
-        const resp = await fetch('https://dns.google/resolve?name=' + encodeURIComponent(domain) + '&type=ANY');
-        if (!resp.ok) throw new Error('DNS查询失败');
-        const data = await resp.json();
+        var allAnswers=[];
+        for(const t of types){
+          try{
+            const resp=await fetch('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type='+t);
+            if(!resp.ok)continue;
+            const data=await resp.json();
+            if(data.Answer)allAnswers=allAnswers.concat(data.Answer);
+          }catch(e){}
+        }
         let html = '';
-        if (data.Answer) {
-            for (const r of data.Answer) {
-                html += `<div class="dns-record"><strong>${r.type}</strong>: ${r.data}</div>`;
+        if (allAnswers.length>0) {
+            for (const r of allAnswers) {
+                var tName=TYPE_MAP[r.type]||r.type;
+                html += '<div class="dns-record"><strong style="color:#22d3ee">'+tName+'</strong>: <span style="word-break:break-all">'+r.data+'</span> <span style="color:#64748b;font-size:.8rem">(TTL:'+r.TTL+'s)</span></div>';
             }
         } else {
-            html = '<p>未找到DNS记录。请检查域名是否正确。</p>';
+            html = '<p style="color:#f87171">❌ 未找到DNS记录。请检查域名是否正确。</p><p style="color:#94a3b8;font-size:.85rem">可能原因：域名不存在、DNS服务器无响应、或网络连接问题</p>';
         }
         document.getElementById('dns-result').innerHTML = html;
         result.style.display = 'block';

@@ -34,7 +34,7 @@
 <body>
 <div class="container">
 <div class="header"><h1>🔍 Whois域名查询</h1>
-<p style="color:#f59e0b;font-size:.85rem;margin:8px 0;padding:8px 12px;background:rgba(245,158,11,.1);border-radius:6px;border:1px solid rgba(245,158,11,.2)">⚠️ 纯前端限制：此功能需要服务端支持，浏览器无法直接实现。本页面仅作展示用途。</p><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/whois-domain-lookup/" class="">EN</a></div></div>
+<p style="color:#10b981;font-size:.85rem;margin:8px 0;padding:8px 12px;background:rgba(16,185,129,.1);border-radius:6px;border:1px solid rgba(16,185,129,.2)">✅ 使用RDAP协议(RFC 7483)查询，官方域名注册数据，支持CORS</p><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/whois-domain-lookup/" class="">EN</a></div></div>
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; Whois域名查询</p>
 <div class="hero"><p>免费在线Whois域名查询工具，查询域名注册信息、到期时间、注册商、DNS服务器等。支持所有主流域名后缀，无需注册，数据绝不上传。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
@@ -86,18 +86,15 @@ window.lookupDomain = lookupDomain; function lookupDomain(){
   }
   var area=document.getElementById("resultArea");
   area.innerHTML='\x3Cdiv class="loading">\x3Cdiv class="spinner">\x3C/div>正在查询 '+domain+' 的Whois信息...\x3C/div>';
-  // Use public Whois API
-  fetch("https://whois.free-toolbase.com/"+domain)
-    .then(function(r){return r.json()})
-    .then(function(data){displayResult(domain,data)})
-    .catch(function(){
-      // Fallback: try another API
-      fetch("https://rdap.org/domain/"+domain)
-        .then(function(r){return r.json()})
-        .then(function(data){displayRDAPResult(domain,data)})
-        .catch(function(){
-          area.innerHTML='\x3Cdiv class="section" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3)">\x3Cp style="color:#f87171">查询失败，可能是网络问题或域名不存在。请检查域名格式后重试。\x3C/p>\x3Cp style="color:#94a3b8;font-size:.85rem;margin-top:8px">提示：也可以访问 \x3Ca href="https://who.is/whois/'+domain+'" target="_blank" style="color:#06b6d4">who.is\x3C/a> 或 \x3Ca href="https://www.whois.com/whois/'+domain+'" target="_blank" style="color:#06b6d4">whois.com\x3C/a.com\x3C/a> 查询\x3C/p>\x3C/div>';
-        });
+  // Use RDAP protocol (RFC 7483) - public, CORS-enabled, JSON format
+  fetch("https://rdap.org/domain/"+domain)
+    .then(function(r){
+      if(!r.ok)throw new Error('域名查询失败('+r.status+')');
+      return r.json();
+    })
+    .then(function(data){displayRDAPResult(domain,data)})
+    .catch(function(err){
+      area.innerHTML='\x3Cdiv class="section" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3)">\x3Cp style="color:#f87171">查询失败: '+(err.message||'网络错误')+'\x3C/p>\x3Cp style="color:#94a3b8;font-size:.85rem;margin-top:8px">可能原因：域名不存在、RDAP服务器无响应、或网络连接问题\x3C/p>\x3Cp style="color:#94a3b8;font-size:.85rem;margin-top:4px">替代查询：\x3Ca href="https://who.is/whois/'+domain+'" target="_blank" style="color:#06b6d4">who.is\x3C/a> | \x3Ca href="https://www.whois.com/whois/'+domain+'" target="_blank" style="color:#06b6d4">whois.com\x3C/a>\x3C/p>\x3C/div>';
     });
 }
 function displayResult(domain,data){
