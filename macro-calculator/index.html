@@ -294,15 +294,87 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === 核心计算 ===
+var currentGoal = 'lose';
+
+function selectGoal(goal) {
+  currentGoal = goal;
+  document.querySelectorAll('.goal-btn').forEach(function(b){b.classList.remove('active')});
+  var el = document.querySelector('.goal-btn[data-goal=\"'+goal+'\"]');
+  if(el) el.classList.add('active');
+}
+
 function calculateMacros() {
-  showToast('功能已触发');
+  var gender = document.getElementById('gender').value;
+  var age = parseFloat(document.getElementById('age').value);
+  var weight = parseFloat(document.getElementById('weight').value);
+  var weightUnit = document.getElementById('weightUnit').value;
+  var height = parseFloat(document.getElementById('height').value);
+  var heightUnit = document.getElementById('heightUnit').value;
+  var activity = parseFloat(document.getElementById('activity').value);
+
+  if(isNaN(age)||age<=0||isNaN(weight)||weight<=0||isNaN(height)||height<=0){
+    showToast('请填写完整的个人信息');
+    return;
+  }
+
+  var wKg = weightUnit==='lb' ? weight*0.453592 : weight;
+  var hCm = heightUnit==='ft' ? height*30.48 : height;
+
+  // Mifflin-St Jeor
+  var bmr;
+  if(gender==='male'){
+    bmr = 10*wKg + 6.25*hCm - 5*age + 5;
+  } else {
+    bmr = 10*wKg + 6.25*hCm - 5*age - 161;
+  }
+
+  var tdee = bmr * activity;
+
+  var targetCal;
+  var goalLabel='';
+  if(currentGoal==='lose'){ targetCal=tdee-400; goalLabel='减脂'; }
+  else if(currentGoal==='maintain'){ targetCal=tdee; goalLabel='维持'; }
+  else { targetCal=tdee+400; goalLabel='增肌'; }
+
+  var proteinG = Math.round(targetCal*0.3/4);
+  var carbsG = Math.round(targetCal*0.45/4);
+  var fatG = Math.round(targetCal*0.25/9);
+
+  document.getElementById('bmrDisplay').textContent = Math.round(bmr);
+  document.getElementById('tdeeDisplay').textContent = Math.round(tdee)+' 大卡/天';
+  document.getElementById('tdeeLabel').textContent = '每日总热量消耗 (TDEE)';
+  document.getElementById('tdeeDetail').textContent = Math.round(tdee)+' 大卡/天';
+  document.getElementById('targetCalDisplay').textContent = Math.round(targetCal)+' 大卡/天';
+  document.getElementById('targetCalSub').textContent = goalLabel;
+  document.getElementById('deficitDisplay').textContent = currentGoal==='lose'?'-'+Math.round(tdee-targetCal)+' 大卡/天':'+'+Math.round(targetCal-tdee)+' 大卡/天';
+  document.getElementById('deficitLabel').textContent = currentGoal==='lose'?'热量缺口':'热量盈余';
+
+  document.getElementById('proteinG').textContent = proteinG+'g';
+  document.getElementById('proteinCal').textContent = (proteinG*4)+' 大卡';
+  document.getElementById('proteinPct').textContent = '30%';
+  document.getElementById('carbsG').textContent = carbsG+'g';
+  document.getElementById('carbsCal').textContent = (carbsG*4)+' 大卡';
+  document.getElementById('carbsPct').textContent = '45%';
+  document.getElementById('fatG').textContent = fatG+'g';
+  document.getElementById('fatCal').textContent = (fatG*9)+' 大卡';
+  document.getElementById('fatPct').textContent = '25%';
+  document.getElementById('resultSection').style.display='block';
 }
 
 function resetForm() {
-  document.querySelectorAll('input').forEach(function(el) { if(el.type==='number') el.value=''; else if(el.type==='text') el.value=''; });
-  document.querySelectorAll('select').forEach(function(el) { el.selectedIndex = 0; });
-  document.getElementById('resultSection').innerHTML = '';
+  document.getElementById('age').value='25';
+  document.getElementById('weight').value='70';
+  document.getElementById('height').value='170';
+  document.getElementById('weightUnit').value='kg';
+  document.getElementById('heightUnit').value='cm';
+  document.getElementById('gender').value='male';
+  document.getElementById('activity').value='1.55';
+  document.querySelectorAll('.goal-btn').forEach(function(b){b.classList.remove('active')});
+  var el=document.querySelector('.goal-btn[data-goal=\"lose\"]');
+  if(el)el.classList.add('active');
+  currentGoal='lose';
+  document.getElementById('resultSection').style.display='none';
   showToast('已重置');
 }
 </script>
