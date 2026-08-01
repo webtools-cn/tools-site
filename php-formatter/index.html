@@ -144,9 +144,13 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
     return { value: ratings[rIdx], count: counts[cIdx] };
   }
   function initRating() {
-    const countEl = document.getElementById('ratingCount');
-    const thanks = document.getElementById('ratingThanks');
+    var container = document.querySelector('.star-rating');
+    var text = document.querySelector('.rating-text');
     if (!container || !text) return;
+    var STORAGE_KEY = 'rating_' + location.pathname;
+    var AVG_KEY = 'rating_avg_' + location.pathname;
+    var countEl = document.getElementById('ratingCount');
+    var thanks = document.getElementById('ratingThanks');
     const isCN = document.documentElement.lang === 'zh-CN';
     const saved = localStorage.getItem(STORAGE_KEY);
     let avgData;
@@ -183,17 +187,70 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 // === 重写的函数实现 ===
 function copyOutput() {
-  var text = document.getElementById('output').innerText;
+  var text = document.getElementById('outputCode').value;
   if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});
 }
 
 function downloadOutput() {
-  showToast('功能已触发');
+  var text = document.getElementById('outputCode').value;
+  if (!text) { showToast('没有可下载的内容'); return; }
+  var blob = new Blob([text], {type: 'text/x-php;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'formatted.php';
+  a.click();
+  showToast('下载中...');
 }
 
 function formatCode() {
-  showToast('功能已触发');
+  var input = document.getElementById('inputCode').value;
+  var errEl = document.getElementById('errorBox');
+  var output = document.getElementById('outputCode');
+  var origSize = document.getElementById('origSize');
+  var fmtSize = document.getElementById('fmtSize');
+  errEl.style.display = 'none';
+  if (!input.trim()) { showToast('请粘贴PHP代码'); return; }
+  
+  var lines = input.split('\n');
+  origSize.textContent = lines.length;
+  
+  var indent = '    ';
+  var formatted = [];
+  var level = 0;
+  var inString = false;
+  var stringChar = '';
+  
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var trimmed = line.trim();
+    if (!trimmed) { formatted.push(''); continue; }
+    
+    // Count braces
+    for (var j = 0; j < trimmed.length; j++) {
+      var ch = trimmed[j];
+      if (ch === '"' || ch === "'") {
+        if (!inString) { inString = true; stringChar = ch; }
+        else if (ch === stringChar) { inString = false; stringChar = ''; }
+      }
+      if (!inString) {
+        if (ch === '{') level++;
+        if (ch === '}') level--;
+      }
+    }
+    
+    var currentIndent = '';
+    for (var k = 0; k < Math.max(0, level); k++) currentIndent += indent;
+    if (trimmed.startsWith('}') || trimmed.startsWith(')')) {
+      for (var k = 0; k < Math.max(0, level); k++) currentIndent += indent;
+    }
+    
+    formatted.push(currentIndent + trimmed);
+  }
+  
+  output.value = formatted.join('\n');
+  fmtSize.textContent = formatted.length;
+  showToast('格式化完成');
 }
 </script>
 </body>
