@@ -142,23 +142,93 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 
-function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-document.addEventListener('DOMContentLoaded',function(){
-});
-function submitFeedback(){
-var type=document.getElementById('feedback-type').value;
-var labels=type==='bug'?'bug':'enhancement';
-var body='## '+type+'\n\n'+text+'\n\n---\n*From: image-to-cartoon tool*';
-fetch('https://api.github.com/repos/webtools-cn/tools-site/issues',{
-method:'POST',headers:{'Content-Type':'application/json','Authorization':'token github...o5p5'},
-body:JSON.stringify({title:'[反馈] 图片转卡通 - '+type,body:body,labels:[labels]})
-}).then(function(r){
-if(r.ok||r.status===201){
-document.getElementById('feedback-success').style.display='block';
-setTimeout(function(){document.getElementById('feedback-success').style.display='none';},3000);
-}else{document.getElementById('status')&&(document.getElementById('status').textContent='提交失败，请稍后重试',document.getElementById('status').style.color='#ef4444');}
-}).catch(function(){document.getElementById('status')&&(document.getElementById('status').textContent='网络错误，请稍后重试',document.getElementById('status').style.color='#ef4444');});
+// === 图片转卡通 - Canvas API ===
+var cartoonImageData=null;
+function handleCartoonFile(input){
+  var file=input.files&&input.files[0];
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var app=document.getElementById('app');
+      app.innerHTML='<div style="margin-bottom:12px"><label style="color:#94a3b8;font-size:.85rem">卡通强度: <span id="strengthVal">8</span></label><br><input type="range" id="cartoonStrength" min="2" max="20" value="8" oninput="document.getElementById(\'strengthVal\').textContent=this.value;processCartoon()"></div>'+
+        '<div style="margin-bottom:12px"><label style="color:#94a3b8;font-size:.85rem">色阶数: <span id="levelsVal">8</span></label><br><input type="range" id="cartoonLevels" min="2" max="16" value="8" oninput="document.getElementById(\'levelsVal\').textContent=this.value;processCartoon()"></div>'+
+        '<div style="display:flex;gap:16px;flex-wrap:wrap"><div style="text-align:center"><div style="color:#94a3b8;font-size:.8rem;margin-bottom:4px">原图</div><img id="cartoonOriginal" style="max-width:300px;max-height:300px;border-radius:8px"></div><div style="text-align:center"><div style="color:#94a3b8;font-size:.8rem;margin-bottom:4px">卡通效果</div><canvas id="cartoonCanvas" style="max-width:300px;max-height:300px;border-radius:8px"></canvas></div></div>'+
+        '<div style="margin-top:12px"><button class="btn btn-primary" onclick="downloadCartoon()">⬇️ 下载卡通图片</button></div>';
+      document.getElementById('cartoonOriginal').src=e.target.result;
+      cartoonImageData=img;
+      processCartoon();
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
+
+function processCartoon(){
+  if(!cartoonImageData)return;
+  var strength=parseInt(document.getElementById('cartoonStrength').value)||8;
+  var levels=parseInt(document.getElementById('cartoonLevels').value)||8;
+  var canvas=document.getElementById('cartoonCanvas');
+  var ctx=canvas.getContext('2d');
+  var w=cartoonImageData.width,h=cartoonImageData.height;
+  // Limit size for performance
+  var maxDim=800;
+  if(w>maxDim||h>maxDim){var scale=maxDim/Math.max(w,h);w=Math.round(w*scale);h=Math.round(h*scale);}
+  canvas.width=w;canvas.height=h;
+  ctx.drawImage(cartoonImageData,0,0,w,h);
+  var imageData=ctx.getImageData(0,0,w,h);
+  var data=imageData.data;
+  // Step 1: Color quantization (posterize)
+  var step=256/levels;
+  for(var i=0;i<data.length;i+=4){
+    data[i]=Math.round(Math.floor(data[i]/step)*step+step/2);
+    data[i+1]=Math.round(Math.floor(data[i+1]/step)*step+step/2);
+    data[i+2]=Math.round(Math.floor(data[i+2]/step)*step+step/2);
+  }
+  ctx.putImageData(imageData,0,0);
+  // Step 2: Edge detection overlay
+  var edgeData=ctx.getImageData(0,0,w,h);
+  var edgePixels=edgeData.data;
+  var origData=ctx.getImageData(0,0,w,h);
+  var origPixels=origData.data;
+  var halfR=Math.floor(strength/2);
+  for(var y=halfR;y<h-halfR;y++){
+    for(var x=halfR;x<w-halfR;x++){
+      var idx=(y*w+x)*4;
+      // Simple edge: compare with neighbors
+      var left=((y*w+(x-halfR))*4);
+      var right=((y*w+(x+halfR))*4);
+      var up=(((y-halfR)*w+x)*4);
+      var down=(((y+halfR)*w+x)*4);
+      var dx=Math.abs(origPixels[left]-origPixels[right])+Math.abs(origPixels[left+1]-origPixels[right+1])+Math.abs(origPixels[left+2]-origPixels[right+2]);
+      var dy=Math.abs(origPixels[up]-origPixels[down])+Math.abs(origPixels[up+1]-origPixels[down+1])+Math.abs(origPixels[up+2]-origPixels[down+2]);
+      var edge=dx+dy;
+      if(edge>60){
+        edgePixels[idx]=0;edgePixels[idx+1]=0;edgePixels[idx+2]=0;edgePixels[idx+3]=255;
+      }
+    }
+  }
+  ctx.putImageData(edgeData,0,0);
+}
+
+function downloadCartoon(){
+  var canvas=document.getElementById('cartoonCanvas');
+  if(!canvas){showToast('请先处理图片');return;}
+  var link=document.createElement('a');
+  link.download='cartoon-image.png';
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+  showToast('图片已下载');
+}
+
+// Auto-init file input
+document.addEventListener('DOMContentLoaded',function(){
+  var app=document.getElementById('app');
+  if(app){
+    app.innerHTML='<div style="text-align:center;padding:30px"><input type="file" id="cartoonFileInput" accept="image/*" onchange="handleCartoonFile(this)" style="display:none"><button class="btn btn-primary" onclick="document.getElementById(\'cartoonFileInput\').click()" style="padding:12px 24px;font-size:1rem">📁 上传图片</button><p style="color:#94a3b8;margin-top:8px;font-size:.85rem">支持 JPG/PNG/WebP，纯浏览器Canvas处理</p></div>';
+  }
+});
 
 </script>
 </body>
