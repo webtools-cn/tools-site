@@ -119,7 +119,45 @@ if cn_ni or en_ni:
 else:
     ok("noindex", "0")
 
-# 7. 空壳辅助按钮（只统计函数体仅包含showToast的真正空壳）
+# 7. 主题色一致性（深色主题强制）
+LIGHT_BG = ['#f8fafc', '#ffffff', '#fff', '#fdf2f8', '#faf8f5']
+cn_light_bg = []
+for f in glob.glob('*/index.html'):
+    if f=='index.html' or f.startswith('en/'): continue
+    c = open(f,'r',errors='ignore').read()
+    # Check --bg value
+    m = re.search(r'--bg\s*:\s*([^;]+)', c)
+    if m:
+        bg = m.group(1).strip().lower()
+        if bg in LIGHT_BG:
+            cn_light_bg.append(f.split('/')[0] + f' (--bg:{bg})')
+    # Also check body background
+    bm = re.search(r'body[^{]*\{[^}]*background\s*:\s*#([0-9a-fA-F]+)', c)
+    if bm and not m:
+        bg_hex = '#' + bm.group(1).lower()
+        if bg_hex in LIGHT_BG:
+            cn_light_bg.append(f.split('/')[0] + f' (body bg:{bg_hex})')
+
+en_light_bg = []
+for f in glob.glob('en/*/index.html'):
+    c = open(f,'r',errors='ignore').read()
+    m = re.search(r'--bg\s*:\s*([^;]+)', c)
+    if m:
+        bg = m.group(1).strip().lower()
+        if bg in LIGHT_BG:
+            en_light_bg.append(f.split('/')[1] + f' (--bg:{bg})')
+    bm = re.search(r'body[^{]*\{[^}]*background\s*:\s*#([0-9a-fA-F]+)', c)
+    if bm and not m:
+        bg_hex = '#' + bm.group(1).lower()
+        if bg_hex in LIGHT_BG:
+            en_light_bg.append(f.split('/')[1] + f' (body bg:{bg_hex})')
+
+if cn_light_bg or en_light_bg:
+    err("主题色", f"CN={len(cn_light_bg)} EN={len(en_light_bg)} 浅色背景页面(必须为#0f172a): {cn_light_bg[:5]+en_light_bg[:5]}")
+else:
+    ok("主题色", "全站深色主题一致")
+
+# 8. 空壳辅助按钮（只统计函数体仅包含showToast的真正空壳）
 # 降级为warn：coming-soon占位不影响核心功能和AdSense审核
 cn_empty = 0
 empty_pattern = re.compile(r'function\s+\w+\s*\([^)]*\)\s*\{\s*showToast\([\'"][^\'"]*[\'"]\)\s*;\s*}')
