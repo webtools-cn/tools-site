@@ -1,12 +1,12 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-02 22:00 (cron自动更新)
+> 最后更新: 2026-08-02 22:30 (cron自动更新)
 
 ## 当前真实问题 (只有1类)
 
 | 问题 | 总数 | 已修 | 剩余 | 优先级 | 检测方法 |
 |:-----|:----:|:----:|:----:|:------:|:---------|
-| 空壳工具(Generated at) | 55 | 34 | 21 CN + 0 EN = 21 | P0 | grep "Generated at" |
+| 空壳工具(Generated at) | 55 | 37 | 18 CN + 0 EN = 18 | P0 | grep "Generated at" |
 
 ## 已清零问题
 
@@ -22,13 +22,13 @@
 | 辅助页面全英文 | 3 | ✅ 0 | - |
 | DNS API失效 | 1 | ✅ 0 | - |
 
-## 空壳工具清单(21个CN)
+## 空壳工具清单(18个CN)
 
-### CN (21个)
-credit-card-generator, css-scroll-animation-builder, css-scroll-driven-animation-generator, diff-to-patch, github-actions-generator, image-stitcher, image-to-pdf, json-patch-generator, json-to-csharp-class, json-to-protobuf-schema, phone-link-generator, qr-code-scanner, random-generator, ssh-key-generator, svg-blob-generator, svg-wave-generator, text-to-ascii-art, text-to-image, text-to-regex, video-to-gif, wifi-qr-code-generator
+### CN (18个)
+css-scroll-animation-builder, css-scroll-driven-animation-generator, diff-to-patch, github-actions-generator, image-stitcher, image-to-pdf, json-patch-generator, json-to-csharp-class, json-to-protobuf-schema, qr-code-scanner, random-generator, ssh-key-generator, svg-blob-generator, svg-wave-generator, text-to-ascii-art, text-to-image, video-to-gif, wifi-qr-code-generator
 
 ### EN (0个)
 无
 
 ## 已修复的工具
-bip39-mnemonic, calendar-event-generator, code-screenshot, credit-card-validator, data-uri-generator, directory-tree-generator, disclaimer-generator, domain-name-generator, json-to-sql, jwt-generator, license-generator, lucky-number-generator, mailto-link-generator, og-meta-tag-generator, random-string-generator, return-policy-generator, rss-feed-generator, sitemap-generator, slug-generator, vcard-generator, vcf-generator, wifi-qr-code-generator(EN)
+bip39-mnemonic, calendar-event-generator, code-screenshot, credit-card-generator, credit-card-validator, data-uri-generator, directory-tree-generator, disclaimer-generator, domain-name-generator, json-to-sql, jwt-generator, license-generator, lucky-number-generator, mailto-link-generator, og-meta-tag-generator, phone-link-generator, random-string-generator, return-policy-generator, rss-feed-generator, sitemap-generator, slug-generator, text-to-regex, vcard-generator, vcf-generator, wifi-qr-code-generator(EN)
