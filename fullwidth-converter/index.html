@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="免费在线全角半角转换器工具，全角转半角：在输入框中粘贴或输入包含全角字符的文本（如从PDF、Word文档或某些网页复制的文本），点击「全角 → 半角」按钮，工具会自动将所有全角字母、数字和标点符号转换为对应的半角字符。转换后的文本显示在结果区域，可直接复制使用。纯前端本地处理，数据不上传服务器，无需注册免费使用。">
+<meta name="description" content="免费在线全角半角转换器，全角字符与半角字符双向互转。一键处理文本中的字母、数字、标点和空格，纯前端本地处理，无需注册。支持从PDF、Word复制的全角文本快速转半角。">
 <meta name="keywords" content="在线全角半角转换器,工具,在线工具,免费">
 <title>在线全角半角转换器 - 免费在线工具 | Free ToolBase</title>
 <link rel="canonical" href="https://free-toolbase.com/fullwidth-converter/">
@@ -189,11 +189,6 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
     </div>
   </div></div></div>
 </div>
-
-<div class="section"><h2>常见问题</h2>
-
-</div>
-</div>
 <div>
 <!-- AdSense -->
 
@@ -214,64 +209,212 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 </div>
 <div class="toast" id="toast"></div>
 <script>
-function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+var inputText = document.getElementById('inputText');
+var resultBox = document.getElementById('resultBox');
+var convertSpace = document.getElementById('convertSpace');
+var convertPunct = document.getElementById('convertPunct');
+var inputStats = document.getElementById('inputStats');
+var resultStats = document.getElementById('resultStats');
+var toast = document.getElementById('toast');
+var previewTags = document.getElementById('previewTags');
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
+var FULL_TO_HALF_MAP = {
+  '\u3000': ' ',
+  '\uFF01': '!', '\uFF02': '"', '\uFF03': '#', '\uFF04': '$', '\uFF05': '%',
+  '\uFF06': '&', '\uFF07': '\'', '\uFF08': '(', '\uFF09': ')', '\uFF0A': '*',
+  '\uFF0B': '+', '\uFF0C': ',', '\uFF0D': '-', '\uFF0E': '.', '\uFF0F': '/',
+  '\uFF10': '0', '\uFF11': '1', '\uFF12': '2', '\uFF13': '3', '\uFF14': '4',
+  '\uFF15': '5', '\uFF16': '6', '\uFF17': '7', '\uFF18': '8', '\uFF19': '9',
+  '\uFF1A': ':', '\uFF1B': ';', '\uFF1C': '<', '\uFF1D': '=', '\uFF1E': '>',
+  '\uFF1F': '?', '\uFF20': '@',
+  '\uFF21': 'A', '\uFF22': 'B', '\uFF23': 'C', '\uFF24': 'D', '\uFF25': 'E',
+  '\uFF26': 'F', '\uFF27': 'G', '\uFF28': 'H', '\uFF29': 'I', '\uFF2A': 'J',
+  '\uFF2B': 'K', '\uFF2C': 'L', '\uFF2D': 'M', '\uFF2E': 'N', '\uFF2F': 'O',
+  '\uFF30': 'P', '\uFF31': 'Q', '\uFF32': 'R', '\uFF33': 'S', '\uFF34': 'T',
+  '\uFF35': 'U', '\uFF36': 'V', '\uFF37': 'W', '\uFF38': 'X', '\uFF39': 'Y',
+  '\uFF3A': 'Z',
+  '\uFF3B': '[', '\uFF3C': '\\', '\uFF3D': ']', '\uFF3E': '^', '\uFF3F': '_',
+  '\uFF40': '`',
+  '\uFF41': 'a', '\uFF42': 'b', '\uFF43': 'c', '\uFF44': 'd', '\uFF45': 'e',
+  '\uFF46': 'f', '\uFF47': 'g', '\uFF48': 'h', '\uFF49': 'i', '\uFF4A': 'j',
+  '\uFF4B': 'k', '\uFF4C': 'l', '\uFF4D': 'm', '\uFF4E': 'n', '\uFF4F': 'o',
+  '\uFF50': 'p', '\uFF51': 'q', '\uFF52': 'r', '\uFF53': 's', '\uFF54': 't',
+  '\uFF55': 'u', '\uFF56': 'v', '\uFF57': 'w', '\uFF58': 'x', '\uFF59': 'y',
+  '\uFF5A': 'z',
+  '\uFF5B': '{', '\uFF5C': '|', '\uFF5D': '}', '\uFF5E': '~',
+  '\u2018': '\'', '\u2019': '\'', '\u201C': '"', '\u201D': '"',
+  '\u3001': ',', '\u3002': '.', '\u3008': '<', '\u3009': '>',
+  '\u300A': '<', '\u300B': '>', '\u300C': '"', '\u300D': '"',
+  '\u300E': '"', '\u300F': '"', '\u3010': '[', '\u3011': ']',
+  '\u3014': '(', '\u3015': ')', '\u3016': '[', '\u3017': ']',
+  '\uFE50': ',', '\uFE51': ',', '\uFE52': '.', '\uFE54': ';',
+  '\uFE55': ':', '\uFE56': '!', '\uFE57': '?',
+  '\uFE59': '(', '\uFE5A': ')', '\uFE5B': '{', '\uFE5C': '}',
+  '\uFE5D': '[', '\uFE5E': ']'
+};
+
+var HALF_TO_FULL_MAP = {};
+for (var fk in FULL_TO_HALF_MAP) {
+  if (FULL_TO_HALF_MAP.hasOwnProperty(fk)) {
+    HALF_TO_FULL_MAP[FULL_TO_HALF_MAP[fk]] = fk;
+  }
 }
 
-// === 重写的函数实现 ===
-function clearAll() {
-  document.getElementById('convertSpace').value = '';
-  document.getElementById('convertPunct').value = '';
-  document.getElementById('inputText').value = '';
-  document.getElementById('previewTags').innerHTML = '';
-  document.getElementById('previewTags').style.display = 'none';
-  document.getElementById('resultBox').innerHTML = '';
-  document.getElementById('resultBox').style.display = 'none';
-  document.getElementById('resultStats').innerHTML = '';
-  document.getElementById('resultStats').style.display = 'none';
-  showToast('已重置');
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(function(){ toast.classList.remove('show'); }, 2000);
 }
 
-function copyResult() {
-  var text = document.getElementById('previewTags').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+function countChars(text) {
+  var fullCount = 0;
+  var halfCount = 0;
+  for (var i = 0; i < text.length; i++) {
+    var cp = text.charCodeAt(i);
+    if (cp >= 0xFF01 && cp <= 0xFF5E) { fullCount++; }
+    else if (cp === 0x3000 || cp === 0x3001 || cp === 0x3002 || (cp >= 0x3008 && cp <= 0x3011) || (cp >= 0x3014 && cp <= 0x3017) || (cp >= 0x2018 && cp <= 0x201D)) { fullCount++; }
+    else if (cp >= 0x20 && cp <= 0x7E) { halfCount++; }
+  }
+  return { total: text.length, full: fullCount, half: halfCount };
 }
 
-function detectMode() {
-  showToast('detectMode - coming soon!');
+function updateInputStats() {
+  var c = countChars(inputText.value);
+  inputStats.innerHTML = '<span>总计: ' + c.total + '</span><span>全角: ' + c.full + '</span><span>半角: ' + c.half + '</span>';
 }
 
-function downloadResult() {
-  var text = document.getElementById('previewTags').innerText;
-  if (!text) { showToast('没有可下载的结果'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'fullwidth-converter-result.txt';
-  a.click();
-  showToast('已下载');
-}
-
-function resultToInput() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!out||!inp)return;inp.value=out.textContent||out.innerText;out.textContent='';if(typeof convert==='function')convert();showToast('Moved to input!');
-}
-
-function toFull() {
-  showToast('toFull - coming soon!');
+function updateResultStats(text) {
+  var c = countChars(text);
+  resultStats.innerHTML = '<span>总计: ' + c.total + '</span><span>全角: ' + c.full + '</span><span>半角: ' + c.half + '</span>';
 }
 
 function toHalf() {
-  showToast('toHalf - coming soon!');
+  var text = inputText.value;
+  if (!text) { showToast('请输入文本'); return; }
+  var map = Object.assign({}, FULL_TO_HALF_MAP);
+  if (!convertPunct.checked) {
+    for (var k1 in map) {
+      if (map.hasOwnProperty(k1)) {
+        var v1 = map[k1];
+        var cp1 = v1.charCodeAt(0);
+        if (cp1 < 0x30 || cp1 > 0x39 && cp1 < 0x41 || cp1 > 0x5A && cp1 < 0x61 || cp1 > 0x7A) {
+          if (cp1 !== 0x20) delete map[k1];
+        }
+      }
+    }
+  }
+  if (!convertSpace.checked) {
+    delete map['\u3000'];
+  }
+  var result = '';
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
+    result += map[ch] !== undefined ? map[ch] : ch;
+  }
+  resultBox.textContent = result;
+  updateResultStats(result);
+  updatePreview(result);
+  showToast('全角转半角完成');
+}
+
+function toFull() {
+  var text = inputText.value;
+  if (!text) { showToast('请输入文本'); return; }
+  var map = Object.assign({}, HALF_TO_FULL_MAP);
+  if (!convertPunct.checked) {
+    for (var k2 in map) {
+      if (map.hasOwnProperty(k2)) {
+        var v2 = map[k2];
+        var cp2 = k2.charCodeAt(0);
+        if (cp2 < 0x30 || cp2 > 0x39 && cp2 < 0x41 || cp2 > 0x5A && cp2 < 0x61 || cp2 > 0x7A) {
+          if (cp2 !== 0x20) delete map[k2];
+        }
+      }
+    }
+  }
+  if (!convertSpace.checked) {
+    delete map[' '];
+  }
+  var result = '';
+  for (var j = 0; j < text.length; j++) {
+    var ch2 = text[j];
+    result += map[ch2] !== undefined ? map[ch2] : ch2;
+  }
+  resultBox.textContent = result;
+  updateResultStats(result);
+  updatePreview(result);
+  showToast('半角转全角完成');
+}
+
+function detectMode() {
+  var text = inputText.value;
+  if (!text) { showToast('请输入文本'); return; }
+  var c = countChars(text);
+  if (c.full > text.length * 0.05) {
+    toHalf();
+    showToast('检测到较多全角字符，已转为半角');
+  } else {
+    toFull();
+    showToast('检测到较少全角字符，已转为全角');
+  }
+}
+
+function updatePreview(text) {
+  var sample = text.substring(0, 80);
+  previewTags.innerHTML = '<span class="preview-tag">预览: ' + sample.replace(/</g, '&lt;') + (text.length > 80 ? '...' : '') + '</span>';
+}
+
+function clearAll() {
+  inputText.value = '';
+  resultBox.textContent = '结果将显示在这里...';
+  inputStats.innerHTML = '';
+  resultStats.innerHTML = '';
+  previewTags.innerHTML = '';
+}
+
+function copyResult() {
+  var text = resultBox.textContent;
+  if (text === '结果将显示在这里...') { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(text).then(function() {
+    showToast('已复制到剪贴板');
+  }, function() {
+    showToast('复制失败，请手动复制');
+  });
+}
+
+function resultToInput() {
+  var text = resultBox.textContent;
+  if (text === '结果将显示在这里...') { showToast('没有可转移的结果'); return; }
+  inputText.value = text;
+  updateInputStats();
+  showToast('结果已填入输入区');
+}
+
+function downloadResult() {
+  var text = resultBox.textContent;
+  if (text === '结果将显示在这里...') { showToast('没有可下载的结果'); return; }
+  var blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '转换结果.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast('已下载转换结果.txt');
+}
+
+inputText.addEventListener('input', updateInputStats);
+
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+function submitFeedback(){
+var type=document.getElementById('feedback-type').value;
+var typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
+var text=document.getElementById('feedback-text')?document.getElementById('feedback-text').value:'';
+var title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+var body=encodeURIComponent('**页面**: '+window.location.href+'\\n**类型**: '+typeLabel+'\\n\\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
 }
 </script>
 </body>
