@@ -174,9 +174,37 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>Crossword Generator</h2>
-    <p>Free online Crossword Generator tool</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="Enter content..."><button class="btn" style="margin-left:8px" onclick="process()">Run</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>Enter a word list to automatically generate an interlocking crossword puzzle grid. Supports export and printing.</p>
+    <div style="margin-top:12px">
+      <label style="font-size:.85rem;color:#94a3b8">Word List (one per line, format: word,clue)</label>
+      <textarea id="wordInput" rows="8" style="width:100%;margin-top:6px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem;outline:none;resize:vertical;font-family:monospace" placeholder="apple,red fruit&#10;banana,yellow fruit&#10;cherry,small red fruit&#10;orange,orange citrus&#10;grape,purple fruit"></textarea>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:.85rem;color:#94a3b8">Grid Size:
+        <select id="gridSize" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:4px 8px;color:#e2e8f0;font-size:.85rem;margin-left:4px">
+          <option value="10">10×10</option>
+          <option value="13" selected>13×13</option>
+          <option value="15">15×15</option>
+          <option value="20">20×20</option>
+        </select>
+      </label>
+      <button class="btn" onclick="generateCrossword()">🔄 Generate</button>
+      <button class="btn" onclick="printCrossword()">🖨️ Print</button>
+      <button class="btn" onclick="clearAll()">🗑️ Clear</button>
+    </div>
+    <div id="result" style="margin-top:16px"></div>
+    <div id="cluesArea" style="margin-top:16px;display:none">
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <h3 style="font-size:.95rem;color:#22d3ee;margin-bottom:8px">➡️ Across</h3>
+          <div id="acrossClues" style="font-size:.85rem;color:#94a3b8;line-height:2"></div>
+        </div>
+        <div style="flex:1;min-width:200px">
+          <h3 style="font-size:.95rem;color:#22d3ee;margin-bottom:8px">⬇️ Down</h3>
+          <div id="downClues" style="font-size:.85rem;color:#94a3b8;line-height:2"></div>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="tool-section">
     <h2>❓ FAQ</h2>
@@ -226,7 +254,8 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
   </div>
 
 <script>
-  'use strict';
+'use strict';
+(function() {
   var s = document.getElementById('related-tools-section');
   if (!s) return;
   var p = window.location.pathname;
@@ -255,56 +284,235 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
     h += '</div></div>';
     s.innerHTML = h;
   }).catch(function() { s.innerHTML = ''; });
-})(;</script>
+})();
 
-<script>(function(){ // resultAddCopy var processed = new Set(); function addCopyBtns(){ var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]'); results.forEach(function(el){ if(processed.has(el)) return; if(el.querySelector('.copy-btn')) return; if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return; if(el.children.length===0 && el.textContent.trim().length<5) return;
-      var btn = document.createElement('button');
-      btn.className = 'copy-btn';
-      btn.innerHTML = '📋 Copy';
-      btn.title = 'CopyResult';
-      btn.onclick = function(e){
-        e.stopPropagation();
-        var text = el.textContent || el.value || '';
-        if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') text = el.value;
-        navigator.clipboard.writeText(text.trim()).then(function(){
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        }).catch(function(){
-          var ta = document.createElement('textarea');
-          ta.value = text.trim();
-          ta.style.position='fixed';ta.style.opacity='0';
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        });
-      };
-      el.appendChild(btn);
-      processed.add(el);
-    });
-  }
-  // Run initially
-  addCopyBtns();
-  // Re-run after button clicks (most tools update results on click)
-  document.addEventListener('click', function(){setTimeout(addCopyBtns,100);});
-  // Observe DOM changes
-  if(window.MutationObserver){
-    var obs = new MutationObserver(function(){addCopyBtns();});
-    obs.observe(document.body,{childList:true,subtree:true});
-  }
-})(;)</script>
+// === Crossword Generator ===
+var placedWords = [];
+var gridData = [];
+var gridSizeN = 13;
 
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-</div>
+function parseWords(text) {
+  var lines = text.trim().split('\n');
+  var words = [];
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) continue;
+    var parts = line.split(',');
+    var word = parts[0].trim().toUpperCase().replace(/[^A-Z]/g, '');
+    var clue = parts.length > 1 ? parts.slice(1).join(',').trim() : word;
+    if (word.length >= 2) words.push({ word: word, clue: clue });
+  }
+  return words;
+}
+
+function createGrid(n) {
+  var g = [];
+  for (var i = 0; i < n; i++) { g.push(new Array(n).fill(null)); }
+  return g;
+}
+
+function canPlace(grid, word, row, col, dir, n) {
+  var r = row, c = col;
+  for (var i = 0; i < word.length; i++) {
+    if (r < 0 || r >= n || c < 0 || c >= n) return false;
+    if (grid[r][c] !== null && grid[r][c] !== word[i]) return false;
+    if (dir === 'H') {
+      if (i === 0 && c > 0 && grid[r][c-1] !== null) return false;
+      if (i === word.length - 1 && c < n - 1 && grid[r][c+1] !== null) return false;
+      if (grid[r][c] === null) {
+        if (r > 0 && grid[r-1][c] !== null) return false;
+        if (r < n - 1 && grid[r+1][c] !== null) return false;
+      }
+    } else {
+      if (i === 0 && r > 0 && grid[r-1][c] !== null) return false;
+      if (i === word.length - 1 && r < n - 1 && grid[r+1][c] !== null) return false;
+      if (grid[r][c] === null) {
+        if (c > 0 && grid[r][c-1] !== null) return false;
+        if (c < n - 1 && grid[r][c+1] !== null) return false;
+      }
+    }
+    if (dir === 'H') c++; else r++;
+  }
+  return true;
+}
+
+function placeWord(grid, word, row, col, dir) {
+  var r = row, c = col;
+  for (var i = 0; i < word.length; i++) {
+    grid[r][c] = word[i];
+    if (dir === 'H') c++; else r++;
+  }
+}
+
+function findPlacement(grid, word, n) {
+  if (placedWords.length === 0) {
+    var mid = Math.floor(n / 2);
+    var startCol = mid - Math.floor(word.length / 2);
+    if (startCol < 0) startCol = 0;
+    if (canPlace(grid, word, mid, startCol, 'H', n)) {
+      return { row: mid, col: startCol, dir: 'H' };
+    }
+    return null;
+  }
+  var best = null;
+  var bestScore = -1;
+  for (var r = 0; r < n; r++) {
+    for (var c = 0; c < n; c++) {
+      if (grid[r][c] === null) continue;
+      for (var i = 0; i < word.length; i++) {
+        if (word[i] !== grid[r][c]) continue;
+        if (c + i < n && canPlace(grid, word, r, c - i, 'H', n)) {
+          if (1 > bestScore) { bestScore = 1; best = { row: r, col: c - i, dir: 'H' }; }
+        }
+        if (r + i < n && canPlace(grid, word, r - i, c, 'V', n)) {
+          if (1 > bestScore) { bestScore = 1; best = { row: r - i, col: c, dir: 'V' }; }
+        }
+      }
+    }
+  }
+  return best;
+}
+
+function generateCrossword() {
+  var text = document.getElementById('wordInput').value;
+  var words = parseWords(text);
+  if (words.length === 0) { showToast('Please enter at least one word'); return; }
+  gridSizeN = parseInt(document.getElementById('gridSize').value);
+  words.sort(function(a, b) { return b.word.length - a.word.length; });
+  var grid = createGrid(gridSizeN);
+  placedWords = [];
+  for (var i = 0; i < words.length; i++) {
+    var placement = findPlacement(grid, words[i].word, gridSizeN);
+    if (placement) {
+      placeWord(grid, words[i].word, placement.row, placement.col, placement.dir);
+      placedWords.push({ word: words[i].word, clue: words[i].clue, row: placement.row, col: placement.col, dir: placement.dir });
+    }
+  }
+  gridData = grid;
+  renderGrid(grid);
+  renderClues();
+  if (placedWords.length === 0) {
+    showToast('Could not place any words, try a larger grid');
+  } else {
+    showToast('Crossword generated, placed ' + placedWords.length + ' words');
+  }
+}
+
+function renderGrid(grid) {
+  var container = document.getElementById('result');
+  var n = grid.length;
+  var cellSize = n <= 13 ? 32 : 26;
+  var html = '<div style="overflow-x:auto"><table style="border-collapse:collapse;margin:0 auto">';
+  var num = 1;
+  var numMap = {};
+  for (var r = 0; r < n; r++) {
+    html += '<tr>';
+    for (var c = 0; c < n; c++) {
+      if (grid[r][c] === null) {
+        html += '<td style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:#0f172a"></td>';
+      } else {
+        var isStart = false;
+        for (var w = 0; w < placedWords.length; w++) {
+          if (placedWords[w].row === r && placedWords[w].col === c) { isStart = true; break; }
+        }
+        var numLabel = '';
+        if (isStart) {
+          numMap[r + ',' + c] = num;
+          numLabel = '<span style="position:absolute;top:0;left:2px;font-size:9px;color:#64748b">' + num + '</span>';
+          num++;
+        }
+        html += '<td style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:#1e293b;border:1px solid rgba(148,163,184,.2);text-align:center;position:relative;vertical-align:middle">' + numLabel + '<span style="font-size:' + Math.floor(cellSize * 0.5) + 'px;color:#e2e8f0;font-weight:600">' + grid[r][c] + '</span></td>';
+      }
+    }
+    html += '</tr>';
+  }
+  html += '</table></div>';
+  var totalWords = document.getElementById('wordInput').value.trim().split('\n').filter(function(l){return l.trim()}).length;
+  html += '<p style="text-align:center;margin-top:8px;color:#64748b;font-size:.8rem">Placed ' + placedWords.length + ' / ' + totalWords + ' words</p>';
+  container.innerHTML = html;
+}
+
+function renderClues() {
+  var across = [];
+  var down = [];
+  var num = 1;
+  var numMap = {};
+  for (var i = 0; i < placedWords.length; i++) {
+    var pw = placedWords[i];
+    var key = pw.row + ',' + pw.col;
+    if (!(key in numMap)) { numMap[key] = num; num++; }
+    var entry = numMap[key] + '. ' + pw.clue + ' <span style="color:#475569">(' + pw.word.length + ' letters)</span>';
+    if (pw.dir === 'H') across.push(entry); else down.push(entry);
+  }
+  across.sort(function(a, b) { return parseInt(a) - parseInt(b); });
+  down.sort(function(a, b) { return parseInt(a) - parseInt(b); });
+  document.getElementById('acrossClues').innerHTML = across.length ? across.join('<br>') : '<span style="color:#475569">None</span>';
+  document.getElementById('downClues').innerHTML = down.length ? down.join('<br>') : '<span style="color:#475569">None</span>';
+  document.getElementById('cluesArea').style.display = placedWords.length > 0 ? 'block' : 'none';
+}
+
+function printCrossword() {
+  if (placedWords.length === 0) { showToast('Please generate a puzzle first'); return; }
+  var n = gridData.length;
+  var cellSize = 30;
+  var num = 1;
+  var numMap = {};
+  for (var i = 0; i < placedWords.length; i++) {
+    var key = placedWords[i].row + ',' + placedWords[i].col;
+    if (!(key in numMap)) { numMap[key] = num; num++; }
+  }
+  var html = '<html><head><title>Crossword Puzzle</title><style>body{font-family:sans-serif;padding:20px}table{border-collapse:collapse;margin:0 auto}td{width:' + cellSize + 'px;height:' + cellSize + 'px;border:1px solid #333;text-align:center;vertical-align:middle;position:relative;font-size:14px}.empty{background:#333}.num{position:absolute;top:0;left:2px;font-size:8px;color:#999}h2{margin-top:20px}</style></head><body>';
+  html += '<h1 style="text-align:center">Crossword Puzzle</h1><table>';
+  for (var r = 0; r < n; r++) {
+    html += '<tr>';
+    for (var c = 0; c < n; c++) {
+      if (gridData[r][c] === null) { html += '<td class="empty"></td>'; }
+      else {
+        var isStart = placedWords.some(function(w) { return w.row === r && w.col === c; });
+        var numLabel = isStart ? '<span class="num">' + numMap[r + ',' + c] + '</span>' : '';
+        html += '<td>' + numLabel + '</td>';
+      }
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  var across = [], down = [];
+  for (var i = 0; i < placedWords.length; i++) {
+    var entry = numMap[placedWords[i].row + ',' + placedWords[i].col] + '. ' + placedWords[i].clue;
+    if (placedWords[i].dir === 'H') across.push(entry); else down.push(entry);
+  }
+  across.sort(function(a, b) { return parseInt(a) - parseInt(b); });
+  down.sort(function(a, b) { return parseInt(a) - parseInt(b); });
+  html += '<h2>Across</h2><p>' + across.join('<br>') + '</p>';
+  html += '<h2>Down</h2><p>' + down.join('<br>') + '</p>';
+  html += '</body></html>';
+  var w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function() { w.print(); }, 300);
+}
+
+function clearAll() {
+  document.getElementById('wordInput').value = '';
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('cluesArea').style.display = 'none';
+  placedWords = [];
+  gridData = [];
+  showToast('Cleared');
+}
+
+function showToast(msg) {
+  var existing = document.getElementById('toast');
+  if (existing) { existing.textContent = msg; existing.classList.add('show'); setTimeout(function(){existing.classList.remove('show')},3000); return; }
+  var t = document.createElement('div');
+  t.id = 'toast';
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);z-index:9999;font-size:.9rem;transition:opacity .3s;opacity:0';
+  document.body.appendChild(t);
+  setTimeout(function(){ t.style.opacity = '1'; }, 10);
+  setTimeout(function(){ t.style.opacity = '0'; setTimeout(function(){ t.remove(); }, 300); }, 3000);
+}
+</script>
 
 </body>
 </html>

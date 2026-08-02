@@ -64,13 +64,30 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>GIF转WebP</h2>
-    <p>免费在线Gif To Webp工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>上传GIF图片，转换为体积更小的WebP格式。支持批量转换、质量调节和下载。</p>
+    <div style="margin-top:12px">
+      <div id="dropZone" style="border:2px dashed rgba(148,163,184,.3);border-radius:8px;padding:32px;text-align:center;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='rgba(6,182,212,.5)'" onmouseout="this.style.borderColor='rgba(148,163,184,.3)'" onclick="document.getElementById('fileInput').click()">
+        <div style="font-size:2rem;margin-bottom:8px">📁</div>
+        <div style="color:#94a3b8;font-size:.9rem">点击或拖拽GIF文件到这里</div>
+        <div style="color:#475569;font-size:.8rem;margin-top:4px">支持GIF格式，可批量上传</div>
+        <input type="file" id="fileInput" accept="image/gif" multiple style="display:none" onchange="handleFiles(this.files)">
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:.85rem;color:#94a3b8">输出质量:
+        <input type="range" id="quality" min="10" max="100" value="80" style="vertical-align:middle;margin-left:4px;width:120px" oninput="document.getElementById('qualityLabel').textContent=this.value+'%'">
+        <span id="qualityLabel" style="color:#22d3ee;font-size:.85rem">80%</span>
+      </label>
+      <button class="btn" onclick="convertAll()">🔄 全部转换</button>
+      <button class="btn" onclick="downloadAll()">💾 全部下载</button>
+      <button class="btn" onclick="clearAll()">🗑️ 清空</button>
+    </div>
+    <div id="result" style="margin-top:16px"></div>
   </div>
   <div class="tool-section">
     <h2>❓ 常见问题</h2>
-    <p style="color:#94a3b8;font-size:.9rem">本工具正在完善中，更多功能即将上线。感谢您的耐心等待。</p></div></div>
+    <p style="color:#94a3b8;font-size:.9rem">上传GIF文件，设置质量，点击转换即可生成WebP格式图片。</p>
+  </div>
 </div>
 
 <div class="section"><h2>常见问题</h2><div class="faq-item"><h3>这个工具是免费的吗？</h3><p>是的，这个工具完全免费使用。所有处理都在你的浏览器本地完成，无需注册或登录。</p></div>
@@ -131,15 +148,164 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
-function process() {
-  var input = document.getElementById('toolInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+// === GIF转WebP ===
+var fileItems = [];
+
+function handleFiles(files) {
+  for (var i = 0; i < files.length; i++) {
+    if (files[i].type === 'image/gif') {
+      fileItems.push({ file: files[i], name: files[i].name, webpBlob: null, status: 'pending' });
+    }
+  }
+  renderList();
+  if (fileItems.length > 0) showToast('已添加 ' + files.length + ' 个文件');
 }
+
+function renderList() {
+  var container = document.getElementById('result');
+  if (fileItems.length === 0) { container.innerHTML = ''; return; }
+  var html = '<div style="display:flex;flex-direction:column;gap:8px">';
+  for (var i = 0; i < fileItems.length; i++) {
+    var item = fileItems[i];
+    html += '<div style="background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
+    html += '<img id="thumb_' + i + '" style="width:48px;height:48px;object-fit:cover;border-radius:4px;background:#1e293b" alt="">';
+    html += '<div style="flex:1;min-width:120px">';
+    html += '<div style="color:#e2e8f0;font-size:.85rem;font-weight:500">' + escapeHtml(item.name) + '</div>';
+    html += '<div style="color:#64748b;font-size:.8rem">原始: ' + formatSize(item.file.size);
+    if (item.webpBlob) {
+      var ratio = ((1 - item.webpBlob.size / item.file.size) * 100).toFixed(1);
+      html += ' → WebP: ' + formatSize(item.webpBlob.size) + ' <span style="color:' + (ratio > 0 ? '#22c55e' : '#f59e0b') + '">(' + (ratio > 0 ? '↓' : '↑') + Math.abs(ratio) + '%)</span>';
+    }
+    html += '</div>';
+    html += '</div>';
+    if (item.status === 'converting') html += '<span style="color:#22d3ee;font-size:.8rem">⏳ 转换中...</span>';
+    else if (item.status === 'done' && item.webpBlob) html += '<button class="btn" style="font-size:.8rem;padding:4px 12px" onclick="downloadOne(' + i + ')">💾 下载</button>';
+    else if (item.status === 'error') html += '<span style="color:#ef4444;font-size:.8rem">❌ 失败</span>';
+    else html += '<span style="color:#64748b;font-size:.8rem">⏸️ 待转换</span>';
+    html += '<button class="btn" style="font-size:.8rem;padding:4px 12px" onclick="removeItem(' + i + ')">✕</button>';
+    html += '</div>';
+  }
+  html += '</div>';
+  container.innerHTML = html;
+  for (var j = 0; j < fileItems.length; j++) {
+    (function(idx) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = document.getElementById('thumb_' + idx);
+        if (img) img.src = e.target.result;
+      };
+      reader.readAsDataURL(fileItems[idx].file);
+    })(j);
+  }
+}
+
+function convertAll() {
+  if (fileItems.length === 0) { showToast('请先上传GIF文件'); return; }
+  var quality = parseInt(document.getElementById('quality').value) / 100;
+  var pending = fileItems.filter(function(f) { return f.status !== 'done'; });
+  if (pending.length === 0) { showToast('所有文件已转换'); return; }
+  var done = 0;
+  for (var i = 0; i < fileItems.length; i++) {
+    if (fileItems[i].status === 'done') continue;
+    convertOne(i, quality, function() {
+      done++;
+      if (done === pending.length) showToast('全部转换完成');
+    });
+  }
+}
+
+function convertOne(idx, quality, callback) {
+  fileItems[idx].status = 'converting';
+  renderList();
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob(function(blob) {
+        if (blob) {
+          fileItems[idx].webpBlob = blob;
+          fileItems[idx].status = 'done';
+        } else {
+          fileItems[idx].status = 'error';
+        }
+        renderList();
+        if (callback) callback();
+      }, 'image/webp', quality);
+    };
+    img.onerror = function() {
+      fileItems[idx].status = 'error';
+      renderList();
+      if (callback) callback();
+    };
+    img.src = e.target.result;
+  };
+  reader.onerror = function() {
+    fileItems[idx].status = 'error';
+    renderList();
+    if (callback) callback();
+  };
+  reader.readAsDataURL(fileItems[idx].file);
+}
+
+function downloadOne(idx) {
+  if (!fileItems[idx].webpBlob) { showToast('请先转换'); return; }
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(fileItems[idx].webpBlob);
+  a.download = fileItems[idx].name.replace(/\.gif$/i, '.webp');
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(a.href); }, 100);
+}
+
+function downloadAll() {
+  var done = fileItems.filter(function(f) { return f.status === 'done' && f.webpBlob; });
+  if (done.length === 0) { showToast('没有已转换的文件'); return; }
+  for (var i = 0; i < fileItems.length; i++) {
+    if (fileItems[i].status === 'done' && fileItems[i].webpBlob) {
+      downloadOne(i);
+    }
+  }
+  showToast('正在下载 ' + done.length + ' 个文件');
+}
+
+function removeItem(idx) {
+  fileItems.splice(idx, 1);
+  renderList();
+}
+
+function clearAll() {
+  fileItems = [];
+  document.getElementById('fileInput').value = '';
+  renderList();
+  showToast('已清空');
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// 拖拽支持
+document.addEventListener('DOMContentLoaded', function() {
+  var dz = document.getElementById('dropZone');
+  if (!dz) return;
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.style.borderColor = 'rgba(6,182,212,.6)'; });
+  dz.addEventListener('dragleave', function(e) { dz.style.borderColor = 'rgba(148,163,184,.3)'; });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dz.style.borderColor = 'rgba(148,163,184,.3)';
+    handleFiles(e.dataTransfer.files);
+  });
+});
 </script>
 </div>
 

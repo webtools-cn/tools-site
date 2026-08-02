@@ -171,10 +171,50 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
   
 
   <div class="tool-section">
-    <h2>Csv Sorter</h2>
-    <p>Free online Csv Sorter tool</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="Enter content..."><button class="btn" style="margin-left:8px" onclick="process()">Run</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <h2>CSV Sorter</h2>
+    <p>Paste CSV data, sort by any column in ascending or descending order. Supports custom delimiters and header detection.</p>
+    <div style="margin-top:12px">
+      <label style="font-size:.85rem;color:#94a3b8">CSV Data Input</label>
+      <textarea id="csvInput" rows="8" style="width:100%;margin-top:6px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem;outline:none;resize:vertical;font-family:monospace" placeholder="name,age,city&#10;Alice,30,New York&#10;Bob,25,London&#10;Charlie,35,Tokyo"></textarea>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:.85rem;color:#94a3b8">Delimiter:
+        <select id="delimiter" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:4px 8px;color:#e2e8f0;font-size:.85rem;margin-left:4px">
+          <option value=",">Comma (,)</option>
+          <option value="\t">Tab</option>
+          <option value=";">Semicolon (;)</option>
+          <option value="|">Pipe (|)</option>
+        </select>
+      </label>
+      <label style="font-size:.85rem;color:#94a3b8">Sort Column:
+        <select id="sortCol" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:4px 8px;color:#e2e8f0;font-size:.85rem;margin-left:4px">
+          <option value="0">Column 1</option>
+          <option value="1">Column 2</option>
+          <option value="2">Column 3</option>
+          <option value="3">Column 4</option>
+          <option value="4">Column 5</option>
+        </select>
+      </label>
+      <label style="font-size:.85rem;color:#94a3b8">Order:
+        <select id="sortOrder" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:4px 8px;color:#e2e8f0;font-size:.85rem;margin-left:4px">
+          <option value="asc">Ascending ↑</option>
+          <option value="desc">Descending ↓</option>
+        </select>
+      </label>
+      <label style="font-size:.85rem;color:#94a3b8;display:flex;align-items:center;gap:4px">
+        <input type="checkbox" id="hasHeader" checked style="width:auto"> Has Header
+      </label>
+      <label style="font-size:.85rem;color:#94a3b8;display:flex;align-items:center;gap:4px">
+        <input type="checkbox" id="numericSort" style="width:auto"> Numeric Sort
+      </label>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="sortCSV()">🔄 Sort</button>
+      <button class="btn" onclick="copyResult()">📋 Copy Result</button>
+      <button class="btn" onclick="downloadCSV()">💾 Download CSV</button>
+      <button class="btn" onclick="clearAll()">🗑️ Clear</button>
+    </div>
+    <div id="result" style="margin-top:16px"></div>
   </div>
   <div class="tool-section">
     <h2>❓ FAQ</h2>
@@ -228,7 +268,8 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
   </div>
 
 <script>
-  'use strict';
+'use strict';
+(function() {
   var s = document.getElementById('related-tools-section');
   if (!s) return;
   var p = window.location.pathname;
@@ -257,56 +298,124 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
     h += '</div></div>';
     s.innerHTML = h;
   }).catch(function() { s.innerHTML = ''; });
-})(;</script>
+})();
 
-<script>(function(){ // resultAddCopy var processed = new Set(); function addCopyBtns(){ var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]'); results.forEach(function(el){ if(processed.has(el)) return; if(el.querySelector('.copy-btn')) return; if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return; if(el.children.length===0 && el.textContent.trim().length<5) return;
-      var btn = document.createElement('button');
-      btn.className = 'copy-btn';
-      btn.innerHTML = '📋 Copy';
-      btn.title = 'CopyResult';
-      btn.onclick = function(e){
-        e.stopPropagation();
-        var text = el.textContent || el.value || '';
-        if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') text = el.value;
-        navigator.clipboard.writeText(text.trim()).then(function(){
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        }).catch(function(){
-          var ta = document.createElement('textarea');
-          ta.value = text.trim();
-          ta.style.position='fixed';ta.style.opacity='0';
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        });
-      };
-      el.appendChild(btn);
-      processed.add(el);
-    });
-  }
-  // Run initially
-  addCopyBtns();
-  // Re-run after button clicks (most tools update results on click)
-  document.addEventListener('click', function(){setTimeout(addCopyBtns,100);});
-  // Observe DOM changes
-  if(window.MutationObserver){
-    var obs = new MutationObserver(function(){addCopyBtns();});
-    obs.observe(document.body,{childList:true,subtree:true});
-  }
-})(;)</script>
+// === CSV Sorter ===
+var lastSortedCSV = '';
 
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-</div>
+function parseCSVRow(line, delimiter) {
+  var rows = [];
+  var cur = '';
+  var inQuotes = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && i + 1 < line.length && line[i + 1] === '"') { cur += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (ch === delimiter && !inQuotes) {
+      rows.push(cur); cur = '';
+    } else { cur += ch; }
+  }
+  rows.push(cur);
+  return rows;
+}
+
+function sortCSV() {
+  var input = document.getElementById('csvInput').value;
+  if (!input.trim()) { showToast('Please enter CSV data'); return; }
+  var delim = document.getElementById('delimiter').value;
+  if (delim === '\\t') delim = '\t';
+  var colIdx = parseInt(document.getElementById('sortCol').value);
+  var order = document.getElementById('sortOrder').value;
+  var hasHeader = document.getElementById('hasHeader').checked;
+  var isNumeric = document.getElementById('numericSort').checked;
+  var lines = input.trim().split('\n').filter(function(l) { return l.trim(); });
+  if (lines.length < 2) { showToast('Too few data rows, need at least 2'); return; }
+  var header = hasHeader ? parseCSVRow(lines[0], delim) : null;
+  var dataLines = hasHeader ? lines.slice(1) : lines;
+  if (dataLines.length === 0) { showToast('No data rows to sort'); return; }
+  var data = dataLines.map(function(l) { return parseCSVRow(l, delim); });
+  for (var i = 0; i < data.length; i++) {
+    if (data[i].length <= colIdx) { showToast('Row ' + (i + (hasHeader ? 2 : 1)) + ' has insufficient columns for column ' + (colIdx + 1)); return; }
+  }
+  data.sort(function(a, b) {
+    var va = a[colIdx] || '';
+    var vb = b[colIdx] || '';
+    if (isNumeric) { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; }
+    if (va < vb) return order === 'asc' ? -1 : 1;
+    if (va > vb) return order === 'asc' ? 1 : -1;
+    return 0;
+  });
+  var resultLines = [];
+  if (header) resultLines.push(header.join(delim));
+  for (var j = 0; j < data.length; j++) resultLines.push(data[j].join(delim));
+  lastSortedCSV = resultLines.join('\n');
+  renderTable(header, data, resultLines.length);
+  showToast('Sorted ' + data.length + ' rows');
+}
+
+function renderTable(header, data, totalRows) {
+  var html = '<div style="background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:12px;overflow-x:auto">';
+  html += '<div style="margin-bottom:8px;color:#64748b;font-size:.8rem">Result: ' + totalRows + ' rows</div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:.85rem">';
+  if (header) {
+    html += '<thead><tr>';
+    for (var h = 0; h < header.length; h++) {
+      html += '<th style="padding:6px 10px;border-bottom:2px solid rgba(6,182,212,.3);text-align:left;color:#22d3ee;white-space:nowrap">' + escapeHtml(header[h]) + '</th>';
+    }
+    html += '</tr></thead>';
+  }
+  html += '<tbody>';
+  for (var i = 0; i < data.length; i++) {
+    html += '<tr>';
+    for (var j = 0; j < data[i].length; j++) {
+      html += '<td style="padding:6px 10px;border-bottom:1px solid rgba(148,163,184,.08);color:#e2e8f0;white-space:nowrap">' + escapeHtml(data[i][j]) + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table></div>';
+  document.getElementById('result').innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function copyResult() {
+  if (!lastSortedCSV) { showToast('Please sort first'); return; }
+  navigator.clipboard.writeText(lastSortedCSV).then(function() { showToast('Copied to clipboard'); }).catch(function() { showToast('Copy failed'); });
+}
+
+function downloadCSV() {
+  if (!lastSortedCSV) { showToast('Please sort first'); return; }
+  var blob = new Blob([lastSortedCSV], { type: 'text/csv;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'sorted.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('CSV file downloaded');
+}
+
+function clearAll() {
+  document.getElementById('csvInput').value = '';
+  document.getElementById('result').innerHTML = '';
+  lastSortedCSV = '';
+  showToast('Cleared');
+}
+
+function showToast(msg) {
+  var existing = document.getElementById('toast');
+  if (existing) { existing.textContent = msg; existing.classList.add('show'); setTimeout(function(){existing.classList.remove('show')},3000); return; }
+  var t = document.createElement('div');
+  t.id = 'toast';
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);z-index:9999;font-size:.9rem;transition:opacity .3s;opacity:0';
+  document.body.appendChild(t);
+  setTimeout(function(){ t.style.opacity = '1'; }, 10);
+  setTimeout(function(){ t.style.opacity = '0'; setTimeout(function(){ t.remove(); }, 300); }, 3000);
+}
+</script>
 
 </body>
 </html>

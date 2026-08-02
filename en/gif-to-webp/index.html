@@ -171,10 +171,26 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
   
 
   <div class="tool-section">
-    <h2>Gif To Webp</h2>
-    <p>Free online Gif To Webp tool</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="Enter content..."><button class="btn" style="margin-left:8px" onclick="process()">Run</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <h2>GIF to WebP</h2>
+    <p>Upload GIF images and convert them to smaller WebP format. Supports batch conversion, quality adjustment, and download.</p>
+    <div style="margin-top:12px">
+      <div id="dropZone" style="border:2px dashed rgba(148,163,184,.3);border-radius:8px;padding:32px;text-align:center;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='rgba(6,182,212,.5)'" onmouseout="this.style.borderColor='rgba(148,163,184,.3)'" onclick="document.getElementById('fileInput').click()">
+        <div style="font-size:2rem;margin-bottom:8px">📁</div>
+        <div style="color:#94a3b8;font-size:.9rem">Click or drag GIF files here</div>
+        <div style="color:#475569;font-size:.8rem;margin-top:4px">Supports GIF format, batch upload allowed</div>
+        <input type="file" id="fileInput" accept="image/gif" multiple style="display:none" onchange="handleFiles(this.files)">
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:.85rem;color:#94a3b8">Quality:
+        <input type="range" id="quality" min="10" max="100" value="80" style="vertical-align:middle;margin-left:4px;width:120px" oninput="document.getElementById('qualityLabel').textContent=this.value+'%'">
+        <span id="qualityLabel" style="color:#22d3ee;font-size:.85rem">80%</span>
+      </label>
+      <button class="btn" onclick="convertAll()">🔄 Convert All</button>
+      <button class="btn" onclick="downloadAll()">💾 Download All</button>
+      <button class="btn" onclick="clearAll()">🗑️ Clear</button>
+    </div>
+    <div id="result" style="margin-top:16px"></div>
   </div>
   <div class="tool-section">
     <h2>❓ FAQ</h2>
@@ -236,7 +252,8 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
   </div>
 
 <script>
-  'use strict';
+'use strict';
+(function() {
   var s = document.getElementById('related-tools-section');
   if (!s) return;
   var p = window.location.pathname;
@@ -265,56 +282,160 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
     h += '</div></div>';
     s.innerHTML = h;
   }).catch(function() { s.innerHTML = ''; });
-})(;</script>
+})();
 
-<script>(function(){ // resultAddCopy var processed = new Set(); function addCopyBtns(){ var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]'); results.forEach(function(el){ if(processed.has(el)) return; if(el.querySelector('.copy-btn')) return; if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return; if(el.children.length===0 && el.textContent.trim().length<5) return;
-      var btn = document.createElement('button');
-      btn.className = 'copy-btn';
-      btn.innerHTML = '📋 Copy';
-      btn.title = 'CopyResult';
-      btn.onclick = function(e){
-        e.stopPropagation();
-        var text = el.textContent || el.value || '';
-        if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') text = el.value;
-        navigator.clipboard.writeText(text.trim()).then(function(){
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        }).catch(function(){
-          var ta = document.createElement('textarea');
-          ta.value = text.trim();
-          ta.style.position='fixed';ta.style.opacity='0';
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        });
+// === GIF to WebP ===
+var fileItems = [];
+
+function handleFiles(files) {
+  for (var i = 0; i < files.length; i++) {
+    if (files[i].type === 'image/gif') {
+      fileItems.push({ file: files[i], name: files[i].name, webpBlob: null, status: 'pending' });
+    }
+  }
+  renderList();
+  if (fileItems.length > 0) showToast('Added ' + files.length + ' file(s)');
+}
+
+function renderList() {
+  var container = document.getElementById('result');
+  if (fileItems.length === 0) { container.innerHTML = ''; return; }
+  var html = '<div style="display:flex;flex-direction:column;gap:8px">';
+  for (var i = 0; i < fileItems.length; i++) {
+    var item = fileItems[i];
+    html += '<div style="background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
+    html += '<img id="thumb_' + i + '" style="width:48px;height:48px;object-fit:cover;border-radius:4px;background:#1e293b" alt="">';
+    html += '<div style="flex:1;min-width:120px">';
+    html += '<div style="color:#e2e8f0;font-size:.85rem;font-weight:500">' + escapeHtml(item.name) + '</div>';
+    html += '<div style="color:#64748b;font-size:.8rem">Original: ' + formatSize(item.file.size);
+    if (item.webpBlob) {
+      var ratio = ((1 - item.webpBlob.size / item.file.size) * 100).toFixed(1);
+      html += ' → WebP: ' + formatSize(item.webpBlob.size) + ' <span style="color:' + (ratio > 0 ? '#22c55e' : '#f59e0b') + '">(' + (ratio > 0 ? '↓' : '↑') + Math.abs(ratio) + '%)</span>';
+    }
+    html += '</div></div>';
+    if (item.status === 'converting') html += '<span style="color:#22d3ee;font-size:.8rem">⏳ Converting...</span>';
+    else if (item.status === 'done' && item.webpBlob) html += '<button class="btn" style="font-size:.8rem;padding:4px 12px" onclick="downloadOne(' + i + ')">💾 Download</button>';
+    else if (item.status === 'error') html += '<span style="color:#ef4444;font-size:.8rem">❌ Failed</span>';
+    else html += '<span style="color:#64748b;font-size:.8rem">⏸️ Pending</span>';
+    html += '<button class="btn" style="font-size:.8rem;padding:4px 12px" onclick="removeItem(' + i + ')">✕</button>';
+    html += '</div>';
+  }
+  html += '</div>';
+  container.innerHTML = html;
+  for (var j = 0; j < fileItems.length; j++) {
+    (function(idx) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = document.getElementById('thumb_' + idx);
+        if (img) img.src = e.target.result;
       };
-      el.appendChild(btn);
-      processed.add(el);
+      reader.readAsDataURL(fileItems[idx].file);
+    })(j);
+  }
+}
+
+function convertAll() {
+  if (fileItems.length === 0) { showToast('Please upload GIF files first'); return; }
+  var quality = parseInt(document.getElementById('quality').value) / 100;
+  var pending = fileItems.filter(function(f) { return f.status !== 'done'; });
+  if (pending.length === 0) { showToast('All files already converted'); return; }
+  var done = 0;
+  for (var i = 0; i < fileItems.length; i++) {
+    if (fileItems[i].status === 'done') continue;
+    convertOne(i, quality, function() {
+      done++;
+      if (done === pending.length) showToast('All conversions complete');
     });
   }
-  // Run initially
-  addCopyBtns();
-  // Re-run after button clicks (most tools update results on click)
-  document.addEventListener('click', function(){setTimeout(addCopyBtns,100);});
-  // Observe DOM changes
-  if(window.MutationObserver){
-    var obs = new MutationObserver(function(){addCopyBtns();});
-    obs.observe(document.body,{childList:true,subtree:true});
-  }
-})(;)</script>
+}
 
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-</div>
+function convertOne(idx, quality, callback) {
+  fileItems[idx].status = 'converting';
+  renderList();
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob(function(blob) {
+        if (blob) { fileItems[idx].webpBlob = blob; fileItems[idx].status = 'done'; }
+        else { fileItems[idx].status = 'error'; }
+        renderList();
+        if (callback) callback();
+      }, 'image/webp', quality);
+    };
+    img.onerror = function() { fileItems[idx].status = 'error'; renderList(); if (callback) callback(); };
+    img.src = e.target.result;
+  };
+  reader.onerror = function() { fileItems[idx].status = 'error'; renderList(); if (callback) callback(); };
+  reader.readAsDataURL(fileItems[idx].file);
+}
+
+function downloadOne(idx) {
+  if (!fileItems[idx].webpBlob) { showToast('Please convert first'); return; }
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(fileItems[idx].webpBlob);
+  a.download = fileItems[idx].name.replace(/\.gif$/i, '.webp');
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(a.href); }, 100);
+}
+
+function downloadAll() {
+  var done = fileItems.filter(function(f) { return f.status === 'done' && f.webpBlob; });
+  if (done.length === 0) { showToast('No converted files'); return; }
+  for (var i = 0; i < fileItems.length; i++) {
+    if (fileItems[i].status === 'done' && fileItems[i].webpBlob) downloadOne(i);
+  }
+  showToast('Downloading ' + done.length + ' file(s)');
+}
+
+function removeItem(idx) { fileItems.splice(idx, 1); renderList(); }
+
+function clearAll() {
+  fileItems = [];
+  document.getElementById('fileInput').value = '';
+  renderList();
+  showToast('Cleared');
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function showToast(msg) {
+  var existing = document.getElementById('toast');
+  if (existing) { existing.textContent = msg; existing.classList.add('show'); setTimeout(function(){existing.classList.remove('show')},3000); return; }
+  var t = document.createElement('div');
+  t.id = 'toast';
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);z-index:9999;font-size:.9rem;transition:opacity .3s;opacity:0';
+  document.body.appendChild(t);
+  setTimeout(function(){ t.style.opacity = '1'; }, 10);
+  setTimeout(function(){ t.style.opacity = '0'; setTimeout(function(){ t.remove(); }, 300); }, 3000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var dz = document.getElementById('dropZone');
+  if (!dz) return;
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.style.borderColor = 'rgba(6,182,212,.6)'; });
+  dz.addEventListener('dragleave', function(e) { dz.style.borderColor = 'rgba(148,163,184,.3)'; });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dz.style.borderColor = 'rgba(148,163,184,.3)';
+    handleFiles(e.dataTransfer.files);
+  });
+});
+</script>
 
 </body>
 </html>

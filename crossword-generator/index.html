@@ -64,13 +64,42 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>填字游戏生成器</h2>
-    <p>免费在线Crossword Generator工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>输入单词列表，自动生成交叉填字谜题网格，支持导出和打印。</p>
+    <div style="margin-top:12px">
+      <label style="font-size:.85rem;color:#94a3b8">单词列表（每行一个，格式：单词,提示语）</label>
+      <textarea id="wordInput" rows="8" style="width:100%;margin-top:6px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem;outline:none;resize:vertical;font-family:monospace" placeholder="apple,红色水果&#10;banana,黄色水果&#10;cherry,红色小水果&#10;orange,橙色柑橘&#10;grape,紫色水果"></textarea>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:.85rem;color:#94a3b8">网格大小:
+        <select id="gridSize" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:4px 8px;color:#e2e8f0;font-size:.85rem;margin-left:4px">
+          <option value="10">10×10</option>
+          <option value="13" selected>13×13</option>
+          <option value="15">15×15</option>
+          <option value="20">20×20</option>
+        </select>
+      </label>
+      <button class="btn" onclick="generateCrossword()">🔄 生成谜题</button>
+      <button class="btn" onclick="printCrossword()">🖨️ 打印</button>
+      <button class="btn" onclick="clearAll()">🗑️ 清空</button>
+    </div>
+    <div id="result" style="margin-top:16px"></div>
+    <div id="cluesArea" style="margin-top:16px;display:none">
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <h3 style="font-size:.95rem;color:#22d3ee;margin-bottom:8px">➡️ 横向提示</h3>
+          <div id="acrossClues" style="font-size:.85rem;color:#94a3b8;line-height:2"></div>
+        </div>
+        <div style="flex:1;min-width:200px">
+          <h3 style="font-size:.95rem;color:#22d3ee;margin-bottom:8px">⬇️ 纵向提示</h3>
+          <div id="downClues" style="font-size:.85rem;color:#94a3b8;line-height:2"></div>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="tool-section">
     <h2>❓ 常见问题</h2>
-    <p style="color:#94a3b8;font-size:.9rem">本工具正在完善中，更多功能即将上线。感谢您的耐心等待。</p></div></div>
+    <p style="color:#94a3b8;font-size:.9rem">输入单词和提示语，点击生成即可创建填字谜题。</p>
+  </div>
 </div>
 
 <div class="section"><h2>常见问题</h2><div class="faq-item"><h3>这个工具是免费的吗？</h3><p>是的，这个工具完全免费使用。所有处理都在你的浏览器本地完成，无需注册或登录。</p></div>
@@ -131,14 +160,236 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
-function process() {
-  var input = document.getElementById('toolInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+// === 填字游戏生成器 ===
+var placedWords = [];
+var gridData = [];
+var gridSizeN = 13;
+
+function parseWords(text) {
+  var lines = text.trim().split('\n');
+  var words = [];
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) continue;
+    var parts = line.split(',');
+    var word = parts[0].trim().toUpperCase().replace(/[^A-Z]/g, '');
+    var clue = parts.length > 1 ? parts.slice(1).join(',').trim() : word;
+    if (word.length >= 2) words.push({ word: word, clue: clue });
+  }
+  return words;
+}
+
+function createGrid(n) {
+  var g = [];
+  for (var i = 0; i < n; i++) {
+    g.push(new Array(n).fill(null));
+  }
+  return g;
+}
+
+function canPlace(grid, word, row, col, dir, n) {
+  var r = row, c = col;
+  for (var i = 0; i < word.length; i++) {
+    if (r < 0 || r >= n || c < 0 || c >= n) return false;
+    if (grid[r][c] !== null && grid[r][c] !== word[i]) return false;
+    if (dir === 'H') {
+      if (i === 0 && c > 0 && grid[r][c-1] !== null) return false;
+      if (i === word.length - 1 && c < n - 1 && grid[r][c+1] !== null) return false;
+      if (grid[r][c] === null) {
+        if (r > 0 && grid[r-1][c] !== null) return false;
+        if (r < n - 1 && grid[r+1][c] !== null) return false;
+      }
+    } else {
+      if (i === 0 && r > 0 && grid[r-1][c] !== null) return false;
+      if (i === word.length - 1 && r < n - 1 && grid[r+1][c] !== null) return false;
+      if (grid[r][c] === null) {
+        if (c > 0 && grid[r][c-1] !== null) return false;
+        if (c < n - 1 && grid[r][c+1] !== null) return false;
+      }
+    }
+    if (dir === 'H') c++; else r++;
+  }
+  return true;
+}
+
+function placeWord(grid, word, row, col, dir) {
+  var r = row, c = col;
+  var intersections = 0;
+  for (var i = 0; i < word.length; i++) {
+    if (grid[r][c] !== null && grid[r][c] === word[i]) intersections++;
+    grid[r][c] = word[i];
+    if (dir === 'H') c++; else r++;
+  }
+  return intersections;
+}
+
+function findPlacement(grid, word, n) {
+  if (placedWords.length === 0) {
+    var mid = Math.floor(n / 2);
+    var startCol = mid - Math.floor(word.length / 2);
+    if (startCol < 0) startCol = 0;
+    if (canPlace(grid, word, mid, startCol, 'H', n)) {
+      return { row: mid, col: startCol, dir: 'H' };
+    }
+    return null;
+  }
+  var best = null;
+  var bestScore = -1;
+  for (var r = 0; r < n; r++) {
+    for (var c = 0; c < n; c++) {
+      if (grid[r][c] === null) continue;
+      for (var i = 0; i < word.length; i++) {
+        if (word[i] !== grid[r][c]) continue;
+        if (c + i < n && canPlace(grid, word, r, c - i, 'H', n)) {
+          var score = placeWord(createGrid(n), word, r, c - i, 'H');
+          if (score > bestScore) { bestScore = score; best = { row: r, col: c - i, dir: 'H' }; }
+        }
+        if (r + i < n && canPlace(grid, word, r - i, c, 'V', n)) {
+          var score2 = 1;
+          if (score2 > bestScore) { bestScore = score2; best = { row: r - i, col: c, dir: 'V' }; }
+        }
+      }
+    }
+  }
+  return best;
+}
+
+function generateCrossword() {
+  var text = document.getElementById('wordInput').value;
+  var words = parseWords(text);
+  if (words.length === 0) { showToast('请输入至少一个单词'); return; }
+  gridSizeN = parseInt(document.getElementById('gridSize').value);
+  words.sort(function(a, b) { return b.word.length - a.word.length; });
+  var grid = createGrid(gridSizeN);
+  placedWords = [];
+  for (var i = 0; i < words.length; i++) {
+    var placement = findPlacement(grid, words[i].word, gridSizeN);
+    if (placement) {
+      placeWord(grid, words[i].word, placement.row, placement.col, placement.dir);
+      placedWords.push({ word: words[i].word, clue: words[i].clue, row: placement.row, col: placement.col, dir: placement.dir });
+    }
+  }
+  gridData = grid;
+  renderGrid(grid);
+  renderClues();
+  if (placedWords.length === 0) {
+    showToast('未能放置任何单词，请尝试更大的网格');
+  } else {
+    showToast('已生成填字谜题，放置了 ' + placedWords.length + ' 个单词');
+  }
+}
+
+function renderGrid(grid) {
+  var container = document.getElementById('result');
+  var n = grid.length;
+  var cellSize = n <= 13 ? 32 : 26;
+  var html = '<div style="overflow-x:auto"><table style="border-collapse:collapse;margin:0 auto">';
+  var num = 1;
+  var numMap = {};
+  for (var r = 0; r < n; r++) {
+    html += '<tr>';
+    for (var c = 0; c < n; c++) {
+      if (grid[r][c] === null) {
+        html += '<td style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:#0f172a"></td>';
+      } else {
+        var isStart = false;
+        for (var w = 0; w < placedWords.length; w++) {
+          if (placedWords[w].row === r && placedWords[w].col === c) {
+            isStart = true;
+            break;
+          }
+        }
+        var numLabel = '';
+        if (isStart) {
+          numMap[r + ',' + c] = num;
+          numLabel = '<span style="position:absolute;top:0;left:2px;font-size:9px;color:#64748b">' + num + '</span>';
+          num++;
+        }
+        html += '<td style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:#1e293b;border:1px solid rgba(148,163,184,.2);text-align:center;position:relative;vertical-align:middle">' + numLabel + '<span style="font-size:' + Math.floor(cellSize * 0.5) + 'px;color:#e2e8f0;font-weight:600">' + grid[r][c] + '</span></td>';
+      }
+    }
+    html += '</tr>';
+  }
+  html += '</table></div>';
+  html += '<p style="text-align:center;margin-top:8px;color:#64748b;font-size:.8rem">放置 ' + placedWords.length + ' / ' + (document.getElementById('wordInput').value.trim().split('\n').filter(function(l){return l.trim()}).length) + ' 个单词</p>';
+  container.innerHTML = html;
+}
+
+function renderClues() {
+  var across = [];
+  var down = [];
+  var num = 1;
+  var numMap = {};
+  for (var i = 0; i < placedWords.length; i++) {
+    var pw = placedWords[i];
+    var key = pw.row + ',' + pw.col;
+    if (!(key in numMap)) {
+      numMap[key] = num;
+      num++;
+    }
+    var entry = numMap[key] + '. ' + pw.clue + ' <span style="color:#475569">(' + pw.word.length + '字)</span>';
+    if (pw.dir === 'H') across.push(entry);
+    else down.push(entry);
+  }
+  across.sort(function(a, b) { return parseInt(a) - parseInt(b); });
+  down.sort(function(a, b) { return parseInt(a) - parseInt(b); });
+  document.getElementById('acrossClues').innerHTML = across.length ? across.join('<br>') : '<span style="color:#475569">无</span>';
+  document.getElementById('downClues').innerHTML = down.length ? down.join('<br>') : '<span style="color:#475569">无</span>';
+  document.getElementById('cluesArea').style.display = placedWords.length > 0 ? 'block' : 'none';
+}
+
+function printCrossword() {
+  if (placedWords.length === 0) { showToast('请先生成谜题'); return; }
+  var n = gridData.length;
+  var cellSize = 30;
+  var html = '<html><head><title>填字谜题</title><style>body{font-family:sans-serif;padding:20px}table{border-collapse:collapse;margin:0 auto}td{width:' + cellSize + 'px;height:' + cellSize + 'px;border:1px solid #333;text-align:center;vertical-align:middle;position:relative;font-size:14px}.empty{background:#333}.num{position:absolute;top:0;left:2px;font-size:8px;color:#999}.blank{font-size:16px}h2{margin-top:20px}div{column-count:2}</style></head><body>';
+  html += '<h1 style="text-align:center">填字谜题</h1>';
+  html += '<table>';
+  var num = 1;
+  var numMap = {};
+  for (var i = 0; i < placedWords.length; i++) {
+    var pw = placedWords[i];
+    var key = pw.row + ',' + pw.col;
+    if (!(key in numMap)) { numMap[key] = num; num++; }
+  }
+  for (var r = 0; r < n; r++) {
+    html += '<tr>';
+    for (var c = 0; c < n; c++) {
+      if (gridData[r][c] === null) {
+        html += '<td class="empty"></td>';
+      } else {
+        var isStart = placedWords.some(function(w) { return w.row === r && w.col === c; });
+        var numLabel = isStart ? '<span class="num">' + numMap[r + ',' + c] + '</span>' : '';
+        html += '<td>' + numLabel + '<span class="blank">&nbsp;</span></td>';
+      }
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  var across = [], down = [];
+  for (var i = 0; i < placedWords.length; i++) {
+    var pw = placedWords[i];
+    var entry = numMap[pw.row + ',' + pw.col] + '. ' + pw.clue;
+    if (pw.dir === 'H') across.push(entry); else down.push(entry);
+  }
+  across.sort(function(a, b) { return parseInt(a) - parseInt(b); });
+  down.sort(function(a, b) { return parseInt(a) - parseInt(b); });
+  html += '<h2>横向</h2><div>' + across.join('<br>') + '</div>';
+  html += '<h2>纵向</h2><div>' + down.join('<br>') + '</div>';
+  html += '</body></html>';
+  var w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function() { w.print(); }, 300);
+}
+
+function clearAll() {
+  document.getElementById('wordInput').value = '';
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('cluesArea').style.display = 'none';
+  placedWords = [];
+  gridData = [];
+  showToast('已清空');
 }
 </script>
 </div>

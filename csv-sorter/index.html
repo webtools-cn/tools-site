@@ -64,13 +64,54 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>CSV排序器</h2>
-    <p>免费在线Csv Sorter工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>粘贴CSV数据，按指定列升序或降序排序，支持自定义分隔符和表头识别。</p>
+    <div style="margin-top:12px">
+      <label style="font-size:.85rem;color:#94a3b8">CSV数据输入</label>
+      <textarea id="csvInput" rows="8" style="width:100%;margin-top:6px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem;outline:none;resize:vertical;font-family:monospace" placeholder="name,age,city&#10;Alice,30,Beijing&#10;Bob,25,Shanghai&#10;Charlie,35,Shenzhen"></textarea>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:.85rem;color:#94a3b8">分隔符:
+        <select id="delimiter" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:4px 8px;color:#e2e8f0;font-size:.85rem;margin-left:4px">
+          <option value=",">逗号 (,)</option>
+          <option value="\t">Tab</option>
+          <option value=";">分号 (;)</option>
+          <option value="|">竖线 (|)</option>
+        </select>
+      </label>
+      <label style="font-size:.85rem;color:#94a3b8">排序列:
+        <select id="sortCol" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:4px 8px;color:#e2e8f0;font-size:.85rem;margin-left:4px">
+          <option value="0">第1列</option>
+          <option value="1">第2列</option>
+          <option value="2">第3列</option>
+          <option value="3">第4列</option>
+          <option value="4">第5列</option>
+        </select>
+      </label>
+      <label style="font-size:.85rem;color:#94a3b8">排序方式:
+        <select id="sortOrder" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:4px 8px;color:#e2e8f0;font-size:.85rem;margin-left:4px">
+          <option value="asc">升序 ↑</option>
+          <option value="desc">降序 ↓</option>
+        </select>
+      </label>
+      <label style="font-size:.85rem;color:#94a3b8;display:flex;align-items:center;gap:4px">
+        <input type="checkbox" id="hasHeader" checked style="width:auto"> 首行为表头
+      </label>
+      <label style="font-size:.85rem;color:#94a3b8;display:flex;align-items:center;gap:4px">
+        <input type="checkbox" id="numericSort" style="width:auto"> 数值排序
+      </label>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="sortCSV()">🔄 排序</button>
+      <button class="btn" onclick="copyResult()">📋 复制结果</button>
+      <button class="btn" onclick="downloadCSV()">💾 下载CSV</button>
+      <button class="btn" onclick="clearAll()">🗑️ 清空</button>
+    </div>
+    <div id="result" style="margin-top:16px"></div>
   </div>
   <div class="tool-section">
     <h2>❓ 常见问题</h2>
-    <p style="color:#94a3b8;font-size:.9rem">本工具正在完善中，更多功能即将上线。感谢您的耐心等待。</p></div></div>
+    <p style="color:#94a3b8;font-size:.9rem">粘贴CSV数据，选择排序列和方式，点击排序即可。</p>
+  </div>
 </div>
 
 <div class="section"><h2>常见问题</h2><div class="faq-item"><h3>这个工具是免费的吗？</h3><p>是的，这个工具完全免费使用。所有处理都在你的浏览器本地完成，无需注册或登录。</p></div>
@@ -131,14 +172,110 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
-function process() {
-  var input = document.getElementById('toolInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+// === CSV排序器 ===
+var lastSortedCSV = '';
+
+function parseCSVRow(line, delimiter) {
+  var rows = [];
+  var cur = '';
+  var inQuotes = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && i + 1 < line.length && line[i + 1] === '"') { cur += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (ch === delimiter && !inQuotes) {
+      rows.push(cur); cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  rows.push(cur);
+  return rows;
+}
+
+function sortCSV() {
+  var input = document.getElementById('csvInput').value;
+  if (!input.trim()) { showToast('请输入CSV数据'); return; }
+  var delim = document.getElementById('delimiter').value;
+  if (delim === '\\t') delim = '\t';
+  var colIdx = parseInt(document.getElementById('sortCol').value);
+  var order = document.getElementById('sortOrder').value;
+  var hasHeader = document.getElementById('hasHeader').checked;
+  var isNumeric = document.getElementById('numericSort').checked;
+  var lines = input.trim().split('\n').filter(function(l) { return l.trim(); });
+  if (lines.length < 2) { showToast('数据行太少，至少需要2行'); return; }
+  var header = hasHeader ? parseCSVRow(lines[0], delim) : null;
+  var dataLines = hasHeader ? lines.slice(1) : lines;
+  if (dataLines.length === 0) { showToast('没有数据行可排序'); return; }
+  var data = dataLines.map(function(l) { return parseCSVRow(l, delim); });
+  for (var i = 0; i < data.length; i++) {
+    if (data[i].length <= colIdx) { showToast('第' + (i + (hasHeader ? 2 : 1)) + '行列数不足，无法按第' + (colIdx + 1) + '列排序'); return; }
+  }
+  data.sort(function(a, b) {
+    var va = a[colIdx] || '';
+    var vb = b[colIdx] || '';
+    if (isNumeric) { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; }
+    if (va < vb) return order === 'asc' ? -1 : 1;
+    if (va > vb) return order === 'asc' ? 1 : -1;
+    return 0;
+  });
+  var resultLines = [];
+  if (header) resultLines.push(header.join(delim));
+  for (var j = 0; j < data.length; j++) resultLines.push(data[j].join(delim));
+  lastSortedCSV = resultLines.join('\n');
+  renderTable(header, data, resultLines.length);
+  showToast('排序完成，共 ' + data.length + ' 行');
+}
+
+function renderTable(header, data, totalRows) {
+  var html = '<div style="background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:12px;overflow-x:auto">';
+  html += '<div style="margin-bottom:8px;color:#64748b;font-size:.8rem">排序结果：' + totalRows + ' 行</div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:.85rem">';
+  if (header) {
+    html += '<thead><tr>';
+    for (var h = 0; h < header.length; h++) {
+      html += '<th style="padding:6px 10px;border-bottom:2px solid rgba(6,182,212,.3);text-align:left;color:#22d3ee;white-space:nowrap">' + escapeHtml(header[h]) + '</th>';
+    }
+    html += '</tr></thead>';
+  }
+  html += '<tbody>';
+  for (var i = 0; i < data.length; i++) {
+    html += '<tr>';
+    for (var j = 0; j < data[i].length; j++) {
+      html += '<td style="padding:6px 10px;border-bottom:1px solid rgba(148,163,184,.08);color:#e2e8f0;white-space:nowrap">' + escapeHtml(data[i][j]) + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table></div>';
+  document.getElementById('result').innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function copyResult() {
+  if (!lastSortedCSV) { showToast('请先排序'); return; }
+  navigator.clipboard.writeText(lastSortedCSV).then(function() { showToast('已复制到剪贴板'); }).catch(function() { showToast('复制失败'); });
+}
+
+function downloadCSV() {
+  if (!lastSortedCSV) { showToast('请先排序'); return; }
+  var blob = new Blob([lastSortedCSV], { type: 'text/csv;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'sorted.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('CSV文件已下载');
+}
+
+function clearAll() {
+  document.getElementById('csvInput').value = '';
+  document.getElementById('result').innerHTML = '';
+  lastSortedCSV = '';
+  showToast('已清空');
 }
 </script>
 </div>
