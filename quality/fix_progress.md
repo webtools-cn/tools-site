@@ -6,7 +6,7 @@
 
 | 问题 | 总数 | 已修 | 剩余 | 优先级 | 检测方法 |
 |:-----|:----:|:----:|:----:|:------:|:---------|
-| 空壳工具(Generated at) | 55 | 19 | 36 CN + 1 EN = 37 | P0 | grep "Generated at" |
+| 空壳工具(Generated at) | 55 | 34 | 21 CN + 0 EN = 21 | P0 | grep "Generated at" |
 
 ## 已清零问题
 
@@ -22,13 +22,13 @@
 | 辅助页面全英文 | 3 | ✅ 0 | - |
 | DNS API失效 | 1 | ✅ 0 | - |
 
-## 空壳工具清单(36个CN + 1个EN)
+## 空壳工具清单(21个CN)
 
-### CN (36个)
-color-palette-generator, color-shade-generator, content-repurposer, cookie-consent-generator, cookie-editor, credit-card-generator, credit-card-validator, css-scroll-animation-builder, css-scroll-driven-animation-generator, css-z-index-manager, diff-to-patch, email-template-generator, fake-data-generator, github-actions-generator, http-to-curl, image-stitcher, image-to-pdf, json-mock-generator, json-patch-generator, json-to-csharp-class, json-to-protobuf-schema, json-to-sql, jwt-generator, phone-link-generator, qr-code-scanner, random-generator, sort-visualization, ssh-key-generator, svg-blob-generator, svg-wave-generator, team-generator, text-to-ascii-art, text-to-image, text-to-regex, video-to-gif, wifi-qr-code-generator
+### CN (21个)
+credit-card-generator, css-scroll-animation-builder, css-scroll-driven-animation-generator, diff-to-patch, github-actions-generator, image-stitcher, image-to-pdf, json-patch-generator, json-to-csharp-class, json-to-protobuf-schema, phone-link-generator, qr-code-scanner, random-generator, ssh-key-generator, svg-blob-generator, svg-wave-generator, text-to-ascii-art, text-to-image, text-to-regex, video-to-gif, wifi-qr-code-generator
 
-### EN (1个)
-prompt-template-builder
+### EN (0个)
+无
 
 ## 已修复的工具
-bip39-mnemonic, calendar-event-generator, code-screenshot, data-uri-generator, directory-tree-generator, disclaimer-generator, domain-name-generator, license-generator, lucky-number-generator, mailto-link-generator, og-meta-tag-generator, random-string-generator, return-policy-generator, rss-feed-generator, sitemap-generator, slug-generator, vcard-generator, vcf-generator, wifi-qr-code-generator(EN)
+bip39-mnemonic, calendar-event-generator, code-screenshot, credit-card-validator, data-uri-generator, directory-tree-generator, disclaimer-generator, domain-name-generator, json-to-sql, jwt-generator, license-generator, lucky-number-generator, mailto-link-generator, og-meta-tag-generator, random-string-generator, return-policy-generator, rss-feed-generator, sitemap-generator, slug-generator, vcard-generator, vcf-generator, wifi-qr-code-generator(EN)
