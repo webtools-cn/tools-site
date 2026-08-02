@@ -10,57 +10,7 @@
   gtag('config', 'G-9W1157EBQV');
 </script>
 <!-- AdSense -->
-<script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});
-
-// === 重写的函数实现 ===
-function clearAll() {
-  document.getElementById('wf-name').value = '';
-  document.getElementById('tr-push').value = '';
-  document.getElementById('tr-pr').value = '';
-  document.getElementById('tr-schedule').value = '';
-  document.getElementById('tr-manual').value = '';
-  document.getElementById('tr-release').value = '';
-  document.getElementById('wf-branches').value = '';
-  document.getElementById('wf-node-versions').value = '';
-  document.getElementById('wf-python-versions').value = '';
-  document.getElementById('wf-java-version').value = '';
-  document.getElementById('wf-extra').value = '';
-  document.getElementById('yaml-output').value = '';
-  document.getElementById('wf-lang').selectedIndex = 0;
-  document.getElementById('wf-deploy').selectedIndex = 0;
-  document.getElementById('result-panel').innerHTML = '';
-  document.getElementById('result-panel').style.display = 'none';
-  showToast('已重置');
-}
-
-function copyResult() {
-  var text = document.getElementById('result-panel').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
-}
-
-function downloadYAML() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{{type:'text/plain'}});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='YAML.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
-}
-
-function generateYAML() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
-}
-
-function loadExample() {
-  document.getElementById('wf-name').value = 'example';
-  document.getElementById('tr-push').value = 'example';
-  document.getElementById('tr-pr').value = 'example';
-  document.getElementById('tr-schedule').value = 'example';
-  document.getElementById('tr-manual').value = 'example';
-  document.getElementById('wf-extra').value = '示例数据';
-  document.getElementById('yaml-output').value = '示例数据';
-  showToast('已加载示例');
-}
-
-function updateTemplate() {
-  showToast('updateTemplate - coming soon!');
-}
+<script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 </script>
 <meta charset="UTF-8">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
@@ -154,7 +104,7 @@ header h1{font-size:1.6rem;color:#e2e8f0}header h1 span{color:#06b6d4}
 .footer{padding:20px 0;text-align:center;border-top:1px solid rgba(148,163,184,.1);margin-top:24px}
 .footer a{color:#94a3b8;margin:0 8px;font-size:.85rem}
 .footer p{color:#64748b;font-size:.8rem;margin-top:8px}
-@media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.header{flex-direction:column;gap:8px}}.nav-back{color:#64748b;font-size:.85rem;margin-bottom:12px}.nav-back a{color:#64748b;text-decoration:none}.nav-back a:hover{color:#94a3b8}</style>
+@media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.header{flex-direction:column;gap:8px}}.nav-back{color:#64748b;font-size:.85rem;margin-bottom:12px}.nav-back a{color:#64748b;text-decoration:none}.nav-back a:hover{color:#94a3b8}.toast{position:fixed;bottom:20px;right:20px;background:#22d3ee;color:#fff;padding:10px 20px;border-radius:8px;font-size:.9rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}.toast.show{opacity:1}</style>
 <meta property="og:image" content="https://free-toolbase.com/og-image.svg">
 <meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
 <meta name="twitter:card" content="summary_large_image">
@@ -353,23 +303,274 @@ header h1{font-size:1.6rem;color:#e2e8f0}header h1 span{color:#06b6d4}
   <p>GitHub Actions生成器 | 无需注册 · 数据绝不上传服务器</p>
   <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
 </div>
+<div class="toast" id="toast" style="position:fixed;bottom:20px;right:20px;background:#22d3ee;color:#fff;padding:10px 20px;border-radius:8px;font-size:.9rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none"></div>
 
 <script>
-const TEMPLATES = {
+function showToast(m){var t=document.getElementById("toast");if(!t)return;t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+
+var TEMPLATES = {
   node: {
-    setup: `      - uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: \${{ matrix.node-version }}
-          cache: 'npm'`,
+    setup: '      - uses: actions/checkout@v4\n      - name: Setup Node.js\n        uses: actions/setup-node@v4\n        with:\n          node-version: ${{ matrix.node-version }}\n          cache: \'npm\'',
     install: '      - run: npm ci',
     test: '      - run: npm test',
     build: '      - run: npm run build',
-    matrix: 'node-version'
+    matrixKey: 'node-version'
   },
   python: {
-    setup: `      - uses: actions/checkout@v4
-      - name: Setup Python
+    setup: '      - uses: actions/checkout@v4\n      - name: Setup Python\n        uses: actions/setup-python@v5\n        with:\n          python-version: ${{ matrix.python-version }}',
+    install: '      - run: pip install -r requirements.txt',
+    test: '      - run: pytest',
+    build: '      - run: python -m build',
+    matrixKey: 'python-version'
+  },
+  java: {
+    setup: '      - uses: actions/checkout@v4\n      - name: Setup Java\n        uses: actions/setup-java@v4\n        with:\n          java-version: \'17\'\n          distribution: \'temurin\'\n          cache: maven',
+    install: '      - run: mvn dependency:resolve',
+    test: '      - run: mvn test',
+    build: '      - run: mvn package',
+    matrixKey: null
+  },
+  go: {
+    setup: '      - uses: actions/checkout@v4\n      - name: Setup Go\n        uses: actions/setup-go@v5\n        with:\n          go-version: \'1.21\'',
+    install: '      - run: go mod download',
+    test: '      - run: go test ./...',
+    build: '      - run: go build ./...',
+    matrixKey: null
+  },
+  rust: {
+    setup: '      - uses: actions/checkout@v4\n      - name: Setup Rust\n        uses: dtolnay/rust-toolchain@stable',
+    install: '',
+    test: '      - run: cargo test',
+    build: '      - run: cargo build --release',
+    matrixKey: null
+  },
+  php: {
+    setup: '      - uses: actions/checkout@v4\n      - name: Setup PHP\n        uses: shivammathur/setup-php@v2\n        with:\n          php-version: \'8.2\'',
+    install: '      - run: composer install',
+    test: '      - run: composer test',
+    build: '',
+    matrixKey: null
+  },
+  ruby: {
+    setup: '      - uses: actions/checkout@v4\n      - name: Setup Ruby\n        uses: ruby/setup-ruby@v1\n        with:\n          ruby-version: \'3.2\'\n          bundler-cache: true',
+    install: '',
+    test: '      - run: bundle exec rake test',
+    build: '',
+    matrixKey: null
+  },
+  dotnet: {
+    setup: '      - uses: actions/checkout@v4\n      - name: Setup .NET\n        uses: actions/setup-dotnet@v4\n        with:\n          dotnet-version: \'8.0.x\'',
+    install: '      - run: dotnet restore',
+    test: '      - run: dotnet test',
+    build: '      - run: dotnet build --configuration Release',
+    matrixKey: null
+  },
+  docker: {
+    setup: '      - uses: actions/checkout@v4\n      - name: Set up Docker Buildx\n        uses: docker/setup-buildx-action@v3',
+    install: '',
+    test: '',
+    build: '      - name: Build Docker image\n        run: docker build -t app .',
+    matrixKey: null
+  },
+  custom: {
+    setup: '      - uses: actions/checkout@v4',
+    install: '      - run: echo "Install dependencies"',
+    test: '      - run: echo "Run tests"',
+    build: '      - run: echo "Build project"',
+    matrixKey: null
+  }
+};
+
+function updateTemplate() {
+  // 语言切换时可选地更新默认值，此处仅提示
+  showToast('模板已切换');
+}
+
+function getTriggerYAML() {
+  var lines = [];
+  if (document.getElementById('tr-push').checked) {
+    var branches = document.getElementById('wf-branches').value.trim();
+    lines.push('  push:');
+    if (branches) {
+      lines.push('    branches: [' + branches.split(',').map(function(b) { return b.trim(); }).join(', ') + ']');
+    }
+  }
+  if (document.getElementById('tr-pr').checked) {
+    var prBranches = document.getElementById('wf-branches').value.trim();
+    lines.push('  pull_request:');
+    if (prBranches) {
+      lines.push('    branches: [' + prBranches.split(',').map(function(b) { return b.trim(); }).join(', ') + ']');
+    }
+  }
+  if (document.getElementById('tr-schedule').checked) {
+    lines.push('  schedule:');
+    lines.push('    - cron: \'0 0 * * *\'');
+  }
+  if (document.getElementById('tr-manual').checked) {
+    lines.push('  workflow_dispatch:');
+  }
+  if (document.getElementById('tr-release').checked) {
+    lines.push('  release:');
+    lines.push('    types: [published]');
+  }
+  if (lines.length === 0) {
+    lines.push('  push:');
+    lines.push('    branches: [main]');
+  }
+  return lines.join('\n');
+}
+
+function getDeploySteps(deploy) {
+  switch(deploy) {
+    case 'gh-pages':
+      return '      - name: Deploy to GitHub Pages\n        uses: peaceiris/actions-gh-pages@v3\n        with:\n          github_token: ${{ secrets.GITHUB_TOKEN }}\n          publish_dir: ./dist';
+    case 'docker-hub':
+      return '      - name: Login to Docker Hub\n        uses: docker/login-action@v3\n        with:\n          username: ${{ secrets.DOCKER_USERNAME }}\n          password: ${{ secrets.DOCKER_TOKEN }}\n      - name: Push image\n        run: docker push ${{ secrets.DOCKER_USERNAME }}/app:latest';
+    case 'aws':
+      return '      - name: Configure AWS credentials\n        uses: aws-actions/configure-aws-credentials@v4\n        with:\n          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}\n          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}\n          aws-region: us-east-1\n      - name: Deploy to S3\n        run: aws s3 sync ./dist s3://my-bucket --delete';
+    case 'gcp':
+      return '      - name: Auth to Google Cloud\n        uses: google-github-actions/auth@v2\n        with:\n          credentials_json: ${{ secrets.GCP_SA_KEY }}\n      - name: Deploy to Cloud Run\n        run: gcloud run deploy app --image gcr.io/my-project/app --region us-central1';
+    case 'azure':
+      return '      - name: Azure Login\n        uses: azure/login@v2\n        with:\n          creds: ${{ secrets.AZURE_CREDENTIALS }}\n      - name: Deploy to Azure Web App\n        uses: azure/webapps-deploy@v3\n        with:\n          app-name: my-app\n          package: ./dist';
+    case 'vercel':
+      return '      - name: Deploy to Vercel\n        run: npx vercel --prod --token ${{ secrets.VERCEL_TOKEN }}';
+    case 'netlify':
+      return '      - name: Deploy to Netlify\n        run: npx netlify deploy --prod --auth ${{ secrets.NETLIFY_AUTH_TOKEN }} --site ${{ secrets.NETLIFY_SITE_ID }} --dir ./dist';
+    default:
+      return '';
+  }
+}
+
+function generateYAML() {
+  var wfName = document.getElementById('wf-name').value.trim() || 'CI/CD Pipeline';
+  var lang = document.getElementById('wf-lang').value;
+  var deploy = document.getElementById('wf-deploy').value;
+  var extra = document.getElementById('wf-extra').value.trim();
+  var tmpl = TEMPLATES[lang] || TEMPLATES.custom;
+
+  var yaml = '';
+  yaml += 'name: ' + wfName + '\n\n';
+  yaml += 'on:\n';
+  yaml += getTriggerYAML() + '\n\n';
+  yaml += 'permissions:\n  contents: read\n\n';
+
+  // Jobs
+  yaml += 'jobs:\n';
+  yaml += '  build:\n';
+  yaml += '    runs-on: ubuntu-latest\n';
+
+  // Matrix
+  var matrixKey = tmpl.matrixKey;
+  var versions = null;
+  if (matrixKey === 'node-version') {
+    versions = document.getElementById('wf-node-versions').value.trim();
+  } else if (matrixKey === 'python-version') {
+    versions = document.getElementById('wf-python-versions').value.trim();
+  }
+
+  if (matrixKey && versions) {
+    var versionArr = versions.split(',').map(function(v) { return v.trim(); }).filter(function(v) { return v; });
+    if (versionArr.length > 0) {
+      yaml += '    strategy:\n';
+      yaml += '      matrix:\n';
+      yaml += '        ' + matrixKey + ': [' + versionArr.join(', ') + ']\n';
+    }
+  }
+
+  yaml += '\n    steps:\n';
+  yaml += tmpl.setup + '\n';
+  if (tmpl.install) yaml += tmpl.install + '\n';
+  if (tmpl.test) yaml += tmpl.test + '\n';
+  if (tmpl.build) yaml += tmpl.build + '\n';
+
+  // Extra steps
+  if (extra) {
+    var extraLines = extra.split('\n');
+    extraLines.forEach(function(line) {
+      if (line.trim()) yaml += '      ' + line.trim() + '\n';
+    });
+  }
+
+  // Deploy
+  var deploySteps = getDeploySteps(deploy);
+  if (deploySteps) {
+    yaml += '\n      - name: Deploy\n';
+    yaml += deploySteps + '\n';
+  }
+
+  // 显示结果
+  var resultPanel = document.getElementById('result-panel');
+  var yamlOutput = document.getElementById('yaml-output');
+  if (resultPanel) resultPanel.style.display = 'block';
+  if (yamlOutput) yamlOutput.value = yaml;
+
+  // 更新标签
+  var tagsHtml = '';
+  if (document.getElementById('tr-push').checked) tagsHtml += '<span class="tag tag-trigger">push</span>';
+  if (document.getElementById('tr-pr').checked) tagsHtml += '<span class="tag tag-trigger">pull_request</span>';
+  if (document.getElementById('tr-schedule').checked) tagsHtml += '<span class="tag tag-trigger">schedule</span>';
+  if (document.getElementById('tr-manual').checked) tagsHtml += '<span class="tag tag-trigger">workflow_dispatch</span>';
+  if (document.getElementById('tr-release').checked) tagsHtml += '<span class="tag tag-trigger">release</span>';
+  tagsHtml += '<span class="tag tag-lang">' + lang + '</span>';
+  if (deploy !== 'none') tagsHtml += '<span class="tag tag-deploy">' + deploy + '</span>';
+  var yamlTags = document.getElementById('yaml-tags');
+  if (yamlTags) yamlTags.innerHTML = tagsHtml;
+
+  showToast('YAML已生成');
+}
+
+function copyResult() {
+  var yamlOutput = document.getElementById('yaml-output');
+  if (!yamlOutput || !yamlOutput.value) { showToast('请先生成YAML'); return; }
+  navigator.clipboard.writeText(yamlOutput.value).then(function() { showToast('已复制到剪贴板'); }).catch(function() { showToast('复制失败'); });
+}
+
+function downloadYAML() {
+  var yamlOutput = document.getElementById('yaml-output');
+  if (!yamlOutput || !yamlOutput.value) { showToast('请先生成YAML'); return; }
+  var blob = new Blob([yamlOutput.value], { type: 'text/yaml' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ci.yml';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('文件已下载');
+}
+
+function loadExample() {
+  document.getElementById('wf-name').value = 'Build and Deploy';
+  document.getElementById('wf-lang').selectedIndex = 0;
+  document.getElementById('tr-push').checked = true;
+  document.getElementById('tr-pr').checked = true;
+  document.getElementById('tr-manual').checked = true;
+  document.getElementById('wf-branches').value = 'main, develop';
+  document.getElementById('wf-node-versions').value = '18, 20, 22';
+  document.getElementById('wf-deploy').selectedIndex = 1;
+  document.getElementById('wf-extra').value = 'run: npm run lint';
+  generateYAML();
+  showToast('示例已加载');
+}
+
+function clearAll() {
+  document.getElementById('wf-name').value = 'CI/CD Pipeline';
+  document.getElementById('wf-branches').value = 'main';
+  document.getElementById('wf-node-versions').value = '18,20';
+  document.getElementById('wf-python-versions').value = '3.10,3.11,3.12';
+  document.getElementById('wf-java-version').value = '17';
+  document.getElementById('wf-extra').value = '';
+  document.getElementById('wf-lang').selectedIndex = 0;
+  document.getElementById('wf-deploy').selectedIndex = 0;
+  document.getElementById('tr-push').checked = true;
+  document.getElementById('tr-pr').checked = false;
+  document.getElementById('tr-schedule').checked = false;
+  document.getElementById('tr-manual').checked = false;
+  document.getElementById('tr-release').checked = false;
+  var resultPanel = document.getElementById('result-panel');
+  if (resultPanel) resultPanel.style.display = 'none';
+  var yamlOutput = document.getElementById('yaml-output');
+  if (yamlOutput) yamlOutput.value = '';
+  showToast('已重置');
+}
+</script>
 </body>
 </html>

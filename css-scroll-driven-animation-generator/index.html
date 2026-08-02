@@ -205,15 +205,87 @@ function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.c
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
 // === 重写的函数实现 ===
+var currentTimeline = 'scroll';
+
+function setTimeline(type) {
+  currentTimeline = type;
+  document.querySelectorAll('.type-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.getAttribute('data-tl') === type);
+  });
+  var scrollAxisGroup = document.getElementById('scrollAxisGroup');
+  var viewInsetGroup = document.getElementById('viewInsetGroup');
+  if (type === 'view') {
+    if (scrollAxisGroup) scrollAxisGroup.style.display = 'none';
+    if (viewInsetGroup) viewInsetGroup.style.display = 'block';
+  } else {
+    if (scrollAxisGroup) scrollAxisGroup.style.display = 'block';
+    if (viewInsetGroup) viewInsetGroup.style.display = 'none';
+  }
+  generateCode();
+}
+
 function copyCode() {
-  var text = document.getElementById('previewContainer').innerText || document.getElementById('previewContainer').textContent;
-  if (!text) { showToast('没有可复制的内容'); return; }
-  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
+  var el = document.getElementById('codeOutput');
+  if (!el || !el.textContent) { showToast('请先生成代码'); return; }
+  navigator.clipboard.writeText(el.textContent).then(function() { showToast('代码已复制到剪贴板'); }).catch(function() { showToast('复制失败'); });
 }
 
 function generateCode() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  var animProp = document.getElementById('animProp').value;
+  var startVal = document.getElementById('startVal').value.trim() || '0px';
+  var endVal = document.getElementById('endVal').value.trim() || '300px';
+  var duration = document.getElementById('duration').value.trim() || '1s';
+  var scrollAxis = document.getElementById('scrollAxis') ? document.getElementById('scrollAxis').value : 'block';
+  var viewInset = document.getElementById('viewInset') ? document.getElementById('viewInset').value.trim() : '';
+
+  var propParts = animProp.split(':');
+  var propKey = propParts[0].trim();
+  var propVal = propParts[1] ? propParts[1].trim() : '';
+
+  var timelineStr;
+  if (currentTimeline === 'view') {
+    timelineStr = viewInset ? 'view(' + scrollAxis + ' ' + viewInset + ')' : 'view(' + scrollAxis + ')';
+  } else {
+    timelineStr = 'scroll(' + (scrollAxis === 'y' || scrollAxis === 'x' ? '' : 'root ') + scrollAxis + ')';
+  }
+
+  var css = '/* CSS Scroll-Driven Animation */\n';
+  css += '@keyframes scrollAnim {\n';
+  css += '  from { ' + (propKey === 'transform' ? 'transform: ' + propVal + '(' + startVal + ')' : propKey + ': ' + startVal) + ' }\n';
+  css += '  to { ' + (propKey === 'transform' ? 'transform: ' + propVal + '(' + endVal + ')' : propKey + ': ' + endVal) + ' }\n';
+  css += '}\n\n';
+  css += '.animated-element {\n';
+  css += '  animation: scrollAnim ' + duration + ' linear both;\n';
+  css += '  animation-timeline: ' + timelineStr + ';\n';
+  css += '}\n\n';
+  css += '/* 浏览器兼容性回退 */\n';
+  css += '@supports not (animation-timeline: ' + timelineStr + ') {\n';
+  css += '  .animated-element {\n';
+  css += '    animation: scrollAnim ' + duration + ' ease both;\n';
+  css += '  }\n';
+  css += '}';
+
+  var codeOutput = document.getElementById('codeOutput');
+  if (codeOutput) codeOutput.textContent = css;
+
+  // 更新预览
+  var oldStyle = document.getElementById('previewAnimStyle');
+  if (oldStyle) oldStyle.remove();
+
+  var fromVal = propKey === 'transform' ? 'transform: ' + propVal + '(' + startVal + ')' : propKey + ': ' + startVal;
+  var toVal = propKey === 'transform' ? 'transform: ' + propVal + '(' + endVal + ')' : propKey + ': ' + endVal;
+
+  var style = document.createElement('style');
+  style.id = 'previewAnimStyle';
+  style.textContent = '@keyframes previewScrollAnim { from { ' + fromVal + ' } to { ' + toVal + ' } }'
+    + ' #animatedBox { animation: previewScrollAnim ' + duration + ' linear both; animation-timeline: ' + timelineStr + '; }';
+  document.head.appendChild(style);
+
+  showToast('代码已生成');
 }
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() { generateCode(); });
 </script>
 </body>
 </html>

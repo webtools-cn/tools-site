@@ -110,6 +110,16 @@
   </div>
   </div>
 
+  <div class="section">
+    <h2>👁️ 实时预览</h2>
+    <p style="color:#94a3b8;font-size:.85rem;margin-bottom:12px">滚动下方区域查看动画效果（需Chrome 115+）</p>
+    <div style="height:200px;overflow-y:auto;border:2px solid rgba(148,163,184,.15);border-radius:8px;padding:20px;background:#0f172a">
+      <div style="height:150px"></div>
+      <div id="previewBox" style="width:80px;height:80px;background:#22d3ee;border-radius:12px;margin:0 auto"></div>
+      <div style="height:150px"></div>
+    </div>
+  </div>
+
   <div class="section" id="codeArea" style="display:none">
     <h2>生成的CSS代码</h2>
     <div class="code-output">
@@ -163,20 +173,94 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 
 // === 重写的函数实现 ===
+var animEffects = {
+  fadeIn: { from: 'opacity:0', to: 'opacity:1' },
+  slideLeft: { from: 'opacity:0;transform:translateX(-60px)', to: 'opacity:1;transform:translateX(0)' },
+  slideRight: { from: 'opacity:0;transform:translateX(60px)', to: 'opacity:1;transform:translateX(0)' },
+  slideUp: { from: 'opacity:0;transform:translateY(60px)', to: 'opacity:1;transform:translateY(0)' },
+  scaleUp: { from: 'opacity:0;transform:scale(0.5)', to: 'opacity:1;transform:scale(1)' },
+  rotateIn: { from: 'opacity:0;transform:rotate(-180deg)', to: 'opacity:1;transform:rotate(0)' },
+  blurIn: { from: 'opacity:0;filter:blur(20px)', to: 'opacity:1;filter:blur(0)' },
+  clipReveal: { from: 'clip-path:inset(0 0 100% 0)', to: 'clip-path:inset(0 0 0 0)' }
+};
+
 function copyCode() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
-  if (!text) { showToast('没有可复制的内容'); return; }
-  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
+  var pre = document.getElementById('codeOutput');
+  if (!pre || !pre.textContent) { showToast('请先生成代码'); return; }
+  navigator.clipboard.writeText(pre.textContent).then(function() { showToast('代码已复制到剪贴板'); }).catch(function() { showToast('复制失败'); });
 }
 
 function generateCode() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  var tlType = document.getElementById('timelineType').value;
+  var axis = document.getElementById('scrollAxis').value;
+  var animType = document.getElementById('animType').value;
+  var fillMode = document.getElementById('fillMode').value;
+  var rangeStart = document.getElementById('rangeStart').value;
+  var rangeEnd = document.getElementById('rangeEnd').value;
+
+  var effect = animEffects[animType] || animEffects.fadeIn;
+  var axisParam = (axis === 'y' || axis === 'x') ? '' : ', ' + axis;
+  var timelineFn = tlType === 'view'
+    ? 'view(' + axis + ')'
+    : 'scroll(' + (axis === 'block' || axis === 'inline' ? 'root ' + axis : 'nearest ' + axis) + ')';
+
+  var rangeStartStr = rangeStart + '%';
+  var rangeEndStr = rangeEnd + '%';
+
+  var css = '/* CSS Scroll-Driven Animation */\n';
+  css += '@keyframes ' + animType + ' {\n';
+  css += '  from { ' + effect.from + ' }\n';
+  css += '  to { ' + effect.to + ' }\n';
+  css += '}\n\n';
+  css += '.scroll-animated {\n';
+  css += '  animation: ' + animType + ' linear both;\n';
+  css += '  animation-timeline: ' + timelineFn + ';\n';
+  css += '  animation-range: ' + rangeStartStr + ' ' + rangeEndStr + ';\n';
+  css += '  animation-fill-mode: ' + fillMode + ';\n';
+  css += '}\n\n';
+  css += '/* 浏览器兼容性回退 */\n';
+  css += '@supports not (animation-timeline: ' + timelineFn + ') {\n';
+  css += '  .scroll-animated {\n';
+  css += '    animation: ' + animType + ' 1s ease ' + fillMode + ';\n';
+  css += '  }\n';
+  css += '}';
+
+  var codeArea = document.getElementById('codeArea');
+  var codeOutput = document.getElementById('codeOutput');
+  if (codeArea) codeArea.style.display = 'block';
+  if (codeOutput) codeOutput.textContent = css;
+  showToast('代码已生成');
+  updatePreview();
 }
 
 function updatePreview() {
-  var el = document.getElementById('preview');
-  if (!el) return;
-  el.style.display = 'block';
+  var rangeStart = document.getElementById('rangeStart');
+  var rangeEnd = document.getElementById('rangeEnd');
+  var rsVal = document.getElementById('rangeStartVal');
+  var reVal = document.getElementById('rangeEndVal');
+  if (rsVal && rangeStart) rsVal.textContent = rangeStart.value + '%';
+  if (reVal && rangeEnd) reVal.textContent = rangeEnd.value + '%';
+
+  var animType = document.getElementById('animType').value;
+  var tlType = document.getElementById('timelineType').value;
+  var axis = document.getElementById('scrollAxis').value;
+  var fillMode = document.getElementById('fillMode').value;
+  var effect = animEffects[animType] || animEffects.fadeIn;
+
+  var axisParam = (axis === 'y' || axis === 'x') ? '' : ', ' + axis;
+  var timelineFn = tlType === 'view'
+    ? 'view(' + axis + ')'
+    : 'scroll(' + (axis === 'block' || axis === 'inline' ? 'root ' + axis : 'nearest ' + axis) + ')';
+
+  // Remove old preview style
+  var oldStyle = document.getElementById('previewStyle');
+  if (oldStyle) oldStyle.remove();
+
+  var style = document.createElement('style');
+  style.id = 'previewStyle';
+  style.textContent = '@keyframes previewAnim { from { ' + effect.from + ' } to { ' + effect.to + ' } }'
+    + '#previewBox { animation: previewAnim linear ' + fillMode + '; animation-timeline: ' + timelineFn + '; }';
+  document.head.appendChild(style);
   showToast('预览已更新');
 }
 </script>
