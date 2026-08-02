@@ -64,9 +64,45 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>文本进度条生成器</h2>
-    <p>免费在线Text Progress Bar Generator工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>自定义百分比、长度、字符样式，生成ASCII/Unicode文本进度条，支持复制到剪贴板</p>
+    <div style="display:grid;gap:12px;margin-top:16px">
+      <div>
+        <label style="display:block;font-size:.85rem;color:#94a3b8;margin-bottom:4px">进度百分比 (0-100)</label>
+        <input type="number" id="pctInput" value="50" min="0" max="100" step="1" style="width:120px">
+        <input type="range" id="pctSlider" value="50" min="0" max="100" step="1" style="width:200px;vertical-align:middle;margin-left:8px">
+      </div>
+      <div>
+        <label style="display:block;font-size:.85rem;color:#94a3b8;margin-bottom:4px">进度条长度（字符数）</label>
+        <input type="number" id="lenInput" value="30" min="5" max="100" step="1" style="width:120px">
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <div>
+          <label style="display:block;font-size:.85rem;color:#94a3b8;margin-bottom:4px">已完成字符</label>
+          <input type="text" id="fillChar" value="█" maxlength="3" style="width:80px;text-align:center;font-size:1rem">
+        </div>
+        <div>
+          <label style="display:block;font-size:.85rem;color:#94a3b8;margin-bottom:4px">未完成字符</label>
+          <input type="text" id="emptyChar" value="░" maxlength="3" style="width:80px;text-align:center;font-size:1rem">
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:.85rem;color:#94a3b8;margin-bottom:4px">显示样式</label>
+        <select id="styleSelect" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem">
+          <option value="bar">纯进度条 [█████████░░░░░░░░░░░]</option>
+          <option value="pct">进度条+百分比 [█████░░░░░] 50%</option>
+          <option value="frac">进度条+分数 [█████░░░░░] 15/30</option>
+          <option value="bracket">带括号 [█████░░░░░]</option>
+          <option value="ascii">ASCII样式 [=====-----]</option>
+          <option value="block">Unicode方块 [▰▰▰▰▰▱▱▱▱▱]</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="generateBar()">生成进度条</button>
+        <button class="btn" onclick="copyResult()" style="background:rgba(34,197,94,.15);color:#22c55e;border-color:rgba(34,197,94,.3)">📋 复制结果</button>
+        <button class="btn" onclick="resetBar()" style="background:rgba(148,163,184,.1);color:#94a3b8">重置</button>
+      </div>
+    </div>
+    <div id="result" style="margin-top:16px;padding:16px;background:#0f172a;border-radius:8px;font-family:'Courier New',monospace;font-size:1.1rem;color:#22d3ee;white-space:pre-wrap;word-break:break-all;min-height:2em"></div>
   </div>
   <div class="tool-section">
     <h2>❓ 常见问题</h2>
@@ -131,15 +167,60 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
-function process() {
-  var input = document.getElementById('toolInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
+// === 文本进度条生成器 ===
+function generateBar() {
+  var pct = parseInt(document.getElementById('pctInput').value) || 0;
+  pct = Math.max(0, Math.min(100, pct));
+  var total = parseInt(document.getElementById('lenInput').value) || 30;
+  total = Math.max(5, Math.min(100, total));
+  var style = document.getElementById('styleSelect').value;
+  var fill, empty;
+  if (style === 'ascii') { fill = '='; empty = '-'; }
+  else if (style === 'block') { fill = '▰'; empty = '▱'; }
+  else {
+    fill = document.getElementById('fillChar').value || '█';
+    empty = document.getElementById('emptyChar').value || '░';
+  }
+  var filled = Math.round(total * pct / 100);
+  var bar = '';
+  for (var i = 0; i < filled; i++) bar += fill;
+  for (var j = filled; j < total; j++) bar += empty;
+  var result = '';
+  if (style === 'bracket') {
+    result = '[' + bar + ']';
+  } else {
+    result = '[' + bar + ']';
+    if (style === 'pct') result += ' ' + pct + '%';
+    else if (style === 'frac') result += ' ' + filled + '/' + total;
+  }
+  document.getElementById('result').textContent = result;
   document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+  showToast('进度条已生成');
 }
+function copyResult() {
+  var text = document.getElementById('result').textContent;
+  if (!text) { showToast('请先生成进度条'); return; }
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制到剪贴板'); })['catch'](function() { showToast('复制失败'); });
+}
+function resetBar() {
+  document.getElementById('pctInput').value = 50;
+  document.getElementById('pctSlider').value = 50;
+  document.getElementById('lenInput').value = 30;
+  document.getElementById('fillChar').value = '█';
+  document.getElementById('emptyChar').value = '░';
+  document.getElementById('styleSelect').value = 'bar';
+  document.getElementById('result').textContent = '';
+  showToast('已重置');
+}
+// 滑块和输入框联动
+document.getElementById('pctSlider').addEventListener('input', function() {
+  document.getElementById('pctInput').value = this.value;
+});
+document.getElementById('pctInput').addEventListener('input', function() {
+  document.getElementById('pctSlider').value = this.value;
+});
+// 页面加载自动生成
+generateBar();
 </script>
 </div>
 

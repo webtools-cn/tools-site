@@ -8,11 +8,11 @@
 |:-----|:----:|:----:|:----:|:------:|:---------|
 | 空壳工具(0交互+0JS) | 40+ | 42 | 0 | ✅ 完成 | check_empty_shells.py + 精确过滤 |
 | 模板空壳(toolInput stub) | 4 | 4 | 0 | ✅ 完成 | check_empty_shells.py 模板空壳检测 |
-| EN版模板空壳(process未定义) | 23 | 18 | 5 | 🔴 进行中 | grep toolInput + process() 未定义检测 |
+| EN版模板空壳(process未定义) | 23 | 21 | 2 | 🔴 进行中 | grep toolInput + process() 未定义检测 |
 
-## EN版模板空壳清单(5个剩余)
+## EN版模板空壳清单(2个剩余)
 
-en/text-progress-bar-generator, en/tiff-to-jpg, en/webp-to-gif, en/xml-to-yaml, en/yaml-to-xml
+en/xml-to-yaml, en/yaml-to-xml
 
 ## 已清零问题
 
@@ -110,6 +110,10 @@ graphql-to-json, html-to-react, image-round-corners
 ### 2026-08-03 (第二十一批 - EN版模板空壳修复续)
 json-to-protobuf, protobuf-to-json, pdf-page-numbers
 注: 三个工具CN/EN版均修复。json-to-protobuf CN/EN版添加JSON→Protobuf .proto定义转换器(JSON解析→递归message生成→标量类型映射string/int32/int64/double/bool+嵌套对象→子message+数组→repeated字段+proto2/proto3语法选择+消息名自定义+示例加载+复制)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互；protobuf-to-json CN/EN版添加Protobuf .proto→JSON示例转换器(正则解析message定义+字段类型/repeated识别+递归生成示例值+17种标量类型默认值+循环引用检测+根消息选择+示例加载+复制)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互；pdf-page-numbers CN/EN版添加PDF页码添加器(pdf-lib库加载PDF+每页drawText添加页码+6种位置bottom/top×center/right/left+4种格式num/page/total/roman+起始编号+字体大小+边距自定义+进度条+下载带页码PDF)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互。所有6个文件JS语法验证通过，EN版模板空壳从8降到5。
+
+### 2026-08-03 (第二十二批 - EN版模板空壳修复续)
+text-progress-bar-generator, tiff-to-jpg, webp-to-gif
+注: 三个工具CN/EN版均修复。text-progress-bar-generator CN/EN版添加文本进度条生成器(百分比滑块+输入框联动+长度5-100可调+自定义填充/空白字符+6种显示样式:纯进度条/带百分比/带分数/带括号/ASCII/Unicode方块+一键复制+重置+页面加载自动生成)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互；tiff-to-jpg CN/EN版添加TIFF转JPG图片格式转换器(拖拽上传+批量处理+质量滑块10-100%+Canvas渲染白底填充处理透明+toBlob输出JPEG+缩略图预览+原始/转换后文件大小对比+压缩率显示+单个下载/全部下载/删除)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互；webp-to-gif CN/EN版添加WebP转GIF图片格式转换器(拖拽上传+批量处理+颜色量化滑块2-256色+RGB立方体量化算法+Canvas渲染白底填充+toBlob输出GIF+缩略图预览+原始/转换后文件大小对比+压缩率显示+单个下载/全部下载/删除)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互。所有6个文件JS语法验证通过，EN版模板空壳从5降到2。
 
 ## 检测说明
 

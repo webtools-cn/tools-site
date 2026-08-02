@@ -172,9 +172,45 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>Text Progress Bar Generator</h2>
-    <p>Free online Text Progress Bar Generator tool</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="Enter content..."><button class="btn" style="margin-left:8px" onclick="process()">Run</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>Customize percentage, length, and character styles to generate ASCII/Unicode text progress bars with clipboard copy</p>
+    <div style="display:grid;gap:12px;margin-top:16px">
+      <div>
+        <label style="display:block;font-size:.85rem;color:#94a3b8;margin-bottom:4px">Progress Percentage (0-100)</label>
+        <input type="number" id="pctInput" value="50" min="0" max="100" step="1" style="width:120px">
+        <input type="range" id="pctSlider" value="50" min="0" max="100" step="1" style="width:200px;vertical-align:middle;margin-left:8px">
+      </div>
+      <div>
+        <label style="display:block;font-size:.85rem;color:#94a3b8;margin-bottom:4px">Bar Length (characters)</label>
+        <input type="number" id="lenInput" value="30" min="5" max="100" step="1" style="width:120px">
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <div>
+          <label style="display:block;font-size:.85rem;color:#94a3b8;margin-bottom:4px">Fill Character</label>
+          <input type="text" id="fillChar" value="█" maxlength="3" style="width:80px;text-align:center;font-size:1rem">
+        </div>
+        <div>
+          <label style="display:block;font-size:.85rem;color:#94a3b8;margin-bottom:4px">Empty Character</label>
+          <input type="text" id="emptyChar" value="░" maxlength="3" style="width:80px;text-align:center;font-size:1rem">
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:.85rem;color:#94a3b8;margin-bottom:4px">Display Style</label>
+        <select id="styleSelect" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem">
+          <option value="bar">Plain bar [█████████░░░░░░░░░░░]</option>
+          <option value="pct">Bar + percentage [█████░░░░░] 50%</option>
+          <option value="frac">Bar + fraction [█████░░░░░] 15/30</option>
+          <option value="bracket">Bracketed [█████░░░░░]</option>
+          <option value="ascii">ASCII style [=====-----]</option>
+          <option value="block">Unicode blocks [▰▰▰▰▰▱▱▱▱▱]</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="generateBar()">Generate</button>
+        <button class="btn" onclick="copyResult()" style="background:rgba(34,197,94,.15);color:#22c55e;border-color:rgba(34,197,94,.3)">📋 Copy</button>
+        <button class="btn" onclick="resetBar()" style="background:rgba(148,163,184,.1);color:#94a3b8">Reset</button>
+      </div>
+    </div>
+    <div id="result" style="margin-top:16px;padding:16px;background:#0f172a;border-radius:8px;font-family:'Courier New',monospace;font-size:1.1rem;color:#22d3ee;white-space:pre-wrap;word-break:break-all;min-height:2em"></div>
   </div>
   <div class="tool-section">
     <h2>❓ FAQ</h2>
@@ -228,85 +264,57 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
   </div>
 
 <script>
-  'use strict';
-  var s = document.getElementById('related-tools-section');
-  if (!s) return;
-  var p = window.location.pathname;
-  var en = p.indexOf('/en/') !== -1;
-  p = p.replace(/\/en\//g, '/');
-  var slug = p.split('/').filter(Boolean).pop() || '';
-  if (!slug) { s.innerHTML = ''; return; }
-  var depth = en ? '../../' : '../';
-  var u = depth + 'related-tools.json';
-  fetch(u).then(function(r) {
-    if (!r.ok) throw new Error('not found');
-    return r.json();
-  }).then(function(d) {
-    var data = en ? d.en : d.cn;
-    var t = data[slug];
-    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 RelatedToolsRecommended')
-      + '</h3><div class="related-tools-grid">';
-    t.related.forEach(function(r) {
-      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '<a href="' + link + '" class="related-tool-card">'
-        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
-        + '<span class="related-tool-name">' + r.name + '</span></a>';
-    });
-    h += '</div></div>';
-    s.innerHTML = h;
-  }).catch(function() { s.innerHTML = ''; });
-})(;</script>
-
-<script>(function(){ // resultAddCopy var processed = new Set(); function addCopyBtns(){ var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]'); results.forEach(function(el){ if(processed.has(el)) return; if(el.querySelector('.copy-btn')) return; if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return; if(el.children.length===0 && el.textContent.trim().length<5) return;
-      var btn = document.createElement('button');
-      btn.className = 'copy-btn';
-      btn.innerHTML = '📋 Copy';
-      btn.title = 'CopyResult';
-      btn.onclick = function(e){
-        e.stopPropagation();
-        var text = el.textContent || el.value || '';
-        if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') text = el.value;
-        navigator.clipboard.writeText(text.trim()).then(function(){
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        }).catch(function(){
-          var ta = document.createElement('textarea');
-          ta.value = text.trim();
-          ta.style.position='fixed';ta.style.opacity='0';
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        });
-      };
-      el.appendChild(btn);
-      processed.add(el);
-    });
+function showToast(m){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(6,182,212,.9);color:#fff;padding:8px 20px;border-radius:8px;font-size:.85rem;z-index:9999;opacity:0;transition:opacity .3s';document.body.appendChild(t)}t.textContent=m;t.style.opacity='1';setTimeout(function(){t.style.opacity='0'},3000)}
+</script>
+<script>
+// === Text Progress Bar Generator ===
+function generateBar() {
+  var pct = parseInt(document.getElementById('pctInput').value) || 0;
+  pct = Math.max(0, Math.min(100, pct));
+  var total = parseInt(document.getElementById('lenInput').value) || 30;
+  total = Math.max(5, Math.min(100, total));
+  var style = document.getElementById('styleSelect').value;
+  var fill, empty;
+  if (style === 'ascii') { fill = '='; empty = '-'; }
+  else if (style === 'block') { fill = '▰'; empty = '▱'; }
+  else {
+    fill = document.getElementById('fillChar').value || '█';
+    empty = document.getElementById('emptyChar').value || '░';
   }
-  // Run initially
-  addCopyBtns();
-  // Re-run after button clicks (most tools update results on click)
-  document.addEventListener('click', function(){setTimeout(addCopyBtns,100);});
-  // Observe DOM changes
-  if(window.MutationObserver){
-    var obs = new MutationObserver(function(){addCopyBtns();});
-    obs.observe(document.body,{childList:true,subtree:true});
-  }
-})(;)</script>
-
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-</div>
+  var filled = Math.round(total * pct / 100);
+  var bar = '';
+  for (var i = 0; i < filled; i++) bar += fill;
+  for (var j = filled; j < total; j++) bar += empty;
+  var result = '[' + bar + ']';
+  if (style === 'pct') result += ' ' + pct + '%';
+  else if (style === 'frac') result += ' ' + filled + '/' + total;
+  document.getElementById('result').textContent = result;
+  document.getElementById('result').style.display = 'block';
+  showToast('Progress bar generated');
+}
+function copyResult() {
+  var text = document.getElementById('result').textContent;
+  if (!text) { showToast('Generate a bar first'); return; }
+  navigator.clipboard.writeText(text).then(function() { showToast('Copied to clipboard'); })['catch'](function() { showToast('Copy failed'); });
+}
+function resetBar() {
+  document.getElementById('pctInput').value = 50;
+  document.getElementById('pctSlider').value = 50;
+  document.getElementById('lenInput').value = 30;
+  document.getElementById('fillChar').value = '█';
+  document.getElementById('emptyChar').value = '░';
+  document.getElementById('styleSelect').value = 'bar';
+  document.getElementById('result').textContent = '';
+  showToast('Reset');
+}
+document.getElementById('pctSlider').addEventListener('input', function() {
+  document.getElementById('pctInput').value = this.value;
+});
+document.getElementById('pctInput').addEventListener('input', function() {
+  document.getElementById('pctSlider').value = this.value;
+});
+generateBar();
+</script>
 
 </body>
 </html>
