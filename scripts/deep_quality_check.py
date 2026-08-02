@@ -60,7 +60,7 @@ for d in sorted(os.listdir('.')):
     style_m = re.search(r'<style>(.*?)</style>', c, re.DOTALL)
     if not style_m: continue
     style = style_m.group(1)
-    if re.search(r'background[^:]*:\s*#(fff|ffffff|f8f9fa|fafafa|f5f5f5|eee|eeeeee)', style, re.I):
+    if re.search(r'background[^:]*:\s*#(fff|ffffff|f8f9fa|fafafa|f5f5f5|eee|eeeeee)\b', style, re.I):
         light_bg += 1
 
 if light_bg > 0:
