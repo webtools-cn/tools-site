@@ -32,6 +32,71 @@
 <body>
 <h1>免费燃油费用计算器在线 - 出行油费估算 | 无需注册</h1>
 <p class="tool-description" style="color:#6b7280;font-size:0.95rem;line-height:1.6;margin:0.5rem 0 1rem;">免费在线燃油费用计算器，根据行驶距离、油耗和油价估算出行油费。支持多种油耗单位（L/100km、MPG）和货币单位，自驾出行必备工具，纯前端计算。</p>
+<div class="container">
+<div class="input-section">
+<h2>输入参数</h2>
+<div class="row">
+<div class="field">
+<label>行驶距离</label>
+<input type="number" id="distance" value="100" min="0" placeholder="行驶距离" oninput="calcFuel()">
+</div>
+<div class="field">
+<label>距离单位</label>
+<select id="distUnit" onchange="calcFuel()">
+<option value="km">公里 (km)</option>
+<option value="mile">英里 (mile)</option>
+</select>
+</div>
+</div>
+<div class="row">
+<div class="field">
+<label>油耗</label>
+<input type="number" id="fuelRate" value="8" min="0" step="0.1" placeholder="油耗值" oninput="calcFuel()">
+</div>
+<div class="field">
+<label>油耗单位</label>
+<select id="fuelUnit" onchange="calcFuel()">
+<option value="L100km">L/100km (升/百公里)</option>
+<option value="mpg">MPG (英里/加仑)</option>
+</select>
+</div>
+</div>
+<div class="row">
+<div class="field">
+<label>油价</label>
+<input type="number" id="price" value="8" min="0" step="0.01" placeholder="油价" oninput="calcFuel()">
+</div>
+<div class="field">
+<label>货币单位</label>
+<select id="currency" onchange="calcFuel()">
+<option value="CNY">人民币 (¥)</option>
+<option value="USD">美元 ($)</option>
+<option value="EUR">欧元 (€)</option>
+<option value="GBP">英镑 (£)</option>
+</select>
+</div>
+</div>
+</div>
+<div class="result-section show" id="resultSection">
+<h2>计算结果</h2>
+<div class="result-box">
+<div class="result-value" id="totalCost">¥64.00</div>
+<div class="result-detail" id="costDetail">总油费：100公里 × 8L/100km × ¥8/L</div>
+<div class="result-detail" id="fuelDetail">所需燃油：8.00 升</div>
+<div class="result-detail" id="costPerKm">每公里油费：¥0.64</div>
+</div>
+</div>
+<div class="info-section">
+<h2>使用说明</h2>
+<ol class="usage-steps">
+<li>输入行驶距离，选择公里或英里</li>
+<li>输入车辆油耗，选择 L/100km 或 MPG</li>
+<li>输入当前油价，选择货币单位</li>
+<li>结果自动计算，无需点击按钮</li>
+</ol>
+<p style="margin-top:8px">提示：MPG模式下，油耗值越高表示越省油；L/100km模式下，数值越低越省油。工具会自动处理单位换算。</p>
+</div>
+</div>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
@@ -101,5 +166,51 @@ select:focus{outline:none;border-color:rgba(6,182,212,.5)}
         <p>油耗计算器是免费工具，完全免费使用，无需注册登录，数据在浏览器本地处理，保护你的隐私安全。</p>
       </div>
     </section>
+<script>
+var currencySymbols = { 'CNY': '¥', 'USD': '$', 'EUR': '€', 'GBP': '£' };
+
+function calcFuel() {
+  var dist = parseFloat(document.getElementById('distance').value);
+  var distUnit = document.getElementById('distUnit').value;
+  var rate = parseFloat(document.getElementById('fuelRate').value);
+  var fuelUnit = document.getElementById('fuelUnit').value;
+  var price = parseFloat(document.getElementById('price').value);
+  var cur = document.getElementById('currency').value;
+  var sym = currencySymbols[cur];
+
+  if (isNaN(dist) || isNaN(rate) || isNaN(price) || dist <= 0 || rate <= 0 || price <= 0) {
+    document.getElementById('totalCost').textContent = sym + '0.00';
+    document.getElementById('costDetail').textContent = '请输入有效的参数值';
+    document.getElementById('fuelDetail').textContent = '';
+    document.getElementById('costPerKm').textContent = '';
+    return;
+  }
+
+  // 统一为公里
+  var distKm = distUnit === 'mile' ? dist * 1.609344 : dist;
+  var liters, fuelDesc;
+
+  if (fuelUnit === 'L100km') {
+    liters = distKm / 100 * rate;
+    fuelDesc = rate + 'L/100km';
+  } else {
+    // MPG: 英里/加仑 → 升
+    var distMile = distUnit === 'mile' ? dist : distKm / 1.609344;
+    var gallons = distMile / rate;
+    liters = gallons * 3.78541;
+    fuelDesc = rate + ' MPG';
+  }
+
+  var totalCost = liters * price;
+  var perKm = totalCost / distKm;
+  var distLabel = distUnit === 'mile' ? dist + '英里' : dist + '公里';
+
+  document.getElementById('totalCost').textContent = sym + totalCost.toFixed(2);
+  document.getElementById('costDetail').textContent = '总油费：' + distLabel + ' × ' + fuelDesc + ' × ' + sym + price + '/L';
+  document.getElementById('fuelDetail').textContent = '所需燃油：' + liters.toFixed(2) + ' 升';
+  document.getElementById('costPerKm').textContent = '每公里油费：' + sym + perKm.toFixed(3);
+}
+calcFuel();
+</script>
 </body>
 </html>
