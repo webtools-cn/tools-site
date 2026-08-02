@@ -173,10 +173,28 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
   
 
   <div class="tool-section">
-    <h2>Xml To Yaml</h2>
-    <p>Free online Xml To Yaml tool</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="Enter content..."><button class="btn" style="margin-left:8px" onclick="process()">Run</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <h2>XML to YAML</h2>
+    <p>Convert XML format to YAML format, supporting nested structures and arrays</p>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <textarea id="xmlInput" placeholder="Paste XML code here..." style="width:100%;min-height:200px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px 12px;color:#e2e8f0;font-size:.85rem;font-family:monospace;outline:none;resize:vertical"></textarea>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="convertXmlToYaml()">🔄 Convert to YAML</button>
+      <button class="btn" onclick="loadExample()">📋 Load Example</button>
+      <button class="btn" onclick="clearAll()">🗑️ Clear</button>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <label style="font-size:.85rem;color:#94a3b8">Indent:</label>
+      <select id="indentSize" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:4px 8px;color:#e2e8f0;font-size:.85rem">
+        <option value="2">2 spaces</option>
+        <option value="4">4 spaces</option>
+      </select>
+    </div>
+    <div style="margin-top:12px;position:relative">
+      <textarea id="yamlOutput" readonly placeholder="YAML output will appear here..." style="width:100%;min-height:200px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px 12px;color:#a7f3d0;font-size:.85rem;font-family:monospace;outline:none;resize:vertical"></textarea>
+      <button class="btn" style="position:absolute;top:8px;right:8px;padding:4px 10px;font-size:.75rem" onclick="copyOutput()">📋 Copy</button>
+    </div>
+    <div id="result" style="margin-top:8px;font-size:.8rem;color:#94a3b8"></div>
   </div>
   <div class="tool-section">
     <h2>❓ FAQ</h2>
@@ -229,86 +247,103 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
     </div>
   </div>
 
+
 <script>
-  'use strict';
-  var s = document.getElementById('related-tools-section');
-  if (!s) return;
-  var p = window.location.pathname;
-  var en = p.indexOf('/en/') !== -1;
-  p = p.replace(/\/en\//g, '/');
-  var slug = p.split('/').filter(Boolean).pop() || '';
-  if (!slug) { s.innerHTML = ''; return; }
-  var depth = en ? '../../' : '../';
-  var u = depth + 'related-tools.json';
-  fetch(u).then(function(r) {
-    if (!r.ok) throw new Error('not found');
-    return r.json();
-  }).then(function(d) {
-    var data = en ? d.en : d.cn;
-    var t = data[slug];
-    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 RelatedToolsRecommended')
-      + '</h3><div class="related-tools-grid">';
-    t.related.forEach(function(r) {
-      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '<a href="' + link + '" class="related-tool-card">'
-        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
-        + '<span class="related-tool-name">' + r.name + '</span></a>';
-    });
-    h += '</div></div>';
-    s.innerHTML = h;
-  }).catch(function() { s.innerHTML = ''; });
-})(;</script>
+function showToast(m){var t=document.createElement('div');t.textContent=m;t.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:8px 20px;border-radius:6px;border:1px solid rgba(6,182,212,.3);z-index:9999;font-size:.85rem;transition:opacity .3s';document.body.appendChild(t);setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},300)},3000)}
 
-<script>(function(){ // resultAddCopy var processed = new Set(); function addCopyBtns(){ var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]'); results.forEach(function(el){ if(processed.has(el)) return; if(el.querySelector('.copy-btn')) return; if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return; if(el.children.length===0 && el.textContent.trim().length<5) return;
-      var btn = document.createElement('button');
-      btn.className = 'copy-btn';
-      btn.innerHTML = '📋 Copy';
-      btn.title = 'CopyResult';
-      btn.onclick = function(e){
-        e.stopPropagation();
-        var text = el.textContent || el.value || '';
-        if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') text = el.value;
-        navigator.clipboard.writeText(text.trim()).then(function(){
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        }).catch(function(){
-          var ta = document.createElement('textarea');
-          ta.value = text.trim();
-          ta.style.position='fixed';ta.style.opacity='0';
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        });
-      };
-      el.appendChild(btn);
-      processed.add(el);
-    });
-  }
-  // Run initially
-  addCopyBtns();
-  // Re-run after button clicks (most tools update results on click)
-  document.addEventListener('click', function(){setTimeout(addCopyBtns,100);});
-  // Observe DOM changes
-  if(window.MutationObserver){
-    var obs = new MutationObserver(function(){addCopyBtns();});
-    obs.observe(document.body,{childList:true,subtree:true});
-  }
-})(;)</script>
+function parseXml(xmlStr){var parser=new DOMParser();var doc=parser.parseFromString(xmlStr,'text/xml');var err=doc.querySelector('parsererror');if(err)throw new Error('XML parse error: '+err.textContent.trim().substring(0,200));return doc}
+function isSimpleNode(node){return !node.children||node.children.length===0}
+function getAttrs(node){var attrs={};var hasAttrs=false;if(node.attributes){for(var i=0;i<node.attributes.length;i++){attrs[node.attributes[i].name]=node.attributes[i].value;hasAttrs=true}}return hasAttrs?attrs:null}
 
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-</div>
+function nodeToObject(node){
+  if(isSimpleNode(node)){var text=(node.textContent||'').trim();var attrs=getAttrs(node);if(attrs){attrs['#text']=text;return attrs}return text}
+  var attrs=getAttrs(node);var result=attrs?Object.assign({},attrs):{};var childMap={};
+  for(var i=0;i<node.children.length;i++){var child=node.children[i];var tag=child.tagName;var childVal=nodeToObject(child);
+    if(tag in childMap){if(!Array.isArray(childMap[tag])){childMap[tag]=[childMap[tag]]}childMap[tag].push(childVal)}
+    else{childMap[tag]=childVal}}
+  for(var key in childMap){result[key]=childMap[key]}
+  var text=(node.textContent||'').trim();if(text&&Object.keys(childMap).length===0){result['#text']=text}
+  return result
+}
+
+function formatYamlValue(val){
+  if(val===null||val===undefined)return 'null';
+  if(typeof val==='boolean')return val?'true':'false';
+  if(typeof val==='number')return String(val);
+  var s=String(val);
+  if(s===''||/^[\d.+-]/.test(s)||/[:#{}\[\],&*?|>!%@`"']/.test(s)||s==='true'||s==='false'||s==='null'||s==='yes'||s==='no'||s==='~'){
+    return '"'+s.replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"'}
+  return s
+}
+
+function objectToYaml(obj,indent,indentSize){
+  var spaces='';for(var i=0;i<indent;i++)spaces+=' ';var lines=[];
+  if(obj===null||obj===undefined)return spaces+'null\n';
+  if(typeof obj==='string'||typeof obj==='number'||typeof obj==='boolean')return spaces+formatYamlValue(obj)+'\n';
+  if(Array.isArray(obj)){
+    if(obj.length===0)return spaces+'[]\n';
+    for(var i=0;i<obj.length;i++){
+      if(typeof obj[i]==='object'&&obj[i]!==null){
+        var subLines=objectToYaml(obj[i],indent+indentSize,indentSize).trim().split('\n');
+        lines.push(spaces+'- '+subLines[0]);
+        for(var j=1;j<subLines.length;j++){lines.push(spaces+'  '+subLines[j])}
+      }else{lines.push(spaces+'- '+formatYamlValue(obj[i]))}
+    }
+    return lines.join('\n')+'\n'
+  }
+  var keys=Object.keys(obj);if(keys.length===0)return spaces+'{}\n';
+  for(var k=0;k<keys.length;k++){
+    var key=keys[k];var val=obj[key];
+    if(typeof val==='object'&&val!==null){
+      if(Array.isArray(val)){
+        if(val.length===0){lines.push(spaces+key+': []')}
+        else{lines.push(spaces+key+':');lines.push(objectToYaml(val,indent,indentSize))}
+      }else{
+        var subKeys=Object.keys(val);
+        if(subKeys.length===0){lines.push(spaces+key+': {}')}
+        else{lines.push(spaces+key+':');lines.push(objectToYaml(val,indent+indentSize,indentSize))}
+      }
+    }else{lines.push(spaces+key+': '+formatYamlValue(val))}
+  }
+  return lines.join('\n')+'\n'
+}
+
+function convertXmlToYaml(){
+  var input=document.getElementById('xmlInput').value;
+  var output=document.getElementById('yamlOutput');
+  var result=document.getElementById('result');
+  if(!input.trim()){showToast('Please enter XML code');return}
+  try{
+    var doc=parseXml(input);var root=doc.documentElement;
+    if(!root)throw new Error('No root element found');
+    var indentSize=parseInt(document.getElementById('indentSize').value)||2;
+    var obj={};obj[root.tagName]=nodeToObject(root);
+    var yaml=objectToYaml(obj,0,indentSize).trim();
+    output.value=yaml;
+    result.textContent='\u2705 Conversion successful, '+yaml.split('\n').length+' lines';
+    result.style.color='#22c55e';
+    showToast('Conversion successful')
+  }catch(e){
+    output.value='';result.textContent='\u274C '+e.message;result.style.color='#ef4444';
+    showToast('Conversion failed: '+e.message)
+  }
+}
+
+function loadExample(){
+  document.getElementById('xmlInput').value='<?xml version="1.0" encoding="UTF-8"?>\n<server>\n  <port>8080</port>\n  <host>localhost</host>\n  <ssl enabled="true">\n    <cert>/path/to/cert.pem</cert>\n    <key>/path/to/key.pem</key>\n  </ssl>\n  <routes>\n    <route path="/api">\n      <method>GET</method>\n      <method>POST</method>\n    </route>\n    <route path="/health">\n      <method>GET</method>\n    </route>\n  </routes>\n</server>';
+  convertXmlToYaml()
+}
+
+function clearAll(){
+  document.getElementById('xmlInput').value='';document.getElementById('yamlOutput').value='';document.getElementById('result').textContent=''
+}
+
+function copyOutput(){
+  var output=document.getElementById('yamlOutput');
+  if(!output.value.trim()){showToast('Nothing to copy');return}
+  navigator.clipboard.writeText(output.value).then(function(){showToast('Copied to clipboard')})['catch'](function(){showToast('Copy failed')})
+}
+</script>
 
 </body>
 </html>

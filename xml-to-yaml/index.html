@@ -64,9 +64,27 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>XML转YAML</h2>
-    <p>免费在线Xml To Yaml工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>将XML格式转换为YAML格式，支持嵌套结构和数组</p>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <textarea id="xmlInput" placeholder="在此粘贴XML代码..." style="width:100%;min-height:200px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px 12px;color:#e2e8f0;font-size:.85rem;font-family:monospace;outline:none;resize:vertical"></textarea>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="convertXmlToYaml()">🔄 转换为YAML</button>
+      <button class="btn" onclick="loadExample()">📋 加载示例</button>
+      <button class="btn" onclick="clearAll()">🗑️ 清空</button>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <label style="font-size:.85rem;color:#94a3b8">缩进:</label>
+      <select id="indentSize" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:4px 8px;color:#e2e8f0;font-size:.85rem">
+        <option value="2">2空格</option>
+        <option value="4">4空格</option>
+      </select>
+    </div>
+    <div style="margin-top:12px;position:relative">
+      <textarea id="yamlOutput" readonly placeholder="YAML输出将显示在这里..." style="width:100%;min-height:200px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px 12px;color:#a7f3d0;font-size:.85rem;font-family:monospace;outline:none;resize:vertical"></textarea>
+      <button class="btn" style="position:absolute;top:8px;right:8px;padding:4px 10px;font-size:.75rem" onclick="copyOutput()">📋 复制</button>
+    </div>
+    <div id="result" style="margin-top:8px;font-size:.8rem;color:#94a3b8"></div>
   </div>
   <div class="tool-section">
     <h2>❓ 常见问题</h2>
@@ -99,60 +117,210 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 <div class="toast" id="toast"></div>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
-  
-   catch(e) {}
-    
-    const stars = container.querySelectorAll('.star');
-    );
-      text.textContent = (4.5).toFixed(1) + '/5';
-      countEl.textContent = isCN 
-        ? '(' + (128) + ' 人评分)' 
-        : '(' + (128) + ' ratings)';
+
+// XML解析器 - 将XML字符串转为DOM树
+function parseXml(xmlStr) {
+  var parser = new DOMParser();
+  var doc = parser.parseFromString(xmlStr, 'text/xml');
+  var err = doc.querySelector('parsererror');
+  if (err) throw new Error('XML解析错误: ' + err.textContent.trim().substring(0, 200));
+  return doc;
+}
+
+// 判断节点是否为简单文本节点（无子元素）
+function isSimpleNode(node) {
+  return !node.children || node.children.length === 0;
+}
+
+// 获取节点的属性对象
+function getAttrs(node) {
+  var attrs = {};
+  var hasAttrs = false;
+  if (node.attributes) {
+    for (var i = 0; i < node.attributes.length; i++) {
+      attrs[node.attributes[i].name] = node.attributes[i].value;
+      hasAttrs = true;
     }
-     : avgData.value);
-    if (saved) {
-      thanks.style.display = 'inline';
-      container.style.pointerEvents = 'none';
-      container.style.opacity = '0.7';
-      return;
-    }
-    stars.forEach(star => {
-      star.addEventListener('click', function() {
-        const val = parseInt(this.dataset.value);
-        localStorage.setItem(STORAGE_KEY, val);
-        
-        thanks.style.display = 'inline';
-        container.style.pointerEvents = 'none';
-        container.style.opacity = '0.7';
-        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
-        current.count = (current.count || 128) + 1;
-        localStorage.setItem(AVG_KEY, JSON.stringify(current));
-      });
-      star.addEventListener('mouseenter', function() {
-        const val = parseInt(this.dataset.value);
-        stars.forEach((s, i) => s.classList.toggle('active', i < val));
-      });
-    });
-    container.addEventListener('mouseleave', function() {
-       : avgData.value);
-    });
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initRating);
-  } else {
-    
+  return hasAttrs ? attrs : null;
+}
+
+// 递归将DOM节点转为JS对象
+function nodeToObject(node) {
+  // 简单文本节点
+  if (isSimpleNode(node)) {
+    var text = (node.textContent || '').trim();
+    var attrs = getAttrs(node);
+    if (attrs) {
+      attrs['#text'] = text;
+      return attrs;
+    }
+    return text;
   }
 
-// === 重写的函数实现 ===
-function process() {
-  var input = document.getElementById('toolInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result'.textContent = output;
-  document.getElementById('result'.style.display = 'block';
-  showToast('处理完成';
-}</script>
+  // 复杂节点 - 有子元素
+  var attrs = getAttrs(node);
+  var result = attrs ? Object.assign({}, attrs) : {};
+  var childMap = {};
+
+  for (var i = 0; i < node.children.length; i++) {
+    var child = node.children[i];
+    var tag = child.tagName;
+    var childVal = nodeToObject(child);
+
+    if (tag in childMap) {
+      // 已有同名标签 -> 转为数组
+      if (!Array.isArray(childMap[tag])) {
+        childMap[tag] = [childMap[tag]];
+      }
+      childMap[tag].push(childVal);
+    } else {
+      childMap[tag] = childVal;
+    }
+  }
+
+  // 合并属性和子元素
+  for (var key in childMap) {
+    result[key] = childMap[key];
+  }
+
+  // 也处理文本内容
+  var text = (node.textContent || '').trim();
+  if (text && Object.keys(childMap).length === 0) {
+    result['#text'] = text;
+  }
+
+  return result;
+}
+
+// 将JS对象转为YAML字符串
+function objectToYaml(obj, indent, indentSize) {
+  var spaces = '';
+  for (var i = 0; i < indent; i++) spaces += ' ';
+  var lines = [];
+
+  if (obj === null || obj === undefined) {
+    return spaces + 'null\n';
+  }
+  if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'boolean') {
+    return spaces + formatYamlValue(obj) + '\n';
+  }
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return spaces + '[]\n';
+    for (var i = 0; i < obj.length; i++) {
+      if (typeof obj[i] === 'object' && obj[i] !== null) {
+        var subLines = objectToYaml(obj[i], indent + indentSize, indentSize).trim().split('\n');
+        lines.push(spaces + '- ' + subLines[0]);
+        for (var j = 1; j < subLines.length; j++) {
+          lines.push(spaces + '  ' + subLines[j]);
+        }
+      } else {
+        lines.push(spaces + '- ' + formatYamlValue(obj[i]));
+      }
+    }
+    return lines.join('\n') + '\n';
+  }
+
+  // 普通对象
+  var keys = Object.keys(obj);
+  if (keys.length === 0) return spaces + '{}\n';
+  for (var k = 0; k < keys.length; k++) {
+    var key = keys[k];
+    var val = obj[key];
+    if (typeof val === 'object' && val !== null) {
+      if (Array.isArray(val)) {
+        if (val.length === 0) {
+          lines.push(spaces + key + ': []');
+        } else {
+          lines.push(spaces + key + ':');
+          lines.push(objectToYaml(val, indent, indentSize));
+        }
+      } else {
+        var subKeys = Object.keys(val);
+        if (subKeys.length === 0) {
+          lines.push(spaces + key + ': {}');
+        } else {
+          lines.push(spaces + key + ':');
+          lines.push(objectToYaml(val, indent + indentSize, indentSize));
+        }
+      }
+    } else {
+      lines.push(spaces + key + ': ' + formatYamlValue(val));
+    }
+  }
+  return lines.join('\n') + '\n';
+}
+
+// 格式化YAML值（字符串加引号等）
+function formatYamlValue(val) {
+  if (val === null || val === undefined) return 'null';
+  if (typeof val === 'boolean') return val ? 'true' : 'false';
+  if (typeof val === 'number') return String(val);
+  var s = String(val);
+  // 需要引号的情况: 空字符串、含特殊字符、纯数字字符串、含冒号、以特殊字符开头
+  if (s === '' || /^[\d.+-]/.test(s) || /[:#{}\[\],&*?|>!%@`"']/.test(s) || s === 'true' || s === 'false' || s === 'null' || s === 'yes' || s === 'no' || s === '~') {
+    return '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+  }
+  return s;
+}
+
+// 主转换函数
+function convertXmlToYaml() {
+  var input = document.getElementById('xmlInput').value;
+  var output = document.getElementById('yamlOutput');
+  var result = document.getElementById('result');
+
+  if (!input.trim()) {
+    showToast('请输入XML代码');
+    return;
+  }
+
+  try {
+    var doc = parseXml(input);
+    var root = doc.documentElement;
+    if (!root) throw new Error('未找到根元素');
+
+    var indentSize = parseInt(document.getElementById('indentSize').value) || 2;
+    var obj = {};
+    obj[root.tagName] = nodeToObject(root);
+    var yaml = objectToYaml(obj, 0, indentSize).trim();
+
+    output.value = yaml;
+    result.textContent = '✅ 转换成功，共 ' + yaml.split('\n').length + ' 行';
+    result.style.color = '#22c55e';
+    showToast('转换成功');
+  } catch (e) {
+    output.value = '';
+    result.textContent = '❌ ' + e.message;
+    result.style.color = '#ef4444';
+    showToast('转换失败: ' + e.message);
+  }
+}
+
+function loadExample() {
+  document.getElementById('xmlInput').value = '<?xml version="1.0" encoding="UTF-8"?>\n<server>\n  <port>8080</port>\n  <host>localhost</host>\n  <ssl enabled="true">\n    <cert>/path/to/cert.pem</cert>\n    <key>/path/to/key.pem</key>\n  </ssl>\n  <routes>\n    <route path="/api">\n      <method>GET</method>\n      <method>POST</method>\n    </route>\n    <route path="/health">\n      <method>GET</method>\n    </route>\n  </routes>\n</server>';
+  convertXmlToYaml();
+}
+
+function clearAll() {
+  document.getElementById('xmlInput').value = '';
+  document.getElementById('yamlOutput').value = '';
+  document.getElementById('result').textContent = '';
+}
+
+function copyOutput() {
+  var output = document.getElementById('yamlOutput');
+  if (!output.value.trim()) {
+    showToast('暂无内容可复制');
+    return;
+  }
+  navigator.clipboard.writeText(output.value).then(function() {
+    showToast('已复制到剪贴板');
+  })['catch'](function() {
+    showToast('复制失败');
+  });
+}
+</script>
 </div>
 
 </body>
