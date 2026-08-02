@@ -217,10 +217,58 @@ table.data td{color:#cbd5e1}
  </span>
 </div>
 
- <div id="app"></div>
+ <div class="input-section">
+ <h2>⚙️ Settings</h2>
+ <label for="textInput">Text Content</label>
+ <input type="text" id="textInput" value="Outline Text" placeholder="Enter text to outline">
+ <div class="row">
+ <div class="field"><label for="fontSize">Font Size (px)</label>
+ <input type="number" id="fontSize" value="64" min="8" max="200"></div>
+ <div class="field"><label for="textColor">Text Color</label>
+ <input type="color" id="textColor" value="#22d3ee"></div>
+ </div>
+ <div class="row">
+ <div class="field"><label for="strokeWidth">Stroke Width (px)</label>
+ <input type="number" id="strokeWidth" value="2" min="0" max="20" step="0.5"></div>
+ <div class="field"><label for="strokeColor">Stroke Color</label>
+ <input type="color" id="strokeColor" value="#0f172a"></div>
+ </div>
+ <div class="options">
+ <label><input type="checkbox" id="enableShadow" checked> Enable Text Shadow</label>
+ </div>
+ <div class="row">
+ <div class="field"><label for="shadowX">Shadow X Offset (px)</label>
+ <input type="number" id="shadowX" value="2" min="-50" max="50"></div>
+ <div class="field"><label for="shadowY">Shadow Y Offset (px)</label>
+ <input type="number" id="shadowY" value="2" min="-50" max="50"></div>
+ </div>
+ <div class="row">
+ <div class="field"><label for="shadowBlur">Shadow Blur (px)</label>
+ <input type="number" id="shadowBlur" value="8" min="0" max="100"></div>
+ <div class="field"><label for="shadowColor">Shadow Color</label>
+ <input type="color" id="shadowColor" value="#06b6d4"></div>
+ </div>
+ <div class="btn-row">
+ <button class="btn btn-primary" id="copyBtn">📋 Copy CSS Code</button>
+ </div>
+ </div>
+
+ <div class="result-section show" id="previewSection">
+ <h2>👁️ Live Preview</h2>
+ <div id="previewBox" style="background:#0f172a;border-radius:8px;padding:40px 20px;text-align:center;border:1px solid rgba(148,163,184,.08);min-height:120px;display:flex;align-items:center;justify-content:center"></div>
+ </div>
+
+ <div class="result-section show" id="codeSection">
+ <h2>📄 CSS Code</h2>
+ <div class="result-box" id="codeOutput"></div>
+ </div>
+
  <div class="info-section" id="usage">
  <h2>How to Use</h2>
- <div id="usageContent"></div>
+ <p>1. Enter your text in the text field above.</p>
+ <p>2. Adjust font size, text color, stroke width and stroke color.</p>
+ <p>3. Toggle shadow on/off and configure shadow parameters.</p>
+ <p>4. The preview updates in real-time. Click "Copy CSS Code" to copy.</p>
  </div>
 </div>
 <div>
@@ -231,59 +279,57 @@ table.data td{color:#cbd5e1}
  <p style="margin-top:8px">&copy; 2025 Online Tools Matrix &middot; Free Online Tools &middot; Client-Side Only</p>
 <a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener">GitHub</a>
 </footer>
+<div class="toast" id="toast"></div>
 <script>
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-var app=document.getElementById('app');
-app.innerHTML='';
-document.getElementById('usageContent').innerHTML='';
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
 
 function render(){
-  var text = document.getElementById('textInput').value || 'Text';
-  var fontSize = parseInt(document.getElementById('fontSize').value) || 64;
-  var textColor = document.getElementById('textColor').value;
-  var strokeWidth = parseFloat(document.getElementById('strokeWidth').value) || 0;
-  var strokeColor = document.getElementById('strokeColor').value;
-  var shadowX = parseInt(document.getElementById('shadowX').value) || 0;
-  var shadowY = parseInt(document.getElementById('shadowY').value) || 0;
-  var shadowBlur = parseInt(document.getElementById('shadowBlur').value) || 0;
-  var shadowColor = document.getElementById('shadowColor').value;
-  var enableShadow = document.getElementById('enableShadow').checked;
+  var text=document.getElementById('textInput').value||'Text';
+  var fontSize=parseInt(document.getElementById('fontSize').value)||64;
+  var textColor=document.getElementById('textColor').value;
+  var strokeWidth=parseFloat(document.getElementById('strokeWidth').value)||0;
+  var strokeColor=document.getElementById('strokeColor').value;
+  var shadowX=parseInt(document.getElementById('shadowX').value)||0;
+  var shadowY=parseInt(document.getElementById('shadowY').value)||0;
+  var shadowBlur=parseInt(document.getElementById('shadowBlur').value)||0;
+  var shadowColor=document.getElementById('shadowColor').value;
+  var enableShadow=document.getElementById('enableShadow').checked;
 
-  var preview = document.getElementById('previewBox');
-  preview.innerHTML = '<div style="font-size:'+fontSize+'px;font-weight:800;color:'+textColor+';';
-  var cssParts = [];
-  if (strokeWidth > 0) {
-    preview.children[0].style.webkitTextStroke = strokeWidth+'px '+strokeColor;
-    preview.children[0].style.textStroke = strokeWidth+'px '+strokeColor;
-    cssParts.push('-webkit-text-stroke: '+strokeWidth+'px '+strokeColor+';');
-    cssParts.push('text-stroke: '+strokeWidth+'px '+strokeColor+';');
+  var el=document.getElementById('previewBox');
+  el.innerHTML='';
+  var span=document.createElement('span');
+  span.style.fontSize=fontSize+'px';
+  span.style.fontWeight='800';
+  span.style.color=textColor;
+  if(strokeWidth>0){
+    span.style.webkitTextStroke=strokeWidth+'px '+strokeColor;
   }
-  if (enableShadow && (shadowX !== 0 || shadowY !== 0 || shadowBlur > 0)) {
-    preview.children[0].style.textShadow = shadowX+'px '+shadowY+'px '+shadowBlur+'px '+shadowColor;
-    cssParts.push('text-shadow: '+shadowX+'px '+shadowY+'px '+shadowBlur+'px '+shadowColor+';');
-  } else if (!enableShadow) {
-    preview.children[0].style.textShadow = 'none';
+  if(enableShadow&&(shadowX!==0||shadowY!==0||shadowBlur>0)){
+    span.style.textShadow=shadowX+'px '+shadowY+'px '+shadowBlur+'px '+shadowColor;
   }
-  preview.children[0].textContent = text;
+  span.textContent=text;
+  el.appendChild(span);
 
-  var code = '/* CSS Text Outline */\n.text-outline {\n  font-size: '+fontSize+'px;\n  font-weight: 800;\n  color: '+textColor+';\n';
-  if (strokeWidth > 0) {
-    code += '  -webkit-text-stroke: '+strokeWidth+'px '+strokeColor+';\n';
-    code += '  text-stroke: '+strokeWidth+'px '+strokeColor+';\n';
+  var code='/* CSS Text Outline */\n.text-outline {\n  font-size: '+fontSize+'px;\n  font-weight: 800;\n  color: '+textColor+';\n';
+  if(strokeWidth>0){
+    code+='  -webkit-text-stroke: '+strokeWidth+'px '+strokeColor+';\n';
   }
-  if (enableShadow && (shadowX !== 0 || shadowY !== 0 || shadowBlur > 0)) {
-    code += '  text-shadow: '+shadowX+'px '+shadowY+'px '+shadowBlur+'px '+shadowColor+';\n';
+  if(enableShadow&&(shadowX!==0||shadowY!==0||shadowBlur>0)){
+    code+='  text-shadow: '+shadowX+'px '+shadowY+'px '+shadowBlur+'px '+shadowColor+';\n';
   }
-  code += '}';
-  document.getElementById('codeOutput').textContent = code;
+  code+='}';
+  document.getElementById('codeOutput').textContent=code;
 }
 
-var inputs = document.querySelectorAll('#textInput,#fontSize,#textColor,#strokeWidth,#strokeColor,#shadowX,#shadowY,#shadowBlur,#shadowColor,#enableShadow');
-inputs.forEach(function(el){el.addEventListener('input',render);el.addEventListener('change',render);});
+var inputs=document.querySelectorAll('#textInput,#fontSize,#textColor,#strokeWidth,#strokeColor,#shadowX,#shadowY,#shadowBlur,#shadowColor,#enableShadow');
+inputs.forEach(function(el){el.addEventListener('input',render);el.addEventListener('change',render)});
+
 document.getElementById('copyBtn').addEventListener('click',function(){
-  navigator.clipboard.writeText(document.getElementById('codeOutput').textContent).then(function(){showToast('CSScodeAlreadyCopy！');});
+  navigator.clipboard.writeText(document.getElementById('codeOutput').textContent).then(function(){showToast('CSS code copied!')}).catch(function(){showToast('Copy failed, please copy manually')});
 });
-render();</script>
+
+render();
+</script>
 <!-- Related Tools (cross-recommendation) -->
 <link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
 <div id="related-tools-section" class="related-tools-section">
@@ -291,26 +337,6 @@ render();</script>
 </div>
 <script src="https://free-toolbase.com/related-tools.js"></script>
 
-<div class="toast" id="toast"></footer>
-
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-
-    <section class="faq-section">
-      <h2>About CSS Text Outline Generator</h2>
-      <div class="faq-item">
-        <h3>How to use CSS Text Outline Generator?</h3>
-        <p>Simply enter content or upload files in the input area and click the button to get results. Create text outline/stroke effects with CSS. Adjust thickness, color and blur for the perfect outline style.</p>
-      </div>
-      <div class="faq-item">
-        <h3>Is this tool free?</h3>
-        <p>CSS Text Outline Generator is a free utility. All features are permanently free with no ads. Continuously updated and optimized. Bookmark for future use.</p>
-      </div>
-    </section>
 </div>
 
 </body>
