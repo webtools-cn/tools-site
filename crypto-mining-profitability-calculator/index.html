@@ -352,7 +352,45 @@ function drawLineChart(canvasId, labels, datasets) {
 </script>
 <script>// Mining Calculator
 (function(){document.getElementById('input-area').innerHTML='<div class="form-group"><label>算力 (Hashrate TH/s)</label><input type="number" id="hashrate" placeholder="例如: 100" value="100" min="0" step="any" data-default="100"></div><div class="input-row"><div class="form-group"><label>功耗 (Watts)</label><input type="number" id="power" placeholder="例如: 3000" value="3000" min="0" step="any" data-default="3000"></div><div class="form-group"><label>电费 ($/kWh)</label><input type="number" id="electricity" placeholder="例如: 0.12" value="0.12" min="0" step="any" data-default="0.12"></div></div><div class="input-row"><div class="form-group"><label>币价 ($)</label><input type="number" id="token-price" placeholder="例如: 65000" value="65000" min="0" step="any" data-default="65000"></div><div class="form-group"><label>区块奖励 (BTC)</label><input type="number" id="block-reward" placeholder="例如: 3.125" value="3.125" min="0" step="any" data-default="3.125"></div></div><div class="form-group"><label>网络难度 (T)</label><input type="number" id="difficulty" placeholder="例如: 80000000000000" value="80000000000000" min="1" step="any" data-default="80000000000000"></div>';})();
-drawLineChart('yieldChart',ml,[{label:'Cumulative Profit',data:md,color:COLORS[0]}]);}
+function calculate(){
+  var hashrate=parseFloat(document.getElementById('hashrate').value);
+  var power=parseFloat(document.getElementById('power').value);
+  var electricity=parseFloat(document.getElementById('electricity').value);
+  var tokenPrice=parseFloat(document.getElementById('token-price').value);
+  var blockReward=parseFloat(document.getElementById('block-reward').value);
+  var difficulty=parseFloat(document.getElementById('difficulty').value);
+  if(isNaN(hashrate)||isNaN(power)||isNaN(electricity)||isNaN(tokenPrice)||isNaN(blockReward)||isNaN(difficulty)){showToast('请填写所有参数');return;}
+  if(hashrate<=0||difficulty<=0){showToast('算力和网络难度必须大于0');return;}
+  var hashPerSec=hashrate*1e12;
+  var difficultyHash=difficulty*1e12;
+  var expectedBlocksPerDay=blockReward*hashPerSec/(difficultyHash*Math.pow(2,32)/86400);
+  var dailyRevenue=expectedBlocksPerDay*tokenPrice;
+  var dailyElectricityCost=power/1000*electricity*24;
+  var dailyProfit=dailyRevenue-dailyElectricityCost;
+  var monthlyProfit=dailyProfit*30;
+  var yearlyProfit=dailyProfit*365;
+  var breakEvenDays=dailyProfit>0?0:Infinity;
+  var card=document.getElementById('result-card');
+  card.style.display='block';
+  card.innerHTML='<div class="result-item"><span class="result-label">日挖矿收入</span><span class="result-value">'+formatUSD(dailyRevenue)+'</span></div>'+
+    '<div class="result-item"><span class="result-label">日电费成本</span><span class="result-value small">'+formatUSD(dailyElectricityCost)+'</span></div>'+
+    '<div class="result-item"><span class="result-label">日净利润</span><span class="result-value '+(dailyProfit>=0?'':'style="color:#ef4444"')+'">'+formatUSD(dailyProfit)+'</span></div>'+
+    '<div class="result-item"><span class="result-label">月净利润</span><span class="result-value '+(monthlyProfit>=0?'':'style="color:#ef4444"')+'">'+formatUSD(monthlyProfit)+'</span></div>'+
+    '<div class="result-item"><span class="result-label">年净利润</span><span class="result-value '+(yearlyProfit>=0?'':'style="color:#ef4444"')+'">'+formatUSD(yearlyProfit)+'</span></div>'+
+    (dailyProfit>0?'<div class="result-item"><span class="result-label">回本天数(仅运营)</span><span class="result-value small">盈利中</span></div>':'<div class="result-item"><span class="result-label">状态</span><span class="result-value small" style="color:#ef4444">亏损中</span></div>');
+  if(dailyProfit>0){
+    var chartContainer=document.getElementById('chart-container');
+    chartContainer.style.display='block';
+    var ml=[],md=[];
+    for(var day=1;day<=30;day++){
+      ml.push('第'+day+'天');
+      md.push(dailyProfit*day);
+    }
+    drawLineChart('yieldChart',ml,[{label:'累计利润',data:md,color:COLORS[0]}]);
+  }else{
+    document.getElementById('chart-container').style.display='none';
+  }
+}
 document.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName==='INPUT')calculate();});
 </script>
 <script>calculate();</script>
