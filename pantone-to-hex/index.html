@@ -65,13 +65,21 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>潘通色号转HEX</h2>
-    <p>免费在线Pantone To Hex工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>输入Pantone色号（如Pantone 185 C），自动转换为HEX/RGB/HSL颜色值</p>
+    <div style="display:grid;gap:12px;margin-top:12px">
+      <div>
+        <label style="font-size:.8rem;color:#94a3b8">Pantone色号</label>
+        <input type="text" id="pantoneInput" placeholder="如: 185 C 或 Pantone 185 C" style="margin-top:4px" oninput="searchPantone()">
+      </div>
+    </div>
+    <div id="pantoneResults" style="margin-top:16px"></div>
   </div>
+
   <div class="tool-section">
-    <h2>❓ 常见问题</h2>
-    <p style="color:#94a3b8;font-size:.9rem">本工具正在完善中，更多功能即将上线。感谢您的耐心等待。</p></div></div>
+    <h2>常用Pantone色卡</h2>
+    <p style="font-size:.85rem;color:#94a3b8;margin-bottom:12px">点击色块查看详细信息</p>
+    <div id="pantoneGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px"></div>
+  </div>
 </div>
 
 <div class="section"><h2>常见问题</h2><div class="faq-item"><h3>这个工具是免费的吗？</h3><p>是的，这个工具完全免费使用。所有处理都在你的浏览器本地完成，无需注册或登录。</p></div>
@@ -132,15 +140,96 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
-function process() {
-  var input = document.getElementById('toolInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+// === Pantone转HEX ===
+var pantoneData = [
+  {name:'Pantone 185 C',hex:'#D2122E',r:210,g:18,b:46},
+  {name:'Pantone 485 C',hex:'#DD1D1D',r:221,g:29,b:29},
+  {name:'Pantone 199 C',hex:'#D4126E',r:212,g:18,b:110},
+  {name:'Pantone 286 C',hex:'#003DA5',r:0,g:61,b:165},
+  {name:'Pantone 294 C',hex:'#0F3D6E',r:15,g:61,b:110},
+  {name:'Pantone 300 C',hex:'#005EB8',r:0,g:94,b:184},
+  {name:'Pantone 281 C',hex:'#00205B',r:0,g:32,b:91},
+  {name:'Pantone 274 C',hex:'#1B0088',r:27,g:0,b:136},
+  {name:'Pantone 354 C',hex:'#00A651',r:0,g:166,b:81},
+  {name:'Pantone 361 C',hex:'#2BB24C',r:43,g:178,b:76},
+  {name:'Pantone 375 C',hex:'#A6CE39',r:166,g:206,b:57},
+  {name:'Pantone 376 C',hex:'#A4D233',r:164,g:210,b:51},
+  {name:'Pantone 130 C',hex:'#FFD200',r:255,g:210,b:0},
+  {name:'Pantone 116 C',hex:'#FFCD00',r:255,g:205,b:0},
+  {name:'Pantone 123 C',hex:'#FFC20E',r:255,g:194,b:14},
+  {name:'Pantone 151 C',hex:'#F4621D',r:244,g:98,b:29},
+  {name:'Pantone 166 C',hex:'#F26522',r:242,g:101,b:34},
+  {name:'Pantone 172 C',hex:'#E94E1B',r:233,g:78,b:27},
+  {name:'Pantone 2685 C',hex:'#2B0099',r:43,g:0,b:153},
+  {name:'Pantone 2597 C',hex:'#4D1A7F',r:77,g:26,b:127},
+  {name:'Pantone 2567 C',hex:'#7B2D8E',r:123,g:45,b:142},
+  {name:'Pantone 2563 C',hex:'#A5509C',r:165,g:80,b:156},
+  {name:'Pantone 2375 C',hex:'#C8255D',r:200,g:37,b:93},
+  {name:'Pantone 190 C',hex:'#E9476F',r:233,g:71,b:111},
+  {name:'Pantone 176 C',hex:'#F5B0C4',r:245,g:176,b:196},
+  {name:'Pantone 425 C',hex:'#2B2B2B',r:43,g:43,b:43},
+  {name:'Pantone 432 C',hex:'#1F2A44',r:31,g:42,b:68},
+  {name:'Pantone 7546 C',hex:'#6B6B6B',r:107,g:107,b:107},
+  {name:'Pantone Cool Gray 7 C',hex:'#8B8C8D',r:139,g:140,b:141},
+  {name:'Pantone Cool Gray 9 C',hex:'#7A7B7D',r:122,g:123,b:125},
+  {name:'Pantone Black 6 C',hex:'#101820',r:16,g:24,b:32},
+  {name:'Pantone Warm Red C',hex:'#F2381F',r:242,g:56,b:31},
+  {name:'Pantone Orange 021 C',hex:'#FE5000',r:254,g:80,b:0},
+  {name:'Pantone Reflex Blue C',hex:'#1A1970',r:26,g:25,b:112},
+  {name:'Pantone Process Blue C',hex:'#0095DA',r:0,g:149,b:218},
+  {name:'Pantone Rhodamine Red C',hex:'#E00087',r:224,g:0,b:135},
+  {name:'Pantone Violet C',hex:'#5E2D91',r:94,g:45,b:145},
+  {name:'Pantone Purple C',hex:'#5F3A8E',r:95,g:58,b:142},
+  {name:'Pantone 7465 C',hex:'#00A3AD',r:0,g:163,b:173},
+  {name:'Pantone 3125 C',hex:'#00B0BA',r:0,g:176,b:186},
+  {name:'Pantone 3245 C',hex:'#5BC4BE',r:91,g:196,b:190}
+];
+function hexToHsl(r,g,b){
+  r/=255;g/=255;b/=255;
+  var max=Math.max(r,g,b),min=Math.min(r,g,b);
+  var h,s,l=(max+min)/2;
+  if(max===min){h=s=0;}else{
+    var d=max-min;
+    s=l>0.5?d/(2-max-min):d/(max+min);
+    switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;}
+    h/=6;
+  }
+  return [Math.round(h*360),Math.round(s*100),Math.round(l*100)];
 }
+function searchPantone(){
+  var q=document.getElementById('pantoneInput').value.trim().toLowerCase();
+  var container=document.getElementById('pantoneResults');
+  if(!q){container.innerHTML='';return;}
+  var matches=pantoneData.filter(function(c){return c.name.toLowerCase().indexOf(q)>=0||c.hex.toLowerCase().indexOf(q)>=0;});
+  if(matches.length===0){
+    container.innerHTML='<p style="color:#64748b;font-size:.85rem">未找到匹配的Pantone色号。请尝试如 185 C、300 C 等格式。</p>';
+    return;
+  }
+  container.innerHTML=matches.map(function(c){
+    var hsl=hexToHsl(c.r,c.g,c.b);
+    return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(15,23,42,.6);border-radius:8px;margin-bottom:8px">'+
+      '<div style="width:60px;height:60px;border-radius:8px;background:'+c.hex+';border:2px solid rgba(148,163,184,.2);flex-shrink:0"></div>'+
+      '<div style="flex:1">'+
+      '<div style="font-weight:600;color:#f1f5f9;font-size:.95rem">'+c.name+'</div>'+
+      '<div style="color:#94a3b8;font-size:.8rem;margin-top:4px">HEX: <code style="color:#22d3ee">'+c.hex+'</code> · RGB: <code style="color:#22d3ee">'+c.r+', '+c.g+', '+c.b+'</code> · HSL: <code style="color:#22d3ee">'+hsl[0]+'°, '+hsl[1]+'%, '+hsl[2]+'%</code></div>'+
+      '</div>'+
+      '<button class="btn" style="font-size:.75rem;padding:4px 10px" onclick="copyColor(\''+c.hex+'\')">复制</button>'+
+      '</div>';
+  }).join('');
+}
+function copyColor(hex){
+  navigator.clipboard.writeText(hex).then(function(){showToast('已复制 '+hex);})['catch'](function(){showToast('复制失败');});
+}
+function renderGrid(){
+  var grid=document.getElementById('pantoneGrid');
+  grid.innerHTML=pantoneData.map(function(c){
+    return '<div style="cursor:pointer;border-radius:8px;overflow:hidden;border:1px solid rgba(148,163,184,.1)" onclick="document.getElementById(\'pantoneInput\').value=\''+c.name+'\';searchPantone()">'+
+      '<div style="height:50px;background:'+c.hex+'"></div>'+
+      '<div style="padding:6px 8px;background:#1e293b"><div style="font-size:.75rem;color:#f1f5f9">'+c.name+'</div><div style="font-size:.7rem;color:#64748b">'+c.hex+'</div></div>'+
+      '</div>';
+  }).join('');
+}
+renderGrid();
 </script>
 </div>
 

@@ -66,13 +66,20 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>音频格式转换器</h2>
-    <p>免费在线Audio Converter工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>上传音频文件，查看详细信息并转换为WAV格式（纯前端处理，数据不上传）</p>
+    <div style="margin-top:12px">
+      <input type="file" id="audioFile" accept="audio/*" style="display:none" onchange="handleFile(event)">
+      <button class="btn" onclick="document.getElementById('audioFile').click()">选择音频文件</button>
+      <span id="fileName" style="margin-left:8px;font-size:.85rem;color:#94a3b8"></span>
+    </div>
+    <div id="audioInfo" style="margin-top:16px"></div>
+    <div id="audioActions" style="margin-top:12px;display:none">
+      <button class="btn" onclick="convertToWav()">转换为WAV</button>
+      <button class="btn" onclick="playOriginal()" style="margin-left:8px">播放原文件</button>
+    </div>
+    <div id="convertResult" style="margin-top:16px"></div>
+    <audio id="audioPlayer" style="display:none"></audio>
   </div>
-  <div class="tool-section">
-    <h2>❓ 常见问题</h2>
-    <p style="color:#94a3b8;font-size:.9rem">本工具正在完善中，更多功能即将上线。感谢您的耐心等待。</p></div></div>
 </div>
 
 <div class="section"><h2>常见问题</h2><div class="faq-item"><h3>这个工具是免费的吗？</h3><p>是的，这个工具完全免费使用。所有处理都在你的浏览器本地完成，无需注册或登录。</p></div>
@@ -135,14 +142,94 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }
   }
 
-// === 重写的函数实现 ===
-function process() {
-  var input = document.getElementById('toolInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+// === 音频格式转换器 ===
+var audioContext = null;
+var audioBuffer = null;
+var originalFile = null;
+var originalUrl = null;
+
+function handleFile(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  originalFile = file;
+  document.getElementById('fileName').textContent = file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+  document.getElementById('audioInfo').innerHTML = '<p style="color:#94a3b8;font-size:.85rem">正在解码音频文件...</p>';
+  if (originalUrl) { URL.revokeObjectURL(originalUrl); }
+  originalUrl = URL.createObjectURL(file);
+  var player = document.getElementById('audioPlayer');
+  player.src = originalUrl;
+  if (!audioContext) { audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    audioContext.decodeAudioData(e.target.result, function(buffer) {
+      audioBuffer = buffer;
+      var info = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px;background:rgba(15,23,42,.6);border-radius:8px">' +
+        '<div><span style="color:#64748b;font-size:.8rem">格式</span><br><span style="color:#22d3ee;font-size:.9rem">' + (file.type || '未知') + '</span></div>' +
+        '<div><span style="color:#64748b;font-size:.8rem">时长</span><br><span style="color:#22d3ee;font-size:.9rem">' + buffer.duration.toFixed(2) + ' 秒</span></div>' +
+        '<div><span style="color:#64748b;font-size:.8rem">采样率</span><br><span style="color:#22d3ee;font-size:.9rem">' + buffer.sampleRate + ' Hz</span></div>' +
+        '<div><span style="color:#64748b;font-size:.8rem">声道数</span><br><span style="color:#22d3ee;font-size:.9rem">' + buffer.numberOfChannels + (buffer.numberOfChannels === 1 ? ' (单声道)' : ' (立体声)') + '</span></div>' +
+        '<div><span style="color:#64748b;font-size:.8rem">采样数</span><br><span style="color:#22d3ee;font-size:.9rem">' + buffer.length.toLocaleString() + '</span></div>' +
+        '<div><span style="color:#64748b;font-size:.8rem">文件大小</span><br><span style="color:#22d3ee;font-size:.9rem">' + (file.size / 1024).toFixed(1) + ' KB</span></div>' +
+        '</div>';
+      document.getElementById('audioInfo').innerHTML = info;
+      document.getElementById('audioActions').style.display = 'block';
+    }, function(err) {
+      document.getElementById('audioInfo').innerHTML = '<p style="color:#ef4444;font-size:.85rem">无法解码此音频格式。请尝试 MP3、WAV、OGG 或 M4A 等常见格式。</p>';
+      document.getElementById('audioActions').style.display = 'none';
+    });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function playOriginal() {
+  var player = document.getElementById('audioPlayer');
+  if (player.paused) { player.play(); } else { player.pause(); }
+}
+
+function convertToWav() {
+  if (!audioBuffer) { showToast('请先选择音频文件'); return; }
+  showToast('正在转换为WAV...');
+  var numChannels = audioBuffer.numberOfChannels;
+  var sampleRate = audioBuffer.sampleRate;
+  var length = audioBuffer.length * numChannels * 2 + 44;
+  var arrBuffer = new ArrayBuffer(length);
+  var view = new DataView(arrBuffer);
+  // WAV header
+  var writeString = function(offset, str) {
+    for (var i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+  };
+  writeString(0, 'RIFF');
+  view.setUint32(4, length - 8, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * numChannels * 2, true);
+  view.setUint16(32, numChannels * 2, true);
+  view.setUint16(34, 16, true);
+  writeString(36, 'data');
+  view.setUint32(40, length - 44, true);
+  // Interleave and write samples
+  var offset = 44;
+  for (var i = 0; i < audioBuffer.length; i++) {
+    for (var ch = 0; ch < numChannels; ch++) {
+      var sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(ch)[i]));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+      offset += 2;
+    }
+  }
+  var blob = new Blob([arrBuffer], { type: 'audio/wav' });
+  var url = URL.createObjectURL(blob);
+  var wavSize = (blob.size / 1024).toFixed(1);
+  var html = '<div style="padding:12px;background:rgba(15,23,42,.6);border-radius:8px">' +
+    '<div style="color:#22d3ee;font-size:.9rem;margin-bottom:8px">✅ WAV转换完成 (' + wavSize + ' KB)</div>' +
+    '<audio controls src="' + url + '" style="width:100%;margin-bottom:8px"></audio>' +
+    '<a href="' + url + '" download="converted.wav" class="btn" style="display:inline-block;text-decoration:none">下载WAV文件</a>' +
+    '</div>';
+  document.getElementById('convertResult').innerHTML = html;
+  showToast('WAV转换完成');
 }
 </script>
 </body>

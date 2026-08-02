@@ -174,13 +174,53 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>Neon Text Generator</h2>
-    <p>Free online Neon Text Generator tool</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="Enter content..."><button class="btn" style="margin-left:8px" onclick="process()">Run</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>Enter text, customize color and glow effect, generate CSS neon text code</p>
+    <div style="display:grid;gap:12px;margin-top:12px">
+      <div>
+        <label style="font-size:.8rem;color:#94a3b8">Text</label>
+        <input type="text" id="neonText" value="NEON" placeholder="Enter text..." style="margin-top:4px">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label style="font-size:.8rem;color:#94a3b8">Glow Color</label>
+          <input type="color" id="neonColor" value="#ff00ff" style="width:100%;height:38px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;cursor:pointer;margin-top:4px">
+        </div>
+        <div>
+          <label style="font-size:.8rem;color:#94a3b8">Font Size</label>
+          <input type="range" id="neonSize" min="20" max="120" value="60" style="width:100%;margin-top:10px" oninput="document.getElementById('sizeVal').textContent=this.value+'px'">
+          <span id="sizeVal" style="font-size:.8rem;color:#64748b">60px</span>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:.8rem;color:#94a3b8">Font Family</label>
+        <select id="neonFont" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem;margin-top:4px">
+          <option value="monospace">Monospace</option>
+          <option value="sans-serif">Sans-serif</option>
+          <option value="serif">Serif</option>
+          <option value="cursive">Cursive</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.8rem;color:#94a3b8">Glow Intensity: <span id="glowVal" style="color:#64748b">3 layers</span></label>
+        <input type="range" id="neonGlow" min="1" max="5" value="3" style="width:100%" oninput="document.getElementById('glowVal').textContent=this.value+' layers'">
+      </div>
+    </div>
+    <button class="btn" style="margin-top:12px" onclick="generateNeon()">Generate</button>
   </div>
+
   <div class="tool-section">
-    <h2>❓ FAQ</h2>
-    <p style="color:#94a3b8;font-size:.9rem">This tool is under active development. More features coming soon. Thank you for your patience.</p>
+    <h2>Live Preview</h2>
+    <div id="neonPreview" style="padding:40px 20px;text-align:center;background:#0a0a0a;border-radius:8px;min-height:100px;display:flex;align-items:center;justify-content:center">
+      <span id="previewText" style="font-size:60px;font-family:monospace;color:#ff00ff;text-shadow:0 0 5px #ff00ff,0 0 10px #ff00ff,0 0 20px #ff00ff,0 0 40px #ff00ff,0 0 80px #ff00ff">NEON</span>
+    </div>
+  </div>
+
+  <div class="tool-section">
+    <h2>CSS Code</h2>
+    <div style="position:relative">
+      <pre id="cssCode" style="background:#0a0a0a;border:1px solid rgba(148,163,184,.1);border-radius:8px;padding:16px;overflow-x:auto;font-size:.8rem;color:#a5b4fc;line-height:1.5;white-space:pre-wrap;word-break:break-all"></pre>
+      <button class="btn" style="position:absolute;top:8px;right:8px;font-size:.75rem;padding:4px 12px" onclick="copyCss()">Copy</button>
+    </div>
   </div>
   
 <div>
@@ -226,85 +266,35 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
   </div>
 
 <script>
-  'use strict';
-  var s = document.getElementById('related-tools-section');
-  if (!s) return;
-  var p = window.location.pathname;
-  var en = p.indexOf('/en/') !== -1;
-  p = p.replace(/\/en\//g, '/');
-  var slug = p.split('/').filter(Boolean).pop() || '';
-  if (!slug) { s.innerHTML = ''; return; }
-  var depth = en ? '../../' : '../';
-  var u = depth + 'related-tools.json';
-  fetch(u).then(function(r) {
-    if (!r.ok) throw new Error('not found');
-    return r.json();
-  }).then(function(d) {
-    var data = en ? d.en : d.cn;
-    var t = data[slug];
-    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 RelatedToolsRecommended')
-      + '</h3><div class="related-tools-grid">';
-    t.related.forEach(function(r) {
-      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '<a href="' + link + '" class="related-tool-card">'
-        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
-        + '<span class="related-tool-name">' + r.name + '</span></a>';
-    });
-    h += '</div></div>';
-    s.innerHTML = h;
-  }).catch(function() { s.innerHTML = ''; });
-})(;</script>
-
-<script>(function(){ // resultAddCopy var processed = new Set(); function addCopyBtns(){ var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]'); results.forEach(function(el){ if(processed.has(el)) return; if(el.querySelector('.copy-btn')) return; if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return; if(el.children.length===0 && el.textContent.trim().length<5) return;
-      var btn = document.createElement('button');
-      btn.className = 'copy-btn';
-      btn.innerHTML = '📋 Copy';
-      btn.title = 'CopyResult';
-      btn.onclick = function(e){
-        e.stopPropagation();
-        var text = el.textContent || el.value || '';
-        if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') text = el.value;
-        navigator.clipboard.writeText(text.trim()).then(function(){
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        }).catch(function(){
-          var ta = document.createElement('textarea');
-          ta.value = text.trim();
-          ta.style.position='fixed';ta.style.opacity='0';
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        });
-      };
-      el.appendChild(btn);
-      processed.add(el);
-    });
+function showToast(m){var t=document.createElement('div');t.textContent=m;t.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:8px 20px;border-radius:8px;border:1px solid rgba(6,182,212,.3);z-index:9999;font-size:.85rem;transition:opacity .3s';document.body.appendChild(t);setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},300)},2000)}
+function generateNeon() {
+  var text = document.getElementById('neonText').value || 'NEON';
+  var color = document.getElementById('neonColor').value;
+  var size = document.getElementById('neonSize').value;
+  var font = document.getElementById('neonFont').value;
+  var glow = parseInt(document.getElementById('neonGlow').value);
+  var layers = [];
+  var px = [5, 10, 20, 40, 80];
+  for (var i = 0; i < glow; i++) {
+    layers.push('0 0 ' + px[i] + 'px ' + color);
   }
-  // Run initially
-  addCopyBtns();
-  // Re-run after button clicks (most tools update results on click)
-  document.addEventListener('click', function(){setTimeout(addCopyBtns,100);});
-  // Observe DOM changes
-  if(window.MutationObserver){
-    var obs = new MutationObserver(function(){addCopyBtns();});
-    obs.observe(document.body,{childList:true,subtree:true});
-  }
-})(;)</script>
-
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-</div>
+  var shadow = layers.join(', ');
+  var el = document.getElementById('previewText');
+  el.textContent = text;
+  el.style.fontSize = size + 'px';
+  el.style.fontFamily = font;
+  el.style.color = color;
+  el.style.textShadow = shadow;
+  var css = '.neon-text {\n  font-size: ' + size + 'px;\n  font-family: ' + font + ';\n  color: ' + color + ';\n  text-shadow: ' + shadow + ';\n}';
+  document.getElementById('cssCode').textContent = css;
+  showToast('Neon effect generated');
+}
+function copyCss() {
+  var code = document.getElementById('cssCode').textContent;
+  navigator.clipboard.writeText(code).then(function() { showToast('CSS code copied'); })['catch'](function() { showToast('Copy failed'); });
+}
+generateNeon();
+</script>
 
 </body>
 </html>

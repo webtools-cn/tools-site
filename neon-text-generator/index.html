@@ -64,13 +64,54 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>霓虹文字生成器</h2>
-    <p>免费在线Neon Text Generator工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>输入文字，自定义颜色和发光效果，生成CSS霓虹文字代码</p>
+    <div style="display:grid;gap:12px;margin-top:12px">
+      <div>
+        <label style="font-size:.8rem;color:#94a3b8">输入文字</label>
+        <input type="text" id="neonText" value="NEON" placeholder="输入文字..." style="margin-top:4px">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label style="font-size:.8rem;color:#94a3b8">发光颜色</label>
+          <input type="color" id="neonColor" value="#ff00ff" style="width:100%;height:38px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;cursor:pointer;margin-top:4px">
+        </div>
+        <div>
+          <label style="font-size:.8rem;color:#94a3b8">字体大小</label>
+          <input type="range" id="neonSize" min="20" max="120" value="60" style="width:100%;margin-top:10px" oninput="document.getElementById('sizeVal').textContent=this.value+'px'">
+          <span id="sizeVal" style="font-size:.8rem;color:#64748b">60px</span>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:.8rem;color:#94a3b8">字体</label>
+        <select id="neonFont" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem;margin-top:4px">
+          <option value="monospace">等宽 Monospace</option>
+          <option value="sans-serif">无衬线 Sans-serif</option>
+          <option value="serif">衬线 Serif</option>
+          <option value="cursive">手写 Cursive</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.8rem;color:#94a3b8">发光强度: <span id="glowVal" style="color:#64748b">3层</span></label>
+        <input type="range" id="neonGlow" min="1" max="5" value="3" style="width:100%" oninput="document.getElementById('glowVal').textContent=this.value+'层'">
+      </div>
+    </div>
+    <button class="btn" style="margin-top:12px" onclick="generateNeon()">生成霓虹效果</button>
   </div>
+
   <div class="tool-section">
-    <h2>❓ 常见问题</h2>
-    <p style="color:#94a3b8;font-size:.9rem">本工具正在完善中，更多功能即将上线。感谢您的耐心等待。</p></div></div>
+    <h2>实时预览</h2>
+    <div id="neonPreview" style="padding:40px 20px;text-align:center;background:#0a0a0a;border-radius:8px;min-height:100px;display:flex;align-items:center;justify-content:center">
+      <span id="previewText" style="font-size:60px;font-family:monospace;color:#ff00ff;text-shadow:0 0 5px #ff00ff,0 0 10px #ff00ff,0 0 20px #ff00ff,0 0 40px #ff00ff,0 0 80px #ff00ff">NEON</span>
+    </div>
+  </div>
+
+  <div class="tool-section">
+    <h2>CSS代码</h2>
+    <div style="position:relative">
+      <pre id="cssCode" style="background:#0a0a0a;border:1px solid rgba(148,163,184,.1);border-radius:8px;padding:16px;overflow-x:auto;font-size:.8rem;color:#a5b4fc;line-height:1.5;white-space:pre-wrap;word-break:break-all"></pre>
+      <button class="btn" style="position:absolute;top:8px;right:8px;font-size:.75rem;padding:4px 12px" onclick="copyCss()">复制</button>
+    </div>
+  </div>
 </div>
 
 <div class="section"><h2>常见问题</h2><div class="faq-item"><h3>这个工具是免费的吗？</h3><p>是的，这个工具完全免费使用。所有处理都在你的浏览器本地完成，无需注册或登录。</p></div>
@@ -131,15 +172,34 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
-function process() {
-  var input = document.getElementById('toolInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+// === 霓虹文字生成器 ===
+function generateNeon() {
+  var text = document.getElementById('neonText').value || 'NEON';
+  var color = document.getElementById('neonColor').value;
+  var size = document.getElementById('neonSize').value;
+  var font = document.getElementById('neonFont').value;
+  var glow = parseInt(document.getElementById('neonGlow').value);
+  var layers = [];
+  var px = [5, 10, 20, 40, 80];
+  for (var i = 0; i < glow; i++) {
+    layers.push('0 0 ' + px[i] + 'px ' + color);
+  }
+  var shadow = layers.join(', ');
+  var el = document.getElementById('previewText');
+  el.textContent = text;
+  el.style.fontSize = size + 'px';
+  el.style.fontFamily = font;
+  el.style.color = color;
+  el.style.textShadow = shadow;
+  var css = '.neon-text {\n  font-size: ' + size + 'px;\n  font-family: ' + font + ';\n  color: ' + color + ';\n  text-shadow: ' + shadow + ';\n}';
+  document.getElementById('cssCode').textContent = css;
+  showToast('霓虹效果已生成');
 }
+function copyCss() {
+  var code = document.getElementById('cssCode').textContent;
+  navigator.clipboard.writeText(code).then(function() { showToast('CSS代码已复制'); })['catch'](function() { showToast('复制失败'); });
+}
+generateNeon();
 </script>
 </div>
 
