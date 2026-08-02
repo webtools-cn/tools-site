@@ -1,12 +1,13 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第十四批)
+> 最后更新: 2026-08-03 (cron自动更新 - 第十五批)
 
 ## 当前真实问题
 
 | 问题 | 总数 | 已修 | 剩余 | 优先级 | 检测方法 |
 |:-----|:----:|:----:|:----:|:------:|:---------|
 | 空壳工具(0交互+0JS) | 40+ | 42 | 0 | ✅ 完成 | check_empty_shells.py + 精确过滤 |
+| 模板空壳(toolInput stub) | 4 | 4 | 0 | ✅ 完成 | check_empty_shells.py 模板空壳检测 |
 
 ## 空壳工具清单(0个)
 
@@ -80,6 +81,10 @@ surface-area-calculator, text-stats, vocabulary-builder
 ### 2026-08-03 (第十四批 - 全部清零)
 word-search-generator, zip-extractor, rental-agreement-generator
 注: word-search-generator CN版添加Canvas单词搜索谜题生成器（单词列表输入+网格大小5档+3级难度+Canvas渲染高亮+打印+下载PNG），EN版修复wsPrint函数中损坏的JS（混入了related-tools标签和未闭合的script标签导致函数体截断）；zip-extractor CN/EN版均用纯JS解析ZIP格式（DataView读取本地文件头+DecompressionStream API解压deflate-raw），不引入JSZip CDN依赖（符合AGENTS.md禁止外部JS库要求），EN版同时移除quickInput假交互和损坏的related-tools脚本；rental-agreement-generator CN版添加租赁协议生成器（4种租赁类型+双方信息+租赁物+租金押金+期限+支付方式→十条款完整协议文本+中文大写金额转换+复制+下载TXT），EN版添加英文版rental agreement替换quickInput假交互。至此空壳工具全部清零。
+
+### 2026-08-03 (第十五批 - 模板空壳清零)
+bitwise-calculator, mesh-gradient-generator, svg-to-base64, color-palette-from-image
+注: 4个工具均为模板空壳（有id="toolInput"+onclick="process()"但无process()函数定义，且JS部分损坏）。bitwise-calculator CN/EN版添加位运算计算器（AND/OR/XOR/NOT A/左移/右移6种操作，支持十进制和0x十六进制输入，32位二进制可视化展示+操作数/结果二进制位对比，十进制/十六进制/八进制/二进制位数四项结果输出+复制），EN版同时移除损坏的related-tools脚本(resultAddCopy)(;语法错误)和quickInput假交互；mesh-gradient-generator CN/EN版添加Canvas像素级网格渐变生成器（4-8个颜色锚点，反距离平方加权插值渲染，颜色选择器+删除锚点+添加锚点+随机配色，CSS radial-gradient代码实时导出+一键复制），EN版同时移除损坏的评分系统JS和quickInput假交互；svg-to-base64 CN/EN版添加SVG转Base64工具（输入SVG代码→btoa编码→Data URI/CSS background-url/HTML img标签三种格式输出+实时img预览+编码长度统计+示例加载），替换CN版损坏的related-tools脚本})(;语法错误；color-palette-from-image CN/EN版添加图片取色板（FileReader上传+Canvas缩放+像素颜色量化16级分组+按频率排序+可调5/8/12/16色+HEX/RGB/百分比显示+CSS变量导出），替换CN/EN版损坏的related-tools脚本。所有8个文件JS语法验证通过，check_empty_shells.py模板空壳从4降到0。
 
 ## 检测说明
 
