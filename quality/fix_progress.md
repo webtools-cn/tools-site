@@ -2,7 +2,7 @@
 
 > 每轮cron修完后必须更新此文件。数字不变=没收敛。
 
-## 当前问题数 (2026-08-02 19:41)
+## 当前问题数 (2026-08-02)
 
 | 问题 | 总数 | 已修 | 剩余 | 上轮修了 |
 |:-----|:----:|:----:|:----:|:---------|
@@ -19,8 +19,16 @@
 | GA缺失 | 921 | 921 | 0 | ✅ |
 | 假评分 | 3614 | 3614 | 0 | ✅ |
 | 辅助页面title/样式 | 8 | 8 | 0 | ✅ |
+| related-tools低对比度 | 15 | 15 | 0 | ✅ 本轮修复 |
+| chi-square浅色主题混搭 | 1 | 1 | 0 | ✅ 本轮修复 |
 
 ## 修复日志
+
+### 2026-08-02 (第2轮)
+- ✅ 15个页面 related-tools 标题 `color:#374151`→`#e2e8f0` + 背景 `#0f172a`→`#1e293b`
+- ✅ chi-square-calculator 严重浅色主题混搭修复（hero/result-main/lang-switch）
+- ✅ tournament-bracket-generator 新增 related-tools
+- ✅ 多页面 footer/seo-content 低对比度文字修复
 
 ### 2026-08-02
 - ✅ DNS Lookup DoH API修复（Google改/resolve端点+Cloudflare默认）
