@@ -105,6 +105,49 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">Home</a> &rsaquo; <a href="../index.html#tools">Tools</a> &rsaquo; Text Stats Tool</p>
 <div class="hero"><p>Free online text stats tool. Real-time character/word/line/paragraph count. Multi-language support. Instant results. | No registration · No data upload</p><span class="badge">Zero dependencies · Works offline</span></div>
 
+<div class="input-section">
+  <h2>Input Text</h2>
+  <textarea id="textInput" placeholder="Type or paste text here..." style="width:100%;min-height:200px;padding:12px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;font-size:.95rem;font-family:inherit;resize:vertical" oninput="updateStats()"></textarea>
+</div>
+
+<div class="result-section show" id="resultSection" style="display:block">
+  <h2>Statistics</h2>
+  <div class="stat-row" style="display:flex;gap:12px;flex-wrap:wrap">
+    <div class="stat-item" style="flex:1;min-width:100px;background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+      <div class="num" id="charCount" style="font-size:1.5rem;color:#22d3ee;font-weight:700">0</div>
+      <div class="lbl" style="font-size:.75rem;color:#64748b;margin-top:4px">Characters (with spaces)</div>
+    </div>
+    <div class="stat-item" style="flex:1;min-width:100px;background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+      <div class="num" id="charNoSpace" style="font-size:1.5rem;color:#22d3ee;font-weight:700">0</div>
+      <div class="lbl" style="font-size:.75rem;color:#64748b;margin-top:4px">Characters (no spaces)</div>
+    </div>
+    <div class="stat-item" style="flex:1;min-width:100px;background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+      <div class="num" id="wordCount" style="font-size:1.5rem;color:#22d3ee;font-weight:700">0</div>
+      <div class="lbl" style="font-size:.75rem;color:#64748b;margin-top:4px">Words</div>
+    </div>
+    <div class="stat-item" style="flex:1;min-width:100px;background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+      <div class="num" id="cnCount" style="font-size:1.5rem;color:#22d3ee;font-weight:700">0</div>
+      <div class="lbl" style="font-size:.75rem;color:#64748b;margin-top:4px">Chinese Characters</div>
+    </div>
+    <div class="stat-item" style="flex:1;min-width:100px;background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+      <div class="num" id="lineCount" style="font-size:1.5rem;color:#22d3ee;font-weight:700">0</div>
+      <div class="lbl" style="font-size:.75rem;color:#64748b;margin-top:4px">Lines</div>
+    </div>
+    <div class="stat-item" style="flex:1;min-width:100px;background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+      <div class="num" id="paraCount" style="font-size:1.5rem;color:#22d3ee;font-weight:700">0</div>
+      <div class="lbl" style="font-size:.75rem;color:#64748b;margin-top:4px">Paragraphs</div>
+    </div>
+    <div class="stat-item" style="flex:1;min-width:100px;background:#0f172a;border-radius:8px;padding:12px;text-align:center">
+      <div class="num" id="punctCount" style="font-size:1.5rem;color:#22d3ee;font-weight:700">0</div>
+      <div class="lbl" style="font-size:.75rem;color:#64748b;margin-top:4px">Punctuation</div>
+    </div>
+  </div>
+  <div class="btn-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
+    <button class="btn btn-primary" onclick="copyStats()">📋 Copy Stats</button>
+    <button class="btn btn-secondary" onclick="document.getElementById('textInput').value='';updateStats()">🔄 Clear</button>
+  </div>
+</div>
+
 <div class="info-section">
   <h2>Tutorial</h2>
   <p>Type or paste text in the text box. Real-time stats including character count, word count, line count, paragraph count are displayed on the right.</p>
@@ -134,13 +177,41 @@ a{color:#06b6d4;text-decoration:none}
 </div>
 <div class="toast" id="toast"></div>
 
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-</div>
+<script>
+function updateStats(){
+  var text=document.getElementById('textInput').value;
+  var charCount=text.length;
+  var charNoSpace=text.replace(/\s/g,'').length;
+  var wordCount=(text.match(/[a-zA-Z0-9]+/g)||[]).length;
+  var cnCount=(text.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g)||[]).length;
+  var lineCount=text.length>0?text.split('\n').length:0;
+  var paraCount=text.length>0?text.split(/\n\s*\n/).filter(function(p){return p.trim().length>0}).length:0;
+  var punctCount=(text.match(/[，。！？；：、""''（）【】《》…—,.!?;:'"()\[\]<>]/g)||[]).length;
+  document.getElementById('charCount').textContent=charCount;
+  document.getElementById('charNoSpace').textContent=charNoSpace;
+  document.getElementById('wordCount').textContent=wordCount;
+  document.getElementById('cnCount').textContent=cnCount;
+  document.getElementById('lineCount').textContent=lineCount;
+  document.getElementById('paraCount').textContent=paraCount;
+  document.getElementById('punctCount').textContent=punctCount;
+}
+function copyStats(){
+  var stats='Characters (with spaces): '+document.getElementById('charCount').textContent+'\n'+
+    'Characters (no spaces): '+document.getElementById('charNoSpace').textContent+'\n'+
+    'Words: '+document.getElementById('wordCount').textContent+'\n'+
+    'Chinese Characters: '+document.getElementById('cnCount').textContent+'\n'+
+    'Lines: '+document.getElementById('lineCount').textContent+'\n'+
+    'Paragraphs: '+document.getElementById('paraCount').textContent+'\n'+
+    'Punctuation: '+document.getElementById('punctCount').textContent;
+  navigator.clipboard.writeText(stats).then(function(){
+    var t=document.getElementById('toast');
+    if(t){t.textContent='Stats copied!';t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000);}
+  }).catch(function(){
+    var ta=document.createElement('textarea');ta.value=stats;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+  });
+}
+updateStats();
+</script>
 
 </body>
 </html>

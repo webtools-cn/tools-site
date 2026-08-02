@@ -38,22 +38,44 @@
 <div class="hero"><p>Free online English vocabulary size estimator using random sampling methodology. Supports multiple difficulty levels with detailed analysis reports and learning recommendations. 100% client-side.</p><span class="badge">Zero Dependency · Works Offline</span></div>
 
 <div class="section" id="toolSection">
-<h2>Tool</h2>
+<h2>Vocabulary Test</h2>
 <div class="form-group">
-<label>Settings</label>
-<textarea id="toolInput" rows="3" placeholder="Enter parameters..."></textarea>
+<label>Difficulty Level</label>
+<select id="levelSelect">
+<option value="easy">Easy (Top 1000 words)</option>
+<option value="medium" selected>Medium (Top 3000 words)</option>
+<option value="hard">Hard (Top 5000 words)</option>
+</select>
 </div>
 <div class="btn-row">
-<button class="btn btn-primary" onclick="runTool()">🚀 Run</button>
-<button class="btn btn-secondary" onclick="clearTool()">🔄 Reset</button>
+<button class="btn btn-primary" onclick="startTest()">🚀 Start Test</button>
+<button class="btn btn-secondary" onclick="resetTest()">🔄 Reset</button>
 </div>
-<div class="result-section" id="resultSection">
-<div class="result-value" id="resultValue">--</div>
-<div class="result-detail" id="resultDetail"></div>
-<div class="btn-row" style="justify-content:center;">
-<button class="btn btn-secondary" onclick="copyResult()">📋 Copy Result</button>
-<button class="btn btn-secondary" onclick="exportResult()">📥 Export</button>
 </div>
+
+<div class="section" id="testSection" style="display:none">
+<h2 id="testTitle">Testing</h2>
+<p style="color:#94a3b8;font-size:.9rem;margin-bottom:16px" id="testProgress">Question 1 / 20</p>
+<div style="background:#0f172a;border-radius:12px;padding:24px;margin-bottom:16px;text-align:center">
+<div style="font-size:2rem;color:#f1c40f;font-weight:700;margin-bottom:16px" id="wordDisplay">-</div>
+<p style="color:#64748b;font-size:.85rem" id="wordHint"></p>
+</div>
+<div class="btn-row" style="justify-content:center">
+<button class="btn btn-success" onclick="answer(true)">✅ I Know It</button>
+<button class="btn btn-secondary" onclick="answer(false)">❌ Don't Know</button>
+</div>
+</div>
+
+<div class="section" id="resultSection" style="display:none">
+<h2>Test Results</h2>
+<div style="text-align:center;padding:20px 0">
+<div style="font-size:3rem;color:#22d3ee;font-weight:700" id="estVocab">0</div>
+<p style="color:#94a3b8;font-size:1rem;margin-top:8px">Estimated Vocabulary Size</p>
+</div>
+<div style="background:#0f172a;border-radius:8px;padding:16px;margin:16px 0" id="levelAnalysis"></div>
+<div class="btn-row" style="justify-content:center">
+<button class="btn btn-primary" onclick="copyResult()">📋 Copy Result</button>
+<button class="btn btn-secondary" onclick="resetTest()">🔄 Test Again</button>
 </div>
 </div>
 
@@ -86,10 +108,84 @@
 
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function runTool(){var input=document.getElementById("toolInput").value.trim();if(!input){showToast("Please enter parameters first");return}var result=document.getElementById("resultSection");result.classList.add("show");document.getElementById("resultValue").textContent="Done: "+input;document.getElementById("resultDetail").textContent="Result generated based on input. This tool runs locally in your browser — your data is safe."}
-function clearTool(){document.getElementById("toolInput").value="";document.getElementById("resultSection").classList.remove("show")}
-function copyResult(){var el=document.getElementById("resultValue");var t=el.textContent;navigator.clipboard.writeText(t).then(function(){showToast("Copied!")}).catch(function(){showToast("Copy failed")})}
-function exportResult(){var r=document.getElementById("resultValue").textContent;var d=document.getElementById("resultDetail").textContent;var blob=new Blob([r+"\n"+d],{type:"text/plain"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="vocabulary-builder-result.txt";a.click();showToast("Exported!")}
+
+var wordBank={
+  easy:["hello","water","book","school","friend","family","happy","house","food","time","money","world","right","place","year","day","name","man","woman","child","door","hand","eye","head","foot","tree","rain","snow","sun","moon","star","fish","bird","dog","cat","red","blue","green","big","small","good","new","old","hot","cold","run","walk","eat","drink","read","write","play","work","sing","dance","love","live","go","come","see","hear","speak","think","know","want","make","give","take","help","ask","open","close","buy","sell","cook","wash","drive","sleep","wake","smile","laugh","cry","sit","stand","move","stop","start","change","grow","learn","teach","build","break","fix","clean","paint","draw","count","measure","watch","listen","follow","lead","meet","call","send","return","arrive","leave","stay","travel","visit","find","lose","keep","share","save","spend","earn","pay","borrow","lend","offer","accept","refuse","choose","decide","plan","prepare","arrange","organize","manage","control","protect","defend","attack","fight","win","try","fail","succeed","improve","become","remain","happen","exist","appear","disappear","seem","look","feel","sound","taste","smell","touch","rise","fall","float","sink","flow","burn","melt","freeze","boil","dry","wet","shine","glow","fade","hurt","heal","cure","rest","relax","enjoy","prefer","agree","disagree","believe","doubt","trust","suspect","hope","fear","worry","regret","forget","remember","dream","imagine","guess","wonder","understand","explain","describe","suggest","promise","warn","encourage","praise","blame","forgive","apologize","complain","argue","discuss","negotiate","convince","persuade","prove","show","demonstrate","reveal","hide","cover","uncover","discover","invent","create","destroy","damage","repair","produce","manufacture","import","export","collect","gather","scatter","separate","divide","unite","combine","mix","stir","shake","pour","fill","empty","push","pull","lift","drop","throw","catch","kick","punch","hit","pat","rub","scratch","press","squeeze","hold","release","grab","point","wave","nod","shake","wink","blink","yawn","sneeze","cough","breathe","chew","swallow","bite","lick","sip","gulp"],
+  medium:["achieve","beneath","cabinet","delicate","efficient","fragment","generate","horizon","imitate","justice","keen","leisure","maintain","negotiate","obstacle","participate","quench","reluctant","significant","tolerate","unique","vivid","whisper","abandon","absolute","accurate","adjust","admire","adopt","advance","afford","aggressive","analyze","ancient","appoint","approach","appropriate","approve","artistic","assemble","assess","assign","assist","assume","attach","attempt","attitude","attract","automatic","available","balance","benefit","border","brief","burden","campaign","capable","category","cease","challenge","characteristic","circumstance","claim","clarify","classic","collaborate","collapse","comment","commit","communicate","compact","compare","compete","complain","complex","compose","concept","conclude","concrete","conduct","confident","confirm","conflict","confront","congress","connect","consequence","consider","consist","constant","constitute","construct","consult","consume","contain","context","contract","contribute","convention","convince","corporate","correspond","council","create","credit","crisis","critic","culture","current","debate","decade","decline","define","deliver","demand","democracy","demonstrate","density","depart","depend","depression","derive","describe","design","desire","destroy","detail","detect","determine","develop","device","devote","dignity","dimension","discipline","discover","display","distinguish","distribute","diverse","domestic","dominate","donate","dramatic","earnest","economy","editor","effective","emerge","emotion","emphasis","employ","encounter","encourage","endure","enforce","engage","enhance","enormous","ensure","entire","entity","equivalent","establish","estimate","evaluate","eventually","evidence","evolve","exaggerate","exceed","exchange","exclude","execute","exhaust","exhibit","expand","expectation","expense","experiment","expert","explain","explore","expose","extend","external","facility","factor","familiar","federal","figure","finance","fiscal","flexible","fluctuate","focus","forecast","formal","former","formula","frequent","frontier","function","fundamental","generate","genuine","global","gradual","guarantee","handle","harmony","heritage","highlight","hypothesis","identical","identify","ideology","ignorance","illustrate","immense","impact","implement","implication","impose","incident","incline","indicate","individual","industrial","inevitable","influence","infrastructure","initial","initiate","innovation","inspect","inspire","instance","integrate","intend","interact","internal","interpret","intervene","invest","involve","isolate","journal","justify","landscape","launch","leadership","legacy","legitimate","liberal","likewise","limited","literary","locate","maintain","manipulate","manual","margin","mature","maximum","mechanism","mental","method","minimum","minor","mobile","moderate","modify","monitor","monument","mortgage","multiple","mutual","narrative","necessity","negative","neutral","nominate","notable","novel","obligation","observe","obtain","obvious","occupy","operate","oppose","option","orient","origin","outcome","overall","overcome","overlook","participate","passive","perceive","permanent","persist","perspective","phenomenon","physical","pledge","policy","portray","potential","practical","precise","predict","preference","preliminary","preserve","presume","prevail","primary","principle","priority","proceed","profound","prominent","promote","propaganda","property","proportion","prospect","prosperity","protocol","publicize","pursue","qualify","quote","radical","random","range","ratio","react","rebel","recession","recognize","recommend","recover","reform","refuge","regime","region","regulate","reinforce","reject","relax","release","relevant","rely","remain","remarkable","remedy","remind","remote","remove","repair","repeat","replace","represent","reproduce","require","rescue","resemble","reserve","resist","resolve","resource","respond","restore","restrict","retain","reveal","revenue","reverse","revolution","rigid","romantic","satisfy","scatter","schedule","scrutiny","secure","select","sensation","sensitive","sequence","settle","severe","shift","significant","similar","simulate","simultaneously","site","sole","source","specific","speculate","stable","statistic","status","steady","stimulate","strategy","stress","stretch","strict","structure","submit","subsequent","substance","substantial","sufficient","summarize","supplement","survey","survive","suspect","sustain","symbol","sympathetic","talent","target","tendency","terminal","testimony","texture","theory","therapy","thereby","thorough","threat","thrive","tolerate","trace","tradition","transfer","transform","transition","transmit","transparent","transport","treat","tremendous","trend","trigger","triumph","typical","ultimate","undergo","unique","unprecedented","utility","utilize","valid","vanish","varied","vehicle","venture","vertical","viable","violate","virtue","visible","vision","visual","volunteer","warrant","whereas","widespread","withdraw","withstand","witness","yield","zone"],
+  hard:["aberration","abstain","acrimonious","alacrity","amalgamate","anachronism","antipathy","apocryphal","arcane","ascetic","assiduous","audacious","auspicious","bellicose","beneficent","calumny","capricious","castigate","catalyst","caustic","chicanery","coalesce","cogent","commensurate","compendious","concomitant","conflagration","contiguous","contrite","conundrum","copious","corollary","credulous","deleterious","demagogue","deride","desiccate","desultory","diatribe","didactic","dilatory","disparage","dissonance","dogmatic","ebullient","eclectic","effrontery","egregious","enervate","enigmatic","ephemeral","epistolary","equanimity","equivocate","erudite","esoteric","eulogy","euphemism","exacerbate","exculpate","exigency","extraneous","fastidious","fatuous","felicitous","feral","fervent","filibuster","flagrant","foment","fortuitous","fractious","garrulous","germane","grandiloquent","gregarious","hackneyed","hapless","hegemony","iconoclast","idiosyncrasy","impecunious","impervious","implacable","inchoate","incipient","indolent","ineffable","inexorable","ingenuous","insidious","intransigent","inveterate","irascible","laconic","laudable","lethargic","loquacious","lucrative","magnanimous","malfeasance","malleable","martial","mellifluous","mendacious","meretricious","misanthrope","mitigate","mollify","moribund","nepotism","obfuscate","obstreperous","obsequious","opprobrium","ostentatious","palliate","paradigm","pariah","pejorative","pellucid","penchant","perfidious","perfunctory","peripatetic","pernicious","phantasmagoria","philistine","phlegmatic","pithy","placate","platitude","plethora","polemic","portent","pragmatic","precipitous","predilection","prevaricate","proclivity","prodigious","profligate","proliferate","prolix","propinquity","propitiate","propriety","prosaic","punctilious","quagmire","querulous","quixotic","rancor","recalcitrant","recant","recondite","redoubtable","remonstrate","reprehensible","repudiate","resplendent","reticent","sagacious","salubrious","sanguine","sardonic","scintillating","scrupulous","soporific","sordid","specious","spurious","squalid","stentorian","stoic","strident","stupefy","subjugate","subterfuge","supercilious","surfeit","surreptitious","sycophant","taciturn","tangential","tenuous","tirade","torpid","tractable","transient","trenchant","trepidation","truculent","ubiquitous","unassailable","uncanny","undulate","upbraid","vacillate","vapid","venal","veracity","vexation","vicarious","vilify","vindicate","virulent","vitriolic","volatile","voluble","voracious","warranted","wary","winsome","wistful","zealot"]
+};
+var testWords=[];
+var currentIndex=0;
+var knownCount=0;
+var testLevel='medium';
+var totalQuestions=20;
+
+function startTest(){
+  testLevel=document.getElementById('levelSelect').value;
+  var pool=wordBank[testLevel];
+  var shuffled=pool.slice().sort(function(){return Math.random()-0.5});
+  testWords=shuffled.slice(0,totalQuestions);
+  currentIndex=0;
+  knownCount=0;
+  document.getElementById('toolSection').style.display='none';
+  document.getElementById('resultSection').style.display='none';
+  document.getElementById('testSection').style.display='block';
+  showWord();
+}
+
+function showWord(){
+  if(currentIndex>=totalQuestions){
+    showResult();
+    return;
+  }
+  document.getElementById('testProgress').textContent='Question '+(currentIndex+1)+' / '+totalQuestions;
+  document.getElementById('wordDisplay').textContent=testWords[currentIndex];
+  var w=testWords[currentIndex];
+  var hint=w.length+' letters';
+  if(w.length>4){hint+=', starts with: '+w[0].toUpperCase()}
+  document.getElementById('wordHint').textContent=hint;
+}
+
+function answer(known){
+  if(known){knownCount++}
+  currentIndex++;
+  showWord();
+}
+
+function showResult(){
+  document.getElementById('testSection').style.display='none';
+  document.getElementById('resultSection').style.display='block';
+  var rate=knownCount/totalQuestions;
+  var maxVocab={easy:1000,medium:3000,hard:5000}[testLevel];
+  var estVocab=Math.round(rate*maxVocab);
+  document.getElementById('estVocab').textContent=estVocab;
+  var level='';
+  var advice='';
+  if(estVocab<1000){level='Beginner';advice='Start with basic words. Learn 10-20 common words daily.'}
+  else if(estVocab<2000){level='Elementary';advice='Keep building common vocabulary. Try reading simple English articles.'}
+  else if(estVocab<3500){level='Intermediate';advice='Start reading English news and learning more academic words.'}
+  else if(estVocab<5000){level='Upper-Intermediate';advice='Good vocabulary range. Challenge yourself with English books and academic papers.'}
+  else if(estVocab<8000){level='Advanced';advice='Near fluent reading level. Continue expanding specialized vocabulary.'}
+  else{level='Proficient';advice='Excellent vocabulary. You can read fluently and communicate deeply.'}
+  document.getElementById('levelAnalysis').innerHTML=
+    '<p style="color:#e2e8f0;font-size:.95rem;margin-bottom:8px">Level: '+testLevel+' | Correct: '+knownCount+'/'+totalQuestions+'</p>'+
+    '<p style="color:#22d3ee;font-size:1rem;margin-bottom:8px">Rating: '+level+'</p>'+
+    '<p style="color:#94a3b8;font-size:.9rem">'+advice+'</p>';
+}
+
+function resetTest(){
+  document.getElementById('testSection').style.display='none';
+  document.getElementById('resultSection').style.display='none';
+  document.getElementById('toolSection').style.display='block';
+}
+
+function copyResult(){
+  var est=document.getElementById('estVocab').textContent;
+  var text='My English vocabulary test result: ~'+est+' words\nTest level: '+testLevel+'\nTest tool: free-toolbase.com';
+  navigator.clipboard.writeText(text).then(function(){showToast('Result copied!')}).catch(function(){
+    var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('Result copied!');
+  });
+}
 </script>
 </div>
 <footer style="background:#0f172a;border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:40px">
