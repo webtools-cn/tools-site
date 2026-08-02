@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第十五批)
+> 最后更新: 2026-08-03 (cron自动更新 - 第十六批)
 
 ## 当前真实问题
 
@@ -8,10 +8,11 @@
 |:-----|:----:|:----:|:----:|:------:|:---------|
 | 空壳工具(0交互+0JS) | 40+ | 42 | 0 | ✅ 完成 | check_empty_shells.py + 精确过滤 |
 | 模板空壳(toolInput stub) | 4 | 4 | 0 | ✅ 完成 | check_empty_shells.py 模板空壳检测 |
+| EN版模板空壳(process未定义) | 23 | 3 | 20 | 🔴 进行中 | grep toolInput + process() 未定义检测 |
 
-## 空壳工具清单(0个)
+## EN版模板空壳清单(20个剩余)
 
-全部修复完成！
+en/ai-sentence-rewriter, en/audio-normalize, en/audio-volume-adjuster, en/avif-to-jpg, en/binaural-beats-generator, en/bmp-to-png, en/crossword-generator, en/csv-sorter, en/gif-to-webp, en/graphql-to-json, en/html-to-react, en/image-round-corners, en/json-to-protobuf, en/pdf-page-numbers, en/protobuf-to-json, en/text-progress-bar-generator, en/tiff-to-jpg, en/webp-to-gif, en/xml-to-yaml, en/yaml-to-xml
 
 ## 已清零问题
 
@@ -81,6 +82,10 @@ surface-area-calculator, text-stats, vocabulary-builder
 ### 2026-08-03 (第十四批 - 全部清零)
 word-search-generator, zip-extractor, rental-agreement-generator
 注: word-search-generator CN版添加Canvas单词搜索谜题生成器（单词列表输入+网格大小5档+3级难度+Canvas渲染高亮+打印+下载PNG），EN版修复wsPrint函数中损坏的JS（混入了related-tools标签和未闭合的script标签导致函数体截断）；zip-extractor CN/EN版均用纯JS解析ZIP格式（DataView读取本地文件头+DecompressionStream API解压deflate-raw），不引入JSZip CDN依赖（符合AGENTS.md禁止外部JS库要求），EN版同时移除quickInput假交互和损坏的related-tools脚本；rental-agreement-generator CN版添加租赁协议生成器（4种租赁类型+双方信息+租赁物+租金押金+期限+支付方式→十条款完整协议文本+中文大写金额转换+复制+下载TXT），EN版添加英文版rental agreement替换quickInput假交互。至此空壳工具全部清零。
+
+### 2026-08-03 (第十六批 - EN版模板空壳修复)
+neon-text-generator, pantone-to-hex, audio-converter
+注: 发现23个EN版工具存在模板空壳问题（有id="toolInput"+onclick="process()"但无process()函数定义，且JS部分有})(;语法错误+quickInput假交互）。本轮修复3个：neon-text-generator CN/EN版添加霓虹文字生成器（文字+颜色+大小+字体+发光强度→实时预览+CSS代码+复制）；pantone-to-hex CN/EN版添加Pantone色号转HEX工具（40种色卡库+搜索+HEX/RGB/HSL三值+色卡网格+复制）；audio-converter CN/EN版添加音频转换器（Web Audio API解码+6项信息+WAV编码+播放+下载）。同时修复CN版audio-converter的echo空壳。剩余20个EN版模板空壳待修。
 
 ### 2026-08-03 (第十五批 - 模板空壳清零)
 bitwise-calculator, mesh-gradient-generator, svg-to-base64, color-palette-from-image
