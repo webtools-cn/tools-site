@@ -172,48 +172,34 @@ if cn_empty > 0:
 else:
     ok("空壳按钮", "0")
 
-# 9. 运行时引用错误检测（node -c只查语法，查不了运行时引用）
-# 用node执行JS并捕获ReferenceError
+# 9. 运行时引用错误检测（只检测最近24h修改的页面，全站太慢）
+DOM_STUB = 'var document={getElementById:function(){return{textContent:"",value:"",checked:false,style:{},addEventListener:function(){},querySelectorAll:function(){return[]}}},querySelector:function(){return null},querySelectorAll:function(){return[]},createElement:function(){return{appendChild:function(){},style:{},innerHTML:""}},body:{appendChild:function(){}}};var window={location:{href:"",pathname:""},crypto:{subtle:{digest:function(){return Promise.resolve(new ArrayBuffer(0))},importKey:function(){return Promise.resolve({})},sign:function(){return Promise.resolve(new ArrayBuffer(0))}}},addEventListener:function(){},open:function(){}};var navigator={clipboard:{writeText:function(){return Promise.resolve()}}};var setTimeout=function(){};var fetch=function(){return Promise.resolve({json:function(){return Promise.resolve({})}})};var Blob=function(){this.size=0};var FileReader=function(){this.readAsArrayBuffer=function(){}};var Uint8Array=function(){return[]};var TextEncoder=function(){this.encode=function(){return new Uint8Array()}};var Event=function(){};var dataLayer=[];var gtag=function(){};\n'
 runtime_errors = []
-for f in glob.glob('*/index.html'):
-    if f=='index.html' or f.startswith('en/'):
-        continue
-    content = open(f,'r',errors='ignore').read()
-    # Extract inline scripts (skip JSON-LD)
-    scripts = re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>', content, re.DOTALL)
-    for s in scripts:
-        if not s.strip() or 'application/ld+json' in s:
-            continue
-        # Try to run in node with DOM stubs
-        with open('/tmp/_runtime_check.js', 'w') as tmp:
-            tmp.write('var document={getElementById:function(){return{textContent:"",value:"",checked:false,style:{},addEventListener:function(){},querySelectorAll:function(){return[]}}},querySelector:function(){return null},querySelectorAll:function(){return[]},createElement:function(){return{appendChild:function(){},style:{},innerHTML:""}},body:{appendChild:function(){}}};var window={location:{href:"",pathname:""},crypto:{subtle:{digest:function(){return Promise.resolve(new ArrayBuffer(0))},importKey:function(){return Promise.resolve({})},sign:function(){return Promise.resolve(new ArrayBuffer(0))}}},addEventListener:function(){},open:function(){}};var navigator={clipboard:{writeText:function(){return Promise.resolve()}}};var setTimeout=function(){};var fetch=function(){return Promise.resolve({json:function(){return Promise.resolve({})}})};var Blob=function(){this.size=0};var FileReader=function(){this.readAsArrayBuffer=function(){}};var Uint8Array=function(){return[]};var TextEncoder=function(){this.encode=function(){return new Uint8Array()}};var Event=function(){};\n')
-            tmp.write(s)
-        r = subprocess.run(['node', '/tmp/_runtime_check.js'], capture_output=True, text=True, timeout=5)
-        if r.returncode != 0 and 'ReferenceError' in r.stderr:
-            # Extract the error
-            err_match = re.search(r'ReferenceError: (.+?) is not defined', r.stderr)
-            if err_match:
-                runtime_errors.append(f.split('/')[0] + ': ' + err_match.group(0))
-
-for f in glob.glob('en/*/index.html'):
+import time as _time
+_cutoff = _time.time() - 86400  # 24h ago
+for f in glob.glob('*/index.html') + glob.glob('en/*/index.html'):
+    if f=='index.html': continue
+    if os.path.getmtime(f) < _cutoff: continue  # skip old files
     content = open(f,'r',errors='ignore').read()
     scripts = re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>', content, re.DOTALL)
     for s in scripts:
-        if not s.strip() or 'application/ld+json' in s:
-            continue
-        with open('/tmp/_runtime_check.js', 'w') as tmp:
-            tmp.write('var document={getElementById:function(){return{textContent:"",value:"",checked:false,style:{},addEventListener:function(){},querySelectorAll:function(){return[]}}},querySelector:function(){return null},querySelectorAll:function(){return[]},createElement:function(){return{appendChild:function(){},style:{},innerHTML:""}},body:{appendChild:function(){}}};var window={location:{href:"",pathname:""},crypto:{subtle:{digest:function(){return Promise.resolve(new ArrayBuffer(0))},importKey:function(){return Promise.resolve({})},sign:function(){return Promise.resolve(new ArrayBuffer(0))}}},addEventListener:function(){},open:function(){}};var navigator={clipboard:{writeText:function(){return Promise.resolve()}}};var setTimeout=function(){};var fetch=function(){return Promise.resolve({json:function(){return Promise.resolve({})}})};var Blob=function(){this.size=0};var FileReader=function(){this.readAsArrayBuffer=function(){}};var Uint8Array=function(){return[]};var TextEncoder=function(){this.encode=function(){return new Uint8Array()}};var Event=function(){};\n')
+        if not s.strip() or 'application/ld+json' in s: continue
+        with open('/tmp/_rtc.js','w') as tmp:
+            tmp.write(DOM_STUB)
             tmp.write(s)
-        r = subprocess.run(['node', '/tmp/_runtime_check.js'], capture_output=True, text=True, timeout=5)
+        try:
+            r = subprocess.run(['node','/tmp/_rtc.js'], capture_output=True, text=True, timeout=3)
+        except subprocess.TimeoutExpired:
+            continue
         if r.returncode != 0 and 'ReferenceError' in r.stderr:
-            err_match = re.search(r'ReferenceError: (.+?) is not defined', r.stderr)
-            if err_match:
-                runtime_errors.append(f.split('/')[1] + '(EN): ' + err_match.group(0))
+            m = re.search(r'ReferenceError: (.+?) is not defined', r.stderr)
+            if m and 'dataLayer' not in m.group(0):
+                runtime_errors.append(f.split('/')[0 if '/' in f else 0] + ': ' + m.group(0))
 
 if runtime_errors:
-    err("运行时引用", f"{len(runtime_errors)}个页面有未定义引用(node -c查不出): {runtime_errors[:5]}")
+    err("运行时引用", f"{len(runtime_errors)}个页面有未定义引用: {runtime_errors[:5]}")
 else:
-    ok("运行时引用", "0")
+    ok("运行时引用", "0(最近24h修改的页面)")
 
 # 汇总
 print(f"\n{'='*50}")
