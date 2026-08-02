@@ -55,17 +55,23 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; HTML转React</p>
 <div class="hero"><p>免费在线HTML转React JSX转换器，支持class→className转换和样式对象化 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section">
-
-    /div>
+    <div class="section">
   </div>
   
   
 
   <div class="tool-section">
-    <h2>HTML转React</h2>
-    <p>免费在线Html To React工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
+    <h2>HTML转React JSX</h2>
+    <p>将HTML代码转换为React JSX格式：class→className、style字符串→对象、自闭合标签处理</p>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <textarea id="htmlInput" placeholder="输入HTML代码..." style="width:100%;min-height:120px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;outline:none;resize:vertical;font-family:monospace"></textarea>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="process()">转换</button>
+      <button class="btn" onclick="loadExample()">示例</button>
+      <button class="btn" onclick="clearAll()">清空</button>
+      <button class="btn" onclick="copyResult()">复制结果</button>
+    </div>
     <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
   </div>
   <div class="tool-section">
@@ -131,15 +137,67 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
+// === HTML转React JSX实现 ===
 function process() {
-  var input = document.getElementById('toolInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+  var input = document.getElementById('htmlInput').value.trim();
+  var result = document.getElementById('result');
+  if (!input) { showToast('请输入HTML代码'); return; }
+  try {
+    var jsx = input;
+    // class → className, for → htmlFor
+    jsx = jsx.replace(/\bclass=/g, 'className=');
+    jsx = jsx.replace(/\bfor=/g, 'htmlFor=');
+    // tabindex → tabIndex, maxlength → maxLength, readonly → readOnly, colspan → colSpan, rowspan → rowSpan
+    jsx = jsx.replace(/\btabindex=/g, 'tabIndex=');
+    jsx = jsx.replace(/\bmaxlength=/g, 'maxLength=');
+    jsx = jsx.replace(/\breadonly=/g, 'readOnly=');
+    jsx = jsx.replace(/\bcolspan=/g, 'colSpan=');
+    jsx = jsx.replace(/\browspan=/g, 'rowSpan=');
+    jsx = jsx.replace(/\bcellpadding=/g, 'cellPadding=');
+    jsx = jsx.replace(/\bcellspacing=/g, 'cellSpacing=');
+    // 自闭合标签: <img>, <br>, <hr>, <input>, <meta>, <link>
+    jsx = jsx.replace(/<(img|br|hr|input|meta|link|area|base|col|embed|source|track|wbr)([^>]*?)(?<!\/)>/gi, '<$1$2 />');
+    // style="color:red;font-size:14px" → style={{color:'red',fontSize:'14px'}}
+    jsx = jsx.replace(/style="([^"]*)"/gi, function(match, styleStr) {
+      var pairs = styleStr.split(';').filter(function(p){return p.trim()});
+      var obj = pairs.map(function(p) {
+        var kv = p.split(':');
+        if (kv.length < 2) return '';
+        var prop = kv[0].trim();
+        var val = kv.slice(1).join(':').trim();
+        // camelCase conversion
+        prop = prop.replace(/-([a-z])/g, function(m, c) { return c.toUpperCase(); });
+        return prop + ":'" + val + "'";
+      }).filter(function(p){return p}).join(', ');
+      return 'style={{' + obj + '}}';
+    });
+    // 事件属性 onclick → onClick, onchange → onChange 等
+    jsx = jsx.replace(/\bon(click|change|submit|load|error|focus|blur|mouse\w+|key\w+)=/gi, function(m, evt) {
+      return 'on' + evt.charAt(0).toUpperCase() + evt.slice(1) + '=';
+    });
+    result.innerHTML = '<div style="background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:14px;margin-top:8px"><div style="color:#64748b;font-size:.75rem;margin-bottom:6px">JSX输出:</div><pre style="white-space:pre-wrap;word-break:break-all;color:#22d3ee;font-size:.82rem;line-height:1.5;margin:0">' + escapeHtml(jsx) + '</pre></div>';
+    showToast('转换完成');
+  } catch(e) {
+    result.innerHTML = '<span style="color:#ef4444">错误: ' + escapeHtml(e.message) + '</span>';
+    showToast('转换失败');
+  }
 }
+function loadExample() {
+  document.getElementById('htmlInput').value = '<div class="card">\n  <img src="logo.png" alt="Logo">\n  <h2 class="title" style="color:red;font-size:24px">Hello</h2>\n  <input type="text" placeholder="Name" onchange="validate()">\n  <button onclick="handleSubmit()">Submit</button>\n</div>';
+  process();
+}
+function clearAll() {
+  document.getElementById('htmlInput').value = '';
+  document.getElementById('result').innerHTML = '';
+}
+function copyResult() {
+  var r = document.getElementById('result');
+  if (!r.textContent.trim()) { showToast('无内容可复制'); return; }
+  var pre = r.querySelector('pre');
+  var text = pre ? pre.textContent : r.textContent;
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});
+}
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 </script>
 </div>
 

@@ -55,17 +55,37 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; Image Round Corners</p>
 <div class="hero"><p>免费在线Image Round Corners工具 | 无需注册册，保护隐私。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section">
-
-    /div>
+    <div class="section">
   </div>
   
   
 
   <div class="tool-section">
     <h2>图片圆角工具</h2>
-    <p>免费在线Image Round Corners工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
+    <p>上传图片，自定义圆角半径，Canvas处理生成圆角图片，支持下载PNG</p>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input type="file" id="imgFile" accept="image/*" style="display:none">
+      <button class="btn" onclick="document.getElementById('imgFile').click()">选择图片</button>
+      <label style="font-size:.8rem;color:#94a3b8">圆角半径:</label>
+      <input type="range" id="radius" min="0" max="200" value="30" style="width:160px" oninput="document.getElementById('radiusVal').textContent=this.value+'px';process()">
+      <span id="radiusVal" style="font-size:.8rem;color:#22d3ee;min-width:40px">30px</span>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+      <div>
+        <div style="color:#64748b;font-size:.75rem;margin-bottom:6px">原图</div>
+        <canvas id="origCanvas" style="max-width:300px;max-height:300px;border:1px solid rgba(148,163,184,.15);border-radius:6px;display:none"></canvas>
+        <div id="origPlaceholder" style="width:300px;height:200px;border:1px dashed rgba(148,163,184,.2);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#475569;font-size:.8rem">等待上传图片</div>
+      </div>
+      <div>
+        <div style="color:#64748b;font-size:.75rem;margin-bottom:6px">圆角效果</div>
+        <canvas id="resultCanvas" style="max-width:300px;max-height:300px;border:1px solid rgba(148,163,184,.15);border-radius:6px;display:none"></canvas>
+        <div id="resultPlaceholder" style="width:300px;height:200px;border:1px dashed rgba(148,163,184,.2);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#475569;font-size:.8rem">等待处理</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="process()">应用圆角</button>
+      <button class="btn" onclick="downloadResult()">下载PNG</button>
+    </div>
     <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
   </div>
   <div class="tool-section">
@@ -131,14 +151,70 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
+// === 图片圆角实现 ===
+var currentImg = null;
+document.getElementById('imgFile').addEventListener('change', function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var img = new Image();
+    img.onload = function() {
+      currentImg = img;
+      var oc = document.getElementById('origCanvas');
+      var rc = document.getElementById('resultCanvas');
+      var maxW = 300, maxH = 300;
+      var scale = Math.min(maxW / img.width, maxH / img.height, 1);
+      oc.width = img.width * scale;
+      oc.height = img.height * scale;
+      rc.width = img.width * scale;
+      rc.height = img.height * scale;
+      var octx = oc.getContext('2d');
+      octx.drawImage(img, 0, 0, oc.width, oc.height);
+      oc.style.display = 'block';
+      document.getElementById('origPlaceholder').style.display = 'none';
+      process();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
 function process() {
-  var input = document.getElementById('toolInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+  if (!currentImg) { showToast('请先选择图片'); return; }
+  var radius = parseInt(document.getElementById('radius').value);
+  var rc = document.getElementById('resultCanvas');
+  var rctx = rc.getContext('2d');
+  rctx.clearRect(0, 0, rc.width, rc.height);
+  rctx.save();
+  // Draw rounded rectangle path
+  var w = rc.width, h = rc.height;
+  var r = Math.min(radius, w / 2, h / 2);
+  rctx.beginPath();
+  rctx.moveTo(r, 0);
+  rctx.lineTo(w - r, 0);
+  rctx.quadraticCurveTo(w, 0, w, r);
+  rctx.lineTo(w, h - r);
+  rctx.quadraticCurveTo(w, h, w - r, h);
+  rctx.lineTo(r, h);
+  rctx.quadraticCurveTo(0, h, 0, h - r);
+  rctx.lineTo(0, r);
+  rctx.quadraticCurveTo(0, 0, r, 0);
+  rctx.closePath();
+  rctx.clip();
+  rctx.drawImage(currentImg, 0, 0, w, h);
+  rctx.restore();
+  rc.style.display = 'block';
+  document.getElementById('resultPlaceholder').style.display = 'none';
+  document.getElementById('result').innerHTML = '<span style="color:#22d3ee">圆角处理完成 · ' + rc.width + '×' + rc.height + ' · 半径' + radius + 'px</span>';
+}
+function downloadResult() {
+  var rc = document.getElementById('resultCanvas');
+  if (rc.style.display === 'none') { showToast('请先处理图片'); return; }
+  var link = document.createElement('a');
+  link.download = 'rounded-corners.png';
+  link.href = rc.toDataURL('image/png');
+  link.click();
+  showToast('下载成功');
 }
 </script>
 </div>

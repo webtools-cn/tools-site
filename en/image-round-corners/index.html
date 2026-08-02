@@ -174,8 +174,30 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>Image Round Corners</h2>
-    <p>Free online Image Round Corners tool</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="Enter content..."><button class="btn" style="margin-left:8px" onclick="process()">Run</button></div>
+    <p>Upload an image, customize corner radius, Canvas processing generates rounded image, download as PNG</p>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input type="file" id="imgFile" accept="image/*" style="display:none">
+      <button class="btn" onclick="document.getElementById('imgFile').click()">Select Image</button>
+      <label style="font-size:.8rem;color:#94a3b8">Corner Radius:</label>
+      <input type="range" id="radius" min="0" max="200" value="30" style="width:160px" oninput="document.getElementById('radiusVal').textContent=this.value+'px';process()">
+      <span id="radiusVal" style="font-size:.8rem;color:#22d3ee;min-width:40px">30px</span>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+      <div>
+        <div style="color:#64748b;font-size:.75rem;margin-bottom:6px">Original</div>
+        <canvas id="origCanvas" style="max-width:300px;max-height:300px;border:1px solid rgba(148,163,184,.15);border-radius:6px;display:none"></canvas>
+        <div id="origPlaceholder" style="width:300px;height:200px;border:1px dashed rgba(148,163,184,.2);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#475569;font-size:.8rem">Waiting for image upload</div>
+      </div>
+      <div>
+        <div style="color:#64748b;font-size:.75rem;margin-bottom:6px">Rounded Result</div>
+        <canvas id="resultCanvas" style="max-width:300px;max-height:300px;border:1px solid rgba(148,163,184,.15);border-radius:6px;display:none"></canvas>
+        <div id="resultPlaceholder" style="width:300px;height:200px;border:1px dashed rgba(148,163,184,.2);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#475569;font-size:.8rem">Waiting to process</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="process()">Apply Corners</button>
+      <button class="btn" onclick="downloadResult()">Download PNG</button>
+    </div>
     <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
   </div>
   <div class="tool-section">
@@ -238,85 +260,73 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
   </div>
 
 <script>
-  'use strict';
-  var s = document.getElementById('related-tools-section');
-  if (!s) return;
-  var p = window.location.pathname;
-  var en = p.indexOf('/en/') !== -1;
-  p = p.replace(/\/en\//g, '/');
-  var slug = p.split('/').filter(Boolean).pop() || '';
-  if (!slug) { s.innerHTML = ''; return; }
-  var depth = en ? '../../' : '../';
-  var u = depth + 'related-tools.json';
-  fetch(u).then(function(r) {
-    if (!r.ok) throw new Error('not found');
-    return r.json();
-  }).then(function(d) {
-    var data = en ? d.en : d.cn;
-    var t = data[slug];
-    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 RelatedToolsRecommended')
-      + '</h3><div class="related-tools-grid">';
-    t.related.forEach(function(r) {
-      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '<a href="' + link + '" class="related-tool-card">'
-        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
-        + '<span class="related-tool-name">' + r.name + '</span></a>';
-    });
-    h += '</div></div>';
-    s.innerHTML = h;
-  }).catch(function() { s.innerHTML = ''; });
-})(;</script>
-
-<script>(function(){ // resultAddCopy var processed = new Set(); function addCopyBtns(){ var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]'); results.forEach(function(el){ if(processed.has(el)) return; if(el.querySelector('.copy-btn')) return; if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return; if(el.children.length===0 && el.textContent.trim().length<5) return;
-      var btn = document.createElement('button');
-      btn.className = 'copy-btn';
-      btn.innerHTML = '📋 Copy';
-      btn.title = 'CopyResult';
-      btn.onclick = function(e){
-        e.stopPropagation();
-        var text = el.textContent || el.value || '';
-        if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') text = el.value;
-        navigator.clipboard.writeText(text.trim()).then(function(){
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        }).catch(function(){
-          var ta = document.createElement('textarea');
-          ta.value = text.trim();
-          ta.style.position='fixed';ta.style.opacity='0';
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        });
-      };
-      el.appendChild(btn);
-      processed.add(el);
-    });
-  }
-  // Run initially
-  addCopyBtns();
-  // Re-run after button clicks (most tools update results on click)
-  document.addEventListener('click', function(){setTimeout(addCopyBtns,100);});
-  // Observe DOM changes
-  if(window.MutationObserver){
-    var obs = new MutationObserver(function(){addCopyBtns();});
-    obs.observe(document.body,{childList:true,subtree:true});
-  }
-})(;)</script>
-
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-</div>
+'use strict';
+function showToast(m){var t=document.createElement('div');t.textContent=m;t.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 20px;border-radius:8px;border:1px solid rgba(6,182,212,.3);z-index:9999;font-size:.85rem;transition:opacity .3s';document.body.appendChild(t);setTimeout(function(){t.style.opacity='0';setTimeout(function(){document.body.removeChild(t)},300)},2500)}
+// === Image Round Corners implementation ===
+var currentImg = null;
+document.getElementById('imgFile').addEventListener('change', function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var img = new Image();
+    img.onload = function() {
+      currentImg = img;
+      var oc = document.getElementById('origCanvas');
+      var rc = document.getElementById('resultCanvas');
+      var maxW = 300, maxH = 300;
+      var scale = Math.min(maxW / img.width, maxH / img.height, 1);
+      oc.width = img.width * scale;
+      oc.height = img.height * scale;
+      rc.width = img.width * scale;
+      rc.height = img.height * scale;
+      var octx = oc.getContext('2d');
+      octx.drawImage(img, 0, 0, oc.width, oc.height);
+      oc.style.display = 'block';
+      document.getElementById('origPlaceholder').style.display = 'none';
+      process();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+function process() {
+  if (!currentImg) { showToast('Please select an image first'); return; }
+  var radius = parseInt(document.getElementById('radius').value);
+  var rc = document.getElementById('resultCanvas');
+  var rctx = rc.getContext('2d');
+  rctx.clearRect(0, 0, rc.width, rc.height);
+  rctx.save();
+  var w = rc.width, h = rc.height;
+  var r = Math.min(radius, w / 2, h / 2);
+  rctx.beginPath();
+  rctx.moveTo(r, 0);
+  rctx.lineTo(w - r, 0);
+  rctx.quadraticCurveTo(w, 0, w, r);
+  rctx.lineTo(w, h - r);
+  rctx.quadraticCurveTo(w, h, w - r, h);
+  rctx.lineTo(r, h);
+  rctx.quadraticCurveTo(0, h, 0, h - r);
+  rctx.lineTo(0, r);
+  rctx.quadraticCurveTo(0, 0, r, 0);
+  rctx.closePath();
+  rctx.clip();
+  rctx.drawImage(currentImg, 0, 0, w, h);
+  rctx.restore();
+  rc.style.display = 'block';
+  document.getElementById('resultPlaceholder').style.display = 'none';
+  document.getElementById('result').innerHTML = '<span style="color:#22d3ee">Rounded corners applied · ' + rc.width + '×' + rc.height + ' · radius ' + radius + 'px</span>';
+}
+function downloadResult() {
+  var rc = document.getElementById('resultCanvas');
+  if (rc.style.display === 'none') { showToast('Please process an image first'); return; }
+  var link = document.createElement('a');
+  link.download = 'rounded-corners.png';
+  link.href = rc.toDataURL('image/png');
+  link.click();
+  showToast('Downloaded');
+}
+</script>
 
 </body>
 </html>

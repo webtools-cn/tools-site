@@ -55,17 +55,27 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; Graphql To Json</p>
 <div class="hero"><p>免费在线Graphql To Json工具 | 无需注册册，保护隐私。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section">
-
-    /div>
+    <div class="section">
   </div>
   
   
 
   <div class="tool-section">
     <h2>GraphQL转JSON</h2>
-    <p>免费在线Graphql To Json工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
+    <p>将GraphQL查询/变更转换为JSON请求体格式，支持变量提取和操作名称识别</p>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <textarea id="gqlInput" placeholder="输入GraphQL查询..." style="width:100%;min-height:120px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.85rem;outline:none;resize:vertical;font-family:monospace"></textarea>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:.8rem;color:#94a3b8">变量(JSON):</label>
+      <input type="text" id="gqlVars" placeholder='{"id":"1"}' style="flex:1;min-width:200px">
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="process()">转换</button>
+      <button class="btn" onclick="loadExample()">示例</button>
+      <button class="btn" onclick="clearAll()">清空</button>
+      <button class="btn" onclick="copyResult()">复制结果</button>
+    </div>
     <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
   </div>
   <div class="tool-section">
@@ -131,15 +141,51 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
+// === GraphQL转JSON实现 ===
 function process() {
-  var input = document.getElementById('toolInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+  var input = document.getElementById('gqlInput').value.trim();
+  var result = document.getElementById('result');
+  if (!input) { showToast('请输入GraphQL查询'); return; }
+  try {
+    var operationName = '';
+    var operationMatch = input.match(/(?:query|mutation|subscription)\s+(\w+)/);
+    if (operationMatch) operationName = operationMatch[1];
+    var queryBody = input.replace(/\s+/g, ' ').trim();
+    var varsStr = document.getElementById('gqlVars').value.trim();
+    var variables = {};
+    if (varsStr) {
+      try { variables = JSON.parse(varsStr); }
+      catch(e) { showToast('变量JSON格式错误'); return; }
+    }
+    var jsonObj = { query: queryBody };
+    if (operationName) jsonObj.operationName = operationName;
+    if (Object.keys(variables).length > 0) jsonObj.variables = variables;
+    var jsonStr = JSON.stringify(jsonObj, null, 2);
+    result.innerHTML = '<div style="background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:14px;margin-top:8px"><div style="color:#64748b;font-size:.75rem;margin-bottom:6px">JSON请求体:</div><pre style="white-space:pre-wrap;word-break:break-all;color:#22d3ee;font-size:.82rem;line-height:1.5;margin:0">' + escapeHtml(jsonStr) + '</pre></div>';
+    showToast('转换完成');
+  } catch(e) {
+    result.innerHTML = '<span style="color:#ef4444">解析错误: ' + escapeHtml(e.message) + '</span>';
+    showToast('解析失败');
+  }
 }
+function loadExample() {
+  document.getElementById('gqlInput').value = 'query GetUser($id: ID!) {\n  user(id: $id) {\n    id\n    name\n    email\n  }\n}';
+  document.getElementById('gqlVars').value = '{"id":"42"}';
+  process();
+}
+function clearAll() {
+  document.getElementById('gqlInput').value = '';
+  document.getElementById('gqlVars').value = '';
+  document.getElementById('result').innerHTML = '';
+}
+function copyResult() {
+  var r = document.getElementById('result');
+  if (!r.textContent.trim()) { showToast('无内容可复制'); return; }
+  var pre = r.querySelector('pre');
+  var text = pre ? pre.textContent : r.textContent;
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});
+}
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 </script>
 </div>
 
