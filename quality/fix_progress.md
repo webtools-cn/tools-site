@@ -1,16 +1,16 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新)
+> 最后更新: 2026-08-03 (cron自动更新 - 第五批)
 
 ## 当前真实问题
 
 | 问题 | 总数 | 已修 | 剩余 | 优先级 | 检测方法 |
 |:-----|:----:|:----:|:----:|:------:|:---------|
-| 空壳工具(0交互+0JS) | 40+ | 12 | ~28 | 🔴 高 | check_empty_shells.py + 精确过滤 |
+| 空壳工具(0交互+0JS) | 40+ | 15 | ~25 | 🔴 高 | check_empty_shells.py + 精确过滤 |
 
-## 空壳工具清单(约28个)
+## 空壳工具清单(约25个)
 
-css-text-outline-generator, css-toast-generator, css-tooltip-generator, css-typewriter-generator, cup-to-gram-converter, cursive-text-generator, data-unit-converter, distance-calculator, dotenv-validator, energy-converter, favicon-generator, frequency-converter, fuel-cost-calculator, fuel-efficiency-converter, home-affordability-calculator, image-remove-bg, inflation-calculator, json, link-preview-generator, markup-calculator, mole-calculator, nda-generator, percent-change-calculator, percentage-change-calculator, percentage-difference-calculator, pressure-converter, remove-duplicates, rental-agreement-generator, surface-area-calculator, text-stats, unit-price-calculator, vocabulary-builder, word-search-generator, zip-extractor
+css-text-outline-generator, css-toast-generator, css-tooltip-generator, css-typewriter-generator, cursive-text-generator, data-unit-converter, distance-calculator, dotenv-validator, energy-converter, favicon-generator, frequency-converter, fuel-cost-calculator, fuel-efficiency-converter, home-affordability-calculator, image-remove-bg, inflation-calculator, link-preview-generator, markup-calculator, mole-calculator, nda-generator, percent-change-calculator, percentage-difference-calculator, pressure-converter, remove-duplicates, rental-agreement-generator, surface-area-calculator, text-stats, vocabulary-builder, word-search-generator, zip-extractor
 
 ## 已清零问题
 
@@ -40,6 +40,10 @@ quadratic-formula-calculator, slope-calculator, midpoint-calculator
 
 ### 2026-08-03 (第四批)
 css-image-hover-generator, css-logical-properties-generator, css-parallax-generator
+
+### 2026-08-03 (第五批)
+cup-to-gram-converter, percentage-change-calculator, unit-price-calculator
+注: 同时修复了EN版cup-to-gram-converter和unit-price-calculator的JS语法错误 (})(; 和 //注释吞代码)
 
 ## 检测说明
 
