@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第二十四批 - EN版假交互空壳修复)
+> 最后更新: 2026-08-03 (cron自动更新 - 第二十五批 - EN版假交互空壳修复续)
 
 ## 当前真实问题
 
@@ -9,15 +9,15 @@
 | 空壳工具(0交互+0JS) | 40+ | 42 | 0 | ✅ 完成 | check_empty_shells.py + 精确过滤 |
 | 模板空壳(toolInput stub) | 4 | 4 | 0 | ✅ 完成 | check_empty_shells.py 模板空壳检测 |
 | EN版模板空壳(process未定义) | 23 | 23 | 0 | ✅ 完成 | grep toolInput + process() 未定义检测 |
-| EN版假交互空壳(quickInput) | 12 | 3 | 9 | 🔧 进行中 | grep quickInput + 无业务函数检测 |
+| EN版假交互空壳(quickInput) | 12 | 6 | 6 | 🔧 进行中 | grep quickInput + 无业务函数检测 |
 
-## EN版假交互空壳清单(9个剩余)
+## EN版假交互空壳清单(6个剩余)
 
 > 特征：有id="quickInput"+quickResult假交互("You typed: xxx"回显)，无真实业务函数，HTML结构损坏
 
-1. avif-converter
-2. avif-to-png
-3. calendar-generator
+1. avif-converter ✅
+2. avif-to-png ✅
+3. calendar-generator ✅
 4. coin-flipper
 5. curl-to-code
 6. email-security-checker
@@ -137,6 +137,10 @@ xml-to-yaml, yaml-to-xml
 ### 2026-08-03 (第二十四批 - EN版假交互空壳修复)
 base32-encode-decode, hex-calculator, html-escape-unescape
 注: 三个工具EN版均修复。发现12个EN版工具存在假交互空壳问题（有id="quickInput"+quickResult只回显"You typed: xxx"，无真实业务函数，HTML结构严重损坏——CSS和body混在一起、标签未闭合、related-tools脚本截断）。本轮修复3个：base32-encode-decode EN版添加RFC 4648 Base32编解码器（文本↔Base32互转，UTF-8支持，编码/解码模式切换+复制+清空）；hex-calculator EN版添加十六进制计算器（加减乘除+AND/OR/XOR位运算，支持0x前缀，HEX/DEC/BIN三格式结果+4个预设示例FF+01/FFFF AND 00FF/DEAD OR BEEF/CAFE XOR BABE）；html-escape-unescape EN版添加HTML转义/反转义工具（5种字符实体&<>"'转换+textarea安全解码+示例加载+复制+清空）。三个工具EN版均有对应CN版完整功能作为参考。剩余9个EN版假交互空壳待修。所有6个JS脚本语法验证通过。
+
+### 2026-08-03 (第二十五批 - EN版假交互空壳修复续)
+avif-converter, avif-to-png, calendar-generator
+注: 三个工具EN版均完整重写修复。avif-converter EN版添加AVIF图片转换器(批量上传+拖拽支持+PNG/JPEG/WebP/AVIF四格式互转+质量滑块10-100%+Canvas渲染白底填充处理透明+缩略图预览+原始/转换后文件大小对比+压缩率显示+单个下载/全部下载/清空)，替换quickInput假交互和损坏的related-tools脚本截断代码；avif-to-png EN版添加AVIF转PNG工具(批量上传+拖拽支持+Canvas渲染无损PNG输出+缩略图预览+原始/转换后文件大小对比+压缩率显示+单个下载/全部下载/清空)，替换quickInput假交互和HTML结构严重损坏(CSS和body混在一起、标签未闭合、related-tools脚本截断代码)；calendar-generator EN版添加日历生成器(年份选择-5~+10年+月份选择12月+generateCalendar生成月历表格+周末高亮红色+今日高亮青色+Canvas渲染PNG导出+浏览器打印)，替换quickInput假交互和HTML结构严重损坏(假评分残留+CSS和body混在一起+标签未闭合+related-tools脚本截断代码)。所有3个文件JS语法验证通过，EN版假交互空壳从9降到6。
 
 ## 检测说明
 
