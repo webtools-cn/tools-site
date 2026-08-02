@@ -1,28 +1,39 @@
-# 质量修复进度追踪
+# 修复进度
 
-> 每轮cron修完后必须更新此文件。数字不变=没收敛。
+## 2026-08-02 19:25 (本轮)
 
-## 当前问题数 (2026-08-02 19:00)
+### 修复内容
+1. **质检脚本Bug修复** (`scripts/deep_quality_check.py`)
+   - 浅色背景检测加`\b`词边界，修复#fffbeb等暖色误匹配
+   - 排除`@media print`块（打印时白底是正常的）
 
-| 问题 | 总数 | 已修 | 剩余 | 上轮修了 |
-|:-----|:----:|:----:|:----:|:---------|
-| CN短meta description(<100字符) | 620 | 0 | 620 | - |
-| EN短meta description(<100字符) | 1 | 0 | 1 | - |
-| CN浅色背景 | 52 | 0 | 52 | - |
-| EN浅色背景 | 53 | 0 | 53 | - |
-| 空壳工具 | 7 | 0 | 7 | - |
-| EN含中文 | 2362 | 0 | 2362 | - |
-| CN缺robots标签 | 62 | 0 | 62 | - |
-| DNS Lookup API失效 | 1 | 1 | 0 | ✅ |
-| GA缺失 | 921 | 921 | 0 | ✅ |
-| 假评分 | 3614 | 3614 | 0 | ✅ |
-| 辅助页面title/样式 | 8 | 8 | 0 | ✅ |
+2. **7个空壳工具→真实功能**
+   - `ulid-generator`: 实现真正的ULID生成（Crockford Base32编码，时间戳+随机数）
+   - `random-quote-generator`: 注入300+条中外名言（老子/孔子/莎士比亚/乔布斯/奥普拉/加缪/一行禅师等）
+   - `url-shortener`: localStorage实现短链接+QR码生成+自动检测
+   - `poem-generator`: 古诗/现代诗/俳句/五行诗，按体裁×风格交叉生成
+   - `calendar-generator`: 真实日历生成（日期计算+周末高亮+今天标记+Canvas导出PNG）
+   - `regex-to-nfa`: Thompson构造算法，Canvas绘制NFA状态转换图
+   - `gif-creator`: 多图上传→动画预览→HTML下载
 
-## 修复日志
+3. **EN版同步修复**
+   - `en/ulid-generator`: 同步ULID生成逻辑
+   - `en/random-quote-generator`: 已自带英文数据（无需修改）
 
-### 2026-08-02
-- ✅ DNS Lookup DoH API修复（Google改/resolve端点+Cloudflare默认）
-- ✅ 460个CN+461个EN页面GA补全
-- ✅ 8个辅助页面title/h1/样式修复
-- ✅ hash-generator md5 add()函数修复
-- ✅ 14个浅色背景页面修复（上一轮）
+### 质检结果变化
+| 指标 | 上轮 | 本轮 | 变化 |
+|:-----|:-----|:-----|:-----|
+| Meta Description偏短 | 615 CN + 1 EN | 615 CN + 1 EN | - |
+| 浅色背景 | 52 | 0 | ✅ 全部清除（修复误报） |
+| 空壳工具 | 7 | 0 | ✅ 全部重写 |
+| EN中文 | 2362 | 2362 | - |
+| Robots缺 | 62 | 62 | - |
+
+### 待办
+- Meta Description 615页需扩写（下一轮批量处理）
+- EN中文 2362页人工翻译精力巨大，需分批次
+- Robots标签 62页缺
+
+### 修复的Bug
+1. deep_quality_check.py 正则缺少`\b`导致#fffbeb等匹配为#fff
+2. deep_quality_check.py 未排除`@media print`导致打印样式被误判
