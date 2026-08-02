@@ -276,21 +276,211 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function clearCode() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  document.getElementById('codeInput').value = '';
+  var canvas = document.getElementById('previewCanvas');
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#64748b';
+  ctx.font = '14px monospace';
+  ctx.textBaseline = 'top';
+  ctx.fillText('预览区已清空', 20, 20);
+  showToast('已清空');
 }
 
-function copyToClipboard() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
-  if (!text) { showToast('没有可复制的内容'); return; }
-  copyText(text);
-}
+// Simple syntax highlighting rules per language
+var SYNTAX_RULES = {
+  javascript: { keywords: /\b(var|let|const|function|return|if|else|for|while|do|switch|case|break|continue|new|this|class|extends|super|import|export|from|default|try|catch|finally|throw|typeof|instanceof|in|of|delete|void|yield|async|await|true|false|null|undefined)\b/g, strings: /(["'`])(?:(?!\1)[^\\]|\\.)*\1/g, comments: /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/g, numbers: /\b\d+(\.\d+)?\b/g },
+  python: { keywords: /\b(def|class|return|if|elif|else|for|while|import|from|as|try|except|finally|with|raise|pass|break|continue|lambda|global|nonlocal|yield|async|await|True|False|None|and|or|not|in|is|del|assert|self)\b/g, strings: /(["'])(?:(?!\1)[^\\]|\\.)*\1/g, comments: /(#[^\n]*)/g, numbers: /\b\d+(\.\d+)?\b/g },
+  html: { keywords: /(<\/?[a-zA-Z][^>]*>)/g, strings: /(["'])(?:(?!\1)[^\\]|\\.)*\1/g, comments: /(<!--[\s\S]*?-->)/g, numbers: null },
+  css: { keywords: /([a-zA-Z-]+)(\s*:)/g, strings: /(["'])(?:(?!\1)[^\\]|\\.)*\1/g, comments: /(\/\*[\s\S]*?\*\/)/g, numbers: /\b\d+(\.\d+)?(px|em|rem|%|vh|vw|s|ms)?\b/g },
+  sql: { keywords: /\b(SELECT|FROM|WHERE|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|TABLE|ALTER|DROP|INDEX|JOIN|LEFT|RIGHT|INNER|OUTER|ON|GROUP|BY|ORDER|HAVING|LIMIT|OFFSET|AS|AND|OR|NOT|NULL|IS|IN|LIKE|BETWEEN|CASE|WHEN|THEN|ELSE|END|COUNT|SUM|AVG|MIN|MAX|DISTINCT|UNION|ALL|PRIMARY|KEY|FOREIGN|REFERENCES|DEFAULT|CONSTRAINT|UNIQUE|CHECK|CASCADE|INTEGER|VARCHAR|TEXT|BOOLEAN|DATE|TIMESTAMP|SERIAL)\b/gi, strings: /(['"])(?:(?!\1)[^\\]|\\.)*\1/g, comments: /(--[^\n]*|\/\*[\s\S]*?\*\/)/g, numbers: /\b\d+(\.\d+)?\b/g },
+  json: { keywords: /("[^"]+")(\s*:)/g, strings: /("(?:[^"\\]|\\.)*")/g, comments: null, numbers: /\b\d+(\.\d+)?\b/g },
+  java: { keywords: /\b(public|private|protected|class|interface|extends|implements|static|final|void|int|long|double|float|boolean|char|byte|short|String|new|return|if|else|for|while|do|switch|case|break|continue|try|catch|finally|throw|throws|import|package|this|super|null|true|false|instanceof|abstract|synchronized|volatile|enum)\b/g, strings: /(["'])(?:(?!\1)[^\\]|\\.)*\1/g, comments: /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/g, numbers: /\b\d+(\.\d+)?[fLdD]?\b/g },
+  typescript: { keywords: /\b(var|let|const|function|return|if|else|for|while|do|switch|case|break|continue|new|this|class|extends|super|import|export|from|default|try|catch|finally|throw|typeof|instanceof|in|of|delete|void|yield|async|await|true|false|null|undefined|interface|type|enum|namespace|public|private|protected|readonly|number|string|boolean|any|void|never|unknown)\b/g, strings: /(["'`])(?:(?!\1)[^\\]|\\.)*\1/g, comments: /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/g, numbers: /\b\d+(\.\d+)?\b/g },
+  bash: { keywords: /\b(echo|read|if|then|else|elif|fi|for|while|do|done|case|esac|function|return|local|export|source|alias|unset|set|shift|test|true|false|exit|cd|ls|cp|mv|rm|mkdir|rmdir|cat|grep|sed|awk|find|xargs|sort|uniq|head|tail|wc|chmod|chown|sudo|apt|yum|brew|git|npm|node|python|pip|curl|wget|ssh|scp|tar|zip|unzip)\b/g, strings: /(["'])(?:(?!\1)[^\\]|\\.)*\1/g, comments: /(#[^\n]*)/g, numbers: /\b\d+\b/g },
+  markdown: { keywords: /(^#+\s.*$|^\s*[-*+]\s|^\s*\d+\.\s|\*\*[^*]+\*\*|__[^_]+__|`[^`]+`|\[([^\]]+)\]\(([^)]+)\))/gm, strings: null, comments: null, numbers: null },
+  cpp: { keywords: /\b(int|long|short|double|float|char|bool|void|unsigned|signed|const|static|class|struct|enum|union|public|private|protected|namespace|using|template|typename|new|delete|return|if|else|for|while|do|switch|case|break|continue|try|catch|throw|sizeof|typedef|virtual|override|final|this|nullptr|true|false|std|string|vector|map|auto|include|define|pragma)\b/g, strings: /(["'])(?:(?!\1)[^\\]|\\.)*\1/g, comments: /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/g, numbers: /\b\d+(\.\d+)?[fLuU]?\b/g },
+  go: { keywords: /\b(func|var|const|type|struct|interface|map|chan|package|import|return|if|else|for|range|switch|case|default|break|continue|go|defer|select|fallthrough|goto|func|nil|true|false|iota|make|new|len|cap|append|copy|delete|panic|recover|print|println|int|int8|int16|int32|int64|uint|uint8|uint16|uint32|uint64|float32|float64|string|bool|byte|rune|error)\b/g, strings: /(["'`])(?:(?!\1)[^\\]|\\.)*\1/g, comments: /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/g, numbers: /\b\d+(\.\d+)?\b/g },
+  rust: { keywords: /\b(fn|let|const|static|mut|pub|use|mod|struct|enum|trait|impl|type|match|if|else|for|while|loop|return|break|continue|as|in|ref|move|self|Self|super|crate|extern|unsafe|async|await|dyn|where|true|false|i8|i16|i32|i64|u8|u16|u32|u64|f32|f64|bool|char|str|String|Vec|Option|Result|Some|None|Ok|Err)\b/g, strings: /(["'])(?:(?!\1)[^\\]|\\.)*\1/g, comments: /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)/g, numbers: /\b\d+(\.\d+)?\b/g },
+  php: { keywords: /\b(function|class|public|private|protected|static|final|abstract|return|if|else|elseif|for|foreach|while|do|switch|case|break|continue|new|this|self|parent|use|namespace|try|catch|finally|throw|isset|unset|empty|print|echo|array|string|int|float|bool|null|true|false|var|const|define|global|require|include|require_once|include_once)\b/g, strings: /(["'])(?:(?!\1)[^\\]|\\.)*\1/g, comments: /(\/\/[^\n]*|#.*$|\/\*[\s\S]*?\*\/)/gm, numbers: /\b\d+(\.\d+)?\b/g }
+};
 
-function downloadScreenshot() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{{type:'text/plain'}});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Screenshot.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+var THEME_COLORS = {
+  dark:    { bg: '#1e1e1e', text: '#d4d4d4', keyword: '#569cd6', string: '#ce9178', comment: '#6a9955', number: '#b5cea8', lineNum: '#858585', titleBar: '#3c3c3c' },
+  light:   { bg: '#ffffff', text: '#333333', keyword: '#0000ff', string: '#a31515', comment: '#008000', number: '#098658', lineNum: '#999999', titleBar: '#e8e8e8' },
+  github:  { bg: '#f6f8fa', text: '#24292e', keyword: '#d73a49', string: '#032f62', comment: '#6a737d', number: '#005cc5', lineNum: '#959da5', titleBar: '#d1d5da' },
+  monokai: { bg: '#272822', text: '#f8f8f2', keyword: '#f92672', string: '#e6db74', comment: '#75715e', number: '#ae81ff', lineNum: '#75715e', titleBar: '#3e3d32' },
+  dracula: { bg: '#282a36', text: '#f8f8f2', keyword: '#ff79c6', string: '#f1fa8c', comment: '#6272a4', number: '#bd93f9', lineNum: '#6272a4', titleBar: '#383a4a' }
+};
+
+function highlightCode(code, lang) {
+  var rules = SYNTAX_RULES[lang] || SYNTAX_RULES.javascript;
+  // Tokenize: replace matches with placeholders, then restore
+  var tokens = [];
+  var placeholder = function(type, text) {
+    tokens.push({ type: type, text: text });
+    return '\x00' + (tokens.length - 1) + '\x00';
+  };
+
+  var result = code;
+  // Comments first
+  if (rules.comments) {
+    result = result.replace(rules.comments, function(m) { return placeholder('comment', m); });
+  }
+  // Strings
+  if (rules.strings) {
+    result = result.replace(rules.strings, function(m) { return placeholder('string', m); });
+  }
+  // Keywords
+  if (rules.keywords) {
+    result = result.replace(rules.keywords, function(m) { return placeholder('keyword', m); });
+  }
+  // Numbers
+  if (rules.numbers) {
+    result = result.replace(rules.numbers, function(m) { return placeholder('number', m); });
+  }
+  // Restore tokens
+  result = result.replace(/\x00(\d+)\x00/g, function(m, idx) {
+    return '\x00' + idx + '\x00';
+  });
+  return { text: result, tokens: tokens };
 }
 
 function generateScreenshot() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  var code = document.getElementById('codeInput').value;
+  if (!code.trim()) { showToast('请输入代码'); return; }
+
+  var lang = document.getElementById('language').value;
+  var themeName = document.getElementById('theme').value;
+  var fontSize = parseInt(document.getElementById('fontSize').value) || 14;
+  var codeWidth = parseInt(document.getElementById('width').value) || 700;
+  var showLineNumbers = document.getElementById('showLineNumbers').value === '1';
+  var windowDecor = document.getElementById('windowDecor').value;
+  var windowTitle = document.getElementById('windowTitle').value;
+
+  var theme = THEME_COLORS[themeName] || THEME_COLORS.dark;
+  var canvas = document.getElementById('previewCanvas');
+  var ctx = canvas.getContext('2d');
+
+  var lineHeight = Math.round(fontSize * 1.5);
+  var padding = 16;
+  var titleBarHeight = windowDecor === 'mac' ? 36 : 0;
+  var lineNumWidth = showLineNumbers ? Math.round(fontSize * 3.5) : 0;
+
+  var lines = code.split('\n');
+  var canvasHeight = titleBarHeight + padding * 2 + lines.length * lineHeight;
+
+  canvas.width = codeWidth;
+  canvas.height = canvasHeight;
+  canvas.style.width = codeWidth + 'px';
+
+  // Background
+  ctx.fillStyle = theme.bg;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Title bar
+  if (windowDecor === 'mac') {
+    ctx.fillStyle = theme.titleBar;
+    ctx.fillRect(0, 0, canvas.width, titleBarHeight);
+    // Traffic lights
+    ctx.beginPath(); ctx.arc(18, titleBarHeight / 2, 6, 0, Math.PI * 2); ctx.fillStyle = '#ff5f56'; ctx.fill();
+    ctx.beginPath(); ctx.arc(38, titleBarHeight / 2, 6, 0, Math.PI * 2); ctx.fillStyle = '#ffbd2e'; ctx.fill();
+    ctx.beginPath(); ctx.arc(58, titleBarHeight / 2, 6, 0, Math.PI * 2); ctx.fillStyle = '#27c93f'; ctx.fill();
+    // Title text
+    if (windowTitle) {
+      ctx.fillStyle = theme.lineNum;
+      ctx.font = '12px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(windowTitle, canvas.width / 2, titleBarHeight / 2);
+    }
+  }
+
+  // Parse and draw code lines
+  ctx.font = fontSize + 'px ui-monospace, SFMono-Regular, Consolas, "Courier New", monospace';
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
+
+  var parsed = highlightCode(code, lang);
+  var parsedLines = parsed.text.split('\n');
+
+  for (var i = 0; i < parsedLines.length; i++) {
+    var y = titleBarHeight + padding + i * lineHeight;
+    var x = padding + lineNumWidth;
+
+    // Line number
+    if (showLineNumbers) {
+      ctx.fillStyle = theme.lineNum;
+      ctx.textAlign = 'right';
+      ctx.fillText(String(i + 1), padding + lineNumWidth - 8, y);
+      ctx.textAlign = 'left';
+    }
+
+    // Draw line with tokens
+    var lineText = parsedLines[i];
+    var drawX = x;
+    var segments = lineText.split(/(\x00\d+\x00)/);
+    for (var s = 0; s < segments.length; s++) {
+      var seg = segments[s];
+      var tokenMatch = seg.match(/^\x00(\d+)\x00$/);
+      if (tokenMatch) {
+        var token = parsed.tokens[parseInt(tokenMatch[1])];
+        if (token) {
+          ctx.fillStyle = theme[token.type] || theme.text;
+          ctx.fillText(token.text, drawX, y);
+          drawX += ctx.measureText(token.text).width;
+        }
+      } else if (seg) {
+        ctx.fillStyle = theme.text;
+        ctx.fillText(seg, drawX, y);
+        drawX += ctx.measureText(seg).width;
+      }
+    }
+  }
+
+  showToast('截图已生成');
+}
+
+function downloadScreenshot() {
+  var canvas = document.getElementById('previewCanvas');
+  // Check if canvas has been drawn (not blank)
+  var ctx = canvas.getContext('2d');
+  var data = ctx.getImageData(0, 0, Math.min(canvas.width, 10), Math.min(canvas.height, 10)).data;
+  var hasContent = false;
+  for (var i = 0; i < data.length; i += 4) {
+    if (data[i] !== 0 || data[i+1] !== 0 || data[i+2] !== 0) { hasContent = true; break; }
+  }
+  if (!hasContent) {
+    generateScreenshot();
+  }
+  canvas.toBlob(function(blob) {
+    if (!blob) { showToast('生成截图失败'); return; }
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'code-screenshot.png';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('PNG已下载');
+  }, 'image/png');
+}
+
+function copyToClipboard() {
+  var canvas = document.getElementById('previewCanvas');
+  canvas.toBlob(function(blob) {
+    if (!blob) { showToast('复制失败'); return; }
+    if (navigator.clipboard && navigator.clipboard.write) {
+      var item = new ClipboardItem({ 'image/png': blob });
+      navigator.clipboard.write([item]).then(function() {
+        showToast('截图已复制到剪贴板');
+      })['catch'](function() {
+        showToast('复制失败，请使用下载按钮');
+      });
+    } else {
+      showToast('浏览器不支持复制图片，请使用下载');
+    }
+  }, 'image/png');
 }
 </script>
 </body>
