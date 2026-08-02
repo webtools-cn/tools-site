@@ -92,6 +92,136 @@ table.data td{color:#cbd5e1}
 }
 </style>
 
+<div class="container">
+<div class="header"><h1>🍞 CSS通知Toast生成器</h1>
+<div class="lang-switch"><a href="./" class="active">中文</a><a href="../en/css-toast-generator/">EN</a></div></div>
+<p class="nav-back"><a href="../index.html">← 全部工具</a></p>
+
+<div class="input-section">
+<h2>⚙️ 参数设置</h2>
+<label for="toastType">Toast类型</label>
+<select id="toastType">
+<option value="success">✅ 成功</option>
+<option value="error">❌ 错误</option>
+<option value="warning">⚠️ 警告</option>
+<option value="info">ℹ️ 信息</option>
+</select>
+<label for="toastMessage">消息内容</label>
+<input type="text" id="toastMessage" value="操作成功完成！" placeholder="输入Toast消息内容">
+<div class="row">
+<div class="field"><label for="toastPosition">显示位置</label>
+<select id="toastPosition">
+<option value="top-right">右上角</option>
+<option value="top-left">左上角</option>
+<option value="top-center">顶部居中</option>
+<option value="bottom-right" selected>右下角</option>
+<option value="bottom-left">左下角</option>
+<option value="bottom-center">底部居中</option>
+</select></div>
+<div class="field"><label for="toastDuration">显示时长 (ms)</label>
+<input type="number" id="toastDuration" value="3000" min="500" max="10000" step="500"></div>
+</div>
+<div class="row">
+<div class="field"><label for="bgColor">背景颜色</label>
+<input type="color" id="bgColor" value="#1e293b"></div>
+<div class="field"><label for="textColor">文字颜色</label>
+<input type="color" id="textColor" value="#e2e8f0"></div>
+</div>
+<div class="row">
+<div class="field"><label for="borderRadius">圆角 (px)</label>
+<input type="number" id="borderRadius" value="8" min="0" max="30"></div>
+<div class="field"><label for="accentColor">强调色</label>
+<input type="color" id="accentColor" value="#22d3ee"></div>
+</div>
+<div class="options">
+<label><input type="checkbox" id="enableShadow" checked> 启用阴影</label>
+<label><input type="checkbox" id="enableIcon" checked> 显示图标</label>
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" id="previewBtn">👁️ 预览Toast</button>
+<button class="btn btn-success" id="copyBtn">📋 复制CSS+HTML代码</button>
+</div>
+</div>
+
+<div class="result-section show" id="previewSection">
+<h2>👁️ 预览区</h2>
+<div id="previewArea" style="background:#0f172a;border-radius:8px;padding:40px 20px;border:1px solid rgba(148,163,184,.08);min-height:200px;position:relative;overflow:hidden"></div>
+</div>
+
+<div class="result-section show" id="codeSection">
+<h2>📄 CSS + HTML代码</h2>
+<div class="result-box" id="codeOutput"></div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+
+var iconMap={success:'✅',error:'❌',warning:'⚠️',info:'ℹ️'};
+
+function getPositionStyle(pos){
+  var styles={top:'24px',bottom:'24px',left:'24px',right:'24px',center:'50%'};
+  var css='';
+  if(pos.indexOf('top')>=0){css+='top:24px;';}
+  if(pos.indexOf('bottom')>=0){css+='bottom:24px;';}
+  if(pos.indexOf('left')>=0&&pos.indexOf('center')<0){css+='left:24px;';}
+  if(pos.indexOf('right')>=0&&pos.indexOf('center')<0){css+='right:24px;';}
+  if(pos.indexOf('center')>=0&&pos.indexOf('top')>=0){css+='left:50%;transform:translateX(-50%);';}
+  if(pos.indexOf('center')>=0&&pos.indexOf('bottom')>=0){css+='left:50%;transform:translateX(-50%);';}
+  return css;
+}
+
+function render(){
+  var type=document.getElementById('toastType').value;
+  var msg=document.getElementById('toastMessage').value||'消息内容';
+  var pos=document.getElementById('toastPosition').value;
+  var duration=parseInt(document.getElementById('toastDuration').value)||3000;
+  var bg=document.getElementById('bgColor').value;
+  var tc=document.getElementById('textColor').value;
+  var br=parseInt(document.getElementById('borderRadius').value)||0;
+  var ac=document.getElementById('accentColor').value;
+  var shadow=document.getElementById('enableShadow').checked;
+  var showIcon=document.getElementById('enableIcon').checked;
+
+  var posCss=getPositionStyle(pos);
+  var shadowCss=shadow?'box-shadow:0 4px 12px rgba(0,0,0,.3);':'';
+  var iconHtml=showIcon?'<span style="margin-right:8px;font-size:1.1em">'+iconMap[type]+'</span>':'';
+  var borderLeft='border-left:4px solid '+ac+';';
+
+  var area=document.getElementById('previewArea');
+  area.innerHTML='';
+  var toast=document.createElement('div');
+  toast.style.cssText='position:absolute;'+posCss+'background:'+bg+';color:'+tc+';padding:14px 20px;border-radius:'+br+'px;'+shadowCss+borderLeft+'font-size:.95rem;display:flex;align-items:center;max-width:340px;animation:toastSlideIn .3s ease;';
+  toast.innerHTML=iconHtml+'<span>'+msg+'</span>';
+  area.appendChild(toast);
+
+  var code='/* CSS */\n';
+  code+='.toast-container {\n  position: fixed;\n  z-index: 9999;\n  '+posCss+'\n}\n\n';
+  code+='.toast {\n  background: '+bg+';\n  color: '+tc+';\n  padding: 14px 20px;\n  border-radius: '+br+'px;\n  '+shadowCss+'\n  '+borderLeft+'\n  font-size: 0.95rem;\n  display: flex;\n  align-items: center;\n  max-width: 340px;\n  animation: toastSlideIn 0.3s ease;\n}\n\n';
+  code+='@keyframes toastSlideIn {\n  from { opacity: 0; transform: translateY(-10px); }\n  to { opacity: 1; transform: translateY(0); }\n}\n\n';
+  code+='/* HTML */\n';
+  code+='<div class="toast-container">\n';
+  code+='  <div class="toast">'+iconHtml+msg+'</div>\n';
+  code+='</div>\n\n';
+  code+='/* JavaScript（自动关闭）*/\n';
+  code+='var toast = document.querySelector(".toast");\n';
+  code+='setTimeout(function(){ toast.style.opacity="0"; setTimeout(function(){ toast.remove(); },300); }, '+duration+');';
+  document.getElementById('codeOutput').textContent=code;
+}
+
+document.getElementById('previewBtn').addEventListener('click',render);
+var inputs=document.querySelectorAll('#toastType,#toastMessage,#toastPosition,#toastDuration,#bgColor,#textColor,#borderRadius,#accentColor,#enableShadow,#enableIcon');
+inputs.forEach(function(el){el.addEventListener('input',render);el.addEventListener('change',render)});
+
+document.getElementById('copyBtn').addEventListener('click',function(){
+  navigator.clipboard.writeText(document.getElementById('codeOutput').textContent).then(function(){showToast('代码已复制到剪贴板！')}).catch(function(){showToast('复制失败，请手动复制')});
+});
+
+render();
+</script>
+
 <!-- AdSense -->
 
 <div class="seo-content" style="margin:1.5rem 0;padding:1rem;background:#0f172a;border-radius:8px;font-size:.95rem;color:#475569;line-height:1.8"><p>免费CSS通知Toast生成器 - Toast Maker  无需注册是一款免费的在线工具，无需安装任何软件即可直接在浏览器中使用。该工具完全在本地运行，您的数据不会上传到服务器，保障隐私安全。支持所有主流浏览器和移动设备，随时随地可用。使用免费CSS通知Toast生成器 - Toast Maker  无需注册可以帮助您快速完成相关任务，提高工作效率。本工具采用纯前端技术实现，打开即用，无需注册账号或下载插件。操作简单直观，结果即时呈现。免费CSS通知Toast生成器 - Toast Maker  无需注册提供精准的计算和转换功能，满足日常工作和学习需求。所有处理均在浏览器本地完成，响应速度快且安全可靠。无论您使用电脑还是手机，都能获得流畅的操作体验。</p></div>

@@ -94,6 +94,140 @@ table.data td{color:#cbd5e1}
 }
 </style>
 
+<div class="container">
+<div class="header"><h1>💬 CSS工具提示框生成器</h1>
+<div class="lang-switch"><a href="./" class="active">中文</a><a href="../en/css-tooltip-generator/">EN</a></div></div>
+<p class="nav-back"><a href="../index.html">← 全部工具</a></p>
+
+<div class="input-section">
+<h2>⚙️ 参数设置</h2>
+<label for="tooltipText">提示内容</label>
+<input type="text" id="tooltipText" value="这是一个提示框" placeholder="输入提示文字">
+<label for="tooltipDirection">方向</label>
+<select id="tooltipDirection">
+<option value="top" selected>上方</option>
+<option value="bottom">下方</option>
+<option value="left">左侧</option>
+<option value="right">右侧</option>
+</select>
+<div class="row">
+<div class="field"><label for="bgColor">背景颜色</label>
+<input type="color" id="bgColor" value="#1e293b"></div>
+<div class="field"><label for="textColor">文字颜色</label>
+<input type="color" id="textColor" value="#e2e8f0"></div>
+</div>
+<div class="row">
+<div class="field"><label for="fontSize">字号 (px)</label>
+<input type="number" id="fontSize" value="14" min="10" max="32"></div>
+<div class="field"><label for="borderRadius">圆角 (px)</label>
+<input type="number" id="borderRadius" value="6" min="0" max="20"></div>
+</div>
+<div class="row">
+<div class="field"><label for="padding">内边距 (px)</label>
+<input type="number" id="padding" value="8" min="2" max="30"></div>
+<div class="field"><label for="arrowSize">箭头大小 (px)</label>
+<input type="number" id="arrowSize" value="6" min="0" max="20"></div>
+</div>
+<div class="options">
+<label><input type="checkbox" id="enableShadow" checked> 启用阴影</label>
+<label><input type="checkbox" id="enableAnimation" checked> 启用动画</label>
+</div>
+<div class="btn-row">
+<button class="btn btn-success" id="copyBtn">📋 复制CSS代码</button>
+</div>
+</div>
+
+<div class="result-section show" id="previewSection">
+<h2>👁️ 实时预览（鼠标悬停查看效果）</h2>
+<div id="previewBox" style="background:#0f172a;border-radius:8px;padding:60px 20px;text-align:center;border:1px solid rgba(148,163,184,.08);min-height:160px;display:flex;align-items:center;justify-content:center"></div>
+</div>
+
+<div class="result-section show" id="codeSection">
+<h2>📄 CSS代码</h2>
+<div class="result-box" id="codeOutput"></div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+
+function render(){
+  var text=document.getElementById('tooltipText').value||'提示';
+  var dir=document.getElementById('tooltipDirection').value;
+  var bg=document.getElementById('bgColor').value;
+  var tc=document.getElementById('textColor').value;
+  var fs=parseInt(document.getElementById('fontSize').value)||14;
+  var br=parseInt(document.getElementById('borderRadius').value)||0;
+  var pd=parseInt(document.getElementById('padding').value)||8;
+  var as=parseInt(document.getElementById('arrowSize').value)||0;
+  var shadow=document.getElementById('enableShadow').checked;
+  var anim=document.getElementById('enableAnimation').checked;
+
+  var box=document.getElementById('previewBox');
+  box.innerHTML='';
+  var wrapper=document.createElement('div');
+  wrapper.className='tt-wrapper';
+  wrapper.innerHTML='<span class="tt-trigger" style="color:#22d3ee;cursor:pointer;border-bottom:1px dashed #22d3ee;padding:4px 8px">鼠标悬停此处</span>';
+
+  var tooltip=document.createElement('div');
+  tooltip.className='tt-inner';
+  tooltip.textContent=text;
+  wrapper.appendChild(tooltip);
+  box.appendChild(wrapper);
+
+  var arrowProp='';
+  var arrowCss='';
+  if(as>0){
+    if(dir==='top'){arrowProp='border-top:'+as+'px solid '+bg+';border-left:'+as+'px solid transparent;border-right:'+as+'px solid transparent;bottom:-'+as+'px;left:50%;margin-left:-'+as+'px;';}
+    if(dir==='bottom'){arrowProp='border-bottom:'+as+'px solid '+bg+';border-left:'+as+'px solid transparent;border-right:'+as+'px solid transparent;top:-'+as+'px;left:50%;margin-left:-'+as+'px;';}
+    if(dir==='left'){arrowProp='border-left:'+as+'px solid '+bg+';border-top:'+as+'px solid transparent;border-bottom:'+as+'px solid transparent;right:-'+as+'px;top:50%;margin-top:-'+as+'px;';}
+    if(dir==='right'){arrowProp='border-right:'+as+'px solid '+bg+';border-top:'+as+'px solid transparent;border-bottom:'+as+'px solid transparent;left:-'+as+'px;top:50%;margin-top:-'+as+'px;';}
+    arrowCss='.tt-inner::after{content:"";position:absolute;'+arrowProp+'}';
+  }
+
+  var posCss='';
+  if(dir==='top'){posCss='bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);';}
+  if(dir==='bottom'){posCss='top:calc(100% + 8px);left:50%;transform:translateX(-50%);';}
+  if(dir==='left'){posCss='right:calc(100% + 8px);top:50%;transform:translateY(-50%);';}
+  if(dir==='right'){posCss='left:calc(100% + 8px);top:50%;transform:translateY(-50%);';}
+
+  var shadowCss=shadow?'box-shadow:0 4px 12px rgba(0,0,0,.3);':'';
+  var animCss=anim?'opacity:0;transition:opacity .2s;':'';
+  var hoverAnim=anim?'.tt-wrapper:hover .tt-inner{opacity:1;}':'';
+
+  var styleEl=document.getElementById('tt-dynamic')||document.createElement('style');
+  styleEl.id='tt-dynamic';
+  styleEl.textContent='.tt-wrapper{position:relative;display:inline-block}'+
+    '.tt-inner{position:absolute;'+posCss+'background:'+bg+';color:'+tc+';font-size:'+fs+'px;border-radius:'+br+'px;padding:'+pd+'px '+pd+'px;'+shadowCss+animCss+'white-space:nowrap;z-index:10;}'+
+    arrowCss+hoverAnim;
+  if(!styleEl.parentNode){document.head.appendChild(styleEl);}
+
+  var code='/* CSS Tooltip */\n';
+  code+='.tt-wrapper {\n  position: relative;\n  display: inline-block;\n}\n\n';
+  code+='.tt-inner {\n  position: absolute;\n  '+posCss+'\n  background: '+bg+';\n  color: '+tc+';\n  font-size: '+fs+'px;\n  border-radius: '+br+'px;\n  padding: '+pd+'px;\n  '+shadowCss+'\n  '+animCss+'\n  white-space: nowrap;\n  z-index: 10;\n}\n';
+  if(as>0){
+    code+='\n.tt-inner::after {\n  content: "";\n  position: absolute;\n  '+arrowProp+'\n}\n';
+  }
+  if(anim){
+    code+='\n.tt-wrapper:hover .tt-inner {\n  opacity: 1;\n}\n';
+  }
+  code+='\n/* HTML */\n';
+  code+='<span class="tt-wrapper">鼠标悬停此处\n  <span class="tt-inner">'+text+'</span>\n</span>';
+  document.getElementById('codeOutput').textContent=code;
+}
+
+var inputs=document.querySelectorAll('#tooltipText,#tooltipDirection,#bgColor,#textColor,#fontSize,#borderRadius,#padding,#arrowSize,#enableShadow,#enableAnimation');
+inputs.forEach(function(el){el.addEventListener('input',render);el.addEventListener('change',render)});
+
+document.getElementById('copyBtn').addEventListener('click',function(){
+  navigator.clipboard.writeText(document.getElementById('codeOutput').textContent).then(function(){showToast('CSS代码已复制！')}).catch(function(){showToast('复制失败，请手动复制')});
+});
+
+render();
+</script>
+
 <!-- AdSense -->
 
 <div class="seo-content" style="margin:1.5rem 0;padding:1rem;background:#0f172a;border-radius:8px;font-size:.95rem;color:#475569;line-height:1.8"><p>免费CSS工具提示框生成器 - Tooltip CSS Maker  无需注册是一款免费的在线工具，无需安装任何软件即可直接在浏览器中使用。该工具完全在本地运行，您的数据不会上传到服务器，保障隐私安全。支持所有主流浏览器和移动设备，随时随地可用。使用免费CSS工具提示框生成器 - Tooltip CSS Maker  无需注册可以帮助您快速完成相关任务，提高工作效率。本工具采用纯前端技术实现，打开即用，无需注册账号或下载插件。操作简单直观，结果即时呈现。免费CSS工具提示框生成器 - Tooltip CSS Maker  无需注册提供精准的计算和转换功能，满足日常工作和学习需求。所有处理均在浏览器本地完成，响应速度快且安全可靠。无论您使用电脑还是手机，都能获得流畅的操作体验。</p></div>

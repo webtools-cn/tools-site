@@ -94,6 +94,157 @@ table.data td{color:#cbd5e1}
 }
 </style>
 
+<div class="container">
+<div class="header"><h1>⌨️ CSS打字机效果生成器</h1>
+<div class="lang-switch"><a href="./" class="active">中文</a><a href="../en/css-typewriter-generator/">EN</a></div></div>
+<p class="nav-back"><a href="../index.html">← 全部工具</a></p>
+
+<div class="input-section">
+<h2>⚙️ 参数设置</h2>
+<label for="textInput">文字内容</label>
+<input type="text" id="textInput" value="Hello World" placeholder="输入打字机文字">
+<div class="row">
+<div class="field"><label for="fontSize">字号 (px)</label>
+<input type="number" id="fontSize" value="32" min="12" max="100"></div>
+<div class="field"><label for="textColor">文字颜色</label>
+<input type="color" id="textColor" value="#22d3ee"></div>
+</div>
+<div class="row">
+<div class="field"><label for="duration">打字时长 (s)</label>
+<input type="number" id="duration" value="3" min="0.5" max="20" step="0.5"></div>
+<div class="field"><label for="cursorStyle">光标样式</label>
+<select id="cursorStyle">
+<option value="bar" selected>竖线 |</option>
+<option value="underscore">下划线 _</option>
+<option value="block">方块 █</option>
+</select></div>
+</div>
+<div class="row">
+<div class="field"><label for="cursorColor">光标颜色</label>
+<input type="color" id="cursorColor" value="#22d3ee"></div>
+<div class="field"><label for="fontFamily">字体</label>
+<select id="fontFamily">
+<option value="monospace" selected>等宽字体</option>
+<option value="sans-serif">无衬线</option>
+<option value="serif">衬线字体</option>
+</select></div>
+</div>
+<div class="options">
+<label><input type="checkbox" id="loop" checked> 循环播放</label>
+<label><input type="checkbox" id="blink" checked> 光标闪烁</label>
+</div>
+<div class="btn-row">
+<button class="btn btn-success" id="copyBtn">📋 复制CSS+HTML代码</button>
+</div>
+</div>
+
+<div class="result-section show" id="previewSection">
+<h2>👁️ 实时预览</h2>
+<div id="previewBox" style="background:#0f172a;border-radius:8px;padding:40px 20px;text-align:center;border:1px solid rgba(148,163,184,.08);min-height:100px;display:flex;align-items:center;justify-content:center"></div>
+</div>
+
+<div class="result-section show" id="codeSection">
+<h2>📄 CSS + HTML代码</h2>
+<div class="result-box" id="codeOutput"></div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function showToast(msg){var t=document.getElementById('toast');t.classList.add('show');t.textContent=msg;setTimeout(function(){t.classList.remove('show')},2000)}
+
+function render(){
+  var text=document.getElementById('textInput').value||'Hello';
+  var fs=parseInt(document.getElementById('fontSize').value)||32;
+  var tc=document.getElementById('textColor').value;
+  var dur=parseFloat(document.getElementById('duration').value)||3;
+  var cs=document.getElementById('cursorStyle').value;
+  var cc=document.getElementById('cursorColor').value;
+  var ff=document.getElementById('fontFamily').value;
+  var loop=document.getElementById('loop').checked;
+  var blink=document.getElementById('blink').checked;
+
+  var charCount=text.length;
+  var steps=charCount;
+  var halfDur=dur/2;
+
+  var cursorChar='|';
+  var cursorBorder='';
+  if(cs==='underscore'){cursorChar='_';}
+  if(cs==='bar'){cursorBorder='border-right:2px solid '+cc+';';}
+  if(cs==='block'){cursorBorder='border-right:0.6em solid '+cc+';';}
+
+  var styleEl=document.getElementById('tw-dynamic')||document.createElement('style');
+  styleEl.id='tw-dynamic';
+  var cssText='.tw-text{font-size:'+fs+'px;color:'+tc+';font-family:'+ff+',monospace;overflow:hidden;white-space:nowrap;border-right:'+(cs==='bar'?'2px solid '+cc:(cs==='block'?'0.6em solid '+cc:'0'))+';';
+  cssText+='width:'+charCount+'ch;';
+  if(loop){
+    cssText+='animation:tw-type '+dur+'s steps('+steps+',end) infinite,tw-cursor '+(blink?'0.7s':'0s')+' step-end infinite;';
+  }else{
+    cssText+='animation:tw-type '+dur+'s steps('+steps+',end) forwards'+(blink?',tw-cursor 0.7s step-end infinite':'')+';';
+  }
+  cssText+='}';
+  cssText+='@keyframes tw-type{0%{width:0}50%{width:'+charCount+'ch}100%{width:'+(loop?'0':charCount+'ch')+'}}';
+  if(blink){
+    cssText+='@keyframes tw-cursor{0%,100%{border-color:'+cc+'}50%{border-color:transparent}}';
+  }
+  styleEl.textContent=cssText;
+  if(!styleEl.parentNode){document.head.appendChild(styleEl);}
+
+  var box=document.getElementById('previewBox');
+  box.innerHTML='';
+  var span=document.createElement('span');
+  span.className='tw-text';
+  span.textContent=text;
+  box.appendChild(span);
+
+  var code='/* CSS 打字机效果 */\n';
+  code+='.tw-text {\n';
+  code+='  font-size: '+fs+'px;\n';
+  code+='  color: '+tc+';\n';
+  code+='  font-family: '+ff+', monospace;\n';
+  code+='  overflow: hidden;\n';
+  code+='  white-space: nowrap;\n';
+  code+='  width: '+charCount+'ch;\n';
+  if(cs!=='underscore'){
+    code+='  border-right: '+(cs==='bar'?'2px solid '+cc:'0.6em solid '+cc)+';\n';
+  }
+  var animStr='tw-type '+dur+'s steps('+steps+', end) '+(loop?'infinite':'forwards');
+  if(blink&&cs!=='underscore'){animStr+=', tw-cursor 0.7s step-end infinite';}
+  code+='  animation: '+animStr+';\n';
+  code+='}\n\n';
+  code+='@keyframes tw-type {\n';
+  if(loop){
+    code+='  0% { width: 0; }\n';
+    code+='  50% { width: '+charCount+'ch; }\n';
+    code+='  100% { width: 0; }\n';
+  }else{
+    code+='  0% { width: 0; }\n';
+    code+='  100% { width: '+charCount+'ch; }\n';
+  }
+  code+='}\n';
+  if(blink&&cs!=='underscore'){
+    code+='\n@keyframes tw-cursor {\n';
+    code+='  0%, 100% { border-color: '+cc+'; }\n';
+    code+='  50% { border-color: transparent; }\n';
+    code+='}\n';
+  }
+  code+='\n/* HTML */\n';
+  code+='<div class="tw-text">'+text+'</div>';
+  document.getElementById('codeOutput').textContent=code;
+}
+
+var inputs=document.querySelectorAll('#textInput,#fontSize,#textColor,#duration,#cursorStyle,#cursorColor,#fontFamily,#loop,#blink');
+inputs.forEach(function(el){el.addEventListener('input',render);el.addEventListener('change',render)});
+
+document.getElementById('copyBtn').addEventListener('click',function(){
+  navigator.clipboard.writeText(document.getElementById('codeOutput').textContent).then(function(){showToast('代码已复制到剪贴板！')}).catch(function(){showToast('复制失败，请手动复制')});
+});
+
+render();
+</script>
+
 <!-- AdSense -->
 
 <div class="seo-content" style="margin:1.5rem 0;padding:1rem;background:#0f172a;border-radius:8px;font-size:.95rem;color:#475569;line-height:1.8"><p>免费CSS打字机效果生成器 - Text Typing Animation  无需注册是一款免费的在线工具，无需安装任何软件即可直接在浏览器中使用。该工具完全在本地运行，您的数据不会上传到服务器，保障隐私安全。支持所有主流浏览器和移动设备，随时随地可用。使用免费CSS打字机效果生成器 - Text Typing Animation  无需注册可以帮助您快速完成相关任务，提高工作效率。本工具采用纯前端技术实现，打开即用，无需注册账号或下载插件。操作简单直观，结果即时呈现。免费CSS打字机效果生成器 - Text Typing Animation  无需注册提供精准的计算和转换功能，满足日常工作和学习需求。所有处理均在浏览器本地完成，响应速度快且安全可靠。无论您使用电脑还是手机，都能获得流畅的操作体验。</p></div>
