@@ -203,21 +203,59 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 })();
 
 // === 重写的函数实现 ===
-function autoShorten() {
-  showToast('autoShorten - coming soon!');
-}
+// URL shortener using localStorage as backend
+var urlStore = {};
+try { urlStore = JSON.parse(localStorage.getItem('urlShortener')) || {}; } catch(e) { urlStore = {}; }
 
-function copyShortUrl() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
-}
-
-function generateQR() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+function generateCode(len) {
+  var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  var code = '';
+  for (var i = 0; i < len; i++) { code += chars[Math.floor(Math.random() * chars.length)]; }
+  return code;
 }
 
 function shorten() {
-  showToast('shorten - coming soon!');
+  var longUrl = document.getElementById('longUrl').value.trim();
+  if (!longUrl) { showToast('请输入URL'); return; }
+  if (!/^https?:\/\//i.test(longUrl)) { longUrl = 'https://' + longUrl; }
+  
+  var custom = document.getElementById('customCode').value.trim();
+  var code = custom || generateCode(6);
+  urlStore[code] = longUrl;
+  try { localStorage.setItem('urlShortener', JSON.stringify(urlStore)); } catch(e) {}
+  
+  var short = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '') + '?s=' + code;
+  document.getElementById('shortUrlDisplay').innerHTML = '<a href="' + short + '" target="_blank" style="color:#22d3ee">' + short + '</a>';
+  document.getElementById('resultInfo').textContent = '跳转到: ' + longUrl.substring(0, 60) + (longUrl.length > 60 ? '...' : '');
+  showToast('短链接已生成！');
 }
+
+function autoShorten() {
+  var v = document.getElementById('longUrl').value.trim();
+  if (v && /^https?:\/\//i.test(v) && v.length > 30) { shorten(); }
+}
+
+function copyShortUrl() {
+  var el = document.getElementById('shortUrlDisplay').querySelector('a');
+  if (!el) { showToast('请先生成短链接'); return; }
+  navigator.clipboard.writeText(el.href || el.textContent).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});
+}
+
+function generateQR() {
+  var el = document.getElementById('shortUrlDisplay').querySelector('a');
+  var url = el ? (el.href || el.textContent) : '';
+  if (!url) { showToast('请先生成短链接'); return; }
+  var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(url);
+  document.getElementById('qrContainer').innerHTML = '<img src="' + qrUrl + '" alt="QR Code" style="width:150px;height:150px;border-radius:8px;background:#fff;padding:8px">';
+  showToast('QR码已生成');
+}
+
+// Handle incoming short links
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var code = params.get('s');
+  if (code && urlStore[code]) { window.location.href = urlStore[code]; }
+})();
 </script>
 </body>
 </html>

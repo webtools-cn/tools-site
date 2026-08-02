@@ -154,29 +154,84 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 // === 重写的函数实现 ===
 function downloadCal() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
-  if (!text) { showToast('没有可导出的内容'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'calendar-generator-output.txt';
+  var preview = document.getElementById('calendarPreview');
+  if (!preview || !preview.innerText.trim()) { showToast('请先生成日历'); return; }
+  var canvas = document.createElement('canvas');
+  canvas.width = 400; canvas.height = 350;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0f172a'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = '#f1f5f9'; ctx.font = 'bold 18px sans-serif'; ctx.textAlign='center';
+  ctx.fillText(window._calData.monthName + ' ' + window._calData.year, 200, 30);
+  ctx.font = '14px sans-serif';
+  var days = ['日','一','二','三','四','五','六'];
+  var cellW = 50, cellH = 45, startX = 25, startY = 55;
+  for (var i=0;i<7;i++) { ctx.fillStyle='#22d3ee'; ctx.fillText(days[i],startX+i*cellW+25,startY); }
+  var day=1;
+  ctx.fillStyle='#e2e8f0';
+  for (var r=0;r<6;r++) {
+    for (var c=0;c<7;c++) {
+      if (r===0 && c<window._calData.firstDay) continue;
+      if (day>window._calData.daysInMonth) break;
+      var isWeekend = (c===0||c===6)?'#ef4444':'#e2e8f0';
+      ctx.fillStyle=isWeekend;
+      ctx.fillText(day,startX+c*cellW+25,startY+(r+1)*cellH);
+      day++;
+    }
+  }
+  var a=document.createElement('a');
+  a.download='calendar-'+window._calData.year+'-'+(window._calData.month)+'.png';
+  a.href=canvas.toDataURL();
   a.click();
   showToast('已下载');
 }
 
 function generateCalendar() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  var year = parseInt(document.getElementById('year').value);
+  var month = parseInt(document.getElementById('month').value);
+  var preview = document.getElementById('calendarPreview');
+  
+  var firstDay = new Date(year, month - 1, 1).getDay();
+  var daysInMonth = new Date(year, month, 0).getDate();
+  var monthNames = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  
+  var html = '<div style="text-align:center;margin-bottom:12px"><h3 style="color:#f1f5f9;margin:0;font-size:1.2rem">' + monthNames[month-1] + ' ' + year + '</h3></div>';
+  html += '<table style="width:100%;border-collapse:collapse;text-align:center;background:#1e293b;border-radius:8px;overflow:hidden">';
+  html += '<tr style="background:rgba(6,182,212,.15)">';
+  var days = ['日','一','二','三','四','五','六'];
+  for (var i = 0; i < 7; i++) { html += '<th style="padding:10px;color:#22d3ee;font-weight:500;font-size:.85rem">' + days[i] + '</th>'; }
+  html += '</tr>';
+  
+  var day = 1;
+  for (var r = 0; r < 6; r++) {
+    html += '<tr>';
+    for (var c = 0; c < 7; c++) {
+      if (r === 0 && c < firstDay) {
+        html += '<td style="padding:10px"></td>';
+      } else if (day <= daysInMonth) {
+        var isWeekend = (c === 0 || c === 6) ? 'color:#ef4444' : 'color:#e2e8f0';
+        var isToday = (day === new Date().getDate() && month === new Date().getMonth() + 1 && year === new Date().getFullYear()) ? 'background:rgba(6,182,212,.2);border-radius:50%' : '';
+        html += '<td style="padding:10px;' + isWeekend + ';' + isToday + '">' + day + '</td>';
+        day++;
+      } else {
+        html += '<td style="padding:10px"></td>';
+      }
+    }
+    html += '</tr>';
+    if (day > daysInMonth) break;
+  }
+  html += '</table>';
+  
+  // 也保存到隐藏canvas用于导出
+  window._calData = { year: year, month: month, daysInMonth: daysInMonth, firstDay: firstDay, monthName: monthNames[month-1] };
+  
+  preview.innerHTML = html;
+  showToast('日历已生成');
 }
 
 function printCal() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
-  if (!text) { showToast('没有可导出的内容'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'calendar-generator-output.txt';
-  a.click();
-  showToast('已下载');
+  var preview = document.getElementById('calendarPreview');
+  if (!preview || !preview.innerText.trim()) { showToast('请先生成日历'); return; }
+  window.print();
 }
 </script>
 </body>

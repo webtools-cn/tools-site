@@ -167,29 +167,133 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 
 // === 重写的函数实现 ===
-function clearAll() {
-  document.getElementById('regexInput').value = '';
-  showToast('已重置');
-}
+// Thompson NFA construction
+var stateId = 0;
+function newState() { return stateId++; }
 
-function downloadPNG() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
-  if (!text) { showToast('没有可导出的内容'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'regex-to-nfa-output.txt';
-  a.click();
-  showToast('已下载');
+function Node(start, end) { this.start = start; this.end = end; }
+
+function buildNFA(regex) {
+  stateId = 0;
+  var stack = [];
+  var i = 0;
+  
+  function parseAtom() {
+    var s = newState(), e = newState();
+    var transitions = [{from:s, to:e, label: regex[i]}];
+    i++;
+    return {node: new Node(s,e), trans: transitions};
+  }
+  
+  function parseExpr() {
+    var left = parseTerm();
+    while (i < regex.length && regex[i] === '|') {
+      i++; var right = parseTerm();
+      var s = newState(), e = newState();
+      var trans = [{from:s, to:left.node.start, label:'ε'}, {from:s, to:right.node.start, label:'ε'},
+                   {from:left.node.end, to:e, label:'ε'}, {from:right.node.end, to:e, label:'ε'}];
+      left = {node: new Node(s,e), trans: left.trans.concat(right.trans).concat(trans)};
+    }
+    return left;
+  }
+  
+  function parseTerm() {
+    var factors = [];
+    while (i < regex.length && regex[i] !== '|' && regex[i] !== ')') {
+      if (regex[i] === '(') {
+        i++; factors.push(parseExpr()); i++;
+      } else if (regex[i] === '*') {
+        var prev = factors.pop();
+        var s = newState(), e = newState();
+        var trans = [{from:s, to:prev.node.start, label:'ε'}, {from:s, to:e, label:'ε'},
+                     {from:prev.node.end, to:prev.node.start, label:'ε'}, {from:prev.node.end, to:e, label:'ε'}];
+        factors.push({node: new Node(s,e), trans: prev.trans.concat(trans)});
+        i++;
+      } else {
+        factors.push(parseAtom());
+      }
+    }
+    var result = factors[0];
+    for (var j = 1; j < factors.length; j++) {
+      var trans = [{from: result.node.end, to: factors[j].node.start, label: 'ε'}];
+      result = {node: new Node(result.node.start, factors[j].node.end),
+                trans: result.trans.concat(factors[j].trans).concat(trans)};
+    }
+    return result;
+  }
+  
+  return parseExpr();
 }
 
 function generateNFA() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  var regex = document.getElementById('regexInput').value.trim();
+  if (!regex) { showToast('请输入正则表达式'); return; }
+  document.getElementById('regexError').textContent = '';
+  
+  try {
+    var result = buildNFA(regex);
+    var canvas = document.getElementById('nfaCanvas');
+    var ctx = canvas.getContext('2d');
+    canvas.width = 900; canvas.height = 400;
+    ctx.fillStyle = '#0f172a'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    
+    // Simple layout - place states in a line
+    var maxState = stateId;
+    var spacing = Math.min(120, (canvas.width - 100) / (maxState + 1));
+    var pos = {};
+    for (var s = 0; s <= maxState; s++) { pos[s] = {x: 50 + s * spacing, y: 200}; }
+    
+    // Draw transitions
+    ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 2; ctx.fillStyle = '#22d3ee'; ctx.font = '12px monospace';
+    result.trans.forEach(function(t) {
+      var fx = pos[t.from].x, fy = pos[t.from].y;
+      var tx = pos[t.to].x, ty = pos[t.to].y;
+      ctx.beginPath();
+      if (t.from === t.to) {
+        ctx.arc(fx+20, fy-20, 15, 0, Math.PI*2);
+      } else {
+        var angle = Math.atan2(ty-fy, tx-fx);
+        ctx.moveTo(fx + 20*Math.cos(angle), fy + 20*Math.sin(angle));
+        ctx.lineTo(tx - 20*Math.cos(angle), ty - 20*Math.sin(angle));
+      }
+      ctx.stroke();
+      // Label
+      var mx = (fx+tx)/2, my = (fy+ty)/2 - 15;
+      ctx.fillText(t.label, mx, my);
+    });
+    
+    // Draw states
+    for (var s = 0; s <= maxState; s++) {
+      ctx.beginPath();
+      ctx.arc(pos[s].x, pos[s].y, 20, 0, Math.PI*2);
+      ctx.fillStyle = s === 0 ? '#4ade80' : s === result.node.end ? '#ef4444' : '#1e293b';
+      ctx.fill();
+      ctx.strokeStyle = '#06b6d4'; ctx.stroke();
+      ctx.fillStyle = '#f1f5f9'; ctx.textAlign='center'; ctx.fillText('q'+s, pos[s].x, pos[s].y+5);
+    }
+    
+    document.getElementById('nfaInfo').innerHTML = '<p style="color:#94a3b8">状态数: ' + (maxState+1) + ' | 转换数: ' + result.trans.length + ' | 起始: q0(绿) | 接受: q' + result.node.end + '(红)</p>';
+    showToast('NFA已生成');
+  } catch(e) {
+    document.getElementById('regexError').textContent = '解析错误: ' + e.message;
+    showToast('正则解析失败');
+  }
 }
 
 function loadExample() {
-  document.getElementById('regexInput').value = '示例文本';
-  showToast('已加载示例');
+  var examples = ['ab', '(a|b)*abb', 'a*b', '(ab)*', 'a|b'];
+  var idx = Math.floor(Math.random() * examples.length);
+  document.getElementById('regexInput').value = examples[idx];
+  generateNFA();
+}
+
+function downloadPNG() {
+  var canvas = document.getElementById('nfaCanvas');
+  var a = document.createElement('a');
+  a.download = 'nfa-diagram.png';
+  a.href = canvas.toDataURL();
+  a.click();
+  showToast('已下载');
 }
 </script>
 </body>

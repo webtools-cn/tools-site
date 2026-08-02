@@ -60,7 +60,10 @@ for d in sorted(os.listdir('.')):
     style_m = re.search(r'<style>(.*?)</style>', c, re.DOTALL)
     if not style_m: continue
     style = style_m.group(1)
-    if re.search(r'background[^:]*:\s*#(fff|ffffff|f8f9fa|fafafa|f5f5f5|eee|eeeeee)\b', style, re.I):
+    # 去除 @media print 块（打印时白底是正常的）
+    style_no_print = re.sub(r'@media\s+print\s*\{.*?\}', '', style, flags=re.DOTALL)
+    # 只检查 body 或 html 选择器的背景色
+    if re.search(r'(?:^|\})(?![^{]*@media\s+print)\s*(?:body|html)\s*\{[^}]*background[^:]*:\s*#(fff|ffffff|f8f9fa|fafafa|f5f5f5|eee|eeeeee)\b', style_no_print, re.I):
         light_bg += 1
 
 if light_bg > 0:
