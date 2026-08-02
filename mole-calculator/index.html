@@ -30,8 +30,65 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 </head>
 <body>
-<h1>免费摩尔计算器 - Convert Mass to Moles, Moles to Molecule | 无需注册</h1>
+<div class="container">
+<h1>摩尔计算器</h1>
 <p class="tool-description" style="color:#6b7280;font-size:0.95rem;line-height:1.6;margin:0.5rem 0 1rem;">免费在线摩尔计算器，根据质量、分子量和物质的量进行互算。支持常见化学物质查询，自动计算摩尔质量。适用于化学作业和实验。纯前端工具。</p>
+
+<div class="input-section">
+<h2>🧪 摩尔计算</h2>
+<div class="row">
+<div class="field">
+<label>已知量类型</label>
+<select id="mode">
+<option value="mass2mol">质量 → 摩尔数</option>
+<option value="mol2mass">摩尔数 → 质量</option>
+<option value="mol2molecule">摩尔数 → 分子数</option>
+<option value="mass2molecule">质量 → 分子数</option>
+</select>
+</div>
+<div class="field">
+<label>摩尔质量（g/mol）</label>
+<input type="number" id="molarMass" value="18.015" min="0" step="any">
+</div>
+<div class="field">
+<label id="inputLabel">质量（g）</label>
+<input type="number" id="inputValue" value="36" min="0" step="any">
+</div>
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" id="calcBtn">🔍 计算</button>
+<button class="btn btn-secondary" id="resetBtn">↺ 重置</button>
+</div>
+</div>
+
+<div class="result-section" id="resultSection" style="display:none">
+<h2>📋 计算结果</h2>
+<div class="result-box" id="resultBox"></div>
+</div>
+
+<div class="info-section">
+<h2>💡 常见物质摩尔质量</h2>
+<div class="table-wrap">
+<table class="data">
+<thead><tr><th>物质</th><th>化学式</th><th>摩尔质量 (g/mol)</th></tr></thead>
+<tbody>
+<tr><td>水</td><td>H₂O</td><td>18.015</td></tr>
+<tr><td>氯化钠</td><td>NaCl</td><td>58.443</td></tr>
+<tr><td>二氧化碳</td><td>CO₂</td><td>44.009</td></tr>
+<tr><td>葡萄糖</td><td>C₆H₁₂O₆</td><td>180.156</td></tr>
+<tr><td>硫酸</td><td>H₂SO₄</td><td>98.079</td></tr>
+<tr><td>氢氧化钠</td><td>NaOH</td><td>39.997</td></tr>
+<tr><td>盐酸</td><td>HCl</td><td>36.461</td></tr>
+<tr><td>氨气</td><td>NH₃</td><td>17.031</td></tr>
+<tr><td>硝酸</td><td>HNO₃</td><td>63.013</td></tr>
+<tr><td>碳酸钙</td><td>CaCO₃</td><td>100.087</td></tr>
+</tbody>
+</table>
+</div>
+<p style="margin-top:8px">• 阿伏伽德罗常数 Nₐ = 6.022×10²³ mol⁻¹</p>
+<p>• 摩尔数 = 质量 ÷ 摩尔质量</p>
+<p>• 分子数 = 摩尔数 × Nₐ</p>
+</div>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
@@ -95,5 +152,98 @@ select:focus{outline:none;border-color:rgba(6,182,212,.5)}
 </footer>
 </div>
 
+<div class="toast" id="toast"></div>
+<script>
+(function(){
+  var NA=6.02214076e23;
+  var modeSelect=document.getElementById('mode');
+  var inputLabel=document.getElementById('inputLabel');
+  var calcBtn=document.getElementById('calcBtn');
+  var resetBtn=document.getElementById('resetBtn');
+  var resultSection=document.getElementById('resultSection');
+  var resultBox=document.getElementById('resultBox');
+  var toast=document.getElementById('toast');
+
+  function showToast(msg){
+    toast.textContent=msg;
+    toast.classList.add('show');
+    setTimeout(function(){toast.classList.remove('show');},2000);
+  }
+
+  function updateLabel(){
+    var m=modeSelect.value;
+    if(m==='mass2mol'||m==='mass2molecule'){
+      inputLabel.textContent='质量（g）';
+    } else {
+      inputLabel.textContent='摩尔数（mol）';
+    }
+  }
+
+  function fmtSci(n){
+    if(n===0)return '0';
+    if(Math.abs(n)<0.001||Math.abs(n)>=100000){
+      return n.toExponential(4);
+    }
+    return n.toFixed(4);
+  }
+
+  function calculate(){
+    var mm=parseFloat(document.getElementById('molarMass').value);
+    var val=parseFloat(document.getElementById('inputValue').value);
+    var m=modeSelect.value;
+
+    if(isNaN(mm)||mm<=0){showToast('请输入有效的摩尔质量');return;}
+    if(isNaN(val)||val<0){showToast('请输入有效的数值');return;}
+
+    var moles,mass,molecules;
+    var html='';
+
+    if(m==='mass2mol'){
+      mass=val;
+      moles=mass/mm;
+      molecules=moles*NA;
+      html='<div class="result-value">'+fmtSci(moles)+' mol</div>';
+      html+='<div class="result-detail">质量 '+fmtSci(mass)+' g ÷ 摩尔质量 '+fmtSci(mm)+' g/mol = '+fmtSci(moles)+' mol</div>';
+      html+='<div class="result-detail">对应分子数：'+fmtSci(molecules)+' 个</div>';
+    } else if(m==='mol2mass'){
+      moles=val;
+      mass=moles*mm;
+      molecules=moles*NA;
+      html='<div class="result-value">'+fmtSci(mass)+' g</div>';
+      html+='<div class="result-detail">摩尔数 '+fmtSci(moles)+' mol × 摩尔质量 '+fmtSci(mm)+' g/mol = '+fmtSci(mass)+' g</div>';
+      html+='<div class="result-detail">对应分子数：'+fmtSci(molecules)+' 个</div>';
+    } else if(m==='mol2molecule'){
+      moles=val;
+      molecules=moles*NA;
+      mass=moles*mm;
+      html='<div class="result-value">'+fmtSci(molecules)+' 个</div>';
+      html+='<div class="result-detail">摩尔数 '+fmtSci(moles)+' mol × Nₐ (6.022×10²³) = '+fmtSci(molecules)+' 个</div>';
+      html+='<div class="result-detail">对应质量：'+fmtSci(mass)+' g</div>';
+    } else if(m==='mass2molecule'){
+      mass=val;
+      moles=mass/mm;
+      molecules=moles*NA;
+      html='<div class="result-value">'+fmtSci(molecules)+' 个</div>';
+      html+='<div class="result-detail">质量 '+fmtSci(mass)+' g ÷ 摩尔质量 '+fmtSci(mm)+' g/mol = '+fmtSci(moles)+' mol</div>';
+      html+='<div class="result-detail">× Nₐ (6.022×10²³) = '+fmtSci(molecules)+' 个分子</div>';
+    }
+
+    resultBox.innerHTML=html;
+    resultSection.style.display='block';
+  }
+
+  function reset(){
+    document.getElementById('molarMass').value='18.015';
+    document.getElementById('inputValue').value='36';
+    modeSelect.value='mass2mol';
+    updateLabel();
+    resultSection.style.display='none';
+  }
+
+  modeSelect.addEventListener('change',updateLabel);
+  calcBtn.addEventListener('click',calculate);
+  resetBtn.addEventListener('click',reset);
+})();
+</script>
 </body>
 </html>

@@ -30,8 +30,52 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 </head>
 <body>
-<h1>免费通货膨胀计算器 - Purchasing Power | Dollar Value Over Tim | 无需注册</h1>
+<div class="container">
+<h1>通货膨胀计算器</h1>
 <p class="tool-description" style="color:#6b7280;font-size:0.95rem;line-height:1.6;margin:0.5rem 0 1rem;">免费在线通货膨胀计算器。计算货币购买力变化、通货膨胀对存款的影响。支持自定义通胀率、多周期对比。纯前端处理。</p>
+
+<div class="input-section">
+<h2>📊 通胀计算</h2>
+<div class="row">
+<div class="field">
+<label>原始金额（元）</label>
+<input type="number" id="amount" value="10000" min="0" step="any">
+</div>
+<div class="field">
+<label>年通胀率（%）</label>
+<input type="number" id="rate" value="3" min="0" step="0.1">
+</div>
+<div class="field">
+<label>经过年数</label>
+<input type="number" id="years" value="10" min="1" step="1">
+</div>
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" id="calcBtn">🔍 计算</button>
+<button class="btn btn-secondary" id="resetBtn">↺ 重置</button>
+</div>
+</div>
+
+<div class="result-section" id="resultSection" style="display:none">
+<h2>📈 计算结果</h2>
+<div class="result-box" id="resultBox"></div>
+<div class="table-wrap" id="tableWrap" style="display:none">
+<h2 style="margin-top:16px">📅 逐年购买力变化</h2>
+<table class="data" id="yearTable">
+<thead><tr><th>年份</th><th>名义金额</th><th>实际购买力</th><th>购买力损失</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+
+<div class="info-section">
+<h2>💡 使用说明</h2>
+<p>• 输入原始金额、年通胀率和经过年数，点击计算即可查看结果</p>
+<p>• <b>名义金额</b>：按通胀率增长后的账面金额</p>
+<p>• <b>实际购买力</b>：名义金额扣除通胀后的真实购买力</p>
+<p>• <b>购买力损失</b>：相比原始金额的购买力下降百分比</p>
+<p>• 所有计算在浏览器本地完成，数据不上传服务器</p>
+</div>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
@@ -89,5 +133,88 @@ table.data td{color:#cbd5e1}
 </footer>
 </div>
 
+<div class="toast" id="toast"></div>
+<script>
+(function(){
+  var calcBtn=document.getElementById('calcBtn');
+  var resetBtn=document.getElementById('resetBtn');
+  var resultSection=document.getElementById('resultSection');
+  var resultBox=document.getElementById('resultBox');
+  var tableWrap=document.getElementById('tableWrap');
+  var yearTable=document.getElementById('yearTable');
+  var toast=document.getElementById('toast');
+
+  function showToast(msg){
+    toast.textContent=msg;
+    toast.classList.add('show');
+    setTimeout(function(){toast.classList.remove('show');},2000);
+  }
+
+  function fmt(n){
+    return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+
+  function calculate(){
+    var amount=parseFloat(document.getElementById('amount').value);
+    var rate=parseFloat(document.getElementById('rate').value);
+    var years=parseInt(document.getElementById('years').value);
+
+    if(isNaN(amount)||amount<0){showToast('请输入有效的原始金额');return;}
+    if(isNaN(rate)||rate<0){showToast('请输入有效的通胀率');return;}
+    if(isNaN(years)||years<1){showToast('请输入有效的年数');return;}
+
+    // Actual purchasing power: amount / (1+rate)^years
+    var factor=Math.pow(1+rate/100,years);
+    var realPurchasingPower=amount/factor;
+    var nominalValue=amount; // If money is kept under mattress, nominal stays same
+    var futureValue=amount*factor; // If invested at same rate
+    var lossPct=((1-realPurchasingPower/amount)*100);
+
+    var html='<div style="margin:8px 0">';
+    html+='<div style="color:#94a3b8;font-size:.9rem;margin-bottom:4px">原始金额</div>';
+    html+='<div style="color:#22d3ee;font-size:1.8rem;font-weight:700">¥'+fmt(amount)+'</div>';
+    html+='</div>';
+    html+='<div style="margin:12px 0;padding:12px;background:#0f172a;border-radius:8px;border:1px solid rgba(148,163,184,.08)">';
+    html+='<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">';
+    html+='<div><div style="color:#94a3b8;font-size:.85rem">实际购买力</div><div style="color:#f87171;font-size:1.3rem;font-weight:700">¥'+fmt(realPurchasingPower)+'</div></div>';
+    html+='<div><div style="color:#94a3b8;font-size:.85rem">购买力损失</div><div style="color:#f87171;font-size:1.3rem;font-weight:700">'+lossPct.toFixed(2)+'%</div></div>';
+    html+='<div><div style="color:#94a3b8;font-size:.85rem">需追平金额</div><div style="color:#4ade80;font-size:1.3rem;font-weight:700">¥'+fmt(futureValue)+'</div></div>';
+    html+='</div>';
+    html+='<div style="color:#64748b;font-size:.85rem;margin-top:8px">💡 '+years+'年后，¥'+fmt(amount)+'的实际购买力仅相当于现在的¥'+fmt(realPurchasingPower)+'。要保持购买力不变，金额需增长至¥'+fmt(futureValue)+'。</div>';
+    html+='</div>';
+
+    resultBox.innerHTML=html;
+    resultSection.style.display='block';
+
+    // Build yearly table
+    if(years<=30){
+      tableWrap.style.display='block';
+      var tbody=yearTable.querySelector('tbody');
+      tbody.innerHTML='';
+      for(var y=1;y<=years;y++){
+        var f=Math.pow(1+rate/100,y);
+        var rp=amount/f;
+        var fv=amount*f;
+        var lp=((1-rp/amount)*100);
+        var tr=document.createElement('tr');
+        tr.innerHTML='<td>第'+y+'年</td><td>¥'+fmt(fv)+'</td><td>¥'+fmt(rp)+'</td><td style="color:#f87171">'+lp.toFixed(2)+'%</td>';
+        tbody.appendChild(tr);
+      }
+    } else {
+      tableWrap.style.display='none';
+    }
+  }
+
+  function reset(){
+    document.getElementById('amount').value='10000';
+    document.getElementById('rate').value='3';
+    document.getElementById('years').value='10';
+    resultSection.style.display='none';
+  }
+
+  calcBtn.addEventListener('click',calculate);
+  resetBtn.addEventListener('click',reset);
+})();
+</script>
 </body>
 </html>

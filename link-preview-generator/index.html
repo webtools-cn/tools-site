@@ -28,8 +28,86 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 </head>
 <body>
-<h1>免费在线链接预览生成器 - Social Card Preview & OG Tag Checker | 无需注册</h1>
+<div class="container">
+<h1>链接预览生成器</h1>
 <p class="tool-description" style="color:#6b7280;font-size:0.95rem;line-height:1.6;margin:0.5rem 0 1rem;">免费在线链接预览生成器，预览链接在Facebook、Twitter、LinkedIn等平台的分享效果。检测OG标签和元数据。</p>
+
+<div class="input-section">
+<h2>🔗 输入链接信息</h2>
+<div class="field">
+<label>页面标题 (og:title)</label>
+<input type="text" id="pageTitle" value="我的网站 - 免费在线工具" placeholder="分享卡片显示的标题">
+</div>
+<div class="field">
+<label>页面描述 (og:description)</label>
+<textarea id="pageDesc" placeholder="分享卡片显示的描述文字" style="min-height:60px">这是一个免费的在线工具集合，包含计算器、转换器、生成器等数百种工具。</textarea>
+</div>
+<div class="row">
+<div class="field">
+<label>页面URL (og:url)</label>
+<input type="url" id="pageUrl" value="https://example.com" placeholder="https://example.com">
+</div>
+<div class="field">
+<label>图片URL (og:image)</label>
+<input type="url" id="pageImage" value="https://example.com/og-image.png" placeholder="https://example.com/image.png">
+</div>
+</div>
+<div class="field">
+<label>网站名称 (og:site_name)</label>
+<input type="text" id="siteName" value="MyWebsite" placeholder="网站名称">
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" id="genBtn">🔍 生成预览和代码</button>
+<button class="btn btn-secondary" id="resetBtn">↺ 重置</button>
+</div>
+</div>
+
+<div class="result-section" id="previewSection" style="display:none">
+<h2>📱 社交媒体预览</h2>
+<div style="background:#1a1a1a;border-radius:8px;padding:16px;margin:8px 0;border:1px solid rgba(148,163,184,.15)">
+<div style="color:#94a3b8;font-size:.8rem;margin-bottom:8px">Facebook / LinkedIn 预览</div>
+<div style="background:#1e293b;border-radius:8px;overflow:hidden;border:1px solid rgba(148,163,184,.1)">
+<div style="background:#0f172a;height:180px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid rgba(148,163,184,.1)" id="fbImage">
+<span style="color:#475569;font-size:.85rem">图片预览区</span>
+</div>
+<div style="padding:12px">
+<div style="color:#64748b;font-size:.75rem;text-transform:uppercase" id="fbUrl">example.com</div>
+<div style="color:#e2e8f0;font-size:1rem;font-weight:600;margin:4px 0" id="fbTitle">标题</div>
+<div style="color:#94a3b8;font-size:.85rem;line-height:1.4" id="fbDesc">描述</div>
+</div>
+</div>
+</div>
+<div style="background:#1a1a1a;border-radius:8px;padding:16px;margin:8px 0;border:1px solid rgba(148,163,184,.15)">
+<div style="color:#94a3b8;font-size:.8rem;margin-bottom:8px">Twitter / X 预览</div>
+<div style="background:#1e293b;border-radius:16px;overflow:hidden;border:1px solid rgba(148,163,184,.1)">
+<div style="background:#0f172a;height:180px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid rgba(148,163,184,.1)" id="twImage">
+<span style="color:#475569;font-size:.85rem">图片预览区</span>
+</div>
+<div style="padding:12px">
+<div style="color:#e2e8f0;font-size:1rem;font-weight:600" id="twTitle">标题</div>
+<div style="color:#94a3b8;font-size:.85rem;line-height:1.4;margin-top:2px" id="twDesc">描述</div>
+<div style="color:#64748b;font-size:.8rem;margin-top:6px" id="twUrl">example.com</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="result-section" id="codeSection" style="display:none">
+<h2>📋 生成的Meta标签代码</h2>
+<div class="result-box" id="codeBox" style="white-space:pre-wrap"></div>
+<div class="btn-row">
+<button class="btn btn-success" id="copyBtn">📋 复制代码</button>
+</div>
+</div>
+
+<div class="info-section">
+<h2>💡 使用说明</h2>
+<p>• 填写页面标题、描述、URL和图片链接，点击生成</p>
+<p>• 查看Facebook/Twitter等平台的分享卡片预览效果</p>
+<p>• 复制生成的Open Graph和Twitter Card meta标签</p>
+<p>• 将代码粘贴到网页HTML的 &lt;head&gt; 部分即可</p>
+<p>• 推荐图片尺寸：1200×630像素，JPG或PNG格式</p>
+</div>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
@@ -101,5 +179,118 @@ table.data td{color:#cbd5e1}
 </footer>
 </div>
 
+<div class="toast" id="toast"></div>
+<script>
+(function(){
+  var genBtn=document.getElementById('genBtn');
+  var resetBtn=document.getElementById('resetBtn');
+  var copyBtn=document.getElementById('copyBtn');
+  var previewSection=document.getElementById('previewSection');
+  var codeSection=document.getElementById('codeSection');
+  var codeBox=document.getElementById('codeBox');
+  var toast=document.getElementById('toast');
+
+  function showToast(msg){
+    toast.textContent=msg;
+    toast.classList.add('show');
+    setTimeout(function(){toast.classList.remove('show');},2000);
+  }
+
+  function escapeHtml(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function getDomain(url){
+    try{
+      var u=new URL(url);
+      return u.hostname;
+    }catch(e){
+      return url;
+    }
+  }
+
+  function generate(){
+    var title=document.getElementById('pageTitle').value.trim();
+    var desc=document.getElementById('pageDesc').value.trim();
+    var url=document.getElementById('pageUrl').value.trim();
+    var image=document.getElementById('pageImage').value.trim();
+    var site=document.getElementById('siteName').value.trim();
+
+    if(!title){showToast('请输入页面标题');return;}
+    if(!url){showToast('请输入页面URL');return;}
+
+    var domain=getDomain(url);
+
+    // Update Facebook preview
+    document.getElementById('fbTitle').textContent=title;
+    document.getElementById('fbDesc').textContent=desc||'（无描述）';
+    document.getElementById('fbUrl').textContent=domain;
+    var fbImg=document.getElementById('fbImage');
+    if(image){
+      fbImg.innerHTML='<img src="'+escapeHtml(image)+'" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.innerHTML=\'<span style=color:#475569;font-size:.85rem>图片加载失败</span>\'">';
+    } else {
+      fbImg.innerHTML='<span style="color:#475569;font-size:.85rem">无图片</span>';
+    }
+
+    // Update Twitter preview
+    document.getElementById('twTitle').textContent=title;
+    document.getElementById('twDesc').textContent=desc||'';
+    document.getElementById('twUrl').textContent=domain;
+    var twImg=document.getElementById('twImage');
+    if(image){
+      twImg.innerHTML='<img src="'+escapeHtml(image)+'" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.innerHTML=\'<span style=color:#475569;font-size:.85rem>图片加载失败</span>\'">';
+    } else {
+      twImg.innerHTML='<span style="color:#475569;font-size:.85rem">无图片</span>';
+    }
+
+    // Generate meta tag code
+    var code='<!-- Open Graph / Facebook -->\n';
+    code+='<meta property="og:type" content="website">\n';
+    code+='<meta property="og:url" content="'+escapeHtml(url)+'">\n';
+    code+='<meta property="og:title" content="'+escapeHtml(title)+'">\n';
+    if(desc)code+='<meta property="og:description" content="'+escapeHtml(desc)+'">\n';
+    if(image)code+='<meta property="og:image" content="'+escapeHtml(image)+'">\n';
+    if(site)code+='<meta property="og:site_name" content="'+escapeHtml(site)+'">\n';
+    code+='\n<!-- Twitter Card -->\n';
+    code+='<meta name="twitter:card" content="summary_large_image">\n';
+    code+='<meta name="twitter:url" content="'+escapeHtml(url)+'">\n';
+    code+='<meta name="twitter:title" content="'+escapeHtml(title)+'">\n';
+    if(desc)code+='<meta name="twitter:description" content="'+escapeHtml(desc)+'">\n';
+    if(image)code+='<meta name="twitter:image" content="'+escapeHtml(image)+'">\n';
+
+    codeBox.textContent=code;
+    previewSection.style.display='block';
+    codeSection.style.display='block';
+  }
+
+  function reset(){
+    document.getElementById('pageTitle').value='我的网站 - 免费在线工具';
+    document.getElementById('pageDesc').value='这是一个免费的在线工具集合，包含计算器、转换器、生成器等数百种工具。';
+    document.getElementById('pageUrl').value='https://example.com';
+    document.getElementById('pageImage').value='https://example.com/og-image.png';
+    document.getElementById('siteName').value='MyWebsite';
+    previewSection.style.display='none';
+    codeSection.style.display='none';
+  }
+
+  function copyCode(){
+    var text=codeBox.textContent;
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(text).then(function(){showToast('✅ 代码已复制到剪贴板');});
+    } else {
+      var ta=document.createElement('textarea');
+      ta.value=text;
+      document.body.appendChild(ta);
+      ta.select();
+      try{document.execCommand('copy');showToast('✅ 代码已复制到剪贴板');}catch(e){showToast('复制失败，请手动复制');}
+      document.body.removeChild(ta);
+    }
+  }
+
+  genBtn.addEventListener('click',generate);
+  resetBtn.addEventListener('click',reset);
+  copyBtn.addEventListener('click',copyCode);
+})();
+</script>
 </body>
 </html>
