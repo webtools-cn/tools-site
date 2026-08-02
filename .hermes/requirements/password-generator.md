@@ -59,9 +59,16 @@
 - EN版添加"Generate Strong Password"等标题
 
 ## 4. 验收标准
-- [ ] 输入数据→输出正确（密码符合设定的字符类型和长度）
-- [ ] 布局正常、移动端375px不崩
-- [ ] EN版英文自然、无中文
-- [ ] 有Schema、无假评分、推荐相关工具
-- [ ] 密码生成使用crypto.getRandomValues，非Math.random
-- [ ] 强度评估公式正确（熵>=60为强，>=80为极强）
+- [x] 输入数据→输出正确（密码符合设定的字符类型和长度）
+- [x] 布局正常、移动端375px不崩
+- [x] EN版英文自然、无中文
+- [x] 有Schema、无假评分、推荐相关工具
+- [x] 密码生成使用crypto.getRandomValues，非Math.random
+- [x] 强度评估公式正确（熵>=60为强，>=80为极强）
+
+## 5. 上线记录
+- 2026-08-02: 工具开发完成，CN+EN双版本上线
+- URL: https://free-toolbase.com/password-generator/
+- EN URL: https://free-toolbase.com/en/password-generator/
+- 分类: security-tools
+- Git commit: feat(password-generator): 新增密码生成器工具
