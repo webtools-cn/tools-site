@@ -8,11 +8,11 @@
 |:-----|:----:|:----:|:----:|:------:|:---------|
 | 空壳工具(0交互+0JS) | 40+ | 42 | 0 | ✅ 完成 | check_empty_shells.py + 精确过滤 |
 | 模板空壳(toolInput stub) | 4 | 4 | 0 | ✅ 完成 | check_empty_shells.py 模板空壳检测 |
-| EN版模板空壳(process未定义) | 23 | 12 | 11 | 🔴 进行中 | grep toolInput + process() 未定义检测 |
+| EN版模板空壳(process未定义) | 23 | 15 | 8 | 🔴 进行中 | grep toolInput + process() 未定义检测 |
 
-## EN版模板空壳清单(11个剩余)
+## EN版模板空壳清单(8个剩余)
 
-en/graphql-to-json, en/html-to-react, en/image-round-corners, en/json-to-protobuf, en/pdf-page-numbers, en/protobuf-to-json, en/text-progress-bar-generator, en/tiff-to-jpg, en/webp-to-gif, en/xml-to-yaml, en/yaml-to-xml
+en/json-to-protobuf, en/pdf-page-numbers, en/protobuf-to-json, en/text-progress-bar-generator, en/tiff-to-jpg, en/webp-to-gif, en/xml-to-yaml, en/yaml-to-xml
 
 ## 已清零问题
 
@@ -102,6 +102,10 @@ bitwise-calculator, mesh-gradient-generator, svg-to-base64, color-palette-from-i
 ### 2026-08-03 (第十九批 - EN版模板空壳修复续)
 crossword-generator, csv-sorter, gif-to-webp
 注: 三个工具CN/EN版均修复。crossword-generator CN/EN版添加填字游戏生成器(单词列表输入+网格大小4档选择+交叉算法自动放置单词+格子编号+横向/纵向提示列表+打印导出空白谜题+清空)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互；csv-sorter CN/EN版添加CSV排序器(自定义分隔符逗号/Tab/分号/竖线+排序列选择1-5列+升序/降序+首行表头识别+数值/文本排序模式+CSV引号解析+排序结果表格预览+行数统计+复制结果/下载CSV文件)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互；gif-to-webp CN/EN版添加GIF转WebP图片格式转换器(批量上传+拖拽支持+质量滑块10-100%+Canvas渲染toBlob输出WebP+缩略图预览+原始/转换后文件大小对比+压缩率显示+单个下载/全部下载/删除/清空)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互。所有6个文件JS语法验证通过，EN版模板空壳从14降到11。
+
+### 2026-08-03 (第二十批 - EN版模板空壳修复续)
+graphql-to-json, html-to-react, image-round-corners
+注: 三个工具CN/EN版均修复。graphql-to-json CN/EN版添加GraphQL查询→JSON请求体转换器(textarea输入GraphQL查询+变量JSON输入+正则提取操作名称query/mutation/subscription+查询空白压缩+JSON.stringify格式化输出+示例加载/清空/复制结果)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互；html-to-react CN/EN版添加HTML→React JSX转换器(class→className/for→htmlFor/tabindex→tabIndex等10种属性camelCase转换+style字符串→JSX对象{{}}+自闭合标签img/br/hr/input等13种+事件处理器onclick→onClick等+示例/清空/复制)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互；image-round-corners CN/EN版添加图片圆角工具(FileReader上传+Canvas渲染+可调半径滑块0-200px+quadraticCurveTo圆角路径裁剪clip+原图/效果双Canvas对比预览+下载PNG)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互。同时修复CN版三个工具损坏的HTML(/div>残留)。所有6个文件JS语法验证通过，EN版模板空壳从11降到8。
 
 ## 检测说明
 
