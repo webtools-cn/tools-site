@@ -1,12 +1,12 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-02 23:00 (cron自动更新)
+> 最后更新: 2026-08-02 23:30 (cron自动更新)
 
 ## 当前真实问题 (只有1类)
 
 | 问题 | 总数 | 已修 | 剩余 | 优先级 | 检测方法 |
 |:-----|:----:|:----:|:----:|:------:|:---------|
-| 空壳工具(Generated at) | 55 | 40 | 15 CN + 0 EN = 15 | P0 | grep "Generated at" |
+| 空壳工具(Generated at) | 55 | 43 | 12 CN + 1 EN = 13 | P0 | grep "Generated at" |
 
 ## 已清零问题
 
@@ -22,13 +22,13 @@
 | 辅助页面全英文 | 3 | ✅ 0 | - |
 | DNS API失效 | 1 | ✅ 0 | - |
 
-## 空壳工具清单(15个CN)
+## 空壳工具清单(13个)
 
-### CN (15个)
-css-scroll-animation-builder, css-scroll-driven-animation-generator, github-actions-generator, image-stitcher, image-to-pdf, json-to-csharp-class, json-to-protobuf-schema, qr-code-scanner, random-generator, svg-blob-generator, svg-wave-generator, text-to-ascii-art, text-to-image, video-to-gif, wifi-qr-code-generator
+### CN (12个)
+image-stitcher, image-to-pdf, json-to-csharp-class, json-to-protobuf-schema, qr-code-scanner, random-generator, svg-blob-generator, svg-wave-generator, text-to-ascii-art, text-to-image, video-to-gif, wifi-qr-code-generator
 
-### EN (0个)
-无
+### EN (1个)
+prompt-template-builder
 
 ## 已修复的工具
 bip39-mnemonic, calendar-event-generator, code-screenshot, credit-card-generator, credit-card-validator, data-uri-generator, diff-to-patch, directory-tree-generator, disclaimer-generator, domain-name-generator, json-patch-generator, json-to-sql, jwt-generator, license-generator, lucky-number-generator, mailto-link-generator, og-meta-tag-generator, phone-link-generator, random-string-generator, return-policy-generator, rss-feed-generator, sitemap-generator, slug-generator, ssh-key-generator, text-to-regex, vcard-generator, vcf-generator, wifi-qr-code-generator(EN)
