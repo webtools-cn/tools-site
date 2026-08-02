@@ -6,11 +6,11 @@
 
 | 问题 | 总数 | 已修 | 剩余 | 优先级 | 检测方法 |
 |:-----|:----:|:----:|:----:|:------:|:---------|
-| 空壳工具(0交互+0JS) | 40+ | 6 | ~34 | 🔴 高 | check_empty_shells.py + 精确过滤 |
+| 空壳工具(0交互+0JS) | 40+ | 9 | ~31 | 🔴 高 | check_empty_shells.py + 精确过滤 |
 
-## 空壳工具清单(约34个)
+## 空壳工具清单(约31个)
 
-css-image-hover-generator, css-logical-properties-generator, css-parallax-generator, css-text-outline-generator, css-toast-generator, css-tooltip-generator, css-typewriter-generator, cup-to-gram-converter, cursive-text-generator, data-unit-converter, distance-calculator, dotenv-validator, energy-converter, favicon-generator, frequency-converter, fuel-cost-calculator, fuel-efficiency-converter, home-affordability-calculator, image-remove-bg, inflation-calculator, json, link-preview-generator, markup-calculator, midpoint-calculator, mole-calculator, nda-generator, percent-change-calculator, percentage-change-calculator, percentage-difference-calculator, pressure-converter, quadratic-formula-calculator, remove-duplicates, rental-agreement-generator, slope-calculator, surface-area-calculator, text-stats, unit-price-calculator, vocabulary-builder, word-search-generator, zip-extractor
+css-image-hover-generator, css-logical-properties-generator, css-parallax-generator, css-text-outline-generator, css-toast-generator, css-tooltip-generator, css-typewriter-generator, cup-to-gram-converter, cursive-text-generator, data-unit-converter, distance-calculator, dotenv-validator, energy-converter, favicon-generator, frequency-converter, fuel-cost-calculator, fuel-efficiency-converter, home-affordability-calculator, image-remove-bg, inflation-calculator, json, link-preview-generator, markup-calculator, mole-calculator, nda-generator, percent-change-calculator, percentage-change-calculator, percentage-difference-calculator, pressure-converter, remove-duplicates, rental-agreement-generator, surface-area-calculator, text-stats, unit-price-calculator, vocabulary-builder, word-search-generator, zip-extractor
 
 ## 已清零问题
 
@@ -34,6 +34,9 @@ cookie-consent-banner, correlation-calculator, css-card-generator
 
 ### 2026-08-03 (第二批)
 hmac-generator, simple-interest-calculator, reverse-text
+
+### 2026-08-03 (第三批)
+quadratic-formula-calculator, slope-calculator, midpoint-calculator
 
 ## 检测说明
 
