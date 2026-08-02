@@ -172,9 +172,25 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>Protobuf To Json</h2>
-    <p>Free online Protobuf To Json tool</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="Enter content..."><button class="btn" style="margin-left:8px" onclick="process()">Run</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>Parse Protocol Buffers .proto definition files into JSON example data. Automatically identifies message types, nested structures, and repeated fields to recursively generate example values.</p>
+    <div style="margin-top:12px">
+      <label style="font-size:.85rem;color:#94a3b8;display:block;margin-bottom:6px">Enter .proto definition:</label>
+      <textarea id="protoInput" placeholder="syntax = &quot;proto3&quot;&#10;&#10;message User {&#10;  string name = 1;&#10;  int32 age = 2;&#10;  bool active = 3;&#10;  repeated string tags = 4;&#10;  Address address = 5;&#10;}" style="width:100%;min-height:180px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px 12px;color:#e2e8f0;font-size:.85rem;font-family:monospace;outline:none;resize:vertical"></textarea>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:.85rem;color:#94a3b8">Root message:</label>
+      <input type="text" id="rootMsg" placeholder="Leave empty for first" style="width:180px">
+      <button class="btn" onclick="process()">Convert</button>
+      <button class="btn" onclick="loadExample()">Example</button>
+      <button class="btn" onclick="clearAll()">Clear</button>
+    </div>
+    <div style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:.85rem;color:#94a3b8">JSON output:</span>
+        <button class="btn" style="font-size:.8rem;padding:4px 12px" onclick="copyJson()">Copy</button>
+      </div>
+      <pre id="result" style="background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:14px;font-size:.82rem;color:#a5b4fc;overflow-x:auto;max-height:400px;white-space:pre-wrap;word-break:break-word"></pre>
+    </div>
   </div>
   <div class="tool-section">
     <h2>❓ FAQ</h2>
@@ -236,85 +252,114 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
   </div>
 
 <script>
+function showToast(m){var t=document.createElement('div');t.textContent=m;t.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(6,182,212,.9);color:#fff;padding:8px 20px;border-radius:6px;font-size:.85rem;z-index:9999;';document.body.appendChild(t);setTimeout(function(){t.remove()},3000)}
+
+// === Protobuf to JSON implementation ===
+function process() {
+  var input = document.getElementById('protoInput').value.trim();
+  if (!input) { showToast('Please enter .proto definition'); return; }
+  var messages = parseProto(input);
+  var msgNames = Object.keys(messages);
+  if (msgNames.length === 0) { showToast('No message definitions found'); return; }
+  var rootName = document.getElementById('rootMsg').value.trim() || msgNames[0];
+  if (!messages[rootName]) { showToast('Message not found: ' + rootName); return; }
+  var result = generateExample(rootName, messages, {});
+  document.getElementById('result').textContent = JSON.stringify(result, null, 2);
+  showToast('Conversion complete');
+}
+function parseProto(text) {
+  var messages = {};
+  var msgRegex = /message\s+(\w+)\s*\{([^}]*)\}/g;
+  var match;
+  while ((match = msgRegex.exec(text)) !== null) {
+    var name = match[1];
+    var body = match[2];
+    var fields = [];
+    var lines = body.split(/[;\n]/);
+    lines.forEach(function(line) {
+      line = line.trim();
+      if (!line || line.startsWith('//') || line.startsWith('/*')) return;
+      var parts = line.split(/\s+/);
+      if (parts.length < 2) return;
+      var isRepeated = parts[0] === 'repeated';
+      if (isRepeated) parts.shift();
+      var type = parts[0];
+      var fieldName = parts[1];
+      if (!fieldName) return;
+      fieldName = fieldName.replace(/[=].*/, '').trim();
+      if (!fieldName) return;
+      fields.push({ type: type, name: fieldName, repeated: isRepeated });
+    });
+    messages[name] = fields;
+  }
+  return messages;
+}
+function generateExample(name, messages, seen) {
+  if (seen[name]) return '<' + name + '>';
+  seen[name] = true;
+  var fields = messages[name];
+  if (!fields) return null;
+  var obj = {};
+  fields.forEach(function(f) {
+    var val = defaultValue(f.type, messages, seen);
+    if (f.repeated) { obj[f.name] = [val]; }
+    else { obj[f.name] = val; }
+  });
+  seen[name] = false;
+  return obj;
+}
+function defaultValue(type, messages, seen) {
+  var scalars = {
+    'string': 'example_string', 'int32': 42, 'int64': 42, 'uint32': 42, 'uint64': 42,
+    'sint32': 42, 'sint64': 42, 'fixed32': 42, 'fixed64': 42, 'sfixed32': 42, 'sfixed64': 42,
+    'float': 3.14, 'double': 3.14, 'bool': true, 'bytes': 'SGVsbG8=', 'enum': 'ENUM_VALUE_0'
+  };
+  if (scalars[type] !== undefined) return scalars[type];
+  if (messages[type]) return generateExample(type, messages, seen);
+  return null;
+}
+function loadExample() {
+  document.getElementById('protoInput').value = 'syntax = "proto3";\n\nmessage User {\n  string name = 1;\n  int32 age = 2;\n  bool active = 3;\n  double balance = 4;\n  repeated string tags = 5;\n  Address address = 6;\n  repeated Order orders = 7;\n}\n\nmessage Address {\n  string city = 1;\n  string zip = 2;\n}\n\nmessage Order {\n  int32 id = 1;\n  double total = 2;\n  bool paid = 3;\n}';
+  document.getElementById('rootMsg').value = 'User';
+  process();
+}
+function clearAll() {
+  document.getElementById('protoInput').value = '';
+  document.getElementById('rootMsg').value = '';
+  document.getElementById('result').textContent = '';
+}
+function copyJson() {
+  var text = document.getElementById('result').textContent;
+  if (!text) { showToast('Nothing to copy'); return; }
+  navigator.clipboard.writeText(text).then(function() { showToast('Copied'); }).catch(function() { showToast('Copy failed'); });
+}
+
+// Related tools loader
+(function() {
   'use strict';
-  var s = document.getElementById('related-tools-section');
+  var s = document.getElementById('related-tools');
   if (!s) return;
   var p = window.location.pathname;
   var en = p.indexOf('/en/') !== -1;
   p = p.replace(/\/en\//g, '/');
   var slug = p.split('/').filter(Boolean).pop() || '';
-  if (!slug) { s.innerHTML = ''; return; }
+  if (!slug) return;
   var depth = en ? '../../' : '../';
   var u = depth + 'related-tools.json';
-  fetch(u).then(function(r) {
-    if (!r.ok) throw new Error('not found');
-    return r.json();
-  }).then(function(d) {
+  fetch(u).then(function(r) { if (!r.ok) throw new Error('not found'); return r.json(); }).then(function(d) {
     var data = en ? d.en : d.cn;
     var t = data[slug];
-    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 RelatedToolsRecommended')
-      + '</h3><div class="related-tools-grid">';
+    if (!t || !t.related || !t.related.length) return;
+    var h = '<div style="margin-top:24px"><h3 style="color:#f1f5f9;margin-bottom:12px">Related Tools</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">';
     t.related.forEach(function(r) {
       var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '<a href="' + link + '" class="related-tool-card">'
-        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
-        + '<span class="related-tool-name">' + r.name + '</span></a>';
+      h += '<a href="' + link + '" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#1e293b;border-radius:8px;border:1px solid rgba(148,163,184,.1);color:#e2e8f0;text-decoration:none;font-size:.85rem;transition:border-color .2s">' + (r.icon || '🔧') + ' ' + r.name + '</a>';
     });
     h += '</div></div>';
     s.innerHTML = h;
-  }).catch(function() { s.innerHTML = ''; });
-})(;</script>
-
-<script>(function(){ // resultAddCopy var processed = new Set(); function addCopyBtns(){ var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]'); results.forEach(function(el){ if(processed.has(el)) return; if(el.querySelector('.copy-btn')) return; if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return; if(el.children.length===0 && el.textContent.trim().length<5) return;
-      var btn = document.createElement('button');
-      btn.className = 'copy-btn';
-      btn.innerHTML = '📋 Copy';
-      btn.title = 'CopyResult';
-      btn.onclick = function(e){
-        e.stopPropagation();
-        var text = el.textContent || el.value || '';
-        if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') text = el.value;
-        navigator.clipboard.writeText(text.trim()).then(function(){
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        }).catch(function(){
-          var ta = document.createElement('textarea');
-          ta.value = text.trim();
-          ta.style.position='fixed';ta.style.opacity='0';
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        });
-      };
-      el.appendChild(btn);
-      processed.add(el);
-    });
-  }
-  // Run initially
-  addCopyBtns();
-  // Re-run after button clicks (most tools update results on click)
-  document.addEventListener('click', function(){setTimeout(addCopyBtns,100);});
-  // Observe DOM changes
-  if(window.MutationObserver){
-    var obs = new MutationObserver(function(){addCopyBtns();});
-    obs.observe(document.body,{childList:true,subtree:true});
-  }
-})(;)</script>
-
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-</div>
+  }).catch(function() {});
+})();
+</script>
 
 </body>
 </html>

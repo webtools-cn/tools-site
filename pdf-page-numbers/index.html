@@ -64,9 +64,60 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>PDF页码添加器</h2>
-    <p>免费在线Pdf Page Numbers工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>上传PDF文件，自动在每一页添加页码。支持自定义位置、起始编号、字体大小和页码格式，纯前端处理不上传服务器。</p>
+    <div style="margin-top:12px" id="uploadArea">
+      <input type="file" id="pdfFile" accept=".pdf" style="display:none">
+      <div id="dropZone" style="border:2px dashed rgba(148,163,184,.3);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='rgba(6,182,212,.5)'" onmouseout="this.style.borderColor='rgba(148,163,184,.3)'">
+        <p style="font-size:1.5rem;margin-bottom:8px">📄</p>
+        <p style="color:#94a3b8;font-size:.9rem">点击或拖拽PDF文件到此处</p>
+        <p id="fileInfo" style="color:#22d3ee;font-size:.85rem;margin-top:8px;display:none"></p>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px" id="optionsArea" style="display:none">
+      <div>
+        <label style="font-size:.85rem;color:#94a3b8;display:block;margin-bottom:4px">位置</label>
+        <select id="position" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem">
+          <option value="bottom-center">底部居中</option>
+          <option value="bottom-right">底部右下</option>
+          <option value="bottom-left">底部左下</option>
+          <option value="top-center">顶部居中</option>
+          <option value="top-right">顶部右上</option>
+          <option value="top-left">顶部左上</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.85rem;color:#94a3b8;display:block;margin-bottom:4px">起始页码</label>
+        <input type="number" id="startNum" value="1" min="0" style="width:100%">
+      </div>
+      <div>
+        <label style="font-size:.85rem;color:#94a3b8;display:block;margin-bottom:4px">字体大小</label>
+        <input type="number" id="fontSize" value="12" min="6" max="72" style="width:100%">
+      </div>
+      <div>
+        <label style="font-size:.85rem;color:#94a3b8;display:block;margin-bottom:4px">页码格式</label>
+        <select id="format" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem">
+          <option value="num">1, 2, 3...</option>
+          <option value="page">第1页</option>
+          <option value="total">1 / N</option>
+          <option value="roman">I, II, III...</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.85rem;color:#94a3b8;display:block;margin-bottom:4px">边距 (pt)</label>
+        <input type="number" id="margin" value="30" min="0" max="200" style="width:100%">
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap" id="actionArea" style="display:none">
+      <button class="btn" onclick="process()">添加页码</button>
+      <button class="btn" onclick="resetAll()">重置</button>
+    </div>
+    <div id="result" style="margin-top:12px"></div>
+    <div id="progressArea" style="margin-top:12px;display:none">
+      <div style="background:#0f172a;border-radius:6px;height:24px;overflow:hidden">
+        <div id="progressBar" style="background:rgba(6,182,212,.6);height:100%;width:0%;transition:width .3s"></div>
+      </div>
+      <p id="progressText" style="color:#94a3b8;font-size:.85rem;margin-top:6px"></p>
+    </div>
   </div>
   <div class="tool-section">
     <h2>❓ 常见问题</h2>
@@ -96,6 +147,7 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
 </div>
 <div class="toast" id="toast"></div>
+<script src="../libs/pdf-lib.min.js"></script>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
@@ -131,14 +183,110 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
-function process() {
-  var input = document.getElementById('toolInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+// === PDF页码添加实现 ===
+var currentFile = null;
+var dropZone = document.getElementById('dropZone');
+var fileInput = document.getElementById('pdfFile');
+dropZone.addEventListener('click', function() { fileInput.click(); });
+fileInput.addEventListener('change', function(e) { if (e.target.files[0]) handleFile(e.target.files[0]); });
+dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.style.borderColor = 'rgba(6,182,212,.5)'; });
+dropZone.addEventListener('dragleave', function(e) { dropZone.style.borderColor = 'rgba(148,163,184,.3)'; });
+dropZone.addEventListener('drop', function(e) {
+  e.preventDefault();
+  dropZone.style.borderColor = 'rgba(148,163,184,.3)';
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+function handleFile(file) {
+  if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) { showToast('请上传PDF文件'); return; }
+  currentFile = file;
+  var info = document.getElementById('fileInfo');
+  info.textContent = '✅ ' + file.name + ' (' + (file.size < 1048576 ? (file.size/1024).toFixed(1)+' KB' : (file.size/1048576).toFixed(1)+' MB') + ')';
+  info.style.display = 'block';
+  document.getElementById('optionsArea').style.display = 'grid';
+  document.getElementById('actionArea').style.display = 'flex';
+}
+function toRoman(num) {
+  var vals = [1000,900,500,400,100,90,50,40,10,9,5,4,1];
+  var syms = ['M','CM','D','CD','C','XC','L','XL','X','IX','V','IV','I'];
+  var result = '';
+  for (var i = 0; i < vals.length; i++) {
+    while (num >= vals[i]) { result += syms[i]; num -= vals[i]; }
+  }
+  return result;
+}
+async function process() {
+  if (!currentFile) { showToast('请先上传PDF文件'); return; }
+  var pos = document.getElementById('position').value;
+  var startNum = parseInt(document.getElementById('startNum').value) || 1;
+  var fontSize = parseInt(document.getElementById('fontSize').value) || 12;
+  var format = document.getElementById('format').value;
+  var margin = parseInt(document.getElementById('margin').value) || 30;
+  var progressArea = document.getElementById('progressArea');
+  var progressBar = document.getElementById('progressBar');
+  var progressText = document.getElementById('progressText');
+  var resultDiv = document.getElementById('result');
+  progressArea.style.display = 'block';
+  resultDiv.innerHTML = '';
+  try {
+    progressText.textContent = '正在加载PDF...';
+    progressBar.style.width = '10%';
+    var arrayBuffer = await currentFile.arrayBuffer();
+    var PDFLib = window.PDFLib;
+    var pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+    var pages = pdfDoc.getPages();
+    var total = pages.length;
+    var font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+    progressText.textContent = '正在添加页码...';
+    for (var i = 0; i < total; i++) {
+      var page = pages[i];
+      var pageNum = startNum + i;
+      var text;
+      if (format === 'num') text = String(pageNum);
+      else if (format === 'page') text = '第' + pageNum + '页';
+      else if (format === 'total') text = pageNum + ' / ' + total;
+      else if (format === 'roman') text = toRoman(pageNum);
+      else text = String(pageNum);
+      var textWidth = font.widthOfTextAtSize(text, fontSize);
+      var pageWidth = page.getWidth();
+      var pageHeight = page.getHeight();
+      var x, y;
+      var posParts = pos.split('-');
+      var vPos = posParts[0];
+      var hPos = posParts[1];
+      if (hPos === 'center') x = (pageWidth - textWidth) / 2;
+      else if (hPos === 'right') x = pageWidth - textWidth - margin;
+      else x = margin;
+      if (vPos === 'bottom') y = margin;
+      else y = pageHeight - margin - fontSize;
+      page.drawText(text, { x: x, y: y, size: fontSize, font: font, color: PDFLib.rgb(0, 0, 0) });
+      progressBar.style.width = (10 + (i + 1) / total * 80) + '%';
+      progressText.textContent = '正在处理第 ' + (i + 1) + ' / ' + total + ' 页...';
+    }
+    progressText.textContent = '正在生成PDF文件...';
+    progressBar.style.width = '95%';
+    var pdfBytes = await pdfDoc.save();
+    var blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    var url = URL.createObjectURL(blob);
+    progressBar.style.width = '100%';
+    progressText.textContent = '完成！';
+    var fileName = currentFile.name.replace(/\.pdf$/i, '') + '_numbered.pdf';
+    resultDiv.innerHTML = '<div style="padding:16px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px"><p style="color:#22c55e;margin-bottom:8px">✅ 已为 ' + total + ' 页添加页码</p><a href="' + url + '" download="' + fileName + '" class="btn" style="display:inline-block;text-decoration:none">⬇️ 下载 ' + fileName + '</a></div>';
+    showToast('页码添加完成');
+    setTimeout(function() { progressArea.style.display = 'none'; }, 2000);
+  } catch (err) {
+    showToast('处理失败: ' + (err.message || '未知错误'));
+    progressText.textContent = '错误: ' + (err.message || '未知错误');
+    progressBar.style.width = '0%';
+  }
+}
+function resetAll() {
+  currentFile = null;
+  fileInput.value = '';
+  document.getElementById('fileInfo').style.display = 'none';
+  document.getElementById('optionsArea').style.display = 'none';
+  document.getElementById('actionArea').style.display = 'none';
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('progressArea').style.display = 'none';
 }
 </script>
 </div>

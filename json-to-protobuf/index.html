@@ -67,9 +67,30 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>JSON转Protobuf</h2>
-    <p>免费在线Json To Protobuf工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>将JSON数据自动转换为Protocol Buffers的.proto格式定义文件，支持嵌套对象、数组和多种标量类型智能映射。</p>
+    <div style="margin-top:12px">
+      <label style="font-size:.85rem;color:#94a3b8;display:block;margin-bottom:6px">输入JSON数据：</label>
+      <textarea id="jsonInput" placeholder='{"name":"张三","age":25,"is_active":true,"scores":[95,88,72],"address":{"city":"北京","zip":"100000"}}' style="width:100%;min-height:180px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px 12px;color:#e2e8f0;font-size:.85rem;font-family:monospace;outline:none;resize:vertical"></textarea>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:.85rem;color:#94a3b8">消息名称：</label>
+      <input type="text" id="msgName" value="Message" style="width:140px">
+      <label style="font-size:.85rem;color:#94a3b8">语法版本：</label>
+      <select id="protoVersion" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem;outline:none">
+        <option value="proto3">proto3</option>
+        <option value="proto2">proto2</option>
+      </select>
+      <button class="btn" onclick="process()">转换</button>
+      <button class="btn" onclick="loadExample()">示例</button>
+      <button class="btn" onclick="clearAll()">清空</button>
+    </div>
+    <div style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:.85rem;color:#94a3b8">.proto 输出：</span>
+        <button class="btn" style="font-size:.8rem;padding:4px 12px" onclick="copyProto()">复制</button>
+      </div>
+      <pre id="result" style="background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:14px;font-size:.82rem;color:#a5b4fc;overflow-x:auto;max-height:400px;white-space:pre-wrap;word-break:break-word"></pre>
+    </div>
   </div>
   <div class="tool-section">
     <h2>❓ 常见问题</h2>
@@ -134,14 +155,96 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
   })();
 
-// === 重写的函数实现 ===
+// === JSON转Protobuf实现 ===
 function process() {
-  var input = document.getElementById('toolInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
+  var input = document.getElementById('jsonInput').value.trim();
+  if (!input) { showToast('请输入JSON数据'); return; }
+  var msgName = (document.getElementById('msgName').value || 'Message').trim();
+  var version = document.getElementById('protoVersion').value;
+  var obj;
+  try { obj = JSON.parse(input); }
+  catch(e) { showToast('JSON格式错误: ' + e.message); return; }
+  var messages = [];
+  var usedNames = {};
+  function genName(base) {
+    var name = base.charAt(0).toUpperCase() + base.slice(1);
+    if (!usedNames[name]) { usedNames[name] = 1; return name; }
+    while (usedNames[name + usedNames[name]]) usedNames[name]++;
+    var final = name + usedNames[name];
+    usedNames[final] = 1;
+    return final;
+  }
+  function protoType(key, val) {
+    if (val === null) return 'string';
+    switch (typeof val) {
+      case 'string': return 'string';
+      case 'boolean': return 'bool';
+      case 'number':
+        if (Number.isInteger(val)) {
+          if (val < -2147483648 || val > 2147483647) return 'int64';
+          return 'int32';
+        }
+        return 'double';
+      default:
+        if (Array.isArray(val)) {
+          if (val.length === 0) return 'string';
+          return 'repeated ' + protoType(key, val[0]).replace('repeated ', '');
+        }
+        if (typeof val === 'object') return genName(key);
+        return 'string';
+    }
+  }
+  function buildMessage(name, o) {
+    var lines = ['message ' + name + ' {'];
+    var idx = 1;
+    Object.keys(o).forEach(function(key) {
+      var val = o[key];
+      var fieldNum = idx++;
+      if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+        var nestedName = genName(key);
+        buildMessage(nestedName, val);
+        lines.push('  ' + nestedName + ' ' + key + ' = ' + fieldNum + ';');
+      } else if (Array.isArray(val)) {
+        if (val.length > 0 && val[0] !== null && typeof val[0] === 'object') {
+          var arrNestedName = genName(key);
+          buildMessage(arrNestedName, val[0]);
+          lines.push('  repeated ' + arrNestedName + ' ' + key + ' = ' + fieldNum + ';');
+        } else {
+          lines.push('  ' + protoType(key, val) + ' ' + key + ' = ' + fieldNum + ';');
+        }
+      } else {
+        lines.push('  ' + protoType(key, val) + ' ' + key + ' = ' + fieldNum + ';');
+      }
+    });
+    lines.push('}');
+    messages.unshift(lines.join('\n'));
+  }
+  buildMessage(msgName, obj);
+  var output = 'syntax = "' + version + '";\n\npackage ' + msgName.toLowerCase() + ';\n\n' + messages.join('\n\n');
   document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+  showToast('转换完成');
+}
+function loadExample() {
+  document.getElementById('jsonInput').value = JSON.stringify({
+    name: "张三",
+    age: 25,
+    is_active: true,
+    email: "zhangsan@example.com",
+    balance: 9980.50,
+    tags: ["vip", "new"],
+    address: { city: "北京", zip: "100000" },
+    orders: [{ id: 1001, total: 299.00, paid: true }]
+  }, null, 2);
+  process();
+}
+function clearAll() {
+  document.getElementById('jsonInput').value = '';
+  document.getElementById('result').textContent = '';
+}
+function copyProto() {
+  var text = document.getElementById('result').textContent;
+  if (!text) { showToast('没有可复制的内容'); return; }
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
 }
 </script>
 </div>

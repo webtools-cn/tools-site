@@ -64,9 +64,25 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>Protobuf转JSON</h2>
-    <p>免费在线Protobuf To Json工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>将Protocol Buffers的.proto定义文件解析为JSON示例数据，自动识别消息类型、嵌套结构和repeated字段并递归展开生成示例值。</p>
+    <div style="margin-top:12px">
+      <label style="font-size:.85rem;color:#94a3b8;display:block;margin-bottom:6px">输入.proto定义：</label>
+      <textarea id="protoInput" placeholder="syntax = &quot;proto3&quot;&#10;&#10;message User {&#10;  string name = 1;&#10;  int32 age = 2;&#10;  bool active = 3;&#10;  repeated string tags = 4;&#10;  Address address = 5;&#10;}" style="width:100%;min-height:180px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px 12px;color:#e2e8f0;font-size:.85rem;font-family:monospace;outline:none;resize:vertical"></textarea>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:.85rem;color:#94a3b8">根消息：</label>
+      <input type="text" id="rootMsg" placeholder="留空自动取第一个" style="width:180px">
+      <button class="btn" onclick="process()">转换</button>
+      <button class="btn" onclick="loadExample()">示例</button>
+      <button class="btn" onclick="clearAll()">清空</button>
+    </div>
+    <div style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:.85rem;color:#94a3b8">JSON输出：</span>
+        <button class="btn" style="font-size:.8rem;padding:4px 12px" onclick="copyJson()">复制</button>
+      </div>
+      <pre id="result" style="background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:14px;font-size:.82rem;color:#a5b4fc;overflow-x:auto;max-height:400px;white-space:pre-wrap;word-break:break-word"></pre>
+    </div>
   </div>
   <div class="tool-section">
     <h2>❓ 常见问题</h2>
@@ -131,14 +147,84 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
+// === Protobuf转JSON实现 ===
 function process() {
-  var input = document.getElementById('toolInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+  var input = document.getElementById('protoInput').value.trim();
+  if (!input) { showToast('请输入.proto定义'); return; }
+  var messages = parseProto(input);
+  var msgNames = Object.keys(messages);
+  if (msgNames.length === 0) { showToast('未找到message定义'); return; }
+  var rootName = document.getElementById('rootMsg').value.trim() || msgNames[0];
+  if (!messages[rootName]) { showToast('未找到消息: ' + rootName); return; }
+  var result = generateExample(rootName, messages, {});
+  document.getElementById('result').textContent = JSON.stringify(result, null, 2);
+  showToast('转换完成');
+}
+function parseProto(text) {
+  var messages = {};
+  var msgRegex = /message\s+(\w+)\s*\{([^}]*)\}/g;
+  var match;
+  while ((match = msgRegex.exec(text)) !== null) {
+    var name = match[1];
+    var body = match[2];
+    var fields = [];
+    var lines = body.split(/[;\n]/);
+    lines.forEach(function(line) {
+      line = line.trim();
+      if (!line || line.startsWith('//') || line.startsWith('/*')) return;
+      var parts = line.split(/\s+/);
+      if (parts.length < 2) return;
+      var isRepeated = parts[0] === 'repeated';
+      if (isRepeated) parts.shift();
+      var type = parts[0];
+      var fieldName = parts[1];
+      if (!fieldName) return;
+      fieldName = fieldName.replace(/[=].*/, '').trim();
+      if (!fieldName) return;
+      fields.push({ type: type, name: fieldName, repeated: isRepeated });
+    });
+    messages[name] = fields;
+  }
+  return messages;
+}
+function generateExample(name, messages, seen) {
+  if (seen[name]) return '<' + name + '>';
+  seen[name] = true;
+  var fields = messages[name];
+  if (!fields) return null;
+  var obj = {};
+  fields.forEach(function(f) {
+    var val = defaultValue(f.type, messages, seen);
+    if (f.repeated) { obj[f.name] = [val]; }
+    else { obj[f.name] = val; }
+  });
+  seen[name] = false;
+  return obj;
+}
+function defaultValue(type, messages, seen) {
+  var scalars = {
+    'string': 'example_string', 'int32': 42, 'int64': 42, 'uint32': 42, 'uint64': 42,
+    'sint32': 42, 'sint64': 42, 'fixed32': 42, 'fixed64': 42, 'sfixed32': 42, 'sfixed64': 42,
+    'float': 3.14, 'double': 3.14, 'bool': true, 'bytes': 'SGVsbG8=', 'enum': 'ENUM_VALUE_0'
+  };
+  if (scalars[type] !== undefined) return scalars[type];
+  if (messages[type]) return generateExample(type, messages, seen);
+  return null;
+}
+function loadExample() {
+  document.getElementById('protoInput').value = 'syntax = "proto3";\n\nmessage User {\n  string name = 1;\n  int32 age = 2;\n  bool active = 3;\n  double balance = 4;\n  repeated string tags = 5;\n  Address address = 6;\n  repeated Order orders = 7;\n}\n\nmessage Address {\n  string city = 1;\n  string zip = 2;\n}\n\nmessage Order {\n  int32 id = 1;\n  double total = 2;\n  bool paid = 3;\n}';
+  document.getElementById('rootMsg').value = 'User';
+  process();
+}
+function clearAll() {
+  document.getElementById('protoInput').value = '';
+  document.getElementById('rootMsg').value = '';
+  document.getElementById('result').textContent = '';
+}
+function copyJson() {
+  var text = document.getElementById('result').textContent;
+  if (!text) { showToast('没有可复制的内容'); return; }
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
 }
 </script>
 </div>
