@@ -283,19 +283,191 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function clearInput() {
-  document.querySelectorAll('input[type="text"],input[type="number"],textarea').forEach(function(el) { el.value = ''; });
-  document.getElementById('resultArea').innerHTML = '';
-  showToast('已清空');
+// === 信用卡校验工具 - 真实功能实现 ===
+
+// 卡类型识别
+function detectCardType(num) {
+  num = num.replace(/\D/g, '');
+  if (/^4/.test(num)) return { name: 'Visa', icon: '💳' };
+  if (/^(5[1-5]|2[2-7])/.test(num)) return { name: 'Mastercard', icon: '💳' };
+  if (/^3[47]/.test(num)) return { name: 'American Express', icon: '💳' };
+  if (/^(6011|65|64[4-9])/.test(num)) return { name: 'Discover', icon: '💳' };
+  if (/^35(2[89]|[3-8])/.test(num)) return { name: 'JCB', icon: '💳' };
+  if (/^62/.test(num)) return { name: '银联 (UnionPay)', icon: '💳' };
+  if (/^(30[0-5]|36|38|39)/.test(num)) return { name: 'Diners Club', icon: '💳' };
+  return { name: '未知', icon: '❓' };
 }
 
-function generateTestCard() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+// Luhn算法校验
+function luhnCheck(num) {
+  num = num.replace(/\D/g, '');
+  if (num.length < 12) return false;
+  var sum = 0, alt = false;
+  for (var i = num.length - 1; i >= 0; i--) {
+    var d = parseInt(num.charAt(i), 10);
+    if (alt) {
+      d *= 2;
+      if (d > 9) d -= 9;
+    }
+    sum += d;
+    alt = !alt;
+  }
+  return sum % 10 === 0;
 }
+
+// 格式化卡号（每4位加空格，Amex特殊处理）
+function formatCardNumber(num) {
+  num = num.replace(/\D/g, '');
+  var type = detectCardType(num);
+  if (type.name === 'American Express') {
+    // Amex: 4-6-5
+    return num.replace(/^(\d{0,4})(\d{0,6})(\d{0,5})/, function(m, a, b, c) {
+      return (a ? a : '') + (b ? ' ' + b : '') + (c ? ' ' + c : '');
+    }).trim();
+  }
+  return num.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+}
+
+// 输入格式化事件
+document.addEventListener('DOMContentLoaded', function() {
+  var cardInput = document.getElementById('cardInput');
+  if (!cardInput) return;
+  var autoFmt = document.getElementById('autoFormat');
+  var autoVal = document.getElementById('autoValidate');
+  var cardIcon = document.getElementById('cardIcon');
+
+  cardInput.addEventListener('input', function() {
+    var raw = this.value.replace(/\D/g, '');
+    if (autoFmt && autoFmt.checked) {
+      this.value = formatCardNumber(raw);
+    }
+    // 更新卡图标
+    if (cardIcon) {
+      var type = detectCardType(raw);
+      cardIcon.textContent = type.icon;
+    }
+    // 自动验证
+    if (autoVal && autoVal.checked && raw.length >= 12) {
+      validateCard();
+    }
+  });
+});
 
 function validateCard() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;var v=inp.value.trim();if(!v){{out.textContent='Please enter input';return}}out.textContent=v.length>0?'Valid ✓':'Invalid ✗';showToast('Validated!');
+  var input = document.getElementById('cardInput');
+  if (!input) return;
+  var num = input.value.replace(/\D/g, '');
+  if (!num) { showToast('请输入信用卡号'); return; }
+
+  var type = detectCardType(num);
+  var valid = luhnCheck(num);
+  var resultArea = document.getElementById('resultArea');
+  var cardInfo = document.getElementById('cardInfo');
+  var luhnDetail = document.getElementById('luhnDetail');
+
+  if (!resultArea || !cardInfo || !luhnDetail) return;
+  resultArea.style.display = 'block';
+
+  cardInfo.innerHTML =
+    '<div class="card-info-item"><label>卡类型</label><div class="value">' + type.icon + ' ' + type.name + '</div></div>' +
+    '<div class="card-info-item"><label>卡号长度</label><div class="value">' + num.length + ' 位</div></div>' +
+    '<div class="card-info-item"><label>Luhn校验</label><div class="value ' + (valid ? 'valid' : 'invalid') + '">' + (valid ? '✓ 通过' : '✗ 不通过') + '</div></div>';
+
+  // 展示Luhn计算步骤
+  var steps = [];
+  var sum = 0, alt = false;
+  for (var i = num.length - 1; i >= 0; i--) {
+    var d = parseInt(num.charAt(i), 10);
+    var pos = num.length - i;
+    if (alt) {
+      var d2 = d * 2;
+      var d2s = d2 > 9 ? d2 - 9 : d2;
+      sum += d2s;
+      steps.push('<div class="step"><span class="step-label">第' + pos + '位(偶)</span><span class="step-value">' + d + '×2=' + d2 + (d2 > 9 ? '→' + d2s : '') + ' → <span class="highlight">' + d2s + '</span></span></div>');
+    } else {
+      sum += d;
+      steps.push('<div class="step"><span class="step-label">第' + pos + '位(奇)</span><span class="step-value">' + d + ' → <span class="highlight">' + d + '</span></span></div>');
+    }
+    alt = !alt;
+  }
+  steps.reverse();
+  luhnDetail.innerHTML =
+    '<div class="luhn-steps">' +
+    steps.join('') +
+    '<div class="step"><span class="step-label">总和</span><span class="step-value">' + sum + '</span></div>' +
+    '<div class="step"><span class="step-label">' + sum + ' mod 10</span><span class="step-value">' + (sum % 10) + (sum % 10 === 0 ? ' → <span class="highlight" style="color:#4ade80">校验通过</span>' : ' → <span class="highlight" style="color:#f87171">校验不通过</span>') + '</span></div>' +
+    '</div>';
+
+  showToast(valid ? '✓ 卡号校验通过' : '✗ 卡号校验不通过');
+}
+
+// 卡类型前缀配置
+var CARD_PREFIXES = {
+  visa: { prefix: '4', length: 16 },
+  mastercard: { prefix: '5', length: 16 },
+  amex: { prefix: '37', length: 15 },
+  discover: { prefix: '6011', length: 16 },
+  jcb: { prefix: '353', length: 16 },
+  unionpay: { prefix: '62', length: 16 }
+};
+
+// 生成符合Luhn算法的测试卡号
+function generateTestCard(cardType) {
+  cardType = cardType || 'visa';
+  var cfg = CARD_PREFIXES[cardType] || CARD_PREFIXES.visa;
+  var prefix = cfg.prefix;
+  var totalLen = cfg.length;
+  var body = prefix;
+  // 填充随机数字，留最后1位作为校验位
+  for (var i = body.length; i < totalLen - 1; i++) {
+    body += Math.floor(Math.random() * 10);
+  }
+  // 计算校验位
+  var sum = 0, alt = true; // 校验位本身是最后一位，所以从倒数第二位开始alt=true
+  for (var j = body.length - 1; j >= 0; j--) {
+    var d = parseInt(body.charAt(j), 10);
+    if (alt) {
+      d *= 2;
+      if (d > 9) d -= 9;
+    }
+    sum += d;
+    alt = !alt;
+  }
+  var checkDigit = (10 - (sum % 10)) % 10;
+  var fullNum = body + checkDigit;
+
+  var container = document.getElementById('generatedCards');
+  if (!container) return;
+  var formatted = formatCardNumber(fullNum);
+  var div = document.createElement('div');
+  div.className = 'generated-card';
+  var typeName = detectCardType(fullNum).name;
+  div.innerHTML =
+    '<div style="font-size:.8rem;color:#64748b;margin-bottom:4px;">' + typeName + ' · ' + fullNum.length + '位</div>' +
+    '<span>' + formatted + '</span>' +
+    '<span class="copy-icon" onclick="copyCardNumber(this, \'' + fullNum + '\')">复制</span>';
+  container.insertBefore(div, container.firstChild);
+  showToast('已生成 ' + typeName + ' 测试卡号');
+}
+
+function copyCardNumber(el, num) {
+  navigator.clipboard.writeText(num).then(function() {
+    showToast('已复制卡号');
+    el.textContent = '已复制';
+    setTimeout(function() { el.textContent = '复制'; }, 2000);
+  }).catch(function() { showToast('复制失败'); });
+}
+
+function clearInput() {
+  var input = document.getElementById('cardInput');
+  if (input) input.value = '';
+  var resultArea = document.getElementById('resultArea');
+  if (resultArea) { resultArea.style.display = 'none'; resultArea.innerHTML = '<div class="card-info" id="cardInfo"></div><div id="luhnDetail"></div>'; }
+  var generatedCards = document.getElementById('generatedCards');
+  if (generatedCards) generatedCards.innerHTML = '';
+  var cardIcon = document.getElementById('cardIcon');
+  if (cardIcon) cardIcon.textContent = '💳';
+  showToast('已清空');
 }
 </script>
 </body>

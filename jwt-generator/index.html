@@ -286,40 +286,229 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function clearAll() {
-  document.getElementById('secretInput').value = '';
-  document.getElementById('headerInput').value = '';
-  document.getElementById('payloadInput').value = '';
-  document.getElementById('resultSection').innerHTML = '';
-  document.getElementById('resultSection').style.display = 'none';
-  document.getElementById('resultBox').innerHTML = '';
-  document.getElementById('resultBox').style.display = 'none';
-  showToast('已重置');
+// === JWT Token生成器 - 真实功能实现 ===
+
+// Base64URL 编码/解码
+function base64UrlEncode(str) {
+  var b64 = btoa(unescape(encodeURIComponent(str)));
+  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function copyToken() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+function base64UrlDecode(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  return decodeURIComponent(escape(atob(str)));
 }
 
-function generateJWT() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+function base64UrlEncodeBytes(bytes) {
+  var binary = '';
+  for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  var b64 = btoa(binary);
+  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+// HMAC签名 (使用Web Crypto API，异步)
+async function hmacSign(alg, key, data) {
+  var algo;
+  switch(alg) {
+    case 'HS256': algo = { name: 'HMAC', hash: 'SHA-256' }; break;
+    case 'HS384': algo = { name: 'HMAC', hash: 'SHA-384' }; break;
+    case 'HS512': algo = { name: 'HMAC', hash: 'SHA-512' }; break;
+    default: algo = { name: 'HMAC', hash: 'SHA-256' };
+  }
+  var enc = new TextEncoder();
+  var cryptoKey = await crypto.subtle.importKey('raw', enc.encode(key), algo, false, ['sign']);
+  var sig = await crypto.subtle.sign('HMAC', cryptoKey, enc.encode(data));
+  return base64UrlEncodeBytes(new Uint8Array(sig));
+}
+
+// 预设Header
+function setPresetHeader(type) {
+  var headers = {
+    default: '{"alg":"HS256","typ":"JWT"}',
+    hs384: '{"alg":"HS384","typ":"JWT"}',
+    hs512: '{"alg":"HS512","typ":"JWT"}'
+  };
+  var el = document.getElementById('headerInput');
+  if (!el) return;
+  el.value = headers[type] || headers.default;
+  // 同步单选按钮
+  var alg = type === 'hs384' ? 'HS384' : (type === 'hs512' ? 'HS512' : 'HS256');
+  document.querySelectorAll('input[name="alg"]').forEach(function(r) {
+    r.checked = r.value === alg;
+  });
+  showToast('Header已设置为 ' + alg);
+}
+
+// 预设Payload
+function setPresetPayload(type) {
+  var now = Math.floor(Date.now() / 1000);
+  var payloads = {
+    basic: JSON.stringify({ sub: 'user123', name: '张三', iat: now }, null, 2),
+    user: JSON.stringify({ sub: 'user456', name: '李四', role: 'admin', iat: now, exp: now + 3600 }, null, 2),
+    api: JSON.stringify({ iss: 'api.free-toolbase.com', sub: 'client_001', scope: 'read:tools write:tools', iat: now, exp: now + 7200 }, null, 2)
+  };
+  var el = document.getElementById('payloadInput');
+  if (!el) return;
+  el.value = payloads[type] || payloads.basic;
+  showToast('Payload已加载');
+}
+
+// 随机生成密钥
 function generateSecret() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+  var secret = '';
+  var arr = new Uint32Array(32);
+  crypto.getRandomValues(arr);
+  for (var i = 0; i < 32; i++) {
+    secret += chars[arr[i] % chars.length];
+  }
+  var el = document.getElementById('secretInput');
+  if (el) el.value = secret;
+  showToast('已生成32位随机密钥');
 }
 
-function setPresetHeader() {
-  showToast('setPresetHeader - coming soon!');
+// 生成JWT Token
+async function generateJWT() {
+  var headerEl = document.getElementById('headerInput');
+  var payloadEl = document.getElementById('payloadInput');
+  var secretEl = document.getElementById('secretInput');
+  if (!headerEl || !payloadEl || !secretEl) return;
+
+  var headerStr = headerEl.value.trim();
+  var payloadStr = payloadEl.value.trim();
+  var secret = secretEl.value;
+
+  if (!headerStr) { showToast('请输入Header'); return; }
+  if (!payloadStr) { showToast('请输入Payload'); return; }
+  if (!secret) { showToast('请输入Secret Key'); return; }
+
+  var header, payload;
+  try {
+    header = JSON.parse(headerStr);
+  } catch(e) { showToast('Header JSON格式错误: ' + e.message); return; }
+  try {
+    payload = JSON.parse(payloadStr);
+  } catch(e) { showToast('Payload JSON格式错误: ' + e.message); return; }
+
+  // 从单选按钮获取算法（优先），否则从header取
+  var selectedAlg = 'HS256';
+  var checkedRadio = document.querySelector('input[name="alg"]:checked');
+  if (checkedAlg) selectedAlg = checkedRadio.value;
+  // 同步到header
+  header.alg = selectedAlg;
+
+  var headerB64 = base64UrlEncode(JSON.stringify(header));
+  var payloadB64 = base64UrlEncode(JSON.stringify(payload));
+  var signingInput = headerB64 + '.' + payloadB64;
+
+  try {
+    var signature = await hmacSign(selectedAlg, secret, signingInput);
+    var token = signingInput + '.' + signature;
+
+    var resultSection = document.getElementById('resultSection');
+    var resultBox = document.getElementById('resultBox');
+    if (!resultSection || !resultBox) return;
+    resultSection.style.display = 'block';
+    resultBox.style.display = 'block';
+
+    // 用不同颜色显示三部分
+    resultBox.innerHTML =
+      '<span class="part-header">' + headerB64 + '</span>' +
+      '.<span class="part-payload">' + payloadB64 + '</span>' +
+      '.<span class="part-signature">' + signature + '</span>';
+
+    // 存储当前token用于验证
+    resultBox.dataset.token = token;
+    resultBox.dataset.secret = secret;
+
+    var verifyResult = document.getElementById('verifyResult');
+    if (verifyResult) verifyResult.innerHTML = '';
+    showToast('✓ JWT Token已生成');
+  } catch(e) {
+    showToast('生成失败: ' + e.message);
+  }
 }
 
-function setPresetPayload() {
-  showToast('setPresetPayload - coming soon!');
+// 验证签名
+async function verifyToken() {
+  var resultBox = document.getElementById('resultBox');
+  if (!resultBox || !resultBox.dataset.token) { showToast('请先生成Token'); return; }
+
+  var token = resultBox.dataset.token;
+  var secret = resultBox.dataset.secret || document.getElementById('secretInput').value;
+  var parts = token.split('.');
+  if (parts.length !== 3) { showVerifyResult(false, 'Token格式错误'); return; }
+
+  var signingInput = parts[0] + '.' + parts[1];
+  var expectedSig = parts[2];
+
+  // 从header获取算法
+  var header;
+  try {
+    header = JSON.parse(base64UrlDecode(parts[0]));
+  } catch(e) { showVerifyResult(false, 'Header解码失败'); return; }
+
+  var alg = header.alg || 'HS256';
+  try {
+    var computedSig = await hmacSign(alg, secret, signingInput);
+    var valid = computedSig === expectedSig;
+    if (valid) {
+      // 检查exp是否过期
+      var payload;
+      try { payload = JSON.parse(base64UrlDecode(parts[1])); } catch(e) { payload = {}; }
+      var expMsg = '';
+      if (payload.exp) {
+        var now = Math.floor(Date.now() / 1000);
+        if (payload.exp < now) {
+          showVerifyResult(false, '签名验证通过，但Token已过期 (exp: ' + new Date(payload.exp * 1000).toLocaleString() + ')');
+          return;
+        } else {
+          expMsg = '，有效期至 ' + new Date(payload.exp * 1000).toLocaleString();
+        }
+      }
+      showVerifyResult(true, '✓ 签名验证通过' + expMsg);
+    } else {
+      showVerifyResult(false, '✗ 签名不匹配，Token可能被篡改或密钥不正确');
+    }
+  } catch(e) {
+    showVerifyResult(false, '验证失败: ' + e.message);
+  }
 }
 
-function verifyToken() {
-  showToast('verifyToken - coming soon!');
+function showVerifyResult(valid, msg) {
+  var el = document.getElementById('verifyResult');
+  if (!el) return;
+  el.innerHTML = '<div class="verify-result ' + (valid ? 'valid' : 'invalid') + '">' + msg + '</div>';
+  showToast(valid ? '✓ 验证通过' : '✗ 验证失败');
+}
+
+// 复制Token
+function copyToken() {
+  var resultBox = document.getElementById('resultBox');
+  if (!resultBox || !resultBox.dataset.token) { showToast('请先生成Token'); return; }
+  var token = resultBox.dataset.token;
+  navigator.clipboard.writeText(token).then(function() {
+    showToast('Token已复制到剪贴板');
+  }).catch(function() { showToast('复制失败'); });
+}
+
+function clearAll() {
+  var headerEl = document.getElementById('headerInput');
+  var payloadEl = document.getElementById('payloadInput');
+  var secretEl = document.getElementById('secretInput');
+  if (headerEl) headerEl.value = '{"alg":"HS256","typ":"JWT"}';
+  if (payloadEl) payloadEl.value = '';
+  if (secretEl) secretEl.value = '';
+  var resultSection = document.getElementById('resultSection');
+  if (resultSection) resultSection.style.display = 'none';
+  var resultBox = document.getElementById('resultBox');
+  if (resultBox) { resultBox.innerHTML = ''; delete resultBox.dataset.token; delete resultBox.dataset.secret; }
+  var verifyResult = document.getElementById('verifyResult');
+  if (verifyResult) verifyResult.innerHTML = '';
+  // 重置算法为HS256
+  document.querySelectorAll('input[name="alg"]').forEach(function(r) { r.checked = r.value === 'HS256'; });
+  showToast('已重置');
 }
 </script>
 </body>
