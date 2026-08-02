@@ -1,16 +1,16 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第九批)
+> 最后更新: 2026-08-03 (cron自动更新 - 第十批)
 
 ## 当前真实问题
 
 | 问题 | 总数 | 已修 | 剩余 | 优先级 | 检测方法 |
 |:-----|:----:|:----:|:----:|:------:|:---------|
-| 空壳工具(0交互+0JS) | 40+ | 27 | ~13 | 🔴 高 | check_empty_shells.py + 精确过滤 |
+| 空壳工具(0交互+0JS) | 40+ | 30 | ~10 | 🔴 高 | check_empty_shells.py + 精确过滤 |
 
-## 空壳工具清单(约13个)
+## 空壳工具清单(约10个)
 
-image-remove-bg, inflation-calculator, link-preview-generator, markup-calculator, mole-calculator, nda-generator, percent-change-calculator, percentage-difference-calculator, pressure-converter, remove-duplicates, rental-agreement-generator, surface-area-calculator, text-stats, vocabulary-builder, word-search-generator, zip-extractor
+markup-calculator, nda-generator, percent-change-calculator, percentage-difference-calculator, pressure-converter, remove-duplicates, rental-agreement-generator, surface-area-calculator, text-stats, vocabulary-builder, word-search-generator, zip-extractor
 
 ## 已清零问题
 
@@ -60,6 +60,10 @@ energy-converter, frequency-converter, fuel-cost-calculator
 ### 2026-08-03 (第九批)
 favicon-generator, fuel-efficiency-converter, home-affordability-calculator
 注: 三个工具均是有CSS样式但无交互UI和JS逻辑的空壳。favicon-generator添加Canvas像素绘图+文字模式生成favicon，实时16x16预览，支持触摸操作，下载PNG；fuel-efficiency-converter添加MPG(美制/英制)/km/L/L/100km四单位实时互转，输入即转换；home-affordability-calculator添加28/36规则计算可承受房价，含月供/DTI比率/首付比例分析表。三个工具EN版均已有完整功能无需修改。
+
+### 2026-08-03 (第十批)
+inflation-calculator, mole-calculator, link-preview-generator
+注: 三个工具均是有CSS样式但无交互UI和JS逻辑的空壳。inflation-calculator添加通胀计算（金额/通胀率/年数→实际购买力/购买力损失/需追平金额+逐年变化表）；mole-calculator添加摩尔计算（质量↔摩尔数↔分子数四模式互转+常见物质摩尔质量表+阿伏伽德罗常数）；link-preview-generator添加OG标签生成（输入标题/描述/URL/图片→Facebook/Twitter实时预览+OG+Twitter Card meta标签代码生成+一键复制）。三个工具EN版均已有完整功能无需修改。
 
 ## 检测说明
 
