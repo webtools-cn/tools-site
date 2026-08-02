@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第十六批)
+> 最后更新: 2026-08-03 (cron自动更新 - 第十七批)
 
 ## 当前真实问题
 
@@ -8,11 +8,11 @@
 |:-----|:----:|:----:|:----:|:------:|:---------|
 | 空壳工具(0交互+0JS) | 40+ | 42 | 0 | ✅ 完成 | check_empty_shells.py + 精确过滤 |
 | 模板空壳(toolInput stub) | 4 | 4 | 0 | ✅ 完成 | check_empty_shells.py 模板空壳检测 |
-| EN版模板空壳(process未定义) | 23 | 3 | 20 | 🔴 进行中 | grep toolInput + process() 未定义检测 |
+| EN版模板空壳(process未定义) | 23 | 6 | 17 | 🔴 进行中 | grep toolInput + process() 未定义检测 |
 
-## EN版模板空壳清单(20个剩余)
+## EN版模板空壳清单(17个剩余)
 
-en/ai-sentence-rewriter, en/audio-normalize, en/audio-volume-adjuster, en/avif-to-jpg, en/binaural-beats-generator, en/bmp-to-png, en/crossword-generator, en/csv-sorter, en/gif-to-webp, en/graphql-to-json, en/html-to-react, en/image-round-corners, en/json-to-protobuf, en/pdf-page-numbers, en/protobuf-to-json, en/text-progress-bar-generator, en/tiff-to-jpg, en/webp-to-gif, en/xml-to-yaml, en/yaml-to-xml
+en/avif-to-jpg, en/binaural-beats-generator, en/bmp-to-png, en/crossword-generator, en/csv-sorter, en/gif-to-webp, en/graphql-to-json, en/html-to-react, en/image-round-corners, en/json-to-protobuf, en/pdf-page-numbers, en/protobuf-to-json, en/text-progress-bar-generator, en/tiff-to-jpg, en/webp-to-gif, en/xml-to-yaml, en/yaml-to-xml
 
 ## 已清零问题
 
@@ -86,6 +86,10 @@ word-search-generator, zip-extractor, rental-agreement-generator
 ### 2026-08-03 (第十六批 - EN版模板空壳修复)
 neon-text-generator, pantone-to-hex, audio-converter
 注: 发现23个EN版工具存在模板空壳问题（有id="toolInput"+onclick="process()"但无process()函数定义，且JS部分有})(;语法错误+quickInput假交互）。本轮修复3个：neon-text-generator CN/EN版添加霓虹文字生成器（文字+颜色+大小+字体+发光强度→实时预览+CSS代码+复制）；pantone-to-hex CN/EN版添加Pantone色号转HEX工具（40种色卡库+搜索+HEX/RGB/HSL三值+色卡网格+复制）；audio-converter CN/EN版添加音频转换器（Web Audio API解码+6项信息+WAV编码+播放+下载）。同时修复CN版audio-converter的echo空壳。剩余20个EN版模板空壳待修。
+
+### 2026-08-03 (第十七批 - EN版模板空壳修复续)
+ai-sentence-rewriter, audio-normalize, audio-volume-adjuster
+注: 三个工具CN/EN版均修复。ai-sentence-rewriter CN/EN版添加句子改写器(4种风格:正式/简洁/创意/学术，基于词库替换+规则变换，40+非正式词→正式词映射、20+冗余短语精简、15+创意同义词随机替换、学术开头句+连接词替换)，替换CN版损坏的评分系统JS和echo stub；audio-normalize CN/EN版添加音频标准化工具(Web Audio API解码+峰值/RMS电平分析+目标dBFS增益计算+削波保护+16位PCM WAV编码+播放预览+下载)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互；audio-volume-adjuster CN/EN版添加音量调节器(文件上传+增益滑块-24~+24dB+实时dB标签+削波检测+16位PCM WAV编码+播放预览+下载)，替换CN版损坏的评分系统和echo stub、EN版})(;语法错误+quickInput假交互。所有6个文件JS语法验证通过，EN版模板空壳从20降到17。
 
 ### 2026-08-03 (第十五批 - 模板空壳清零)
 bitwise-calculator, mesh-gradient-generator, svg-to-base64, color-palette-from-image
