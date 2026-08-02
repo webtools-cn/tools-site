@@ -54,6 +54,11 @@ def check_page(filepath):
     for allowed in ALLOWED_CONTEXTS:
         body = body.replace(allowed, '')
     
+    # 移除lang-switch中的"中文"标签（EN页面显示语言切换链接是合理的）
+    body = re.sub(r'<a[^>]*>中文</a>', '', body)
+    # 移除单独的"中文"文字（语言切换标签）
+    body = re.sub(r'(?<![\u4e00-\u9fff])中文(?![\u4e00-\u9fff])', '', body)
+    
     # 查找中文字符
     chinese_segments = extract_chinese(body)
     if chinese_segments:
