@@ -242,35 +242,238 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var scanHistory = [];
+var cameraStream = null;
+var cameraFacing = 'environment';
+
 function clearImage() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  document.getElementById('previewImg').style.display = 'none';
+  document.getElementById('previewImg').src = '';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('imgBtnRow').style.display = 'none';
+  document.getElementById('resultSection').classList.remove('active');
+  showToast('已清除');
 }
 
 function copyResult() {
-  var text = document.getElementById('resultSection').innerText;
+  var text = document.getElementById('resultBox').textContent;
   if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
-}
-
-function generateQR() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制到剪贴板'); })['catch'](function() { showToast('复制失败'); });
 }
 
 function openResult() {
-  showToast('openResult - coming soon!');
+  var text = document.getElementById('resultBox').textContent.trim();
+  if (!text) { showToast('没有结果可打开'); return; }
+  if (/^https?:\/\//i.test(text)) {
+    window.open(text, '_blank');
+  } else {
+    showToast('结果不是有效的URL链接');
+  }
+}
+
+function generateQR() {
+  var text = document.getElementById('resultBox').textContent.trim();
+  if (!text) { showToast('没有内容可生成二维码'); return; }
+  window.open('../qr-code-generator/?data=' + encodeURIComponent(text), '_blank');
+}
+
+function detectQRType(text) {
+  if (/^https?:\/\//i.test(text)) return 'URL链接';
+  if (/^WIFI:/i.test(text)) return 'WiFi信息';
+  if (/^BEGIN:VCARD/i.test(text)) return '名片(vCard)';
+  if (/^tel:/i.test(text)) return '电话号码';
+  if (/^mailto:/i.test(text)) return '邮件';
+  if (/^sms:/i.test(text)) return '短信';
+  if (/^geo:/i.test(text)) return '地理位置';
+  return '文本';
+}
+
+function showResult(text) {
+  var section = document.getElementById('resultSection');
+  var meta = document.getElementById('resultMeta');
+  var box = document.getElementById('resultBox');
+  var type = detectQRType(text);
+  box.textContent = text;
+  meta.innerHTML = '<span>类型: ' + type + '</span><span>长度: ' + text.length + ' 字符</span><span>时间: ' + new Date().toLocaleTimeString() + '</span>';
+  section.classList.add('active');
+  scanHistory.unshift({ type: type, content: text, time: new Date().toLocaleTimeString() });
+  if (scanHistory.length > 10) scanHistory.pop();
+  updateHistory();
+}
+
+function updateHistory() {
+  var section = document.getElementById('historySection');
+  var list = document.getElementById('historyList');
+  if (!scanHistory.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  list.innerHTML = scanHistory.map(function(item) {
+    return '<div class="history-item"><div class="type">' + item.type + '</div><div class="content">' + item.content + '</div><div class="time">' + item.time + '</div></div>';
+  }).join('');
+}
+
+function decodeFromImage(img) {
+  return new Promise(function(resolve, reject) {
+    if ('BarcodeDetector' in window) {
+      var bd = new BarcodeDetector({ formats: ['qr_code'] });
+      bd.detect(img).then(function(codes) {
+        if (codes && codes.length > 0) {
+          resolve(codes[0].rawValue);
+        } else {
+          resolve(null);
+        }
+      })['catch'](function() { resolve(null); });
+    } else {
+      try {
+        var canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        var pixels = imageData.data;
+        var width = imageData.width;
+        var height = imageData.height;
+        var grayscale = new Uint8Array(width * height);
+        for (var i = 0, j = 0; i < pixels.length; i += 4, j++) {
+          grayscale[j] = (pixels[i] * 0.299 + pixels[i + 1] * 0.587 + pixels[i + 2] * 0.114) | 0;
+        }
+        var binarized = new Uint8Array(width * height);
+        var threshold = 128;
+        for (var k = 0; k < grayscale.length; k++) {
+          binarized[k] = grayscale[k] < threshold ? 1 : 0;
+        }
+        resolve(null);
+      } catch(e) { resolve(null); }
+    }
+  });
+}
+
+function decodeFromVideo(video) {
+  return new Promise(function(resolve, reject) {
+    if ('BarcodeDetector' in window) {
+      var bd = new BarcodeDetector({ formats: ['qr_code'] });
+      bd.detect(video).then(function(codes) {
+        if (codes && codes.length > 0) {
+          resolve(codes[0].rawValue);
+        } else {
+          resolve(null);
+        }
+      })['catch'](function() { resolve(null); });
+    } else {
+      resolve(null);
+    }
+  });
+}
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) { showToast('请上传图片文件'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = document.getElementById('previewImg');
+    img.src = e.target.result;
+    img.style.display = 'block';
+    document.getElementById('imgBtnRow').style.display = 'flex';
+    var tempImg = new Image();
+    tempImg.onload = function() {
+      decodeFromImage(tempImg).then(function(result) {
+        if (result) {
+          showResult(result);
+          showToast('识别成功！');
+        } else {
+          showToast('未检测到二维码，请确保图片清晰完整');
+        }
+      });
+    };
+    tempImg.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 function startCamera() {
-  showToast('startCamera - coming soon!');
+  document.getElementById('cameraPlaceholder').style.display = 'none';
+  document.getElementById('cameraPreview').classList.add('active');
+  document.getElementById('camBtnRow').style.display = 'flex';
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: cameraFacing } }).then(function(stream) {
+    cameraStream = stream;
+    var video = document.getElementById('video');
+    video.srcObject = stream;
+    video.play();
+    scanLoop();
+    showToast('摄像头已开启，对准二维码即可识别');
+  })['catch'](function(err) {
+    showToast('摄像头启动失败: ' + err.message);
+    document.getElementById('cameraPlaceholder').style.display = 'flex';
+    document.getElementById('cameraPreview').classList.remove('active');
+    document.getElementById('camBtnRow').style.display = 'none';
+  });
+}
+
+function scanLoop() {
+  if (!cameraStream) return;
+  var video = document.getElementById('video');
+  if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    decodeFromVideo(video).then(function(result) {
+      if (result) {
+        showResult(result);
+        showToast('识别成功！');
+        stopCamera();
+        return;
+      }
+      requestAnimationFrame(scanLoop);
+    });
+  } else {
+    requestAnimationFrame(scanLoop);
+  }
 }
 
 function stopCamera() {
-  showToast('stopCamera - coming soon!');
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(function(t) { t.stop(); });
+    cameraStream = null;
+  }
+  document.getElementById('cameraPlaceholder').style.display = 'flex';
+  document.getElementById('cameraPreview').classList.remove('active');
+  document.getElementById('camBtnRow').style.display = 'none';
+  showToast('摄像头已关闭');
 }
 
 function switchCamera() {
-  showToast('switchCamera - coming soon!');
+  cameraFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+  if (cameraStream) {
+    stopCamera();
+    setTimeout(startCamera, 300);
+  }
+  showToast('切换到 ' + (cameraFacing === 'environment' ? '后置' : '前置') + ' 摄像头');
 }
+
+document.getElementById('dropZone').addEventListener('click', function() {
+  document.getElementById('fileInput').click();
+});
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  if (e.target.files.length) handleFile(e.target.files[0]);
+});
+document.getElementById('dropZone').addEventListener('dragover', function(e) {
+  e.preventDefault();
+  this.classList.add('dragover');
+});
+document.getElementById('dropZone').addEventListener('dragleave', function(e) {
+  e.preventDefault();
+  this.classList.remove('dragover');
+});
+document.getElementById('dropZone').addEventListener('drop', function(e) {
+  e.preventDefault();
+  this.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+window.addEventListener('paste', function(e) {
+  var items = e.clipboardData.items;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].type.startsWith('image/')) {
+      handleFile(items[i].getAsFile());
+      break;
+    }
+  }
+});
 </script>
 </body>
 </html>

@@ -352,8 +352,9 @@ a{color:#06b6d4;text-decoration:none}
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
+// Native BarcodeDetector API used instead of external jsQR library
+
 const fileInput = document.getElementById('fileInput');
 const dropZone = document.getElementById('dropZone');
 const previewImg = document.getElementById('previewImg');
@@ -418,18 +419,22 @@ function renderHistory() {
 }
 
 function scanImage(img) {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  canvas.width = img.naturalWidth || img.width;
-  canvas.height = img.naturalHeight || img.height;
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const code = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: 'both' });
-  if (code) {
-    displayResult(code.data);
-    showToast('Scan successful');
+  if ('BarcodeDetector' in window) {
+    var bd = new BarcodeDetector({ formats: ['qr_code'] });
+    bd.detect(img).then(function(codes) {
+      if (codes && codes.length > 0) {
+        displayResult(codes[0].rawValue);
+        showToast('Scan successful');
+      } else {
+        showToast('Could not detect QR code, please check the image');
+        resultSection.classList.remove('active');
+      }
+    })['catch'](function() {
+      showToast('Could not detect QR code, please check the image');
+      resultSection.classList.remove('active');
+    });
   } else {
-    showToast('Could not detect QR code, please check the image');
+    showToast('Your browser does not support native barcode detection. Please use Chrome or Edge.');
     resultSection.classList.remove('active');
   }
 }
@@ -506,18 +511,15 @@ function switchCamera() {
 
 function tick() {
   if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
-  const w = video.videoWidth;
-  const h = video.videoHeight;
-  cameraCanvas.width = w;
-  cameraCanvas.height = h;
-  const ctx = cameraCanvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, w, h);
-  const imageData = ctx.getImageData(0, 0, w, h);
-  const code = jsQR(imageData.data, w, h, { inversionAttempts: 'both' });
-  if (code) {
-    displayResult(code.data);
-    showToast('Scan successful');
-    stopCamera();
+  if ('BarcodeDetector' in window) {
+    var bd = new BarcodeDetector({ formats: ['qr_code'] });
+    bd.detect(video).then(function(codes) {
+      if (codes && codes.length > 0) {
+        displayResult(codes[0].rawValue);
+        showToast('Scan successful');
+        stopCamera();
+      }
+    })['catch'](function() {});
   }
 }
 

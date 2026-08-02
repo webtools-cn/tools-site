@@ -410,80 +410,216 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function clearBatchResults() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+var currentMode = 'single';
+var currentLotteryType = 'range';
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.tab[data-mode]').forEach(function(t) {
+    t.classList.toggle('active', t.getAttribute('data-mode') === mode);
+  });
+  document.getElementById('mode-single').classList.toggle('hidden', mode !== 'single');
+  document.getElementById('mode-batch').classList.toggle('hidden', mode !== 'batch');
+  document.getElementById('mode-lottery').classList.toggle('hidden', mode !== 'lottery');
+  document.getElementById('mode-stats').classList.toggle('hidden', mode !== 'stats');
 }
 
-function clearLottery() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+function setLotteryType(type) {
+  currentLotteryType = type;
+  document.querySelectorAll('.tab[data-ltype]').forEach(function(t) {
+    t.classList.toggle('active', t.getAttribute('data-ltype') === type);
+  });
+  document.getElementById('lottery-range').classList.toggle('hidden', type !== 'range');
+  document.getElementById('lottery-list').classList.toggle('hidden', type !== 'list');
 }
 
-function clearResults() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+function secureRandomInt(min, max) {
+  var range = max - min + 1;
+  if (range <= 0) return min;
+  var buf = new Uint32Array(1);
+  var maxUint32 = 4294967296;
+  var limit = maxUint32 - (maxUint32 % range);
+  var val;
+  do {
+    crypto.getRandomValues(buf);
+    val = buf[0];
+  } while (val >= limit);
+  return min + (val % range);
 }
 
-function clearStats() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
-}
-
-function copyBatch() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
-}
-
-function copyLottery() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
-}
-
-function copyResults() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
-  if (!text) { showToast('没有可复制的内容'); return; }
-  copyText(text);
-}
-
-function downloadBatch() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{{type:'text/plain'}});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Batch.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
-}
-
-function generateBatch() {
-  var count=document.getElementById('genCount')||document.querySelector('input[type=number]');
-  var type=document.getElementById('genType')||document.querySelector('select');
-  if(!count){showToast('请输入数量');return;}
-  var n=parseInt(count.value)||1;
-  var t=type?type.value:'number';
-  var results=[];
-  for(var i=0;i<n;i++){
-    if(t==='number'||t==='数字'){results.push(Math.floor(Math.random()*1000000));}
-    else if(t==='uuid'||t==='UUID'){results.push('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return (c==='x'?r:(r&0x3|0x8)).toString(16);}));}
-    else if(t==='color'||t==='颜色'){results.push('#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'));}
-    else{results.push(Math.floor(Math.random()*1000000));}
+function generateNumbers(min, max, count, allowRepeat, sort) {
+  if (min > max) { var tmp = min; min = max; max = tmp; }
+  var results = [];
+  if (!allowRepeat) {
+    var pool = [];
+    for (var i = min; i <= max; i++) pool.push(i);
+    if (count > pool.length) count = pool.length;
+    for (var j = 0; j < count; j++) {
+      var idx = secureRandomInt(0, pool.length - 1);
+      results.push(pool[idx]);
+      pool.splice(idx, 1);
+    }
+  } else {
+    for (var k = 0; k < count; k++) {
+      results.push(secureRandomInt(min, max));
+    }
   }
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');
-  if(out){out.textContent=results.join('\n');}
-  showToast('已生成'+n+'条随机数据！');
+  if (sort) results.sort(function(a, b) { return a - b; });
+  return results;
 }
 
 function generateSingle() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  var min = parseInt(document.getElementById('sMin').value) || 1;
+  var max = parseInt(document.getElementById('sMax').value) || 100;
+  var count = parseInt(document.getElementById('sCount').value) || 1;
+  var allowRepeat = document.getElementById('sAllowRepeat').checked;
+  var sort = document.getElementById('sSort').checked;
+  if (count > 1000) count = 1000;
+  var results = generateNumbers(min, max, count, allowRepeat, sort);
+  var el = document.getElementById('singleResult');
+  var html = '<div class="result-grid">';
+  results.forEach(function(n, i) {
+    html += '<span class="result-tag" onclick="navigator.clipboard.writeText(\'' + n + '\');showToast(\'已复制: ' + n + '\')"><span class="idx">' + (i + 1) + '</span>' + n + '</span>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function clearResults() {
+  document.getElementById('singleResult').innerHTML = '<div class="empty-state">点击上方按钮生成随机数</div>';
+  showToast('已清空');
+}
+
+function copyResults() {
+  var el = document.getElementById('singleResult');
+  var tags = el.querySelectorAll('.result-tag');
+  if (!tags.length) { showToast('没有可复制的结果'); return; }
+  var text = Array.prototype.map.call(tags, function(t) { return t.textContent.replace(/^\d+/, '').trim(); }).join('\n');
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制 ' + tags.length + ' 个结果'); })['catch'](function() { showToast('复制失败'); });
+}
+
+function generateBatch() {
+  var min = parseInt(document.getElementById('bMin').value) || 1;
+  var max = parseInt(document.getElementById('bMax').value) || 100;
+  var count = parseInt(document.getElementById('bCount').value) || 50;
+  var allowRepeat = document.getElementById('bAllowRepeat').checked;
+  var sort = document.getElementById('bSort').checked;
+  var comma = document.getElementById('bComma').checked;
+  if (count > 10000) count = 10000;
+  var results = generateNumbers(min, max, count, allowRepeat, sort);
+  var sep = comma ? ', ' : '\n';
+  var el = document.getElementById('batchResult');
+  el.innerHTML = '<div class="result-box" style="font-family:monospace;font-size:.85rem;white-space:pre-wrap;word-break:break-all;color:#e2e8f0">' + results.join(sep) + '</div><p style="margin-top:8px;color:#64748b;font-size:.8rem">共生成 ' + results.length + ' 个随机数</p>';
+}
+
+function clearBatchResults() {
+  document.getElementById('batchResult').innerHTML = '<div class="empty-state">点击上方按钮批量生成随机数</div>';
+  showToast('已清空');
+}
+
+function copyBatch() {
+  var el = document.getElementById('batchResult').querySelector('.result-box');
+  if (!el) { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(el.textContent).then(function() { showToast('已复制'); })['catch'](function() { showToast('复制失败'); });
+}
+
+function downloadBatch() {
+  var el = document.getElementById('batchResult').querySelector('.result-box');
+  if (!el) { showToast('没有可下载的内容'); return; }
+  var blob = new Blob([el.textContent], {type: 'text/plain;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'random_numbers.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已下载');
 }
 
 function runLottery() {
-  showToast('runLottery - coming soon!');
+  var results = [];
+  if (currentLotteryType === 'range') {
+    var min = parseInt(document.getElementById('lMin').value) || 1;
+    var max = parseInt(document.getElementById('lMax').value) || 100;
+    var winners = parseInt(document.getElementById('lWinners').value) || 1;
+    results = generateNumbers(min, max, winners, false, true);
+    var el = document.getElementById('lotteryResult');
+    var html = '<div class="result-grid">';
+    results.forEach(function(n, i) {
+      html += '<span class="result-tag winner">' + n + '</span>';
+    });
+    html += '</div><p style="margin-top:12px;color:#10b981;font-size:.9rem">🎉 中奖号码 ' + results.length + ' 个（不重复）</p>';
+    el.innerHTML = html;
+  } else {
+    var namesText = document.getElementById('lNames').value.trim();
+    if (!namesText) { showToast('请输入参与者名单'); return; }
+    var names = namesText.split('\n').map(function(s) { return s.trim(); }).filter(function(s) { return s; });
+    var winnersCount = parseInt(document.getElementById('lWinnersList').value) || 1;
+    if (winnersCount > names.length) winnersCount = names.length;
+    var indices = generateNumbers(0, names.length - 1, winnersCount, false, false);
+    results = indices.map(function(i) { return names[i]; });
+    var el2 = document.getElementById('lotteryResult');
+    var html2 = '<div class="result-grid">';
+    results.forEach(function(n) {
+      html2 += '<span class="result-tag winner">' + n + '</span>';
+    });
+    html2 += '</div><p style="margin-top:12px;color:#10b981;font-size:.9rem">🎉 中奖者 ' + results.length + ' 名（共 ' + names.length + ' 人参与）</p>';
+    el2.innerHTML = html2;
+  }
+}
+
+function copyLottery() {
+  var el = document.getElementById('lotteryResult');
+  var tags = el.querySelectorAll('.result-tag');
+  if (!tags.length) { showToast('没有可复制的结果'); return; }
+  var text = Array.prototype.map.call(tags, function(t) { return t.textContent.trim(); }).join('\n');
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制中奖结果'); })['catch'](function() { showToast('复制失败'); });
+}
+
+function clearLottery() {
+  document.getElementById('lotteryResult').innerHTML = '<div class="empty-state">点击上方按钮开始抽奖</div>';
+  showToast('已清空');
 }
 
 function runStats() {
-  showToast('runStats - coming soon!');
+  var min = parseInt(document.getElementById('stMin').value) || 1;
+  var max = parseInt(document.getElementById('stMax').value) || 10;
+  var count = parseInt(document.getElementById('stCount').value) || 1000;
+  if (count > 100000) count = 100000;
+  if (min > max) { var tmp = min; min = max; max = tmp; }
+  var results = generateNumbers(min, max, count, true, false);
+  var freq = {};
+  results.forEach(function(n) { freq[n] = (freq[n] || 0) + 1; });
+  var sorted = Object.keys(freq).map(Number).sort(function(a, b) { return a - b; });
+  var maxFreq = 0;
+  sorted.forEach(function(k) { if (freq[k] > maxFreq) maxFreq = freq[k]; });
+  var sum = results.reduce(function(a, b) { return a + b; }, 0);
+  var mean = sum / results.length;
+  var variance = results.reduce(function(acc, v) { return acc + (v - mean) * (v - mean); }, 0) / results.length;
+  var stdDev = Math.sqrt(variance);
+  var sortedCopy = results.slice().sort(function(a, b) { return a - b; });
+  var median = sortedCopy.length % 2 === 0 ? (sortedCopy[sortedCopy.length / 2 - 1] + sortedCopy[sortedCopy.length / 2]) / 2 : sortedCopy[Math.floor(sortedCopy.length / 2)];
+  var html = '<div class="stats-grid">';
+  html += '<div class="stat-card"><div class="stat-label">样本数</div><div class="stat-value">' + results.length + '</div></div>';
+  html += '<div class="stat-card"><div class="stat-label">平均值</div><div class="stat-value">' + mean.toFixed(2) + '</div></div>';
+  html += '<div class="stat-card"><div class="stat-label">中位数</div><div class="stat-value">' + median + '</div></div>';
+  html += '<div class="stat-card"><div class="stat-label">标准差</div><div class="stat-value">' + stdDev.toFixed(2) + '</div></div>';
+  html += '<div class="stat-card"><div class="stat-label">最小值</div><div class="stat-value">' + sortedCopy[0] + '</div></div>';
+  html += '<div class="stat-card"><div class="stat-label">最大值</div><div class="stat-value">' + sortedCopy[sortedCopy.length - 1] + '</div></div>';
+  html += '</div>';
+  html += '<div class="histogram" style="margin-top:16px;background:#0f172a;border-radius:8px;padding:16px">';
+  html += '<div style="color:#94a3b8;font-size:.85rem;margin-bottom:12px">频率分布直方图</div>';
+  sorted.forEach(function(k) {
+    var pct = maxFreq > 0 ? (freq[k] / maxFreq * 100) : 0;
+    html += '<div class="hist-bar"><span class="hist-label">' + k + '</span><div class="hist-track"><div class="hist-fill" style="width:' + pct + '%"></div></div><span class="hist-count">' + freq[k] + '</span></div>';
+  });
+  html += '</div>';
+  document.getElementById('statsResult').innerHTML = html;
+  showToast('已生成 ' + count + ' 个样本并分析');
 }
 
-function setLotteryType() {
-  showToast('setLotteryType - coming soon!');
-}
-
-function setMode(value) {
-  if(typeof value === 'string') {
-    var el = document.querySelector('[data-preset="' + value + '"], [data-mode="' + value + '"]');
-    if(el) el.classList.add('active');
-  }
-  showToast('已应用');
+function clearStats() {
+  document.getElementById('statsResult').innerHTML = '';
+  showToast('已清空');
 }
 </script>
 </body>

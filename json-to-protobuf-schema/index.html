@@ -191,34 +191,135 @@ function toggleFeedback(){const p=document.getElementById('feedback-panel');p.st
 
 // === 重写的函数实现 ===
 function clearAll() {
-  document.getElementById('messageName').value = '';
-  document.getElementById('packageName').value = '';
   document.getElementById('jsonInput').value = '';
   document.getElementById('protoOutput').value = '';
+  document.getElementById('messageName').value = 'RootMessage';
+  document.getElementById('packageName').value = '';
   document.getElementById('protoSyntax').selectedIndex = 0;
-  showToast('已重置');
+  document.getElementById('jsonError').classList.remove('show');
+  showToast('已清空');
 }
 
 function copyResult() {
-  var text = document.getElementById('result').innerText;
+  var text = document.getElementById('protoOutput').value;
   if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制到剪贴板');})['catch'](function(){showToast('复制失败');});
 }
 
 function downloadProto() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{{type:'text/plain'}});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Proto.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+  var text = document.getElementById('protoOutput').value;
+  if (!text) { showToast('没有可下载的内容'); return; }
+  var blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  var msgName = document.getElementById('messageName').value || 'schema';
+  a.download = msgName + '.proto';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已下载 .proto 文件');
+}
+
+function protoType(val) {
+  if (val === null) return 'NullValue';
+  if (typeof val === 'boolean') return 'bool';
+  if (typeof val === 'number') {
+    if (Number.isInteger(val)) {
+      if (val < -2147483648 || val > 2147483647) return 'int64';
+      return 'int32';
+    }
+    return 'double';
+  }
+  if (typeof val === 'string') return 'string';
+  return 'string';
+}
+
+function capitalize(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function generateMessages(obj, msgName, messages, indent) {
+  var lines = [];
+  var pad = indent ? '  '.repeat(indent) : '';
+  lines.push(pad + 'message ' + capitalize(msgName) + ' {');
+  var fieldNum = 1;
+  for (var key in obj) {
+    if (!obj.hasOwnProperty(key)) continue;
+    var val = obj[key];
+    var fieldName = key.replace(/[^a-zA-Z0-9_]/g, '_');
+    if (/^[0-9]/.test(fieldName)) fieldName = '_' + fieldName;
+    if (Array.isArray(val)) {
+      if (val.length > 0) {
+        if (typeof val[0] === 'object' && val[0] !== null) {
+          var nestedName = capitalize(fieldName);
+          generateMessages(val[0], nestedName, messages, indent + 1);
+          lines.push(pad + '  repeated ' + nestedName + ' ' + fieldName + ' = ' + fieldNum + ';');
+        } else {
+          lines.push(pad + '  repeated ' + protoType(val[0]) + ' ' + fieldName + ' = ' + fieldNum + ';');
+        }
+      } else {
+        lines.push(pad + '  repeated string ' + fieldName + ' = ' + fieldNum + ';');
+      }
+    } else if (typeof val === 'object' && val !== null) {
+      var nestedName2 = capitalize(fieldName);
+      generateMessages(val, nestedName2, messages, indent + 1);
+      lines.push(pad + '  ' + nestedName2 + ' ' + fieldName + ' = ' + fieldNum + ';');
+    } else {
+      lines.push(pad + '  ' + protoType(val) + ' ' + fieldName + ' = ' + fieldNum + ';');
+    }
+    fieldNum++;
+  }
+  lines.push(pad + '}');
+  return lines;
 }
 
 function generateProto() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  var input = document.getElementById('jsonInput').value.trim();
+  var errEl = document.getElementById('jsonError');
+  var outEl = document.getElementById('protoOutput');
+  if (!input) { showToast('请输入JSON数据'); return; }
+  var data;
+  try {
+    data = JSON.parse(input);
+  } catch(e) {
+    errEl.textContent = 'JSON解析失败: ' + e.message;
+    errEl.classList.add('show');
+    return;
+  }
+  errEl.classList.remove('show');
+  var msgName = document.getElementById('messageName').value.trim() || 'RootMessage';
+  msgName = capitalize(msgName.replace(/[^a-zA-Z0-9_]/g, '_'));
+  var syntax = document.getElementById('protoSyntax').value;
+  var pkg = document.getElementById('packageName').value.trim();
+  var lines = [];
+  lines.push('syntax = "' + syntax + '";');
+  lines.push('');
+  if (pkg) { lines.push('package ' + pkg + ';'); lines.push(''); }
+  var msgLines = generateMessages(data, msgName, [], 0);
+  lines = lines.concat(msgLines);
+  outEl.value = lines.join('\n');
+  showToast('已生成 .proto 定义');
 }
 
 function loadExample() {
-  document.getElementById('messageName').value = '100';
-  document.getElementById('packageName').value = '100';
-  document.getElementById('jsonInput').value = '示例数据';
-  document.getElementById('protoOutput').value = '示例数据';
-  showToast('已加载示例');
+  document.getElementById('messageName').value = 'UserRequest';
+  document.getElementById('packageName').value = 'com.example.proto';
+  document.getElementById('protoSyntax').selectedIndex = 0;
+  document.getElementById('jsonInput').value = JSON.stringify({
+    "id": 12345,
+    "name": "张三",
+    "email": "zhangsan@example.com",
+    "age": 25,
+    "isActive": true,
+    "score": 95.5,
+    "tags": ["vip", "new"],
+    "address": {
+      "city": "北京",
+      "zip": "100000"
+    },
+    "nickname": null
+  }, null, 2);
+  document.getElementById('protoOutput').value = '';
+  showToast('已加载示例数据');
 }
 </script>
 </body>
