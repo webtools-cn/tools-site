@@ -94,6 +94,64 @@ table.data td{color:#cbd5e1}
 
 <!-- AdSense -->
 
+<div class="container">
+<div class="input-section">
+<h2>单价计算器</h2>
+<div id="itemList">
+<div class="item-row" style="background:#0f172a;border-radius:8px;padding:14px;margin-bottom:10px;border:1px solid rgba(148,163,184,.1)">
+<div class="row">
+<div class="field">
+<label>商品名称</label>
+<input type="text" class="item-name" placeholder="例如：商品A" value="商品1">
+</div>
+<div class="field">
+<label>总价 (¥)</label>
+<input type="number" class="item-price" placeholder="0" step="0.01" min="0">
+</div>
+<div class="field">
+<label>数量</label>
+<input type="number" class="item-qty" placeholder="0" step="0.01" min="0">
+</div>
+<div class="field">
+<label>单位</label>
+<select class="item-unit">
+<option value="g">克 (g)</option>
+<option value="kg">千克 (kg)</option>
+<option value="ml">毫升 (ml)</option>
+<option value="l">升 (L)</option>
+<option value="pc">个/件</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" onclick="addItem()">+ 添加商品</button>
+<button class="btn btn-success" onclick="calculateUnitPrice()">计算单价</button>
+<button class="btn btn-secondary" onclick="clearItems()">清空</button>
+</div>
+</div>
+<div class="result-section" id="resultSection">
+<h2>单价对比结果</h2>
+<div class="table-wrap">
+<table class="data" id="resultTable">
+<thead>
+<tr><th>商品</th><th>总价</th><th>数量</th><th>单位</th><th>单价 (¥/基准单位)</th><th>排名</th></tr>
+</thead>
+<tbody id="resultBody"></tbody>
+</table>
+</div>
+<div style="margin-top:12px;color:#22d3ee;font-size:.9rem" id="bestDeal"></div>
+</div>
+<div class="info-section">
+<h2>使用说明</h2>
+<p>1. 输入每个商品的总价和数量，选择对应单位</p>
+<p>2. 点击"计算单价"查看每克/每毫升/每件的单价</p>
+<p>3. 不同单位会自动换算到统一基准（克/毫升/件）进行比较</p>
+<p>4. 表格按单价从低到高排序，最划算的商品标绿色</p>
+</div>
+</div>
+
 <div class="seo-content" style="margin:1.5rem 0;padding:1rem;background:#0f172a;border-radius:8px;font-size:.95rem;color:#475569;line-height:1.8"><p>免费在线单价计算器 - Compare Prices Per Unit  Save Money  无需注册是一款免费的在线工具，无需安装任何软件即可直接在浏览器中使用。该工具完全在本地运行，您的数据不会上传到服务器，保障隐私安全。支持所有主流浏览器和移动设备，随时随地可用。使用免费在线单价计算器 - Compare Prices Per Unit  Save Money  无需注册可以帮助您快速完成相关任务，提高工作效率。本工具采用纯前端技术实现，打开即用，无需注册账号或下载插件。操作简单直观，结果即时呈现。免费在线单价计算器 - Compare Prices Per Unit  Save Money  无需注册提供精准的计算和转换功能，满足日常工作和学习需求。所有处理均在浏览器本地完成，响应速度快且安全可靠。无论您使用电脑还是手机，都能获得流畅的操作体验。</p></div>
 <section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#374151;">🔗 <h2 style="color:#e2e8f0;font-size:18px;margin-bottom:12px">🔗 相关工具推荐</h2>
   <a href="../dns-record-comparator/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">DNS记录对比器</a>
@@ -103,6 +161,98 @@ table.data td{color:#cbd5e1}
 <footer style="border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem"><a href="/" style="color:#64748b;margin:0 8px">首页</a> <a href="/privacy" style="color:#64748b;margin:0 8px">隐私政策</a> <a href="/terms" style="color:#64748b;margin:0 8px">使用条款</a><a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener">GitHub</a>
 </footer>
 </div>
+
+<script>
+// 单位换算到基准单位的系数
+var unitFactors = {
+  g: 1, kg: 1000, ml: 1, l: 1000, pc: 1
+};
+var unitLabels = {g:'克', kg:'克', ml:'毫升', l:'毫升', pc:'件'};
+var baseUnit = {g:'g', kg:'g', ml:'ml', l:'ml', pc:'pc'};
+
+function addItem() {
+  var list = document.getElementById('itemList');
+  var count = list.children.length + 1;
+  var row = document.createElement('div');
+  row.className = 'item-row';
+  row.style.cssText = 'background:#0f172a;border-radius:8px;padding:14px;margin-bottom:10px;border:1px solid rgba(148,163,184,.1)';
+  row.innerHTML = '<div class="row">' +
+    '<div class="field"><label>商品名称</label><input type="text" class="item-name" placeholder="例如：商品A" value="商品' + count + '"></div>' +
+    '<div class="field"><label>总价 (¥)</label><input type="number" class="item-price" placeholder="0" step="0.01" min="0"></div>' +
+    '<div class="field"><label>数量</label><input type="number" class="item-qty" placeholder="0" step="0.01" min="0"></div>' +
+    '<div class="field"><label>单位</label><select class="item-unit">' +
+    '<option value="g">克 (g)</option><option value="kg">千克 (kg)</option>' +
+    '<option value="ml">毫升 (ml)</option><option value="l">升 (L)</option>' +
+    '<option value="pc">个/件</option></select></div>' +
+    '<div class="field"><label> </label><button class="btn btn-secondary" onclick="this.closest(\'.item-row\').remove()">删除</button></div>' +
+    '</div>';
+  list.appendChild(row);
+}
+
+function calculateUnitPrice() {
+  var rows = document.querySelectorAll('#itemList .item-row');
+  var items = [];
+  
+  for (var i = 0; i < rows.length; i++) {
+    var name = rows[i].querySelector('.item-name').value || ('商品' + (i+1));
+    var price = parseFloat(rows[i].querySelector('.item-price').value);
+    var qty = parseFloat(rows[i].querySelector('.item-qty').value);
+    var unit = rows[i].querySelector('.item-unit').value;
+    
+    if (isNaN(price) || price <= 0 || isNaN(qty) || qty <= 0) continue;
+    
+    var baseQty = qty * unitFactors[unit];
+    var unitPrice = price / baseQty;
+    items.push({name: name, price: price, qty: qty, unit: unit, unitPrice: unitPrice, baseQty: baseQty, baseUnit: baseUnit[unit]});
+  }
+  
+  if (items.length === 0) {
+    showToast('请至少输入一个有效的商品');
+    return;
+  }
+  
+  // 按单价排序（从低到高）
+  items.sort(function(a, b) { return a.unitPrice - b.unitPrice; });
+  
+  var tbody = document.getElementById('resultBody');
+  tbody.innerHTML = '';
+  for (var j = 0; j < items.length; j++) {
+    var item = items[j];
+    var tr = document.createElement('tr');
+    if (j === 0) tr.style.cssText = 'background:rgba(34,197,94,.1)';
+    var unitLabel = unitLabels[item.unit];
+    var baseLabel = {g:'克', ml:'毫升', pc:'件'}[item.baseUnit];
+    tr.innerHTML = '<td>' + item.name + '</td>' +
+      '<td>¥' + item.price.toFixed(2) + '</td>' +
+      '<td>' + item.qty + '</td>' +
+      '<td>' + unitLabel + '</td>' +
+      '<td>¥' + item.unitPrice.toFixed(4) + '/' + baseLabel + '</td>' +
+      '<td style="color:' + (j === 0 ? '#4ade80' : '#94a3b8') + ';font-weight:' + (j === 0 ? '700' : '400') + '">#' + (j+1) + '</td>';
+    tbody.appendChild(tr);
+  }
+  
+  document.getElementById('bestDeal').textContent = '最划算：' + items[0].name + '，单价 ¥' + items[0].unitPrice.toFixed(4) + '/' + ({g:'克', ml:'毫升', pc:'件'}[items[0].baseUnit]);
+  document.getElementById('resultSection').classList.add('show');
+}
+
+function clearItems() {
+  document.getElementById('itemList').innerHTML = '';
+  addItem();
+  document.getElementById('resultSection').classList.remove('show');
+}
+
+function showToast(msg) {
+  var existing = document.querySelector('.toast-msg');
+  if (existing) existing.remove();
+  var t = document.createElement('div');
+  t.className = 'toast-msg';
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);z-index:999;opacity:0;transition:opacity .3s';
+  document.body.appendChild(t);
+  requestAnimationFrame(function(){ t.style.opacity = '1'; });
+  setTimeout(function(){ t.style.opacity = '0'; setTimeout(function(){ t.remove(); }, 300); }, 2000);
+}
+</script>
 
 </body>
 </html>
