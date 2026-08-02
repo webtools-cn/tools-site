@@ -334,29 +334,204 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function applyTemplate(value) {
-  if(typeof value === 'string') {
-    var el = document.querySelector('[data-preset="' + value + '"], [data-mode="' + value + '"]');
-    if(el) el.classList.add('active');
-  }
-  showToast('已应用');
+// === 文本转图片核心实现 ===
+
+function getVal(id, fallback) {
+  var el = document.getElementById(id);
+  return el ? el.value : fallback;
 }
 
-function downloadImage() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
-  if (!text) { showToast('没有可导出的内容'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'text-to-image-output.txt';
-  a.click();
-  showToast('已下载');
+function applyTemplate(value) {
+  var templates = {
+    quote: { fontFamily: "'Songti SC','SimSun',serif", fontSize: 40, textColor: "#ffffff", bgColor: "#1e293b", padding: 60, lineHeight: 1.6, textAlign: "center", shadowBlur: 20, shadowX: 0, shadowY: 4, shadowColor: "#000000", borderRadius: 12, inputText: '"Success is not final, failure is not fatal: it is the courage to continue that counts."', subText: "— Winston Churchill" },
+    social: { fontFamily: "'PingFang SC','Microsoft YaHei',sans-serif", fontSize: 32, textColor: "#ffffff", bgColor: "#7c3aed", padding: 50, lineHeight: 1.5, textAlign: "center", shadowBlur: 10, shadowX: 0, shadowY: 2, shadowColor: "#000000", borderRadius: 16, inputText: "🚀 今天分享一个超实用的工具\n纯前端处理，数据零上传\n免费无限使用！", subText: "#效率工具 #前端开发" },
+    code: { fontFamily: "'Courier New',monospace", fontSize: 16, textColor: "#a5b3ce", bgColor: "#1a1a2e", padding: 30, lineHeight: 1.8, textAlign: "left", shadowBlur: 0, shadowX: 0, shadowY: 0, shadowColor: "#000000", borderRadius: 8, inputText: "function debounce(fn, delay) {\n  let timer = null;\n  return function(...args) {\n    clearTimeout(timer);\n    timer = setTimeout(() => fn.apply(this, args), delay);\n  };\n}", subText: "debounce.js" },
+    promo: { fontFamily: "'PingFang SC','Microsoft YaHei',sans-serif", fontSize: 48, textColor: "#ffffff", bgColor: "#f59e0b", padding: 50, lineHeight: 1.4, textAlign: "center", shadowBlur: 30, shadowX: 0, shadowY: 6, shadowColor: "#000000", borderRadius: 20, inputText: "🔥 限时特惠\n全场工具永久免费", subText: "立即体验 →" },
+    minimal: { fontFamily: "Georgia,serif", fontSize: 36, textColor: "#1e293b", bgColor: "#f8fafc", padding: 80, lineHeight: 1.8, textAlign: "center", shadowBlur: 0, shadowX: 0, shadowY: 0, shadowColor: "#000000", borderRadius: 0, inputText: "Simplicity is the ultimate sophistication.", subText: "" },
+    dark: { fontFamily: "'PingFang SC','Microsoft YaHei',sans-serif", fontSize: 38, textColor: "#22d3ee", bgColor: "#0f172a", padding: 60, lineHeight: 1.6, textAlign: "center", shadowBlur: 15, shadowX: 0, shadowY: 0, shadowColor: "#06b6d4", borderRadius: 12, inputText: "在暗夜中前行\n代码即光", subText: "— Developer" }
+  };
+  var t = templates[value];
+  if (!t) { showToast('模板不存在'); return; }
+  document.getElementById('fontFamily').value = t.fontFamily;
+  document.getElementById('fontSize').value = t.fontSize;
+  document.getElementById('textColor').value = t.textColor;
+  document.getElementById('bgColor').value = t.bgColor;
+  document.getElementById('imgWidth').value = 800;
+  document.getElementById('imgHeight').value = 500;
+  document.getElementById('padding').value = t.padding;
+  document.getElementById('paddingVal').textContent = t.padding;
+  document.getElementById('lineHeight').value = t.lineHeight;
+  document.getElementById('lineHeightVal').textContent = t.lineHeight;
+  document.getElementById('textAlign').value = t.textAlign;
+  document.getElementById('borderRadius').value = t.borderRadius;
+  document.getElementById('shadowBlur').value = t.shadowBlur;
+  document.getElementById('shadowBlurVal').textContent = t.shadowBlur;
+  document.getElementById('shadowX').value = t.shadowX;
+  document.getElementById('shadowY').value = t.shadowY;
+  document.getElementById('shadowColor').value = t.shadowColor;
+  document.getElementById('inputText').value = t.inputText;
+  document.getElementById('subText').value = t.subText;
+  // 高亮按钮
+  var btns = document.querySelectorAll('.template-btn');
+  for (var i = 0; i < btns.length; i++) btns.classList.remove('active');
+  var active = document.querySelector('[data-template="' + value + '"]');
+  if (active) active.classList.add('active');
+  generateImage();
+  showToast('已应用模板');
+}
+
+function wrapText(ctx, text, maxWidth, lineHeight) {
+  var paragraphs = text.split('\n');
+  var lines = [];
+  for (var p = 0; p < paragraphs.length; p++) {
+    var para = paragraphs[p];
+    if (para === '') { lines.push(''); continue; }
+    var words = para.split('');
+    var currentLine = '';
+    for (var i = 0; i < words.length; i++) {
+      var testLine = currentLine + words[i];
+      var metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && currentLine !== '') {
+        lines.push(currentLine);
+        currentLine = words[i];
+      } else {
+        currentLine = testLine;
+      }
+    }
+    lines.push(currentLine);
+  }
+  return lines;
 }
 
 function generateImage() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  var canvas = document.getElementById('canvasOutput');
+  if (!canvas) { showToast('画布未找到'); return; }
+  var ctx = canvas.getContext('2d');
+  var text = getVal('inputText', '');
+  var subText = getVal('subText', '');
+  if (!text.trim()) { showToast('请输入文字内容'); return; }
+
+  var w = parseInt(getVal('imgWidth', '800')) || 800;
+  var h = parseInt(getVal('imgHeight', '500')) || 500;
+  canvas.width = w;
+  canvas.height = h;
+
+  // 圆角裁剪
+  var radius = parseInt(getVal('borderRadius', '0')) || 0;
+  ctx.save();
+  if (radius > 0) {
+    ctx.beginPath();
+    ctx.moveTo(radius, 0);
+    ctx.arcTo(w, 0, w, h, radius);
+    ctx.arcTo(w, h, 0, h, radius);
+    ctx.arcTo(0, h, 0, 0, radius);
+    ctx.arcTo(0, 0, w, 0, radius);
+    ctx.closePath();
+    ctx.clip();
+  }
+
+  // 背景
+  var bg = getVal('bgColor', '#1e293b');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // 文字样式
+  var font = getVal('fontFamily', 'sans-serif');
+  var fontSize = parseInt(getVal('fontSize', '40')) || 40;
+  var textColor = getVal('textColor', '#ffffff');
+  var padding = parseInt(getVal('padding', '60')) || 60;
+  var lh = parseFloat(getVal('lineHeight', '1.6')) || 1.6;
+  var align = getVal('textAlign', 'center');
+  var sBlur = parseInt(getVal('shadowBlur', '0')) || 0;
+  var sX = parseInt(getVal('shadowX', '0')) || 0;
+  var sY = parseInt(getVal('shadowY', '0')) || 0;
+  var sColor = getVal('shadowColor', '#000000');
+
+  ctx.font = fontSize + 'px ' + font;
+  ctx.fillStyle = textColor;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'top';
+
+  if (sBlur > 0 || sX !== 0 || sY !== 0) {
+    ctx.shadowBlur = sBlur;
+    ctx.shadowOffsetX = sX;
+    ctx.shadowOffsetY = sY;
+    ctx.shadowColor = sColor;
+  }
+
+  var maxWidth = w - padding * 2;
+  var lines = wrapText(ctx, text, maxWidth, fontSize * lh);
+  var totalHeight = lines.length * fontSize * lh;
+  if (subText.trim()) totalHeight += fontSize * lh * 0.6 + 10;
+
+  var startY = (h - totalHeight) / 2;
+  if (startY < padding) startY = padding;
+
+  var x;
+  if (align === 'center') x = w / 2;
+  else if (align === 'right') x = w - padding;
+  else x = padding;
+
+  // 绘制主文字
+  for (var i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], x, startY + i * fontSize * lh);
+  }
+
+  // 绘制副标题
+  if (subText.trim()) {
+    ctx.globalAlpha = 0.7;
+    var subFontSize = Math.max(fontSize * 0.5, 14);
+    ctx.font = subFontSize + 'px ' + font;
+    var subY = startY + lines.length * fontSize * lh + 10;
+    ctx.fillText(subText, x, subY);
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+  showToast('图片已生成');
 }
+
+function downloadImage() {
+  var canvas = document.getElementById('canvasOutput');
+  if (!canvas) { showToast('画布未找到'); return; }
+  // 检查canvas是否有内容
+  var ctx = canvas.getContext('2d');
+  var data = ctx.getImageData(0, 0, 1, 1).data;
+  if (data[3] === 0) { generateImage(); }
+  try {
+    canvas.toBlob(function(blob) {
+      if (!blob) { showToast('生成失败'); return; }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'text-to-image-' + Date.now() + '.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      showToast('PNG已下载');
+    }, 'image/png');
+  } catch(e) {
+    showToast('下载失败: ' + e.message);
+  }
+}
+
+// 更新range值显示
+document.addEventListener('DOMContentLoaded', function() {
+  var ranges = [
+    { id: 'padding', label: 'paddingVal' },
+    { id: 'lineHeight', label: 'lineHeightVal' },
+    { id: 'shadowBlur', label: 'shadowBlurVal' }
+  ];
+  ranges.forEach(function(r) {
+    var el = document.getElementById(r.id);
+    var lbl = document.getElementById(r.label);
+    if (el && lbl) {
+      el.addEventListener('input', function() { lbl.textContent = el.value; });
+    }
+  });
+  // 初始生成
+  generateImage();
+});
 </script>
 </body>
 </html>

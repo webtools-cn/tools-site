@@ -248,6 +248,7 @@ a{color:#06b6d4;text-decoration:none}
 <p>WiFi二维码生成器 | 无需注册 · 数据绝不上传服务器</p>
 <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
 </div>
+<script src="../libs/qrcode-generator.min.js"></script>
 <div class="toast" id="toast"></div>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
@@ -263,27 +264,210 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function clearAll() {
-  document.getElementById('ssid').value = '';
-  document.getElementById('password').value = '';
-  document.getElementById('qrSize').selectedIndex = 0;
-  document.getElementById('errorLevel').selectedIndex = 0;
-  document.getElementById('hidePassword').selectedIndex = 0;
-  showToast('已重置');
+// === WiFi二维码生成器核心实现 ===
+
+function escapeWifiString(str) {
+  return str.replace(/([\\;,":])/g, '\\$1');
 }
 
-function downloadQR() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{{type:'text/plain'}});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='QR.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+function buildWifiString() {
+  var ssid = document.getElementById('ssid').value.trim();
+  var encType = getEncType();
+  var password = document.getElementById('password').value;
+
+  if (!ssid) { showToast('请输入WiFi名称'); return null; }
+
+  var escapedSsid = escapeWifiString(ssid);
+  var wifiStr = 'WIFI:T:' + encType + ';S:' + escapedSsid + ';';
+  if (encType !== 'nopass') {
+    var escapedPass = escapeWifiString(password);
+    wifiStr += 'P:' + escapedPass + ';';
+  }
+  wifiStr += ';';
+  return wifiStr;
 }
 
-function downloadSVG() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{{type:'text/plain'}});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='SVG.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+function getEncType() {
+  var radios = document.getElementsByName('encType');
+  for (var i = 0; i < radios.length; i++) {
+    if (radios[i].checked) return radios[i].value;
+  }
+  return 'WPA';
 }
 
 function generateQR() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  var wifiStr = buildWifiString();
+  if (!wifiStr) return;
+
+  var size = parseInt(document.getElementById('qrSize').value) || 320;
+  var errorLevel = document.getElementById('errorLevel').value || 'H';
+
+  if (typeof qrcode === 'undefined') {
+    showToast('二维码库加载失败，请刷新页面');
+    return;
+  }
+
+  try {
+    var qr = qrcode(0, errorLevel);
+    qr.addData(wifiStr);
+    qr.make();
+
+    var moduleCount = qr.getModuleCount();
+    var pixelSize = Math.max(1, Math.floor(size / (moduleCount + 8)));
+    var dataUrl = qr.createDataURL(pixelSize, 4);
+
+    var canvas = document.getElementById('qrCanvas');
+    var placeholder = document.getElementById('qrPlaceholder');
+    var info = document.getElementById('qrInfo');
+    var wifiStrEl = document.getElementById('wifiString');
+
+    var img = new Image();
+    img.onload = function() {
+      canvas.width = size;
+      canvas.height = size;
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, size, size);
+      ctx.drawImage(img, 0, 0, size, size);
+      canvas.style.display = 'block';
+      if (placeholder) placeholder.style.display = 'none';
+      if (info) info.style.display = 'block';
+      if (wifiStrEl) wifiStrEl.textContent = wifiStr;
+      showToast('二维码已生成');
+    };
+    img.onerror = function() {
+      showToast('二维码生成失败');
+    };
+    img.src = dataUrl;
+  } catch(e) {
+    showToast('生成失败: ' + e.message);
+  }
 }
+
+function downloadQR() {
+  var canvas = document.getElementById('qrCanvas');
+  if (canvas.style.display === 'none' || !canvas.width) {
+    showToast('请先生成二维码');
+    return;
+  }
+  try {
+    canvas.toBlob(function(blob) {
+      if (!blob) { showToast('下载失败'); return; }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'wifi-qr-' + Date.now() + '.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      showToast('PNG已下载');
+    }, 'image/png');
+  } catch(e) {
+    showToast('下载失败: ' + e.message);
+  }
+}
+
+function downloadSVG() {
+  var wifiStr = buildWifiString();
+  if (!wifiStr) return;
+
+  var size = parseInt(document.getElementById('qrSize').value) || 320;
+  var errorLevel = document.getElementById('errorLevel').value || 'H';
+
+  if (typeof qrcode === 'undefined') {
+    showToast('二维码库加载失败');
+    return;
+  }
+
+  try {
+    var qr = qrcode(0, errorLevel);
+    qr.addData(wifiStr);
+    qr.make();
+
+    var moduleCount = qr.getModuleCount();
+    var margin = 4;
+    var totalSize = moduleCount + margin * 2;
+    var pixelSize = size / totalSize;
+
+    var svgParts = ['<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 ' + totalSize + ' ' + totalSize + '">'];
+    svgParts.push('<rect width="' + totalSize + '" height="' + totalSize + '" fill="#ffffff"/>');
+
+    for (var r = 0; r < moduleCount; r++) {
+      for (var c = 0; c < moduleCount; c++) {
+        if (qr.isDark(r, c)) {
+          svgParts.push('<rect x="' + (c + margin) + '" y="' + (r + margin) + '" width="1" height="1" fill="#000000"/>');
+        }
+      }
+    }
+    svgParts.push('</svg>');
+    var svgStr = svgParts.join('');
+
+    var blob = new Blob([svgStr], { type: 'image/svg+xml' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'wifi-qr-' + Date.now() + '.svg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    showToast('SVG已下载');
+  } catch(e) {
+    showToast('生成失败: ' + e.message);
+  }
+}
+
+function clearAll() {
+  document.getElementById('ssid').value = '';
+  document.getElementById('password').value = '';
+  var radios = document.getElementsByName('encType');
+  for (var i = 0; i < radios.length; i++) {
+    if (radios[i].value === 'WPA') { radios[i].checked = true; break; }
+  }
+  updateEncTypeUI();
+  document.getElementById('qrSize').value = '320';
+  document.getElementById('errorLevel').value = 'H';
+  document.getElementById('hidePassword').value = 'false';
+  var canvas = document.getElementById('qrCanvas');
+  canvas.style.display = 'none';
+  canvas.width = 0;
+  canvas.height = 0;
+  var placeholder = document.getElementById('qrPlaceholder');
+  if (placeholder) placeholder.style.display = 'block';
+  var info = document.getElementById('qrInfo');
+  if (info) info.style.display = 'none';
+  showToast('已清空');
+}
+
+function updateEncTypeUI() {
+  var encType = getEncType();
+  var labels = document.querySelectorAll('#encTypeGroup label');
+  for (var i = 0; i < labels.length; i++) {
+    var input = labels[i].querySelector('input');
+    if (input && input.checked) labels[i].classList.add('active');
+    else labels[i].classList.remove('active');
+  }
+  var passwordGroup = document.getElementById('passwordGroup');
+  if (passwordGroup) {
+    passwordGroup.style.display = (encType === 'nopass') ? 'none' : 'block';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var radios = document.getElementsByName('encType');
+  for (var i = 0; i < radios.length; i++) {
+    radios[i].addEventListener('change', function() {
+      updateEncTypeUI();
+    });
+  }
+  var hideSelect = document.getElementById('hidePassword');
+  if (hideSelect) {
+    hideSelect.addEventListener('change', function() {
+      var pw = document.getElementById('password');
+      if (pw) pw.type = (this.value === 'true') ? 'password' : 'text';
+    });
+  }
+  updateEncTypeUI();
+});
 </script>
 </body>
 </html>

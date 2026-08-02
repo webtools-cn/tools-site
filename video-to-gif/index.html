@@ -157,7 +157,19 @@ a{color:#06b6d4;text-decoration:none}
 <div class="hero"><p>免费在线视频转GIF转换器，支持MP4/WebM/AVI/MOV等格式，一键将视频片段转为GIF动图。可裁剪起止时间、调节帧率、缩放尺寸、选择质量。无需注册，数据不上传服务器，安全快速。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
-    /div>
+    <div class="upload-area" id="uploadArea">
+      <div class="icon">🎬</div>
+      <p>点击或拖拽视频文件到这里</p>
+      <p class="hint">支持 MP4 / WebM / MOV / AVI 格式，建议 10 秒以内</p>
+      <input type="file" id="videoFile" accept="video/*">
+    </div>
+    <div id="fileInfoArea" style="display:none">
+      <div class="file-info">
+        <span class="fname" id="fileName"></span>
+        <span class="fsize" id="fileSize"></span>
+        <button class="remove-btn" onclick="removeVideo()">移除</button>
+      </div>
+    </div>
   </div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
@@ -315,18 +327,367 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function copyGifToClipboard() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+// === 视频转GIF核心实现 ===
+
+var videoElement = null;
+var gifFrames = [];
+var gifBlob = null;
+
+function initVideoUpload() {
+  var uploadArea = document.getElementById('uploadArea');
+  var fileInput = document.getElementById('videoFile');
+  if (!uploadArea || !fileInput) return;
+
+  uploadArea.addEventListener('click', function() { fileInput.click(); });
+  fileInput.addEventListener('change', function(e) {
+    if (e.target.files && e.target.files[0]) handleVideoFile(e.target.files[0]);
+  });
+  uploadArea.addEventListener('dragover', function(e) { e.preventDefault(); uploadArea.classList.add('dragover'); });
+  uploadArea.addEventListener('dragleave', function(e) { uploadArea.classList.remove('dragover'); });
+  uploadArea.addEventListener('drop', function(e) {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) handleVideoFile(e.dataTransfer.files[0]);
+  });
+}
+
+function handleVideoFile(file) {
+  if (!file.type.startsWith('video/')) { showToast('请选择视频文件'); return; }
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+  document.getElementById('fileInfoArea').style.display = 'block';
+  document.getElementById('uploadArea').style.display = 'none';
+
+  var video = document.getElementById('videoPreview');
+  video.src = URL.createObjectURL(file);
+  videoElement = video;
+
+  video.onloadedmetadata = function() {
+    var dur = video.duration;
+    document.getElementById('startTime').max = dur;
+    document.getElementById('duration').max = Math.min(dur, 30);
+    document.getElementById('totalDuration').textContent = formatTime(dur);
+    document.getElementById('editorSection').style.display = 'block';
+    showToast('视频已加载');
+  };
+}
+
+function removeVideo() {
+  var video = document.getElementById('videoPreview');
+  if (video) { video.pause(); video.src = ''; }
+  videoElement = null;
+  gifFrames = [];
+  gifBlob = null;
+  document.getElementById('fileInfoArea').style.display = 'none';
+  document.getElementById('uploadArea').style.display = 'block';
+  document.getElementById('editorSection').style.display = 'none';
+  document.getElementById('resultSection').style.display = 'none';
+  document.getElementById('videoFile').value = '';
+}
+
+function formatTime(sec) {
+  var m = Math.floor(sec / 60);
+  var s = Math.floor(sec % 60);
+  return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+// GIF编码器 - LZW压缩算法
+var GIFEncoder = function(width, height) {
+  this.width = width;
+  this.height = height;
+  this.frames = [];
+  this.delay = 10;
+};
+
+GIFEncoder.prototype.addFrame = function(ctx, delay) {
+  var imageData = ctx.getImageData(0, 0, this.width, this.height);
+  var pixels = imageData.data;
+  // 量化到256色
+  var palette = this.buildPalette(pixels);
+  var indexed = this.quantize(pixels, palette);
+  this.frames.push({ data: indexed, palette: palette, delay: delay });
+};
+
+GIFEncoder.prototype.buildPalette = function(pixels) {
+  // 使用均匀量化生成256色调色板
+  var palette = [];
+  for (var r = 0; r < 8; r++) {
+    for (var g = 0; g < 8; g++) {
+      for (var b = 0; b < 4; b++) {
+        palette.push([r * 36, g * 36, b * 85]);
+      }
+    }
+  }
+  return palette;
+};
+
+GIFEncoder.prototype.quantize = function(pixels, palette) {
+  var indexed = new Uint8Array(pixels.length / 4);
+  for (var i = 0; i < pixels.length; i += 4) {
+    var r = pixels[i], g = pixels[i + 1], b = pixels[i + 2], a = pixels[i + 3];
+    if (a < 128) { indexed[i / 4] = 0; continue; }
+    // 找最近颜色
+    var bestIdx = 0, bestDist = Infinity;
+    for (var j = 0; j < palette.length; j++) {
+      var dr = r - palette[j][0], dg = g - palette[j][1], db = b - palette[j][2];
+      var dist = dr * dr + dg * dg + db * db;
+      if (dist < bestDist) { bestDist = dist; bestIdx = j; }
+    }
+    indexed[i / 4] = bestIdx;
+  }
+  return indexed;
+};
+
+GIFEncoder.prototype.finish = function() {
+  // 构建GIF二进制数据
+  var parts = [];
+  // GIF Header
+  parts.push(new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]));
+  // Logical Screen Descriptor
+  var w = this.width, h = this.height;
+  parts.push(new Uint8Array([
+    w & 0xFF, (w >> 8) & 0xFF,
+    h & 0xFF, (h >> 8) & 0xFF,
+    0xF7, // GCT flag + color resolution + sort + GCT size (256 colors)
+    0, 0  // background color index, pixel aspect ratio
+  ]));
+  // Global Color Table (256 entries)
+  var gct = new Uint8Array(768);
+  for (var i = 0; i < 256 && i < this.frames[0].palette.length; i++) {
+    gct[i * 3] = this.frames[0].palette[i][0];
+    gct[i * 3 + 1] = this.frames[0].palette[i][1];
+    gct[i * 3 + 2] = this.frames[0].palette[i][2];
+  }
+  parts.push(gct);
+  // Netscape Application Extension (loop)
+  parts.push(new Uint8Array([
+    0x21, 0xFF, 0x0B,
+    0x4E, 0x45, 0x54, 0x53, 0x43, 0x41, 0x50, 0x45, 0x32, 0x2E, 0x30,
+    0x03, 0x01, 0x00, 0x00
+  ]));
+
+  // 每一帧
+  for (var f = 0; f < this.frames.length; f++) {
+    var frame = this.frames[f];
+    // Graphic Control Extension
+    var delay = Math.round(frame.delay / 10);
+    parts.push(new Uint8Array([
+      0x21, 0xF9, 0x04,
+      0x00, // packed
+      delay & 0xFF, (delay >> 8) & 0xFF,
+      0, // transparent color index
+      0x00 // block terminator
+    ]));
+    // Image Descriptor
+    parts.push(new Uint8Array([
+      0x2C,
+      0, 0, // left
+      0, 0, // top
+      w & 0xFF, (w >> 8) & 0xFF,
+      h & 0xFF, (h >> 8) & 0xFF,
+      0x00 // packed (no LCT)
+    ]));
+    // Image Data (LZW compressed)
+    var lzwData = this.lzwEncode(frame.data, 8);
+    parts.push(new Uint8Array([lzwData.minCodeSize]));
+    // 分块输出
+    var pos = 0;
+    while (pos < lzwData.data.length) {
+      var chunk = lzwData.data.subarray(pos, pos + 255);
+      var block = new Uint8Array(chunk.length + 1);
+      block[0] = chunk.length;
+      block.set(chunk, 1);
+      parts.push(block);
+      pos += 255;
+    }
+    parts.push(new Uint8Array([0])); // block terminator
+  }
+
+  // Trailer
+  parts.push(new Uint8Array([0x3B]));
+
+  return new Blob(parts, { type: 'image/gif' });
+};
+
+GIFEncoder.prototype.lzwEncode = function(pixels, minCodeSize) {
+  var clearCode = 1 << minCodeSize;
+  var endCode = clearCode + 1;
+  var nextCode = endCode + 1;
+  var codeSize = minCodeSize + 1;
+  var dict = {};
+  for (var i = 0; i < clearCode; i++) dict[String.fromCharCode(i)] = i;
+
+  var output = [];
+  var buffer = '';
+  var bitBuffer = 0, bitCount = 0;
+
+  function writeCode(code) {
+    bitBuffer |= (code << bitCount);
+    bitCount += codeSize;
+    while (bitCount >= 8) {
+      output.push(bitBuffer & 0xFF);
+      bitBuffer >>= 8;
+      bitCount -= 8;
+    }
+  }
+
+  writeCode(clearCode);
+  buffer = String.fromCharCode(pixels[0]);
+  for (var i = 1; i < pixels.length; i++) {
+    var ch = String.fromCharCode(pixels[i]);
+    var combined = buffer + ch;
+    if (dict[combined] !== undefined) {
+      buffer = combined;
+    } else {
+      writeCode(dict[buffer]);
+      if (nextCode < 4096) {
+        dict[combined] = nextCode++;
+        if (nextCode > (1 << codeSize) && codeSize < 12) codeSize++;
+      } else {
+        writeCode(clearCode);
+        dict = {};
+        for (var j = 0; j < clearCode; j++) dict[String.fromCharCode(j)] = j;
+        nextCode = endCode + 1;
+        codeSize = minCodeSize + 1;
+      }
+      buffer = ch;
+    }
+  }
+  writeCode(dict[buffer]);
+  writeCode(endCode);
+  if (bitCount > 0) output.push(bitBuffer & 0xFF);
+
+  return { minCodeSize: minCodeSize, data: new Uint8Array(output) };
+};
+
+function generateGif() {
+  if (!videoElement || !videoElement.src) { showToast('请先上传视频'); return; }
+
+  var video = videoElement;
+  var startTime = parseFloat(document.getElementById('startTime').value) || 0;
+  var duration = parseFloat(document.getElementById('duration').value) || 3;
+  var fps = parseInt(document.getElementById('fps').value) || 10;
+  var outputWidth = parseInt(document.getElementById('outputWidth').value) || 320;
+
+  var canvas = document.createElement('canvas');
+  var ctx = canvas.getContext('2d');
+  var ratio = video.videoHeight / video.videoWidth || 0.5625;
+  var outputHeight = Math.round(outputWidth * ratio);
+  canvas.width = outputWidth;
+  canvas.height = outputHeight;
+
+  var totalFrames = Math.floor(duration * fps);
+  var frameDelay = Math.round(1000 / fps);
+  var encoder = new GIFEncoder(outputWidth, outputHeight);
+
+  var progressBar = document.getElementById('progressBar');
+  var progressFill = document.getElementById('progressFill');
+  var progressText = document.getElementById('progressText');
+  var convertBtn = document.getElementById('convertBtn');
+  progressBar.classList.add('active');
+  progressText.classList.add('active');
+  progressText.textContent = '正在提取帧 0/' + totalFrames + '...';
+  convertBtn.disabled = true;
+
+  var currentFrame = 0;
+
+  function captureFrame() {
+    if (currentFrame >= totalFrames) {
+      progressText.textContent = '正在编码GIF...';
+      progressBar.classList.remove('active');
+      progressText.classList.remove('active');
+      // 编码完成
+      gifBlob = encoder.finish();
+      var gifUrl = URL.createObjectURL(gifBlob);
+      var img = document.getElementById('gifResult');
+      img.src = gifUrl;
+      var stats = document.getElementById('resultStats');
+      stats.innerHTML =
+        '<div class="stat"><div class="label">帧数</div><div class="value">' + totalFrames + '</div></div>' +
+        '<div class="stat"><div class="label">尺寸</div><div class="value">' + outputWidth + '×' + outputHeight + '</div></div>' +
+        '<div class="stat"><div class="label">大小</div><div class="value">' + (gifBlob.size / 1024).toFixed(1) + ' KB</div></div>' +
+        '<div class="stat"><div class="label">帧率</div><div class="value">' + fps + ' fps</div></div>';
+      document.getElementById('resultSection').style.display = 'block';
+      document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+      convertBtn.disabled = false;
+      showToast('GIF生成完成！');
+      return;
+    }
+
+    var currentTime = startTime + (currentFrame / fps);
+    if (currentTime >= video.duration) {
+      currentFrame = totalFrames;
+      captureFrame();
+      return;
+    }
+
+    video.currentTime = currentTime;
+    video.onseeked = function() {
+      ctx.drawImage(video, 0, 0, outputWidth, outputHeight);
+      encoder.addFrame(ctx, frameDelay);
+      currentFrame++;
+      var pct = Math.round((currentFrame / totalFrames) * 100);
+      progressFill.style.width = pct + '%';
+      progressText.textContent = '正在提取帧 ' + currentFrame + '/' + totalFrames + '...';
+      // 异步避免阻塞
+      setTimeout(captureFrame, 10);
+    };
+  }
+
+  captureFrame();
 }
 
 function downloadGif() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{{type:'text/plain'}});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Gif.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+  if (!gifBlob) { showToast('请先生成GIF'); return; }
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(gifBlob);
+  a.download = 'video-to-gif-' + Date.now() + '.gif';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast('GIF已下载');
 }
 
-function generateGif() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+function copyGifToClipboard() {
+  if (!gifBlob) { showToast('请先生成GIF'); return; }
+  if (navigator.clipboard && navigator.clipboard.write) {
+    gifBlob.arrayBuffer().then(function(buf) {
+      var blob = new Blob([buf], { type: 'image/gif' });
+      var item = new ClipboardItem({ 'image/gif': blob });
+      navigator.clipboard.write([item]).then(function() {
+        showToast('已复制到剪贴板');
+      }).catch(function() { showToast('复制失败，请使用下载按钮'); });
+    }).catch(function() { showToast('复制失败'); });
+  } else {
+    showToast('当前浏览器不支持复制GIF，请使用下载');
+  }
 }
+
+// 更新range值显示
+document.addEventListener('DOMContentLoaded', function() {
+  initVideoUpload();
+  var ranges = [
+    { id: 'startTime', label: 'startTimeLabel', suffix: 's' },
+    { id: 'duration', label: 'durationLabel', suffix: 's' },
+    { id: 'fps', label: 'fpsLabel', suffix: '' },
+    { id: 'outputWidth', label: 'widthLabel', suffix: 'px' }
+  ];
+  ranges.forEach(function(r) {
+    var el = document.getElementById(r.id);
+    var lbl = document.getElementById(r.label);
+    if (el && lbl) {
+      el.addEventListener('input', function() { lbl.textContent = el.value + r.suffix; });
+    }
+  });
+  var video = document.getElementById('videoPreview');
+  if (video) {
+    video.addEventListener('timeupdate', function() {
+      var ct = document.getElementById('currentTime');
+      if (ct) ct.textContent = formatTime(video.currentTime);
+    });
+  }
+});
 </script>
 </body>
 </html>
