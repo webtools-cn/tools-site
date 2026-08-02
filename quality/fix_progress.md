@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第十九批)
+> 最后更新: 2026-08-03 (cron自动更新 - 第二十一批)
 
 ## 当前真实问题
 
@@ -8,11 +8,11 @@
 |:-----|:----:|:----:|:----:|:------:|:---------|
 | 空壳工具(0交互+0JS) | 40+ | 42 | 0 | ✅ 完成 | check_empty_shells.py + 精确过滤 |
 | 模板空壳(toolInput stub) | 4 | 4 | 0 | ✅ 完成 | check_empty_shells.py 模板空壳检测 |
-| EN版模板空壳(process未定义) | 23 | 15 | 8 | 🔴 进行中 | grep toolInput + process() 未定义检测 |
+| EN版模板空壳(process未定义) | 23 | 18 | 5 | 🔴 进行中 | grep toolInput + process() 未定义检测 |
 
-## EN版模板空壳清单(8个剩余)
+## EN版模板空壳清单(5个剩余)
 
-en/json-to-protobuf, en/pdf-page-numbers, en/protobuf-to-json, en/text-progress-bar-generator, en/tiff-to-jpg, en/webp-to-gif, en/xml-to-yaml, en/yaml-to-xml
+en/text-progress-bar-generator, en/tiff-to-jpg, en/webp-to-gif, en/xml-to-yaml, en/yaml-to-xml
 
 ## 已清零问题
 
@@ -106,6 +106,10 @@ crossword-generator, csv-sorter, gif-to-webp
 ### 2026-08-03 (第二十批 - EN版模板空壳修复续)
 graphql-to-json, html-to-react, image-round-corners
 注: 三个工具CN/EN版均修复。graphql-to-json CN/EN版添加GraphQL查询→JSON请求体转换器(textarea输入GraphQL查询+变量JSON输入+正则提取操作名称query/mutation/subscription+查询空白压缩+JSON.stringify格式化输出+示例加载/清空/复制结果)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互；html-to-react CN/EN版添加HTML→React JSX转换器(class→className/for→htmlFor/tabindex→tabIndex等10种属性camelCase转换+style字符串→JSX对象{{}}+自闭合标签img/br/hr/input等13种+事件处理器onclick→onClick等+示例/清空/复制)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互；image-round-corners CN/EN版添加图片圆角工具(FileReader上传+Canvas渲染+可调半径滑块0-200px+quadraticCurveTo圆角路径裁剪clip+原图/效果双Canvas对比预览+下载PNG)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互。同时修复CN版三个工具损坏的HTML(/div>残留)。所有6个文件JS语法验证通过，EN版模板空壳从11降到8。
+
+### 2026-08-03 (第二十一批 - EN版模板空壳修复续)
+json-to-protobuf, protobuf-to-json, pdf-page-numbers
+注: 三个工具CN/EN版均修复。json-to-protobuf CN/EN版添加JSON→Protobuf .proto定义转换器(JSON解析→递归message生成→标量类型映射string/int32/int64/double/bool+嵌套对象→子message+数组→repeated字段+proto2/proto3语法选择+消息名自定义+示例加载+复制)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互；protobuf-to-json CN/EN版添加Protobuf .proto→JSON示例转换器(正则解析message定义+字段类型/repeated识别+递归生成示例值+17种标量类型默认值+循环引用检测+根消息选择+示例加载+复制)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互；pdf-page-numbers CN/EN版添加PDF页码添加器(pdf-lib库加载PDF+每页drawText添加页码+6种位置bottom/top×center/right/left+4种格式num/page/total/roman+起始编号+字体大小+边距自定义+进度条+下载带页码PDF)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互。所有6个文件JS语法验证通过，EN版模板空壳从8降到5。
 
 ## 检测说明
 
