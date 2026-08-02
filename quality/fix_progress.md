@@ -1,16 +1,16 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第十一批)
+> 最后更新: 2026-08-03 (cron自动更新 - 第十二批)
 
 ## 当前真实问题
 
 | 问题 | 总数 | 已修 | 剩余 | 优先级 | 检测方法 |
 |:-----|:----:|:----:|:----:|:------:|:---------|
-| 空壳工具(0交互+0JS) | 40+ | 33 | ~9 | 🔴 高 | check_empty_shells.py + 精确过滤 |
+| 空壳工具(0交互+0JS) | 40+ | 36 | ~6 | 🔴 高 | check_empty_shells.py + 精确过滤 |
 
-## 空壳工具清单(约9个)
+## 空壳工具清单(约6个)
 
-nda-generator, pressure-converter, remove-duplicates, rental-agreement-generator, surface-area-calculator, text-stats, vocabulary-builder, word-search-generator, zip-extractor
+surface-area-calculator, text-stats, vocabulary-builder, word-search-generator, zip-extractor, rental-agreement-generator
 
 ## 已清零问题
 
@@ -68,6 +68,10 @@ inflation-calculator, mole-calculator, link-preview-generator
 ### 2026-08-03 (第十一批)
 markup-calculator, percent-change-calculator, percentage-difference-calculator
 注: 三个工具均是有CSS样式但无交互UI和JS逻辑的空壳。markup-calculator添加成本加价计算（成本+加价率→售价/利润/利润率/加价金额四项结果）；percent-change-calculator添加百分比变化计算（旧值+新值→变化率/增长方向/绝对变化量/计算公式）；percentage-difference-calculator添加百分比差异计算（两数值→百分比差异/绝对差异/平均值/计算公式）。三个工具EN版均已有完整功能无需修改。
+
+### 2026-08-03 (第十二批)
+nda-generator, pressure-converter, remove-duplicates
+注: nda-generator添加单向/双向NDA保密协议生成器（双方信息+保密范围+除外信息+期限+签署地点→完整九段协议文本+复制+下载TXT）；pressure-converter添加8种压力单位(Pa/kPa/MPa/bar/atm/psi/mmHg/torr)实时互转+7单位换算对照表；remove-duplicates添加文本去重工具（保留首次/末次/排序+大小写敏感+空行处理+空白去除+4项统计面板）。EN版nda-generator和remove-duplicates修复假交互(quickInput/quickResult)为真实功能；EN版pressure-converter已有完整功能无需修改。
 
 ## 检测说明
 
