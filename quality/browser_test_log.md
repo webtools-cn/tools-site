@@ -40,6 +40,13 @@
 | en/checksum-calculator | EN | ✅ | - | ✅ | 未测 | related-tools#374151→#e2e8f0 | ✅ |
 | en/text-reverser | EN | ✅ | - | ✅ | 未测 | related-tools#374151→#e2e8f0 | ✅ |
 
+### 2026-08-03 (功能实测：business-days-calculator)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:-----:|:----:|:----:|:----:|:-------:|:-----|:----:|
+| business-days-calculator | CN | ✅ | ❌→✅ | ✅ | 无 | calcAdd/calcSub跳过开始日期当天→10个工作日结果8/17应为8/14→已修 | ✅ |
+| en/business-days-calculator | EN | ✅ | ❌→✅ | ✅ | 无 | 同上→已修 | ✅ |
+
 ## 全局修复摘要
 - 15个页面 related-tools 标题 `color:#374151`(深色背景看不清) → `#e2e8f0`，背景 `#0f172a` → `#1e293b`
 - chi-square-calculator: 严重浅色主题混搭(reversed hero/reversed lang-switch/reversed result-main) → 全部暗色化

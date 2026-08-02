@@ -140,6 +140,16 @@ a{color:#06b6d4;text-decoration:none}
   <div id="tab-viewer" class="tab-content active">
     <div class="form-row">
           <div class="form-group">
+            <label>Cookie名称 *</label>
+            <input type="text" id="cfName" placeholder="session_id">
+          </div>
+          <div class="form-group">
+            <label>Cookie值 *</label>
+            <input type="text" id="cfValue" placeholder="abc123">
+          </div>
+    </div>
+    <div class="form-row">
+          <div class="form-group">
             <label>域名 (可选)</label>
             <input type="text" id="cfDomain" placeholder=".example.com">
           </div>
@@ -328,6 +338,8 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var cookieData = []; // Global cookie store
+
 function switchTab(tabId) {
   var tabs = document.querySelectorAll('.tab');
   var contents = document.querySelectorAll('.tab-content');
@@ -338,34 +350,225 @@ function switchTab(tabId) {
   var targetContent = document.getElementById('tab-'+tabId);
   if(targetContent) targetContent.classList.add('active');
 }
+
+function getExpiresString(expiresVal, customVal) {
+  if (expiresVal === 'session') return '';
+  var ms = { '1d': 86400000, '7d': 604800000, '30d': 2592000000, '1y': 31536000000 };
+  if (expiresVal === 'custom' && customVal) return new Date(customVal).toUTCString();
+  if (ms[expiresVal]) return new Date(Date.now() + ms[expiresVal]).toUTCString();
+  return '';
+}
+
 function addCookieFromForm() {
-  showToast('addCookieFromForm - coming soon!');
+  var nameEl = document.getElementById('cfName');
+  var valueEl = document.getElementById('cfValue');
+  var name = nameEl ? nameEl.value.trim() : '';
+  var value = valueEl ? valueEl.value : '';
+  if (!name) { showToast('请输入Cookie名称'); return; }
+  var domain = document.getElementById('cfDomain').value.trim();
+  var path = document.getElementById('cfPath').value.trim() || '/';
+  var expires = document.getElementById('cfExpires').value;
+  var customDate = document.getElementById('cfExpiresCustom') ? document.getElementById('cfExpiresCustom').value : '';
+  var secure = document.getElementById('cfSecure').checked;
+  var httpOnly = document.getElementById('cfHttpOnly').checked;
+  var expiresStr = getExpiresString(expires, customDate);
+  
+  var cookie = { name: name, value: value, domain: domain, path: path, expires: expiresStr, secure: secure, httpOnly: httpOnly };
+  cookieData.push(cookie);
+  renderCookieList();
+  showToast('Cookie已添加: ' + name);
+  if (nameEl) nameEl.value = '';
+  if (valueEl) valueEl.value = '';
 }
 
-function copyCode() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
-  if (!text) { showToast('没有可复制的内容'); return; }
-  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
+function renderCookieList() {
+  var listEl = document.getElementById('cookieList');
+  var emptyEl = document.getElementById('emptyCookies');
+  if (!listEl) return;
+  
+  if (cookieData.length === 0) {
+    if (emptyEl) emptyEl.style.display = 'block';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+  
+  var existing = listEl.querySelector('.cookie-table');
+  if (existing) existing.remove();
+  
+  var html = '<table class="cookie-table" style="width:100%;border-collapse:collapse;margin-top:8px"><thead><tr style="background:#1e293b;color:#94a3b8;font-size:.8rem">';
+  html += '<th style="padding:8px;text-align:left">名称</th><th style="padding:8px;text-align:left">值</th><th style="padding:8px;text-align:left">域名</th><th style="padding:8px;text-align:left">路径</th><th style="padding:8px;text-align:left">过期</th><th style="padding:8px">操作</th>';
+  html += '</tr></thead><tbody>';
+  cookieData.forEach(function(c, i) {
+    var rowBg = i % 2 === 0 ? 'transparent' : 'rgba(148,163,184,.03)';
+    html += '<tr style="background:'+rowBg+';border-bottom:1px solid rgba(148,163,184,.05)">';
+    html += '<td style="padding:8px;color:#e2e8f0;font-family:monospace;font-size:.85rem">'+c.name+'</td>';
+    html += '<td style="padding:8px;color:#94a3b8;font-family:monospace;font-size:.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis">'+c.value.substring(0,50)+'</td>';
+    html += '<td style="padding:8px;color:#94a3b8;font-size:.8rem">'+(c.domain||'-')+'</td>';
+    html += '<td style="padding:8px;color:#94a3b8;font-size:.8rem">'+c.path+'</td>';
+    html += '<td style="padding:8px;color:#94a3b8;font-size:.8rem">'+(c.expires||'Session')+'</td>';
+    html += '<td style="padding:8px;text-align:center"><button class="btn btn-danger" style="font-size:.75rem;padding:4px 8px" onclick="deleteCookie('+i+')">删除</button></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  
+  var div = document.createElement('div');
+  div.innerHTML = html;
+  listEl.appendChild(div.firstChild);
 }
 
-function generateCode() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+function deleteCookie(index) {
+  cookieData.splice(index, 1);
+  renderCookieList();
+  showToast('Cookie已删除');
+}
+
+function copyCode(format) {
+  var elId = format === 'js' ? 'jsCodeOutput' : format === 'header' ? 'headerCodeOutput' : format === 'cookieheader' ? 'cookieheaderCodeOutput' : 'curlCodeOutput';
+  var el = document.getElementById(elId);
+  if (!el) return;
+  var text = el.textContent || el.innerText;
+  if (!text || text.indexOf('//') === 0) { showToast('请先生成代码'); return; }
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制到剪贴板'); }).catch(function() { showToast('复制失败'); });
+}
+
+function generateCode(format, scope) {
+  var cookies = scope === 'selected' ? cookieData.filter(function(c) { return c._selected; }) : cookieData;
+  if (cookies.length === 0) cookies = cookieData;
+  if (cookies.length === 0) { showToast('请先添加Cookie'); return; }
+  
+  var output = '';
+  if (format === 'js') {
+    output = '// JavaScript Cookie 代码\n';
+    cookies.forEach(function(c) {
+      var parts = [c.name + '=' + c.value];
+      if (c.path) parts.push('path=' + c.path);
+      if (c.domain) parts.push('domain=' + c.domain);
+      if (c.expires) parts.push('expires=' + c.expires);
+      if (c.secure) parts.push('secure');
+      if (c.httpOnly) parts.push('httponly');
+      output += 'document.cookie = "' + parts.join('; ') + '";\n';
+    });
+  } else if (format === 'header') {
+    output = '// Set-Cookie 请求头\n';
+    cookies.forEach(function(c) {
+      var parts = [c.name + '=' + c.value];
+      if (c.path) parts.push('Path=' + c.path);
+      if (c.domain) parts.push('Domain=' + c.domain);
+      if (c.expires) parts.push('Expires=' + c.expires);
+      if (c.secure) parts.push('Secure');
+      if (c.httpOnly) parts.push('HttpOnly');
+      output += 'Set-Cookie: ' + parts.join('; ') + '\n';
+    });
+  } else if (format === 'cookieheader') {
+    output = '// Cookie 请求头\n';
+    output += 'Cookie: ' + cookies.map(function(c) { return c.name + '=' + c.value; }).join('; ') + '\n';
+  } else if (format === 'curl') {
+    output = '# Netscape / cURL Cookie 格式\n';
+    output += '# Domain\tIncludeSubdomains\tPath\tSecure\tExpires\tName\tValue\n';
+    cookies.forEach(function(c) {
+      var domain = c.domain || 'example.com';
+      var includeSub = domain.charAt(0) === '.' ? 'TRUE' : 'FALSE';
+      output += domain.replace(/^\./,'') + '\t' + includeSub + '\t' + (c.path||'/') + '\t' + (c.secure?'TRUE':'FALSE') + '\t' + (c.expires ? Math.floor(new Date(c.expires).getTime()/1000) : '0') + '\t' + c.name + '\t' + c.value + '\n';
+    });
+  }
+  
+  var elId = format === 'js' ? 'jsCodeOutput' : format === 'header' ? 'headerCodeOutput' : format === 'cookieheader' ? 'cookieheaderCodeOutput' : 'curlCodeOutput';
+  var el = document.getElementById(elId);
+  if (el) el.textContent = output;
+  showToast('代码已生成');
 }
 
 function hideAddForm() {
-  showToast('hideAddForm - coming soon!');
+  var form = document.getElementById('addCookieForm');
+  if (form) form.style.display = 'none';
+  showToast('已取消');
 }
 
-function parseAndAdd() {
-  showToast('parseAndAdd - coming soon!');
+function parseCookieString(str) {
+  var cookies = [];
+  str = str.trim();
+  if (!str) return cookies;
+  
+  // Check if it's Set-Cookie header format
+  if (/^set-cookie:/i.test(str) || str.indexOf('; Path=') >= 0 || str.indexOf('; Domain=') >= 0) {
+    var lines = str.split(/\n/);
+    lines.forEach(function(line) {
+      line = line.replace(/^set-cookie:\s*/i, '').trim();
+      if (!line) return;
+      var parts = line.split(';');
+      var nv = parts[0].trim().split('=');
+      if (nv.length < 2) return;
+      var cookie = { name: nv[0].trim(), value: nv.slice(1).join('=').trim(), domain: '', path: '/', expires: '', secure: false, httpOnly: false };
+      parts.slice(1).forEach(function(attr) {
+        attr = attr.trim();
+        var kv = attr.split('=');
+        var key = kv[0].trim().toLowerCase();
+        var val = kv.length > 1 ? kv.slice(1).join('=').trim() : '';
+        if (key === 'domain') cookie.domain = val;
+        else if (key === 'path') cookie.path = val;
+        else if (key === 'expires') cookie.expires = val;
+        else if (key === 'secure') cookie.secure = true;
+        else if (key === 'httponly') cookie.httpOnly = true;
+      });
+      cookies.push(cookie);
+    });
+  } else {
+    // Cookie request header format: name1=val1; name2=val2
+    var pairs = str.split(';');
+    pairs.forEach(function(pair) {
+      var kv = pair.trim().split('=');
+      if (kv.length >= 2) {
+        cookies.push({ name: kv[0].trim(), value: kv.slice(1).join('=').trim(), domain: '', path: '/', expires: '', secure: false, httpOnly: false });
+      }
+    });
+  }
+  return cookies;
 }
 
 function parseCookies() {
-  showToast('parseCookies - coming soon!');
+  var input = document.getElementById('parseInput').value;
+  if (!input.trim()) { showToast('请输入Cookie字符串'); return; }
+  var cookies = parseCookieString(input);
+  var resultEl = document.getElementById('parseResult');
+  if (!resultEl) return;
+  if (cookies.length === 0) { resultEl.innerHTML = '<p style="color:#f87171">未能解析出任何Cookie</p>'; showToast('解析失败'); return; }
+  
+  var html = '<table style="width:100%;border-collapse:collapse;margin-top:8px"><thead><tr style="background:#1e293b;color:#94a3b8;font-size:.8rem"><th style="padding:8px;text-align:left">名称</th><th style="padding:8px;text-align:left">值</th><th style="padding:8px;text-align:left">属性</th></tr></thead><tbody>';
+  cookies.forEach(function(c) {
+    var attrs = [];
+    if (c.domain) attrs.push('Domain=' + c.domain);
+    if (c.path && c.path !== '/') attrs.push('Path=' + c.path);
+    if (c.expires) attrs.push('Expires=' + c.expires);
+    if (c.secure) attrs.push('Secure');
+    if (c.httpOnly) attrs.push('HttpOnly');
+    html += '<tr style="border-bottom:1px solid rgba(148,163,184,.05)"><td style="padding:8px;color:#22d3ee;font-family:monospace;font-size:.85rem">'+c.name+'</td><td style="padding:8px;color:#94a3b8;font-family:monospace;font-size:.8rem;max-width:250px;overflow:hidden;text-overflow:ellipsis">'+c.value.substring(0,60)+'</td><td style="padding:8px;color:#64748b;font-size:.8rem">'+attrs.join('; ')+'</td></tr>';
+  });
+  html += '</tbody></table>';
+  resultEl.innerHTML = html;
+  showToast('解析成功，共 ' + cookies.length + ' 个Cookie');
 }
 
-function setExample() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
+function parseAndAdd() {
+  var input = document.getElementById('parseInput').value;
+  if (!input.trim()) { showToast('请输入Cookie字符串'); return; }
+  var cookies = parseCookieString(input);
+  if (cookies.length === 0) { showToast('未能解析出任何Cookie'); return; }
+  cookies.forEach(function(c) { cookieData.push(c); });
+  renderCookieList();
+  showToast('已添加 ' + cookies.length + ' 个Cookie到列表');
+}
+
+function setExample(n) {
+  var input = document.getElementById('parseInput');
+  if (!input) return;
+  if (n === 1) {
+    input.value = 'session_id=abc123def456; Domain=.example.com; Path=/; Expires=Wed, 09 Jun 2027 10:18:14 GMT; Secure; HttpOnly; SameSite=Lax';
+  } else if (n === 2) {
+    input.value = 'name=John; theme=dark; sessionId=xyz789; lang=zh-CN';
+  } else if (n === 3) {
+    input.value = 'user_token=eyJhbGc123456; Path=/; Secure; HttpOnly\ntoken=abc; theme=dark; lang=zh';
+  }
+  showToast('示例已加载');
 }
 </script>
 </body>

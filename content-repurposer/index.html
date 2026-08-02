@@ -345,22 +345,120 @@ function clearInput() {
   showToast('已清空');
 }
 
-function copyResult() {
-  var text = document.getElementById('resultSection').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+function copyResult(platform) {
+  var content;
+  if (platform) {
+    var el = document.getElementById('content-' + platform);
+    content = el ? el.textContent : '';
+  } else {
+    content = document.getElementById('resultSection').innerText;
+  }
+  if (!content) { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(content).then(function() { showToast('已复制到剪贴板'); }).catch(function() { showToast('复制失败'); });
+}
+
+function togglePlatform(card) {
+  card.classList.toggle('selected');
 }
 
 function deselectAllPlatforms() {
-  showToast('deselectAllPlatforms - coming soon!');
+  document.querySelectorAll('.platform-card').forEach(function(card) {
+    card.classList.remove('selected');
+  });
+  showToast('已取消全选');
+}
+
+function getSelectedPlatforms() {
+  var platforms = [];
+  document.querySelectorAll('.platform-card.selected').forEach(function(card) {
+    platforms.push(card.getAttribute('data-platform'));
+  });
+  return platforms;
+}
+
+function extractKeySentences(text, count) {
+  var sentences = text.split(/[。！？\.\!\?\n]+/).map(function(s){return s.trim();}).filter(function(s){return s.length > 10;});
+  return sentences.slice(0, count || 5);
+}
+
+function generateTwitter(text) {
+  var sentences = extractKeySentences(text, 5);
+  if (sentences.length === 0) return '请输入有效文本内容';
+  var thread = sentences.map(function(s, i) {
+    return (i + 1) + '/' + sentences.length + ' ' + s.substring(0, 250);
+  });
+  thread.unshift('🧵 ' + (sentences[0] ? sentences[0].substring(0, 200) : ''));
+  return thread.join('\n\n');
+}
+
+function generateLinkedIn(text) {
+  var sentences = extractKeySentences(text, 4);
+  var intro = '💡 今天分享一个重要观点：\n\n';
+  var body = sentences.map(function(s) { return '• ' + s.substring(0, 300); }).join('\n\n');
+  var outro = '\n\n你怎么看？欢迎在评论区分享你的想法 👇';
+  return (intro + body + outro).substring(0, 1300);
+}
+
+function generateNewsletter(text) {
+  var sentences = extractKeySentences(text, 3);
+  var title = sentences[0] ? sentences[0].substring(0, 60) : '本期简报';
+  var summary = sentences.map(function(s) { return s.substring(0, 200); }).join(' ');
+  return '📧 ' + title + '\n\n' + summary.substring(0, 500) + '\n\n---\n阅读全文请点击链接 →';
+}
+
+function generateInstagram(text) {
+  var sentences = extractKeySentences(text, 2);
+  var quote = sentences[0] ? '"' + sentences[0].substring(0, 150) + '"' : '分享美好瞬间 ✨';
+  return quote + '\n\n.\n.\n.\n#内容创作 #灵感分享 #每日金句 #成长 #分享';
+}
+
+function generateYouTube(text) {
+  var sentences = extractKeySentences(text, 3);
+  var hook = sentences[0] ? sentences[0].substring(0, 100) : '你绝对想不到...';
+  return '🎬 YouTube Shorts 脚本 (30秒)\n\n[0-3秒] Hook: ' + hook + '\n[3-20秒] 正文: ' + (sentences.slice(1).join(' ') || text.substring(0, 300)).substring(0, 400) + '\n[20-27秒] 亮点: 重点回顾，强化记忆\n[27-30秒] CTA: 关注获取更多精彩内容！';
 }
 
 function generateAll() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  var inputEl = document.getElementById('inputText');
+  if (!inputEl || !inputEl.value.trim()) { showToast('请先输入长文本'); return; }
+  var text = inputEl.value.trim();
+  var platforms = getSelectedPlatforms();
+  if (platforms.length === 0) { showToast('请至少选择一个平台'); return; }
+
+  document.getElementById('emptyState').classList.add('hidden');
+
+  var generators = {
+    twitter: { gen: generateTwitter, label: 'twitter' },
+    linkedin: { gen: generateLinkedIn, label: 'linkedin' },
+    newsletter: { gen: generateNewsletter, label: 'newsletter' },
+    instagram: { gen: generateInstagram, label: 'instagram' },
+    youtube: { gen: generateYouTube, label: 'youtube' }
+  };
+
+  platforms.forEach(function(p) {
+    var card = document.getElementById('result-' + p);
+    var content = document.getElementById('content-' + p);
+    var badge = document.getElementById('badge-' + p);
+    if (card && content && generators[p]) {
+      var result = generators[p].gen(text);
+      content.textContent = result;
+      if (badge) badge.textContent = result.length + ' 字符';
+      card.classList.remove('hidden');
+    }
+  });
+
+  var stats = document.getElementById('inputStats');
+  if (stats) stats.textContent = text.length + ' 字符 | ' + platforms.length + ' 个平台';
+  showToast('已为 ' + platforms.length + ' 个平台生成内容！');
 }
 
 function loadSample() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
+  var inp = document.getElementById('inputText');
+  if (!inp) return;
+  inp.value = '人工智能正在改变我们工作的方式。从自动化重复性任务到增强人类创造力，AI工具已经成为现代工作流程中不可或缺的一部分。然而，关键不在于AI能做什么，而在于我们如何利用它来释放更多时间专注于真正重要的事情。最成功的团队不是用AI取代人类，而是用AI放大人类的独特优势——批判性思维、同理心和创造性问题解决能力。未来属于那些能够与AI协作的人，而不是那些抗拒变化的人。';
+  var stats = document.getElementById('inputStats');
+  if (stats) stats.textContent = inp.value.length + ' 字符';
+  showToast('示例文本已加载');
 }
 
 function selectAllPlatforms() {
