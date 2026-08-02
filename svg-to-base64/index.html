@@ -41,7 +41,8 @@ a{color:#06b6d4;text-decoration:none}
 input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem;outline:none}
 .footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
 
-@media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.header{flex-direction:column;gap:8px}}</style>
+@media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.header{flex-direction:column;gap:8px}}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:10px 20px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}.toast.show{opacity:1}</style>
 <meta property="og:image" content="https://free-toolbase.com/og-image.svg">
 <meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
 <meta name="twitter:card" content="summary_large_image">
@@ -65,9 +66,17 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>SVG转Base64</h2>
-    <p>免费在线Svg To Base64工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>将SVG代码转为Base64 Data URI编码，适用于CSS背景内联和HTML邮件模板。</p>
+    <div style="margin-top:12px">
+      <label style="font-size:.8rem;color:#94a3b8">输入SVG代码</label>
+      <textarea id="svgInput" placeholder='<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="40" fill="#4F46E5"/></svg>' style="width:100%;min-height:120px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px;color:#e2e8f0;font-family:monospace;font-size:.8rem;margin-top:4px;resize:vertical"></textarea>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px">
+      <button class="btn" onclick="convert()">转换编码</button>
+      <button class="btn" onclick="loadExample()">加载示例</button>
+      <button class="btn" onclick="clearAll()">清空</button>
+    </div>
+    <div id="result" style="margin-top:12px"></div>
   </div>
   <div class="tool-section">
     <h2>❓ 常见问题</h2>
@@ -100,35 +109,51 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
-  'use strict';
-  var s = document.getElementById('related-tools-section');
-  if (!s) return;
-  var p = window.location.pathname;
-  var en = p.indexOf('/en/') !== -1;
-  p = p.replace(/\/en\//g, '/');
-  var slug = p.split('/').filter(Boolean).pop() || '';
-  if (!slug) { s.innerHTML = ''; return; }
-  var depth = en ? '../../' : '../';
-  var u = depth + 'related-tools.json';
-  fetch(u).then(function(r) {
-    if (!r.ok) throw new Error('not found');
-    return r.json();
-  }).then(function(d) {
-    var data = en ? d.en : d.cn;
-    var t = data[slug];
-    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '\x3Cdiv class="related-tools-inner">\x3Ch3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 相关工具推荐')
-      + '\x3C/h3>\x3Cdiv class="related-tools-grid">';
-    t.related.forEach(function(r) {
-      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '\x3Ca href="' + link + '" class="related-tool-card">'
-        + '\x3Cspan class="related-tool-icon">' + (r.icon || '🔧') + '\x3C/span>'
-        + '\x3Cspan class="related-tool-name">' + r.name + '\x3C/span>\x3C/a>';
-    });
-    h += '\x3C/div>\x3C/div>';
-    s.innerHTML = h;
-  }).catch(function() { s.innerHTML = ''; });
-})(;</script>
+
+function convert(){
+  var svg=document.getElementById('svgInput').value.trim();
+  var resultEl=document.getElementById('result');
+  if(!svg){resultEl.innerHTML='<p style="color:#ef4444">请输入SVG代码</p>';return;}
+  if(svg.indexOf('<svg')===-1){resultEl.innerHTML='<p style="color:#ef4444">输入的不是有效的SVG代码（缺少&lt;svg&gt;标签）</p>';return;}
+  try{
+    var base64=btoa(unescape(encodeURIComponent(svg)));
+    var dataUri='data:image/svg+xml;base64,'+base64;
+    var cssUrl='url("'+dataUri+'")';
+    var html='<div style="margin-bottom:12px">'+
+      '<label style="font-size:.8rem;color:#94a3b8;display:block;margin-bottom:4px">Data URI</label>'+
+      '<textarea readonly id="dataUriOutput" style="width:100%;min-height:60px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px;color:#94a3b8;font-family:monospace;font-size:.7rem;resize:vertical;word-break:break-all">'+dataUri+'</textarea>'+
+      '<button class="btn" style="margin-top:4px" onclick="copyVal(\'dataUriOutput\')">复制Data URI</button></div>';
+    html+='<div style="margin-bottom:12px">'+
+      '<label style="font-size:.8rem;color:#94a3b8;display:block;margin-bottom:4px">CSS background-url</label>'+
+      '<textarea readonly id="cssOutput" style="width:100%;min-height:40px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px;color:#94a3b8;font-family:monospace;font-size:.7rem;resize:vertical;word-break:break-all">'+cssUrl+'</textarea>'+
+      '<button class="btn" style="margin-top:4px" onclick="copyVal(\'cssOutput\')">复制CSS代码</button></div>';
+    html+='<div style="margin-bottom:12px">'+
+      '<label style="font-size:.8rem;color:#94a3b8;display:block;margin-bottom:4px">HTML img标签</label>'+
+      '<textarea readonly id="htmlOutput" style="width:100%;min-height:40px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px;color:#94a3b8;font-family:monospace;font-size:.7rem;resize:vertical;word-break:break-all">&lt;img src="'+dataUri+'" alt="icon"&gt;</textarea>'+
+      '<button class="btn" style="margin-top:4px" onclick="copyVal(\'htmlOutput\')">复制HTML</button></div>';
+    html+='<div>'+
+      '<label style="font-size:.8rem;color:#94a3b8;display:block;margin-bottom:4px">预览</label>'+
+      '<div style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:16px;text-align:center">'+
+      '<img src="'+dataUri+'" style="max-width:200px;max-height:200px" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'">'+
+      '<p style="display:none;color:#ef4444;font-size:.8rem">SVG预览失败</p></div></div>';
+    html+='<div style="margin-top:8px;font-size:.75rem;color:#475569">Base64编码长度: '+base64.length+' 字符 | 原始SVG: '+svg.length+' 字符</div>';
+    resultEl.innerHTML=html;
+  }catch(e){
+    resultEl.innerHTML='<p style="color:#ef4444">编码失败: '+e.message+'</p>';
+  }
+}
+function copyVal(id){
+  var el=document.getElementById(id);
+  navigator.clipboard.writeText(el.value).then(function(){showToast('已复制')})["catch"](function(){showToast('复制失败')});
+}
+function loadExample(){
+  document.getElementById('svgInput').value='<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4F46E5"/><stop offset="100%" stop-color="#06B6D4"/></linearGradient></defs><circle cx="50" cy="50" r="45" fill="url(#g)"/><text x="50" y="58" text-anchor="middle" fill="white" font-size="28" font-family="sans-serif" font-weight="bold">SVG</text></svg>';
+  convert();
+}
+function clearAll(){
+  document.getElementById('svgInput').value='';
+  document.getElementById('result').innerHTML='';
+}
+</script>
 </body>
 </html>

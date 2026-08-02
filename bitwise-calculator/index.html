@@ -41,7 +41,8 @@ a{color:#06b6d4;text-decoration:none}
 input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem;outline:none}
 .footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
 
-@media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.header{flex-direction:column;gap:8px}}</style>
+@media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.header{flex-direction:column;gap:8px}}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:10px 20px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}.toast.show{opacity:1}</style>
 <meta property="og:image" content="https://free-toolbase.com/og-image.svg">
 <meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
 <meta name="twitter:card" content="summary_large_image">
@@ -64,9 +65,23 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>位运算计算器</h2>
-    <p>免费在线Bitwise Calculator工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>输入两个数值，选择位运算操作，实时查看二进制运算过程和结果。</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+      <div><label style="font-size:.8rem;color:#94a3b8">数值A（十进制或0x十六进制）</label><input type="text" id="inputA" value="12" placeholder="如 12 或 0xFF"></div>
+      <div><label style="font-size:.8rem;color:#94a3b8">数值B（十进制或0x十六进制）</label><input type="text" id="inputB" value="10" placeholder="如 10 或 0xA"></div>
+    </div>
+    <div style="margin-top:12px">
+      <label style="font-size:.8rem;color:#94a3b8">运算操作</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+        <button class="btn" data-op="AND" style="background:rgba(6,182,212,.3)">AND (&)</button>
+        <button class="btn" data-op="OR">OR (|)</button>
+        <button class="btn" data-op="XOR">XOR (^)</button>
+        <button class="btn" data-op="NOT_A">NOT A (~)</button>
+        <button class="btn" data-op="LEFT">A &lt;&lt; B</button>
+        <button class="btn" data-op="RIGHT">A &gt;&gt; B</button>
+      </div>
+    </div>
+    <div id="result" style="margin-top:16px"></div>
   </div>
   <div class="tool-section">
     <h2>❓ 常见问题</h2>
@@ -104,36 +119,80 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
-  
-   catch(e) {}
-    
-    const stars = container.querySelectorAll('.star');
-    );
-      text.textContent = (4.5).toFixed(1) + '/5';
-      countEl.textContent = isCN ? '(' + (128) + ' 人评分)' : '(' + (128) + ' ratings)';
-    }
-     : avgData.value);
-    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
-    stars.forEach(star => {
-      star.addEventListener('click', function() {
-        const val = parseInt(this.dataset.value);
-        localStorage.setItem(STORAGE_KEY, val);
-        
-        thanks.style.display = 'inline';
-        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
-        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
-        current.count = (current.count || 128) + 1;
-        localStorage.setItem(AVG_KEY, JSON.stringify(current));
-      });
-      star.addEventListener('mouseenter', function() {
-        const val = parseInt(this.dataset.value);
-        stars.forEach((s, i) => s.classList.toggle('active', i < val));
-      });
-    });
-    container.addEventListener('mouseleave', function() {  : avgData.value); };
+
+function parseNum(str){
+  str=str.trim();
+  if(!str)return 0;
+  if(/^0x[0-9a-fA-F]+$/.test(str))return parseInt(str,16)>>>0;
+  if(/^[0-9]+$/.test(str))return parseInt(str,10)>>>0;
+  return NaN;
+}
+function toBin(n){return (n>>>0).toString(2).padStart(32,'0');}
+function toHex(n){return '0x'+(n>>>0).toString(16).toUpperCase();}
+function fmtRow(label,val,highlight){
+  return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-radius:6px;background:'+(highlight?'rgba(6,182,212,.15)':'#0f172a')+';margin-bottom:4px">'+
+    '<span style="color:#94a3b8;font-size:.85rem">'+label+'</span>'+
+    '<span style="color:#e2e8f0;font-family:monospace;font-size:.85rem">'+val+'</span></div>';
+}
+function fmtBits(label,bits){
+  var html='<div style="margin-bottom:8px"><span style="color:#94a3b8;font-size:.8rem">'+label+'</span>'+
+    '<div style="font-family:monospace;font-size:.75rem;color:#cbd5e1;background:#0f172a;border-radius:6px;padding:8px;word-break:break-all;line-height:1.8">'+bits+'<br><span style="color:#475569">'+bits.replace(/0/g,'·').replace(/1/g,'■')+'</span></div></div>';
+  return html;
+}
+function doCalc(op){
+  var a=parseNum(document.getElementById('inputA').value);
+  var b=parseNum(document.getElementById('inputB').value);
+  var resultEl=document.getElementById('result');
+  if(isNaN(a)){resultEl.innerHTML='<p style="color:#ef4444">数值A格式无效，请输入十进制或0x开头十六进制</p>';return;}
+  var r,bitsHtml='',resultHtml='';
+  bitsHtml+=fmtBits('A = '+a+'  ('+toHex(a)+')',toBin(a));
+  switch(op){
+    case 'AND':
+      if(isNaN(b)){resultEl.innerHTML='<p style="color:#ef4444">数值B格式无效</p>';return;}
+      r=(a&b)>>>0;bitsHtml+=fmtBits('B = '+b+'  ('+toHex(b)+')',toBin(b));
+      resultHtml='<div style="color:#22d3ee;font-size:.9rem;margin-bottom:8px">A & B (按位与)</div>';break;
+    case 'OR':
+      if(isNaN(b)){resultEl.innerHTML='<p style="color:#ef4444">数值B格式无效</p>';return;}
+      r=(a|b)>>>0;bitsHtml+=fmtBits('B = '+b+'  ('+toHex(b)+')',toBin(b));
+      resultHtml='<div style="color:#22d3ee;font-size:.9rem;margin-bottom:8px">A | B (按位或)</div>';break;
+    case 'XOR':
+      if(isNaN(b)){resultEl.innerHTML='<p style="color:#ef4444">数值B格式无效</p>';return;}
+      r=(a^b)>>>0;bitsHtml+=fmtBits('B = '+b+'  ('+toHex(b)+')',toBin(b));
+      resultHtml='<div style="color:#22d3ee;font-size:.9rem;margin-bottom:8px">A ^ B (按位异或)</div>';break;
+    case 'NOT_A':
+      r=(~a)>>>0;
+      resultHtml='<div style="color:#22d3ee;font-size:.9rem;margin-bottom:8px">~A (按位取反)</div>';break;
+    case 'LEFT':
+      if(isNaN(b)){resultEl.innerHTML='<p style="color:#ef4444">数值B格式无效</p>';return;}
+      r=(a<<b)>>>0;bitsHtml+=fmtBits('B = '+b+' (移位次数)',toBin(b));
+      resultHtml='<div style="color:#22d3ee;font-size:.9rem;margin-bottom:8px">A &lt;&lt; B (左移)</div>';break;
+    case 'RIGHT':
+      if(isNaN(b)){resultEl.innerHTML='<p style="color:#ef4444">数值B格式无效</p>';return;}
+      r=(a>>b)>>>0;bitsHtml+=fmtBits('B = '+b+' (移位次数)',toBin(b));
+      resultHtml='<div style="color:#22d3ee;font-size:.9rem;margin-bottom:8px">A &gt;&gt; B (右移)</div>';break;
+    default:return;
   }
-  if (document.readyState === 'loading' { document.addEventListener('DOMContentLoaded', initRating; }
-  else {  }</script>
+  bitsHtml+=fmtBits('结果 = '+r+'  ('+toHex(r)+')',toBin(r));
+  var html=resultHtml+bitsHtml+
+    '<div style="margin-top:12px">'+
+    fmtRow('十进制',r,true)+
+    fmtRow('十六进制',toHex(r),false)+
+    fmtRow('八进制','0o'+(r>>>0).toString(8),false)+
+    fmtRow('二进制位数',(r>>>0).toString(2).length+' bit',false)+
+    '</div>'+
+    '<button class="btn" style="margin-top:8px" onclick="copyResult('+r+')">复制结果</button>';
+  resultEl.innerHTML=html;
+  document.querySelectorAll('[data-op]').forEach(function(btn){btn.style.background='rgba(6,182,212,.2)'});
+  document.querySelector('[data-op="'+op+'"]').style.background='rgba(6,182,212,.3)';
+}
+function copyResult(v){
+  navigator.clipboard.writeText(String(v)).then(function(){showToast('已复制: '+v)})["catch"](function(){showToast('复制失败')});
+}
+document.querySelectorAll('[data-op]').forEach(function(btn){
+  btn.addEventListener('click',function(){doCalc(this.dataset.op)});
+});
+doCalc('AND');
+</script>
 </div>
 
 </body>

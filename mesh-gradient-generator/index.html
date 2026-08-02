@@ -41,7 +41,8 @@ a{color:#06b6d4;text-decoration:none}
 input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem;outline:none}
 .footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
 
-@media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.header{flex-direction:column;gap:8px}}</style>
+@media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.header{flex-direction:column;gap:8px}}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:10px 20px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}.toast.show{opacity:1}</style>
 <meta property="og:image" content="https://free-toolbase.com/og-image.svg">
 <meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
 <meta name="twitter:card" content="summary_large_image">
@@ -61,9 +62,24 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
   </div>
   <div class="tool-section">
     <h2>网格渐变生成器</h2>
-    <p>免费在线Mesh Gradient Generator工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>选择颜色锚点，实时生成多色网格渐变背景，一键导出CSS代码。</p>
+    <div style="display:grid;grid-template-columns:1fr 200px;gap:16px;margin-top:12px">
+      <div>
+        <canvas id="meshCanvas" width="600" height="400" style="width:100%;border-radius:8px;border:1px solid rgba(148,163,184,.2)"></canvas>
+      </div>
+      <div>
+        <label style="font-size:.8rem;color:#94a3b8;display:block;margin-bottom:6px">颜色锚点</label>
+        <div id="colorPoints" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button class="btn" style="margin-top:8px;width:100%" onclick="addColor()">+ 添加颜色</button>
+        <button class="btn" style="margin-top:8px;width:100%" onclick="randomize()">🎲 随机配色</button>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <label style="font-size:.8rem;color:#94a3b8">CSS代码</label>
+      <textarea id="cssOutput" readonly style="width:100%;min-height:80px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px;color:#94a3b8;font-family:monospace;font-size:.75rem;margin-top:4px;resize:vertical"></textarea>
+      <button class="btn" style="margin-top:6px" onclick="copyCSS()">复制CSS代码</button>
+    </div>
+    <div id="result" style="margin-top:8px"></div>
   </div>
   <div class="tool-section">
     <h2>❓ 常见问题</h2>
@@ -100,36 +116,97 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
-  
-   catch(e) {}
-    
-    const stars = container.querySelectorAll('.star');
-    );
-      text.textContent = (4.5).toFixed(1) + '/5';
-      countEl.textContent = isCN ? '(' + (128) + ' 人评分)' : '(' + (128) + ' ratings)';
+
+var colors=[
+  {c:'#4F46E5',x:0.2,y:0.3},
+  {c:'#06B6D4',x:0.8,y:0.2},
+  {c:'#EC4899',x:0.7,y:0.8},
+  {c:'#F59E0B',x:0.1,y:0.7}
+];
+var canvas,ctx;
+function initCanvas(){
+  canvas=document.getElementById('meshCanvas');
+  ctx=canvas.getContext('2d');
+  renderColorPoints();
+  drawMesh();
+}
+function renderColorPoints(){
+  var container=document.getElementById('colorPoints');
+  container.innerHTML='';
+  colors.forEach(function(item,i){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:6px';
+    var inp=document.createElement('input');
+    inp.type='color';inp.value=item.c;inp.style.cssText='width:36px;height:30px;border:none;border-radius:4px;background:none;cursor:pointer;flex-shrink:0';
+    inp.onchange=function(){colors[i].c=this.value;drawMesh();updateCSS();};
+    var pos=document.createElement('div');
+    pos.style.cssText='font-size:.7rem;color:#94a3b8;flex:1';
+    pos.textContent='('+(item.x*100|0)+'%, '+(item.y*100|0)+'%)';
+    var del=document.createElement('button');
+    del.textContent='×';del.style.cssText='background:none;border:none;color:#ef4444;font-size:1.1rem;cursor:pointer;padding:0 4px';
+    del.onclick=function(){if(colors.length>2){colors.splice(i,1);renderColorPoints();drawMesh();updateCSS();}};
+    row.appendChild(inp);row.appendChild(pos);row.appendChild(del);
+    container.appendChild(row);
+  });
+}
+function drawMesh(){
+  var w=canvas.width,h=canvas.height;
+  ctx.fillStyle='#0f172a';ctx.fillRect(0,0,w,h);
+  var imgData=ctx.createImageData(w,h);
+  var data=imgData.data;
+  for(var y=0;y<h;y+=2){
+    for(var x=0;x<w;x+=2){
+      var r=0,g=0,b=0,totalW=0;
+      for(var k=0;k<colors.length;k++){
+        var cx=colors[k].x*w,cy=colors[k].y*h;
+        var dx=x-cx,dy=y-cy;
+        var dist=Math.sqrt(dx*dx+dy*dy)+1;
+        var weight=1/(dist*dist);
+        var rgb=hexToRgb(colors[k].c);
+        r+=rgb.r*weight;g+=rgb.g*weight;b+=rgb.b*weight;totalW+=weight;
+      }
+      r/=totalW;g/=totalW;b/=totalW;
+      for(var dy2=0;dy2<2&&y+dy2<h;dy2++){
+        for(var dx2=0;dx2<2&&x+dx2<w;dx2++){
+          var idx=((y+dy2)*w+(x+dx2))*4;
+          data[idx]=r;data[idx+1]=g;data[idx+2]=b;data[idx+3]=255;
+        }
+      }
     }
-     : avgData.value);
-    if (saved) { thanks.style.display = 'inline'; container.style.pointerEvents = 'none'; container.style.opacity = '0.7'; return; }
-    stars.forEach(star => {
-      star.addEventListener('click', function() {
-        const val = parseInt(this.dataset.value);
-        localStorage.setItem(STORAGE_KEY, val);
-        
-        thanks.style.display = 'inline';
-        container.style.pointerEvents = 'none'; container.style.opacity = '0.7';
-        let current = JSON.parse(localStorage.getItem(AVG_KEY) || '{}');
-        current.count = (current.count || 128) + 1;
-        localStorage.setItem(AVG_KEY, JSON.stringify(current));
-      });
-      star.addEventListener('mouseenter', function() {
-        const val = parseInt(this.dataset.value);
-        stars.forEach((s, i) => s.classList.toggle('active', i < val));
-      });
-    });
-    container.addEventListener('mouseleave', function() {  : avgData.value); };
   }
-  if (document.readyState === 'loading' { document.addEventListener('DOMContentLoaded', initRating; }
-  else {  }</script>
+  ctx.putImageData(imgData,0,0);
+}
+function hexToRgb(hex){
+  var m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return m?{r:parseInt(m[1],16),g:parseInt(m[2],16),b:parseInt(m[3],16)}:{r:0,g:0,b:0};
+}
+function updateCSS(){
+  var stops=colors.map(function(c,i){
+    return 'radial-gradient(at '+(c.x*100|0)+'% '+(c.y*100|0)+'%, '+c.c+' 0px, transparent 50%)';
+  }).join(',\n    ');
+  var css='background-color: '+colors[0].c+';\nbackground-image:\n    '+stops+';';
+  document.getElementById('cssOutput').value=css;
+}
+function addColor(){
+  if(colors.length>=8){showToast('最多8个颜色锚点');return;}
+  var rand='#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');
+  colors.push({c:rand,x:Math.random(),y:Math.random()});
+  renderColorPoints();drawMesh();updateCSS();
+}
+function randomize(){
+  for(var i=0;i<colors.length;i++){
+    colors[i].c='#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');
+    colors[i].x=Math.random();colors[i].y=Math.random();
+  }
+  renderColorPoints();drawMesh();updateCSS();
+}
+function copyCSS(){
+  var css=document.getElementById('cssOutput').value;
+  navigator.clipboard.writeText(css).then(function(){showToast('CSS代码已复制')})["catch"](function(){showToast('复制失败')});
+}
+initCanvas();
+updateCSS();
+</script>
 </div>
 
 </body>
