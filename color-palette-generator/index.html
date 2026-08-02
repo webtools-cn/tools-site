@@ -237,7 +237,35 @@ function exportColors() {
 }
 
 function generatePalette() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  var base=document.getElementById('baseColor')||document.querySelector('input[type=color]')||document.querySelector('input[type=text]');
+  if(!base||!base.value.trim()){showToast('请输入基础色');return;}
+  var hex=base.value.trim();
+  if(hex.charAt(0)!=='#')hex='#'+hex;
+  var r=parseInt(hex.substr(1,2),16),g=parseInt(hex.substr(3,2),16),b=parseInt(hex.substr(5,2),16);
+  if(isNaN(r)||isNaN(g)||isNaN(b)){showToast('颜色格式无效');return;}
+  // 生成5个互补色
+  var palette=[hex];
+  var hsl=function(rr,gg,bb){var max=Math.max(rr,gg,bb),min=Math.min(rr,gg,bb);var h,s,l=(max+min)/2;if(max===min){h=s=0;}else{var d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);h=max===rr?(gg-bb)/d+(gg<bb?6:0):max===gg?(bb-rr)/d+2:(rr-gg)/d+4;h/=6;}return[h*360,s,l];};
+  var h=hsl(r,g,b)[0];
+  var colors=[hex];
+  for(var i=1;i<=4;i++){
+    var newH=(h+i*72)%360;
+    // HSL to RGB
+    var s2=0.7,l2=0.5;
+    var c=(1-Math.abs(2*l2-1))*s2;
+    var x=c*(1-Math.abs((newH/60)%2-1));
+    var m=l2-c/2;
+    var rr,gg,bb;
+    if(newH<60){rr=c;gg=x;bb=0;}else if(newH<120){rr=x;gg=c;bb=0;}else if(newH<180){rr=0;gg=c;bb=x;}else if(newH<240){rr=0;gg=x;bb=c;}else if(newH<300){rr=x;gg=0;bb=c;}else{rr=c;gg=0;bb=x;}
+    var sh='#'+Math.round((rr+m)*255).toString(16).padStart(2,'0')+Math.round((gg+m)*255).toString(16).padStart(2,'0')+Math.round((bb+m)*255).toString(16).padStart(2,'0');
+    colors.push(sh);
+  }
+  var html=colors.map(function(c){
+    return '<div style="display:inline-block;margin:4px"><div style="width:80px;height:80px;background:'+c+';border-radius:8px;border:1px solid rgba(148,163,184,.2)"></div><code style="color:#22d3ee;display:block;text-align:center;margin-top:4px">'+c+'</code></div>';
+  }).join('');
+  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');
+  if(out){out.innerHTML=html;}
+  showToast('调色板已生成！');
 }
 
 function randomPalette() {
