@@ -215,41 +215,258 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 
-// === 重写的函数实现 ===
+// === 文本转正则表达式工具 ===
+var currentFlags = { g: true, i: false, m: false };
+var currentRegex = '';
+var currentPattern = '';
+
+var PRESET_PATTERNS = {
+  email: { regex: '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}', desc: '匹配电子邮件地址' },
+  phone: { regex: '\\+?\\d{1,4}[-.\\s]?\\(?\\d{1,4}\\)?[-.\\s]?\\d{3,4}[-.\\s]?\\d{3,4}', desc: '匹配电话号码' },
+  url: { regex: 'https?://[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}[/a-zA-Z0-9.?=&#%-]*', desc: '匹配URL' },
+  date: { regex: '\\d{4}[-/]\\d{1,2}[-/]\\d{1,2}', desc: '匹配日期(YYYY-MM-DD)' },
+  ip: { regex: '\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b', desc: '匹配IPv4地址' },
+  hex: { regex: '#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\\b', desc: '匹配十六进制颜色' },
+  number: { regex: '-?\\d+(?:\\.\\d+)?', desc: '匹配数字(含小数和负数)' }
+};
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function analyzeLine(line) {
+  var tokens = [];
+  var i = 0;
+  while (i < line.length) {
+    var ch = line[i];
+    if (/[0-9]/.test(ch)) {
+      var numStr = '';
+      while (i < line.length && /[0-9]/.test(line[i])) { numStr += line[i]; i++; }
+      tokens.push({ type: 'number', value: numStr });
+    } else if (/[a-zA-Z]/.test(ch)) {
+      var alphaStr = '';
+      while (i < line.length && /[a-zA-Z]/.test(line[i])) { alphaStr += line[i]; i++; }
+      tokens.push({ type: 'alpha', value: alphaStr });
+    } else if (/\s/.test(ch)) {
+      var wsStr = '';
+      while (i < line.length && /\s/.test(line[i])) { wsStr += line[i]; i++; }
+      tokens.push({ type: 'space', value: wsStr });
+    } else {
+      tokens.push({ type: 'special', value: ch });
+      i++;
+    }
+  }
+  return tokens;
+}
+
+function buildPatternFromTokens(tokens) {
+  var parts = [];
+  for (var i = 0; i < tokens.length; i++) {
+    var t = tokens[i];
+    if (t.type === 'number') {
+      parts.push('\\d{' + t.value.length + '}');
+    } else if (t.type === 'alpha') {
+      if (/^[a-z]+$/.test(t.value)) {
+        parts.push('[a-z]{' + t.value.length + '}');
+      } else if (/^[A-Z]+$/.test(t.value)) {
+        parts.push('[A-Z]{' + t.value.length + '}');
+      } else {
+        parts.push('[a-zA-Z]{' + t.value.length + '}');
+      }
+    } else if (t.type === 'space') {
+      parts.push('\\s{' + t.value.length + '}');
+    } else {
+      parts.push(escapeRegex(t.value));
+    }
+  }
+  return parts.join('');
+}
+
+function autoGenerateRegex(lines) {
+  if (lines.length === 0) return '';
+  if (lines.length === 1) {
+    return buildPatternFromTokens(analyzeLine(lines[0]));
+  }
+  var allTokenLines = lines.map(analyzeLine);
+  var firstLen = allTokenLines[0].length;
+  var sameStructure = allTokenLines.every(function(tl) { return tl.length === firstLen; });
+  if (sameStructure) {
+    var parts = [];
+    for (var j = 0; j < firstLen; j++) {
+      var types = allTokenLines.map(function(tl) { return tl[j].type; });
+      var allSame = types.every(function(t) { return t === types[0]; });
+      if (allSame) {
+        var lengths = allTokenLines.map(function(tl) { return tl[j].value.length; });
+        var minLen = Math.min.apply(null, lengths);
+        var maxLen = Math.max.apply(null, lengths);
+        var range = minLen === maxLen ? '{' + minLen + '}' : '{' + minLen + ',' + maxLen + '}';
+        if (types[0] === 'number') parts.push('\\d' + range);
+        else if (types[0] === 'alpha') {
+          var samples = allTokenLines.map(function(tl) { return tl[j].value; });
+          var hasLower = samples.some(function(s) { return /[a-z]/.test(s); });
+          var hasUpper = samples.some(function(s) { return /[A-Z]/.test(s); });
+          if (hasLower && hasUpper) parts.push('[a-zA-Z]' + range);
+          else if (hasUpper) parts.push('[A-Z]' + range);
+          else parts.push('[a-z]' + range);
+        }
+        else if (types[0] === 'space') parts.push('\\s' + range);
+        else parts.push(escapeRegex(allTokenLines[0][j].value));
+      } else {
+        var combinedTypes = types.filter(function(v, idx, arr) { return arr.indexOf(v) === idx; });
+        if (combinedTypes.length === 2 && combinedTypes.indexOf('alpha') >= 0 && combinedTypes.indexOf('number') >= 0) {
+          parts.push('[a-zA-Z0-9]+');
+        } else {
+          parts.push('.+');
+        }
+      }
+    }
+    return parts.join('');
+  }
+  return '.+';
+}
+
+function getFlagString() {
+  var f = '';
+  if (currentFlags.g) f += 'g';
+  if (currentFlags.i) f += 'i';
+  if (currentFlags.m) f += 'm';
+  return f;
+}
+
 function analyzeText() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;var v=inp.value;out.textContent='Length: '+v.length+' chars, '+v.split(/\s+/).filter(Boolean).length+' words, '+v.split('\n').length+' lines';showToast('Analyzed!');
+  var input = document.getElementById('textInput').value;
+  var mode = document.getElementById('matchMode').value;
+  var resultEl = document.getElementById('regexResult');
+  var explainEl = document.getElementById('regexExplanation');
+  if (!input.trim()) {
+    resultEl.textContent = '等待输入...';
+    explainEl.textContent = '';
+    currentRegex = '';
+    currentPattern = '';
+    testRegex();
+    generateCode();
+    return;
+  }
+  var lines = input.split('\n').filter(function(l) { return l.trim(); });
+  var regex, explanation;
+  if (mode === 'auto') {
+    regex = autoGenerateRegex(lines);
+    explanation = '自动识别模式：分析了 ' + lines.length + ' 行文本的字符类型和长度特征，生成通用匹配正则。';
+  } else if (mode === 'custom') {
+    regex = autoGenerateRegex(lines);
+    explanation = '自定义模式：基于文本结构分析生成。';
+  } else {
+    var preset = PRESET_PATTERNS[mode];
+    regex = preset.regex;
+    explanation = preset.desc + '（预设正则）';
+  }
+  currentRegex = regex;
+  currentPattern = mode;
+  resultEl.textContent = '/' + regex + '/' + getFlagString();
+  explainEl.textContent = explanation;
+  testRegex();
+  generateCode();
 }
 
-function copyCode() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
-  if (!text) { showToast('没有可复制的内容'); return; }
-  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
-}
-
-function copyRegex() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
-}
-
-function downloadRegex() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{{type:'text/plain'}});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Regex.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
-}
-
-function generateCode() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
-}
-
-function loadExample() {
-  document.getElementById('textInput').value = '示例数据';
-  document.getElementById('testInput').value = '示例数据';
-  showToast('已加载示例');
+function toggleFlag(flag) {
+  currentFlags[flag] = !currentFlags[flag];
+  var btn = document.getElementById('flag-' + flag);
+  if (currentFlags[flag]) { btn.classList.add('active'); }
+  else { btn.classList.remove('active'); }
+  analyzeText();
 }
 
 function testRegex() {
-  showToast('testRegex - coming soon!');
+  if (!currentRegex) {
+    document.getElementById('testResult').textContent = '';
+    document.getElementById('matchHighlight').innerHTML = '';
+    return;
+  }
+  var testInput = document.getElementById('testInput').value;
+  var resultEl = document.getElementById('testResult');
+  var highlightEl = document.getElementById('matchHighlight');
+  if (!testInput) {
+    resultEl.textContent = '等待输入测试文本...';
+    highlightEl.innerHTML = '';
+    return;
+  }
+  try {
+    var re = new RegExp(currentRegex, getFlagString());
+    var matches = testInput.match(re);
+    if (matches) {
+      resultEl.innerHTML = '<span style="color:#4ade80">✓ 匹配成功 · 共 ' + matches.length + ' 处匹配</span>';
+      var highlighted = testInput.replace(re, function(m) {
+        return '<span style="background:rgba(34,197,94,.3);border-radius:2px;padding:0 2px">' + m + '</span>';
+      });
+      highlightEl.innerHTML = highlighted;
+    } else {
+      resultEl.innerHTML = '<span style="color:#f87171">✗ 无匹配</span>';
+      highlightEl.innerHTML = testInput;
+    }
+  } catch(e) {
+    resultEl.innerHTML = '<span style="color:#f87171">正则错误: ' + e.message + '</span>';
+    highlightEl.innerHTML = '';
+  }
 }
 
-function toggleFlag() {
-  showToast('Toggled!');
+function copyRegex() {
+  if (!currentRegex) { showToast('没有可复制的正则'); return; }
+  var text = currentRegex;
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制正则: ' + text); }).catch(function() { showToast('复制失败'); });
+}
+
+function downloadRegex() {
+  if (!currentRegex) { showToast('没有可下载的正则'); return; }
+  var content = '/' + currentRegex + '/' + getFlagString() + '\n\n' + document.getElementById('regexExplanation').textContent;
+  var blob = new Blob([content], { type: 'text/plain' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'regex.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已下载 regex.txt');
+}
+
+function generateCode() {
+  if (!currentRegex) {
+    document.getElementById('codeOutput').textContent = '';
+    return;
+  }
+  var lang = document.getElementById('codeLang').value;
+  var flags = getFlagString();
+  var code = '';
+  switch(lang) {
+    case 'javascript':
+      code = 'var regex = /' + currentRegex + '/' + flags + ';\nvar result = text.match(regex);';
+      break;
+    case 'python':
+      code = 'import re\nregex = re.compile(r"' + currentRegex + '"' + (flags.indexOf('i') >= 0 ? ', re.IGNORECASE' : '') + (flags.indexOf('m') >= 0 ? ', re.MULTILINE' : '') + ')\nresult = regex.findall(text)';
+      break;
+    case 'java':
+      code = 'Pattern regex = Pattern.compile("' + currentRegex.replace(/"/g, '\\"') + '"' + (flags.indexOf('i') >= 0 ? ', Pattern.CASE_INSENSITIVE' : '') + (flags.indexOf('m') >= 0 ? ', Pattern.MULTILINE' : '') + ');\nMatcher matcher = regex.matcher(text);\nboolean found = matcher.find();';
+      break;
+    case 'go':
+      code = 'regex := regexp.MustCompile("' + currentRegex.replace(/"/g, '\\"').replace(/\\\\/g, '\\\\\\\\') + '")\nresult := regex.FindAllString(text, -1)';
+      break;
+    case 'php':
+      code = '$regex = "/' + currentRegex.replace(/\//g, '\\/') + '/' + flags + '";\npreg_match_all($regex, $text, $matches);';
+      break;
+  }
+  document.getElementById('codeOutput').textContent = code;
+}
+
+function copyCode() {
+  var code = document.getElementById('codeOutput').textContent;
+  if (!code) { showToast('没有可复制的代码'); return; }
+  navigator.clipboard.writeText(code).then(function() { showToast('已复制代码'); }).catch(function() { showToast('复制失败'); });
+}
+
+function loadExample() {
+  document.getElementById('textInput').value = 'user@example.com\nadmin@company.org\ntest123@gmail.com';
+  document.getElementById('matchMode').value = 'email';
+  document.getElementById('testInput').value = '联系我: user@example.com 或 admin@company.org';
+  analyzeText();
+  showToast('已加载邮箱示例');
 }
 </script>
 </body>
