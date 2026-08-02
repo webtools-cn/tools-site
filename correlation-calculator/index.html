@@ -30,8 +30,10 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 </head>
 <body>
-<h1>免费在线相关系数计算器</h1>
-<p class="tool-description" style="color:#6b7280;font-size:0.95rem;line-height:1.6;margin:0.5rem 0 1rem;">免费在线相关系数计算器，计算Pearson皮尔逊相关系数，自动生成散点图和趋势线，支持数据导入导出。统计分析工具，纯前端处理。</p>
+<div class="container">
+<div class="header"><h1>📊 相关系数计算器</h1><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/correlation-calculator/" class="">EN</a></div></div>
+<p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 相关系数计算器</p>
+<p class="tool-description" style="color:#64748b;font-size:0.95rem;line-height:1.6;margin:0.5rem 0 1rem;">免费在线相关系数计算器，计算Pearson皮尔逊相关系数，自动生成散点图和趋势线，支持数据导入导出。统计分析工具，纯前端处理。</p>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
@@ -85,6 +87,35 @@ a{color:#06b6d4;text-decoration:none}
 
 <!-- AdSense -->
 
+<div class="section">
+  <h2>📝 数据输入</h2>
+  <p style="color:#94a3b8;font-size:.85rem;margin-bottom:12px">每行输入一个数值，X和Y数据量需相同。</p>
+  <div class="data-entry">
+    <div class="xy-input">
+      <label>X 数据</label>
+      <textarea id="xData" placeholder="1, 2, 3, 4, 5">1, 2, 3, 4, 5, 6, 7, 8</textarea>
+    </div>
+    <div class="xy-input">
+      <label>Y 数据</label>
+      <textarea id="yData" placeholder="2, 4, 5, 4, 5">2, 4, 5, 4, 5, 7, 8, 9</textarea>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="calcBtn">计算相关系数</button>
+    <button class="btn btn-secondary" id="clearBtn">清空</button>
+    <button class="btn btn-secondary" id="sampleBtn">示例数据</button>
+  </div>
+</div>
+
+<div class="section" id="resultSection" style="display:none">
+  <h2>📈 计算结果</h2>
+  <div class="results" id="resultCards"></div>
+  <div class="interpret-box" id="interpretBox"></div>
+  <div class="chart-box">
+    <canvas id="scatterChart" width="600" height="300"></canvas>
+  </div>
+</div>
+
 <div class="seo-content" style="margin:1.5rem 0;padding:1rem;background:#0f172a;border-radius:8px;font-size:.95rem;color:#475569;line-height:1.8"><p>免费在线相关系数计算器是一款免费的在线工具，无需安装任何软件即可直接在浏览器中使用。该工具完全在本地运行，您的数据不会上传到服务器，保障隐私安全。支持所有主流浏览器和移动设备，随时随地可用。使用免费在线相关系数计算器可以帮助您快速完成相关任务，提高工作效率。本工具采用纯前端技术实现，打开即用，无需注册账号或下载插件。操作简单直观，结果即时呈现。免费在线相关系数计算器提供精准的计算和转换功能，满足日常工作和学习需求。所有处理均在浏览器本地完成，响应速度快且安全可靠。无论您使用电脑还是手机，都能获得流畅的操作体验。</p></div>
 <section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#374151;">🔗 <h2 style="color:#e2e8f0;font-size:18px;margin-bottom:12px">🔗 相关工具推荐</h2>
   <a href="../natural-date-parser/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">自然语言日期解析器</a>
@@ -106,5 +137,72 @@ a{color:#06b6d4;text-decoration:none}
         <p>相关系数计算器是在线工具，支持PC端和移动端使用，响应式设计自适应屏幕，随时随地打开浏览器即可使用。</p>
       </div>
     </section>
+<div class="toast" id="toast"></div>
+<script>
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function parseData(s){return s.split(/[\s,;\n]+/).map(Number).filter(function(n){return!isNaN(n)&&n!==""})}
+function calc(){
+  var x=parseData(document.getElementById("xData").value);
+  var y=parseData(document.getElementById("yData").value);
+  if(x.length<2||y.length<2){showToast("至少需要2个数据点");return;}
+  if(x.length!==y.length){showToast("X和Y数据量需相同");return;}
+  var n=x.length,sumX=0,sumY=0,sumXY=0,sumX2=0,sumY2=0;
+  for(var i=0;i<n;i++){sumX+=x[i];sumY+=y[i];sumXY+=x[i]*y[i];sumX2+=x[i]*x[i];sumY2+=y[i]*y[i];}
+  var meanX=sumX/n,meanY=sumY/n;
+  var r=(n*sumXY-sumX*sumY)/(Math.sqrt((n*sumX2-sumX*sumX)*(n*sumY2-sumY*sumY)));
+  var r2=r*r;
+  var slope=(n*sumXY-sumX*sumY)/(n*sumX2-sumX*sumX);
+  var intercept=meanY-slope*meanX;
+  var ssRes=0;for(i=0;i<n;i++){var pred=slope*x[i]+intercept;ssRes+=Math.pow(y[i]-pred,2);}
+  var ssTot=0;for(i=0;i<n;i++){ssTot+=Math.pow(y[i]-meanY,2);}
+  var stdErrSlope=Math.sqrt(ssRes/(n-2))/Math.sqrt(sumX2-n*meanX*meanX);
+
+  var absR=Math.abs(r),strength,color;
+  if(absR>=0.8){strength="强相关";color="strong";}
+  else if(absR>=0.5){strength="中等相关";color="medium";}
+  else if(absR>=0.3){strength="弱相关";color="weak";}
+  else{strength="几乎无相关";color="weak";}
+  var direction=r>0?"正":"负";
+
+  var cards='<div class="result-card"><div class="stat-label">Pearson r</div><div class="stat-value '+color+'">'+r.toFixed(4)+'</div><div class="stat-desc">'+direction+strength+'</div></div>';
+  cards+='<div class="result-card"><div class="stat-label">R² (决定系数)</div><div class="stat-value">'+r2.toFixed(4)+'</div><div class="stat-desc">拟合优度</div></div>';
+  cards+='<div class="result-card"><div class="stat-label">样本数 n</div><div class="stat-value">'+n+'</div><div class="stat-desc">数据点</div></div>';
+  cards+='<div class="result-card"><div class="stat-label">回归斜率</div><div class="stat-value">'+slope.toFixed(4)+'</div><div class="stat-desc">y='+slope.toFixed(2)+'x+'+intercept.toFixed(2)+'</div></div>';
+  document.getElementById("resultCards").innerHTML=cards;
+
+  var interp='<h3>📊 结果解读</h3>';
+  interp+='<p>Pearson相关系数 r = '+r.toFixed(4)+'，表示X和Y之间存在'+direction+strength+'。</p>';
+  interp+='<p>R² = '+r2.toFixed(4)+'，意味着Y的变异中有'+(r2*100).toFixed(1)+'%可由X解释。</p>';
+  interp+='<p>回归方程：y = '+slope.toFixed(4)+'x + '+intercept.toFixed(4)+'</p>';
+  interp+='<p>斜率标准误：'+stdErrSlope.toFixed(4)+'</p>';
+  document.getElementById("interpretBox").innerHTML=interp;
+
+  drawScatter(x,y,slope,intercept);
+  document.getElementById("resultSection").style.display="block";
+}
+function drawScatter(x,y,slope,intercept){
+  var c=document.getElementById("scatterChart"),ctx=c.getContext("2d");
+  var w=c.width,h=c.height,pad=40;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle="#0f172a";ctx.fillRect(0,0,w,h);
+  var minX=Math.min.apply(null,x),maxX=Math.max.apply(null,x);
+  var minY=Math.min.apply(null,y),maxY=Math.max.apply(null,y);
+  var rx=maxX-minX||1,ry=maxY-minY||1;
+  function px(v){return pad+(v-minX)/rx*(w-2*pad)}
+  function py(v){return h-pad-(v-minY)/ry*(h-2*pad)}
+  ctx.strokeStyle="rgba(148,163,184,.2)";ctx.lineWidth=1;
+  for(var i=0;i<=4;i++){var gx=pad+(w-2*pad)*i/4;ctx.beginPath();ctx.moveTo(gx,pad);ctx.lineTo(gx,h-pad);ctx.stroke();var gy=pad+(h-2*pad)*i/4;ctx.beginPath();ctx.moveTo(pad,gy);ctx.lineTo(w-pad,gy);ctx.stroke();}
+  ctx.strokeStyle="rgba(6,182,212,.6)";ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(px(minX),py(slope*minX+intercept));ctx.lineTo(px(maxX),py(slope*maxX+intercept));ctx.stroke();
+  ctx.fillStyle="#22d3ee";
+  for(i=0;i<x.length;i++){ctx.beginPath();ctx.arc(px(x[i]),py(y[i]),4,0,Math.PI*2);ctx.fill();}
+  ctx.fillStyle="#64748b";ctx.font="11px sans-serif";ctx.textAlign="center";
+  ctx.fillText("X",w/2,h-10);ctx.save();ctx.translate(12,h/2);ctx.rotate(-Math.PI/2);ctx.fillText("Y",0,0);ctx.restore();
+}
+document.getElementById("calcBtn").addEventListener("click",calc);
+document.getElementById("clearBtn").addEventListener("click",function(){document.getElementById("xData").value="";document.getElementById("yData").value="";document.getElementById("resultSection").style.display="none";});
+document.getElementById("sampleBtn").addEventListener("click",function(){document.getElementById("xData").value="10, 20, 30, 40, 50, 60, 70, 80, 90, 100";document.getElementById("yData").value="15, 25, 35, 42, 55, 58, 72, 78, 88, 95";calc();});
+calc();
+</script>
 </body>
 </html>
