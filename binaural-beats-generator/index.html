@@ -64,13 +64,50 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 
   <div class="tool-section">
     <h2>双耳节拍生成器</h2>
-    <p>免费在线Binaural Beats Generator工具</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="输入内容..."><button class="btn" style="margin-left:8px" onclick="process()">执行</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <p>通过左右声道频率差产生脑波音频，帮助冥想、放松、专注和睡眠</p>
+    <div style="margin-top:16px;display:grid;gap:16px">
+      <div>
+        <label style="display:block;margin-bottom:6px;color:#94a3b8;font-size:.85rem">预设方案</label>
+        <select id="preset" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem" onchange="applyPreset()">
+          <option value="custom">自定义</option>
+          <option value="delta">Delta (深睡眠·0.5-4Hz)</option>
+          <option value="theta">Theta (冥想·4-8Hz)</option>
+          <option value="alpha">Alpha (放松·8-13Hz)</option>
+          <option value="beta">Beta (专注·13-30Hz)</option>
+          <option value="gamma">Gamma (警觉·30-50Hz)</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label style="display:block;margin-bottom:6px;color:#94a3b8;font-size:.85rem">基频 (Hz)</label>
+          <input type="number" id="baseFreq" value="200" min="50" max="1000" step="1" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem">
+        </div>
+        <div>
+          <label style="display:block;margin-bottom:6px;color:#94a3b8;font-size:.85rem">差频 (Hz)</label>
+          <input type="number" id="beatFreq" value="7" min="0.5" max="50" step="0.5" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem">
+        </div>
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:6px;color:#94a3b8;font-size:.85rem">音量： <span id="volLabel" style="color:#22d3ee">30%</span></label>
+        <input type="range" id="volume" min="0" max="100" value="30" style="width:100%" oninput="document.getElementById('volLabel').textContent=this.value+'%';updateVolume()">
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:6px;color:#94a3b8;font-size:.85rem">时长（秒，0=持续）</label>
+        <input type="number" id="duration" value="0" min="0" max="3600" step="30" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem">
+      </div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" style="background:rgba(34,197,94,.15);color:#4ade80;border-color:rgba(34,197,94,.3);font-size:1rem;padding:10px 24px" onclick="startBeats()">▶ 开始播放</button>
+      <button class="btn" style="background:rgba(239,68,68,.15);color:#f87171;border-color:rgba(239,68,68,.3);font-size:1rem;padding:10px 24px" onclick="stopBeats()">⏹ 停止</button>
+    </div>
+    <div id="result" style="margin-top:16px;padding:14px;background:rgba(6,182,212,.05);border:1px solid rgba(6,182,212,.15);border-radius:8px;font-size:.85rem;color:#94a3b8">
+      <div>左耳频率: <span id="leftFreq" style="color:#22d3ee">--</span> Hz</div>
+      <div>右耳频率: <span id="rightFreq" style="color:#22d3ee">--</span> Hz</div>
+      <div>节拍类型: <span id="beatType" style="color:#22d3ee">--</span></div>
+      <div>状态: <span id="status" style="color:#64748b">未播放</span></div>
+      <div style="margin-top:8px;color:#475569;font-size:.8rem">💡 建议佩戴耳机以获得双耳节拍效果</div>
+    </div>
   </div>
-  <div class="tool-section">
-    <h2>❓ 常见问题</h2>
-    <p style="color:#94a3b8;font-size:.9rem">本工具正在完善中，更多功能即将上线。感谢您的耐心等待。</p></div></div>
 </div>
 
 <div class="section"><h2>常见问题</h2><div class="faq-item"><h3>这个工具是免费的吗？</h3><p>是的，这个工具完全免费使用。所有处理都在你的浏览器本地完成，无需注册或登录。</p></div>
@@ -99,6 +136,113 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
+var audioCtx = null;
+var oscLeft = null, oscRight = null;
+var gainLeft = null, gainRight = null, merger = null;
+var stopTimer = null;
+
+function getBeatType(freq) {
+  if (freq < 4) return 'Delta（深睡眠）';
+  if (freq < 8) return 'Theta（冥想）';
+  if (freq < 13) return 'Alpha（放松）';
+  if (freq < 30) return 'Beta（专注）';
+  return 'Gamma（警觉）';
+}
+
+function applyPreset() {
+  var preset = document.getElementById('preset').value;
+  var presets = {
+    delta: { base: 150, beat: 2 },
+    theta: { base: 200, beat: 6 },
+    alpha: { base: 250, beat: 10 },
+    beta: { base: 300, beat: 20 },
+    gamma: { base: 350, beat: 40 }
+  };
+  if (presets[preset]) {
+    document.getElementById('baseFreq').value = presets[preset].base;
+    document.getElementById('beatFreq').value = presets[preset].beat;
+    updateInfo();
+  }
+}
+
+function updateInfo() {
+  var base = parseFloat(document.getElementById('baseFreq').value) || 200;
+  var beat = parseFloat(document.getElementById('beatFreq').value) || 7;
+  var left = base - beat / 2;
+  var right = base + beat / 2;
+  document.getElementById('leftFreq').textContent = left.toFixed(1);
+  document.getElementById('rightFreq').textContent = right.toFixed(1);
+  document.getElementById('beatType').textContent = getBeatType(beat);
+}
+
+function updateVolume() {
+  if (gainLeft && gainRight) {
+    var vol = (parseInt(document.getElementById('volume').value) / 100) * 0.3;
+    gainLeft.gain.value = vol;
+    gainRight.gain.value = vol;
+  }
+}
+
+function startBeats() {
+  stopBeats();
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch(e) {
+    showToast('您的浏览器不支持Web Audio API');
+    return;
+  }
+  var base = parseFloat(document.getElementById('baseFreq').value) || 200;
+  var beat = parseFloat(document.getElementById('beatFreq').value) || 7;
+  var vol = (parseInt(document.getElementById('volume').value) / 100) * 0.3;
+  var left = base - beat / 2;
+  var right = base + beat / 2;
+
+  oscLeft = audioCtx.createOscillator();
+  oscRight = audioCtx.createOscillator();
+  gainLeft = audioCtx.createGain();
+  gainRight = audioCtx.createGain();
+
+  oscLeft.frequency.value = left;
+  oscRight.frequency.value = right;
+  oscLeft.type = 'sine';
+  oscRight.type = 'sine';
+  gainLeft.gain.value = vol;
+  gainRight.gain.value = vol;
+
+  // 使用ChannelMerger将左右声道分别输出
+  merger = audioCtx.createChannelMerger(2);
+  oscLeft.connect(gainLeft);
+  oscRight.connect(gainRight);
+  gainLeft.connect(merger, 0, 0);  // 左耳
+  gainRight.connect(merger, 0, 1); // 右耳
+  merger.connect(audioCtx.destination);
+
+  oscLeft.start();
+  oscRight.start();
+
+  updateInfo();
+  document.getElementById('status').textContent = '播放中';
+  document.getElementById('status').style.color = '#4ade80';
+
+  var duration = parseInt(document.getElementById('duration').value);
+  if (duration > 0) {
+    stopTimer = setTimeout(function() { stopBeats(); showToast('播放结束'); }, duration * 1000);
+  }
+  showToast('开始播放，请佩戴耳机');
+}
+
+function stopBeats() {
+  if (stopTimer) { clearTimeout(stopTimer); stopTimer = null; }
+  if (oscLeft) { try { oscLeft.stop(); } catch(e){} oscLeft = null; }
+  if (oscRight) { try { oscRight.stop(); } catch(e){} oscRight = null; }
+  if (audioCtx) { try { audioCtx.close(); } catch(e){} audioCtx = null; }
+  document.getElementById('status').textContent = '未播放';
+  document.getElementById('status').style.color = '#64748b';
+}
+
+updateInfo();
+
 (function() {
   'use strict';
   var s = document.getElementById('related-tools-section');
@@ -130,16 +274,6 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
     s.innerHTML = h;
   }).catch(function() { s.innerHTML = ''; });
 })();
-
-// === 重写的函数实现 ===
-function process() {
-  var input = document.getElementById('toolInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
-}
 </script>
 </div>
 

@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第十七批)
+> 最后更新: 2026-08-03 (cron自动更新 - 第十八批)
 
 ## 当前真实问题
 
@@ -8,11 +8,11 @@
 |:-----|:----:|:----:|:----:|:------:|:---------|
 | 空壳工具(0交互+0JS) | 40+ | 42 | 0 | ✅ 完成 | check_empty_shells.py + 精确过滤 |
 | 模板空壳(toolInput stub) | 4 | 4 | 0 | ✅ 完成 | check_empty_shells.py 模板空壳检测 |
-| EN版模板空壳(process未定义) | 23 | 6 | 17 | 🔴 进行中 | grep toolInput + process() 未定义检测 |
+| EN版模板空壳(process未定义) | 23 | 9 | 14 | 🔴 进行中 | grep toolInput + process() 未定义检测 |
 
-## EN版模板空壳清单(17个剩余)
+## EN版模板空壳清单(14个剩余)
 
-en/avif-to-jpg, en/binaural-beats-generator, en/bmp-to-png, en/crossword-generator, en/csv-sorter, en/gif-to-webp, en/graphql-to-json, en/html-to-react, en/image-round-corners, en/json-to-protobuf, en/pdf-page-numbers, en/protobuf-to-json, en/text-progress-bar-generator, en/tiff-to-jpg, en/webp-to-gif, en/xml-to-yaml, en/yaml-to-xml
+en/crossword-generator, en/csv-sorter, en/gif-to-webp, en/graphql-to-json, en/html-to-react, en/image-round-corners, en/json-to-protobuf, en/pdf-page-numbers, en/protobuf-to-json, en/text-progress-bar-generator, en/tiff-to-jpg, en/webp-to-gif, en/xml-to-yaml, en/yaml-to-xml
 
 ## 已清零问题
 
@@ -86,6 +86,10 @@ word-search-generator, zip-extractor, rental-agreement-generator
 ### 2026-08-03 (第十六批 - EN版模板空壳修复)
 neon-text-generator, pantone-to-hex, audio-converter
 注: 发现23个EN版工具存在模板空壳问题（有id="toolInput"+onclick="process()"但无process()函数定义，且JS部分有})(;语法错误+quickInput假交互）。本轮修复3个：neon-text-generator CN/EN版添加霓虹文字生成器（文字+颜色+大小+字体+发光强度→实时预览+CSS代码+复制）；pantone-to-hex CN/EN版添加Pantone色号转HEX工具（40种色卡库+搜索+HEX/RGB/HSL三值+色卡网格+复制）；audio-converter CN/EN版添加音频转换器（Web Audio API解码+6项信息+WAV编码+播放+下载）。同时修复CN版audio-converter的echo空壳。剩余20个EN版模板空壳待修。
+
+### 2026-08-03 (第十八批 - EN版模板空壳修复续)
+avif-to-jpg, binaural-beats-generator, bmp-to-png
+注: 三个工具CN/EN版均修复。avif-to-jpg CN/EN版添加AVIF转JPG图片格式转换器(FileReader读取→Canvas渲染→toBlob输出JPG，支持批量上传+拖拽+质量滑块10-100%+白底填充处理透明+缩略图预览+原始/转换后文件大小对比+压缩率显示+单个下载/全部下载/删除/清空)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互；binaural-beats-generator CN/EN版添加双耳节拍生成器(Web Audio API双OscillatorNode+ChannelMerger左右声道分离，5种预设Delta/Theta/Alpha/Beta/Gamma+自定义基频50-1000Hz+差频0.5-50Hz+音量滑块+时长定时+实时频率/节拍类型显示)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互；bmp-to-png CN/EN版添加BMP转PNG图片格式转换器(同avif-to-jpg架构但输出PNG无损格式)，替换CN版echo stub和EN版})(;语法错误+quickInput假交互。所有6个文件JS语法验证通过，EN版模板空壳从17降到14。
 
 ### 2026-08-03 (第十七批 - EN版模板空壳修复续)
 ai-sentence-rewriter, audio-normalize, audio-volume-adjuster

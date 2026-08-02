@@ -171,14 +171,13 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
   
 
   <div class="tool-section">
-    <h2>Bmp To Png</h2>
-    <p>Free online Bmp To Png tool</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="Enter content..."><button class="btn" style="margin-left:8px" onclick="process()">Run</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
-  </div>
-  <div class="tool-section">
-    <h2>❓ FAQ</h2>
-    <p style="color:#94a3b8;font-size:.9rem">This tool is under active development. More features coming soon. Thank you for your patience.</p>
+    <h2>BMP to PNG</h2>
+    <p>Convert BMP bitmap to PNG format with lossless compression, processed locally in your browser</p>
+    <div style="margin-top:16px">
+      <label style="display:block;margin-bottom:8px;color:#94a3b8;font-size:.85rem">Select BMP image files (batch supported)</label>
+      <input type="file" id="fileInput" accept="image/bmp,image/*" multiple style="padding:8px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;color:#e2e8f0;width:100%">
+    </div>
+    <div id="result" style="margin-top:16px"></div>
   </div>
   
 <div>
@@ -231,9 +230,122 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
     </div>
   </div>
 
+<div id="toast" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:10px 20px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none"></div>
+
 <script>
+'use strict';
+
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.style.opacity="1";setTimeout(function(){t.style.opacity="0"},3000)}
+
+var convertedFiles = [];
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1048576).toFixed(2) + ' MB';
+}
+
+function convertImage(file) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob(function(blob) {
+        if (!blob) { showToast('Conversion failed: ' + file.name); return; }
+        var item = {
+          name: file.name.replace(/\.[^.]+$/, '') + '.png',
+          originalSize: file.size,
+          convertedSize: blob.size,
+          url: URL.createObjectURL(blob),
+          width: img.naturalWidth,
+          height: img.naturalHeight
+        };
+        convertedFiles.push(item);
+        renderResults();
+        showToast('Converted: ' + item.name);
+      }, 'image/png');
+    };
+    img.onerror = function() { showToast('Cannot load image: ' + file.name); };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderResults() {
+  var container = document.getElementById('result');
+  if (convertedFiles.length === 0) { container.innerHTML = ''; return; }
+  var html = '<div style="display:grid;gap:12px">';
+  convertedFiles.forEach(function(f, i) {
+    var ratio = ((1 - f.convertedSize / f.originalSize) * 100).toFixed(1);
+    var sign = ratio > 0 ? '↓' : '↑';
+    html += '<div style="background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">' +
+      '<img src="' + f.url + '" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid rgba(148,163,184,.2)">' +
+      '<div style="flex:1;min-width:180px">' +
+        '<div style="color:#e2e8f0;font-size:.9rem;font-weight:600">' + f.name + '</div>' +
+        '<div style="color:#64748b;font-size:.8rem;margin-top:2px">' + f.width + '×' + f.height + 'px · Original ' + formatBytes(f.originalSize) + ' → Converted ' + formatBytes(f.convertedSize) + ' · ' + sign + Math.abs(ratio) + '%</div>' +
+      '</div>' +
+      '<a href="' + f.url + '" download="' + f.name + '" class="btn" style="text-decoration:none">Download</a>' +
+      '<button class="btn" style="background:rgba(239,68,68,.15);color:#f87171;border-color:rgba(239,68,68,.3)" onclick="removeItem(' + i + ')">Remove</button>' +
+    '</div>';
+  });
+  html += '</div>';
+  if (convertedFiles.length > 1) {
+    html += '<div style="margin-top:12px;text-align:center"><button class="btn" onclick="downloadAll()">Download All</button> <button class="btn" style="background:rgba(239,68,68,.15);color:#f87171;border-color:rgba(239,68,68,.3)" onclick="clearAll()">Clear All</button></div>';
+  }
+  container.innerHTML = html;
+}
+
+function removeItem(i) {
+  URL.revokeObjectURL(convertedFiles[i].url);
+  convertedFiles.splice(i, 1);
+  renderResults();
+}
+
+function clearAll() {
+  convertedFiles.forEach(function(f) { URL.revokeObjectURL(f.url); });
+  convertedFiles = [];
+  renderResults();
+  showToast('Cleared');
+}
+
+function downloadAll() {
+  convertedFiles.forEach(function(f, i) {
+    setTimeout(function() {
+      var a = document.createElement('a');
+      a.href = f.url; a.download = f.name; a.click();
+    }, i * 300);
+  });
+}
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  var files = e.target.files;
+  if (!files.length) return;
+  for (var i = 0; i < files.length; i++) {
+    convertImage(files[i]);
+  }
+  e.target.value = '';
+});
+
+var dropZone = document.querySelector('.tool-section');
+dropZone.addEventListener('dragover', function(e) { e.preventDefault(); this.style.borderColor = 'rgba(6,182,212,.5)'; });
+dropZone.addEventListener('dragleave', function(e) { this.style.borderColor = 'rgba(148,163,184,.1)'; });
+dropZone.addEventListener('drop', function(e) {
+  e.preventDefault();
+  this.style.borderColor = 'rgba(148,163,184,.1)';
+  var files = e.dataTransfer.files;
+  for (var i = 0; i < files.length; i++) {
+    if (files[i].type.startsWith('image/')) convertImage(files[i]);
+  }
+});
+
+(function() {
   'use strict';
-  var s = document.getElementById('related-tools-section');
+  var s = document.getElementById('related-tools');
   if (!s) return;
   var p = window.location.pathname;
   var en = p.indexOf('/en/') !== -1;
@@ -249,68 +361,16 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
     var data = en ? d.en : d.cn;
     var t = data[slug];
     if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 RelatedToolsRecommended')
-      + '</h3><div class="related-tools-grid">';
+    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">🔗 You May Also Like</h3><div class="related-tools-grid">';
     t.related.forEach(function(r) {
-      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '<a href="' + link + '" class="related-tool-card">'
-        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
-        + '<span class="related-tool-name">' + r.name + '</span></a>';
+      var link = '../../en/' + r.slug + '/';
+      h += '<a href="' + link + '" class="related-tool-card"><span class="related-tool-icon">' + (r.icon || '🔧') + '</span><span class="related-tool-name">' + r.name + '</span></a>';
     });
     h += '</div></div>';
     s.innerHTML = h;
   }).catch(function() { s.innerHTML = ''; });
-})(;</script>
-
-<script>(function(){ // resultAddCopy var processed = new Set(); function addCopyBtns(){ var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]'); results.forEach(function(el){ if(processed.has(el)) return; if(el.querySelector('.copy-btn')) return; if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return; if(el.children.length===0 && el.textContent.trim().length<5) return;
-      var btn = document.createElement('button');
-      btn.className = 'copy-btn';
-      btn.innerHTML = '📋 Copy';
-      btn.title = 'CopyResult';
-      btn.onclick = function(e){
-        e.stopPropagation();
-        var text = el.textContent || el.value || '';
-        if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') text = el.value;
-        navigator.clipboard.writeText(text.trim()).then(function(){
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        }).catch(function(){
-          var ta = document.createElement('textarea');
-          ta.value = text.trim();
-          ta.style.position='fixed';ta.style.opacity='0';
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        });
-      };
-      el.appendChild(btn);
-      processed.add(el);
-    });
-  }
-  // Run initially
-  addCopyBtns();
-  // Re-run after button clicks (most tools update results on click)
-  document.addEventListener('click', function(){setTimeout(addCopyBtns,100);});
-  // Observe DOM changes
-  if(window.MutationObserver){
-    var obs = new MutationObserver(function(){addCopyBtns();});
-    obs.observe(document.body,{childList:true,subtree:true});
-  }
-})(;)</script>
-
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-</div>
+})();
+</script>
 
 </body>
 </html>
