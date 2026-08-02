@@ -1,16 +1,16 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第六批)
+> 最后更新: 2026-08-03 (cron自动更新 - 第七批)
 
 ## 当前真实问题
 
 | 问题 | 总数 | 已修 | 剩余 | 优先级 | 检测方法 |
 |:-----|:----:|:----:|:----:|:------:|:---------|
-| 空壳工具(0交互+0JS) | 40+ | 18 | ~22 | 🔴 高 | check_empty_shells.py + 精确过滤 |
+| 空壳工具(0交互+0JS) | 40+ | 21 | ~19 | 🔴 高 | check_empty_shells.py + 精确过滤 |
 
-## 空壳工具清单(约22个)
+## 空壳工具清单(约19个)
 
-css-toast-generator, css-tooltip-generator, css-typewriter-generator, energy-converter, favicon-generator, frequency-converter, fuel-cost-calculator, fuel-efficiency-converter, home-affordability-calculator, image-remove-bg, inflation-calculator, link-preview-generator, markup-calculator, mole-calculator, nda-generator, percent-change-calculator, percentage-difference-calculator, pressure-converter, remove-duplicates, rental-agreement-generator, surface-area-calculator, text-stats, vocabulary-builder, word-search-generator, zip-extractor
+energy-converter, favicon-generator, frequency-converter, fuel-cost-calculator, fuel-efficiency-converter, home-affordability-calculator, image-remove-bg, inflation-calculator, link-preview-generator, markup-calculator, mole-calculator, nda-generator, percent-change-calculator, percentage-difference-calculator, pressure-converter, remove-duplicates, rental-agreement-generator, surface-area-calculator, text-stats, vocabulary-builder, word-search-generator, zip-extractor
 
 ## 已清零问题
 
@@ -48,6 +48,10 @@ cup-to-gram-converter, percentage-change-calculator, unit-price-calculator
 ### 2026-08-03 (第六批)
 css-text-outline-generator, cursive-text-generator, distance-calculator
 注: 同时修复了EN版css-text-outline-generator的坏JS(app.innerHTML=''清空app导致引用不存在的DOM元素)和假交互区，EN版distance-calculator的})(;语法错误和//注释吞代码问题
+
+### 2026-08-03 (第七批)
+css-toast-generator, css-tooltip-generator, css-typewriter-generator
+注: 三个工具均是有CSS样式但无交互UI和JS逻辑的空壳。为每个工具添加了完整的参数设置面板、实时预览和代码复制功能。EN版三个工具已有完整交互逻辑，无需修改。
 
 ## 检测说明
 
