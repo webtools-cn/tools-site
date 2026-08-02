@@ -83,7 +83,42 @@ textarea{font-family:monospace;resize:vertical;min-height:120px}
     Updated: 2026-07-11
   </span>
 </div>
-  <div id="app"></div>
+  <div id="app">
+    <div class="tool-section">
+      <h2>⚙️ 视差层设置</h2>
+      <div class="form-group">
+        <label for="layerCount">视差层数量 (2-6)</label>
+        <input type="number" id="layerCount" value="3" min="2" max="6">
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="renderLayersBtn">🔄 重新生成层配置</button>
+      </div>
+      <div id="layerConfigs"></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="generateCodeBtn">📋 生成代码</button>
+        <button class="btn btn-secondary" id="previewBtn">👁️ 预览效果</button>
+      </div>
+    </div>
+
+    <div class="tool-section" id="previewSection" style="display:none">
+      <h2>👁️ 视差预览（滚动此区域查看效果）</h2>
+      <div id="parallaxPreview" style="height:400px;overflow-y:auto;overflow-x:hidden;border-radius:8px;border:1px solid rgba(148,163,184,.15)"></div>
+      <p style="color:#64748b;font-size:.8rem;margin-top:8px;text-align:center">👆 在上方区域上下滚动查看视差效果</p>
+    </div>
+
+    <div class="tool-section" id="codeSection" style="display:none">
+      <h2>📋 生成的代码</h2>
+      <div class="btn-group">
+        <button class="btn btn-success" id="copyHtmlBtn">复制HTML</button>
+        <button class="btn btn-success" id="copyCssBtn">复制CSS</button>
+        <button class="btn btn-secondary" id="copyAllBtn">复制全部</button>
+      </div>
+      <label style="color:#94a3b8;font-size:.85rem;display:block;margin:8px 0 4px">HTML</label>
+      <div class="result-box" id="htmlOutput"></div>
+      <label style="color:#94a3b8;font-size:.85rem;display:block;margin:12px 0 4px">CSS</label>
+      <div class="result-box" id="cssOutput"></div>
+    </div>
+  </div>
   <div class="info-section">
     <h2>功能介绍</h2>
     <p>免费在线CSS视差滚动生成器，无需写代码即可创建漂亮的视差滚动效果。添加多个背景层，每层设置不同的滚动速度，形成视觉深度感。支持纯色背景、渐变色和图片URL，一键生成可直接复制使用的HTML+CSS代码。</p>
@@ -127,8 +162,157 @@ textarea{font-family:monospace;resize:vertical;min-height:120px}
 <div class="toast" id="toast"></div>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
+var defaultColors=['#0f172a','#1e3a5f','#1a5970','#2d6a85','#3d8da3','#4f9fb8'];
+
+function renderLayerConfigs(){
+  var count=Math.max(2,Math.min(6,parseInt(document.getElementById('layerCount').value)||3));
+  document.getElementById('layerCount').value=count;
+  var container=document.getElementById('layerConfigs');
+  container.innerHTML='';
+  for(var i=0;i<count;i++){
+    var div=document.createElement('div');
+    div.style.cssText='background:#0f172a;border-radius:8px;padding:12px;margin:8px 0;border:1px solid rgba(148,163,184,.1)';
+    var speed=(i+1)*0.3;
+    div.innerHTML='<h3 style="font-size:.95rem;color:#f1c40f;margin-bottom:8px">第 '+(i+1)+' 层</h3>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+      '<div><label style="font-size:.8rem;color:#94a3b8">滚动速度 (0.1-1.0)</label><input type="number" class="layer-speed" data-idx="'+i+'" value="'+speed.toFixed(1)+'" step="0.1" min="0.1" max="1" style="width:100%;padding:8px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:6px;font-size:.85rem"></div>'+
+      '<div><label style="font-size:.8rem;color:#94a3b8">高度 (px)</label><input type="number" class="layer-height" data-idx="'+i+'" value="'+(200+i*50)+'" min="100" max="600" style="width:100%;padding:8px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:6px;font-size:.85rem"></div>'+
+      '</div>'+
+      '<div style="margin-top:8px"><label style="font-size:.8rem;color:#94a3b8">背景类型</label>'+
+      '<select class="layer-bgtype" data-idx="'+i+'" style="width:100%;padding:8px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:6px;font-size:.85rem">'+
+      '<option value="color">纯色背景</option><option value="gradient">渐变背景</option><option value="image">图片URL</option></select></div>'+
+      '<div style="margin-top:8px"><label style="font-size:.8rem;color:#94a3b8">背景值</label>'+
+      '<input type="text" class="layer-bgval" data-idx="'+i+'" value="'+defaultColors[i]+'" style="width:100%;padding:8px;background:#1e293b;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:6px;font-size:.85rem" placeholder="颜色值/渐变/图片URL"></div>';
+    container.appendChild(div);
+  }
+  // Update bg type change handlers
+  var bgTypes=container.querySelectorAll('.layer-bgtype');
+  bgTypes.forEach(function(sel){
+    sel.addEventListener('change',function(){
+      var idx=this.dataset.idx;
+      var valInput=container.querySelector('.layer-bgval[data-idx="'+idx+'"]');
+      if(this.value==='color'){valInput.value=defaultColors[parseInt(idx)];}
+      else if(this.value==='gradient'){valInput.value='linear-gradient(135deg,#667eea,#764ba2)';}
+      else{valInput.value='https://picsum.photos/seed/parallax'+(parseInt(idx)+1)+'/1920/600';}
+    });
+  });
+}
+
+function getLayerData(){
+  var container=document.getElementById('layerConfigs');
+  var speeds=container.querySelectorAll('.layer-speed');
+  var heights=container.querySelectorAll('.layer-height');
+  var bgTypes=container.querySelectorAll('.layer-bgtype');
+  var bgVals=container.querySelectorAll('.layer-bgval');
+  var layers=[];
+  for(var i=0;i<speeds.length;i++){
+    layers.push({
+      speed:parseFloat(speeds[i].value)||0.3,
+      height:parseInt(heights[i].value)||200,
+      bgType:bgTypes[i].value,
+      bgVal:bgVals[i].value
+    });
+  }
+  return layers;
+}
+
+function generateCode(){
+  var layers=getLayerData();
+  var htmlCode='<div class="parallax-container">\n';
+  layers.forEach(function(l,i){
+    htmlCode+='  <div class="parallax-layer" data-speed="'+l.speed+'"></div>\n';
+  });
+  htmlCode+='</div>';
+
+  var cssCode='.parallax-container {\n  height: 100vh;\n  overflow-x: hidden;\n  overflow-y: auto;\n  perspective: 1px;\n  perspective-origin: 0 0;\n}\n\n';
+  layers.forEach(function(l,i){
+    var bg='';
+    if(l.bgType==='color'){bg='background-color: '+l.bgVal+';';}
+    else if(l.bgType==='gradient'){bg='background: '+l.bgVal+';';}
+    else{bg='background-image: url("'+l.bgVal+'");\n    background-size: cover;\n    background-position: center;';}
+    cssCode+='.parallax-layer:nth-child('+(i+1)+') {\n  position: relative;\n  height: '+l.height+'px;\n  transform-origin: 0 0;\n  '+bg+'\n}\n\n';
+  });
+  cssCode+='/* JavaScript: Apply parallax scroll effect */\n';
+  cssCode+='/* const container = document.querySelector(".parallax-container");\n';
+  cssCode+='   const layers = container.querySelectorAll(".parallax-layer");\n';
+  cssCode+='   container.addEventListener("scroll", () => {\n';
+  cssCode+='     layers.forEach(layer => {\n';
+  cssCode+='       const speed = parseFloat(layer.dataset.speed);\n';
+  cssCode+='       const offset = container.scrollTop * speed;\n';
+  cssCode+='       layer.style.transform = "translateY(" + offset + "px)";\n';
+  cssCode+='     });\n';
+  cssCode+='   }); */';
+
+  document.getElementById('htmlOutput').textContent=htmlCode;
+  document.getElementById('cssOutput').textContent=cssCode;
+  document.getElementById('codeSection').style.display='block';
+  showToast('代码已生成！');
+}
+
+function previewParallax(){
+  var layers=getLayerData();
+  var preview=document.getElementById('parallaxPreview');
+  preview.innerHTML='';
+  // Create scrollable content with parallax layers
+  var wrapper=document.createElement('div');
+  wrapper.style.cssText='position:relative;height:'+(layers.reduce(function(s,l){return s+l.height;},0)+400)+'px';
+  layers.forEach(function(l,i){
+    var layer=document.createElement('div');
+    layer.style.cssText='position:absolute;top:'+layers.slice(0,i).reduce(function(s,prev){return s+prev.height;},0)+'px;left:0;right:0;height:'+l.height+'px;overflow:hidden';
+    var inner=document.createElement('div');
+    inner.style.cssText='position:absolute;top:0;left:0;right:0;height:200%;will-change:transform';
+    if(l.bgType==='color'){inner.style.backgroundColor=l.bgVal;}
+    else if(l.bgType==='gradient'){inner.style.background=l.bgVal;}
+    else{inner.style.backgroundImage='url("'+l.bgVal+'")';inner.style.backgroundSize='cover';inner.style.backgroundPosition='center';}
+    inner.dataset.speed=l.speed;
+    layer.appendChild(inner);
+    wrapper.appendChild(layer);
+    // Add label
+    var label=document.createElement('div');
+    label.textContent='第 '+(i+1)+' 层 (速度: '+l.speed+')';
+    label.style.cssText='position:absolute;top:8px;left:12px;color:#fff;font-size:.8rem;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.5);z-index:10';
+    layer.appendChild(label);
+  });
+  // Add spacer at bottom for scroll
+  var spacer=document.createElement('div');
+  spacer.style.cssText='position:absolute;bottom:0;left:0;right:0;height:400px;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:.85rem';
+  spacer.textContent='↓ 继续向下滚动 ↑';
+  wrapper.appendChild(spacer);
+  preview.appendChild(wrapper);
+
+  // Parallax scroll effect
+  preview.onscroll=function(){
+    var scrollTop=preview.scrollTop;
+    var inners=wrapper.querySelectorAll('[data-speed]');
+    inners.forEach(function(inner){
+      var speed=parseFloat(inner.dataset.speed);
+      inner.style.transform='translateY('+(scrollTop*speed*-0.5)+'px)';
+    });
+  };
+
+  document.getElementById('previewSection').style.display='block';
+  showToast('预览已加载，滚动查看效果！');
+}
+
+document.getElementById('renderLayersBtn').addEventListener('click',renderLayerConfigs);
+document.getElementById('layerCount').addEventListener('change',renderLayerConfigs);
+document.getElementById('generateCodeBtn').addEventListener('click',generateCode);
+document.getElementById('previewBtn').addEventListener('click',previewParallax);
+
+document.getElementById('copyHtmlBtn').addEventListener('click',function(){
+  navigator.clipboard.writeText(document.getElementById('htmlOutput').textContent).then(function(){showToast('HTML已复制！')});
+});
+document.getElementById('copyCssBtn').addEventListener('click',function(){
+  navigator.clipboard.writeText(document.getElementById('cssOutput').textContent).then(function(){showToast('CSS已复制！')});
+});
+document.getElementById('copyAllBtn').addEventListener('click',function(){
+  var all='<!-- HTML -->\n'+document.getElementById('htmlOutput').textContent+'\n\n/* CSS */\n'+document.getElementById('cssOutput').textContent;
+  navigator.clipboard.writeText(all).then(function(){showToast('全部代码已复制！')});
+});
+
+// Initialize
+renderLayerConfigs();
 </script>
 </div>
 
