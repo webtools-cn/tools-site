@@ -274,18 +274,328 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function clearAll() {
-  document.getElementById('fileInput').value = '';
-  document.getElementById('margin').value = '';
-  document.getElementById('pageSize').selectedIndex = 0;
-  document.getElementById('pageOrientation').selectedIndex = 0;
-  document.getElementById('fitMode').selectedIndex = 0;
-  showToast('已重置');
+var pdfFiles = [];
+var pdfImages = []; // {img, dataUrl, width, height}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
 }
 
-function generatePDF() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+function renderFileList() {
+  var list = document.getElementById('fileList');
+  list.innerHTML = '';
+  if (pdfFiles.length === 0) {
+    document.getElementById('actionButtons').style.display = 'none';
+    document.getElementById('settingsSection').style.display = 'none';
+    return;
+  }
+  document.getElementById('actionButtons').style.display = '';
+  document.getElementById('settingsSection').style.display = '';
+  for (var i = 0; i < pdfFiles.length; i++) {
+    (function(idx) {
+      var item = document.createElement('div');
+      item.className = 'file-item';
+      item.draggable = true;
+      var thumb = document.createElement('img');
+      thumb.src = pdfImages[idx] ? pdfImages[idx].dataUrl : '';
+      var nameEl = document.createElement('span');
+      nameEl.className = 'file-name';
+      nameEl.textContent = pdfFiles[idx].name;
+      var sizeEl = document.createElement('span');
+      sizeEl.className = 'file-size';
+      sizeEl.textContent = formatSize(pdfFiles[idx].size);
+      var dragH = document.createElement('span');
+      dragH.className = 'drag-handle';
+      dragH.textContent = '⠿';
+      var removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-btn';
+      removeBtn.textContent = '×';
+      removeBtn.onclick = function() {
+        pdfFiles.splice(idx, 1);
+        pdfImages.splice(idx, 1);
+        renderFileList();
+      };
+      item.appendChild(dragH);
+      item.appendChild(thumb);
+      item.appendChild(nameEl);
+      item.appendChild(sizeEl);
+      item.appendChild(removeBtn);
+      item.ondragstart = function(e) { e.dataTransfer.setData('text/plain', idx); item.classList.add('dragging'); };
+      item.ondragend = function() { item.classList.remove('dragging'); };
+      item.ondragover = function(e) { e.preventDefault(); };
+      item.ondrop = function(e) {
+        e.preventDefault();
+        var fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+        if (fromIdx === idx) return;
+        var movedF = pdfFiles.splice(fromIdx, 1)[0];
+        var movedI = pdfImages.splice(fromIdx, 1)[0];
+        pdfFiles.splice(idx, 0, movedF);
+        pdfImages.splice(idx, 0, movedI);
+        renderFileList();
+      };
+      list.appendChild(item);
+    })(i);
+  }
 }
+
+function loadFiles(files) {
+  var validFiles = [];
+  for (var i = 0; i < files.length; i++) {
+    if (files[i].type.startsWith('image/')) {
+      validFiles.push(files[i]);
+    }
+  }
+  if (validFiles.length === 0) { showToast('请选择图片文件'); return; }
+  var loaded = 0;
+  for (var j = 0; j < validFiles.length; j++) {
+    (function(file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          pdfFiles.push(file);
+          pdfImages.push({img: img, dataUrl: e.target.result, width: img.naturalWidth, height: img.naturalHeight});
+          loaded++;
+          renderFileList();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    })(validFiles[j]);
+  }
+}
+
+// Page sizes in points (1/72 inch)
+var PAGE_SIZES = {
+  a4: {w: 595, h: 842},
+  letter: {w: 612, h: 792},
+  a3: {w: 842, h: 1191},
+  a5: {w: 420, h: 595}
+};
+
+function generatePDF() {
+  if (pdfImages.length === 0) {
+    showToast('请先上传图片');
+    return;
+  }
+  var pageSize = document.getElementById('pageSize').value;
+  var orientation = document.getElementById('pageOrientation').value;
+  var fitMode = document.getElementById('fitMode').value;
+  var margin = parseInt(document.getElementById('margin').value) || 0;
+  
+  var page = PAGE_SIZES[pageSize] || PAGE_SIZES.a4;
+  var pageW = orientation === 'landscape' ? page.h : page.w;
+  var pageH = orientation === 'landscape' ? page.w : page.h;
+  var marginPt = margin * 2.8346; // mm to points
+  var availW = pageW - 2 * marginPt;
+  var availH = pageH - 2 * marginPt;
+  
+  var progressBar = document.getElementById('progressBar');
+  var progressFill = document.getElementById('progressFill');
+  progressBar.style.display = 'block';
+  progressFill.style.width = '0%';
+  
+  // Build PDF
+  var objects = [];
+  var xrefOffsets = [];
+  var objectNum = 1;
+  
+  // Helper to add an object
+  function addObject(content) {
+    var offset = objects.length > 0 ? objects[objects.length - 1].offset + objects[objects.length - 1].data.length : 0;
+    var data = objectNum + ' 0 obj\n' + content + '\nendobj\n';
+    var obj = {num: objectNum, offset: offset, data: data};
+    objects.push(obj);
+    xrefOffsets.push(offset);
+    objectNum++;
+    return obj.num;
+  }
+  
+  // Build image XObjects and page objects
+  var pageRefs = [];
+  var total = pdfImages.length;
+  
+  for (var i = 0; i < total; i++) {
+    var imgData = pdfImages[i];
+    // Convert image to JPEG data URL via canvas
+    var canvas = document.createElement('canvas');
+    canvas.width = imgData.width;
+    canvas.height = imgData.height;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(imgData.img, 0, 0);
+    var jpegDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    var jpegBytes = atob(jpegDataUrl.split(',')[1]);
+    var jpegLen = jpegBytes.length;
+    
+    // Calculate image placement
+    var imgW, imgH, imgX, imgY;
+    if (fitMode === 'original') {
+      imgW = imgData.width;
+      imgH = imgData.height;
+      imgX = (pageW - imgW) / 2;
+      imgY = (pageH - imgH) / 2;
+    } else if (fitMode === 'fill') {
+      var scaleFill = Math.max(availW / imgData.width, availH / imgData.height);
+      imgW = imgData.width * scaleFill;
+      imgH = imgData.height * scaleFill;
+      imgX = (pageW - imgW) / 2;
+      imgY = (pageH - imgH) / 2;
+    } else {
+      // fit - preserve aspect ratio
+      var scaleFit = Math.min(availW / imgData.width, availH / imgData.height);
+      imgW = imgData.width * scaleFit;
+      imgH = imgData.height * scaleFit;
+      imgX = (pageW - imgW) / 2;
+      imgY = (pageH - imgH) / 2;
+    }
+    
+    // Image XObject
+    var imgObjNum = objectNum;
+    var imgContent = '<< /Type /XObject /Subtype /Image /Width ' + imgData.width + ' /Height ' + imgData.height + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpegLen + ' >>\nstream\n';
+    // We need raw bytes for the stream - handle this specially
+    objects.push({num: objectNum, offset: 0, data: '', isImage: true, content: imgContent, jpegBytes: jpegBytes, jpegLen: jpegLen});
+    xrefOffsets.push(0); // will fix later
+    objectNum++;
+    
+    // Content stream
+    var contentStr = 'q\n' + imgW + ' 0 0 ' + imgH + ' ' + imgX + ' ' + imgY + ' cm\n/' + 'Im' + i + ' Do\nQ\n';
+    var contentObjNum = objectNum;
+    addObject('<< /Length ' + contentStr.length + ' >>\nstream\n' + contentStr + 'endstream');
+    
+    // Page
+    var pageObjNum = objectNum;
+    pageRefs.push(pageObjNum);
+    addObject('<< /Type /Page /Parent ' + 1 + ' 0 R /MediaBox [0 0 ' + pageW + ' ' + pageH + '] /Resources << /XObject << /Im' + i + ' ' + imgObjNum + ' 0 R >> >> /Contents ' + contentObjNum + ' 0 R >>');
+    
+    // Update progress
+    progressFill.style.width = Math.round((i + 1) / total * 80) + '%';
+  }
+  
+  // Pages (root catalog of pages)
+  var kidsStr = pageRefs.map(function(r) { return r + ' 0 R'; }).join(' ');
+  // Object 1 is the Pages node
+  var pagesObj = '<< /Type /Pages /Kids [' + kidsStr + '] /Count ' + pageRefs.length + ' >>';
+  
+  // Catalog
+  var catalogNum = objectNum;
+  addObject('<< /Type /Catalog /Pages 1 0 R >>');
+  
+  // Now build the actual PDF bytes
+  var pdfParts = [];
+  pdfParts.push('%PDF-1.4\n');
+  
+  // We need to recalculate offsets properly
+  // Let's rebuild with correct offsets
+  var pdfBytes = [];
+  var header = '%PDF-1.4\n%\xC0\xC1\xC2\xC3\n';
+  pdfBytes.push(header);
+  
+  var offsets = {};
+  var currentOffset = header.length;
+  
+  // Object 1: Pages node
+  offsets[1] = currentOffset;
+  var pagesData = '1 0 obj\n' + pagesObj + '\nendobj\n';
+  pdfBytes.push(pagesData);
+  currentOffset += pagesData.length;
+  
+  // Now output all other objects (images + content + pages + catalog)
+  // objects array has objects starting from objectNum=2 (first image)
+  // We need to map correctly
+  var objIdx = 0;
+  for (var i = 0; i < objects.length; i++) {
+    var obj = objects[i];
+    offsets[obj.num] = currentOffset;
+    if (obj.isImage) {
+      var imgHeader = obj.num + ' 0 obj\n' + obj.content;
+      var imgFooter = 'endstream\nendobj\n';
+      pdfBytes.push(imgHeader);
+      pdfBytes.push(obj.jpegBytes);
+      pdfBytes.push(imgFooter);
+      currentOffset += imgHeader.length + obj.jpegLen + imgFooter.length;
+    } else {
+      pdfBytes.push(obj.data);
+      currentOffset += obj.data.length;
+    }
+  }
+  
+  // xref table
+  var xrefStart = currentOffset;
+  var xrefStr = 'xref\n0 ' + objectNum + '\n';
+  xrefStr += '0000000000 65535 f \n';
+  for (var n = 1; n < objectNum; n++) {
+    var off = offsets[n] || 0;
+    xrefStr += ('0000000000' + off).slice(-10) + ' 00000 n \n';
+  }
+  pdfBytes.push(xrefStr);
+  
+  // Trailer
+  var trailer = 'trailer\n<< /Size ' + objectNum + ' /Root ' + catalogNum + ' 0 R >>\nstartxref\n' + xrefStart + '\n%%EOF';
+  pdfBytes.push(trailer);
+  
+  // Create blob (mixing strings and binary)
+  var blobParts = [];
+  for (var i = 0; i < pdfBytes.length; i++) {
+    if (typeof pdfBytes[i] === 'string') {
+      blobParts.push(pdfBytes[i]);
+    } else {
+      // raw bytes - convert to Uint8Array
+      var arr = new Uint8Array(pdfBytes[i].length);
+      for (var j = 0; j < pdfBytes[i].length; j++) {
+        arr[j] = pdfBytes[i].charCodeAt(j);
+      }
+      blobParts.push(arr);
+    }
+  }
+  var blob = new Blob(blobParts, {type: 'application/pdf'});
+  
+  progressFill.style.width = '100%';
+  setTimeout(function() { progressBar.style.display = 'none'; }, 500);
+  
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'images.pdf';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('PDF已生成');
+}
+
+function clearAll() {
+  pdfFiles = [];
+  pdfImages = [];
+  renderFileList();
+  document.getElementById('fileInput').value = '';
+  document.getElementById('progressBar').style.display = 'none';
+  showToast('已清空');
+}
+
+// File upload event handlers
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  loadFiles(e.target.files);
+});
+
+document.getElementById('dropZone').addEventListener('click', function() {
+  document.getElementById('fileInput').click();
+});
+
+document.getElementById('dropZone').addEventListener('dragover', function(e) {
+  e.preventDefault();
+  this.classList.add('dragover');
+});
+
+document.getElementById('dropZone').addEventListener('dragleave', function(e) {
+  this.classList.remove('dragover');
+});
+
+document.getElementById('dropZone').addEventListener('drop', function(e) {
+  e.preventDefault();
+  this.classList.remove('dragover');
+  loadFiles(e.dataTransfer.files);
+});
 </script>
 </body>
 </html>

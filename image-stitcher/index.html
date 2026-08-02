@@ -242,35 +242,226 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function clearAll() {
-  document.getElementById('fileInput').value = '';
-  document.getElementById('gap').value = '';
-  document.getElementById('bgColor').value = '';
-  document.getElementById('radius').value = '';
-  document.getElementById('columns').value = '';
-  document.getElementById('previewSection').innerHTML = '';
-  document.getElementById('previewSection').style.display = 'none';
-  showToast('已重置');
+var stitchImages = [];
+var stitchCanvas = null;
+
+function showToast2(m){showToast(m);}
+
+function loadImages(files) {
+  var loaded = 0;
+  var total = files.length;
+  if (total === 0) return;
+  for (var i = 0; i < total; i++) {
+    (function(file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          stitchImages.push({src: e.target.result, img: img, name: file.name});
+          loaded++;
+          renderThumbs();
+          if (loaded === total) {
+            document.getElementById('stats').innerHTML = '<span>已加载 ' + stitchImages.length + ' 张图片</span>';
+          }
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    })(files[i]);
+  }
 }
 
-function downloadJPG() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{{type:'text/plain'}});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='JPG.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
-}
-
-function downloadResult() {
-  var text = document.getElementById('previewSection').innerText;
-  if (!text) { showToast('没有可下载的结果'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'image-stitcher-result.txt';
-  a.click();
-  showToast('已下载');
+function renderThumbs() {
+  var existing = document.querySelector('.thumb-list');
+  if (existing) existing.remove();
+  var list = document.createElement('div');
+  list.className = 'thumb-list';
+  for (var i = 0; i < stitchImages.length; i++) {
+    (function(idx) {
+      var item = document.createElement('div');
+      item.className = 'thumb-item';
+      item.draggable = true;
+      var imgEl = document.createElement('img');
+      imgEl.src = stitchImages[idx].src;
+      var del = document.createElement('button');
+      del.className = 'del';
+      del.textContent = '×';
+      del.onclick = function(e) {
+        e.stopPropagation();
+        stitchImages.splice(idx, 1);
+        renderThumbs();
+        document.getElementById('stats').innerHTML = '<span>已加载 ' + stitchImages.length + ' 张图片</span>';
+      };
+      item.appendChild(imgEl);
+      item.appendChild(del);
+      item.ondragstart = function(e) { e.dataTransfer.setData('text/plain', idx); item.classList.add('dragging'); };
+      item.ondragend = function() { item.classList.remove('dragging'); };
+      item.ondragover = function(e) { e.preventDefault(); };
+      item.ondrop = function(e) {
+        e.preventDefault();
+        var fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+        if (fromIdx === idx) return;
+        var moved = stitchImages.splice(fromIdx, 1)[0];
+        stitchImages.splice(idx, 0, moved);
+        renderThumbs();
+      };
+      list.appendChild(item);
+    })(i);
+  }
+  var inputSection = document.querySelector('.input-section');
+  if (inputSection) inputSection.parentNode.insertBefore(list, inputSection.nextSibling);
 }
 
 function generateStitch() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  if (stitchImages.length === 0) {
+    showToast('请先上传图片');
+    return;
+  }
+  var mode = document.querySelector('input[name="mode"]:checked').value;
+  var gap = parseInt(document.getElementById('gap').value) || 0;
+  var bgColor = document.getElementById('bgColor').value;
+  var radius = parseInt(document.getElementById('radius').value) || 0;
+  var columns = parseInt(document.getElementById('columns').value) || 3;
+
+  var imgs = stitchImages.map(function(item) { return item.img; });
+  var totalW = 0, totalH = 0, maxW = 0, maxH = 0;
+  
+  for (var i = 0; i < imgs.length; i++) {
+    if (imgs[i].naturalWidth > maxW) maxW = imgs[i].naturalWidth;
+    if (imgs[i].naturalHeight > maxH) maxH = imgs[i].naturalHeight;
+  }
+  
+  var canvasW, canvasH;
+  if (mode === 'horizontal') {
+    canvasW = imgs.reduce(function(s, im) { return s + im.naturalWidth; }, 0) + gap * (imgs.length - 1);
+    canvasH = maxH;
+  } else if (mode === 'vertical') {
+    canvasW = maxW;
+    canvasH = imgs.reduce(function(s, im) { return s + im.naturalHeight; }, 0) + gap * (imgs.length - 1);
+  } else {
+    // grid
+    var cols = Math.min(columns, imgs.length);
+    var rows = Math.ceil(imgs.length / cols);
+    canvasW = maxW * cols + gap * (cols - 1);
+    canvasH = maxH * rows + gap * (rows - 1);
+  }
+  
+  var canvas = document.createElement('canvas');
+  canvas.width = canvasW;
+  canvas.height = canvasH;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, canvasW, canvasH);
+  
+  var x = 0, y = 0;
+  for (var i = 0; i < imgs.length; i++) {
+    var im = imgs[i];
+    if (mode === 'horizontal') {
+      x = i > 0 ? x + imgs[i-1].naturalWidth + gap : 0;
+      y = 0;
+    } else if (mode === 'vertical') {
+      x = 0;
+      y = i > 0 ? y + imgs[i-1].naturalHeight + gap : 0;
+    } else {
+      // grid
+      var col = i % cols;
+      var row = Math.floor(i / cols);
+      x = col * (maxW + gap);
+      y = row * (maxH + gap);
+    }
+    if (radius > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + im.naturalWidth, y, x + im.naturalWidth, y + im.naturalHeight, radius);
+      ctx.arcTo(x + im.naturalWidth, y + im.naturalHeight, x, y + im.naturalHeight, radius);
+      ctx.arcTo(x, y + im.naturalHeight, x, y, radius);
+      ctx.arcTo(x, y, x + im.naturalWidth, y, radius);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(im, x, y);
+      ctx.restore();
+    } else {
+      ctx.drawImage(im, x, y);
+    }
+  }
+  
+  stitchCanvas = canvas;
+  var container = document.getElementById('canvasContainer');
+  container.innerHTML = '';
+  container.appendChild(canvas);
+  document.getElementById('previewSection').style.display = 'block';
+  showToast('拼接完成');
 }
+
+function downloadResult() {
+  if (!stitchCanvas) { showToast('请先生成拼接图'); return; }
+  stitchCanvas.toBlob(function(blob) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'stitched.png';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('已下载PNG');
+  });
+}
+
+function downloadJPG() {
+  if (!stitchCanvas) { showToast('请先生成拼接图'); return; }
+  stitchCanvas.toBlob(function(blob) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'stitched.jpg';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('已下载JPG');
+  }, 'image/jpeg', 0.92);
+}
+
+function clearAll() {
+  stitchImages = [];
+  stitchCanvas = null;
+  var list = document.querySelector('.thumb-list');
+  if (list) list.remove();
+  document.getElementById('fileInput').value = '';
+  document.getElementById('previewSection').style.display = 'none';
+  document.getElementById('canvasContainer').innerHTML = '';
+  document.getElementById('stats').innerHTML = '';
+  showToast('已清空');
+}
+
+// File upload event handlers
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  loadImages(e.target.files);
+});
+
+document.getElementById('dropZone').addEventListener('click', function() {
+  document.getElementById('fileInput').click();
+});
+
+document.getElementById('dropZone').addEventListener('dragover', function(e) {
+  e.preventDefault();
+  this.classList.add('dragover');
+});
+
+document.getElementById('dropZone').addEventListener('dragleave', function(e) {
+  this.classList.remove('dragover');
+});
+
+document.getElementById('dropZone').addEventListener('drop', function(e) {
+  e.preventDefault();
+  this.classList.remove('dragover');
+  var files = e.dataTransfer.files;
+  loadImages(files);
+});
+
+// Toggle column visibility based on mode
+document.querySelectorAll('input[name="mode"]').forEach(function(radio) {
+  radio.addEventListener('change', function() {
+    var colLabel = document.getElementById('colLabel');
+    if (colLabel) colLabel.style.display = this.value === 'grid' ? '' : 'none';
+  });
+});
 </script>
 </body>
 </html>
