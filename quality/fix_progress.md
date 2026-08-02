@@ -1,16 +1,16 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第十批)
+> 最后更新: 2026-08-03 (cron自动更新 - 第十一批)
 
 ## 当前真实问题
 
 | 问题 | 总数 | 已修 | 剩余 | 优先级 | 检测方法 |
 |:-----|:----:|:----:|:----:|:------:|:---------|
-| 空壳工具(0交互+0JS) | 40+ | 30 | ~10 | 🔴 高 | check_empty_shells.py + 精确过滤 |
+| 空壳工具(0交互+0JS) | 40+ | 33 | ~9 | 🔴 高 | check_empty_shells.py + 精确过滤 |
 
-## 空壳工具清单(约10个)
+## 空壳工具清单(约9个)
 
-markup-calculator, nda-generator, percent-change-calculator, percentage-difference-calculator, pressure-converter, remove-duplicates, rental-agreement-generator, surface-area-calculator, text-stats, vocabulary-builder, word-search-generator, zip-extractor
+nda-generator, pressure-converter, remove-duplicates, rental-agreement-generator, surface-area-calculator, text-stats, vocabulary-builder, word-search-generator, zip-extractor
 
 ## 已清零问题
 
@@ -64,6 +64,10 @@ favicon-generator, fuel-efficiency-converter, home-affordability-calculator
 ### 2026-08-03 (第十批)
 inflation-calculator, mole-calculator, link-preview-generator
 注: 三个工具均是有CSS样式但无交互UI和JS逻辑的空壳。inflation-calculator添加通胀计算（金额/通胀率/年数→实际购买力/购买力损失/需追平金额+逐年变化表）；mole-calculator添加摩尔计算（质量↔摩尔数↔分子数四模式互转+常见物质摩尔质量表+阿伏伽德罗常数）；link-preview-generator添加OG标签生成（输入标题/描述/URL/图片→Facebook/Twitter实时预览+OG+Twitter Card meta标签代码生成+一键复制）。三个工具EN版均已有完整功能无需修改。
+
+### 2026-08-03 (第十一批)
+markup-calculator, percent-change-calculator, percentage-difference-calculator
+注: 三个工具均是有CSS样式但无交互UI和JS逻辑的空壳。markup-calculator添加成本加价计算（成本+加价率→售价/利润/利润率/加价金额四项结果）；percent-change-calculator添加百分比变化计算（旧值+新值→变化率/增长方向/绝对变化量/计算公式）；percentage-difference-calculator添加百分比差异计算（两数值→百分比差异/绝对差异/平均值/计算公式）。三个工具EN版均已有完整功能无需修改。
 
 ## 检测说明
 
