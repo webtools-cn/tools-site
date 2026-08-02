@@ -230,25 +230,151 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function clearForm() {
-  document.querySelectorAll('input[type="text"],input[type="number"],textarea').forEach(function(el) { el.value = ''; });
-  document.getElementById('resultOutput').innerHTML = '';
+  document.getElementById('eventTitle').value = '';
+  document.getElementById('eventDesc').value = '';
+  document.getElementById('eventLocation').value = '';
+  document.getElementById('startTime').value = '';
+  document.getElementById('endTime').value = '';
+  document.getElementById('allDay').checked = false;
+  document.getElementById('resultOutput').innerHTML = '填写事件信息，点击「生成事件」按钮';
+  document.getElementById('previewArea').innerHTML = '<span style="color:#64748b">事件预览将在此处显示</span>';
+  toggleAllDay();
   showToast('已清空');
 }
 
-function downloadICS() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{{type:'text/plain'}});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ICS.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+function toggleAllDay() {
+  var allDay = document.getElementById('allDay').checked;
+  var startInput = document.getElementById('startTime');
+  var endInput = document.getElementById('endTime');
+  if (allDay) {
+    startInput.type = 'date';
+    endInput.type = 'date';
+  } else {
+    startInput.type = 'datetime-local';
+    endInput.type = 'datetime-local';
+  }
 }
 
+function formatDateICS(dateStr, allDay) {
+  if (!dateStr) return '';
+  var d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  var yyyy = d.getUTCFullYear();
+  var mm = ('0' + (d.getUTCMonth() + 1)).slice(-2);
+  var dd = ('0' + d.getUTCDate()).slice(-2);
+  if (allDay) return yyyy + mm + dd;
+  var hh = ('0' + d.getUTCHours()).slice(-2);
+  var mi = ('0' + d.getUTCMinutes()).slice(-2);
+  var ss = ('0' + d.getUTCSeconds()).slice(-2);
+  return yyyy + mm + dd + 'T' + hh + mi + ss + 'Z';
+}
+
+function formatDateGCal(dateStr, allDay) {
+  if (!dateStr) return '';
+  var d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  var yyyy = d.getUTCFullYear();
+  var mm = ('0' + (d.getUTCMonth() + 1)).slice(-2);
+  var dd = ('0' + d.getUTCDate()).slice(-2);
+  if (allDay) return yyyy + mm + dd;
+  var hh = ('0' + d.getUTCHours()).slice(-2);
+  var mi = ('0' + d.getUTCMinutes()).slice(-2);
+  var ss = ('0' + d.getUTCSeconds()).slice(-2);
+  return yyyy + mm + dd + 'T' + hh + mi + ss + 'Z';
+}
+
+function escapeICS(text) {
+  if (!text) return '';
+  return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+}
+
+var lastEventData = null;
+
 function generateCalendarEvent() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  var title = document.getElementById('eventTitle').value.trim();
+  var desc = document.getElementById('eventDesc').value.trim();
+  var location = document.getElementById('eventLocation').value.trim();
+  var allDay = document.getElementById('allDay').checked;
+  var startStr = document.getElementById('startTime').value;
+  var endStr = document.getElementById('endTime').value;
+
+  if (!title) { showToast('请输入事件标题'); return; }
+  if (!startStr) { showToast('请选择开始时间'); return; }
+
+  var dtStart = formatDateICS(startStr, allDay);
+  var dtEnd = endStr ? formatDateICS(endStr, allDay) : '';
+
+  var ics = 'BEGIN:VCALENDAR\r\n';
+  ics += 'VERSION:2.0\r\n';
+  ics += 'PRODID:-//Free ToolBase//Calendar Event Generator//CN\r\n';
+  ics += 'BEGIN:VEVENT\r\n';
+  ics += 'UID:' + Date.now() + '@free-toolbase.com\r\n';
+  ics += 'DTSTAMP:' + formatDateICS(new Date().toISOString(), false) + '\r\n';
+  ics += 'SUMMARY:' + escapeICS(title) + '\r\n';
+  if (desc) ics += 'DESCRIPTION:' + escapeICS(desc) + '\r\n';
+  if (location) ics += 'LOCATION:' + escapeICS(location) + '\r\n';
+  ics += 'DTSTART' + (allDay ? ';VALUE=DATE' : '') + ':' + dtStart + '\r\n';
+  if (dtEnd) ics += 'DTEND' + (allDay ? ';VALUE=DATE' : '') + ':' + dtEnd + '\r\n';
+  ics += 'END:VEVENT\r\n';
+  ics += 'END:VCALENDAR';
+
+  lastEventData = { title: title, desc: desc, location: location, allDay: allDay, startStr: startStr, endStr: endStr, ics: ics };
+
+  document.getElementById('resultOutput').textContent = ics;
+
+  // Build preview links
+  var gcalStart = formatDateGCal(startStr, allDay);
+  var gcalEnd = endStr ? formatDateGCal(endStr, allDay) : '';
+  var gcalUrl = 'https://www.google.com/calendar/render?action=TEMPLATE';
+  gcalUrl += '&text=' + encodeURIComponent(title);
+  if (allDay) {
+    gcalUrl += '&dates=' + gcalStart + '/' + (gcalEnd || gcalStart);
+  } else {
+    gcalUrl += '&dates=' + gcalStart + '/' + (gcalEnd || gcalStart);
+  }
+  if (desc) gcalUrl += '&details=' + encodeURIComponent(desc);
+  if (location) gcalUrl += '&location=' + encodeURIComponent(location);
+
+  var previewHtml = '<div style="text-align:center;padding:8px">';
+  previewHtml += '<p style="color:#e2e8f0;font-size:.95rem;margin-bottom:10px"><strong>' + title + '</strong></p>';
+  if (location) previewHtml += '<p style="color:#94a3b8;font-size:.85rem;margin-bottom:6px">📍 ' + location + '</p>';
+  previewHtml += '<p style="color:#94a3b8;font-size:.85rem;margin-bottom:10px">🕒 ' + (allDay ? '全天事件' : (startStr + (endStr ? ' ~ ' + endStr : ''))) + '</p>';
+  previewHtml += '<a href="' + gcalUrl + '" target="_blank" rel="noopener" style="color:#4ade80;font-size:.9rem">🌐 Google日历</a>';
+  previewHtml += '</div>';
+  document.getElementById('previewArea').innerHTML = previewHtml;
+
+  showToast('事件已生成');
+}
+
+function downloadICS() {
+  if (!lastEventData || !lastEventData.ics) {
+    generateCalendarEvent();
+    if (!lastEventData) return;
+  }
+  var blob = new Blob([lastEventData.ics], { type: 'text/calendar;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (lastEventData.title || 'event') + '.ics';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('ICS文件已下载');
 }
 
 function openGoogleCalendar() {
-  showToast('openGoogleCalendar - coming soon!');
-}
-
-function toggleAllDay() {
-  showToast('Toggled!');
+  if (!lastEventData) {
+    generateCalendarEvent();
+    if (!lastEventData) return;
+  }
+  var d = lastEventData;
+  var gcalStart = formatDateGCal(d.startStr, d.allDay);
+  var gcalEnd = d.endStr ? formatDateGCal(d.endStr, d.allDay) : '';
+  var url = 'https://www.google.com/calendar/render?action=TEMPLATE';
+  url += '&text=' + encodeURIComponent(d.title);
+  url += '&dates=' + gcalStart + '/' + (gcalEnd || gcalStart);
+  if (d.desc) url += '&details=' + encodeURIComponent(d.desc);
+  if (d.location) url += '&location=' + encodeURIComponent(d.location);
+  window.open(url, '_blank', 'noopener');
+  showToast('已打开Google日历');
 }
 </script>
 </body>
