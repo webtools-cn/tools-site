@@ -1,16 +1,16 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第十二批)
+> 最后更新: 2026-08-03 (cron自动更新 - 第十三批)
 
 ## 当前真实问题
 
 | 问题 | 总数 | 已修 | 剩余 | 优先级 | 检测方法 |
 |:-----|:----:|:----:|:----:|:------:|:---------|
-| 空壳工具(0交互+0JS) | 40+ | 36 | ~6 | 🔴 高 | check_empty_shells.py + 精确过滤 |
+| 空壳工具(0交互+0JS) | 40+ | 39 | ~3 | 🔴 高 | check_empty_shells.py + 精确过滤 |
 
-## 空壳工具清单(约6个)
+## 空壳工具清单(约3个)
 
-surface-area-calculator, text-stats, vocabulary-builder, word-search-generator, zip-extractor, rental-agreement-generator
+word-search-generator, zip-extractor, rental-agreement-generator
 
 ## 已清零问题
 
@@ -72,6 +72,10 @@ markup-calculator, percent-change-calculator, percentage-difference-calculator
 ### 2026-08-03 (第十二批)
 nda-generator, pressure-converter, remove-duplicates
 注: nda-generator添加单向/双向NDA保密协议生成器（双方信息+保密范围+除外信息+期限+签署地点→完整九段协议文本+复制+下载TXT）；pressure-converter添加8种压力单位(Pa/kPa/MPa/bar/atm/psi/mmHg/torr)实时互转+7单位换算对照表；remove-duplicates添加文本去重工具（保留首次/末次/排序+大小写敏感+空行处理+空白去除+4项统计面板）。EN版nda-generator和remove-duplicates修复假交互(quickInput/quickResult)为真实功能；EN版pressure-converter已有完整功能无需修改。
+
+### 2026-08-03 (第十三批)
+surface-area-calculator, text-stats, vocabulary-builder
+注: surface-area-calculator CN版添加5种3D几何体表面积计算器（立方体/球体/圆柱/圆锥/长方体，含公式展示和计算过程），修复EN版})(;语法错误和//注释吞代码问题（resultAddCopy脚本的注释吞掉了整行变量声明）；text-stats CN/EN版均添加实时文本统计工具（7项统计：字符数含/不含空格、单词数、中文字数、行数、段落数、标点符号+复制功能），替换EN版假交互quickInput；vocabulary-builder CN/EN版均添加词汇量测试工具（3级难度200+单词库，20题随机抽样，认识/不认识交互，词汇量估算+6级评定+学习建议），替换CN版损坏JS（引用不存在的DOM元素）和EN版假runTool()echo逻辑。
 
 ## 检测说明
 
