@@ -199,6 +199,42 @@ footer{text-align:center;padding:24px;color:#999;font-size:0.85em}
 
 <!-- AdSense -->
 
+<div class="tool-card">
+<div class="upload-zone" id="uploadZone">
+<span class="upload-icon">📁</span>
+<span class="upload-text">Click to select a ZIP file or drag &amp; drop here</span>
+<span class="upload-hint">Supports .zip format · Processed entirely in your browser</span>
+<input type="file" id="fileInput" accept=".zip">
+</div>
+
+<div id="resultArea" style="display:none">
+<div class="stats" id="statsArea"></div>
+<div class="toolbar">
+<button class="btn btn-secondary" onclick="selectAll()">Select All</button>
+<button class="btn btn-secondary" onclick="deselectAll()">Deselect All</button>
+<button class="btn btn-success" onclick="downloadSelected()">⬇️ Download Selected</button>
+<button class="btn btn-primary" onclick="resetAll()">🔄 Reset</button>
+</div>
+<div class="file-list" id="fileList"></div>
+</div>
+</div>
+
+<div class="info-section">
+<h2>About ZIP Extractor</h2>
+<p>Free online ZIP extractor tool. Open ZIP archives directly in your browser without any software installation. View file list, selectively extract and batch download.</p>
+<p>All data is processed locally in your browser only, never uploaded to any server.</p>
+</div>
+
+<div class="info-section">
+<h2>FAQ</h2>
+<div class="faq-item"><h3>What compression formats are supported?</h3><p>Currently supports ZIP format extraction. ZIP is the most common compression format, natively supported by almost all operating systems.</p></div>
+<div class="faq-item"><h3>Are my files uploaded to a server?</h3><p>No. All extraction happens locally in your browser. Your file data is never uploaded to any server.</p></div>
+<div class="faq-item"><h3>Can I extract only specific files?</h3><p>Yes. After loading a ZIP file, you'll see the file list. Check the files you need and click download.</p></div>
+<div class="faq-item"><h3>What's the maximum file size?</h3><p>Theoretically up to several hundred MB, depending on your browser and device memory. We recommend batch processing for very large files.</p></div>
+</div>
+
+<!-- AdSense -->
+
 <footer style="background:#0f172a;border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:40px">
   <div style="max-width:1200px;margin:0 auto;padding:0 20px;display:flex;flex-wrap:wrap;justify-content:center;gap:16px">
     <a href="../index.html" style="color:#94a3b8;text-decoration:none;font-size:14px">Home</a>
@@ -212,11 +248,10 @@ footer{text-align:center;padding:24px;color:#999;font-size:0.85em}
   <p style="text-align:center;color:#64748b;font-size:12px;margin-top:12px">Feedback: dexshuang@google.com</p>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
-let zipInstance = null;
-let fileEntries = [];
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
 
+let zipEntries = [];
 const uploadZone = document.getElementById('uploadZone');
 const fileInput = document.getElementById('fileInput');
 const resultArea = document.getElementById('resultArea');
@@ -250,171 +285,155 @@ function getIcon(name) {
 }
 
 function getType(name) {
-  const ext = name.split('.').pop().toLowerCase();
-  return ext.toUpperCase();
+  const ext = name.split('.').pop();
+  return ext ? ext.toUpperCase() : 'FILE';
 }
 
 async function processZip(file) {
-  if (!file.name.endsWith('.zip')) {
+  if (!file.name.toLowerCase().endsWith('.zip')) {
     showToast('Please select a ZIP file');
     return;
   }
+  showToast('Parsing...');
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const zip = await JSZip.loadAsync(arrayBuffer);
-    zipInstance = zip;
-    fileEntries = [];
-    
-    zip.forEach((relativePath, zipEntry) => {
-      if (!zipEntry.dir) {
-        fileEntries.push({
-          name: relativePath,
-          size: zipEntry._data ? zipEntry._data.uncompressedSize || 0 : 0,
-          compressedSize: zipEntry._data ? zipEntry._data.compressedSize || 0 : 0
-        });
-      }
-    });
-
+    const entries = parseZip(arrayBuffer);
+    zipEntries = entries;
+    if (entries.length === 0) {
+      showToast('No files found or unsupported ZIP format');
+      return;
+    }
     let totalSize = 0;
-    fileEntries.forEach(f => totalSize += f.size);
-    
-    statsArea.innerHTML = `
-      <div class="stat-item">📦 <strong>${fileEntries.length}</strong> files</div>
-      <div class="stat-item">💾 Total <strong>${formatSize(totalSize)}</strong></div>
-      <div class="stat-item">📁 ${file.name}</div>
-    `;
-
+    entries.forEach(f => totalSize += f.uncompressedSize);
+    statsArea.innerHTML =
+      '<div class="stat-item">📦 <strong>' + entries.length + '</strong> files</div>' +
+      '<div class="stat-item">💾 Total <strong>' + formatSize(totalSize) + '</strong></div>' +
+      '<div class="stat-item">📁 ' + file.name + '</div>';
     renderFileList();
     uploadZone.style.display = 'none';
     resultArea.style.display = 'block';
+    showToast('Parsed successfully, ' + entries.length + ' files found');
   } catch (err) {
-    showToast('Extraction failed: ' + err.message);
+    showToast('Parse failed: ' + err.message);
     console.error(err);
   }
 }
 
+function parseZip(arrayBuffer) {
+  const data = new DataView(arrayBuffer);
+  const entries = [];
+  let offset = 0;
+  while (offset < data.byteLength - 4) {
+    const sig = data.getUint32(offset, true);
+    if (sig !== 0x04034b50) break;
+    const compressionMethod = data.getUint16(offset + 8, true);
+    const compressedSize = data.getUint32(offset + 18, true);
+    const uncompressedSize = data.getUint32(offset + 22, true);
+    const fileNameLength = data.getUint16(offset + 26, true);
+    const extraFieldLength = data.getUint16(offset + 28, true);
+    let fileName = '';
+    for (let i = 0; i < fileNameLength; i++) {
+      fileName += String.fromCharCode(data.getUint8(offset + 30 + i));
+    }
+    const dataOffset = offset + 30 + fileNameLength + extraFieldLength;
+    if (fileName[fileName.length - 1] !== '/') {
+      entries.push({
+        name: fileName,
+        compressionMethod: compressionMethod,
+        compressedSize: compressedSize,
+        uncompressedSize: uncompressedSize,
+        dataOffset: dataOffset,
+        arrayBuffer: arrayBuffer
+      });
+    }
+    offset = dataOffset + compressedSize;
+  }
+  return entries;
+}
+
 function renderFileList() {
-  fileList.innerHTML = fileEntries.map((f, i) => `
-    <div class="file-item">
-      <input type="checkbox" id="cb${i}" checked>
-      <span class="file-icon">${getIcon(f.name)}</span>
-      <span class="file-name">${f.name}</span>
-      <span class="file-type">${getType(f.name)}</span>
-      <span class="file-size">${formatSize(f.size)}</span>
-    </div>
-  `).join('');
+  fileList.innerHTML = zipEntries.map((f, i) =>
+    '<div class="file-item">' +
+    '<input type="checkbox" id="cb' + i + '" checked>' +
+    '<span class="file-icon">' + getIcon(f.name) + '</span>' +
+    '<span class="file-name">' + f.name + '</span>' +
+    '<span class="file-type">' + getType(f.name) + '</span>' +
+    '<span class="file-size">' + formatSize(f.uncompressedSize) + '</span>' +
+    '</div>'
+  ).join('');
 }
 
 function selectAll() {
   document.querySelectorAll('.file-item input[type="checkbox"]').forEach(cb => cb.checked = true);
 }
-
 function deselectAll() {
   document.querySelectorAll('.file-item input[type="checkbox"]').forEach(cb => cb.checked = false);
+}
+
+async function decompressEntry(entry) {
+  const compressedData = new Uint8Array(entry.arrayBuffer, entry.dataOffset, entry.compressedSize);
+  if (entry.compressionMethod === 0) {
+    return new Blob([compressedData]);
+  } else if (entry.compressionMethod === 8) {
+    if (typeof DecompressionStream === 'undefined') {
+      throw new Error('Browser does not support DecompressionStream API');
+    }
+    const ds = new DecompressionStream('deflate-raw');
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(compressedData);
+        controller.close();
+      }
+    });
+    const decompressed = stream.pipeThrough(ds);
+    const chunks = [];
+    const reader = decompressed.getReader();
+    while (true) {
+      const result = await reader.read();
+      if (result.done) break;
+      chunks.push(result.value);
+    }
+    return new Blob(chunks);
+  } else {
+    throw new Error('Unsupported compression method: ' + entry.compressionMethod);
+  }
 }
 
 async function downloadSelected() {
   const checkboxes = document.querySelectorAll('.file-item input[type="checkbox"]');
   const selected = [];
-  checkboxes.forEach((cb, i) => {
-    if (cb.checked) selected.push(i);
-  });
-
+  checkboxes.forEach((cb, i) => { if (cb.checked) selected.push(i); });
   if (selected.length === 0) {
     showToast('Please select at least one file');
     return;
   }
-
-  if (selected.length === 1) {
-    const idx = selected[0];
-    const entry = fileEntries[idx];
-    const blob = await zipInstance.file(entry.name).async('blob');
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = entry.name.split('/').pop();
-    a.click();
-    URL.revokeObjectURL(url);
-  } else {
-    const newZip = new JSZip();
+  showToast('Extracting...');
+  try {
     for (const idx of selected) {
-      const entry = fileEntries[idx];
-      const blob = await zipInstance.file(entry.name).async('blob');
-      newZip.file(entry.name, blob);
+      const entry = zipEntries[idx];
+      const blob = await decompressEntry(entry);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = entry.name.split('/').pop();
+      a.click();
+      URL.revokeObjectURL(url);
     }
-    const content = await newZip.generateAsync({type: 'blob'});
-    const url = URL.createObjectURL(content);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'extracted.zip';
-    a.click();
-    URL.revokeObjectURL(url);
+    showToast('Downloaded ' + selected.length + ' file(s)');
+  } catch (err) {
+    showToast('Extraction failed: ' + err.message);
   }
 }
 
 function resetAll() {
-  zipInstance = null;
-  fileEntries = [];
+  zipEntries = [];
   fileInput.value = '';
   resultArea.style.display = 'none';
   uploadZone.style.display = 'block';
 }
 </script>
 
-<div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
-<script>
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-  'use strict';
-  var s = document.getElementById('related-tools-section');
-  if (!s) return;
-  var p = window.location.pathname;
-  var en = p.indexOf('/en/') !== -1;
-  p = p.replace(/\/en\//g, '/');
-  var slug = p.split('/').filter(Boolean).pop() || '';
-  if (!slug) { s.innerHTML = ''; return; }
-  var depth = en ? '../../' : '../';
-  var u = depth + 'related-tools.json';
-  fetch(u).then(function(r) {
-    if (!r.ok) throw new Error('not found');
-    return r.json();
-  }).then(function(d) {
-    var data = en ? d.en : d.cn;
-    var t = data[slug];
-    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 RelatedToolsRecommended')
-      + '</h3><div class="related-tools-grid">';
-    t.related.forEach(function(r) {
-      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '<a href="' + link + '" class="related-tool-card">'
-        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
-        + '<span class="related-tool-name">' + r.name + '</span></a>';
-    });
-    h += '</div></div>';
-    s.innerHTML = h;
-  }).catch(function() { s.innerHTML = ''; });</script>
 <div class="toast" id="toast"></div>
-<div class="nav-back"><a href="/en/">← Back to Home</a></div></header>
-
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-
-    <section class="faq-section">
-      <h2>About ZIP Extractor</h2>
-      <div class="faq-item">
-        <h3>How to use ZIP Extractor?</h3>
-        <p>Simply enter content or upload files in the input area and click the button to get results. Extract files from ZIP archives online. Preview contents before extraction. All processing done locally in browser.</p>
-      </div>
-      <div class="faq-item">
-        <h3>Is this tool free?</h3>
-        <p>ZIP Extractor is a free tool. Completely free to use, no registration required. Data is processed locally in your browser, protecting your privacy.</p>
-      </div>
-    </section>
-</div>
 
 </body>
 </html>

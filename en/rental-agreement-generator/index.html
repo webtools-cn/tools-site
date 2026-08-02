@@ -109,6 +109,45 @@ a{color:#06b6d4;text-decoration:none}
   <h2>Tutorial</h2>
   <p>Select rental type, fill in lessor and lessee info, property description, rent amount, deposit, lease term, and generate a complete agreement</p>
 </div>
+
+<div class="input-section">
+<h2>Fill in Details</h2>
+<div class="input-row">
+<div class="input-group"><label>Rental Type</label><select id="raType"><option value="residential">Residential Property</option><option value="commercial">Commercial Property</option><option value="equipment">Equipment</option><option value="vehicle">Vehicle</option></select></div>
+<div class="input-group"><label>Agreement Date</label><input type="date" id="raDate"></div>
+</div>
+<div class="input-row">
+<div class="input-group"><label>Lessor (Landlord) Name</label><input type="text" id="raLessor" placeholder="Full name of lessor"></div>
+<div class="input-group"><label>Lessor ID Number</label><input type="text" id="raLessorId" placeholder="ID or registration number"></div>
+</div>
+<div class="input-row">
+<div class="input-group"><label>Lessee (Tenant) Name</label><input type="text" id="raLessee" placeholder="Full name of lessee"></div>
+<div class="input-group"><label>Lessee ID Number</label><input type="text" id="raLesseeId" placeholder="ID or registration number"></div>
+</div>
+<div class="input-row">
+<div class="input-group" style="min-width:100%"><label>Property / Rental Item Description</label><input type="text" id="raProperty" placeholder="e.g. 123 Main Street, Apt 4B, Springfield"></div>
+</div>
+<div class="input-row">
+<div class="input-group"><label>Monthly Rent ($)</label><input type="number" id="raRent" placeholder="e.g. 1500" min="0"></div>
+<div class="input-group"><label>Deposit ($)</label><input type="number" id="raDeposit" placeholder="e.g. 3000" min="0"></div>
+<div class="input-group"><label>Lease Term (months)</label><input type="number" id="raTerm" placeholder="e.g. 12" min="1"></div>
+</div>
+<div class="input-row">
+<div class="input-group"><label>Payment Frequency</label><select id="raPayMethod"><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="semi-annually">Semi-Annually</option><option value="annually">Annually</option></select></div>
+<div class="input-group"><label>Start Date</label><input type="date" id="raStartDate"></div>
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" onclick="raGenerate()">Generate Agreement</button>
+<button class="btn btn-secondary" onclick="raCopy()">📋 Copy</button>
+<button class="btn btn-success" onclick="raDownload()">⬇️ Download TXT</button>
+</div>
+</div>
+
+<div class="result-section" id="raResult">
+<h2>Agreement Preview</h2>
+<div class="preview-box" id="raPreview" style="color:#e2e8f0;font-family:Georgia,serif"></div>
+</div>
+
 <div class="info-section">
   <h2>FAQ</h2>
   <div class="faq-item"><h3>Is the generated agreement legally binding?</h3><p>The agreement generated is for reference only and does not constitute legal advice. It is recommended to have it reviewed by a professional lawyer before signing.</p></div>
@@ -133,14 +172,134 @@ a{color:#06b6d4;text-decoration:none}
 <p style="margin-top:8px;color:#475569;font-size:.8rem">Feedback: dexshuang@google.com</p>
 </div>
 <div class="toast" id="toast"></div>
+<script>
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+var raResultText='';
 
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-</div>
+function fmtDate(d){
+  if(!d)return '________';
+  var parts=d.split('-');
+  if(parts.length!==3)return d;
+  return parts[0]+'-'+parts[1]+'-'+parts[2];
+}
+
+function addMonths(dateStr,months){
+  if(!dateStr)return '';
+  var parts=dateStr.split('-');
+  if(parts.length!==3)return '';
+  var dt=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]));
+  dt.setMonth(dt.getMonth()+months);
+  return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+}
+
+function raGenerate(){
+  var type=document.getElementById('raType').value;
+  var date=document.getElementById('raDate').value;
+  var lessor=document.getElementById('raLessor').value||'[Lessor Name]';
+  var lessorId=document.getElementById('raLessorId').value||'[ID Number]';
+  var lessee=document.getElementById('raLessee').value||'[Lessee Name]';
+  var lesseeId=document.getElementById('raLesseeId').value||'[ID Number]';
+  var property=document.getElementById('raProperty').value||'[Property Description]';
+  var rent=parseInt(document.getElementById('raRent').value)||0;
+  var deposit=parseInt(document.getElementById('raDeposit').value)||0;
+  var term=parseInt(document.getElementById('raTerm').value)||12;
+  var payMethod=document.getElementById('raPayMethod').value;
+  var startDate=document.getElementById('raStartDate').value;
+
+  var typeNames={residential:'RESIDENTIAL LEASE AGREEMENT',commercial:'COMMERCIAL LEASE AGREEMENT',equipment:'EQUIPMENT RENTAL AGREEMENT',vehicle:'VEHICLE RENTAL AGREEMENT'};
+  var typeName=typeNames[type]||'LEASE AGREEMENT';
+
+  var lines=[];
+  lines.push(typeName);
+  lines.push('');
+  lines.push('Reference No.: __________');
+  lines.push('');
+  lines.push('This Lease Agreement ("Agreement") is made and entered into on '+fmtDate(date)+', by and between:');
+  lines.push('');
+  lines.push('LESSOR (Party A): '+lessor);
+  lines.push('ID/Registration No.: '+lessorId);
+  lines.push('');
+  lines.push('LESSEE (Party B): '+lessee);
+  lines.push('ID/Registration No.: '+lesseeId);
+  lines.push('');
+  lines.push('WHEREAS, Party A agrees to lease the property/item described below to Party B, and Party B agrees to lease the same from Party A under the following terms and conditions:');
+  lines.push('');
+  lines.push('ARTICLE 1 - LEASED PROPERTY');
+  lines.push('Party A leases to Party B the following property/item: '+property);
+  lines.push('');
+  lines.push('ARTICLE 2 - LEASE TERM');
+  lines.push('The lease term shall be '+term+' months, commencing on '+fmtDate(startDate)+' and ending on '+fmtDate(addMonths(startDate,term))+'.');
+  lines.push('');
+  lines.push('ARTICLE 3 - RENT AND PAYMENT');
+  lines.push('1. The monthly rent shall be $'+rent.toLocaleString()+'.');
+  lines.push('2. Payment frequency: '+payMethod+'. Party B shall pay the rent before the ____ day of each payment period.');
+  lines.push('3. Party B shall pay the rent to Party A at the designated account.');
+  lines.push('');
+  lines.push('ARTICLE 4 - DEPOSIT');
+  lines.push('Party B shall pay a security deposit of $'+deposit.toLocaleString()+' on the date of signing this Agreement. Upon expiration or termination of the lease, if Party B has no breach, Party A shall refund the deposit within ____ days after Party B returns the property.');
+  lines.push('');
+  lines.push('ARTICLE 5 - PARTY A RIGHTS AND OBLIGATIONS');
+  lines.push('1. Party A shall deliver the property on time and ensure it is fit for the agreed purpose.');
+  lines.push('2. Party A warrants that the property is free from ownership disputes.');
+  lines.push('3. Party A is responsible for structural repairs of the property.');
+  lines.push('');
+  lines.push('ARTICLE 6 - PARTY B RIGHTS AND OBLIGATIONS');
+  lines.push('1. Party B shall pay rent and related fees on time.');
+  lines.push('2. Party B shall use the property reasonably and shall not sublease without consent.');
+  lines.push('3. Party B shall take care of the property and compensate for damages caused by Party B.');
+  lines.push('');
+  lines.push('ARTICLE 7 - TERMINATION');
+  lines.push('1. This Agreement may be terminated by mutual agreement of both parties.');
+  lines.push('2. Either party may terminate this Agreement if the other party breaches the Agreement.');
+  lines.push('3. This Agreement may be terminated due to force majeure events.');
+  lines.push('');
+  lines.push('ARTICLE 8 - LIABILITY FOR BREACH');
+  lines.push('Either party who breaches this Agreement shall pay a penalty of $____ and compensate the non-breaching party for resulting losses.');
+  lines.push('');
+  lines.push('ARTICLE 9 - DISPUTE RESOLUTION');
+  lines.push('Disputes arising from this Agreement shall be resolved through negotiation. If negotiation fails, either party may file a lawsuit with the court of competent jurisdiction.');
+  lines.push('');
+  lines.push('ARTICLE 10 - MISCELLANEOUS');
+  lines.push('1. Matters not covered in this Agreement may be addressed in a supplementary agreement.');
+  lines.push('2. This Agreement is made in two copies, one for each party, with equal legal effect.');
+  lines.push('3. This Agreement shall take effect upon signing by both parties.');
+  lines.push('');
+  lines.push('');
+  lines.push('LESSOR (Party A): ________________     LESSEE (Party B): ________________');
+  lines.push('');
+  lines.push('Date: '+fmtDate(date)+'                      Date: '+fmtDate(date));
+  lines.push('');
+  lines.push('');
+  lines.push('[Disclaimer] This agreement is auto-generated by an online tool for reference only and does not constitute legal advice. It is recommended to have it reviewed by a professional lawyer before signing.');
+
+  raResultText=lines.join('\n');
+  document.getElementById('raPreview').textContent=raResultText;
+  document.getElementById('raResult').classList.add('show');
+  showToast('Agreement generated');
+}
+
+function raCopy(){
+  if(!raResultText){showToast('Please generate the agreement first');return;}
+  navigator.clipboard.writeText(raResultText).then(function(){showToast('Copied to clipboard');})['catch'](function(){showToast('Copy failed');});
+}
+
+function raDownload(){
+  if(!raResultText){showToast('Please generate the agreement first');return;}
+  var blob=new Blob([raResultText],{type:'text/plain;charset=utf-8'});
+  var a=document.createElement('a');
+  a.download='rental-agreement.txt';
+  a.href=URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+(function(){
+  var today=new Date();
+  var todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  document.getElementById('raDate').value=todayStr;
+  document.getElementById('raStartDate').value=todayStr;
+})();
+</script>
 
 </body>
 </html>

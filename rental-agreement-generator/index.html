@@ -105,6 +105,45 @@ a{color:#06b6d4;text-decoration:none}
   <h2>使用教程</h2>
   <p>选择租赁类型，填写出租方和承租方信息、租赁物描述、租金金额、押金、租赁期限等，自动生成完整协议</p>
 </div>
+
+<div class="input-section">
+<h2>填写信息</h2>
+<div class="input-row">
+<div class="input-group"><label>租赁类型</label><select id="raType"><option value="residential">住宅房屋租赁</option><option value="commercial">商业用房租赁</option><option value="equipment">设备租赁</option><option value="vehicle">车辆租赁</option></select></div>
+<div class="input-group"><label>签订日期</label><input type="date" id="raDate"></div>
+</div>
+<div class="input-row">
+<div class="input-group"><label>出租方（甲方）姓名</label><input type="text" id="raLessor" placeholder="出租方全称"></div>
+<div class="input-group"><label>出租方身份证/证件号</label><input type="text" id="raLessorId" placeholder="身份证号或统一社会信用代码"></div>
+</div>
+<div class="input-row">
+<div class="input-group"><label>承租方（乙方）姓名</label><input type="text" id="raLessee" placeholder="承租方全称"></div>
+<div class="input-group"><label>承租方身份证/证件号</label><input type="text" id="raLesseeId" placeholder="身份证号或统一社会信用代码"></div>
+</div>
+<div class="input-row">
+<div class="input-group" style="min-width:100%"><label>租赁物描述</label><input type="text" id="raProperty" placeholder="如：北京市朝阳区XX路XX号XX室"></div>
+</div>
+<div class="input-row">
+<div class="input-group"><label>月租金（元）</label><input type="number" id="raRent" placeholder="如：3000" min="0"></div>
+<div class="input-group"><label>押金（元）</label><input type="number" id="raDeposit" placeholder="如：6000" min="0"></div>
+<div class="input-group"><label>租赁期限（月）</label><input type="number" id="raTerm" placeholder="如：12" min="1"></div>
+</div>
+<div class="input-row">
+<div class="input-group"><label>支付方式</label><select id="raPayMethod"><option value="月付">按月支付</option><option value="季付">按季支付</option><option value="半年付">半年一付</option><option value="年付">按年支付</option></select></div>
+<div class="input-group"><label>交付日期</label><input type="date" id="raStartDate"></div>
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" onclick="raGenerate()">生成协议</button>
+<button class="btn btn-secondary" onclick="raCopy()">📋 复制</button>
+<button class="btn btn-success" onclick="raDownload()">⬇️ 下载TXT</button>
+</div>
+</div>
+
+<div class="result-section" id="raResult">
+<h2>协议预览</h2>
+<div class="preview-box" id="raPreview" style="color:#e2e8f0;font-family:Georgia,serif"></div>
+</div>
+
 <div class="info-section">
   <h2>常见问题 FAQ</h2>
   <div class="faq-item"><h3>生成的协议有法律效力吗？</h3><p>本工具生成的协议仅供参考，不构成法律建议。建议在签署前由专业律师审核。</p></div>
@@ -129,6 +168,154 @@ a{color:#06b6d4;text-decoration:none}
 <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
 </div>
 <div class="toast" id="toast"></div>
+<script>
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+var raResultText='';
+
+function fmtDate(d){
+  if(!d)return '____年__月__日';
+  var parts=d.split('-');
+  if(parts.length!==3)return d;
+  return parts[0]+'年'+parseInt(parts[1])+'月'+parseInt(parts[2])+'日';
+}
+
+function raGenerate(){
+  var type=document.getElementById('raType').value;
+  var date=document.getElementById('raDate').value;
+  var lessor=document.getElementById('raLessor').value||'【出租方】';
+  var lessorId=document.getElementById('raLessorId').value||'【证件号】';
+  var lessee=document.getElementById('raLessee').value||'【承租方】';
+  var lesseeId=document.getElementById('raLesseeId').value||'【证件号】';
+  var property=document.getElementById('raProperty').value||'【租赁物描述】';
+  var rent=parseInt(document.getElementById('raRent').value)||0;
+  var deposit=parseInt(document.getElementById('raDeposit').value)||0;
+  var term=parseInt(document.getElementById('raTerm').value)||12;
+  var payMethod=document.getElementById('raPayMethod').value;
+  var startDate=document.getElementById('raStartDate').value;
+
+  var typeNames={residential:'房屋租赁合同',commercial:'商业用房租赁合同',equipment:'设备租赁合同',vehicle:'车辆租赁合同'};
+  var typeName=typeNames[type]||'租赁合同';
+
+  var lines=[];
+  lines.push(typeName);
+  lines.push('');
+  lines.push('编号：____________');
+  lines.push('');
+  lines.push('出租方（甲方）：'+lessor);
+  lines.push('证件号码：'+lessorId);
+  lines.push('');
+  lines.push('承租方（乙方）：'+lessee);
+  lines.push('证件号码：'+lesseeId);
+  lines.push('');
+  lines.push('根据《中华人民共和国民法典》及相关法律法规，甲乙双方在平等、自愿、公平和诚实信用的基础上，经协商一致，就租赁事宜订立本合同。');
+  lines.push('');
+  lines.push('第一条 租赁物');
+  lines.push('甲方将位于/描述为：'+property+' 的租赁物出租给乙方使用。');
+  lines.push('');
+  lines.push('第二条 租赁期限');
+  lines.push('租赁期限为'+term+'个月，自'+fmtDate(startDate)+'起至'+fmtDate(addMonths(startDate,term))+'止。');
+  lines.push('');
+  lines.push('第三条 租金及支付方式');
+  lines.push('1. 月租金为人民币'+rent.toLocaleString()+'元（大写：'+toChineseAmount(rent)+'）。');
+  lines.push('2. 支付方式：'+payMethod+'。乙方应于每期开始前____日内支付当期租金。');
+  lines.push('3. 乙方应将租金支付至甲方指定账户。');
+  lines.push('');
+  lines.push('第四条 押金');
+  lines.push('乙方于本合同签订之日向甲方支付押金人民币'+deposit.toLocaleString()+'元（大写：'+toChineseAmount(deposit)+'）。租赁期满或合同解除后，如乙方无违约行为，甲方应在乙方交还租赁物后____日内将押金无息退还乙方。');
+  lines.push('');
+  lines.push('第五条 甲方权利义务');
+  lines.push('1. 甲方应按约交付租赁物，并确保租赁物符合约定用途。');
+  lines.push('2. 甲方应保证租赁物不存在权属争议。');
+  lines.push('3. 租赁物主体结构由甲方负责维修。');
+  lines.push('');
+  lines.push('第六条 乙方权利义务');
+  lines.push('1. 乙方应按约支付租金及相关费用。');
+  lines.push('2. 乙方应合理使用租赁物，不得擅自改变用途或转租。');
+  lines.push('3. 乙方应爱护租赁物，因乙方原因造成损坏的应予赔偿。');
+  lines.push('');
+  lines.push('第七条 合同解除');
+  lines.push('1. 经甲乙双方协商一致，可以解除本合同。');
+  lines.push('2. 任何一方违约，守约方有权解除合同并要求违约方承担违约责任。');
+  lines.push('3. 因不可抗力致使合同无法履行的，双方可以解除合同。');
+  lines.push('');
+  lines.push('第八条 违约责任');
+  lines.push('任何一方违反本合同约定，应向守约方支付违约金人民币____元，并赔偿守约方因此遭受的损失。');
+  lines.push('');
+  lines.push('第九条 争议解决');
+  lines.push('本合同履行过程中发生的争议，由双方协商解决；协商不成的，可向租赁物所在地人民法院提起诉讼。');
+  lines.push('');
+  lines.push('第十条 其他约定');
+  lines.push('1. 本合同未尽事宜，由双方另行协商签订补充协议。');
+  lines.push('2. 本合同一式两份，甲乙双方各执一份，具有同等法律效力。');
+  lines.push('3. 本合同自双方签字之日起生效。');
+  lines.push('');
+  lines.push('');
+  lines.push('出租方（甲方）签字：________________     承租方（乙方）签字：________________');
+  lines.push('');
+  lines.push('日期：'+fmtDate(date)+'                      日期：'+fmtDate(date));
+  lines.push('');
+  lines.push('');
+  lines.push('【免责声明】本协议由在线工具自动生成，仅供参考，不构成法律建议。建议在签署前由专业律师审核。');
+
+  raResultText=lines.join('\n');
+  document.getElementById('raPreview').textContent=raResultText;
+  document.getElementById('raResult').classList.add('show');
+  showToast('协议已生成');
+}
+
+function addMonths(dateStr,months){
+  if(!dateStr)return '';
+  var parts=dateStr.split('-');
+  if(parts.length!==3)return '';
+  var y=parseInt(parts[0]),m=parseInt(parts[1])+months,d=parseInt(parts[2]);
+  while(m>12){m-=12;y++;}
+  while(m<1){m+=12;y--;}
+  return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+}
+
+function toChineseAmount(num){
+  if(num===0)return '零元';
+  var units=['','拾','佰','仟','万','拾','佰','仟','亿'];
+  var digits=['零','壹','贰','叁','肆','伍','陆','柒','捌','玖'];
+  var str=String(num);
+  var result='';
+  for(var i=0;i<str.length;i++){
+    var n=parseInt(str[i]);
+    var pos=str.length-i-1;
+    if(n===0){
+      if(pos===4)result+='万';
+      else if(pos%4===0&&result.charAt(result.length-1)!=='零'&&result.length>0)result+='零';
+      else if(result.charAt(result.length-1)!=='零')result+='零';
+    }else{
+      result+=digits[n]+units[pos];
+    }
+  }
+  if(result.charAt(result.length-1)==='零')result=result.slice(0,-1);
+  return result+'元整';
+}
+
+function raCopy(){
+  if(!raResultText){showToast('请先生成协议');return;}
+  navigator.clipboard.writeText(raResultText).then(function(){showToast('已复制到剪贴板');})['catch'](function(){showToast('复制失败');});
+}
+
+function raDownload(){
+  if(!raResultText){showToast('请先生成协议');return;}
+  var blob=new Blob([raResultText],{type:'text/plain;charset=utf-8'});
+  var a=document.createElement('a');
+  a.download='租赁协议.txt';
+  a.href=URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+(function(){
+  var today=new Date();
+  var todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  document.getElementById('raDate').value=todayStr;
+  document.getElementById('raStartDate').value=todayStr;
+})();
+</script>
 </div>
 
 </body>
