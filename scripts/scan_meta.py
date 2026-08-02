@@ -1,58 +1,28 @@
-#!/usr/bin/env python3
-"""Scan meta descriptions for SEO issues"""
 import os, re
-from html.parser import HTMLParser
 
-class MetaParser(HTMLParser):
-    def __init__(self):
-        super().__init__()
-        self.meta_desc = ''
-    def handle_starttag(self, tag, attrs):
-        d = dict(attrs)
-        if tag == 'meta' and d.get('name','').lower() == 'description':
-            self.meta_desc = d.get('content','')
+short = []
+skip = {'en','css','js','scripts','quality','chrome-extension','docs','cron-reports','.gsc-data','.git'}
 
-results = []
-for root, dirs, files in os.walk('.'):
-    dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ('scripts','quality','node_modules','.gsc-data','css','js','assets','icons','images','public','tests','screenshots')]
-    for f in files:
-        if f == 'index.html':
-            path = os.path.join(root, f)
-            try:
-                with open(path) as fh:
-                    parser = MetaParser()
-                    parser.feed(fh.read())
-                desc = parser.meta_desc
-                if desc:
-                    length = len(desc)
-                    issues = []
-                    if length < 100:
-                        issues.append('TOO_SHORT')
-                    if length > 165:
-                        issues.append('TOO_LONG')
-                    if length > 175:
-                        issues.append('OVER_175')
-                    cnt = desc.count('纯前端本地处理')
-                    if cnt > 1:
-                        issues.append('REPETITIVE')
-                    if issues:
-                        results.append((path, length, issues, desc[:150]))
-            except:
-                pass
+for d in sorted(os.listdir('.')):
+    if d in skip or not os.path.isdir(d) or d.startswith('.'):
+        continue
+    f = os.path.join(d, 'index.html')
+    if not os.path.exists(f):
+        continue
+    with open(f) as fh:
+        content = fh.read(3000)
+    m = re.search(r'<meta name="description" content="([^"]*)"', content)
+    if not m:
+        continue
+    desc = m.group(1)
+    l = len(desc)
+    if l < 100:
+        tm = re.search(r'<title>([^<]+)</title>', content)
+        title = tm.group(1) if tm else '?'
+        short.append((l, d, title[:100]))
 
-def sev_key(item):
-    issues = item[2]
-    if 'TOO_SHORT' in issues: return 0
-    if 'OVER_175' in issues: return 1
-    if 'TOO_LONG' in issues: return 2
-    return 3
-
-results.sort(key=sev_key)
-
-print('Total pages needing fixes: %d' % len(results))
+short.sort()
+print(f"Total < 100 char: {len(short)}")
 print()
-for path, length, issues, desc_preview in results[:50]:
-    issue_str = ','.join(issues)
-    print('[%s] %s (%dch)' % (issue_str, path, length))
-    print('  %s...' % desc_preview)
-    print()
+for l, d, t in short[:30]:
+    print(f'{l:3d} | {d:40s} | {t}')

@@ -247,11 +247,197 @@ a{color:#06b6d4;text-decoration:none}
 <p>在线二维码生成器 | 无需注册 · 数据绝不上传服务器</p>
 <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
 </div>
+<script src="../libs/qrcode-generator.min.js"></script>
 <div class="toast" id="toast"></div>
 <script>
-function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+var currentType = 'text';
+var lastDataUrl = '';
+var toast = document.getElementById('toast');
+var downloadBtn = document.getElementById('downloadBtn');
 
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(function(){ toast.classList.remove('show'); }, 2000);
+}
+
+var typeConfig = {
+  text: { fields: [{name:'text',label:'文本内容',type:'textarea',placeholder:'请输入要编码的文本内容...'}] },
+  url: { fields: [{name:'url',label:'网址 URL',type:'text',placeholder:'https://example.com'}] },
+  wifi: { fields: [
+    {name:'ssid',label:'网络名称 (SSID)',type:'text',placeholder:'MyWiFi'},
+    {name:'password',label:'密码',type:'text',placeholder:'WiFi 密码'},
+    {name:'encryption',label:'加密方式',type:'select',options:[{v:'WPA',t:'WPA/WPA2'},{v:'WEP',t:'WEP'},{v:'nopass',t:'无密码'}]}
+  ]},
+  email: { fields: [
+    {name:'email',label:'邮箱地址',type:'text',placeholder:'example@email.com'},
+    {name:'subject',label:'主题（可选）',type:'text',placeholder:'邮件主题'},
+    {name:'body',label:'正文（可选）',type:'textarea',placeholder:'邮件正文内容...'}
+  ]},
+  phone: { fields: [{name:'phone',label:'电话号码',type:'text',placeholder:'+86 138 0000 0000'}] },
+  sms: { fields: [
+    {name:'phone',label:'电话号码',type:'text',placeholder:'+86 138 0000 0000'},
+    {name:'message',label:'短信内容（可选）',type:'textarea',placeholder:'短信内容...'}
+  ]}
+};
+
+function renderFields(){
+  var container = document.getElementById('inputFields');
+  var config = typeConfig[currentType];
+  var html = '';
+  for(var i=0;i<config.fields.length;i++){
+    var f = config.fields[i];
+    html += '<div class="field-group">';
+    html += '<label>' + f.label + '</label>';
+    if(f.type === 'textarea'){
+      html += '<textarea id="field_' + f.name + '" placeholder="' + (f.placeholder||'') + '"></textarea>';
+    }else if(f.type === 'select'){
+      html += '<select id="field_' + f.name + '">';
+      for(var j=0;j<f.options.length;j++){
+        var o = f.options[j];
+        html += '<option value="' + o.v + '">' + o.t + '</option>';
+      }
+      html += '</select>';
+    }else{
+      html += '<input type="text" id="field_' + f.name + '" placeholder="' + (f.placeholder||'') + '">';
+    }
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+function getFieldValue(name){
+  var el = document.getElementById('field_' + name);
+  return el ? el.value.trim() : '';
+}
+
+function buildData(){
+  var data = '';
+  switch(currentType){
+    case 'text':
+      data = getFieldValue('text');
+      break;
+    case 'url':
+      data = getFieldValue('url');
+      break;
+    case 'wifi':
+      var ssid = getFieldValue('ssid');
+      var password = getFieldValue('password');
+      var enc = getFieldValue('encryption') || 'WPA';
+      if(!ssid){ showToast('请输入网络名称'); return null; }
+      data = 'WIFI:S:' + ssid + ';T:' + enc + ';';
+      if(enc !== 'nopass') data += 'P:' + password + ';';
+      data += 'H:false;;';
+      break;
+    case 'email':
+      var email = getFieldValue('email');
+      var subject = getFieldValue('subject');
+      var body = getFieldValue('body');
+      if(!email){ showToast('请输入邮箱地址'); return null; }
+      data = 'mailto:' + email;
+      if(subject || body){
+        data += '?';
+        if(subject) data += 'subject=' + encodeURIComponent(subject);
+        if(body) data += (subject ? '&' : '') + 'body=' + encodeURIComponent(body);
+      }
+      break;
+    case 'phone':
+      var phone = getFieldValue('phone');
+      if(!phone){ showToast('请输入电话号码'); return null; }
+      data = 'tel:' + phone;
+      break;
+    case 'sms':
+      var phone = getFieldValue('phone');
+      var msg = getFieldValue('message');
+      if(!phone){ showToast('请输入电话号码'); return null; }
+      data = 'sms:' + phone;
+      if(msg) data += '?body=' + encodeURIComponent(msg);
+      break;
+  }
+  return data;
+}
+
+function generateQR(){
+  var data = buildData();
+  if(data === null) return;
+  if(!data){ showToast('请输入内容'); return; }
+
+  var size = parseInt(document.getElementById('sizeRange').value, 10);
+  var margin = parseInt(document.getElementById('marginRange').value, 10);
+  var level = document.getElementById('errorLevel').value;
+  var dark = document.getElementById('darkColor').value;
+  var light = document.getElementById('lightColor').value;
+
+  var opts = {
+    width: size,
+    margin: margin,
+    color: { dark: dark, light: light },
+    errorCorrectionLevel: level
+  };
+
+  if(typeof QRCode === 'undefined'){
+    showToast('二维码库加载失败，请刷新页面');
+    return;
+  }
+
+  QRCode.toDataURL(data, opts, function(err, url){
+    if(err){
+      showToast('生成失败：' + (err.message || '未知错误'));
+      return;
+    }
+    lastDataUrl = url;
+    var display = document.getElementById('qrDisplay');
+    display.innerHTML = '<img src="' + url + '" alt="二维码" style="max-width:100%;height:auto;display:block;">';
+    downloadBtn.disabled = false;
+    showToast('二维码生成成功');
+  });
+}
+
+document.getElementById('typeTabs').addEventListener('click', function(e){
+  if(e.target.classList.contains('type-tab')){
+    var tabs = document.querySelectorAll('.type-tab');
+    for(var i=0;i<tabs.length;i++) tabs[i].classList.remove('active');
+    e.target.classList.add('active');
+    currentType = e.target.getAttribute('data-type');
+    renderFields();
+    lastDataUrl = '';
+    downloadBtn.disabled = true;
+    document.getElementById('qrDisplay').innerHTML = '<p class="qr-placeholder">点击"生成二维码"按钮预览</p>';
+  }
+});
+
+document.getElementById('generateBtn').addEventListener('click', generateQR);
+
+document.getElementById('clearBtn').addEventListener('click', function(){
+  var inputs = document.querySelectorAll('#inputFields input, #inputFields textarea');
+  for(var i=0;i<inputs.length;i++) inputs[i].value = '';
+  document.getElementById('qrDisplay').innerHTML = '<p class="qr-placeholder">点击"生成二维码"按钮预览</p>';
+  lastDataUrl = '';
+  downloadBtn.disabled = true;
+});
+
+downloadBtn.addEventListener('click', function(){
+  if(!lastDataUrl){ showToast('请先生成二维码'); return; }
+  var a = document.createElement('a');
+  a.href = lastDataUrl;
+  a.download = 'qrcode.png';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  showToast('下载已开始');
+});
+
+document.getElementById('sizeRange').addEventListener('input', function(){
+  document.getElementById('sizeVal').textContent = this.value + 'px';
+});
+
+document.getElementById('marginRange').addEventListener('input', function(){
+  document.getElementById('marginVal').textContent = this.value;
+});
+
+renderFields();
+
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function submitFeedback(){
 const type=document.getElementById('feedback-type').value;
