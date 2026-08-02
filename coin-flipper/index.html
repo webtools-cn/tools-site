@@ -165,16 +165,67 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
+// === 抛硬币功能实现 ===
+var stats = { heads: 0, tails: 0, total: 0, history: [] };
+
 function flipCoin() {
-  var result = Math.random() > 0.5 ? '正面' : '反面';
-  document.getElementById('resultText').textContent = result;
-  document.getElementById('resultText').style.display = 'block';
-  showToast('随机结果已生成');
+  var countSelect = document.getElementById('count');
+  var count = parseInt(countSelect ? countSelect.value : 1);
+  var coin = document.getElementById('coin');
+  var resultText = document.getElementById('resultText');
+  var i, results = [];
+  
+  for (i = 0; i < count; i++) {
+    var isHeads = Math.random() > 0.5;
+    results.push(isHeads);
+    if (isHeads) stats.heads++; else stats.tails++;
+    stats.total++;
+    stats.history.push(isHeads);
+  }
+  
+  // Animate coin for single flip
+  if (count === 1) {
+    var isHeads = results[0];
+    coin.classList.remove('flipping');
+    void coin.offsetWidth; // trigger reflow
+    coin.classList.add('flipping');
+    setTimeout(function() {
+      coin.className = 'coin ' + (isHeads ? 'heads' : 'tails');
+      coin.textContent = isHeads ? 'H' : 'T';
+    }, 300);
+    resultText.textContent = isHeads ? '🟡 正面 (Heads)' : '⚪ 反面 (Tails)';
+  } else {
+    coin.className = 'coin';
+    coin.textContent = '🪙';
+    resultText.textContent = count + ' 次抛掷完成';
+  }
+  
+  // Update stats
+  document.getElementById('headsCount').textContent = stats.heads;
+  document.getElementById('tailsCount').textContent = stats.tails;
+  document.getElementById('totalCount').textContent = stats.total;
+  
+  // Update history (show last 50)
+  var historyDiv = document.getElementById('history');
+  var recent = stats.history.slice(-50);
+  historyDiv.innerHTML = recent.map(function(h) {
+    return '<span class="' + (h ? 'h-heads' : 'h-tails') + '">' + (h ? '正' : '反') + '</span>';
+  }).join('');
+  
+  showToast(count === 1 ? '抛掷完成！' : count + '次抛掷完成！');
 }
 
 function resetStats() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  stats = { heads: 0, tails: 0, total: 0, history: [] };
+  document.getElementById('headsCount').textContent = '0';
+  document.getElementById('tailsCount').textContent = '0';
+  document.getElementById('totalCount').textContent = '0';
+  document.getElementById('history').innerHTML = '';
+  document.getElementById('resultText').textContent = '点击按钮开始';
+  var coin = document.getElementById('coin');
+  coin.className = 'coin';
+  coin.textContent = '🪙';
+  showToast('已重置统计');
 }
 </script>
 </body>

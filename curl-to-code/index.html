@@ -151,14 +151,211 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
+// === cURL转代码功能实现 ===
+function parseCurl(input) {
+  input = input.trim();
+  if (!input) return null;
+  
+  var parsed = {
+    method: 'GET',
+    url: '',
+    headers: {},
+    data: '',
+    cookies: {}
+  };
+  
+  // Remove leading "curl"
+  input = input.replace(/^\s*curl\s+/i, '');
+  
+  // Tokenize respecting quotes
+  var tokens = [];
+  var current = '';
+  var inQuote = false;
+  var quoteChar = '';
+  for (var i = 0; i < input.length; i++) {
+    var ch = input[i];
+    if (!inQuote && (ch === '"' || ch === "'")) {
+      inQuote = true;
+      quoteChar = ch;
+    } else if (inQuote && ch === quoteChar) {
+      inQuote = false;
+    } else if (!inQuote && ch === ' ') {
+      if (current) { tokens.push(current); current = ''; }
+    } else {
+      current += ch;
+    }
+  }
+  if (current) tokens.push(current);
+  
+  // Parse tokens
+  for (var j = 0; j < tokens.length; j++) {
+    var tok = tokens[j];
+    if (tok === '-X' || tok === '--request') {
+      parsed.method = tokens[++j] || 'GET';
+    } else if (tok === '-H' || tok === '--header') {
+      var header = tokens[++j] || '';
+      var colonIdx = header.indexOf(':');
+      if (colonIdx > 0) {
+        var key = header.substring(0, colonIdx).trim();
+        var val = header.substring(colonIdx + 1).trim();
+        parsed.headers[key] = val;
+      }
+    } else if (tok === '-d' || tok === '--data' || tok === '--data-raw' || tok === '--data-binary') {
+      parsed.data = tokens[++j] || '';
+      if (parsed.method === 'GET') parsed.method = 'POST';
+    } else if (tok === '-b' || tok === '--cookie') {
+      var cookieStr = tokens[++j] || '';
+      cookieStr.split(';').forEach(function(c) {
+        var eq = c.indexOf('=');
+        if (eq > 0) parsed.cookies[c.substring(0, eq).trim()] = c.substring(eq + 1).trim();
+      });
+    } else if (tok === '--compressed' || tok === '-k' || tok === '--insecure' || tok === '-L' || tok === '--location' || tok === '-s' || tok === '--silent' || tok === '-S' || tok === '--show-error' || tok === '-v' || tok === '--verbose') {
+      // flags, skip
+    } else if (tok === '-o' || tok === '--output' || tok === '-u' || tok === '--user') {
+      j++; // skip next arg
+    } else if (tok && !tok.startsWith('-') && !parsed.url) {
+      parsed.url = tok;
+    }
+  }
+  
+  return parsed;
+}
+
 function convert() {
-  var input = '';
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input; // 基础实现，后续可优化
-  document.getElementById('output').textContent = output;
-  document.getElementById('output').style.display = 'block';
-  showToast('处理完成');
+  var input = document.getElementById('input').value;
+  if (!input.trim()) { showToast('请粘贴cURL命令'); return; }
+  
+  var parsed = parseCurl(input);
+  if (!parsed || !parsed.url) { showToast('无法解析cURL命令，请检查格式'); return; }
+  
+  var lang = document.getElementById('lang').value;
+  var code = '';
+  
+  var headerKeys = Object.keys(parsed.headers);
+  
+  if (lang === 'python') {
+    code += 'import requests\n\n';
+    code += 'url = "' + parsed.url + '"\n';
+    if (headerKeys.length > 0) {
+      code += 'headers = {\n';
+      headerKeys.forEach(function(k) {
+        code += '    "' + k + '": "' + parsed.headers[k] + '",\n';
+      });
+      code += '}\n';
+    }
+    if (parsed.data) {
+      code += 'data = ' + JSON.stringify(parsed.data) + '\n';
+    }
+    code += '\nresponse = requests.' + parsed.method.toLowerCase() + '(url';
+    if (headerKeys.length > 0) code += ', headers=headers';
+    if (parsed.data) code += ', data=data';
+    code += ')\n';
+    code += 'print(response.status_code)\n';
+    code += 'print(response.text)\n';
+    
+  } else if (lang === 'javascript') {
+    code += 'const url = "' + parsed.url + '";\n';
+    if (headerKeys.length > 0) {
+      code += 'const headers = {\n';
+      headerKeys.forEach(function(k) {
+        code += '  "' + k + '": "' + parsed.headers[k] + '",\n';
+      });
+      code += '};\n';
+    }
+    var opts = [];
+    opts.push('  method: "' + parsed.method + '"');
+    if (headerKeys.length > 0) opts.push('  headers: headers');
+    if (parsed.data) opts.push('  body: ' + JSON.stringify(parsed.data));
+    code += '\nconst options = {\n' + opts.join(',\n') + '\n};\n\n';
+    code += 'fetch(url, options)\n';
+    code += '  .then(response => response.text())\n';
+    code += '  .then(data => console.log(data))\n';
+    code += '  .catch(error => console.error(error));\n';
+    
+  } else if (lang === 'go') {
+    code += 'package main\n\n';
+    code += 'import (\n';
+    code += '\t"fmt"\n';
+    code += '\t"io"\n';
+    code += '\t"net/http"\n';
+    if (parsed.data) code += '\t"strings"\n';
+    code += ')\n\n';
+    code += 'func main() {\n';
+    code += '\turl := "' + parsed.url + '"\n';
+    if (parsed.data) {
+      code += '\tbody := strings.NewReader(' + JSON.stringify(parsed.data) + ')\n';
+      code += '\treq, err := http.NewRequest("' + parsed.method + '", url, body)\n';
+    } else {
+      code += '\treq, err := http.NewRequest("' + parsed.method + '", url, nil)\n';
+    }
+    code += '\tif err != nil {\n\t\tpanic(err)\n\t}\n';
+    headerKeys.forEach(function(k) {
+      code += '\treq.Header.Set("' + k + '", "' + parsed.headers[k] + '")\n';
+    });
+    code += '\tresp, err := http.DefaultClient.Do(req)\n';
+    code += '\tif err != nil {\n\t\tpanic(err)\n\t}\n';
+    code += '\tdefer resp.Body.Close()\n';
+    code += '\tbodyBytes, _ := io.ReadAll(resp.Body)\n';
+    code += '\tfmt.Println(resp.StatusCode)\n';
+    code += '\tfmt.Println(string(bodyBytes))\n';
+    code += '}\n';
+    
+  } else if (lang === 'java') {
+    code += 'import java.io.*;\n';
+    code += 'import java.net.*;\nimport java.net.http.*;\n\n';
+    code += 'public class Main {\n';
+    code += '    public static void main(String[] args) throws Exception {\n';
+    code += '        String url = "' + parsed.url + '";\n';
+    if (headerKeys.length > 0) {
+      code += '        HttpRequest.Builder builder = HttpRequest.newBuilder()\n';
+      code += '                .uri(URI.create(url));\n';
+      headerKeys.forEach(function(k) {
+        code += '        builder.header("' + k + '", "' + parsed.headers[k] + '");\n';
+      });
+    } else {
+      code += '        HttpRequest.Builder builder = HttpRequest.newBuilder()\n';
+      code += '                .uri(URI.create(url));\n';
+    }
+    if (parsed.data) {
+      code += '        builder.method("' + parsed.method + '", HttpRequest.BodyPublishers.ofString(' + JSON.stringify(parsed.data) + '));\n';
+    } else {
+      code += '        builder.method("' + parsed.method + '", HttpRequest.BodyPublishers.noBody());\n';
+    }
+    code += '        HttpRequest request = builder.build();\n';
+    code += '        HttpResponse<String> response = HttpClient.newHttpClient()\n';
+    code += '                .send(request, HttpResponse.BodyHandlers.ofString());\n';
+    code += '        System.out.println(response.statusCode());\n';
+    code += '        System.out.println(response.body());\n';
+    code += '    }\n';
+    code += '}\n';
+    
+  } else if (lang === 'php') {
+    code += '<?php\n';
+    code += '$url = "' + parsed.url + '";\n';
+    code += '$ch = curl_init($url);\n';
+    code += 'curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);\n';
+    code += 'curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "' + parsed.method + '");\n';
+    if (headerKeys.length > 0) {
+      code += 'curl_setopt($ch, CURLOPT_HTTPHEADER, array(\n';
+      headerKeys.forEach(function(k, idx) {
+        code += '    "' + k + ': ' + parsed.headers[k] + '"' + (idx < headerKeys.length - 1 ? ',' : '') + '\n';
+      });
+      code += '));\n';
+    }
+    if (parsed.data) {
+      code += 'curl_setopt($ch, CURLOPT_POSTFIELDS, ' + JSON.stringify(parsed.data) + ');\n';
+    }
+    code += '\n$response = curl_exec($ch);\n';
+    code += '$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);\n';
+    code += 'curl_close($ch);\n\n';
+    code += 'echo $httpCode . "\\n";\n';
+    code += 'echo $response . "\\n";\n';
+  }
+  
+  var output = document.getElementById('output');
+  output.textContent = code;
+  output.style.display = 'block';
+  showToast('代码生成完成！');
 }
 
 function copyCode() {
