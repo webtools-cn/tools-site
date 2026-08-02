@@ -172,6 +172,61 @@ if bad_title:
 else:
     ok("Title混杂", "0")
 
+# ===== 9. Footer完整性检查(抽样) =====
+bad_footer = 0
+sampled = 0
+for d in sorted(os.listdir('.')):
+    p = os.path.join(d, 'index.html')
+    if not os.path.isfile(p) or d == 'en': continue
+    c = open(p, 'r', errors='ignore').read()
+    # Check if footer has at least 4 links (home + privacy + terms + about)
+    footer_m = re.search(r'<footer[^>]*>(.*?)</footer>', c, re.DOTALL)
+    if not footer_m:
+        # Check contentinfo role
+        footer_m = re.search(r'role="contentinfo"[^>]*>(.*?)</(?:div|footer|section)', c, re.DOTALL)
+    if footer_m:
+        links = re.findall(r'<a[^>]*>', footer_m.group(1))
+        if len(links) < 4:
+            bad_footer += 1
+            if bad_footer <= 5:
+                print(f"  残缺footer: {d} (只有{len(links)}个链接)")
+    sampled += 1
+    if sampled >= 100: break  # Sample 100 pages
+
+if bad_footer > 0:
+    warn("Footer残缺", f"抽样100页中{bad_footer}页footer链接<4个(缺首页/隐私/条款/关于等)")
+else:
+    ok("Footer残缺", f"抽样{sampled}页均OK")
+
+# ===== 10. 相关推荐相关性检查(抽样) =====
+bad_related = 0
+related_sampled = 0
+for d in sorted(os.listdir('.')):
+    p = os.path.join(d, 'index.html')
+    if not os.path.isfile(p) or d == 'en': continue
+    c = open(p, 'r', errors='ignore').read()
+    # Find related tools section
+    related_m = re.search(r'相关工具推荐.*?</div>', c, re.DOTALL)
+    if not related_m: continue
+    related_text = related_m.group(0)
+    # Check for generic/placeholder recommendations
+    # If related tools contain words completely unrelated to the tool category
+    # Simple heuristic: check if "年龄计算器" appears in non-age tools, etc.
+    generic_recs = ['年龄计算器', '体型计算器', '投诉信生成器', 'Age Calculator', 'Body Shape Calculator']
+    for gr in generic_recs:
+        if gr in related_text:
+            bad_related += 1
+            if bad_related <= 5:
+                print(f"  不相关推荐: {d} 包含'{gr}'")
+            break
+    related_sampled += 1
+    if related_sampled >= 100: break
+
+if bad_related > 0:
+    warn("相关推荐不相关", f"抽样100页中{bad_related}页有通用占位推荐(年龄/体型/投诉信等)")
+else:
+    ok("相关推荐", f"抽样{related_sampled}页均相关")
+
 # ===== 汇总 =====
 print(f"\n{'='*60}")
 print(f"深度质检报告 {datetime.now().strftime('%Y-%m-%d %H:%M')}")
