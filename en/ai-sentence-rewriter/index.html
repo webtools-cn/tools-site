@@ -173,10 +173,22 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
   
 
   <div class="tool-section">
-    <h2>Ai Sentence Rewriter</h2>
-    <p>Free online Ai Sentence Rewriter tool</p>
-    <div style="margin-top:12px"><input type="text" id="toolInput" placeholder="Enter content..."><button class="btn" style="margin-left:8px" onclick="process()">Run</button></div>
-    <div id="result" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+    <h2>AI Sentence Rewriter</h2>
+    <p>Enter an English sentence, choose a rewriting style, and generate a rewritten version</p>
+    <div style="margin-top:12px">
+      <textarea id="toolInput" rows="4" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.9rem;outline:none;resize:vertical" placeholder="Enter an English sentence, e.g.: The meeting was really good and we talked about a lot of important things."></textarea>
+    </div>
+    <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px">
+      <label style="display:flex;align-items:center;gap:4px;font-size:.85rem;color:#94a3b8"><input type="radio" name="mode" value="formal" checked style="width:auto"> Formal</label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:.85rem;color:#94a3b8"><input type="radio" name="mode" value="concise" style="width:auto"> Concise</label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:.85rem;color:#94a3b8"><input type="radio" name="mode" value="creative" style="width:auto"> Creative</label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:.85rem;color:#94a3b8"><input type="radio" name="mode" value="academic" style="width:auto"> Academic</label>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="btn" onclick="process()">Rewrite</button>
+      <button class="btn" onclick="copyResult()" style="background:rgba(34,197,94,.15);color:#22c55e;border-color:rgba(34,197,94,.3)">Copy Result</button>
+    </div>
+    <div id="result" style="margin-top:12px;padding:12px;background:#0f172a;border-radius:6px;font-size:.9rem;color:#e2e8f0;min-height:2em;border:1px solid rgba(148,163,184,.1)"></div>
   </div>
   <div class="tool-section">
     <h2>❓ FAQ</h2>
@@ -222,85 +234,135 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
   </div>
 
 <script>
-  'use strict';
-  var s = document.getElementById('related-tools-section');
-  if (!s) return;
-  var p = window.location.pathname;
-  var en = p.indexOf('/en/') !== -1;
-  p = p.replace(/\/en\//g, '/');
-  var slug = p.split('/').filter(Boolean).pop() || '';
-  if (!slug) { s.innerHTML = ''; return; }
-  var depth = en ? '../../' : '../';
-  var u = depth + 'related-tools.json';
-  fetch(u).then(function(r) {
-    if (!r.ok) throw new Error('not found');
-    return r.json();
-  }).then(function(d) {
-    var data = en ? d.en : d.cn;
-    var t = data[slug];
-    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 RelatedToolsRecommended')
-      + '</h3><div class="related-tools-grid">';
-    t.related.forEach(function(r) {
-      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '<a href="' + link + '" class="related-tool-card">'
-        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
-        + '<span class="related-tool-name">' + r.name + '</span></a>';
-    });
-    h += '</div></div>';
-    s.innerHTML = h;
-  }).catch(function() { s.innerHTML = ''; });
-})(;</script>
+function showToast(m){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.className='toast';document.body.appendChild(t);}t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},3000)}
 
-<script>(function(){ // resultAddCopy var processed = new Set(); function addCopyBtns(){ var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]'); results.forEach(function(el){ if(processed.has(el)) return; if(el.querySelector('.copy-btn')) return; if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return; if(el.children.length===0 && el.textContent.trim().length<5) return;
-      var btn = document.createElement('button');
-      btn.className = 'copy-btn';
-      btn.innerHTML = '📋 Copy';
-      btn.title = 'CopyResult';
-      btn.onclick = function(e){
-        e.stopPropagation();
-        var text = el.textContent || el.value || '';
-        if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') text = el.value;
-        navigator.clipboard.writeText(text.trim()).then(function(){
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        }).catch(function(){
-          var ta = document.createElement('textarea');
-          ta.value = text.trim();
-          ta.style.position='fixed';ta.style.opacity='0';
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-          btn.innerHTML = '✅ Copied';
-          btn.classList.add('copied');
-          setTimeout(function(){btn.innerHTML='📋 Copy';btn.classList.remove('copied');},2000);
-        });
-      };
-      el.appendChild(btn);
-      processed.add(el);
-    });
-  }
-  // Run initially
-  addCopyBtns();
-  // Re-run after button clicks (most tools update results on click)
-  document.addEventListener('click', function(){setTimeout(addCopyBtns,100);});
-  // Observe DOM changes
-  if(window.MutationObserver){
-    var obs = new MutationObserver(function(){addCopyBtns();});
-    obs.observe(document.body,{childList:true,subtree:true});
-  }
-})(;)</script>
+var informalToFormal = {
+  "gonna":"going to","wanna":"want to","gotta":"have to","can't":"cannot","won't":"will not",
+  "don't":"do not","didn't":"did not","isn't":"is not","aren't":"are not","wasn't":"was not",
+  "weren't":"were not","haven't":"have not","hasn't":"has not","hadn't":"had not","shouldn't":"should not",
+  "wouldn't":"would not","couldn't":"could not","i'm":"I am","i've":"I have","i'll":"I will",
+  "i'd":"I would","it's":"it is","that's":"that is","there's":"there is","they're":"they are",
+  "we're":"we are","you're":"you are","kids":"children","guy":"person","guys":"individuals",
+  "stuff":"items","thing":"matter","things":"matters","big":"significant","good":"beneficial",
+  "bad":"detrimental","get":"obtain","got":"received","really":"considerably","very":"exceedingly",
+  "a lot":"considerably","kind of":"somewhat","sort of":"rather","ok":"acceptable","okay":"acceptable"
+};
 
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-</div>
+var wordyToConcise = {
+  "in order to":"to","due to the fact that":"because","in spite of the fact that":"although",
+  "with regard to":"about","in the event that":"if","at this point in time":"currently",
+  "a large number of":"many","a majority of":"most","the majority of":"most",
+  "has the ability to":"can","is able to":"can","in the near future":"soon",
+  "for the purpose of":"for","with the exception of":"except","in the process of":"",
+  "it should be noted that":"","it is important to note that":"","needless to say":"",
+  "as a matter of fact":"in fact","at the present time":"now","in the first place":"firstly",
+  "basically":"","essentially":"","really":"","very":"","just":"","quite":""
+};
+
+var creativeSynonyms = {
+  "good":["stirring","remarkable","vivid"],"bad":["jarring","bleak","grating"],
+  "big":["sweeping","colossal","towering"],"small":["meager","fleeting","diminutive"],
+  "happy":["radiant","ebullient","exhilarated"],"sad":["somber","forlorn","melancholic"],
+  "important":["pivotal","paramount","indispensable"],"interesting":["captivating","arresting","spellbinding"],
+  "said":["declared","proclaimed","intoned"],"think":["envision","surmise","conceive"],
+  "walked":"strode","ran":"dashed","looked":"gazed","made":"crafted","beautiful":"resplendent",
+  "fast":"breakneck","slow":"languid","loud":"thunderous","quiet":"hushed"
+};
+
+var academicStarters = [
+  "It is noteworthy that","Furthermore,","In this context,","From an analytical perspective,",
+  "It can be observed that","Notably,","Consequently,","In accordance with the foregoing,"
+];
+
+function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+
+function rewriteFormal(text){
+  var words=text.split(/(\s+)/);
+  for(var i=0;i<words.length;i++){
+    var lw=words[i].toLowerCase().replace(/[.,!?;:]$/,'');
+    var punct=words[i].match(/[.,!?;:]$/);
+    if(informalToFormal[lw]){
+      words[i]=informalToFormal[lw];
+      if(punct)words[i]+=punct[0];
+    }
+  }
+  text=words.join('');
+  text=text.replace(/\bvery\s+(\w+)/gi,'particularly $1');
+  text=text.replace(/\ba lot of\b/gi,'numerous');
+  text=text.replace(/\bkinda\b/gi,'rather');
+  return capitalize(text);
+}
+
+function rewriteConcise(text){
+  for(var phrase in wordyToConcise){
+    var re=new RegExp('\\b'+phrase.replace(/[.*+?^${}()|[\]\\]/g,'$&')+'\\b','gi');
+    text=text.replace(re,wordyToConcise[phrase]);
+  }
+  text=text.replace(/\s+/g,' ').trim();
+  text=text.replace(/\s+([.,!?;:])/g,'$1');
+  text=capitalize(text);
+  return text;
+}
+
+function rewriteCreative(text){
+  var words=text.split(/(\s+)/);
+  for(var i=0;i<words.length;i++){
+    var raw=words[i];
+    var lw=raw.toLowerCase().replace(/[.,!?;:]$/,'');
+    var punct=raw.match(/[.,!?;:]$/);
+    if(creativeSynonyms[lw]&&Array.isArray(creativeSynonyms[lw])){
+      var syns=creativeSynonyms[lw];
+      words[i]=syns[Math.floor(Math.random()*syns.length)];
+      if(raw.charAt(0)===raw.charAt(0).toUpperCase())words[i]=capitalize(words[i]);
+      if(punct)words[i]+=punct[0];
+    }else if(typeof creativeSynonyms[lw]==='string'){
+      words[i]=creativeSynonyms[lw];
+      if(raw.charAt(0)===raw.charAt(0).toUpperCase())words[i]=capitalize(words[i]);
+      if(punct)words[i]+=punct[0];
+    }
+  }
+  text=words.join('');
+  if(Math.random()>0.5)text=capitalize(text)+' — a transformed perspective.';
+  return text;
+}
+
+function rewriteAcademic(text){
+  text=rewriteFormal(text);
+  text=text.replace(/\bI think\b/gi,'It can be argued that');
+  text=text.replace(/\bI believe\b/gi,'The evidence suggests that');
+  text=text.replace(/\bshows\b/gi,'demonstrates');
+  text=text.replace(/\buses\b/gi,'utilizes');
+  text=text.replace(/\bbut\b/gi,'however');
+  text=text.replace(/\bso\b/gi,'therefore');
+  text=text.replace(/\balso\b/gi,'additionally');
+  if(Math.random()>0.4){
+    var starter=academicStarters[Math.floor(Math.random()*academicStarters.length)];
+    text=starter+' '+text.charAt(0).toLowerCase()+text.slice(1);
+  }
+  return capitalize(text);
+}
+
+function process(){
+  var input=document.getElementById('toolInput').value.trim();
+  if(!input){showToast('Please enter a sentence');return;}
+  var modeEl=document.querySelector('input[name="mode"]:checked');
+  var mode=modeEl?modeEl.value:'formal';
+  var result;
+  if(mode==='formal')result=rewriteFormal(input);
+  else if(mode==='concise')result=rewriteConcise(input);
+  else if(mode==='creative')result=rewriteCreative(input);
+  else if(mode==='academic')result=rewriteAcademic(input);
+  else result=input;
+  document.getElementById('result').textContent=result;
+  showToast('Rewrite complete');
+}
+
+function copyResult(){
+  var text=document.getElementById('result').textContent;
+  if(!text){showToast('Please rewrite first');return;}
+  navigator.clipboard.writeText(text).then(function(){showToast('Copied')})["catch"](function(){showToast('Copy failed')});
+}
+</script>
 
 </body>
 </html>
