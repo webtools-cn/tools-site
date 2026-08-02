@@ -253,17 +253,96 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === SVG Blob 生成器 ===
+function generateBlob() {
+  var fillColor = document.getElementById('fillColor').value;
+  var fillType = document.getElementById('fillType').value;
+  var gradientColor = document.getElementById('gradientColor').value;
+
+  // 在圆周上分布控制点，随机偏移半径，用三次贝塞尔曲线平滑连接
+  var cx = 150, cy = 150, baseR = 90;
+  var numPoints = 6 + Math.floor(Math.random() * 4); // 6-9个控制点
+  var variance = 0.3 + Math.random() * 0.3; // 偏移幅度
+
+  var points = [];
+  for (var i = 0; i < numPoints; i++) {
+    var angle = (i / numPoints) * Math.PI * 2;
+    var r = baseR * (1 - variance + Math.random() * variance * 2);
+    r = Math.max(40, r);
+    points.push({
+      x: cx + Math.cos(angle) * r,
+      y: cy + Math.sin(angle) * r
+    });
+  }
+
+  // 使用三次贝塞尔曲线平滑连接控制点
+  var path = 'M ' + points[0].x.toFixed(1) + ',' + points[0].y.toFixed(1);
+  for (var i = 0; i < numPoints; i++) {
+    var p0 = points[i];
+    var p1 = points[(i + 1) % numPoints];
+    var p2 = points[(i + 2) % numPoints];
+    // 控制点基于切线方向
+    var cp1x = p0.x + (p1.x - points[(i - 1 + numPoints) % numPoints].x) * 0.2;
+    var cp1y = p0.y + (p1.y - points[(i - 1 + numPoints) % numPoints].y) * 0.2;
+    var cp2x = p1.x - (p2.x - p0.x) * 0.2;
+    var cp2y = p1.y - (p2.y - p0.y) * 0.2;
+    path += ' C ' + cp1x.toFixed(1) + ',' + cp1y.toFixed(1) + ' ' + cp2x.toFixed(1) + ',' + cp2y.toFixed(1) + ' ' + p1.x.toFixed(1) + ',' + p1.y.toFixed(1);
+  }
+  path += ' Z';
+
+  // 构建SVG
+  var defs = '';
+  var fillAttr = '';
+  if (fillType === 'gradient') {
+    var gid = 'blobGrad';
+    defs = '<defs><linearGradient id="' + gid + '" x1="0%" y1="0%" x2="100%" y2="100%">' +
+           '<stop offset="0%" style="stop-color:' + fillColor + '" />' +
+           '<stop offset="100%" style="stop-color:' + gradientColor + '" /></linearGradient></defs>';
+    fillAttr = 'url(#' + gid + ')';
+  } else if (fillType === 'outline') {
+    fillAttr = 'none';
+  } else {
+    fillAttr = fillColor;
+  }
+
+  var strokeAttr = '';
+  if (fillType === 'outline') {
+    strokeAttr = ' stroke="' + fillColor + '" stroke-width="3"';
+  }
+
+  var svgCode = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">' +
+                defs +
+                '<path d="' + path + '" fill="' + fillAttr + '"' + strokeAttr + ' /></svg>';
+
+  // 更新预览
+  document.getElementById('blobPreview').innerHTML = defs + '<path d="' + path + '" fill="' + fillAttr + '"' + strokeAttr + ' />';
+
+  // 更新代码输出
+  document.getElementById('codeOutput').textContent = svgCode;
+
+  showToast('已生成新Blob');
+}
+
 function copySvg() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var code = document.getElementById('codeOutput').textContent;
+  if (!code) { showToast('请先生成Blob'); return; }
+  navigator.clipboard.writeText(code).then(function() {
+    showToast('SVG代码已复制到剪贴板');
+  }).catch(function() {
+    showToast('复制失败，请手动选择复制');
+  });
 }
 
 function downloadSvg() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{{type:'text/plain'}});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Svg.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
-}
-
-function generateBlob() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  var code = document.getElementById('codeOutput').textContent;
+  if (!code) { showToast('请先生成Blob'); return; }
+  var blob = new Blob([code], {type: 'image/svg+xml'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'blob.svg';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('SVG文件已下载');
 }
 </script>
 </body>

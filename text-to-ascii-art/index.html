@@ -257,32 +257,124 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === ASCII 艺术生成器 ===
+var charSets = {
+  standard: '@%#*+=-:. ',
+  block: '\u2588\u2593\u2592\u2591 ',
+  minimal: '#. ',
+  dot: '\u25CF\u25CB\u00B7 ',
+  reverse: ' .:-=+*#%@'
+};
+
+function generateArt() {
+  var text = document.getElementById('inputText').value;
+  if (!text.trim()) {
+    showToast('请输入要转换的文字');
+    return;
+  }
+
+  var charSetKey = document.getElementById('charSet').value;
+  var chars = charSets[charSetKey] || charSets.standard;
+  var fontSize = parseInt(document.getElementById('fontSize').value) || 48;
+  var charWidth = parseInt(document.getElementById('charWidth').value) || 6;
+  var lineRatio = parseFloat(document.getElementById('lineRatio').value) || 1.6;
+
+  // 使用Canvas渲染文字
+  var canvas = document.createElement('canvas');
+  var ctx = canvas.getContext('2d');
+  ctx.font = 'bold ' + fontSize + 'px sans-serif';
+  var metrics = ctx.measureText(text);
+  var textWidth = Math.ceil(metrics.width);
+  var textHeight = fontSize * 1.2;
+
+  canvas.width = textWidth;
+  canvas.height = Math.ceil(textHeight);
+  ctx.font = 'bold ' + fontSize + 'px sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 0, textHeight / 2);
+
+  var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  var pixels = imageData.data;
+
+  // 计算行列数
+  var cols = Math.ceil(canvas.width / charWidth);
+  var rowHeight = Math.ceil(charWidth * lineRatio);
+  var rows = Math.ceil(canvas.height / rowHeight);
+
+  var result = '';
+  for (var row = 0; row < rows; row++) {
+    var line = '';
+    for (var col = 0; col < cols; col++) {
+      // 采样该区域的平均亮度
+      var totalBrightness = 0;
+      var sampleCount = 0;
+      var startPx = col * charWidth;
+      var startPy = row * rowHeight;
+      var endPx = Math.min(startPx + charWidth, canvas.width);
+      var endPy = Math.min(startPy + rowHeight, canvas.height);
+
+      for (var py = startPy; py < endPy; py++) {
+        for (var px = startPx; px < endPx; px++) {
+          var idx = (py * canvas.width + px) * 4;
+          var r = pixels[idx];
+          var g = pixels[idx + 1];
+          var b = pixels[idx + 2];
+          var a = pixels[idx + 3];
+          // 亮度 = 加权RGB * alpha
+          var brightness = (0.299 * r + 0.587 * g + 0.114 * b) * (a / 255);
+          totalBrightness += brightness;
+          sampleCount++;
+        }
+      }
+
+      var avgBrightness = sampleCount > 0 ? totalBrightness / sampleCount : 0;
+      // 映射亮度到字符索引 (0-255 -> 0 to chars.length-1)
+      var charIndex = Math.floor((avgBrightness / 255) * (chars.length - 1));
+      charIndex = Math.max(0, Math.min(chars.length - 1, charIndex));
+      line += chars[charIndex];
+    }
+    // 去除尾部空格
+    result += line.replace(/\s+$/, '') + '\n';
+  }
+
+  var resultBox = document.getElementById('resultBox');
+  resultBox.textContent = result;
+
+  // 更新统计
+  var stats = document.getElementById('resultStats');
+  stats.innerHTML = '<span>行数: ' + rows + '</span><span>列数: ' + cols + '</span><span>字符集: ' + charSetKey + '</span>';
+
+  showToast('ASCII艺术已生成');
+}
+
 function clearInput() {
-  document.querySelectorAll('input[type="text"],input[type="number"],textarea').forEach(function(el) { el.value = ''; });
-  document.getElementById('resultBox').innerHTML = '';
+  document.getElementById('inputText').value = '';
+  document.getElementById('resultBox').textContent = '';
+  document.getElementById('resultStats').innerHTML = '';
   showToast('已清空');
 }
 
 function copyResult() {
-  var text = document.getElementById('resultBox').innerText;
+  var text = document.getElementById('resultBox').textContent;
   if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  navigator.clipboard.writeText(text).then(function() {
+    showToast('ASCII艺术已复制到剪贴板');
+  }).catch(function() {
+    showToast('复制失败');
+  });
 }
 
 function downloadResult() {
-  var text = document.getElementById('resultBox').innerText;
+  var text = document.getElementById('resultBox').textContent;
   if (!text) { showToast('没有可下载的结果'); return; }
   var blob = new Blob([text], {type: 'text/plain'});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'text-to-ascii-art-result.txt';
+  a.download = 'ascii-art.txt';
   a.click();
-  showToast('已下载');
-}
-
-function generateArt() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+  URL.revokeObjectURL(a.href);
+  showToast('文件已下载');
 }
 </script>
 </body>
