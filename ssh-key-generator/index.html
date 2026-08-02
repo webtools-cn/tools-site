@@ -84,9 +84,8 @@ textarea{width:100%;min-height:120px;resize:vertical;font-family:ui-monospace,SF
 <div class="hero"><p>免费在线SSH密钥生成器，使用Web Crypto API生成RSA-2048/4096和ECDSA密钥对。支持PEM格式输出公钥和OpenSSH私钥。纯前端本地生成，密钥不离开您的设备。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
-
-    /div>
   </div>
+</div>
   
   
 
@@ -207,13 +206,163 @@ window.copyText = copyText; function copyText(id){var el=document.getElementById
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
-function downloadKey() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{{type:'text/plain'}});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Key.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+// === SSH密钥生成器 — 使用Web Crypto API ===
+function arrayBufferToBase64(buffer) {
+  var binary = '';
+  var bytes = new Uint8Array(buffer);
+  for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
 }
 
-function generateKeys() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!out)return;out.textContent='Generated at '+new Date().toISOString();showToast('Generated!');
+function arrayBufferToPem(buffer, label) {
+  var b64 = arrayBufferToBase64(buffer);
+  var lines = b64.match(/.{1,64}/g) || [b64];
+  return '-----BEGIN ' + label + '-----\n' + lines.join('\n') + '\n-----END ' + label + '-----';
+}
+
+// SSH public key base64 encoding (RFC 4251 string format)
+function sshString(str) {
+  var bytes = typeof str === 'string' ? new TextEncoder().encode(str) : new Uint8Array(str);
+  var buf = new ArrayBuffer(4 + bytes.length);
+  var dv = new DataView(buf);
+  dv.setUint32(0, bytes.length);
+  new Uint8Array(buf, 4).set(bytes);
+  return new Uint8Array(buf);
+}
+
+function uint32(n) {
+  var buf = new ArrayBuffer(4);
+  new DataView(buf).setUint32(0, n);
+  return new Uint8Array(buf);
+}
+
+function bigIntToBytes(bn, len) {
+  var hex = bn.toString(16);
+  if (hex.length % 2) hex = '0' + hex;
+  var bytes = [];
+  for (var i = 0; i < hex.length; i += 2) bytes.push(parseInt(hex.substr(i, 2), 16));
+  while (bytes.length < len) bytes.unshift(0);
+  return new Uint8Array(bytes);
+}
+
+async function generateRSAKey(bits) {
+  var keyPair = await crypto.subtle.generateKey(
+    { name: 'RSASSA-PKCS1-v1_5', modulusLength: bits, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+    true, ['sign', 'verify']
+  );
+  var privKey = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey);
+  var pubKey = await crypto.subtle.exportKey('spki', keyPair.publicKey);
+  var privPem = arrayBufferToPem(privKey, 'PRIVATE KEY');
+  // Build SSH public key: "ssh-rsa" + e + n
+  var jwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey);
+  // JWK e and n are base64url encoded
+  function b64urlToBytes(b64) {
+    b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    var bin = atob(b64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+  function bytesToBigInt(bytes) {
+    var hex = '0x';
+    for (var i = 0; i < bytes.length; i++) hex += bytes[i].toString(16).padStart(2, '0');
+    return BigInt(hex);
+  }
+  var eBytes = b64urlToBytes(jwk.e);
+  var nBytes = b64urlToBytes(jwk.n);
+  var e = bigIntToBytes(bytesToBigInt(eBytes), eBytes.length);
+  var n = bigIntToBytes(bytesToBigInt(nBytes), bits / 8);
+  var parts = [sshString('ssh-rsa'), sshString(e), sshString(n)];
+  var totalLen = parts.reduce(function(s, p) { return s + p.length; }, 0);
+  var combined = new Uint8Array(totalLen);
+  var off = 0;
+  parts.forEach(function(p) { combined.set(p, off); off += p.length; });
+  var pubB64 = arrayBufferToBase64(combined.buffer);
+  return { public: pubB64, private: privPem, type: 'ssh-rsa' };
+}
+
+async function generateECDSAKey(curve) {
+  var keyPair = await crypto.subtle.generateKey(
+    { name: 'ECDSA', namedCurve: curve },
+    true, ['sign', 'verify']
+  );
+  var privKey = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey);
+  var privPem = arrayBufferToPem(privKey, 'PRIVATE KEY');
+  var rawPub = await crypto.subtle.exportKey('raw', keyPair.publicKey);
+  var keyType = curve === 'P-256' ? 'ecdsa-sha2-nistp256' : 'ecdsa-sha2-nistp384';
+  var curveName = curve === 'P-256' ? 'nistp256' : 'nistp384';
+  // EC public key is a single point (0x04 + X + Y), SSH format uses the raw point
+  var parts = [sshString(keyType), sshString(curveName), sshString(rawPub)];
+  var totalLen = parts.reduce(function(s, p) { return s + p.length; }, 0);
+  var combined = new Uint8Array(totalLen);
+  var off = 0;
+  parts.forEach(function(p) { combined.set(p, off); off += p.length; });
+  var pubB64 = arrayBufferToBase64(combined.buffer);
+  return { public: pubB64, private: privPem, type: keyType };
+}
+
+async function generateKeys() {
+  var keyTypeSel = document.getElementById('keyType');
+  var keyType = keyTypeSel ? keyTypeSel.value : 'RSA-2048';
+  var comment = (document.getElementById('keyComment') || {}).value || 'user@localhost';
+  var statusEl = document.getElementById('genStatus');
+  var pubEl = document.getElementById('publicKey');
+  var privEl = document.getElementById('privateKey');
+
+  if (!window.crypto || !window.crypto.subtle) {
+    showToast('您的浏览器不支持Web Crypto API');
+    return;
+  }
+
+  statusEl.style.display = 'block';
+  statusEl.textContent = '⏳ 正在生成密钥对，请稍候...';
+  pubEl.textContent = '生成中...';
+  privEl.textContent = '生成中...';
+
+  try {
+    var result;
+    if (keyType.startsWith('RSA')) {
+      var bits = parseInt(keyType.split('-')[1]);
+      result = await generateRSAKey(bits);
+    } else {
+      var curve = keyType === 'ECDSA-P256' ? 'P-256' : 'P-384';
+      result = await generateECDSAKey(curve);
+    }
+    var pubLine = result.type + ' ' + result.public + ' ' + comment;
+    pubEl.textContent = pubLine;
+    privEl.textContent = result.private;
+    statusEl.textContent = '✅ ' + keyType + ' 密钥对生成成功！';
+    statusEl.style.background = 'rgba(34,197,94,.08)';
+    statusEl.style.borderColor = 'rgba(34,197,94,.2)';
+    statusEl.style.color = '#4ade80';
+    showToast('密钥对已生成');
+  } catch (e) {
+    statusEl.textContent = '❌ 生成失败: ' + e.message;
+    statusEl.style.background = 'rgba(239,68,68,.08)';
+    statusEl.style.borderColor = 'rgba(239,68,68,.2)';
+    statusEl.style.color = '#f87171';
+    pubEl.textContent = '生成失败';
+    privEl.textContent = '生成失败';
+    showToast('密钥生成失败');
+  }
+}
+
+function downloadKey(filename, elementId) {
+  var el = document.getElementById(elementId);
+  if (!el) return;
+  var text = el.textContent || el.innerText;
+  if (!text || text.indexOf('点击生成') !== -1 || text === '生成中...' || text === '生成失败') {
+    showToast('请先生成密钥');
+    return;
+  }
+  var blob = new Blob([text + '\n'], { type: 'text/plain' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename || 'key.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('密钥文件已下载');
 }
 </script>
 </body>
