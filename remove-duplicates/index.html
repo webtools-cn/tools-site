@@ -101,6 +101,70 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 文本去重工具</p>
 <div class="hero"><p>免费在线文本去重工具，支持按行去重、保留首次出现或最后出现、忽略空行、区分大小写等选项。快速清理重复文本行，适用于列表整理、邮件去重等场景。 | 无需注册 · 纯前端处理</p><span class="badge">零依赖·可离线使用</span></div>
 
+<div class="input-section">
+  <h2>输入文本</h2>
+  <div class="input-group" style="margin-bottom:12px">
+    <textarea id="inputText" placeholder="粘贴需要去重的文本，每行一条..." style="min-height:180px">apple
+banana
+apple
+cherry
+banana
+date
+cherry
+elderberry
+date
+fig</textarea>
+  </div>
+  <div class="input-row">
+    <div class="input-group">
+      <label>保留顺序</label>
+      <select id="keepOrder">
+        <option value="first">保留首次出现</option>
+        <option value="last">保留末次出现</option>
+        <option value="sort">排序输出</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label>大小写</label>
+      <select id="caseSensitive">
+        <option value="true">区分大小写</option>
+        <option value="false">忽略大小写</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label>空行处理</label>
+      <select id="trimEmpty">
+        <option value="true">移除空行</option>
+        <option value="false">保留空行</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label>去重依据</label>
+      <select id="trimMode">
+        <option value="none">不去除空白</option>
+        <option value="trim" selected>去除首尾空白</option>
+        <option value="all">去除所有空白</option>
+      </select>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="processBtn">执行去重</button>
+    <button class="btn btn-secondary" id="copyBtn">复制结果</button>
+    <button class="btn btn-secondary" id="clearBtn">清空</button>
+  </div>
+</div>
+
+<div class="result-section" id="resultSection">
+  <h2 style="font-size:1.1rem;color:#f1f5f9;margin-bottom:12px">去重结果</h2>
+  <div class="stat-row" style="margin-bottom:16px">
+    <div class="stat-item"><div class="num" id="statOriginal">0</div><div class="lbl">原始行数</div></div>
+    <div class="stat-item"><div class="num" id="statUnique">0</div><div class="lbl">唯一行数</div></div>
+    <div class="stat-item"><div class="num" id="statRemoved">0</div><div class="lbl">删除重复</div></div>
+    <div class="stat-item"><div class="num" id="statRate">0%</div><div class="lbl">去重率</div></div>
+  </div>
+  <textarea id="resultText" readonly style="width:100%;min-height:180px;padding:12px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;font-size:.9rem;font-family:monospace;resize:vertical"></textarea>
+</div>
+
 <div class="info-section">
   <h2>使用教程</h2>
   <p>粘贴文本到输入框，选择去重选项（保留首次/末次、忽略空行、区分大小写），点击去重按钮即可获得清理后的文本</p>
@@ -130,6 +194,111 @@ a{color:#06b6d4;text-decoration:none}
 </div>
 <div class="toast" id="toast"></div>
 </div>
+
+<script>
+(function(){
+  function showToast(msg){
+    var t=document.getElementById('toast');
+    t.textContent=msg;t.classList.add('show');
+    setTimeout(function(){t.classList.remove('show')},2000);
+  }
+
+  function processText(){
+    var input=document.getElementById('inputText').value;
+    var keepOrder=document.getElementById('keepOrder').value;
+    var caseSensitive=document.getElementById('caseSensitive').value==='true';
+    var trimEmpty=document.getElementById('trimEmpty').value==='true';
+    var trimMode=document.getElementById('trimMode').value;
+    var lines=input.split('\n');
+    var originalCount=lines.length;
+
+    function cleanLine(line){
+      if(trimMode==='trim')return line.trim();
+      if(trimMode==='all')return line.replace(/\s/g,'');
+      return line;
+    }
+
+    if(trimEmpty){
+      lines=lines.filter(function(l){return cleanLine(l).length>0});
+    }
+
+    var seen={};
+    var result=[];
+    if(keepOrder==='first'){
+      lines.forEach(function(line){
+        var key=cleanLine(line);
+        var cmpKey=caseSensitive?key:key.toLowerCase();
+        if(!seen[cmpKey]){
+          seen[cmpKey]=true;
+          result.push(line);
+        }
+      });
+    }else if(keepOrder==='last'){
+      var lastMap={};
+      lines.forEach(function(line,idx){
+        var key=cleanLine(line);
+        var cmpKey=caseSensitive?key:key.toLowerCase();
+        lastMap[cmpKey]=idx;
+      });
+      var usedKeys={};
+      lines.forEach(function(line,idx){
+        var key=cleanLine(line);
+        var cmpKey=caseSensitive?key:key.toLowerCase();
+        if(lastMap[cmpKey]===idx&&!usedKeys[cmpKey]){
+          usedKeys[cmpKey]=true;
+          result.push(line);
+        }
+      });
+    }else if(keepOrder==='sort'){
+      var uniqueLines=[];
+      var seen2={};
+      lines.forEach(function(line){
+        var key=cleanLine(line);
+        var cmpKey=caseSensitive?key:key.toLowerCase();
+        if(!seen2[cmpKey]){
+          seen2[cmpKey]=true;
+          uniqueLines.push(line);
+        }
+      });
+      uniqueLines.sort(function(a,b){
+        var ka=cleanLine(a),kb=cleanLine(b);
+        return caseSensitive?ka.localeCompare(kb):ka.toLowerCase().localeCompare(kb.toLowerCase());
+      });
+      result=uniqueLines;
+    }
+
+    var uniqueCount=result.length;
+    var removedCount=originalCount-uniqueCount;
+    var rate=originalCount>0?Math.round(removedCount/originalCount*100):0;
+    var output=result.join('\n');
+
+    document.getElementById('resultText').value=output;
+    document.getElementById('statOriginal').textContent=originalCount;
+    document.getElementById('statUnique').textContent=uniqueCount;
+    document.getElementById('statRemoved').textContent=removedCount;
+    document.getElementById('statRate').textContent=rate+'%';
+    document.getElementById('resultSection').classList.add('show');
+    showToast('去重完成，删除'+removedCount+'行重复');
+  }
+
+  document.getElementById('processBtn').addEventListener('click',processText);
+  document.getElementById('copyBtn').addEventListener('click',function(){
+    var text=document.getElementById('resultText').value;
+    if(!text){showToast('请先执行去重');return}
+    navigator.clipboard.writeText(text).then(function(){showToast('已复制到剪贴板')}).catch(function(){
+      var ta=document.getElementById('resultText');ta.select();
+      try{document.execCommand('copy');showToast('已复制到剪贴板')}catch(e){showToast('复制失败')}
+    });
+  });
+  document.getElementById('clearBtn').addEventListener('click',function(){
+    document.getElementById('inputText').value='';
+    document.getElementById('resultText').value='';
+    document.getElementById('resultSection').classList.remove('show');
+    showToast('已清空');
+  });
+  processText();
+})();
+</script>
 
 </body>
 </html>

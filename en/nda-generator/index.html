@@ -105,6 +105,56 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">Home</a> &rsaquo; <a href="../index.html#tools">Tools</a> &rsaquo; NDA Generator</p>
 <div class="hero"><p>Free online NDA generator. Fill in parties, scope, term and generate standard NDA template. For business cooperation, employment. | No registration · No data upload · Reference only</p><span class="badge">Zero dependencies · Works offline</span></div>
 
+<div class="input-section">
+  <h2>Fill in Agreement Details</h2>
+  <div class="template-select" id="ndaType">
+    <div class="template-opt active" data-type="unilateral">One-Way NDA</div>
+    <div class="template-opt" data-type="mutual">Mutual NDA</div>
+  </div>
+  <div class="input-row">
+    <div class="input-group">
+      <label>Disclosing Party</label>
+      <input type="text" id="disclosingParty" placeholder="Company or individual name">
+    </div>
+    <div class="input-group">
+      <label>Receiving Party</label>
+      <input type="text" id="receivingParty" placeholder="Company or individual name">
+    </div>
+  </div>
+  <div class="input-row">
+    <div class="input-group">
+      <label>Signing Date</label>
+      <input type="date" id="signDate">
+    </div>
+    <div class="input-group">
+      <label>Term (Years)</label>
+      <input type="number" id="duration" value="3" min="1" max="20">
+    </div>
+    <div class="input-group">
+      <label>Signing Location</label>
+      <input type="text" id="signLocation" placeholder="e.g. New York, NY">
+    </div>
+  </div>
+  <div class="input-group" style="margin-bottom:12px">
+    <label>Confidential Information Scope</label>
+    <textarea id="confidentialInfo" placeholder="Describe the scope of confidential information">Technical solutions, product design documents, source code, business plans, customer data, financial information, pricing strategies and other commercially sensitive information</textarea>
+  </div>
+  <div class="input-group" style="margin-bottom:12px">
+    <label>Excluded Information (Optional)</label>
+    <textarea id="excludedInfo" placeholder="Information not covered by confidentiality" style="min-height:60px">Information already public; independently developed by receiving party; legitimately obtained from third parties; information required to be disclosed by law</textarea>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="generateBtn">Generate Agreement</button>
+    <button class="btn btn-secondary" id="copyBtn">Copy Text</button>
+    <button class="btn btn-secondary" id="downloadBtn">Download TXT</button>
+  </div>
+</div>
+
+<div class="result-section" id="resultSection">
+  <h2 style="font-size:1.1rem;color:#f1f5f9;margin-bottom:12px">Agreement Preview</h2>
+  <div class="preview-box" id="resultPreview" style="background:#fff;color:#1a1a1a"></div>
+</div>
+
 <div class="info-section">
   <h2>Tutorial</h2>
   <p>Select NDA type (one-way/mutual), fill in disclosing and receiving party info, confidential content description, term, and generate a complete NDA</p>
@@ -134,13 +184,124 @@ a{color:#06b6d4;text-decoration:none}
 </div>
 <div class="toast" id="toast"></div>
 
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-</div>
+<script>
+(function(){
+  var ndaType='unilateral';
+  var opts=document.querySelectorAll('#ndaType .template-opt');
+  opts.forEach(function(opt){
+    opt.addEventListener('click',function(){
+      opts.forEach(function(o){o.classList.remove('active')});
+      this.classList.add('active');
+      ndaType=this.dataset.type;
+    });
+  });
+  var today=new Date();
+  document.getElementById('signDate').value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+
+  function showToast(msg){
+    var t=document.getElementById('toast');
+    t.textContent=msg;t.classList.add('show');
+    setTimeout(function(){t.classList.remove('show')},2000);
+  }
+
+  function generateNDA(){
+    var dp=document.getElementById('disclosingParty').value.trim()||'[Disclosing Party]';
+    var rp=document.getElementById('receivingParty').value.trim()||'[Receiving Party]';
+    var sd=document.getElementById('signDate').value||'[Date]';
+    var dur=parseInt(document.getElementById('duration').value)||3;
+    var loc=document.getElementById('signLocation').value.trim()||'[Location]';
+    var ci=document.getElementById('confidentialInfo').value.trim()||'[Confidential Information]';
+    var ei=document.getElementById('excludedInfo').value.trim()||'[Excluded Information]';
+    var title=ndaType==='mutual'?'MUTUAL NON-DISCLOSURE AGREEMENT':'NON-DISCLOSURE AGREEMENT';
+    var partyDesc=ndaType==='mutual'?
+      'The parties (collectively "Parties", individually "Party") hereby act as both disclosing and receiving parties.':
+      'Party A (Disclosing Party): '+dp+'\nParty B (Receiving Party): '+rp;
+    var obligations=ndaType==='mutual'?
+      'Both Parties agree to maintain the confidentiality of Confidential Information received from the other Party. Without the disclosing Party\u2019s written consent, the receiving Party shall not disclose, publicize, or use the other Party\u2019s Confidential Information.':
+      'Party B agrees to maintain the confidentiality of Confidential Information disclosed by Party A. Without Party A\u2019s written consent, Party B shall not disclose, publicize, or use such Confidential Information.';
+
+    var text='';
+    text+='                  '+title+'\n';
+    text+='='.repeat(50)+'\n\n';
+    text+='Date: '+sd+'\n';
+    text+='Location: '+loc+'\n\n';
+    text+='I. PARTIES\n';
+    text+='-' .repeat(40)+'\n';
+    if(ndaType==='mutual'){
+      text+='Party A: '+dp+'\n';
+      text+='Party B: '+rp+'\n';
+      text+=partyDesc+'\n';
+    }else{
+      text+=partyDesc+'\n';
+    }
+    text+='\nII. DEFINITION OF CONFIDENTIAL INFORMATION\n';
+    text+='-' .repeat(40)+'\n';
+    text+='Confidential Information means the following information disclosed by '+(ndaType==='mutual'?'either Party':'Party A')+' to '+(ndaType==='mutual'?'the other Party':'Party B')+':\n';
+    var ciLines=ci.split(/[;\n]/).filter(function(s){return s.trim()});
+    ciLines.forEach(function(line,i){text+='  '+(i+1)+'. '+line.trim()+'\n'});
+    text+='\nIII. EXCLUDED INFORMATION\n';
+    text+='-' .repeat(40)+'\n';
+    text+='The following shall not constitute Confidential Information:\n';
+    var eiLines=ei.split(/[;\n]/).filter(function(s){return s.trim()});
+    eiLines.forEach(function(line,i){text+='  '+(i+1)+'. '+line.trim()+'\n'});
+    text+='\nIV. CONFIDENTIALITY OBLIGATIONS\n';
+    text+='-' .repeat(40)+'\n';
+    text+=obligations+'\n\n';
+    text+='The receiving Party shall protect Confidential Information with the same degree of care as it uses to protect its own information of similar importance, and at minimum shall take reasonable measures to prevent unauthorized disclosure, use, or reproduction.\n\n';
+    text+='V. TERM OF CONFIDENTIALITY\n';
+    text+='-' .repeat(40)+'\n';
+    text+='This Agreement shall be effective from the date of signing, and the confidentiality period shall be '+dur+' years. Upon expiration, the receiving Party\u2019s confidentiality obligations shall terminate, except as otherwise required by law.\n\n';
+    text+='VI. LIABILITY FOR BREACH\n';
+    text+='-' .repeat(40)+'\n';
+    text+='If the receiving Party breaches this Agreement, it shall be liable to the disclosing Party and compensate for all direct and indirect losses caused thereby, including but not limited to loss of profits, attorney fees, and litigation costs.\n\n';
+    text+='VII. RETURN OF INFORMATION\n';
+    text+='-' .repeat(40)+'\n';
+    text+='Upon the disclosing Party\u2019s request, the receiving Party shall return or destroy all Confidential Information and copies thereof within ten (10) business days, and provide written confirmation of such destruction.\n\n';
+    text+='VIII. GOVERNING LAW AND DISPUTE RESOLUTION\n';
+    text+='-' .repeat(40)+'\n';
+    text+='This Agreement shall be governed by the laws applicable at '+loc+'. Any dispute arising from or relating to this Agreement shall first be resolved through negotiation; if negotiation fails, either Party may bring a lawsuit in a competent court at '+loc+'.\n\n';
+    text+='IX. MISCELLANEOUS\n';
+    text+='-' .repeat(40)+'\n';
+    text+='1. Matters not covered in this Agreement may be addressed in a supplementary agreement with equal legal effect.\n';
+    text+='2. This Agreement is made in two copies, one for each Party, with equal legal effect.\n';
+    text+='3. This Agreement shall take effect upon signature (seal) by both Parties.\n\n';
+    text+='='.repeat(50)+'\n\n';
+    text+=dp+' (Signature/Seal)        '+rp+' (Signature/Seal)\n\n';
+    text+='Date: '+sd+'              Date: '+sd+'\n\n';
+    text+='-' .repeat(50)+'\n';
+    text+='* This agreement is auto-generated by the NDA Generator for reference only and does not constitute legal advice.\n';
+    text+='* It is recommended to have it reviewed by a professional lawyer before formal use.\n';
+
+    document.getElementById('resultPreview').textContent=text;
+    document.getElementById('resultSection').classList.add('show');
+    document.getElementById('resultSection').scrollIntoView({behavior:'smooth'});
+    showToast('Agreement generated');
+    return text;
+  }
+
+  document.getElementById('generateBtn').addEventListener('click',generateNDA);
+  document.getElementById('copyBtn').addEventListener('click',function(){
+    var text=document.getElementById('resultPreview').textContent;
+    if(!text){showToast('Please generate the agreement first');return}
+    navigator.clipboard.writeText(text).then(function(){showToast('Copied to clipboard')}).catch(function(){
+      var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');showToast('Copied to clipboard')}catch(e){showToast('Copy failed')}
+      document.body.removeChild(ta);
+    });
+  });
+  document.getElementById('downloadBtn').addEventListener('click',function(){
+    var text=document.getElementById('resultPreview').textContent;
+    if(!text){showToast('Please generate the agreement first');return}
+    var blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='NDA_'+(ndaType==='mutual'?'Mutual':'One-Way')+'.txt';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('File downloaded');
+  });
+})();
+</script>
 
 </body>
 </html>

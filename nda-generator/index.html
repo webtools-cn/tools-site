@@ -101,6 +101,56 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 保密协议生成器</p>
 <div class="hero"><p>免费在线保密协议(NDA)生成器，填写双方信息、保密范围、期限等，自动生成标准保密协议模板。适用于商务合作、雇佣关系等场景。 | 无需注册 · 数据不上传 · 仅供参考</p><span class="badge">零依赖·可离线使用</span></div>
 
+<div class="input-section">
+  <h2>填写协议信息</h2>
+  <div class="template-select" id="ndaType">
+    <div class="template-opt active" data-type="unilateral">单向保密协议</div>
+    <div class="template-opt" data-type="mutual">双向保密协议</div>
+  </div>
+  <div class="input-row">
+    <div class="input-group">
+      <label>披露方（信息提供方）</label>
+      <input type="text" id="disclosingParty" placeholder="公司名称或个人姓名">
+    </div>
+    <div class="input-group">
+      <label>接收方（信息接收方）</label>
+      <input type="text" id="receivingParty" placeholder="公司名称或个人姓名">
+    </div>
+  </div>
+  <div class="input-row">
+    <div class="input-group">
+      <label>签署日期</label>
+      <input type="date" id="signDate">
+    </div>
+    <div class="input-group">
+      <label>保密期限（年）</label>
+      <input type="number" id="duration" value="3" min="1" max="20">
+    </div>
+    <div class="input-group">
+      <label>签署地点</label>
+      <input type="text" id="signLocation" placeholder="如：北京市朝阳区">
+    </div>
+  </div>
+  <div class="input-group" style="margin-bottom:12px">
+    <label>保密信息范围</label>
+    <textarea id="confidentialInfo" placeholder="描述需要保密的信息范围，如：技术方案、商业计划、客户数据、财务信息等">技术方案、产品设计文档、源代码、商业计划、客户数据、财务信息、定价策略及其他商业敏感信息</textarea>
+  </div>
+  <div class="input-group" style="margin-bottom:12px">
+    <label>除外信息（可选）</label>
+    <textarea id="excludedInfo" placeholder="不属于保密范围的信息" style="min-height:60px">已公开的信息；接收方独立开发的信息；合法从第三方获得的信息；法律要求披露的信息</textarea>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="generateBtn">生成协议</button>
+    <button class="btn btn-secondary" id="copyBtn">复制全文</button>
+    <button class="btn btn-secondary" id="downloadBtn">下载TXT</button>
+  </div>
+</div>
+
+<div class="result-section" id="resultSection">
+  <h2 style="font-size:1.1rem;color:#f1f5f9;margin-bottom:12px">协议预览</h2>
+  <div class="preview-box" id="resultPreview" style="background:#fff;color:#1a1a1a"></div>
+</div>
+
 <div class="info-section">
   <h2>使用教程</h2>
   <p>选择NDA类型（单向/双向），填写披露方和接收方信息、保密内容描述、保密期限等，自动生成完整保密协议</p>
@@ -130,6 +180,125 @@ a{color:#06b6d4;text-decoration:none}
 </div>
 <div class="toast" id="toast"></div>
 </div>
+
+<script>
+(function(){
+  var ndaType='unilateral';
+  var opts=document.querySelectorAll('#ndaType .template-opt');
+  opts.forEach(function(opt){
+    opt.addEventListener('click',function(){
+      opts.forEach(function(o){o.classList.remove('active')});
+      this.classList.add('active');
+      ndaType=this.dataset.type;
+    });
+  });
+  var today=new Date();
+  document.getElementById('signDate').value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+
+  function showToast(msg){
+    var t=document.getElementById('toast');
+    t.textContent=msg;t.classList.add('show');
+    setTimeout(function(){t.classList.remove('show')},2000);
+  }
+
+  function generateNDA(){
+    var dp=document.getElementById('disclosingParty').value.trim()||'【披露方】';
+    var rp=document.getElementById('receivingParty').value.trim()||'【接收方】';
+    var sd=document.getElementById('signDate').value||'【签署日期】';
+    var dur=parseInt(document.getElementById('duration').value)||3;
+    var loc=document.getElementById('signLocation').value.trim()||'【签署地点】';
+    var ci=document.getElementById('confidentialInfo').value.trim()||'【保密信息范围】';
+    var ei=document.getElementById('excludedInfo').value.trim()||'【除外信息】';
+    var title=ndaType==='mutual'?'双向保密协议':'保密协议';
+    var partyDesc=ndaType==='mutual'?
+      '双方（以下合称"双方"，单独称"一方"）在此互为披露方和接收方。':
+      '甲方（披露方）：'+dp+'\n乙方（接收方）：'+rp;
+    var obligations=ndaType==='mutual'?
+      '双方均承诺对从对方获得的保密信息承担保密义务。未经披露方书面同意，接收方不得向任何第三方披露、公开或使用对方的保密信息。':
+      '乙方承诺对甲方披露的保密信息承担保密义务。未经甲方书面同意，乙方不得向任何第三方披露、公开或使用该保密信息。';
+
+    var text='';
+    text+='                  '+title+'\n';
+    text+='═'.repeat(50)+'\n\n';
+    text+='签署日期：'+sd+'\n';
+    text+='签署地点：'+loc+'\n\n';
+    text+='一、协议方\n';
+    text+='─'.repeat(40)+'\n';
+    if(ndaType==='mutual'){
+      text+='甲方：'+dp+'\n';
+      text+='乙方：'+rp+'\n';
+      text+=partyDesc+'\n';
+    }else{
+      text+=partyDesc+'\n';
+    }
+    text+='\n二、保密信息定义\n';
+    text+='─'.repeat(40)+'\n';
+    text+='保密信息是指'+(ndaType==='mutual'?'任何一方':'甲方')+'向'+(ndaType==='mutual'?'对方':'乙方')+'披露的以下信息：\n';
+    var ciLines=ci.split(/[；;\n]/).filter(function(s){return s.trim()});
+    ciLines.forEach(function(line,i){text+='  '+(i+1)+'. '+line.trim()+'\n'});
+    text+='\n三、除外信息\n';
+    text+='─'.repeat(40)+'\n';
+    text+='以下信息不属于保密信息，不适用本协议：\n';
+    var eiLines=ei.split(/[；;\n]/).filter(function(s){return s.trim()});
+    eiLines.forEach(function(line,i){text+='  '+(i+1)+'. '+line.trim()+'\n'});
+    text+='\n四、保密义务\n';
+    text+='─'.repeat(40)+'\n';
+    text+=obligations+'\n\n';
+    text+='接收方应采取与保护自身同等重要信息相同的谨慎程度来保护保密信息，至少采取合理措施防止未经授权的披露、使用或复制。\n\n';
+    text+='五、保密期限\n';
+    text+='─'.repeat(40)+'\n';
+    text+='本协议自签署之日起生效，保密期限为'+dur+'年。保密期限届满后，接收方的保密义务随之终止，但法律另有规定的除外。\n\n';
+    text+='六、违约责任\n';
+    text+='─'.repeat(40)+'\n';
+    text+='如接收方违反本协议约定，应向披露方承担违约责任，赔偿因此给披露方造成的全部直接和间接损失，包括但不限于利润损失、律师费、诉讼费等。\n\n';
+    text+='七、信息返还\n';
+    text+='─'.repeat(40)+'\n';
+    text+='应披露方要求，接收方应在'+(ndaType==='mutual'?'对方':'甲方')+'提出要求后十(10)个工作日内返还或销毁所有保密信息及其副本，并书面确认销毁情况。\n\n';
+    text+='八、适用法律与争议解决\n';
+    text+='─'.repeat(40)+'\n';
+    text+='本协议适用中华人民共和国法律。因本协议引起的或与之相关的任何争议，双方应首先协商解决；协商不成的，任何一方可向'+loc+'有管辖权的人民法院提起诉讼。\n\n';
+    text+='九、其他条款\n';
+    text+='─'.repeat(40)+'\n';
+    text+='1. 本协议未尽事宜，双方可另行签订补充协议，补充协议与本协议具有同等法律效力。\n';
+    text+='2. 本协议一式两份，双方各执一份，具有同等法律效力。\n';
+    text+='3. 本协议自双方签字（盖章）之日起生效。\n\n';
+    text+='═'.repeat(50)+'\n\n';
+    text+=dp+'（签字/盖章）          '+rp+'（签字/盖章）\n\n';
+    text+='日期：'+sd+'              日期：'+sd+'\n\n';
+    text+='─'.repeat(50)+'\n';
+    text+='※ 本协议由保密协议生成器自动生成，仅供参考，不构成法律建议。\n';
+    text+='※ 正式使用前建议由专业律师审核。\n';
+
+    document.getElementById('resultPreview').textContent=text;
+    document.getElementById('resultSection').classList.add('show');
+    document.getElementById('resultSection').scrollIntoView({behavior:'smooth'});
+    showToast('协议已生成');
+    return text;
+  }
+
+  document.getElementById('generateBtn').addEventListener('click',generateNDA);
+  document.getElementById('copyBtn').addEventListener('click',function(){
+    var text=document.getElementById('resultPreview').textContent;
+    if(!text){showToast('请先生成协议');return}
+    navigator.clipboard.writeText(text).then(function(){showToast('已复制到剪贴板')}).catch(function(){
+      var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');showToast('已复制到剪贴板')}catch(e){showToast('复制失败')}
+      document.body.removeChild(ta);
+    });
+  });
+  document.getElementById('downloadBtn').addEventListener('click',function(){
+    var text=document.getElementById('resultPreview').textContent;
+    if(!text){showToast('请先生成协议');return}
+    var blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='保密协议_'+(ndaType==='mutual'?'双向':'单向')+'.txt';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('文件已下载');
+  });
+})();
+</script>
 
 </body>
 </html>

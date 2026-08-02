@@ -105,6 +105,70 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">Home</a> &rsaquo; <a href="../index.html#tools">Tools</a> &rsaquo; Remove Duplicates Tool</p>
 <div class="hero"><p>Free online remove duplicates tool. Deduplicate by line, keep first/last, ignore blanks, case-sensitive. Clean duplicate text lines fast. | No registration · Pure frontend</p><span class="badge">Zero dependencies · Works offline</span></div>
 
+<div class="input-section">
+  <h2>Input Text</h2>
+  <div class="input-group" style="margin-bottom:12px">
+    <textarea id="inputText" placeholder="Paste text to deduplicate, one item per line..." style="min-height:180px">apple
+banana
+apple
+cherry
+banana
+date
+cherry
+elderberry
+date
+fig</textarea>
+  </div>
+  <div class="input-row">
+    <div class="input-group">
+      <label>Keep Order</label>
+      <select id="keepOrder">
+        <option value="first">Keep First Occurrence</option>
+        <option value="last">Keep Last Occurrence</option>
+        <option value="sort">Sort Output</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label>Case Sensitivity</label>
+      <select id="caseSensitive">
+        <option value="true">Case Sensitive</option>
+        <option value="false">Case Insensitive</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label>Empty Lines</label>
+      <select id="trimEmpty">
+        <option value="true">Remove Empty Lines</option>
+        <option value="false">Keep Empty Lines</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label>Whitespace</label>
+      <select id="trimMode">
+        <option value="none">No Trimming</option>
+        <option value="trim" selected>Trim Start/End</option>
+        <option value="all">Remove All Whitespace</option>
+      </select>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="processBtn">Deduplicate</button>
+    <button class="btn btn-secondary" id="copyBtn">Copy Result</button>
+    <button class="btn btn-secondary" id="clearBtn">Clear</button>
+  </div>
+</div>
+
+<div class="result-section" id="resultSection">
+  <h2 style="font-size:1.1rem;color:#f1f5f9;margin-bottom:12px">Result</h2>
+  <div class="stat-row" style="margin-bottom:16px">
+    <div class="stat-item"><div class="num" id="statOriginal">0</div><div class="lbl">Original Lines</div></div>
+    <div class="stat-item"><div class="num" id="statUnique">0</div><div class="lbl">Unique Lines</div></div>
+    <div class="stat-item"><div class="num" id="statRemoved">0</div><div class="lbl">Duplicates Removed</div></div>
+    <div class="stat-item"><div class="num" id="statRate">0%</div><div class="lbl">Removal Rate</div></div>
+  </div>
+  <textarea id="resultText" readonly style="width:100%;min-height:180px;padding:12px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;font-size:.9rem;font-family:monospace;resize:vertical"></textarea>
+</div>
+
 <div class="info-section">
   <h2>Tutorial</h2>
   <p>Paste text into the input box, select dedup options (keep first/last, ignore blanks, case-sensitive), click dedup to get cleaned text</p>
@@ -134,13 +198,110 @@ a{color:#06b6d4;text-decoration:none}
 </div>
 <div class="toast" id="toast"></div>
 
-<!-- auto-injected minimal interaction -->
-<div style="margin-top:16px;padding:16px;background:rgba(99,102,241,.06);border:1px dashed rgba(99,102,241,.2);border-radius:8px">
-  <input type="text" id="quickInput" placeholder="Type something..." style="padding:8px 12px;border:1px solid rgba(148,163,184,.3);border-radius:6px;background:rgba(15,23,42,.6);color:#e2e8f0;width:200px;font-size:.9rem;margin-right:8px">
-  <button onclick="document.getElementById('quickResult').textContent='You typed: '+document.getElementById('quickInput').value||'Try typing something!'" style="padding:8px 16px;background:#22d3ee;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">Try It</button>
-  <button onclick="navigator.clipboard.writeText(document.getElementById('quickResult').textContent)" style="padding:8px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;font-size:.8rem;margin-left:8px">📋 Copy</button>
-  <div id="quickResult" style="margin-top:12px;color:#94a3b8;font-size:.9rem;min-height:1.5em"></div>
-</div>
+<script>
+(function(){
+  function showToast(msg){
+    var t=document.getElementById('toast');
+    t.textContent=msg;t.classList.add('show');
+    setTimeout(function(){t.classList.remove('show')},2000);
+  }
+
+  function processText(){
+    var input=document.getElementById('inputText').value;
+    var keepOrder=document.getElementById('keepOrder').value;
+    var caseSensitive=document.getElementById('caseSensitive').value==='true';
+    var trimEmpty=document.getElementById('trimEmpty').value==='true';
+    var trimMode=document.getElementById('trimMode').value;
+    var lines=input.split('\n');
+    var originalCount=lines.length;
+
+    function cleanLine(line){
+      if(trimMode==='trim')return line.trim();
+      if(trimMode==='all')return line.replace(/\s/g,'');
+      return line;
+    }
+
+    if(trimEmpty){
+      lines=lines.filter(function(l){return cleanLine(l).length>0});
+    }
+
+    var seen={};
+    var result=[];
+    if(keepOrder==='first'){
+      lines.forEach(function(line){
+        var key=cleanLine(line);
+        var cmpKey=caseSensitive?key:key.toLowerCase();
+        if(!seen[cmpKey]){
+          seen[cmpKey]=true;
+          result.push(line);
+        }
+      });
+    }else if(keepOrder==='last'){
+      var lastMap={};
+      lines.forEach(function(line,idx){
+        var key=cleanLine(line);
+        var cmpKey=caseSensitive?key:key.toLowerCase();
+        lastMap[cmpKey]=idx;
+      });
+      var usedKeys={};
+      lines.forEach(function(line,idx){
+        var key=cleanLine(line);
+        var cmpKey=caseSensitive?key:key.toLowerCase();
+        if(lastMap[cmpKey]===idx&&!usedKeys[cmpKey]){
+          usedKeys[cmpKey]=true;
+          result.push(line);
+        }
+      });
+    }else if(keepOrder==='sort'){
+      var uniqueLines=[];
+      var seen2={};
+      lines.forEach(function(line){
+        var key=cleanLine(line);
+        var cmpKey=caseSensitive?key:key.toLowerCase();
+        if(!seen2[cmpKey]){
+          seen2[cmpKey]=true;
+          uniqueLines.push(line);
+        }
+      });
+      uniqueLines.sort(function(a,b){
+        var ka=cleanLine(a),kb=cleanLine(b);
+        return caseSensitive?ka.localeCompare(kb):ka.toLowerCase().localeCompare(kb.toLowerCase());
+      });
+      result=uniqueLines;
+    }
+
+    var uniqueCount=result.length;
+    var removedCount=originalCount-uniqueCount;
+    var rate=originalCount>0?Math.round(removedCount/originalCount*100):0;
+    var output=result.join('\n');
+
+    document.getElementById('resultText').value=output;
+    document.getElementById('statOriginal').textContent=originalCount;
+    document.getElementById('statUnique').textContent=uniqueCount;
+    document.getElementById('statRemoved').textContent=removedCount;
+    document.getElementById('statRate').textContent=rate+'%';
+    document.getElementById('resultSection').classList.add('show');
+    showToast('Done! Removed '+removedCount+' duplicates');
+  }
+
+  document.getElementById('processBtn').addEventListener('click',processText);
+  document.getElementById('copyBtn').addEventListener('click',function(){
+    var text=document.getElementById('resultText').value;
+    if(!text){showToast('Please run dedup first');return}
+    navigator.clipboard.writeText(text).then(function(){showToast('Copied to clipboard')}).catch(function(){
+      var ta=document.getElementById('resultText');ta.select();
+      try{document.execCommand('copy');showToast('Copied to clipboard')}catch(e){showToast('Copy failed')}
+    });
+  });
+  document.getElementById('clearBtn').addEventListener('click',function(){
+    document.getElementById('inputText').value='';
+    document.getElementById('resultText').value='';
+    document.getElementById('resultSection').classList.remove('show');
+    showToast('Cleared');
+  });
+  processText();
+})();
+</script>
 
 </body>
 </html>
