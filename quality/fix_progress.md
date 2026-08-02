@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第二十七批 - EN版假交互空壳全部清零)
+> 最后更新: 2026-08-03 (cron自动更新 - 第二十八批 - EN版假交互残留区域批量清零)
 
 ## 当前真实问题
 
@@ -9,7 +9,7 @@
 | 空壳工具(0交互+0JS) | 40+ | 42 | 0 | ✅ 完成 | check_empty_shells.py + 精确过滤 |
 | 模板空壳(toolInput stub) | 4 | 4 | 0 | ✅ 完成 | check_empty_shells.py 模板空壳检测 |
 | EN版模板空壳(process未定义) | 23 | 23 | 0 | ✅ 完成 | grep toolInput + process() 未定义检测 |
-| EN版假交互空壳(quickInput) | 12 | 12 | 0 | ✅ 完成 | grep quickInput + 无业务函数检测 |
+| EN版假交互空壳(quickInput) | 224 | 224 | 0 | ✅ 完成 | grep quickInput + 无业务函数检测 |
 
 ## EN版假交互空壳清单(0个剩余 - 全部清零)
 
@@ -149,6 +149,10 @@ coin-flipper, curl-to-code, email-security-checker
 ### 2026-08-03 (第二十七批 - EN版假交互空壳全部清零)
 favicon-downloader, social-share-generator, gif-tools
 注: 三个工具修复，EN版假交互空壳全部清零。favicon-downloader EN版完整重写(域名输入→Google Favicon API/DuckDuckGo/直接favicon.ico多源获取→img预览+下载按钮)，替换quickInput假交互和严重损坏的HTML(CSS和body混在一起、标签未闭合、related-tools脚本截断代码)，同时清理CN版损坏的星级评分JS残留(catch(e){}后混入不完整的star rating逻辑导致语法错误)；social-share-generator CN/EN版均添加完整分享链接生成器(8平台选择Twitter/Facebook/LinkedIn/WhatsApp/Telegram/Reddit/Email/Copy+URL/标题/描述输入→encodeURIComponent生成各平台分享链接+复制到剪贴板+直接打开分享页)，替换CN版损坏的related-tools脚本截断代码和EN版quickInput假交互；gif-tools EN版移除quickInput假交互(该页面是GIF工具集合索引页，链接到8个子工具gif-to-video/gif-resizer/gif-maker/gif-compressor/gif-to-webp/mp4-to-gif/video-to-gif/webp-to-gif，本身不需要工具交互逻辑)。所有4个含JS文件语法验证通过，EN版假交互空壳从3降到0，12个全部清零。
+
+### 2026-08-03 (第二十八批 - EN版假交互残留区域批量清零)
+全站212个EN版页面
+注: 发现212个EN版工具页面含有auto-injected假交互区域(quickInput/quickResult)，按钮只回显"You typed: xxx"无真实业务逻辑。其中大部分页面已有真实功能(如area-calculator有calculate函数、daily-horoscope有getHoroscope事件、paragraph-counter有段落统计逻辑)，假交互区是模板生成时残留的无用代码；少数页面(如text-effects-tools)是工具集合索引页不需要交互。用remove_fake_interaction.py批量删除所有<!-- auto-injected minimal interaction -->注释+整个div块，212个EN文件全部清理完毕。同时提交之前未提交的CN版})(;语法修复(audio-joiner/breadcrumb-generator/cbor-encoder等10个文件)。验证：'You typed:'→0, 'auto-injected'→0, 'quickInput'→0, 'Generated at'→0, div标签平衡性未受影响(假交互块2开2闭删除不改变平衡)。
 
 ## 检测说明
 1. `check_empty_shells.py` 检测0交互工具（258个，含重定向页面+分类页面+动态UI工具）
