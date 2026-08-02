@@ -13,16 +13,23 @@
 
 ---
 
-## P0: 49个Failing URLs — 诊断完成
+## P0: 49个Failing URLs — 根因确认+首页已修复
 
-### 状态：全部返回HTTP 200，meta/robots均正常
-已验证所有Failing URLs（首页、tax-calculator、checksum-calculator、business-days-calculator等）：
-- HTTP 200 ✓
-- meta robots: index,follow ✓
-- meta description: 120-160字符 ✓
-- body背景: #0f172a深色 ✓
+### 根因：首页纯JS渲染，Google爬虫看不到任何内容
+- 首页`<div id="toolsGrid"></div>`完全由JS动态填充
+- curl静态HTML只有6个`<a href>`（全是导航链接）
+- Google爬虫看到的是空壳页面 → 标记为Failing URL
+- 工具页面也存在同样问题（关键内容可能JS动态生成）
 
-**结论**：Google报告的Failing可能是历史性问题（爬取时临时不可用或之前的浅色背景/meta过短问题）。建议在GSC手动请求重新索引。
+### ✅ 首页修复 (commit `804854f6`)
+- 在`<noscript>`中预渲染34个分类的162个工具链接
+- 添加 `scripts/add_static_links.py` 自动生成脚本
+- Google爬虫现在能看到完整的内部链接结构
+- 需要等GSC重新爬取后验证效果
+
+### ⏳ 待处理
+- 工具页面也需要检查JS渲染依赖（逐个排查49个Failing URL）
+- GSC手动请求重新索引首页
 
 ---
 
