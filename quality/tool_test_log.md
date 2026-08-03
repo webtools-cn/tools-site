@@ -73,3 +73,31 @@
 - **代码异味**: 第410行有冗余 `window.resetSub = resetSub;` (不影响功能,暂不修复)
 - **Kimi WebBridge**: 升级至v1.11.5 ✅
 - **状态**: ✅ 通过
+
+## text-reverser - 2026-08-03 (R6)
+- **AI引用**: 67次 (31.8%), 排名 #6
+- **测试方式**: Kimi WebBridge浏览器实测（CN+EN双版本）
+- **CN版测试结果**:
+  - 发现**致命bug**: 线上`reverseText()`是stub，只显示"reverseText - coming soon!"
+  - 线上`setMode()`也是stub（不切换模式）
+  - `clearAll()`使用了错误的选择器和innerHTML
+  - `swapText()`使用了不存在的通用选择器
+  - **根本原因**: 线上HTML中第6个script块是通用stub模板，覆盖了本地完整实现的函数
+  - 本地源码已有完整修复（git diff显示从stub→完整实现的patch）
+- **EN版测试结果**:
+  - 字符倒序: "Hello World 😊" → "😊 dlroW olleH" ✅
+  - 行倒序: "Line 1/2/3" → "Line 3/2/1" ✅  
+  - 单词倒序: "Line 1" → "1 Line" ✅
+  - 深色主题: #0f172a ✅
+  - 无中文残留（仅语言按钮有"中文"）✅
+  - 统计功能正常（Chars/Words/Lines）✅
+  - Console无JS错误 ✅
+- **修复内容**: 恢复所有核心函数的完整实现
+  - reverseText: 三种模式 + Unicode + 统计
+  - setMode: 真实切换逻辑 + 按钮active状态
+  - clearAll: reset复选框checked状态
+  - copyResult: clipboard.writeText
+  - resultToInput: 正确的DOM引用
+  - swapText: 正确的DOM引用
+- **提交**: `fix(text-reverser): 修复CN版stub函数，恢复完整reverseText实现`
+- **状态**: ✅ 已修复并推送
