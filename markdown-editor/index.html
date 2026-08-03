@@ -274,30 +274,205 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === Markdown Editor 核心实现 ===
+var previewDark = true;
+
+function getEditor() {
+  return document.getElementById('editor') || document.getElementById('input') || document.querySelector('textarea');
+}
+
+function getPreview() {
+  return document.getElementById('preview') || document.getElementById('output') || document.getElementById('result');
+}
+
+function insertText(before, after) {
+  after = after || '';
+  var ed = getEditor();
+  if (!ed) { showToast('编辑器未找到'); return; }
+  var start = ed.selectionStart;
+  var end = ed.selectionEnd;
+  var text = ed.value;
+  var selected = text.substring(start, end);
+  var replacement = before + selected + after;
+  ed.value = text.substring(0, start) + replacement + text.substring(end);
+  ed.focus();
+  if (selected.length === 0) {
+    ed.selectionStart = ed.selectionEnd = start + before.length;
+  } else {
+    ed.selectionStart = start;
+    ed.selectionEnd = start + replacement.length;
+  }
+  renderMarkdownPreview();
+  updateStats();
+}
+
+// 简易Markdown→HTML渲染器
+function renderMarkdown(md) {
+  if (!md) {
+    var ed = getEditor();
+    md = ed ? ed.value : '';
+  }
+  var html = md;
+  // 转义HTML
+  html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // 代码块 (```...```)
+  html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, function(m, lang, code) {
+    return '<pre><code class="lang-' + lang + '">' + code.replace(/\n$/, '') + '</code></pre>';
+  });
+  // 行内代码
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // 标题
+  html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
+  html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
+  html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
+  html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
+  // 分割线
+  html = html.replace(/^---+$/gm, '<hr>');
+  html = html.replace(/^\*\*\*+$/gm, '<hr>');
+  // 引用
+  html = html.replace(/^&gt;\s?(.+)$/gm, '<blockquote><p>$1</p></blockquote>');
+  // 任务列表
+  html = html.replace(/^[-*]\s+\[x\]\s+(.+)$/gim, '<li style="list-style:none">☑ $1</li>');
+  html = html.replace(/^[-*]\s+\[\s\]\s+(.+)$/gim, '<li style="list-style:none">☐ $1</li>');
+  // 有序列表
+  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+  // 无序列表
+  html = html.replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>');
+  // 表格
+  html = html.replace(/^\|(.+)\|$/gm, function(m, content) {
+    if (content.indexOf('---') >= 0) return ''; // 分隔行
+    var cells = content.split('|').map(function(c) { return c.trim(); });
+    if (cells[0] === '') cells.shift();
+    if (cells[cells.length - 1] === '') cells.pop();
+    var isHeader = false;
+    var row = cells.map(function(c) { return '<td>' + c + '</td>'; }).join('');
+    return '<tr>' + row + '</tr>';
+  });
+  // 连续tr包装为table
+  html = html.replace(/((?:<tr>[\s\S]*?<\/tr>\s*)+)/g, function(m, rows) {
+    return '<table>' + rows + '</table>';
+  });
+  // 连续li包装为ul
+  html = html.replace(/((?:<li>[\s\S]*?<\/li>\s*)+)/g, function(m, items) {
+    return '<ul>' + items + '</ul>';
+  });
+  // 粗体+斜体
+  html = html.replace(/\*\*\*([^\*]+)\*\*\*/g, '<strong><em>$1</em></strong>');
+  // 粗体
+  html = html.replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  // 斜体
+  html = html.replace(/\*([^\*]+)\*/g, '<em>$1</em>');
+  html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
+  // 删除线
+  html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+  // 图片
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
+  // 链接
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  // 段落（连续非标签行）
+  html = html.replace(/^(?!<[hupoltibd])(.+)$/gm, function(m, line) {
+    if (line.trim() === '') return '';
+    return '<p>' + line + '</p>';
+  });
+  // 清理多余空行
+  html = html.replace(/\n{3,}/g, '\n\n');
+  return html.trim();
+}
+
+function renderMarkdownPreview() {
+  var ed = getEditor();
+  var pv = getPreview();
+  if (!ed || !pv) return;
+  pv.innerHTML = renderMarkdown(ed.value);
+}
+
+function updateStats() {
+  var ed = getEditor();
+  if (!ed) return;
+  var text = ed.value;
+  var chars = text.length;
+  var words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  var lines = text ? text.split('\n').length : 0;
+  var el = document.getElementById('charCount');
+  if (el) el.textContent = '字符: ' + chars;
+  el = document.getElementById('wordCount');
+  if (el) el.textContent = '字数: ' + words;
+  el = document.getElementById('lineCount');
+  if (el) el.textContent = '行数: ' + lines;
+}
+
 function clearEditor() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  var ed = getEditor();
+  if (ed) ed.value = '';
+  var pv = getPreview();
+  if (pv) pv.innerHTML = '';
+  updateStats();
+  showToast('已清空');
 }
 
 function copyHTML() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var pv = getPreview();
+  if (!pv) { showToast('预览区未找到'); return; }
+  var html = pv.innerHTML;
+  if (!html.trim()) { showToast('没有内容可复制'); return; }
+  navigator.clipboard.writeText(html).then(function() {
+    showToast('HTML已复制到剪贴板');
+  }).catch(function() {
+    showToast('复制失败');
+  });
 }
 
 function exportHTML() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;var blob=new Blob([el.textContent||el.innerText],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.json';a.click();showToast('Exported!');
-}
-
-function insertText() {
-  showToast('insertText - coming soon!');
+  var pv = getPreview();
+  if (!pv) { showToast('预览区未找到'); return; }
+  var bodyContent = pv.innerHTML;
+  if (!bodyContent.trim()) { showToast('没有内容可导出'); return; }
+  var fullHTML = '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>Markdown导出</title>\n<style>body{max-width:800px;margin:40px auto;padding:20px;font-family:sans-serif;line-height:1.7}pre{background:#f4f4f4;padding:12px;border-radius:6px;overflow-x:auto}code{background:#e8e8e8;padding:2px 6px;border-radius:3px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px}blockquote{border-left:4px solid #4F46E5;margin:0;padding:8px 16px;background:#f8f8f8}</style>\n</head>\n<body>\n' + bodyContent + '\n</body>\n</html>';
+  var blob = new Blob([fullHTML], { type: 'text/html' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'markdown-export.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('HTML文件已导出');
 }
 
 function loadSample() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
+  var ed = getEditor();
+  if (!ed) return;
+  ed.value = '# Markdown 编辑器示例\n\n欢迎来到 **在线Markdown编辑器**！这是一个功能完整的Markdown编辑工具。\n\n## 功能特性\n\n- ✅ 实时预览渲染\n- ✅ 工具栏快捷插入\n- ✅ 一键复制HTML\n- ✅ 导出HTML文件\n- ✅ 字数统计\n\n### 代码示例\n\n```javascript\nfunction hello() {\n  console.log("Hello, Markdown!");\n}\n```\n\n### 表格示例\n\n| 工具 | 功能 | 状态 |\n| --- | --- | --- |\n| 编辑器 | 输入Markdown | ✅ |\n| 预览 | 实时渲染 | ✅ |\n| 导出 | HTML文件 | ✅ |\n\n> **提示：** 选中文字后点击工具栏按钮可以快速添加格式。\n\n---\n\n[了解更多](https://free-toolbase.com)';
+  renderMarkdownPreview();
+  updateStats();
+  showToast('示例已加载');
 }
 
 function togglePreviewTheme() {
-  showToast('Toggled!');
+  var pv = getPreview();
+  if (!pv) return;
+  previewDark = !previewDark;
+  if (previewDark) {
+    pv.style.background = '#0f172a';
+    pv.style.color = '#e2e8f0';
+  } else {
+    pv.style.background = '#ffffff';
+    pv.style.color = '#1a1a1a';
+  }
+  showToast(previewDark ? '已切换为深色预览' : '已切换为浅色预览');
 }
+
+// 初始化：绑定editor输入事件
+(function() {
+  var ed = getEditor();
+  if (ed) {
+    ed.addEventListener('input', function() {
+      renderMarkdownPreview();
+      updateStats();
+    });
+  }
+})();
 </script>
 </body>
 </html>

@@ -200,18 +200,127 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === Timeline Maker 核心实现 ===
+var tlEvents = [];
+
 function addEvent() {
-  showToast('addEvent - coming soon!');
+  var date = document.getElementById('tlDate').value.trim();
+  var label = document.getElementById('tlLabel').value.trim();
+  if (!date || !label) {
+    showToast('请输入日期和事件标题');
+    return;
+  }
+  var desc = document.getElementById('tlDesc').value.trim();
+  var color = document.getElementById('tlColor').value;
+  tlEvents.push({ date: date, label: label, desc: desc, color: color });
+  document.getElementById('tlDate').value = '';
+  document.getElementById('tlLabel').value = '';
+  document.getElementById('tlDesc').value = '';
+  renderTimeline();
+  showToast('事件已添加');
+}
+
+function renderTimeline() {
+  var preview = document.getElementById('timelinePreview');
+  var listEl = document.getElementById('tlEventList');
+  if (!preview) return;
+
+  var title = document.getElementById('tlTitle').value || '时间轴';
+  
+  if (tlEvents.length === 0) {
+    preview.innerHTML = '<p style="color:#64748b;text-align:center;padding:40px 0">暂无事件，请在上方添加事件</p>';
+    if (listEl) listEl.innerHTML = '';
+    return;
+  }
+
+  // 渲染时间轴可视化
+  var html = '<div style="position:relative;padding:20px 0">';
+  // 垂直线
+  html += '<div style="position:absolute;left:50%;top:0;bottom:0;width:2px;background:rgba(148,163,184,.3);transform:translateX(-50%)"></div>';
+  
+  for (var i = 0; i < tlEvents.length; i++) {
+    var ev = tlEvents[i];
+    var isLeft = i % 2 === 0;
+    var side = isLeft ? 'right' : 'left';
+    var marginSide = isLeft ? 'margin-right' : 'margin-left';
+    
+    html += '<div style="position:relative;display:flex;justify-content:' + (isLeft ? 'flex-start' : 'flex-end') + ';margin-bottom:24px">';
+    html += '<div style="width:45%;' + marginSide + ':55%;text-align:' + (isLeft ? 'right' : 'left') + '">';
+    html += '<div style="background:#1e293b;border:1px solid ' + ev.color + ';border-radius:8px;padding:12px 16px;display:inline-block;max-width:100%">';
+    html += '<div style="font-size:.8rem;color:' + ev.color + ';font-weight:600;margin-bottom:4px">' + escapeHtml(ev.date) + '</div>';
+    html += '<div style="font-size:.95rem;color:#f1f5f9;font-weight:600;margin-bottom:4px">' + escapeHtml(ev.label) + '</div>';
+    if (ev.desc) {
+      html += '<div style="font-size:.82rem;color:#94a3b8">' + escapeHtml(ev.desc) + '</div>';
+    }
+    html += '</div>';
+    html += '</div>';
+    // 圆点
+    html += '<div style="position:absolute;left:50%;top:12px;width:14px;height:14px;background:' + ev.color + ';border:2px solid #0f172a;border-radius:50%;transform:translateX(-50%);z-index:1"></div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  preview.innerHTML = html;
+
+  // 渲染事件列表
+  if (listEl) {
+    var listHtml = '';
+    for (var j = 0; j < tlEvents.length; j++) {
+      var e = tlEvents[j];
+      listHtml += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#1e293b;border-radius:6px;margin-bottom:6px">';
+      listHtml += '<div style="width:10px;height:10px;border-radius:50%;background:' + e.color + ';flex-shrink:0"></div>';
+      listHtml += '<span style="color:#94a3b8;font-size:.85rem;min-width:80px">' + escapeHtml(e.date) + '</span>';
+      listHtml += '<span style="color:#e2e8f0;font-size:.9rem">' + escapeHtml(e.label) + '</span>';
+      listHtml += '<button onclick="removeEvent(' + j + ')" style="margin-left:auto;background:none;border:none;color:#f87171;cursor:pointer;font-size:1rem">✖</button>';
+      listHtml += '</div>';
+    }
+    listEl.innerHTML = listHtml;
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function removeEvent(idx) {
+  if (idx < 0 || idx >= tlEvents.length) return;
+  tlEvents.splice(idx, 1);
+  renderTimeline();
+  showToast('事件已删除');
 }
 
 function clearEvents() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  tlEvents = [];
+  renderTimeline();
+  showToast('已清空');
 }
 
 function exportTimeline() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;var blob=new Blob([el.textContent||el.innerText],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.json';a.click();showToast('Exported!');
+  if (tlEvents.length === 0) {
+    showToast('没有事件可导出');
+    return;
+  }
+  var title = document.getElementById('tlTitle').value || '时间轴';
+  // 导出为JSON
+  var data = { title: title, events: tlEvents };
+  var json = JSON.stringify(data, null, 2);
+  var blob = new Blob([json], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'timeline.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('时间轴已导出为JSON');
 }
+
+// 标题变化时更新预览
+(function() {
+  var titleInput = document.getElementById('tlTitle');
+  if (titleInput) {
+    titleInput.addEventListener('input', renderTimeline);
+  }
+  renderTimeline();
+})();
 </script>
 </body>
 </html>

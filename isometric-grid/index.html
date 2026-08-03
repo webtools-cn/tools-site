@@ -242,14 +242,115 @@ window.open("https://github.com/webtools-cn/tools-site/issues/new?title="+title+
 document.getElementById("feedback-success").style.display="block";
 }
 
-// === 重写的函数实现 ===
-function downloadGrid() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Grid.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+// === Isometric Grid Generator 核心实现 ===
+function updateGrid() {
+  var canvas = document.getElementById('gridCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  
+  var w = parseInt(document.getElementById('canvasWidth').value) || 800;
+  var h = parseInt(document.getElementById('canvasHeight').value) || 600;
+  canvas.width = w;
+  canvas.height = h;
+  
+  var cellSize = parseInt(document.getElementById('cellSize').value) || 40;
+  var lineWidth = parseInt(document.getElementById('lineWidth').value) || 1;
+  var opacity = parseInt(document.getElementById('lineOpacity').value) / 100;
+  var lineColor = document.getElementById('lineColor').value;
+  var bgColor = document.getElementById('bgColor').value;
+  var showGuides = document.getElementById('showGuides').checked;
+  
+  // Update labels
+  var lbl = document.getElementById('cellSizeLabel');
+  if (lbl) lbl.textContent = cellSize + 'px';
+  lbl = document.getElementById('lineWidthLabel');
+  if (lbl) lbl.textContent = lineWidth + 'px';
+  lbl = document.getElementById('opacityLabel');
+  if (lbl) lbl.textContent = Math.round(opacity * 100) + '%';
+  
+  // Fill background
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, w, h);
+  
+  // Parse color to rgba
+  var r = parseInt(lineColor.slice(1, 3), 16);
+  var g = parseInt(lineColor.slice(3, 5), 16);
+  var b = parseInt(lineColor.slice(5, 7), 16);
+  var strokeStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + opacity + ')';
+  
+  ctx.strokeStyle = strokeStyle;
+  ctx.lineWidth = lineWidth;
+  
+  // Isometric grid: three sets of lines at 30° angles
+  // Line set 1: going down-right (30° from horizontal)
+  // Line set 2: going down-left (30° from horizontal)  
+  // Line set 3: vertical
+  
+  var halfCell = cellSize / 2;
+  var tan30 = Math.tan(Math.PI / 6); // ~0.577
+  
+  // Calculate how many lines we need
+  var maxLines = Math.ceil((w + h) / cellSize) + 4;
+  
+  // Line set 1: diagonal going down-right
+  for (var i = -maxLines; i <= maxLines; i++) {
+    var startX = i * cellSize;
+    ctx.beginPath();
+    ctx.moveTo(startX, 0);
+    ctx.lineTo(startX + h * tan30, h);
+    ctx.stroke();
+  }
+  
+  // Line set 2: diagonal going down-left
+  for (var j = -maxLines; j <= maxLines; j++) {
+    var startX2 = j * cellSize;
+    ctx.beginPath();
+    ctx.moveTo(startX2, 0);
+    ctx.lineTo(startX2 - h * tan30, h);
+    ctx.stroke();
+  }
+  
+  // Line set 3: vertical lines
+  for (var k = 0; k <= w; k += cellSize) {
+    ctx.beginPath();
+    ctx.moveTo(k, 0);
+    ctx.lineTo(k, h);
+    ctx.stroke();
+  }
+  
+  // Center guides
+  if (showGuides) {
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+    ctx.lineWidth = lineWidth + 1;
+    ctx.setLineDash([5, 5]);
+    // Horizontal center
+    ctx.beginPath();
+    ctx.moveTo(0, h / 2);
+    ctx.lineTo(w, h / 2);
+    ctx.stroke();
+    // Vertical center
+    ctx.beginPath();
+    ctx.moveTo(w / 2, 0);
+    ctx.lineTo(w / 2, h);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
 }
 
-function updateGrid() {
-  showToast('updateGrid - coming soon!');
+function downloadGrid() {
+  var canvas = document.getElementById('gridCanvas');
+  if (!canvas) { showToast('画布未找到'); return; }
+  var a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'isometric-grid.png';
+  a.click();
+  showToast('PNG已下载');
 }
+
+// 初始化
+(function() {
+  updateGrid();
+})();
 </script>
 </body>
 </html>

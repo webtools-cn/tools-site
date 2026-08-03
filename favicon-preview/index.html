@@ -171,22 +171,102 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function handleFile(e) {
-  var file = e.target.files[0];
+// === Favicon Preview 核心实现 ===
+var currentIconUrl = null;
+var currentFileName = '';
+var currentFileSize = 0;
+
+function handleFile(file) {
   if (!file) return;
+  currentFileName = file.name;
+  currentFileSize = file.size;
   var reader = new FileReader();
   reader.onload = function(ev) {
-    var rid = 'previewArea';
-    var el = document.getElementById(rid);
-    if (el) el.textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
-    showToast('文件已加载: ' + file.name);
+    currentIconUrl = ev.target.result;
+    showPreview();
+    showToast('图标已加载: ' + file.name);
   };
-  reader.readAsText(file);
+  reader.readAsDataURL(file);
 }
 
-function setBgMode() {
-  showToast('setBgMode - coming soon!');
+function setBgMode(mode) {
+  // Update button states
+  var btns = document.querySelectorAll('#bgSwitch button');
+  btns.forEach(function(b) { b.classList.remove('active'); });
+  event.target.classList.add('active');
+  
+  if (!currentIconUrl) return;
+  showPreview(mode);
+}
+
+function showPreview(mode) {
+  mode = mode || 'light';
+  var previewArea = document.getElementById('previewArea');
+  var previewGrid = document.getElementById('previewGrid');
+  var tabPreviews = document.getElementById('tabPreviews');
+  var iconInfo = document.getElementById('iconInfo');
+  if (!previewArea || !previewGrid) return;
+  
+  previewArea.style.display = 'block';
+  
+  // Background colors
+  var lightBg = '#ffffff';
+  var darkBg = '#1a1a1a';
+  
+  var sizes = [16, 32, 48, 64, 128, 180];
+  var gridHtml = '';
+  
+  if (mode === 'both') {
+    // Show both backgrounds
+    gridHtml += '<div style="margin-bottom:16px"><h4 style="color:#94a3b8;font-size:.85rem;margin-bottom:8px">☀️ 亮色背景</h4><div style="display:flex;gap:20px;flex-wrap:wrap;align-items:end;background:' + lightBg + ';padding:16px;border-radius:8px">';
+    sizes.forEach(function(s) {
+      gridHtml += '<div style="text-align:center"><img src="' + currentIconUrl + '" style="width:' + s + 'px;height:' + s + 'px;image-rendering:pixelated" alt="' + s + 'px"><div style="color:#666;font-size:.7rem;margin-top:4px">' + s + 'px</div></div>';
+    });
+    gridHtml += '</div></div>';
+    gridHtml += '<div><h4 style="color:#94a3b8;font-size:.85rem;margin-bottom:8px">🌙 暗色背景</h4><div style="display:flex;gap:20px;flex-wrap:wrap;align-items:end;background:' + darkBg + ';padding:16px;border-radius:8px">';
+    sizes.forEach(function(s) {
+      gridHtml += '<div style="text-align:center"><img src="' + currentIconUrl + '" style="width:' + s + 'px;height:' + s + 'px;image-rendering:pixelated" alt="' + s + 'px"><div style="color:#999;font-size:.7rem;margin-top:4px">' + s + 'px</div></div>';
+    });
+    gridHtml += '</div></div>';
+  } else {
+    var bg = mode === 'dark' ? darkBg : lightBg;
+    var labelColor = mode === 'dark' ? '#999' : '#666';
+    gridHtml = '<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:end;background:' + bg + ';padding:16px;border-radius:8px">';
+    sizes.forEach(function(s) {
+      gridHtml += '<div style="text-align:center"><img src="' + currentIconUrl + '" style="width:' + s + 'px;height:' + s + 'px;image-rendering:pixelated" alt="' + s + 'px"><div style="color:' + labelColor + ';font-size:.7rem;margin-top:4px">' + s + 'px</div></div>';
+    });
+    gridHtml += '</div>';
+  }
+  previewGrid.innerHTML = gridHtml;
+  
+  // Browser tab simulation
+  if (tabPreviews) {
+    var tabBg = mode === 'dark' ? '#2d2d2d' : '#e8e8e8';
+    var tabText = mode === 'dark' ? '#ddd' : '#333';
+    var tabHtml = '';
+    // Light tab
+    tabHtml += '<div style="display:flex;align-items:center;gap:8px;background:#e8e8e8;padding:8px 16px;border-radius:8px 8px 0 0;max-width:300px">';
+    tabHtml += '<img src="' + currentIconUrl + '" style="width:16px;height:16px" alt="favicon">';
+    tabHtml += '<span style="color:#333;font-size:.82rem">' + (currentFileName.replace(/\.[^.]+$/, '') || '网站标题') + '</span>';
+    tabHtml += '<span style="margin-left:auto;color:#999;font-size:1rem">✕</span>';
+    tabHtml += '</div>';
+    // Dark tab
+    tabHtml += '<div style="display:flex;align-items:center;gap:8px;background:#2d2d2d;padding:8px 16px;border-radius:8px 8px 0 0;max-width:300px">';
+    tabHtml += '<img src="' + currentIconUrl + '" style="width:16px;height:16px" alt="favicon">';
+    tabHtml += '<span style="color:#ddd;font-size:.82rem">' + (currentFileName.replace(/\.[^.]+$/, '') || '网站标题') + '</span>';
+    tabHtml += '<span style="margin-left:auto;color:#666;font-size:1rem">✕</span>';
+    tabHtml += '</div>';
+    tabPreviews.innerHTML = tabHtml;
+  }
+  
+  // Icon info
+  if (iconInfo) {
+    var ext = currentFileName.split('.').pop().toUpperCase();
+    iconInfo.innerHTML = '<div>文件名: <strong style="color:#e2e8f0">' + currentFileName + '</strong></div>' +
+      '<div>文件大小: <strong style="color:#e2e8f0">' + (currentFileSize / 1024).toFixed(1) + ' KB</strong></div>' +
+      '<div>文件类型: <strong style="color:#e2e8f0">' + ext + '</strong></div>' +
+      '<div>预览尺寸: <strong style="color:#e2e8f0">16px ~ 180px</strong></div>';
+  }
 }
 </script>
 </body>

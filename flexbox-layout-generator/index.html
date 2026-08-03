@@ -216,27 +216,159 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none'}
 
-// === 重写的函数实现 ===
-function copyCode() {
-  var text = document.getElementById('previewContainer').innerText || document.getElementById('previewContainer').textContent;
-  if (!text) { showToast('没有可复制的内容'); return; }
-  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
+// === Flexbox Layout Generator 核心实现 ===
+var flexItems = [];
+
+function initFlexItems() {
+  var count = parseInt(document.getElementById('itemCount').value) || 4;
+  flexItems = [];
+  for (var i = 0; i < count; i++) {
+    flexItems.push({ grow: 0, shrink: 1, basis: 'auto', alignSelf: 'auto' });
+  }
+  updateSelectedItemDropdown();
 }
 
-function loadItemProps() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
-}
-
-function updateItemProp() {
-  showToast('updateItemProp - coming soon!');
+function updateSelectedItemDropdown() {
+  var sel = document.getElementById('selectedItem');
+  if (!sel) return;
+  var current = sel.value;
+  sel.innerHTML = '';
+  for (var i = 0; i < flexItems.length; i++) {
+    var opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = '子元素 ' + (i + 1);
+    sel.appendChild(opt);
+  }
+  sel.value = current || 0;
 }
 
 function updatePreview() {
-  var el = document.getElementById('previewContainer');
-  if (!el) return;
-  el.style.display = 'block';
-  showToast('预览已更新');
+  var container = document.getElementById('previewContainer');
+  if (!container) return;
+  
+  var count = parseInt(document.getElementById('itemCount').value) || 4;
+  if (flexItems.length !== count) {
+    if (flexItems.length < count) {
+      while (flexItems.length < count) {
+        flexItems.push({ grow: 0, shrink: 1, basis: 'auto', alignSelf: 'auto' });
+      }
+    } else {
+      flexItems = flexItems.slice(0, count);
+    }
+    updateSelectedItemDropdown();
+  }
+
+  var direction = document.getElementById('direction').value;
+  var justify = document.getElementById('justify').value;
+  var alignItems = document.getElementById('alignItems').value;
+  var flexWrap = document.getElementById('flexWrap').value;
+  var gap = document.getElementById('gap').value;
+
+  container.style.display = 'flex';
+  container.style.flexDirection = direction;
+  container.style.justifyContent = justify;
+  container.style.alignItems = alignItems;
+  container.style.flexWrap = flexWrap;
+  container.style.gap = gap + 'px';
+
+  container.innerHTML = '';
+  for (var i = 0; i < count; i++) {
+    var item = document.createElement('div');
+    item.className = 'flex-item';
+    item.textContent = (i + 1);
+    item.style.flexGrow = flexItems[i].grow;
+    item.style.flexShrink = flexItems[i].shrink;
+    item.style.flexBasis = flexItems[i].basis;
+    if (flexItems[i].alignSelf !== 'auto') {
+      item.style.alignSelf = flexItems[i].alignSelf;
+    } else {
+      item.style.alignSelf = '';
+    }
+    container.appendChild(item);
+  }
+
+  updateCode();
 }
+
+function loadItemProps() {
+  var sel = document.getElementById('selectedItem');
+  if (!sel) return;
+  var idx = parseInt(sel.value) || 0;
+  if (idx < 0 || idx >= flexItems.length) return;
+  var item = flexItems[idx];
+  document.getElementById('itemGrow').value = item.grow;
+  document.getElementById('itemShrink').value = item.shrink;
+  document.getElementById('itemBasis').value = item.basis;
+  document.getElementById('itemAlignSelf').value = item.alignSelf;
+}
+
+function updateItemProp() {
+  var sel = document.getElementById('selectedItem');
+  if (!sel) return;
+  var idx = parseInt(sel.value) || 0;
+  if (idx < 0 || idx >= flexItems.length) return;
+  flexItems[idx].grow = parseInt(document.getElementById('itemGrow').value) || 0;
+  flexItems[idx].shrink = parseInt(document.getElementById('itemShrink').value) || 0;
+  flexItems[idx].basis = document.getElementById('itemBasis').value;
+  flexItems[idx].alignSelf = document.getElementById('itemAlignSelf').value;
+  updatePreview();
+}
+
+function updateCode() {
+  var codeBox = document.getElementById('codeOutput');
+  if (!codeBox) return;
+
+  var direction = document.getElementById('direction').value;
+  var justify = document.getElementById('justify').value;
+  var alignItems = document.getElementById('alignItems').value;
+  var flexWrap = document.getElementById('flexWrap').value;
+  var gap = document.getElementById('gap').value;
+
+  var css = '.container {\n';
+  css += '  display: flex;\n';
+  css += '  flex-direction: ' + direction + ';\n';
+  css += '  justify-content: ' + justify + ';\n';
+  css += '  align-items: ' + alignItems + ';\n';
+  css += '  flex-wrap: ' + flexWrap + ';\n';
+  css += '  gap: ' + gap + 'px;\n';
+  css += '}\n\n';
+
+  var hasCustomProps = false;
+  for (var i = 0; i < flexItems.length; i++) {
+    var item = flexItems[i];
+    if (item.grow !== 0 || item.shrink !== 1 || item.basis !== 'auto' || item.alignSelf !== 'auto') {
+      hasCustomProps = true;
+      css += '.item-' + (i + 1) + ' {\n';
+      if (item.grow !== 0) css += '  flex-grow: ' + item.grow + ';\n';
+      if (item.shrink !== 1) css += '  flex-shrink: ' + item.shrink + ';\n';
+      if (item.basis !== 'auto') css += '  flex-basis: ' + item.basis + ';\n';
+      if (item.alignSelf !== 'auto') css += '  align-self: ' + item.alignSelf + ';\n';
+      css += '}\n';
+    }
+  }
+
+  codeBox.textContent = css;
+}
+
+function copyCode() {
+  var codeBox = document.getElementById('codeOutput');
+  if (!codeBox || !codeBox.textContent.trim()) {
+    showToast('没有可复制的代码');
+    return;
+  }
+  navigator.clipboard.writeText(codeBox.textContent).then(function() {
+    showToast('CSS代码已复制');
+  }).catch(function() {
+    showToast('复制失败');
+  });
+}
+
+// 初始化
+(function() {
+  initFlexItems();
+  updatePreview();
+  loadItemProps();
+})();
 </script>
 </body>
 </html>

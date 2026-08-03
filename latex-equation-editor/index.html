@@ -182,24 +182,183 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === LaTeX Equation Editor 核心实现 ===
+function renderLatex() {
+  var input = document.getElementById('latexInput');
+  var preview = document.getElementById('previewArea');
+  if (!input || !preview) return;
+  var latex = input.value.trim();
+  if (!latex) { preview.innerHTML = '<span style="color:#64748b">请输入LaTeX公式</span>'; return; }
+  
+  var html = latexToHtml(latex);
+  preview.innerHTML = '<span style="font-size:1.6rem;color:#e2e8f0;font-family:Georgia,serif">' + html + '</span>';
+  showToast('已渲染');
+}
+
+function latexToHtml(latex) {
+  var s = latex;
+  // Escape HTML first
+  s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  
+  // Greek letters
+  var greek = { '\\alpha': 'α', '\\beta': 'β', '\\gamma': 'γ', '\\delta': 'δ', '\\epsilon': 'ε',
+    '\\zeta': 'ζ', '\\eta': 'η', '\\theta': 'θ', '\\iota': 'ι', '\\kappa': 'κ',
+    '\\lambda': 'λ', '\\mu': 'μ', '\\nu': 'ν', '\\xi': 'ξ', '\\pi': 'π',
+    '\\rho': 'ρ', '\\sigma': 'σ', '\\tau': 'τ', '\\upsilon': 'υ', '\\phi': 'φ',
+    '\\chi': 'χ', '\\psi': 'ψ', '\\omega': 'ω',
+    '\\Gamma': 'Γ', '\\Delta': 'Δ', '\\Theta': 'Θ', '\\Lambda': 'Λ',
+    '\\Xi': 'Ξ', '\\Pi': 'Π', '\\Sigma': 'Σ', '\\Phi': 'Φ', '\\Psi': 'Ψ', '\\Omega': 'Ω' };
+  for (var key in greek) {
+    s = s.split(key).join(greek[key]);
+  }
+  
+  // Operators
+  s = s.split('\\pm').join('±');
+  s = s.split('\\mp').join('∓');
+  s = s.split('\\times').join('×');
+  s = s.split('\\div').join('÷');
+  s = s.split('\\cdot').join('·');
+  s = s.split('\\infty').join('∞');
+  s = s.split('\\partial').join('∂');
+  s = s.split('\\nabla').join('∇');
+  s = s.split('\\leq').join('≤');
+  s = s.split('\\geq').join('≥');
+  s = s.split('\\neq').join('≠');
+  s = s.split('\\approx').join('≈');
+  s = s.split('\\equiv').join('≡');
+  s = s.split('\\propto').join('∝');
+  s = s.split('\\to').join('→');
+  s = s.split('\\rightarrow').join('→');
+  s = s.split('\\leftarrow').join('←');
+  s = s.split('\\Rightarrow').join('⇒');
+  s = s.split('\\Leftarrow').join('⇐');
+  s = s.split('\\forall').join('∀');
+  s = s.split('\\exists').join('∃');
+  s = s.split('\\in').join('∈');
+  s = s.split('\\notin').join('∉');
+  s = s.split('\\subset').join('⊂');
+  s = s.split('\\supset').join('⊃');
+  s = s.split('\\cup').join('∪');
+  s = s.split('\\cap').join('∩');
+  s = s.split('\\emptyset').join('∅');
+  s = s.split('\\circ').join('∘');
+  s = s.split('\\angle').join('∠');
+  s = s.split('\\perp').join('⊥');
+  s = s.split('\\parallel').join('∥');
+  
+  // \frac{a}{b} → a/b (with formatting)
+  s = s.replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, '<span style="display:inline-block;vertical-align:middle;text-align:center"><span style="display:block;border-bottom:1px solid currentColor;padding:0 4px">$1</span><span style="display:block;padding:0 4px">$2</span></span>');
+  
+  // \sqrt{x} → √x̄
+  s = s.replace(/\\sqrt\{([^{}]*)\}/g, '√<span style="text-decoration:overline">$1</span>');
+  s = s.replace(/\\sqrt\[(\d+)\]\{([^{}]*)\}/g, '<sup>$1</sup>√<span style="text-decoration:overline">$2</span>');
+  
+  // \sum_{i=1}^{n} → Σ with limits
+  s = s.replace(/\\sum_\{([^{}]*)\}\^\{([^{}]*)\}/g, '<span style="display:inline-block;vertical-align:middle;text-align:center;font-size:1.3em"><span style="display:block;font-size:.65em;line-height:1">$2</span>Σ<span style="display:block;font-size:.65em;line-height:1">$1</span></span>');
+  s = s.replace(/\\sum_\{([^{}]*)\}/g, '<span style="display:inline-block;vertical-align:middle;text-align:center;font-size:1.3em">Σ<span style="display:block;font-size:.65em;line-height:1">$1</span></span>');
+  s = s.replace(/\\sum/g, 'Σ');
+  
+  // \int_{a}^{b} → ∫ with limits
+  s = s.replace(/\\int_\{([^{}]*)\}\^\{([^{}]*)\}/g, '<span style="display:inline-block;vertical-align:middle;text-align:center;font-size:1.4em"><span style="display:block;font-size:.6em;line-height:1">$2</span>∫<span style="display:block;font-size:.6em;line-height:1">$1</span></span>');
+  s = s.replace(/\\int/g, '∫');
+  
+  // \lim_{x \to 0}
+  s = s.replace(/\\lim_\{([^{}]*)\}/g, 'lim<span style="display:inline-block;vertical-align:sub;font-size:.7em">$1</span>');
+  
+  // \prod
+  s = s.replace(/\\prod_\{([^{}]*)\}\^\{([^{}]*)\}/g, '<span style="display:inline-block;vertical-align:middle;text-align:center;font-size:1.3em"><span style="display:block;font-size:.65em;line-height:1">$2</span>∏<span style="display:block;font-size:.65em;line-height:1">$1</span></span>');
+  s = s.replace(/\\prod/g, '∏');
+  
+  // Superscript/subscript: x^{...} and x_{...}
+  s = s.replace(/\^\{([^{}]*)\}/g, '<sup>$1</sup>');
+  s = s.replace(/_\{([^{}]*)\}/g, '<sub>$1</sub>');
+  s = s.replace(/\^(\S)/g, '<sup>$1</sup>');
+  s = s.replace(/_(\S)/g, '<sub>$1</sub>');
+  
+  // \, and \; (thin/thick space)
+  s = s.split('\\,').join(' ').split('\\;').join('&nbsp;').split('\\!').join('').split('\\quad').join('&nbsp;&nbsp;&nbsp;&nbsp;');
+  
+  // Matrix: \begin{bmatrix} a & b \\ c & d \end{bmatrix}
+  s = s.replace(/\\begin\{bmatrix\}([\s\S]*?)\\end\{bmatrix\}/g, function(m, content) {
+    var rows = content.trim().split('\\\\').filter(function(r) { return r.trim(); });
+    var html = '<span style="display:inline-block;vertical-align:middle;border-left:2px solid currentColor;border-right:2px solid currentColor;padding:2px 6px"><table style="border-collapse:collapse;text-align:center">';
+    rows.forEach(function(row) {
+      var cells = row.trim().split('&').map(function(c) { return c.trim(); });
+      html += '<tr>';
+      cells.forEach(function(c) { html += '<td style="padding:2px 8px">' + c + '</td>'; });
+      html += '</tr>';
+    });
+    html += '</table></span>';
+    return html;
+  });
+  
+  // Cases: \begin{cases} ... \end{cases}
+  s = s.replace(/\\begin\{cases\}([\s\S]*?)\\end\{cases\}/g, function(m, content) {
+    var rows = content.trim().split('\\\\').filter(function(r) { return r.trim(); });
+    var html = '<span style="display:inline-block;vertical-align:middle;border-left:2px solid currentColor;padding:2px 8px"><table style="border-collapse:collapse">';
+    rows.forEach(function(row) {
+      var parts = row.trim().split('&').map(function(c) { return c.trim(); });
+      html += '<tr>';
+      parts.forEach(function(p) { html += '<td style="padding:2px 8px">' + p + '</td>'; });
+      html += '</tr>';
+    });
+    html += '</table></span>';
+    return html;
+  });
+  
+  // Remove remaining backslash commands
+  s = s.replace(/\\text\{([^}]*)\}/g, '$1');
+  s = s.replace(/\\mathrm\{([^}]*)\}/g, '$1');
+  s = s.replace(/\\mathbb\{([^}]*)\}/g, '$1');
+  s = s.replace(/\\left/g, '').replace(/\\right/g, '');
+  s = s.replace(/\\displaystyle/g, '');
+  s = s.replace(/\\,/g, ' ');
+  s = s.replace(/\\;/g, ' ');
+  
+  // Clean up $$ wrappers
+  s = s.replace(/^\$\$(.*)\$\$$/, '$1');
+  s = s.replace(/^\$(.*)\$$/, '$1');
+  
+  return s;
+}
+
+function insertTemplate(tmpl) {
+  var input = document.getElementById('latexInput');
+  if (!input) return;
+  input.value = tmpl;
+  renderLatex();
+  showToast('模板已插入');
+}
+
 function copyLatex() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var input = document.getElementById('latexInput');
+  if (!input || !input.value.trim()) { showToast('没有可复制的代码'); return; }
+  navigator.clipboard.writeText(input.value).then(function() {
+    showToast('LaTeX代码已复制');
+  }).catch(function() {
+    showToast('复制失败');
+  });
 }
 
 function copySVG() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var preview = document.getElementById('previewArea');
+  if (!preview || !preview.innerHTML.trim()) { showToast('没有可复制的内容'); return; }
+  // Copy the HTML representation
+  navigator.clipboard.writeText(preview.innerHTML).then(function() {
+    showToast('HTML已复制（SVG不可用）');
+  }).catch(function() {
+    showToast('复制失败');
+  });
 }
 
-function insertTemplate() {
-  showToast('insertTemplate - coming soon!');
-}
-
-function renderLatex() {
-  var el = document.getElementById('previewArea');
-  if (el) el.style.display = 'block';
-  showToast('已更新');
-}
+// 初始化：实时渲染
+(function() {
+  var input = document.getElementById('latexInput');
+  if (input) {
+    input.addEventListener('input', renderLatex);
+    renderLatex();
+  }
+})();
 </script>
 </body>
 </html>
