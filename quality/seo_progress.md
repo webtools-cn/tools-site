@@ -1,6 +1,6 @@
 # SEO修复进度报告
 
-> 最后更新: 2026-08-03 16:30
+> 最后更新: 2026-08-03 18:00
 
 ## ✅ P0: 全站Canonical URL修复 — 重大突破 (commit `04962b7625`)
 
@@ -204,6 +204,32 @@
 ### 剩余空壳
 约228个CN页面含"coming soon" stub函数待修复（本轮修复10个工具，commit `0bc6ad17ab`）。全部通过node语法校验+WebBridge浏览器实测（css-border-radius-generator/code-compare/css-divider-generator/css-ribbon-generator/sql-where-builder抽样验证通过）。
 
+### 第七轮修复 (commit `5f54655f41`)
+- **markdown-editor**: 完整Markdown→HTML渲染器(标题/粗体/斜体/代码块/引用/列表/表格/链接/图片/分割线)
+  - 实时预览渲染+工具栏快捷插入(选中文字包裹格式)
+  - 字数/字符/行数统计+复制HTML+导出HTML文件+加载示例
+  - 预览背景深/浅色切换
+- **flexbox-layout-generator**: Flexbox可视化布局生成器
+  - 容器属性(方向/对齐/换行/间距)+子元素属性(grow/shrink/basis/align-self)
+  - 实时预览布局效果+自动生成CSS代码+一键复制
+  - 子元素数量动态调节(1-12个)
+- **kubernetes-yaml-generator**: 删除stub覆盖(模式2:真实实现被stub覆盖)
+  - 真实实现(window.generate等)已完整,被后面的stub覆盖导致不可用
+  - 删除stub后Deployment/Service/ConfigMap/Secret/Ingress YAML生成恢复
+- **timeline-maker**: 时间轴生成器完整实现
+  - 事件添加(日期/标题/描述/颜色)+垂直时间线可视化渲染
+  - 事件列表管理(删除单个/清空全部)+JSON导出
+- **isometric-grid**: Canvas等距网格绘制
+  - 三组30°等距线+垂直线+中心辅助线
+  - 颜色/间距/粗细/透明度/画布尺寸调节+PNG下载
+- **favicon-preview**: Favicon预览工具
+  - 图标上传(PNG/ICO/SVG)+6种尺寸预览(16-180px)
+  - 亮色/暗色/对比三种背景模式+浏览器标签页模拟+图标信息展示
+- **latex-equation-editor**: 纯JS LaTeX→HTML渲染器(不依赖KaTeX/MathJax)
+  - 希腊字母(40+)+数学运算符(30+)
+  - 分数/根式/求和/积分/极限/乘积/矩阵/方程组渲染
+  - 7个常用公式模板+实时预览+复制LaTeX代码
+
 ### 根因模式总结
 批量脚本注入的stub函数有两种覆盖模式：
 1. **stub在前，真实实现在后**：stub被真实实现覆盖，功能正常但检测器标记为空壳（roman-numeral/csv-transposer）
@@ -243,10 +269,14 @@
 
 ---
 
-## P1: 浅色背景 — 已全部修复
+## P1: 浅色背景 — 已全部修复（含分类页）
 
-- CN 0个 + EN 0个 page body浅色背景
+- CN 0个 + EN 0个 工具页body浅色背景
 - 全部使用 `background:#0f172a` 深色主题 ✓
+- **分类页修复 (commit `5f54655f41`)**: 34个分类页(tools/*/和en/tools/*/)深色主题
+  - body背景#f8fafc→#0f172a, 卡片#fff→#1e293b, 边框#e5e7eb→#334155
+  - 文字色适配: #475569→#cbd5e1, #64748b→#94a3b8
+  - 脚本: `scripts/fix_category_dark_theme.py`
 
 ---
 
