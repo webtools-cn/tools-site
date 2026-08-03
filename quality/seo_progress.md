@@ -202,7 +202,31 @@
 - 统计面板显示新增/删除行数
 
 ### 剩余空壳
-约115个CN页面含"coming soon" stub函数待修复（本轮修复54个工具，commit `c2c2dccf46`）。全部通过node语法校验。
+约96个CN页面含"coming soon" stub函数待修复（本轮修复19个工具）。
+
+### 第十一轮修复 (commit `bbca917db7`, `ed0057a81d`)
+**实现完整功能（18个工具）**:
+- **csv-transpose**: CSV行列转置+复制下载
+- **csv-splitter**: CSV按行数/文件数分割+多文件下载
+- **csv-diff**: CSV差异对比+筛选+HTML报告导出
+- **sleep-calculator**: 90分钟睡眠周期计算(就寝/起床双模式+周期选择器)
+- **color-harmony**: 6种配色规则(HSL算法)+色板+复制+随机
+- **palette-generator**: 6种配色模式+色卡+随机+HEX/RGB显示
+- **priority-matrix**: 艾森豪威尔矩阵(localStorage持久化+象限切换)
+- **budget-planner**: 预算管理+支出记录+进度条+超支预警(localStorage)
+- **electricity-calculator**: 多电器电费计算(日/月/年)
+- **vcf-generator**: VCF联系人生成+下载+修复generateVCF语法bug
+- **yaml-diff**: YAML行级差异对比
+- **yaml-path-finder**: YAML路径列表+路径查询
+- **yaml-formatter**: JSON↔YAML双向转换
+- **dotenv-editor**: .env解析+表格编辑+多格式导出(dotenv/json/yaml)
+- **rss-feed-generator**: RSS频道+条目管理+XML生成+下载
+- **table-generator**: 可编辑表格+Markdown/HTML预览+行列增删
+- **interval-timer**: HIIT间歇计时器+声音提示+4种预设方案
+- **tailwind-gradient**: 渐变生成器(线性/径向/锥形)+色标管理+随机
+
+**简单修复**:
+- **json-mock-generator**: 全选/取消全选字段功能修复
 
 ### 第十轮修复 (commit `c2c2dccf46`)
 **实现完整功能（12个工具）**:
