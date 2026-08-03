@@ -198,3 +198,69 @@ HTML标签不匹配导致Google爬虫无法正确解析页面DOM结构，可能�
 - [ ] 在GSC中请求重新索引49个failing URLs
 - [ ] 检查英文版工具是否有类似功能缺失
 - [ ] 持续监控GSC索引状态
+
+## 2026-08-04: 全站添加<main>语义化标签 (P0)
+
+### 问题
+- GSC报告49个URL索引失败（failing）
+- 之前已修复div不匹配、meta description、JS语法等问题
+- 深度检查发现**所有17个failing URLs都缺少`<main>`语义化标签**
+- 全站6827个页面中6104个（89%）缺少`<main>`标签
+
+### 根因分析
+页面使用`<div class="container">`包裹主要内容，没有使用HTML5语义化的`<main>`标签。
+Google爬虫依赖语义化HTML理解页面结构，缺少`<main>`标签可能导致：
+1. 页面主要内容区域无法被正确识别
+2. 页面被标记为低质量/failing
+3. 结构化数据无法被正确关联到页面主内容
+
+### 修复内容
+
+#### 1. 首批36个failing URLs + 首页 + 英文首页
+- 将`<div class="container">`替换为`<main class="container">`
+- 对应闭合`</div>`替换为`</main>`
+- 使用div平衡算法精确定位闭合标签
+
+#### 2. 全站批量修复5774个页面
+- 使用scripts/add_main_tag.py脚本
+- 同上策略：container div → main标签
+- 验证：随机抽样10个页面，main标签1/1，div平衡0，全部通过
+
+#### 3. 21个特殊结构页面修复
+- 这些页面有预存的div不平衡问题（脚本无法自动找到匹配闭合标签）
+- 使用回溯法在footer前找到最后一个</div>替换为</main>
+- 修复div不平衡：14个页面添加缺失</div>，7个页面移除多余</div>
+
+#### 4. 5个页面JS语法错误修复（预存问题）
+- en/loan-payoff-calculator: copyLPResult函数多余的)))
+- en/markdown-to-slack: setTimeout缺少), convert(;)→convert();
+- en/unicode-lookup: initCategories(;)→initCategories();
+- xml-to-csv-converter: downloadCSV函数多余的)
+- json-to-erlang: copyResult函数.textContent;)→.textContent);}
+
+### 验证结果
+- 全站6533/6827页面已有main标签 (95.7%)
+- 剩余294个：273个是迁移占位页（无需修复），21个已单独修复
+- 49个GSC failing URLs: 全部有main标签 ✅
+- 首页+英文首页: main标签已添加 ✅
+- 线上验证: 首页/tax-calculator/speed-test 均返回main标签 ✅
+- JS语法检查: 全部通过 ✅
+- git push: 3次提交全部成功 ✅
+
+### 当前状态汇总
+| 问题 | 状态 |
+|:-----|:-----|
+| P0: 49个Failing URLs - div不匹配 | ✅ 已修复 |
+| P0: 49个Failing URLs - 缺少main标签 | ✅ 已修复 |
+| P0: Meta Description偏短 | ✅ 已修复 |
+| P0: HTML引号缺失（4个EN页面）| ✅ 已修复 |
+| P1: robots标签问题 | ✅ 已确认全部OK |
+| P1: 浅色背景页面 | ✅ 已全部修复 |
+| P1: 空壳工具（62个中文） | ✅ 已全部修复 |
+| P1: 5个页面JS语法错误 | ✅ 已修复 |
+
+### 下一步
+- [ ] 在GSC中请求重新索引49个failing URLs
+- [ ] 持续监控GSC索引状态
+- [ ] 检查273个迁移占位页是否需要noindex
+- [ ] 检查英文版工具是否有类似功能缺失
