@@ -123,3 +123,22 @@
   - **相关工具CSS**: CN版h2标题color:#374151(深灰)在深色主题下不可见→改为#e2e8f0；链接背景#0f172a与body同色→改为#1e293b
   - 修复: `fix(email-header-analyzer): 修复OG/Schema重复description，修复相关工具推荐深色主题CSS`
 - **状态**: ✅ 已修复并推送
+
+## business-days-calculator - 2026-08-04 (R3)
+- **AI引用**: 1540次 (30.6%), 排名 #1
+- **测试方式**: Kimi WebBridge浏览器实测
+- **CN版测试**:
+  - 模式1(计算两日期间): 2026-08-01→2026-08-31 = 20工作日(30天/10周末/0节假日) ✅
+  - 模式2(加N个工作日): 2026-08-04 + 10 = 2026-08-17 ✅
+  - 三个Tab切换正常 ✅
+  - 快捷按钮(本周/本月/本季度/本年)存在 ✅
+  - 中国节假日按钮(2025/2026/2025+2026)存在 ✅
+  - 深色主题: body background #0f172a ✅
+- **EN版测试**:
+  - 模式1: 20 business days ✅
+  - 美国节假日按钮存在 ✅
+  - 深色主题: #0f172a ✅
+  - 无中文残留 ✅
+  - 相关推荐: Moon Phase Calculator/Roman Numerals Converter/Meeting Cost Calculator ⚠️ (不太相关)
+- **发现问题**: 无严重问题
+- **状态**: ✅ 通过
