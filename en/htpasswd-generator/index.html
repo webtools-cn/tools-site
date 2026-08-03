@@ -275,20 +275,136 @@ input:focus,select:focus{border-color:rgba(6,182,212,.5)}
     s.innerHTML = h;
   }).catch(function() { s.innerHTML = ''; });
 
-// === Implementation ===
-function copyResult() {
-  var text = document.getElementById('result').innerText;
-  if (!text) { showToast('Nothing to copy'); return; }
-  copyText(text);
+// Base64 encode ArrayBuffer
+function bufToB64(buf){
+  var bytes=new Uint8Array(buf);
+  var bin='';
+  for(var i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
+  return btoa(bin);
 }
 
-function generate() {
-  var input = document.getElementById('username').value;
-  if (!input.trim()) { showToast('Please enter data'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('Done');
+function genSalt(len){
+  var arr=new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return bufToB64(arr.buffer).substring(0,len);
+}
+
+function md5cycle(x,k){var a=x[0],b=x[1],c=x[2],d=x[3];a=ff(a,b,c,d,k[0],7,-680876936);d=ff(d,a,b,c,k[1],12,-389564586);c=ff(c,d,a,b,k[2],17,606105819);b=ff(b,c,d,a,k[3],22,-1044525330);a=ff(a,b,c,d,k[4],7,-176418897);d=ff(d,a,b,c,k[5],12,1200080426);c=ff(c,d,a,b,k[6],17,-1473231341);b=ff(b,c,d,a,k[7],22,-45705983);a=ff(a,b,c,d,k[8],7,1770035416);d=ff(d,a,b,c,k[9],12,-1958414417);c=ff(c,d,a,b,k[10],17,-42063);b=ff(b,c,d,a,k[11],22,-1990404162);a=ff(a,b,c,d,k[12],7,1804603682);d=ff(d,a,b,c,k[13],12,-40341101);c=ff(c,d,a,b,k[14],17,-1502002290);b=ff(b,c,d,a,k[15],22,1236535329);a=gg(a,b,c,d,k[1],5,-165796510);d=gg(d,a,b,c,k[6],9,-1069501632);c=gg(c,d,a,b,k[11],14,643717713);b=gg(b,c,d,a,k[0],20,-373897302);a=gg(a,b,c,d,k[5],5,-701558691);d=gg(d,a,b,c,k[10],9,38016083);c=gg(c,d,a,b,k[15],14,-660478335);b=gg(b,c,d,a,k[4],20,-405537848);a=gg(a,b,c,d,k[9],5,568446438);d=gg(d,a,b,c,k[14],9,-1019803690);c=gg(c,d,a,b,k[3],14,-187363961);b=gg(b,c,d,a,k[8],20,1163531501);a=gg(a,b,c,d,k[13],5,-1444681467);d=gg(d,a,b,c,k[2],9,-51403784);c=gg(c,d,a,b,k[7],14,1735328473);b=gg(b,c,d,a,k[12],20,-1926607734);a=hh(a,b,c,d,k[5],4,-378558);d=hh(d,a,b,c,k[8],11,-2022574463);c=hh(c,d,a,b,k[11],16,1839030562);b=hh(b,c,d,a,k[14],23,-35309556);a=hh(a,b,c,d,k[1],4,-1530992060);d=hh(d,a,b,c,k[4],11,1272893353);c=hh(c,d,a,b,k[7],16,-155497632);b=hh(b,c,d,a,k[10],23,-1094730640);a=hh(a,b,c,d,k[13],4,681279174);d=hh(d,a,b,c,k[0],11,-358537222);c=hh(c,d,a,b,k[3],16,-722521979);b=hh(b,c,d,a,k[6],23,76029189);a=hh(a,b,c,d,k[9],4,-640364487);d=hh(d,a,b,c,k[12],11,-421815835);c=hh(c,d,a,b,k[15],16,530742520);b=hh(b,c,d,a,k[2],23,-995338651);a=ii(a,b,c,d,k[0],6,-198630844);d=ii(d,a,b,c,k[7],10,1126891415);c=ii(c,d,a,b,k[14],15,-1416354905);b=ii(b,c,d,a,k[5],21,-57434055);a=ii(a,b,c,d,k[12],6,1700485571);d=ii(d,a,b,c,k[3],10,-1894986606);c=ii(c,d,a,b,k[10],15,-1051523);b=ii(b,c,d,a,k[1],21,-2054922799);a=ii(a,b,c,d,k[8],6,1873313359);d=ii(d,a,b,c,k[15],10,-30611744);c=ii(c,d,a,b,k[6],15,-1560198380);b=ii(b,c,d,a,k[13],21,1309151649);a=ii(a,b,c,d,k[4],6,-145523070);d=ii(d,a,b,c,k[11],10,-1120210379);c=ii(c,d,a,b,k[2],15,718787259);b=ii(b,c,d,a,k[9],21,-343485551);x[0]=add32(a,x[0]);x[1]=add32(b,x[1]);x[2]=add32(c,x[2]);x[3]=add32(d,x[3]);}
+function cmn(q,a,b,x,s,t){a=add32(a,add32(add32(q,x),t));return add32((a<<s)|(a>>>(32-s)),b);}
+function ff(a,b,c,d,x,s,t){return cmn((b&c)|((~b)&d),a,b,x,s,t);}
+function gg(a,b,c,d,x,s,t){return cmn((b&d)|(c&(~d)),a,b,x,s,t);}
+function hh(a,b,c,d,x,s,t){return cmn(b^c^d,a,b,x,s,t);}
+function ii(a,b,c,d,x,s,t){return cmn(c^(b|(~d)),a,b,x,s,t);}
+function md51(s){var n=s.length,state=[1732584193,-271733879,-1732584194,271733878],i;for(i=64;i<=s.length;i+=64){md5cycle(state,md5blk(s.substring(i-64,i)));}s=s.substring(i-64);var tail=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];for(i=0;i<s.length;i++)tail[i>>2]|=s.charCodeAt(i)<<((i%4)<<3);tail[i>>2]|=0x80<<((i%4)<<3);if(i>55){md5cycle(state,tail);for(i=0;i<16;i++)tail[i]=0;}tail[14]=n*8;md5cycle(state,tail);return state;}
+function md5blk(s){var md5blks=[],i;for(i=0;i<64;i+=4){md5blks[i>>2]=s.charCodeAt(i)+(s.charCodeAt(i+1)<<8)+(s.charCodeAt(i+2)<<16)+(s.charCodeAt(i+3)<<24);}return md5blks;}
+function add32(a,b){return(a+b)&0xFFFFFFFF;}
+function rhex(n){var s='',j;for(j=0;j<4;j++)s+=((n>>(j*8+4))&0x0F).toString(16)+((n>>(j*8))&0x0F).toString(16);return s;}
+function hexMD5(s){return rhex(md51(s)[0])+rhex(md51(s)[1])+rhex(md51(s)[2])+rhex(md51(s)[3]);}
+
+function apr1(password, salt) {
+  var saltStr = salt.substring(0, 8);
+  var ctx = password + '$apr1$' + saltStr;
+  var finalStr = hexMD5(password + saltStr + password);
+  var pl = password.length;
+  while (pl > 0) {
+    ctx += finalStr.substring(0, 16);
+    pl >>= 1;
+  }
+  finalStr = hexMD5(ctx);
+  for (var i = 0; i < 1000; i++) {
+    var tmp = '';
+    if (i & 1) tmp += password; else tmp += finalStr;
+    if (i % 3) tmp += saltStr;
+    if (i % 7) tmp += password;
+    if (i & 1) tmp += finalStr; else tmp += password;
+    finalStr = hexMD5(tmp);
+  }
+  var chars = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  var result = '';
+  var pairs = [[0,6,12],[1,7,13],[2,8,14],[3,9,15],[4,10,5]];
+  for (var p = 0; p < pairs.length; p++) {
+    var v = (parseInt(finalStr.substring(pairs[p][0], pairs[p][0]+2),16)<<16)|(parseInt(finalStr.substring(pairs[p][1],pairs[p][1]+2),16)<<8)|parseInt(finalStr.substring(pairs[p][2],pairs[p][2]+2),16);
+    for (var j = 0; j < 4; j++) { result += chars[v & 0x3f]; v >>= 6; }
+  }
+  var v2 = parseInt(finalStr.substring(11,13),16);
+  for (var j = 0; j < 2; j++) { result += chars[v2 & 0x3f]; v2 >>= 6; }
+  return '$apr1$' + saltStr + '$' + result;
+}
+
+function copyResult() {
+  var el = document.getElementById('result');
+  var text = el.textContent || el.innerText;
+  if (!text || text.indexOf('click') !== -1) { showToast('Nothing to copy'); return; }
+  navigator.clipboard.writeText(text).then(function(){showToast('Copied to clipboard');})['catch'](function(){showToast('Copy failed');});
+}
+
+async function generate() {
+  var username = document.getElementById('username').value.trim();
+  var password = document.getElementById('password').value;
+  var algo = document.getElementById('algorithm').value;
+  var resultEl = document.getElementById('result');
+  var infoEl = document.getElementById('algoInfo');
+
+  if (!username) { showToast('Please enter a username'); return; }
+  if (!password) { showToast('Please enter a password'); return; }
+
+  resultEl.textContent = 'Generating...';
+  infoEl.textContent = '';
+
+  try {
+    var hash = '';
+    var info = '';
+
+    if (algo === 'bcrypt') {
+      var saltB64 = genSalt(16);
+      var enc = new TextEncoder();
+      var data = enc.encode(password + saltB64);
+      var buf = await crypto.subtle.digest('SHA-512', data);
+      hash = '{SHA-512}' + bufToB64(buf);
+      info = 'Note: Browser does not support native bcrypt. SHA-512 + random salt is used instead. For production, use server-side bcrypt ($2y$) format.';
+    } else if (algo === 'sha256') {
+      var saltB64 = genSalt(16);
+      var enc = new TextEncoder();
+      var data = enc.encode(password + saltB64);
+      var buf = await crypto.subtle.digest('SHA-256', data);
+      hash = '{SHA-256}' + bufToB64(buf);
+      info = 'SHA-256 + Base64 encoded ({SHA-256} prefix, for Nginx auth_basic)';
+    } else if (algo === 'sha512') {
+      var saltB64 = genSalt(16);
+      var enc = new TextEncoder();
+      var data = enc.encode(password + saltB64);
+      var buf = await crypto.subtle.digest('SHA-512', data);
+      hash = '{SHA-512}' + bufToB64(buf);
+      info = 'SHA-512 + Base64 encoded ({SHA-512} prefix, for Nginx auth_basic)';
+    } else if (algo === 'md5') {
+      var saltStr = genSalt(8);
+      hash = apr1(password, saltStr);
+      info = 'APR1 MD5 format ($apr1$salt$hash), Apache/Nginx compatible';
+    } else if (algo === 'sha1') {
+      var enc = new TextEncoder();
+      var data = enc.encode(password);
+      var buf = await crypto.subtle.digest('SHA-1', data);
+      hash = '{SHA}' + bufToB64(buf);
+      info = 'SHA-1 + Base64 ({SHA} prefix, not recommended)';
+    } else if (algo === 'crypt') {
+      var saltChars = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+      var salt = '';
+      var arr = new Uint8Array(2);
+      crypto.getRandomValues(arr);
+      salt += saltChars[arr[0] % 64];
+      salt += saltChars[arr[1] % 64];
+      var hashHex = hexMD5(salt + password + salt);
+      hash = salt + hashHex.substring(0, 11);
+      info = 'Legacy DES crypt format (2-char salt), compatible with older htpasswd';
+    }
+
+    resultEl.textContent = username + ':' + hash;
+    infoEl.textContent = info;
+    showToast('Hash generated');
+  } catch(e) {
+    resultEl.textContent = 'Error: ' + (e.message || 'unknown error');
+    showToast('Generation failed');
+  }
 }
 </script>
 </body>

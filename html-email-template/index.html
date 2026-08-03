@@ -197,20 +197,87 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
 function copyResult() {
-  var text = document.getElementById('resultArea').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  var pre = document.getElementById('resultEmail');
+  var text = pre.textContent || pre.innerText;
+  if (!text || text === '—') { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(text).then(function(){showToast('HTML已复制到剪贴板');})['catch'](function(){showToast('复制失败');});
 }
 
 function generate() {
-  var input = document.getElementById('emailBtnText').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('resultArea').textContent = output;
+  var type = document.getElementById('emailType').value;
+  var title = document.getElementById('emailTitle').value || '邮件通知';
+  var heading = document.getElementById('emailHeading').value || '您好！';
+  var content = document.getElementById('emailContent').value || '';
+  var btnText = document.getElementById('emailBtnText').value || '';
+  var btnUrl = document.getElementById('emailBtnUrl').value || '#';
+  var company = document.getElementById('emailCompany').value || 'Your Company';
+  var footer = document.getElementById('emailFooter').value || '退订 | 隐私政策';
+
+  if (!content.trim()) { showToast('请输入邮件正文内容'); return; }
+
+  // 颜色主题
+  var themes = {
+    newsletter: { primary: '#4F46E5', bg: '#f0f4ff' },
+    welcome: { primary: '#10B981', bg: '#ecfdf5' },
+    transactional: { primary: '#3B82F6', bg: '#eff6ff' },
+    promotion: { primary: '#F59E0B', bg: '#fffbeb' },
+    notification: { primary: '#6366F1', bg: '#f5f3ff' }
+  };
+  var theme = themes[type] || themes.newsletter;
+
+  // 正文段落
+  var paragraphs = content.split(/\n+/).filter(function(p){return p.trim();});
+  var bodyHtml = paragraphs.map(function(p){
+    return '<p style="margin:0 0 16px 0;line-height:1.8;color:#374151;font-size:15px">' + escapeHtml(p) + '</p>';
+  }).join('\n          ');
+
+  // 按钮HTML
+  var btnHtml = '';
+  if (btnText.trim()) {
+    btnHtml = '\n          <table role="presentation" style="margin:24px auto;"><tr><td style="text-align:center;">' +
+      '<a href="' + escapeHtml(btnUrl) + '" style="display:inline-block;padding:12px 32px;background:' + theme.primary + ';color:#fff;text-decoration:none;font-size:15px;font-weight:600;border-radius:6px;">' + escapeHtml(btnText) + '</a>' +
+      '</td></tr></table>';
+  }
+
+  // 标题文本映射
+  var typeLabels = {
+    newsletter: '新闻简报', welcome: '欢迎加入', transactional: '交易通知',
+    promotion: '限时优惠', notification: '系统通知'
+  };
+
+  var html = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n';
+  html += '<html xmlns="http://www.w3.org/1999/xhtml">\n<head>\n  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">\n';
+  html += '  <meta name="viewport" content="width=device-width,initial-scale=1.0">\n';
+  html += '  <title>' + escapeHtml(title) + '</title>\n</head>\n';
+  html += '<body style="margin:0;padding:0;background:' + theme.bg + ';">\n';
+  // 外层容器
+  html += '  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:' + theme.bg + ';">\n';
+  html += '    <tr><td align="center" style="padding:24px 12px;">\n';
+  // 邮件卡片
+  html += '      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">\n';
+  // 头部
+  html += '        <tr><td style="background:' + theme.primary + ';padding:24px 32px;text-align:center;">\n';
+  html += '          <span style="font-size:12px;color:rgba(255,255,255,0.8);text-transform:uppercase;letter-spacing:1px;">' + escapeHtml(typeLabels[type] || '邮件') + '</span>\n';
+  html += '          <h1 style="margin:8px 0 0 0;color:#fff;font-size:24px;font-weight:700;">' + escapeHtml(heading) + '</h1>\n';
+  html += '        </td></tr>\n';
+  // 正文
+  html += '        <tr><td style="padding:32px;">\n          ' + bodyHtml + btnHtml + '\n        </td></tr>\n';
+  // 页脚
+  html += '        <tr><td style="background:#f9fafb;padding:20px 32px;border-top:1px solid #e5e7eb;">\n';
+  html += '          <p style="margin:0 0 8px 0;font-size:13px;color:#6b7280;text-align:center;">&copy; ' + new Date().getFullYear() + ' ' + escapeHtml(company) + '</p>\n';
+  html += '          <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">' + escapeHtml(footer) + '</p>\n';
+  html += '        </td></tr>\n';
+  html += '      </table>\n';
+  html += '    </td></tr>\n';
+  html += '  </table>\n';
+  html += '</body>\n</html>';
+
+  document.getElementById('resultEmail').textContent = html;
   document.getElementById('resultArea').style.display = 'block';
-  showToast('生成完成');
+  showToast('邮件模板已生成');
 }
 </script>
 </body>
