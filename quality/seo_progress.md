@@ -1,6 +1,6 @@
 # SEO修复进度报告
 
-> 最后更新: 2026-08-03 09:15
+> 最后更新: 2026-08-03 16:30
 
 ## ✅ P0: 全站Canonical URL修复 — 重大突破 (commit `04962b7625`)
 
@@ -219,6 +219,27 @@
 - 全部有 `<meta name="robots" content="index, follow">` ✓
 - wifi-password-generator 虽有合并提示但功能完整可用 ✓
 - speed-test 功能完整（纯前端测速UI）✓
+
+### 第六轮修复 (commit `7f3de5468a`)
+- **16个页面**添加缺失的robots meta标签（CN+EN各8页）:
+  btu-calculator, exif-metadata-viewer, mortgage-payoff-calculator,
+  online-ruler, paver-calculator, pizza-dough-calculator,
+  regex-tester, roof-pitch-calculator
+- **speed-test CN/EN**: 修复meta description（原描述重复混乱，含"免费在线免费网速测试"）
+- **en/backwards-text**: 修复meta description（原描述太短+双>>HTML错误）
+- **en/website-status-checker**: 修复hreflang标签错误（hreflang="en"→hreflang="zh"）
+
+---
+
+## ✅ P0: 系统性HTML语法错误修复 — 重大发现 (commit `7f3de5468a`)
+
+### 根因发现：2534个页面meta标签后有多余>字符
+- 批量脚本生成的页面在meta description标签闭合后多余1-3个`>`字符
+- 例：`content="...">>` 或 `content="...">>>>` 
+- 这导致HTML解析器可能将后续内容误解为标签属性
+- **可能是Google Failing URLs的重要原因之一**
+- 全站6795个index.html扫描，2534个修复，0个残留
+- 脚本: `scripts/fix_extra_gt.py`
 
 ---
 
