@@ -73,6 +73,23 @@ footer{text-align:center;padding:20px;color:#999;font-size:.8rem}
 <div class="main-grid">
 <div><div class="section">
 
+<div class="section">
+<div class="card">
+<h2 style="margin-top:0">📥 输入CSV数据</h2>
+<div class="form-group">
+<label>粘贴CSV数据（含表头行）：</label>
+<textarea id="csvInput" placeholder="name,latitude,longitude,description&#10;天安门,39.9087,116.3975,北京&#10;东方明珠,31.2397,121.4998,上海&#10;广州塔,23.1066,113.3245,广州" style="width:100%;min-height:150px;padding:12px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;color:#e2e8f0;font-family:monospace;font-size:.85rem;resize:vertical"></textarea>
+</div>
+<div class="form-group">
+<label>或上传CSV文件：</label>
+<input type="file" id="csvFile" accept=".csv,.txt" style="width:100%;padding:10px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;color:#e2e8f0;font-size:.9rem">
+</div>
+<button class="btn" onclick="parseCSVColumns()">🔍 解析列</button>
+<button class="btn btn-secondary" onclick="loadCSVExample()">📋 加载示例</button>
+<button class="btn btn-secondary" onclick="clearCSVInput()">🗑️ 清空</button>
+</div>
+</div>
+
 <div id="configPanel" style="display:none">
 <div class="card">
 <h2 style="margin-top:0">⚙️ 列配置</h2>
@@ -138,18 +155,188 @@ footer{text-align:center;padding:20px;color:#999;font-size:.8rem}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-// === 重写的函数实现 ===
+// === CSV转GeoJSON 实现 ===
+var parsedHeaders = [];
+var parsedRows = [];
+
+function detectDelimiter(text) {
+  var firstLine = text.split('\n')[0] || '';
+  var counts = { ',': 0, ';': 0, '\t': 0 };
+  for (var i = 0; i < firstLine.length; i++) {
+    if (counts.hasOwnProperty(firstLine[i])) counts[firstLine[i]]++;
+  }
+  var max = 0, delim = ',';
+  for (var d in counts) { if (counts[d] > max) { max = counts[d]; delim = d; } }
+  return delim;
+}
+
+function parseCSVLine(line, delim) {
+  var result = [];
+  var current = '';
+  var inQuotes = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (ch === delim && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+function parseCSV(text, delim) {
+  var lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(function(l) { return l.trim() !== ''; });
+  if (lines.length < 2) return { headers: [], rows: [] };
+  if (!delim || delim === 'auto') delim = detectDelimiter(text);
+  var headers = parseCSVLine(lines[0], delim);
+  var rows = [];
+  for (var i = 1; i < lines.length; i++) {
+    var values = parseCSVLine(lines[i], delim);
+    if (values.length === 1 && values[0] === '') continue;
+    var row = {};
+    for (var j = 0; j < headers.length; j++) {
+      row[headers[j]] = values[j] || '';
+    }
+    rows.push(row);
+  }
+  return { headers: headers, rows: rows, delim: delim };
+}
+
+function autoDetectColumn(headers, patterns) {
+  for (var i = 0; i < headers.length; i++) {
+    var h = headers[i].toLowerCase().replace(/\s+/g, '');
+    for (var j = 0; j < patterns.length; j++) {
+      if (h === patterns[j] || h.indexOf(patterns[j]) >= 0) return i;
+    }
+  }
+  return -1;
+}
+
+function parseCSVColumns() {
+  var input = document.getElementById('csvInput');
+  if (!input || !input.value.trim()) { showToast('请先输入CSV数据'); return; }
+  var text = input.value;
+  var delimSelect = document.getElementById('delimiter');
+  var delim = delimSelect ? delimSelect.value : 'auto';
+  var parsed = parseCSV(text, delim);
+  if (!parsed.headers || parsed.headers.length === 0) { showToast('无法解析CSV，请检查格式'); return; }
+  parsedHeaders = parsed.headers;
+  parsedRows = parsed.rows;
+
+  var latIdx = autoDetectColumn(parsedHeaders, ['lat', 'latitude', '纬度', 'y']);
+  var lngIdx = autoDetectColumn(parsed.headers, ['lng', 'lon', 'longitude', '经度', 'x']);
+
+  var latSel = document.getElementById('latCol');
+  var lngSel = document.getElementById('lngCol');
+  latSel.innerHTML = '';
+  lngSel.innerHTML = '';
+  for (var i = 0; i < parsedHeaders.length; i++) {
+    var opt1 = document.createElement('option');
+    opt1.value = i; opt1.textContent = parsedHeaders[i];
+    if (i === latIdx) opt1.selected = true;
+    latSel.appendChild(opt1);
+    var opt2 = document.createElement('option');
+    opt2.value = i; opt2.textContent = parsedHeaders[i];
+    if (i === lngIdx) opt2.selected = true;
+    lngSel.appendChild(opt2);
+  }
+
+  document.getElementById('configPanel').style.display = 'block';
+  var stats = document.getElementById('stats');
+  stats.innerHTML = '<div class="stat">📊 共 <strong>' + parsedHeaders.length + '</strong> 列</div><div class="stat">📋 共 <strong>' + parsedRows.length + '</strong> 行数据</div>';
+  showToast('解析成功：' + parsedRows.length + ' 行数据');
+}
+
 function convertToGeoJSON() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;if(typeof mainConvert==='function')mainConvert();else{{out.textContent=inp.value;showToast('Converted!')}};
+  if (parsedRows.length === 0) { showToast('请先解析CSV数据'); return; }
+  var latIdx = parseInt(document.getElementById('latCol').value);
+  var lngIdx = parseInt(document.getElementById('lngCol').value);
+  var features = [];
+  var skipped = 0;
+
+  for (var i = 0; i < parsedRows.length; i++) {
+    var row = parsedRows[i];
+    var lat = parseFloat(row[parsedHeaders[latIdx]]);
+    var lng = parseFloat(row[parsedHeaders[lngIdx]]);
+    if (isNaN(lat) || isNaN(lng)) { skipped++; continue; }
+    var properties = {};
+    for (var key in row) {
+      if (key !== parsedHeaders[latIdx] && key !== parsedHeaders[lngIdx]) {
+        properties[key] = row[key];
+      }
+    }
+    features.push({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [lng, lat] },
+      properties: properties
+    });
+  }
+
+  var geojson = { type: 'FeatureCollection', features: features };
+  var geojsonStr = JSON.stringify(geojson, null, 2);
+
+  document.getElementById('resultPanel').style.display = 'block';
+  document.getElementById('geojsonOutput').textContent = geojsonStr;
+
+  var stats = document.getElementById('stats');
+  stats.innerHTML += '<div class="stat">✅ 转换 <strong>' + features.length + '</strong> 个要素</div>' + (skipped > 0 ? '<div class="stat">⚠️ 跳过 <strong>' + skipped + '</strong> 行无效数据</div>' : '');
+
+  showToast('转换成功：' + features.length + ' 个要素' + (skipped > 0 ? '，跳过' + skipped + '行' : ''));
 }
 
 function copyGeoJSON() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var el = document.getElementById('geojsonOutput');
+  if (!el || !el.textContent) { showToast('没有可复制的内容'); return; }
+  navigator.clipboard.writeText(el.textContent).then(function() { showToast('已复制GeoJSON到剪贴板'); }).catch(function() { showToast('复制失败'); });
 }
 
 function downloadGeoJSON() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='GeoJSON.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+  var el = document.getElementById('geojsonOutput');
+  if (!el || !el.textContent) { showToast('没有可下载的内容'); return; }
+  var blob = new Blob([el.textContent], { type: 'application/geo+json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'output.geojson';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('GeoJSON文件已下载');
 }
+
+function loadCSVExample() {
+  var input = document.getElementById('csvInput');
+  input.value = 'name,latitude,longitude,population\n北京,39.9042,116.4074,21710000\n上海,31.2304,121.4737,24870000\n广州,23.1291,113.2644,18810000\n深圳,22.5431,114.0579,17560000\n成都,30.5728,104.0668,16330000';
+  parseCSVColumns();
+}
+
+function clearCSVInput() {
+  document.getElementById('csvInput').value = '';
+  document.getElementById('csvFile').value = '';
+  document.getElementById('configPanel').style.display = 'none';
+  document.getElementById('resultPanel').style.display = 'none';
+  parsedHeaders = [];
+  parsedRows = [];
+  showToast('已清空');
+}
+
+document.getElementById('csvFile').addEventListener('change', function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    document.getElementById('csvInput').value = ev.target.result;
+    parseCSVColumns();
+  };
+  reader.readAsText(file);
+});
 </script>
+
+</div>
+</div>
 </body>
 </html>

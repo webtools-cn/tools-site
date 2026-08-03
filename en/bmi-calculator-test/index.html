@@ -301,8 +301,125 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === Implementation ===
+var selectedGender = 'male';
+
+function selectGender(gender) {
+  selectedGender = gender;
+  var male = document.getElementById('genderMale');
+  var female = document.getElementById('genderFemale');
+  if (male) male.classList.toggle('active', gender === 'male');
+  if (female) female.classList.toggle('active', gender === 'female');
+}
+
+function switchUnit() {
+  var isImperial = document.querySelector('input[name="unitSystem"]:checked').value === 'imperial';
+  var heightCmGroup = document.getElementById('heightCmGroup');
+  var heightFtGroup = document.getElementById('heightFtGroup');
+  var heightInGroup = document.getElementById('heightInGroup');
+  var weightGroup = document.getElementById('weightGroup');
+  if (isImperial) {
+    if (heightCmGroup) heightCmGroup.style.display = 'none';
+    if (heightFtGroup) heightFtGroup.style.display = '';
+    if (heightInGroup) heightInGroup.style.display = '';
+    if (weightGroup) weightGroup.querySelector('label').textContent = 'Weight (lb)';
+  } else {
+    if (heightCmGroup) heightCmGroup.style.display = '';
+    if (heightFtGroup) heightFtGroup.style.display = 'none';
+    if (heightInGroup) heightInGroup.style.display = 'none';
+    if (weightGroup) weightGroup.querySelector('label').textContent = 'Weight (kg)';
+  }
+}
+
 function calculateBMI() {
-  showToast('Feature triggered');
+  var isImperial = document.querySelector('input[name="unitSystem"]:checked').value === 'imperial';
+  var height, weight;
+  if (isImperial) {
+    var ft = parseFloat(document.getElementById('heightFt').value) || 0;
+    var inch = parseFloat(document.getElementById('heightIn').value) || 0;
+    var lb = parseFloat(document.getElementById('weight').value) || 0;
+    if (ft <= 0 || lb <= 0) { showToast('Please enter valid height and weight'); return; }
+    height = (ft * 12 + inch) * 0.0254;
+    weight = lb * 0.453592;
+  } else {
+    var cm = parseFloat(document.getElementById('heightCm').value) || 0;
+    var kg = parseFloat(document.getElementById('weight').value) || 0;
+    if (cm <= 0 || kg <= 0) { showToast('Please enter valid height and weight'); return; }
+    height = cm / 100;
+    weight = kg;
+  }
+  var age = parseInt(document.getElementById('age').value) || 30;
+
+  var bmi = weight / (height * height);
+  bmi = Math.round(bmi * 10) / 10;
+
+  var bmiValueEl = document.getElementById('bmiValue');
+  var bmiCatEl = document.getElementById('bmiCategory');
+  if (bmiValueEl) bmiValueEl.textContent = bmi.toFixed(1);
+
+  var category, color, tip;
+  if (bmi < 18.5) { category = 'Underweight'; color = '#60a5fa'; tip = 'Your BMI is below normal. Consider increasing nutritious food intake and strength training.'; }
+  else if (bmi < 25) { category = 'Normal weight'; color = '#4ade80'; tip = 'Great! Your BMI is in the healthy range. Keep up your good habits.'; }
+  else if (bmi < 30) { category = 'Overweight'; color = '#fbbf24'; tip = 'Your BMI is above normal. Consider more exercise and a balanced diet.'; }
+  else { category = 'Obese'; color = '#f87171'; tip = 'Your BMI indicates obesity. Please consult a doctor for a health plan.'; }
+
+  if (bmiCatEl) { bmiCatEl.textContent = category; bmiCatEl.style.color = color; }
+  var healthTip = document.getElementById('healthTip');
+  if (healthTip) healthTip.textContent = '💡 ' + tip;
+
+  var gaugeFill = document.getElementById('gaugeFill');
+  if (gaugeFill) {
+    var pct = Math.min(Math.max((bmi - 10) / 30, 0), 1);
+    var angle = pct * 180;
+    var rad = (180 - angle) * Math.PI / 180;
+    var x = 130 + 110 * Math.cos(rad);
+    var y = 130 - 110 * Math.sin(rad);
+    var largeArc = angle > 180 ? 1 : 0;
+    gaugeFill.setAttribute('d', 'M 20 130 A 110 110 0 ' + largeArc + ' 1 ' + x + ' ' + y);
+    gaugeFill.setAttribute('stroke', color);
+  }
+
+  var idealWeight = 22 * height * height;
+  var idealLow = 18.5 * height * height;
+  var idealHigh = 24.9 * height * height;
+  var idealEl = document.getElementById('idealWeight');
+  var idealRangeEl = document.getElementById('idealRange');
+  if (idealEl) idealEl.textContent = Math.round(idealWeight) + (isImperial ? ' lb' : ' kg');
+  if (idealRangeEl) idealRangeEl.textContent = Math.round(idealLow) + '-' + Math.round(idealHigh) + (isImperial ? ' lb' : ' kg');
+
+  var bmr;
+  if (selectedGender === 'male') {
+    bmr = 10 * weight + 6.25 * (height * 100) - 5 * age + 5;
+  } else {
+    bmr = 10 * weight + 6.25 * (height * 100) - 5 * age - 161;
+  }
+  var bmrEl = document.getElementById('bmrValue');
+  if (bmrEl) bmrEl.textContent = Math.round(bmr) + ' kcal/day';
+
+  var calorie = Math.round(bmr * 1.55);
+  var calorieEl = document.getElementById('calorieValue');
+  if (calorieEl) calorieEl.textContent = calorie + ' kcal/day';
+
+  var bodyFat;
+  if (selectedGender === 'male') {
+    bodyFat = 1.20 * bmi + 0.23 * age - 16.2;
+  } else {
+    bodyFat = 1.20 * bmi + 0.23 * age - 5.4;
+  }
+  bodyFat = Math.max(0, Math.round(bodyFat * 10) / 10);
+  var bodyFatEl = document.getElementById('bodyFatValue');
+  var bodyFatRangeEl = document.getElementById('bodyFatRange');
+  if (bodyFatEl) bodyFatEl.textContent = bodyFat + '%';
+  if (bodyFatRangeEl) {
+    if (selectedGender === 'male') {
+      bodyFatRangeEl.textContent = bodyFat < 15 ? 'Low' : bodyFat < 25 ? 'Normal' : 'High';
+    } else {
+      bodyFatRangeEl.textContent = bodyFat < 20 ? 'Low' : bodyFat < 32 ? 'Normal' : 'High';
+    }
+  }
+
+  var resultSection = document.getElementById('resultSection');
+  if (resultSection) resultSection.style.display = 'block';
+  showToast('BMI = ' + bmi.toFixed(1) + ' (' + category + ')');
 }
 
 function resetForm() {
@@ -310,10 +427,6 @@ function resetForm() {
   document.querySelectorAll('select').forEach(function(el) { el.selectedIndex = 0; });
   document.getElementById('resultSection').innerHTML = '';
   showToast('Reset');
-}
-
-function switchUnit() {
-  showToast('Feature triggered');
 }
 </script>
 

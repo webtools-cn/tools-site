@@ -1,62 +1,36 @@
 #!/usr/bin/env python3
-"""批量扩写CN短meta description到120-160字符"""
-import os, re, json
+"""Fix short meta descriptions."""
+import re
 
-# Load tools data - format: {category: [[emoji, name, desc, url], ...]}
-with open('tools-data-cn.json', 'r', errors='ignore') as f:
-    tools_data = json.load(f)
+files_to_fix = {
+    # CN
+    'jensen-alpha-calculator/index.html': '免费在线Jensen\'s Alpha詹森阿尔法计算器，评估投资组合超越市场基准的超额收益表现。输入实际收益率、无风险利率、市场收益率和贝塔系数，一键计算詹森阿尔法值衡量基金经理主动管理能力。适合基金绩效评估、投资组合归因分析和金融学教学。纯前端计算，数据安全不上传服务器，无需注册完全免费。',
+    'pizza-dough-calculator/index.html': '免费在线披萨面团计算器，基于烘焙师百分比（Baker\'s Percent）精确计算面粉、水、盐、酵母用量。支持那不勒斯、纽约、底特律、西西里等多种风格预设，鲜酵母/干酵母/酸种换算，克/盎司双单位。适合家庭烘焙和披萨店备料，纯前端本地计算，无需注册完全免费。',
+    'metal-weight-calculator/index.html': '免费在线金属重量计算器，支持钢、铝、铜、不锈钢等12种材质，圆棒、方棒、圆管、钢板等7种型材，输入尺寸自动计算重量。公制英制切换，批量件数计算，机械加工必备工具。',
+    # EN
+    'en/ohms-law-calculator/index.html': "Free online Ohm's law calculator: compute voltage, current, resistance, and power instantly. Enter any two known values to solve the rest. Perfect for electronics, circuit design, and engineering students. No signup, runs entirely in your browser.",
+    'en/jensen-alpha-calculator/index.html': "Free online Jensen's Alpha calculator: measure portfolio performance vs market benchmark. Enter return, risk-free rate, market return & beta to calculate alpha. Ideal for fund evaluation and finance analysis. No signup, browser-based.",
+    'en/conways-game-of-life/index.html': "Free online Conway's Game of Life simulator: watch cellular automata evolve on a grid. Adjust speed, grid size, and patterns. Explore gliders, blinkers, and complex structures. Perfect for learning emergence and complexity theory. No signup required.",
+    'en/pizza-dough-calculator/index.html': "Free online pizza dough calculator using baker's percentages to precisely calculate flour, water, salt, and yeast amounts. Supports Neapolitan, NY, Detroit, Sicilian style presets, fresh/dry yeast conversion, and gram/ounce units. Runs entirely in your browser.",
+    'en/due-date-calculator/index.html': "Free due date calculator: estimate pregnancy due date & gestational age from LMP or conception date. Accurate Naegele's rule calculation with weekly progress tracking. No signup, runs entirely in your browser.",
+}
 
-tool_info = {}
-for cat, tools in tools_data.items():
-    for t in tools:
-        if len(t) < 4: continue
-        name = t[1]  # name
-        desc = t[2]  # description
-        slug = t[3].strip('/').split('/')[-1] if t[3] else ''
-        if slug:
-            tool_info[slug] = {'name': name, 'desc': desc, 'cat': cat}
-
-fixed = 0
-
-for d in sorted(os.listdir('.')):
-    p = os.path.join(d, 'index.html')
-    if not os.path.isfile(p) or d == 'en': continue
-    c = open(p, 'r', errors='ignore').read()
-    m = re.search(r'<meta name="description" content="([^"]*)"', c)
-    if not m: continue
-    desc = m.group(1)
-    l = len(desc)
+for fpath, new_desc in files_to_fix.items():
+    with open(fpath, 'r', encoding='utf-8') as f:
+        html = f.read()
     
-    if l >= 100: continue
+    ln = len(new_desc)
+    print(f'{fpath}: new desc len = {ln}')
     
-    info = tool_info.get(d, {})
-    name = info.get('name', '')
-    json_desc = info.get('desc', '')
+    # Replace the meta description
+    pattern = r'(name=["\']description["\']\s+content=["\'])[^"\']+(["\'])'
+    new_html = re.sub(pattern, lambda m: m.group(1) + new_desc + m.group(2), html, count=1)
     
-    # Use JSON description if available and longer
-    if json_desc and len(json_desc) > l:
-        new_desc = json_desc
-    elif l < 30:
-        new_desc = f"{name}在线工具，{desc}。支持实时计算与预览，无需注册，完全免费，所有数据本地处理不上传。"
-    elif l < 60:
-        new_desc = f"{desc}。支持实时计算与预览，无需注册，完全免费，数据本地处理不上传服务器。"
+    if new_html != html:
+        with open(fpath, 'w', encoding='utf-8') as f:
+            f.write(new_html)
+        print(f'  -> FIXED')
     else:
-        new_desc = f"{desc}。无需注册，完全免费，数据本地处理。"
-    
-    # Trim to 160 chars max
-    if len(new_desc) > 160:
-        new_desc = new_desc[:157] + "..."
-    
-    # If still too short, pad
-    if len(new_desc) < 100:
-        new_desc = f"{new_desc} 支持多种输入格式，操作简单快捷。"
-        if len(new_desc) > 160:
-            new_desc = new_desc[:157] + "..."
-    
-    old = f'<meta name="description" content="{desc}"'
-    new = f'<meta name="description" content="{new_desc}"'
-    c = c.replace(old, new, 1)
-    open(p, 'w', encoding='utf-8', errors='ignore').write(c)
-    fixed += 1
+        print(f'  -> NO MATCH (already ok?)')
 
-print(f"CN meta description fixed: {fixed}")
+print('\nDone!')
