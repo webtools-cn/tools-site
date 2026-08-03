@@ -198,64 +198,365 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 </div>
 <div class="toast" id="toast"></div>
 <script>
-function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+const inputJson = document.getElementById('inputJson');
+const outputBox = document.getElementById('outputBox');
+const errorBox = document.getElementById('errorBox');
+const inputStats = document.getElementById('inputStats');
+const outputStats = document.getElementById('outputStats');
+const toast = document.getElementById('toast');
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 2000);
 }
 
-// === 重写的函数实现 ===
-function clearAll() {
-  document.getElementById('inferRequired').value = '';
-  document.getElementById('includeExamples').value = '';
-  document.getElementById('inputJson').value = '';
-  document.getElementById('schemaVersion').selectedIndex = 0;
-  document.getElementById('outputBox').innerHTML = '';
-  document.getElementById('outputBox').style.display = 'none';
-  document.getElementById('outputStats').innerHTML = '';
-  document.getElementById('outputStats').style.display = 'none';
-  showToast('已重置');
+function updateInputStats() {
+  var text = inputJson.value;
+  inputStats.innerHTML = '<span>字符: ' + text.length + '</span><span>行数: ' + text.split('\n').length + '</span>';
 }
+inputJson.addEventListener('input', updateInputStats);
+updateInputStats();
 
-function copyOutput() {
-  var text = document.getElementById('outputBox').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
-}
+var samples = {
+  user: JSON.stringify({
+    id: 1, name: "张三", email: "zhangsan@example.com",
+    age: 28, isActive: true,
+    tags: ["开发者", "博主"],
+    address: { city: "北京", zipCode: "100000", country: "CN" },
+    createdAt: "2024-01-15T08:30:00Z"
+  }, null, 2),
+  api: JSON.stringify([
+    { status: "success", data: { users: [{ id: 1, name: "张三" }, { id: 2, name: "李四" }], total: 2 }, pagination: { page: 1, perPage: 10, totalPages: 1 } },
+    { status: "error", error: { code: 404, message: "未找到" }, data: null }
+  ], null, 2),
+  nested: JSON.stringify({
+    company: { name: "科技公司", founded: 2010 },
+    departments: [
+      { name: "工程部", head: { name: "张三", title: "CTO" }, budget: 500000 },
+      { name: "市场部", head: { name: "李四", title: "CMO" }, budget: 200000 }
+    ],
+    metadata: { version: "2.1.0", active: true }
+  }, null, 2),
+  array: JSON.stringify([
+    { productId: "A001", name: "无线鼠标", price: 99.9, inStock: true, categories: ["电子产品", "外设"] },
+    { productId: "A002", name: "机械键盘", price: 399.0, inStock: false, categories: ["电子产品", "外设"] },
+    { productId: "A003", name: "显示器", price: 1299.0, inStock: true, categories: ["电子产品", "显示设备"] }
+  ], null, 2)
+};
 
-function downloadSchema() {
-  var text = document.getElementById('outputBox').innerText || document.getElementById('outputBox').textContent;
-  if (!text) { showToast('没有可导出的内容'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'json-schema-generator-output.txt';
-  a.click();
-  showToast('已下载');
+function loadSample(name) {
+  inputJson.value = samples[name] || '';
+  updateInputStats();
+  showToast('示例已加载');
 }
 
 function formatInput() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;try{{var obj=JSON.parse(el.textContent||el.innerText);el.textContent=JSON.stringify(obj,null,2);showToast('Formatted!')}}catch(e){{showToast('Format failed: not valid JSON')}};
+  var text = inputJson.value.trim();
+  if (!text) { showToast('请输入JSON'); return; }
+  try {
+    var obj = JSON.parse(text);
+    inputJson.value = JSON.stringify(obj, null, 2);
+    updateInputStats();
+    showToast('格式化完成');
+  } catch (e) {
+    showToast('JSON格式无效');
+  }
+}
+
+function clearAll() {
+  inputJson.value = '';
+  outputBox.innerHTML = '<span style="color:#475569">Schema将显示在这里...</span>';
+  errorBox.style.display = 'none';
+  inputStats.innerHTML = '';
+  outputStats.innerHTML = '';
+}
+
+function showError(msg) {
+  errorBox.textContent = msg;
+  errorBox.style.display = 'block';
+}
+
+function hideError() {
+  errorBox.style.display = 'none';
+}
+
+function inferType(value, collectExamples) {
+  if (value === null) return { type: 'null' };
+  if (Array.isArray(value)) {
+    var schema = { type: 'array' };
+    if (value.length > 0) {
+      var itemSchemas = value.map(function(v) { return inferType(v, collectExamples); });
+      schema.items = mergeSchemas(itemSchemas, collectExamples);
+    }
+    return schema;
+  }
+  if (typeof value === 'object') {
+    var schema = { type: 'object', properties: {} };
+    for (var k in value) {
+      if (value.hasOwnProperty(k)) {
+        schema.properties[k] = inferType(value[k], collectExamples);
+      }
+    }
+    return schema;
+  }
+  var base = { type: typeof value };
+  if (typeof value === 'number' && Number.isInteger(value)) {
+    base.type = 'integer';
+  }
+  if (collectExamples) {
+    base.examples = [value];
+  }
+  return base;
+}
+
+function isSameSchema(a, b) {
+  if (a.type !== b.type) return false;
+  if (a.type === 'object') {
+    var aKeys = Object.keys(a.properties || {});
+    var bKeys = Object.keys(b.properties || {});
+    if (aKeys.length !== bKeys.length) return false;
+    for (var i = 0; i < aKeys.length; i++) {
+      var k = aKeys[i];
+      if (bKeys.indexOf(k) === -1) return false;
+      if (!isSameSchema(a.properties[k], b.properties[k])) return false;
+    }
+    return true;
+  }
+  if (a.type === 'array') {
+    if (!a.items || !b.items) return true;
+    return isSameSchema(a.items, b.items);
+  }
+  return true;
+}
+
+function mergeSchemas(schemas, collectExamples) {
+  if (schemas.length === 0) return {};
+  if (schemas.length === 1) return schemas[0];
+
+  var first = schemas[0];
+  var allSame = true;
+  for (var i = 1; i < schemas.length; i++) {
+    if (!isSameSchema(first, schemas[i])) { allSame = false; break; }
+  }
+  if (allSame) {
+    if (collectExamples && first.examples) {
+      var examples = [];
+      var seen = {};
+      for (var si = 0; si < schemas.length; si++) {
+        var s = schemas[si];
+        if (s.examples) {
+          for (var ei = 0; ei < s.examples.length; ei++) {
+            var key = JSON.stringify(s.examples[ei]);
+            if (!seen[key]) { seen[key] = true; examples.push(s.examples[ei]); }
+          }
+        }
+      }
+      if (examples.length > 0) first.examples = examples.slice(0, 3);
+    }
+    return first;
+  }
+
+  var types = {};
+  for (var i = 0; i < schemas.length; i++) types[schemas[i].type] = true;
+
+  if (types['integer'] && types['number']) {
+    delete types['integer'];
+  }
+
+  var typeKeys = Object.keys(types);
+  if (typeKeys.length === 1) {
+    var t = typeKeys[0];
+    if (t === 'object') {
+      var merged = { type: 'object', properties: {} };
+      var allKeys = {};
+      for (var i = 0; i < schemas.length; i++) {
+        var s = schemas[i];
+        if (s.properties) {
+          for (var k in s.properties) {
+            if (s.properties.hasOwnProperty(k)) allKeys[k] = true;
+          }
+        }
+      }
+      for (var k in allKeys) {
+        var keySchemas = [];
+        for (var i = 0; i < schemas.length; i++) {
+          if (schemas[i].properties && schemas[i].properties[k]) keySchemas.push(schemas[i].properties[k]);
+        }
+        if (keySchemas.length > 0) {
+          merged.properties[k] = mergeSchemas(keySchemas, collectExamples);
+        }
+      }
+      return merged;
+    }
+    if (t === 'array') {
+      var itemSchemas = [];
+      for (var i = 0; i < schemas.length; i++) {
+        if (schemas[i].items) itemSchemas.push(schemas[i].items);
+      }
+      if (itemSchemas.length > 0) {
+        return { type: 'array', items: mergeSchemas(itemSchemas, collectExamples) };
+      }
+      return { type: 'array' };
+    }
+  }
+
+  var anyOf = [];
+  var seen = {};
+  for (var i = 0; i < schemas.length; i++) {
+    var key = JSON.stringify(schemas[i]);
+    if (!seen[key]) { seen[key] = true; anyOf.push(schemas[i]); }
+  }
+  if (anyOf.length === 1) return anyOf[0];
+  return { anyOf: anyOf };
+}
+
+function inferRequired(objects) {
+  if (objects.length <= 1) return [];
+  var keyCounts = {};
+  var total = objects.length;
+  for (var i = 0; i < objects.length; i++) {
+    var obj = objects[i];
+    if (typeof obj === 'object' && obj !== null && !Array.isArray(obj)) {
+      for (var k in obj) {
+        if (obj.hasOwnProperty(k)) keyCounts[k] = (keyCounts[k] || 0) + 1;
+      }
+    }
+  }
+  return Object.keys(keyCounts).filter(function(k) { return keyCounts[k] === total; }).sort();
 }
 
 function generateSchema() {
-  var input = document.getElementById('inferRequired').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('outputBox').textContent = output;
-  document.getElementById('outputBox').style.display = 'block';
-  showToast('生成完成');
+  var text = inputJson.value.trim();
+  if (!text) { showToast('请输入JSON数据'); return; }
+  hideError();
+
+  var data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    showError('JSON解析错误: ' + e.message);
+    return;
+  }
+
+  var inferRequiredEnabled = document.getElementById('inferRequired').checked;
+  var includeExamples = document.getElementById('includeExamples').checked;
+  var schemaVersion = document.getElementById('schemaVersion').value;
+
+  var objects = [];
+  var schema;
+
+  if (Array.isArray(data)) {
+    objects = data.filter(function(v) { return typeof v === 'object' && v !== null && !Array.isArray(v); });
+    if (objects.length === 0 && data.length > 0) {
+      var itemSchemas = data.map(function(v) { return inferType(v, includeExamples); });
+      schema = { $schema: schemaVersion, type: 'array', items: mergeSchemas(itemSchemas, includeExamples) };
+    } else if (objects.length > 0) {
+      var objSchemas = objects.map(function(obj) { return inferType(obj, includeExamples); });
+      schema = mergeSchemas(objSchemas, includeExamples);
+      schema.$schema = schemaVersion;
+      if (inferRequiredEnabled) {
+        var req = inferRequired(objects);
+        if (req.length > 0) schema.required = req;
+      }
+    } else {
+      schema = { $schema: schemaVersion, type: 'array' };
+    }
+  } else if (typeof data === 'object' && data !== null) {
+    schema = inferType(data, includeExamples);
+    schema.$schema = schemaVersion;
+    if (inferRequiredEnabled) {
+      var req = inferRequired([data]);
+      if (req.length > 0) schema.required = req;
+    }
+  } else {
+    var inferred = inferType(data, includeExamples);
+    schema = Object.assign({ $schema: schemaVersion }, inferred);
+  }
+
+  if (!schema.title) {
+    schema.title = 'Generated Schema';
+    schema.description = '从JSON示例数据自动推断';
+  }
+
+  var output = JSON.stringify(schema, null, 2);
+  outputBox.innerHTML = syntaxHighlight(output);
+  outputStats.innerHTML = '<span>字段数: ' + countFields(schema) + '</span><span>字符数: ' + output.length + '</span>';
+  showToast('Schema生成成功');
 }
 
-function loadSample() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
+function countFields(schema) {
+  if (!schema || typeof schema !== 'object') return 0;
+  var count = 0;
+  if (schema.properties) {
+    for (var k in schema.properties) {
+      if (schema.properties.hasOwnProperty(k)) count += 1 + countFields(schema.properties[k]);
+    }
+  }
+  if (schema.items) count += countFields(schema.items);
+  if (schema.anyOf) {
+    for (var i = 0; i < schema.anyOf.length; i++) count += countFields(schema.anyOf[i]);
+  }
+  return count;
+}
+
+function syntaxHighlight(json) {
+  return json
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/("(?:\\.|[^"\\])*")(\s*:\s*)/g, '<span class="syntax-key">$1</span>$2')
+    .replace(/"(?:\\.|[^"\\])*"/g, '<span class="syntax-string">$&</span>')
+    .replace(/\b(true|false)\b/g, '<span class="syntax-bool">$1</span>')
+    .replace(/\bnull\b/g, '<span class="syntax-null">null</span>')
+    .replace(/\b(-?\d+\.?\d*)\b/g, '<span class="syntax-number">$1</span>');
+}
+
+function copyOutput() {
+  var text = outputBox.textContent;
+  if (!text || text.indexOf('Schema将显示') !== -1) { showToast('没有可复制的Schema'); return; }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function() { showToast('已复制到剪贴板'); });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('已复制到剪贴板');
+  }
+}
+
+function downloadSchema() {
+  var text = outputBox.textContent;
+  if (!text || text.indexOf('Schema将显示') !== -1) { showToast('没有可下载的Schema'); return; }
+  var blob = new Blob([text], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'schema.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('已下载 schema.json');
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'Enter') { e.preventDefault(); generateSchema(); }
+  }
+});
+
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+function submitFeedback(){
+var type=document.getElementById('feedback-type').value;
+var typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
+var title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+var body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
 }
 </script>
 </body>

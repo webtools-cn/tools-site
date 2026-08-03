@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第三十八批 - 修复3个回显型空壳)
+> 最后更新: 2026-08-03 (cron自动更新 - 第三十九批 - 修复3个回显型空壳)
 
 ## 当前真实问题
 
@@ -11,33 +11,34 @@
 | EN版模板空壳(process未定义) | 23 | 23 | 0 | ✅ 完成 | grep toolInput + process() 未定义检测 |
 | EN版假交互空壳(quickInput) | 224 | 224 | 0 | ✅ 完成 | grep quickInput + 无业务函数检测 |
 | toolInput误报(7个有功能) | 7 | 7 | 0 | ✅ 误报 | 有addEventListener绑定的真实功能 |
-| 回显型process空壳(output=input) | 30 | 12 | 18 | 🔴 进行中 | 全站扫描 var output = input + 无业务逻辑 |
+| 回显型process空壳(output=input) | 30 | 15 | 15 | 🔴 进行中 | 全站扫描 var output = input + 无业务逻辑 |
 
-## 回显型空壳清单(18个剩余)
+## 回显型空壳清单(15个剩余)
 
 > 特征：process()/convert()/generate()函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
-> 注：第三十五批修复3个(hex-to-hsl/html-escape-unescape/string-case-converter)，第三十六批修复3个(caddyfile-generator/env-to-json/haproxy-config-generator)，第三十七批修复3个(html-email-template/html-table-to-markdown/htpasswd-generator)，第三十八批修复3个(http-cache-header-generator/js-destructuring-generator/json-key-renamer)。实际全站复扫发现30个CN版回显stub(此前清单有遗漏)。剩余18个：
+> 注：第三十五批修复3个(hex-to-hsl/html-escape-unescape/string-case-converter)，第三十六批修复3个(caddyfile-generator/env-to-json/haproxy-config-generator)，第三十七批修复3个(html-email-template/html-table-to-markdown/htpasswd-generator)，第三十八批修复3个(http-cache-header-generator/js-destructuring-generator/json-key-renamer)，第三十九批修复3个(json-schema-generator/json-to-avro/json-to-csv-converter)。实际全站复扫发现30个CN版回显stub(此前清单有遗漏)。剩余15个：
 
-1. json-schema-generator
-2. json-to-avro
-3. json-to-csv-converter
-4. json-to-go-struct
-5. json-to-kotlin-class
-6. json-to-php-object
-7. json-to-rust-struct
-8. json-to-schema
-9. json-to-swift-struct
-10. json-to-typescript-interface
-11. kubernetes-yaml-generator
-12. mock-data-generator
-13. npm-package-json
-14. svg-pattern-generator
-15. tailwind-spacing-generator
-16. typescript-utility-types
-17. unicode-range-generator
-18. yaml-to-dotenv
+1. json-to-go-struct
+2. json-to-kotlin-class
+3. json-to-php-object
+4. json-to-rust-struct
+5. json-to-schema
+6. json-to-swift-struct
+7. json-to-typescript-interface
+8. kubernetes-yaml-generator
+9. mock-data-generator
+10. npm-package-json
+11. svg-pattern-generator
+12. tailwind-spacing-generator
+13. typescript-utility-types
+14. unicode-range-generator
+15. yaml-to-dotenv
 
 ## 已修复的空壳工具
+
+### 2026-08-03 (第三十九批 - 修复3个回显型空壳)
+json-schema-generator, json-to-avro, json-to-csv-converter
+注: 三个工具CN+EN版均修复。json-schema-generator CN版用完整JSON Schema生成逻辑替换stub(从EN版移植inferType递归类型推断→string/number/integer/boolean/array/object/null+mergeSchemas多示例合并+isSameSchema同构检测+anyOf联合类型+inferRequired必填字段推断+integer/number类型统一+syntaxHighlight语法高亮+Draft 4/6/7版本选择+示例值收集+countFields字段统计+Ctrl+Enter快捷键+4种示例数据用户/API响应/嵌套对象/数组)，替换原stub(generateSchema读取inferRequired复选框的value而非inputJson的值+只回显)。json-to-avro和json-to-csv-converter情况与此前cidr-to-ip-range等相同——页面已有完整的业务逻辑函数(jsonToAvro递归类型映射null→union/string/boolean/number→long|double/array→record/items/嵌套record+namespace+历史记录localStorage/拖拽上传/分享链接/实时debounce转换；jsonToCSV+parseCSV+escapeCSV引号转义+processArrayField数组处理3种模式join/first/skip+嵌套对象dot/json展开+sortKeys+多分隔符逗号/Tab/分号+BOM UTF-8下载+行数列数统计)，但末尾被注入"重写的函数实现"stub块(EN版为"// === Implementation ===")，用var output=input回显空壳覆盖了有效函数。修复方式：直接删除stub块恢复原有功能。node逻辑测试：JSON Schema生成(type=object+properties.id=integer+properties.tags=array items=string+properties.address=object properties.city=string)PASS；Avro Schema生成(type=record+fields.id=[null,long]整数union+fields.score=[null,double]浮点union+fields.tags=array items=string+fields.address=nested record User→Address)PASS；CSV转换(header name,age,skills,active+row Alice,28,JS;Python,true+row Bob,35,Java;Go,false 数组join分号)PASS。6个文件JS语法验证通过。全站`var output = input` CN版从18降到15。
 
 ### 2026-08-03 (第三十八批 - 修复3个回显型空壳)
 http-cache-header-generator, js-destructuring-generator, json-key-renamer
