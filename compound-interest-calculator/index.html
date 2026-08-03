@@ -311,21 +311,181 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function calculate() {
-  var annualRate = parseFloat(document.getElementById('annualRate').value);
-  if (annualRate === undefined || isNaN(annualRate)) {
+  var principal = parseFloat(document.getElementById('principal').value) || 0;
+  var annualRate = parseFloat(document.getElementById('annualRate').value) || 0;
+  var years = parseFloat(document.getElementById('years').value) || 0;
+  var contribution = parseFloat(document.getElementById('contribution').value) || 0;
+  var freqPerYear = parseInt(document.getElementById('frequency').value) || 0;
+  var compoundPerYear = parseInt(document.getElementById('compoundFreq').value) || 1;
+
+  if (principal < 0 || annualRate < 0 || years < 1) {
     showToast('请输入有效数值');
     return;
   }
-  var result = annualRate;
-  document.getElementById('resultsSection').innerHTML = '<div class="result-item"><span class="result-label">结果</span><span class="result-value">' + result + '</span></div>';
+
+  var ratePerPeriod = annualRate / 100 / compoundPerYear;
+  var totalPeriods = years * compoundPerYear;
+  var contribPerCompound = freqPerYear > 0 ? contribution * (freqPerYear / compoundPerYear) : 0;
+
+  // Calculate final amount with regular contributions
+  var finalAmount = principal * Math.pow(1 + ratePerPeriod, totalPeriods);
+  var totalContrib = 0;
+  if (contribPerCompound > 0 && ratePerPeriod > 0) {
+    var futureContrib = contribPerCompound * (Math.pow(1 + ratePerPeriod, totalPeriods) - 1) / ratePerPeriod;
+    finalAmount += futureContrib;
+    totalContrib = contribPerCompound * totalPeriods;
+  } else if (contribPerCompound > 0) {
+    finalAmount += contribPerCompound * totalPeriods;
+    totalContrib = contribPerCompound * totalPeriods;
+  }
+
+  var totalPrincipal = principal + totalContrib;
+  var totalInterest = finalAmount - totalPrincipal;
+
+  // Double time (Rule of 72)
+  var doubleTime = annualRate > 0 ? (72 / annualRate).toFixed(1) + ' 年' : '—';
+  var contribCount = freqPerYear > 0 ? (freqPerYear * years) : 0;
+
+  // Format currency
+  function fmt(v) { return v.toLocaleString('zh-CN', {maximumFractionDigits: 2, minimumFractionDigits: 2}); }
+
+  document.getElementById('finalAmount').textContent = '¥' + fmt(finalAmount);
+  document.getElementById('totalPrincipal').textContent = '¥' + fmt(totalPrincipal);
+  document.getElementById('totalInterest').textContent = '¥' + fmt(totalInterest);
+  document.getElementById('doubleTime').textContent = doubleTime;
+  document.getElementById('displayRate').textContent = annualRate + '%';
+  document.getElementById('displayYears').textContent = years + ' 年';
+  document.getElementById('contribCount').textContent = contribCount + ' 次';
+
+  // Generate yearly breakdown table
+  var tableHtml = '<h3 style="color:#f1f5f9;font-size:1rem;margin:16px 0 8px">逐年增长明细</h3><div class="table-container"><table><tr><th>年份</th><th>年初总额</th><th>年末总额</th><th>年度利息</th><th>累计利息</th></tr>';
+  var balance = principal;
+  var cumInterest = 0;
+  var yearlyContrib = contribPerCompound * compoundPerYear;
+  for (var y = 1; y <= years; y++) {
+    var startBalance = balance;
+    for (var p = 0; p < compoundPerYear; p++) {
+      balance = balance * (1 + ratePerPeriod) + contribPerCompound;
+    }
+    var yearInterest = balance - startBalance - yearlyContrib;
+    cumInterest += yearInterest;
+    if (y <= 30 || y === years || y % 10 === 0) {
+      tableHtml += '<tr><td>' + y + '</td><td>¥' + fmt(startBalance) + '</td><td>¥' + fmt(balance) + '</td><td>¥' + fmt(yearInterest) + '</td><td>¥' + fmt(cumInterest) + '</td></tr>';
+    }
+  }
+  tableHtml += '</table></div>';
+  document.getElementById('yearlyTable').innerHTML = tableHtml;
+
+  // Draw chart
+  drawChart(principal, annualRate, years, contribPerCompound, compoundPerYear);
+
   document.getElementById('resultsSection').style.display = 'block';
   showToast('计算完成');
 }
 
+function drawChart(principal, annualRate, years, contribPerCompound, compoundPerYear) {
+  var canvas = document.getElementById('growthChart');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  var ratePerPeriod = annualRate / 100 / compoundPerYear;
+  var data = [];
+  var balance = principal;
+  var totalContrib = principal;
+  data.push({year: 0, balance: balance, contrib: totalContrib});
+
+  for (var y = 1; y <= years; y++) {
+    for (var p = 0; p < compoundPerYear; p++) {
+      balance = balance * (1 + ratePerPeriod) + contribPerCompound;
+      totalContrib += contribPerCompound;
+    }
+    data.push({year: y, balance: balance, contrib: totalContrib});
+  }
+
+  var maxVal = Math.max.apply(null, data.map(function(d) { return d.balance; }));
+  var padding = 50;
+  var chartW = w - padding * 2;
+  var chartH = h - padding * 2;
+
+  // Draw axes
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padding, padding);
+  ctx.lineTo(padding, h - padding);
+  ctx.lineTo(w - padding, h - padding);
+  ctx.stroke();
+
+  // Labels
+  ctx.fillStyle = '#64748b';
+  ctx.font = '11px sans-serif';
+  ctx.fillText('¥', 15, padding + 15);
+  ctx.fillText('年份', w - padding - 20, h - 15);
+
+  // Y axis labels
+  for (var i = 0; i <= 4; i++) {
+    var yVal = maxVal * i / 4;
+    var yPos = h - padding - (chartH * i / 4);
+    ctx.fillStyle = '#475569';
+    ctx.fillText(Math.round(yVal / 1000) + 'K', 10, yPos + 4);
+    ctx.strokeStyle = 'rgba(148,163,184,0.05)';
+    ctx.beginPath();
+    ctx.moveTo(padding, yPos);
+    ctx.lineTo(w - padding, yPos);
+    ctx.stroke();
+  }
+
+  // Draw contribution line (gray)
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  data.forEach(function(d, i) {
+    var x = padding + (chartW * d.year / years);
+    var y = h - padding - (chartH * d.contrib / maxVal);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Draw balance area (cyan)
+  ctx.fillStyle = 'rgba(6,182,212,0.15)';
+  ctx.beginPath();
+  data.forEach(function(d, i) {
+    var x = padding + (chartW * d.year / years);
+    var y = h - padding - (chartH * d.balance / maxVal);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.lineTo(padding + chartW, h - padding);
+  ctx.lineTo(padding, h - padding);
+  ctx.closePath();
+  ctx.fill();
+
+  // Draw balance line
+  ctx.strokeStyle = '#22d3ee';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  data.forEach(function(d, i) {
+    var x = padding + (chartW * d.year / years);
+    var y = h - padding - (chartH * d.balance / maxVal);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // X axis labels
+  ctx.fillStyle = '#475569';
+  var xStep = Math.ceil(years / 10);
+  for (var yr = 0; yr <= years; yr += xStep) {
+    var xPos = padding + (chartW * yr / years);
+    ctx.fillText(yr, xPos - 5, h - padding + 15);
+  }
+}
+
 function resetAll() {
-  document.querySelectorAll('input').forEach(function(el) { if(el.type==='number') el.value=''; else if(el.type==='text') el.value=''; });
+  document.querySelectorAll('input[type="number"]').forEach(function(el) { el.value = ''; });
   document.querySelectorAll('select').forEach(function(el) { el.selectedIndex = 0; });
-  document.getElementById('resultsSection').innerHTML = '';
+  document.getElementById('resultsSection').style.display = 'none';
+  document.getElementById('yearlyTable').innerHTML = '';
   showToast('已重置');
 }
 </script>
