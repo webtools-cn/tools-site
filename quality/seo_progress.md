@@ -202,7 +202,30 @@
 - 统计面板显示新增/删除行数
 
 ### 剩余空壳
-约169个CN页面含"coming soon" stub函数待修复（本轮修复40个工具，commit `4b83d472e9` `40ae8d6841`）。全部通过node语法校验。
+约115个CN页面含"coming soon" stub函数待修复（本轮修复54个工具，commit `c2c2dccf46`）。全部通过node语法校验。
+
+### 第十轮修复 (commit `c2c2dccf46`)
+**实现完整功能（12个工具）**:
+- **browser-info**: detectAll()实现20+项浏览器信息检测（浏览器/OS/屏幕/硬件/网络/API支持）+页面加载自动检测
+- **square-footage-calculator**: calculateArea()+selectShape() 4种形状(矩形/L形/圆形/三角形)面积计算+4种单位换算
+- **text-cipher**: processText() 12种加密/编码算法(AES-GCM/Base64/URL/ROT13/MD5/SHA256/二进制等)+updateAlgoDesc()
+- **hash-verifier**: computeHash()+verifyHash() 5种哈希算法(MD5/SHA1/SHA256/SHA384/SHA512)+文本/文件模式+哈希校验
+- **json-masker**: maskJSON() JSON递归脱敏(8种敏感字段识别+3种脱敏方式+自定义字段)
+- **team-generator**: shuffleNames()+updateMembersPerTeam() Fisher-Yates洗牌+实时人数统计
+- **flashcard-maker**: addCard()+startStudy() localStorage持久化+分组管理+翻卡学习模式
+- **year-progress**: queryDate() 年度进度百分比计算+闰年判断+剩余天数
+- **html-sanitizer-online**: sanitize()+previewResult() DOMParser安全消毒(移除script/iframe/事件属性)
+- **youtube-thumbnail-downloader**: fetchThumbnails() 5种分辨率缩略图获取+视频ID解析
+- **http-method-reference**: 删除stub覆盖(filterMethod/copyTable/downloadRef被底部stub覆盖)
+- **subnet-divider**: 删除stub覆盖(calculate/divideSubnet/clearAll等被底部stub覆盖)
+
+**删除stub覆盖（17个工具，模式2）**:
+pdf-crop, regex-crossword, pdf-merge, ip-cidr-merger, css-animation-builder,
+svg-icon-search, css-z-index-manager, recipe-cost-calculator(含语法修复), eye-test,
+yaml-merger, crypto-tax-calculator, pem-parser, gradient-css-generator,
+json-pointer-explorer, text-similarity-calculator, subscription-auditor
+
+**分析脚本**: `scripts/analyze_stubs.py` + `scripts/delete_mode2_stubs.py`
 
 ### 第八轮修复 (commit `bf605cc30c`)
 - **text-cleaner**: 8种文本清理选项(去首尾空格/制表符/空行/不可见字符/统一换行等)
