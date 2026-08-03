@@ -202,7 +202,23 @@
 - 统计面板显示新增/删除行数
 
 ### 剩余空壳
-约228个CN页面含"coming soon" stub函数待修复（本轮修复10个工具，commit `0bc6ad17ab`）。全部通过node语法校验+WebBridge浏览器实测（css-border-radius-generator/code-compare/css-divider-generator/css-ribbon-generator/sql-where-builder抽样验证通过）。
+约209个CN页面含"coming soon" stub函数待修复（本轮修复10个工具，commit `bf605cc30c` `e637217048`）。全部通过node语法校验。
+
+### 第八轮修复 (commit `bf605cc30c`)
+- **text-cleaner**: 8种文本清理选项(去首尾空格/制表符/空行/不可见字符/统一换行等)
+  - 全选/取消全选/粘贴/撤销/结果填入输入框
+- **csv-viewer**: CSV文件解析器(支持引号转义+多种分隔符+表格渲染+搜索过滤+JSON导出)
+- **digital-clock**: 实时数字时钟(12/24小时切换+秒显隐+全屏+时区/时间戳/年进度)
+- **mood-tracker**: 心情记录器(localStorage持久化+5级心情选择+日历视图+平均值统计)
+- **cron-generator**: Cron表达式生成器(字段同步+自然语言描述+下次5次执行时间计算)
+- **en/mood-tracker**: 修复语法错误(损坏的字符串拼接+变量名错误calHtml)
+
+### 第九轮修复 (commit `e637217048`)
+- **countdown-timer**: 倒计时器(自定义天/时/分/秒+开始/暂停/重置+进度条+全屏+结束提示音)
+- **random-picker**: 随机抽取器(6种模板+随机抽取+随机分组+历史记录+允许重复选项)
+- **notepad**: 记事本查找替换(查找计数/单次替换/全部替换+大小写匹配+面板切换)
+- **spin-wheel-picker**: 转盘抽取器(Canvas绘制+缓动动画旋转+选项增删+4种预设+3种配色)
+- **world-clock**: 世界时钟(19城市选择+SVG模拟时钟+12/24小时制+实时更新+城市增删)
 
 ### 第七轮修复 (commit `5f54655f41`)
 - **markdown-editor**: 完整Markdown→HTML渲染器(标题/粗体/斜体/代码块/引用/列表/表格/链接/图片/分割线)
