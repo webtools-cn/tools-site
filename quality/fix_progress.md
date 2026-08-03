@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第三十四批 - 修复3个回显型空壳)
+> 最后更新: 2026-08-03 (cron自动更新 - 第三十五批 - 修复3个回显型空壳)
 
 ## 当前真实问题
 
@@ -11,12 +11,12 @@
 | EN版模板空壳(process未定义) | 23 | 23 | 0 | ✅ 完成 | grep toolInput + process() 未定义检测 |
 | EN版假交互空壳(quickInput) | 224 | 224 | 0 | ✅ 完成 | grep quickInput + 无业务函数检测 |
 | toolInput误报(7个有功能) | 7 | 7 | 0 | ✅ 误报 | 有addEventListener绑定的真实功能 |
-| 回显型process空壳(output=input) | 29 | 6 | 23 | 🔴 进行中 | 全站扫描 var output = input + 无业务逻辑 |
+| 回显型process空壳(output=input) | 30 | 3 | 27 | 🔴 进行中 | 全站扫描 var output = input + 无业务逻辑 |
 
-## 回显型空壳清单(23个剩余)
+## 回显型空壳清单(27个剩余)
 
 > 特征：process()/convert()/generate()函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
-> 注：第三十四批修复3个(cidr-to-ip-range/csv-to-markdown-table/csp-generator)，剩余23个：
+> 注：第三十五批修复3个(hex-to-hsl/html-escape-unescape/string-case-converter)，实际全站复扫发现30个CN版回显stub(此前清单有遗漏)。剩余27个：
 
 1. ai-json-schema-generator
 2. ai-system-prompt-builder
@@ -25,26 +25,37 @@
 5. caddyfile-generator
 6. env-to-json
 7. haproxy-config-generator
-8. hex-to-hsl
-9. html-email-template
-10. html-escape-unescape
-11. html-table-to-markdown
-12. htaccess-generator
-13. htpasswd-generator
-14. http-cache-header-generator
-15. kubernetes-yaml-generator
-16. mock-data-generator
-17. npm-package-json
-18. roman-to-decimal
-19. string-case-converter
-20. svg-pattern-generator
-21. tailwind-spacing-generator
-22. time-zone-converter
-23. typescript-utility-types
-24. unicode-range-generator
-25. yaml-to-dotenv
+8. html-email-template
+9. html-table-to-markdown
+10. htaccess-generator
+11. htpasswd-generator
+12. http-cache-header-generator
+13. js-destructuring-generator
+14. json-key-renamer
+15. json-schema-generator
+16. json-to-avro
+17. json-to-csv-converter
+18. json-to-go-struct
+19. json-to-kotlin-class
+20. json-to-php-object
+21. json-to-rust-struct
+22. json-to-schema
+23. json-to-swift-struct
+24. json-to-typescript-interface
+25. kubernetes-yaml-generator
+26. mock-data-generator
+27. npm-package-json
+28. svg-pattern-generator
+29. tailwind-spacing-generator
+30. typescript-utility-types
+31. unicode-range-generator
+32. yaml-to-dotenv
 
 ## 已修复的空壳工具
+
+### 2026-08-03 (第三十五批 - 修复3个回显型空壳)
+hex-to-hsl, html-escape-unescape, string-case-converter
+注: 三个工具CN版均修复，hex-to-hsl和string-case-converter的EN版也同步修复。hex-to-hsl CN/EN版实现完整HEX→HSL转换(3位简写自动扩展+RGB同步输出+错误提示+颜色选择器联动+16色预设面板+页面加载自动转换)，替换原stub(convert只回显到不存在的result元素+setFromPicker只显示toast)；html-escape-unescape CN版修复convert()读取错误元素问题(原stub读取mode-escape的value而非input textarea)+实现5字符实体转义/反转义(&<>\"')+修复copyOutput(用clipboard API替代错误的copyText调用)+修复clearAll(不再错误清空radio按钮value)，EN版此前已在第二十四批修复无需修改；string-case-converter CN/EN版情况同cidr-to-ip-range——页面已有完整的splitWords/toCamel/toPascal/toSnake/toKebab/toConstant/toDot/toPath/toSentence 8种转换函数+批量处理+复制/下载功能，但末尾被注入stub块覆盖了convert/clearAll/copyAll/copySingle/downloadAll/loadExample，修复方式为直接删除stub块恢复原有功能。node逻辑测试：hexToHsl 8组用例(#FF5733→[11,100,60]/#FF0000→[0,100,50]/#00FF00→[120,100,50]/#0000FF→[240,100,50]/#000000→[0,0,0]/#FFFFFF→[0,0,100]/#F53 3位→[10,100,60]/invalid→null)全部正确；HTML转义 `<div class="test">Hello & Welcome</div>`→`&lt;div class=&quot;test&quot;&gt;Hello &amp; Welcome&lt;/div&gt;`正确；splitWords('helloWorld')→['hello','World']→camel:helloWorld/snake:hello_world正确。全站`var output = input` CN版从30降到27。5个文件JS语法验证通过。
 
 ### 2026-08-03 (第三十四批 - 修复3个回显型空壳)
 cidr-to-ip-range, csv-to-markdown-table, csp-generator
@@ -174,34 +185,56 @@ csv-merger
 fibonacci-generator, text-to-binary, number-converter
 注: 发现27个回显型空壳(process()函数体var output=input直接回显输入，无业务逻辑，此前检测方式未覆盖此模式)。本轮修复3个：fibonacci-generator CN版实现斐波那契数列生成器(自定义起始值F(0)/F(1)+数量1-500+每项显示F(n)=值+相邻项比值收敛黄金比例φ+数列和)，替换var output=input回显空壳；text-to-binary CN版实现文本↔二进制互转(4格式:二进制/十六进制/八进制/十进制+4分隔符:空格/无/逗号/换行+自动补零8/7/16位+Unicode codePoint支持+3项统计:字符数/比特数/字节数+自动转换+交换方向)，添加缺失的textarea输入框，替换var output=''永远为空的空壳；number-converter CN版实现数字转中文大写(4模式:中文大写壹贰叁/中文小写一二三/金额大写人民币圆角分整/中文转数字反向解析+万亿级12位+角分处理+零处理+快捷数字按钮)，替换var output=input回显空壳。三个工具EN版均已有完整功能无需修改。所有JS语法验证通过，node逻辑测试全部通过。剩余24个回显型空壳待修。
 
-## 回显型空壳清单(24个剩余)
+## 回显型空壳清单(27个剩余)
 
 > 特征：process()/convert()/generate()函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
 
-1. ai-copywriting-generator
-2. coupon-code-generator
+1. ai-json-schema-generator
+2. caddyfile-generator
 3. css-has-selector-generator
 4. css-layer-generator
-5. css-media-query-generator
-6. css-scroll-driven-animation
-7. css-to-less
-8. dockerfile-generator
-9. eslint-config-generator
-10. file-size-converter
-11. gradient-border-animation
-12. html-email-template
+5. css-to-less
+6. dockerfile-generator
+7. env-to-json
+8. eslint-config-generator
+9. file-size-converter
+10. haproxy-config-generator
+11. html-email-template
+12. html-table-to-markdown
 13. html-to-xml
-14. json-to-graphql
-15. lorem-ipsum
-16. nginx-config-generator
-17. prettier-config-generator
-18. readme-generator
-19. seo-meta-tag-generator
-20. svg-pattern-generator
-21. text-line-wrapper
-22. text-prefix-suffix
-23. text-to-unicode
-24. web-component-generator
+14. htaccess-generator
+15. htpasswd-generator
+16. http-cache-header-generator
+17. js-destructuring-generator
+18. json-key-renamer
+19. json-schema-generator
+20. json-to-avro
+21. json-to-csv-converter
+22. json-to-graphql
+23. json-to-go-struct
+24. json-to-kotlin-class
+25. json-to-php-object
+26. json-to-rust-struct
+27. json-to-schema
+28. json-to-swift-struct
+29. json-to-typescript-interface
+30. kubernetes-yaml-generator
+31. lorem-ipsum
+32. mock-data-generator
+33. nginx-config-generator
+34. npm-package-json
+35. prettier-config-generator
+36. readme-generator
+37. seo-meta-tag-generator
+38. svg-pattern-generator
+39. tailwind-spacing-generator
+40. text-line-wrapper
+41. text-prefix-suffix
+42. text-to-unicode
+43. typescript-utility-types
+44. unicode-range-generator
+45. web-component-generator
+46. yaml-to-dotenv
 
 ## 检测说明
 1. `check_empty_shells.py` 检测0交互工具（258个，含重定向页面+分类页面+动态UI工具）
