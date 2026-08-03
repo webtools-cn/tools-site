@@ -219,7 +219,140 @@ function giveHint() {
 }
 
 function newGame() {
-  showToast('newGame - coming soon!');
+  var board = generateSudoku();
+  renderBoard(board);
+  showToast('新游戏开始！');
+}
+
+function generateSudoku() {
+  var board = [];
+  for (var i = 0; i < 9; i++) board.push(new Array(9).fill(0));
+  // Fill diagonal boxes
+  for (var box = 0; box < 9; box += 3) {
+    var nums = [1,2,3,4,5,6,7,8,9];
+    nums.sort(function() { return Math.random() - 0.5; });
+    var idx = 0;
+    for (var r = 0; r < 3; r++) {
+      for (var c = 0; c < 3; c++) {
+        board[box + r][box + c] = nums[idx++];
+      }
+    }
+  }
+  // Remove some cells
+  var removed = 0;
+  while (removed < 40) {
+    var r = Math.floor(Math.random() * 9);
+    var c = Math.floor(Math.random() * 9);
+    if (board[r][c] !== 0) {
+      board[r][c] = 0;
+      removed++;
+    }
+  }
+  return board;
+}
+
+function renderBoard(board) {
+  var container = document.getElementById('sudokuBoard') || document.querySelector('.sudoku-board, table');
+  if (!container) return;
+  container.innerHTML = '';
+  for (var r = 0; r < 9; r++) {
+    var row = container.insertRow ? container.insertRow() : document.createElement('tr');
+    for (var c = 0; c < 9; c++) {
+      var cell = container.insertCell ? container.insertCell() : document.createElement('td');
+      cell.style.cssText = 'width:40px;height:40px;text-align:center;border:1px solid #334155;background:' + (board[r][c] === 0 ? '#0f172a' : '#1e293b') + ';color:#e2e8f0;font-size:1.2rem';
+      cell.textContent = board[r][c] || '';
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+      cell.contentEditable = board[r][c] === 0;
+      row.appendChild(cell);
+    }
+    container.appendChild(row);
+  }
+}
+
+function solvePuzzle() {
+  var container = document.getElementById('sudokuBoard') || document.querySelector('table');
+  if (!container) { showToast('未找到数独棋盘'); return; }
+  var board = [];
+  var cells = container.querySelectorAll('td');
+  for (var r = 0; r < 9; r++) {
+    board.push([]);
+    for (var c = 0; c < 9; c++) {
+      var val = parseInt(cells[r * 9 + c].textContent) || 0;
+      board[r][c] = val;
+    }
+  }
+  if (solveSudoku(board)) {
+    for (var r = 0; r < 9; r++) {
+      for (var c = 0; c < 9; c++) {
+        cells[r * 9 + c].textContent = board[r][c];
+        cells[r * 9 + c].style.color = '#22d3ee';
+      }
+    }
+    showToast('已解出！');
+  } else {
+    showToast('无解，请检查输入');
+  }
+}
+
+function solveSudoku(board) {
+  for (var r = 0; r < 9; r++) {
+    for (var c = 0; c < 9; c++) {
+      if (board[r][c] === 0) {
+        for (var n = 1; n <= 9; n++) {
+          if (isValid(board, r, c, n)) {
+            board[r][c] = n;
+            if (solveSudoku(board)) return true;
+            board[r][c] = 0;
+          }
+        }
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function isValid(board, row, col, num) {
+  for (var i = 0; i < 9; i++) {
+    if (board[row][i] === num) return false;
+    if (board[i][col] === num) return false;
+  }
+  var br = Math.floor(row / 3) * 3;
+  var bc = Math.floor(col / 3) * 3;
+  for (var r = br; r < br + 3; r++) {
+    for (var c = bc; c < bc + 3; c++) {
+      if (board[r][c] === num) return false;
+    }
+  }
+  return true;
+}
+
+function placeNumber(cell) {
+  var input = prompt('输入1-9的数字:');
+  if (input && input >= '1' && input <= '9') {
+    cell.textContent = input;
+    cell.style.color = '#22d3ee';
+    showToast('已填入 ' + input);
+  }
+}
+
+function giveHint() {
+  var container = document.getElementById('sudokuBoard') || document.querySelector('table');
+  if (!container) { showToast('未找到棋盘'); return; }
+  var cells = container.querySelectorAll('td');
+  var empty = [];
+  cells.forEach(function(cell) {
+    if (!cell.textContent || cell.textContent === '0') empty.push(cell);
+  });
+  if (empty.length === 0) { showToast('棋盘已满'); return; }
+  var cell = empty[Math.floor(Math.random() * empty.length)];
+  showToast('提示: 尝试在行' + (parseInt(cell.dataset.row) + 1) + '列' + (parseInt(cell.dataset.col) + 1) + '填入数字');
+}
+
+function printPuzzle() {
+  window.print();
+  showToast('正在准备打印...');
 }
 
 function placeNumber() {

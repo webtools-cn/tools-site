@@ -281,7 +281,52 @@ function resetSingle() {
 }
 
 function runBatch() {
-  showToast('runBatch - coming soon!');
+  var input = document.getElementById('batchInput') || document.querySelector('textarea[name="batch"]');
+  if (!input || !input.value.trim()) { showToast('请输入批量数据'); return; }
+  var fromUnit = (document.getElementById('fromUnit') || document.querySelectorAll('select')[0]);
+  var toUnit = (document.getElementById('toUnit') || document.querySelectorAll('select')[1]);
+  var fromVal = fromUnit ? fromUnit.value : 'm';
+  var toVal = toUnit ? toUnit.value : 'ft';
+  
+  var lines = input.value.trim().split('\n');
+  var results = [];
+  var conversions = {
+    'm-ft': 3.28084, 'm-km': 0.001, 'm-cm': 100, 'm-mm': 1000, 'm-in': 39.3701,
+    'ft-m': 0.3048, 'ft-in': 12, 'ft-yd': 0.333333,
+    'km-m': 1000, 'km-mi': 0.621371,
+    'mi-km': 1.60934, 'mi-ft': 5280,
+    'cm-m': 0.01, 'cm-in': 0.393701,
+    'mm-m': 0.001, 'mm-cm': 0.1,
+    'in-cm': 2.54, 'in-ft': 0.0833333,
+    'kg-lb': 2.20462, 'kg-g': 1000, 'kg-oz': 35.274,
+    'lb-kg': 0.453592, 'lb-oz': 16, 'lb-g': 453.592,
+    'g-kg': 0.001, 'g-lb': 0.00220462, 'g-oz': 0.035274,
+    'oz-kg': 0.0283495, 'oz-lb': 0.0625, 'oz-g': 28.3495,
+    'l-gal': 0.264172, 'l-ml': 1000, 'gal-l': 3.78541, 'ml-l': 0.001,
+    'c-f': function(c) { return c * 9/5 + 32; },
+    'f-c': function(f) { return (f - 32) * 5/9; },
+    'c-k': function(c) { return c + 273.15; },
+    'k-c': function(k) { return k - 273.15; }
+  };
+  
+  var key = fromVal + '-' + toVal;
+  lines.forEach(function(line) {
+    var val = parseFloat(line.trim());
+    if (isNaN(val)) { results.push(line + ' => 无效'); return; }
+    var result;
+    if (typeof conversions[key] === 'function') {
+      result = conversions[key](val);
+    } else if (conversions[key]) {
+      result = val * conversions[key];
+    } else {
+      result = val;
+    }
+    results.push(val + ' ' + fromVal + ' = ' + (Math.round(result * 1e6) / 1e6) + ' ' + toVal);
+  });
+  
+  var output = document.getElementById('batchOutput') || document.querySelector('.batch-output, #output');
+  if (output) output.textContent = results.join('\n');
+  showToast('批量转换完成: ' + results.length + ' 条');
 }
 
 function setMode(value) {

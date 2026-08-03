@@ -235,7 +235,18 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function addCol() {
-  showToast('addCol - coming soon!');
+  var table = document.getElementById('dataTable') || document.querySelector('table');
+  if (!table) { showToast('未找到表格'); return; }
+  var rows = table.querySelectorAll('tr');
+  rows.forEach(function(row, i) {
+    var cell = i === 0 ? document.createElement('th') : document.createElement('td');
+    cell.textContent = i === 0 ? '列' + (row.cells.length + 1) : '';
+    cell.style.cssText = 'padding:8px;border:1px solid #334155;background:' + (i === 0 ? '#1e293b' : '#0f172a');
+    cell.contentEditable = 'true';
+    row.appendChild(cell);
+  });
+  updateTableOutput();
+  showToast('已添加列');
 }
 
 function addRow() {
@@ -250,7 +261,34 @@ function addRow() {
 }
 
 function autoDetect() {
-  showToast('autoDetect - coming soon!');
+  var input = document.getElementById('inputText') || document.querySelector('textarea');
+  if (!input || !input.value.trim()) { showToast('请先输入文本'); return; }
+  var text = input.value.trim();
+  var delimiter = '\t';
+  if (text.includes(',')) delimiter = ',';
+  else if (text.includes(';')) delimiter = ';';
+  else if (text.includes('|')) delimiter = '|';
+  else if (text.includes('\t')) delimiter = '\t';
+  else delimiter = /\s+/;
+  
+  var lines = text.split('\n').filter(function(l) { return l.trim(); });
+  var table = document.getElementById('dataTable') || document.querySelector('table');
+  if (!table) { showToast('未找到表格'); return; }
+  table.innerHTML = '';
+  
+  lines.forEach(function(line, i) {
+    var cells = typeof delimiter === 'string' ? line.split(delimiter) : line.split(delimiter);
+    var row = table.insertRow();
+    cells.forEach(function(cellText) {
+      var cell = i === 0 ? document.createElement('th') : document.createElement('td');
+      cell.textContent = cellText.trim();
+      cell.style.cssText = 'padding:8px;border:1px solid #334155;background:' + (i === 0 ? '#1e293b' : '#0f172a');
+      cell.contentEditable = 'true';
+      row.appendChild(cell);
+    });
+  });
+  updateTableOutput();
+  showToast('已自动识别分隔符并生成表格');
 }
 
 function clearAll() {

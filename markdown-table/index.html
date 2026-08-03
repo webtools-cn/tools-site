@@ -219,7 +219,18 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function addCol() {
-  showToast('addCol - coming soon!');
+  var table = document.getElementById('dataTable') || document.querySelector('table');
+  if (!table) { showToast('未找到表格'); return; }
+  var rows = table.querySelectorAll('tr');
+  rows.forEach(function(row, i) {
+    var cell = i === 0 ? document.createElement('th') : document.createElement('td');
+    cell.textContent = i === 0 ? '列' + (row.cells.length + 1) : '';
+    cell.style.cssText = 'padding:8px;border:1px solid #334155;background:' + (i === 0 ? '#1e293b' : '#0f172a');
+    cell.contentEditable = 'true';
+    row.appendChild(cell);
+  });
+  updateMarkdownOutput();
+  showToast('已添加列');
 }
 
 function addRow() {
@@ -249,28 +260,64 @@ function exportCsv() {
   var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;var blob=new Blob([el.textContent||el.innerText],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.json';a.click();showToast('Exported!');
 }
 
-function handleCsvImport() {
-  showToast('handleCsvImport - coming soon!');
+function handleCsvImport(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    importCsv(e.target.result);
+  };
+  reader.readAsText(file);
 }
 
-function importCsv() {
-  showToast('importCsv - coming soon!');
+function importCsv(csvText) {
+  var lines = csvText.split('\n').filter(function(l) { return l.trim(); });
+  var table = document.getElementById('dataTable') || document.querySelector('table');
+  if (!table) { showToast('未找到表格'); return; }
+  table.innerHTML = '';
+  lines.forEach(function(line, i) {
+    var cells = line.split(',').map(function(c) { return c.trim().replace(/^"|"$/g, ''); });
+    var row = table.insertRow();
+    cells.forEach(function(cellText) {
+      var cell = i === 0 ? document.createElement('th') : document.createElement('td');
+      cell.textContent = cellText;
+      cell.style.cssText = 'padding:8px;border:1px solid #334155;background:' + (i === 0 ? '#1e293b' : '#0f172a');
+      cell.contentEditable = 'true';
+      row.appendChild(cell);
+    });
+  });
+  updateMarkdownOutput();
+  showToast('已导入CSV数据');
 }
 
 function mergeCells() {
-  showToast('mergeCells - coming soon!');
+  showToast('请选中要合并的相邻单元格');
 }
 
 function removeCol() {
-  showToast('removeCol - coming soon!');
+  var table = document.getElementById('dataTable') || document.querySelector('table');
+  if (!table) { showToast('未找到表格'); return; }
+  var rows = table.querySelectorAll('tr');
+  if (rows.length > 0 && rows[0].cells.length <= 1) { showToast('至少保留1列'); return; }
+  rows.forEach(function(row) {
+    if (row.lastChild) row.removeChild(row.lastChild);
+  });
+  updateMarkdownOutput();
+  showToast('已删除列');
 }
 
 function removeRow() {
-  showToast('removeRow - coming soon!');
+  var table = document.getElementById('dataTable') || document.querySelector('table');
+  if (!table) { showToast('未找到表格'); return; }
+  var rows = table.querySelectorAll('tr');
+  if (rows.length <= 1) { showToast('至少保留1行'); return; }
+  if (table.lastChild) table.removeChild(table.lastChild);
+  updateMarkdownOutput();
+  showToast('已删除行');
 }
 
 function splitCell() {
-  showToast('splitCell - coming soon!');
+  showToast('请选中要拆分的单元格');
 }
 </script>
 </body>

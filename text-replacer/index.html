@@ -292,7 +292,16 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function addRule() {
-  showToast('addRule - coming soon!');
+  var container = document.getElementById('rules') || document.querySelector('.rules-container');
+  if (!container) { showToast('未找到规则容器'); return; }
+  var rules = container.querySelectorAll('.rule-item');
+  var idx = rules.length;
+  var div = document.createElement('div');
+  div.className = 'rule-item';
+  div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:8px;background:#1e293b;border-radius:6px';
+  div.innerHTML = '<input type="text" placeholder="查找" style="flex:1;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px" class="rule-find"><input type="text" placeholder="替换为" style="flex:1;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px" class="rule-replace"><select style="background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px" class="rule-mode"><option value="text">文本</option><option value="regex">正则</option></select><button onclick="this.parentElement.remove();updateStats();" style="padding:6px 10px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer">✕</button>';
+  container.appendChild(div);
+  showToast('已添加规则 #' + (idx + 1));
 }
 
 function clearAll() {
@@ -318,7 +327,40 @@ function undoReplace() {
 }
 
 function updateStats() {
-  showToast('updateStats - coming soon!');
+  var input = document.getElementById('inputText') || document.querySelector('textarea[name="input"]');
+  var output = document.getElementById('outputText') || document.querySelector('.output, #output');
+  if (!input || !output) return;
+  
+  var text = input.value;
+  var rules = document.querySelectorAll('.rule-item');
+  var replacements = 0;
+  
+  rules.forEach(function(rule) {
+    var find = rule.querySelector('.rule-find');
+    var replace = rule.querySelector('.rule-replace');
+    var mode = rule.querySelector('.rule-mode');
+    if (!find || !find.value) return;
+    var replaceVal = replace ? replace.value : '';
+    var isRegex = mode && mode.value === 'regex';
+    
+    if (isRegex) {
+      try {
+        var regex = new RegExp(find.value, 'g');
+        var matches = text.match(regex);
+        if (matches) replacements += matches.length;
+        text = text.replace(regex, replaceVal);
+      } catch(e) {}
+    } else {
+      var count = text.split(find.value).length - 1;
+      replacements += count;
+      text = text.split(find.value).join(replaceVal);
+    }
+  });
+  
+  output.textContent = text;
+  var stats = document.getElementById('stats') || document.querySelector('.stats');
+  if (stats) stats.textContent = '替换了 ' + replacements + ' 处';
+  showToast('已替换 ' + replacements + ' 处');
 }
 </script>
 </body>

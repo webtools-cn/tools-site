@@ -267,11 +267,25 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function addHeader() {
-  showToast('addHeader - coming soon!');
+  var container = document.getElementById('headers') || document.querySelector('.headers-list');
+  if (!container) { showToast('未找到头部容器'); return; }
+  var div = document.createElement('div');
+  div.className = 'header-item';
+  div.style.cssText = 'display:flex;gap:8px;margin-bottom:8px';
+  div.innerHTML = '<input type="text" placeholder="Header名称" style="flex:1;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px" class="h-key"><input type="text" placeholder="Header值" style="flex:1;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px" class="h-val"><button onclick="this.parentElement.remove();generateCurl();" style="padding:6px 10px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer">✕</button>';
+  container.appendChild(div);
+  showToast('已添加Header');
 }
 
 function addQueryParam() {
-  showToast('addQueryParam - coming soon!');
+  var container = document.getElementById('queryParams') || document.querySelector('.params-list');
+  if (!container) { showToast('未找到参数容器'); return; }
+  var div = document.createElement('div');
+  div.className = 'param-item';
+  div.style.cssText = 'display:flex;gap:8px;margin-bottom:8px';
+  div.innerHTML = '<input type="text" placeholder="参数名" style="flex:1;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px" class="p-key"><input type="text" placeholder="参数值" style="flex:1;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px" class="p-val"><button onclick="this.parentElement.remove();generateCurl();" style="padding:6px 10px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer">✕</button>';
+  container.appendChild(div);
+  showToast('已添加查询参数');
 }
 
 function clearAll() {
@@ -299,7 +313,7 @@ function generateCurl() {
   var u=url.value.trim();
   var h=headers?headers.value.trim():'';
   var b=body?body.value.trim():'';
-  var curl='curl -X '+m+' \'\'+u+'\'\'';
+  var curl='curl -X '+m+" '"+u+"'";
   if(h){
     h.split('\n').forEach(function(line){
       line=line.trim();
@@ -315,7 +329,36 @@ function generateCurl() {
 }
 
 function parseCurl() {
-  showToast('parseCurl - coming soon!');
+  var input = document.getElementById('curlInput') || document.querySelector('textarea');
+  if (!input || !input.value.trim()) { showToast('请输入curl命令'); return; }
+  var curl = input.value.trim();
+  
+  var method = 'GET';
+  var url = '';
+  var headers = [];
+  var body = '';
+  
+  var m = curl.match(/-X\s+(\w+)/);
+  if (m) method = m[1].toUpperCase();
+  
+  m = curl.match(/curl\s+['"]?(https?:\/\/[^'"\s]+)/);
+  if (m) url = m[1];
+  
+  var headerMatches = curl.match(/-H\s+['"]([^'"]+)['"]/g) || [];
+  headerMatches.forEach(function(hm) {
+    var inner = hm.replace(/^-H\s+['"]/, '').replace(/['"]$/, '');
+    var idx = inner.indexOf(':');
+    if (idx > 0) headers.push({key: inner.substring(0, idx).trim(), val: inner.substring(idx + 1).trim()});
+  });
+  
+  m = curl.match(/-d\s+['"]([^'"]+)['"]/);
+  if (m) { body = m[1]; if (method === 'GET') method = 'POST'; }
+  
+  if (document.getElementById('method')) document.getElementById('method').value = method;
+  if (document.getElementById('url')) document.getElementById('url').value = url;
+  if (document.getElementById('body')) document.getElementById('body').value = body;
+  
+  showToast('已解析curl命令: ' + method + ' ' + url);
 }
 
 function toggleBody() {

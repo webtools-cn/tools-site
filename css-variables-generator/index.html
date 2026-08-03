@@ -299,7 +299,37 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function addVariable() {
-  showToast('addVariable - coming soon!');
+  var container = document.getElementById('variables') || document.querySelector('.variables-list');
+  if (!container) { showToast('未找到变量容器'); return; }
+  var div = document.createElement('div');
+  div.className = 'var-item';
+  div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:8px;background:#1e293b;border-radius:6px';
+  div.innerHTML = '<input type="text" placeholder="--my-color" style="width:140px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px" class="var-name"><input type="color" value="#22d3ee" style="width:40px;height:32px;border:none;border-radius:4px" class="var-value-color"><input type="text" placeholder="#22d3ee" style="width:100px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px" class="var-value-text"><button onclick="this.parentElement.remove();updateVarOutput();" style="padding:4px 8px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer">✕</button>';
+  container.appendChild(div);
+  div.querySelector('.var-value-color').addEventListener('input', function() { div.querySelector('.var-value-text').value = this.value; updateVarOutput(); });
+  div.querySelector('.var-value-text').addEventListener('input', function() { updateVarOutput(); });
+  div.querySelector('.var-name').addEventListener('input', function() { updateVarOutput(); });
+  updateVarOutput();
+  showToast('已添加CSS变量');
+}
+
+function updateVarOutput() {
+  var items = document.querySelectorAll('.var-item');
+  var css = ':root {\n';
+  items.forEach(function(item) {
+    var name = item.querySelector('.var-name').value;
+    var val = item.querySelector('.var-value-text').value || item.querySelector('.var-value-color').value;
+    if (name && val) css += '  ' + name + ': ' + val + ';\n';
+  });
+  css += '}';
+  var code = document.getElementById('outputCode') || document.getElementById('code');
+  if (code) code.textContent = css;
+  var preview = document.getElementById('preview') || document.querySelector('.preview');
+  if (preview) {
+    var style = document.getElementById('dynamicVars');
+    if (!style) { style = document.createElement('style'); style.id = 'dynamicVars'; document.head.appendChild(style); }
+    style.textContent = css;
+  }
 }
 
 function clearAll() {
@@ -332,7 +362,25 @@ function exportJSON() {
 }
 
 function importJSON() {
-  showToast('importJSON - coming soon!');
+  var input = document.getElementById('jsonInput') || document.querySelector('textarea[name="json"]');
+  if (!input || !input.value.trim()) { showToast('请输入JSON'); return; }
+  try {
+    var data = JSON.parse(input.value);
+    var container = document.getElementById('variables') || document.querySelector('.variables-list');
+    if (!container) { showToast('未找到变量容器'); return; }
+    container.innerHTML = '';
+    Object.keys(data).forEach(function(key) {
+      var div = document.createElement('div');
+      div.className = 'var-item';
+      div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:8px;background:#1e293b;border-radius:6px';
+      div.innerHTML = '<input type="text" value="--' + key + '" style="width:140px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px" class="var-name"><input type="color" value="#22d3ee" style="width:40px;height:32px;border:none;border-radius:4px" class="var-value-color"><input type="text" value="' + data[key] + '" style="width:100px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px" class="var-value-text"><button onclick="this.parentElement.remove();updateVarOutput();" style="padding:4px 8px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer">✕</button>';
+      container.appendChild(div);
+    });
+    updateVarOutput();
+    showToast('已导入JSON变量');
+  } catch(e) {
+    showToast('JSON格式错误');
+  }
 }
 
 var presets = {

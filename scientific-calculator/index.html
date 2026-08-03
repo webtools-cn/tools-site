@@ -233,42 +233,111 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function calculate() {
+var calcMode = 'deg';
+var calcExpr = '';
 
-  if (true === undefined || isNaN(0)) {
-    showToast('请输入有效数值');
-    return;
+function calculate() {
+  if (!calcExpr) { showToast('请先输入表达式'); return; }
+  try {
+    var expr = calcExpr
+      .replace(/π/g, 'Math.PI')
+      .replace(/(?<![a-zA-Z])e(?![a-zA-Z])/g, 'Math.E')
+      .replace(/\^/g, '**')
+      .replace(/mod/g, '%');
+    // Replace functions
+    expr = expr.replace(/sin\(/g, calcMode === 'deg' ? 'Math.sin(Math.PI/180*' : 'Math.sin(');
+    expr = expr.replace(/cos\(/g, calcMode === 'deg' ? 'Math.cos(Math.PI/180*' : 'Math.cos(');
+    expr = expr.replace(/tan\(/g, calcMode === 'deg' ? 'Math.tan(Math.PI/180*' : 'Math.tan(');
+    expr = expr.replace(/asin\(/g, calcMode === 'deg' ? 'Math.asin*' : 'Math.asin(');
+    // Fix: asin/acos/atan need closing properly
+    expr = expr.replace(/Math\.asin\*/g, 'Math.asin(');
+    expr = expr.replace(/acos\(/g, calcMode === 'deg' ? 'Math.acos(' : 'Math.acos(');
+    expr = expr.replace(/atan\(/g, calcMode === 'deg' ? 'Math.atan(' : 'Math.atan(');
+    expr = expr.replace(/log\(/g, 'Math.log10(');
+    expr = expr.replace(/ln\(/g, 'Math.log(');
+    expr = expr.replace(/sqrt\(/g, 'Math.sqrt(');
+    expr = expr.replace(/abs\(/g, 'Math.abs(');
+    // factorial
+    expr = expr.replace(/(\d+(?:\.\d+)?)!/g, function(m, n) {
+      n = parseInt(n);
+      var r = 1;
+      for (var i = 2; i <= n; i++) r *= i;
+      return r;
+    });
+    // square
+    expr = expr.replace(/square\(/g, 'Math.pow(');
+    // 10x
+    expr = expr.replace(/10x\(/g, 'Math.pow(10,');
+    // 1/x
+    expr = expr.replace(/1\/x\(/g, '(1/(') + (expr.includes('1/x(') ? ')' : '');
+    // neg
+    expr = expr.replace(/neg\(/g, '(-(') + (expr.includes('neg(') ? ')' : '');
+
+    var result = Function('return ' + expr)();
+    if (isNaN(result) || !isFinite(result)) {
+      document.getElementById('history').textContent = calcExpr + ' =';
+      document.getElementById('display').textContent = 'Error';
+      showToast('计算错误');
+      return;
+    }
+    result = Math.round(result * 1e12) / 1e12;
+    document.getElementById('history').textContent = calcExpr + ' =';
+    document.getElementById('display').textContent = result;
+    calcExpr = String(result);
+    showToast('计算完成');
+  } catch(e) {
+    document.getElementById('display').textContent = 'Error';
+    showToast('表达式错误');
   }
-  var result = value;
-  document.getElementById('display').innerHTML = '<div class="result-item"><span class="result-label">结果</span><span class="result-value">' + result + '</span></div>';
-  document.getElementById('display').style.display = 'block';
-  showToast('计算完成');
 }
 
 function clearAll() {
-  document.getElementById('display').innerHTML = '';
-  document.getElementById('display').style.display = 'none';
-  showToast('已重置');
+  calcExpr = '';
+  document.getElementById('history').textContent = '';
+  document.getElementById('display').textContent = '0';
+  showToast('已清空');
 }
 
 function deleteLast() {
-  showToast('deleteLast - coming soon!');
+  calcExpr = calcExpr.slice(0, -1);
+  document.getElementById('display').textContent = calcExpr || '0';
 }
 
-function insert() {
-  showToast('insert - coming soon!');
+function insert(ch) {
+  if (calcExpr === '0' && /[0-9.]/.test(ch)) calcExpr = '';
+  calcExpr += ch;
+  document.getElementById('display').textContent = calcExpr;
 }
 
-function insertFunc() {
-  showToast('insertFunc - coming soon!');
+function insertFunc(fn) {
+  var replacements = {
+    'sin': 'sin(', 'cos': 'cos(', 'tan': 'tan(',
+    'asin': 'asin(', 'acos': 'acos(', 'atan': 'atan(',
+    'log': 'log(', 'ln': 'ln(', 'sqrt': 'sqrt(',
+    'abs': 'abs(', 'fact': '', 'mod': '%',
+    '1/x': '1/x(', 'square': 'square(', '10x': '10x(',
+    'neg': 'neg('
+  };
+  if (fn === 'fact') {
+    calcExpr += '!';
+  } else {
+    calcExpr += replacements[fn] || (fn + '(');
+  }
+  document.getElementById('display').textContent = calcExpr;
 }
 
 function setMode(value) {
-  if(typeof value === 'string') {
-    var el = document.querySelector('[data-preset="' + value + '"], [data-mode="' + value + '"]');
-    if(el) el.classList.add('active');
+  calcMode = value;
+  var degBtn = document.getElementById('degBtn');
+  var radBtn = document.getElementById('radBtn');
+  if (value === 'deg') {
+    degBtn.classList.add('active');
+    radBtn.classList.remove('active');
+  } else {
+    radBtn.classList.add('active');
+    degBtn.classList.remove('active');
   }
-  showToast('已应用');
+  showToast(value === 'deg' ? '已切换到角度模式' : '已切换到弧度模式');
 }
 </script>
 </body>

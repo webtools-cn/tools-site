@@ -365,43 +365,101 @@ function addColumn() {
 }
 
 function addDeleteWhere() {
-  showToast('addDeleteWhere - coming soon!');
+  addClauseRow('deleteWhere', 'DELETE条件');
 }
 
 function addGroupBy() {
-  showToast('addGroupBy - coming soon!');
+  addClauseRow('groupBy', 'GROUP BY字段');
 }
 
 function addHaving() {
-  showToast('addHaving - coming soon!');
+  addClauseRow('having', 'HAVING条件');
 }
 
 function addInsertField() {
-  showToast('addInsertField - coming soon!');
+  addClauseRow('insertField', 'INSERT字段');
 }
 
 function addJoin() {
-  showToast('addJoin - coming soon!');
+  addClauseRow('join', 'JOIN表');
 }
 
 function addOrderBy() {
-  showToast('addOrderBy - coming soon!');
+  addClauseRow('orderBy', 'ORDER BY字段');
 }
 
 function addUpdateField() {
-  showToast('addUpdateField - coming soon!');
+  addClauseRow('updateField', 'SET字段');
 }
 
 function addUpdateWhere() {
-  showToast('addUpdateWhere - coming soon!');
+  addClauseRow('updateWhere', 'UPDATE条件');
 }
 
 function addWhere() {
-  showToast('addWhere - coming soon!');
+  addClauseRow('where', 'WHERE条件');
 }
 
 function buildSQL() {
-  showToast('buildSQL - coming soon!');
+  var type = (document.getElementById('queryType') || document.querySelector('select[name="type"]') || {}).value || 'select';
+  var table = (document.getElementById('tableName') || document.querySelector('input[name="table"]') || {}).value || 'my_table';
+  var sql = '';
+  
+  if (type === 'select') {
+    var fields = getClauseValues('selectField');
+    var fieldStr = fields.length ? fields.join(', ') : '*';
+    sql = 'SELECT ' + fieldStr + ' FROM ' + table;
+    var joins = getClauseValues('join');
+    joins.forEach(function(j) { sql += ' JOIN ' + j; });
+    var wheres = getClauseValues('where');
+    if (wheres.length) sql += ' WHERE ' + wheres.join(' AND ');
+    var groupBys = getClauseValues('groupBy');
+    if (groupBys.length) sql += ' GROUP BY ' + groupBys.join(', ');
+    var havings = getClauseValues('having');
+    if (havings.length) sql += ' HAVING ' + havings.join(' AND ');
+    var orderBys = getClauseValues('orderBy');
+    if (orderBys.length) sql += ' ORDER BY ' + orderBys.join(', ');
+  } else if (type === 'insert') {
+    var fields = getClauseValues('insertField');
+    var vals = getClauseValues('insertValue');
+    sql = 'INSERT INTO ' + table;
+    if (fields.length) sql += ' (' + fields.join(', ') + ')';
+    if (vals.length) sql += ' VALUES (' + vals.join(', ') + ')';
+  } else if (type === 'update') {
+    var sets = getClauseValues('updateField');
+    var wheres = getClauseValues('updateWhere');
+    sql = 'UPDATE ' + table;
+    if (sets.length) sql += ' SET ' + sets.join(', ');
+    if (wheres.length) sql += ' WHERE ' + wheres.join(' AND ');
+  } else if (type === 'delete') {
+    var wheres = getClauseValues('deleteWhere');
+    sql = 'DELETE FROM ' + table;
+    if (wheres.length) sql += ' WHERE ' + wheres.join(' AND ');
+  }
+  
+  var output = document.getElementById('sqlOutput') || document.getElementById('output') || document.querySelector('.output');
+  if (output) output.textContent = sql + ';';
+  showToast('SQL已生成');
+}
+
+function addClauseRow(clauseType, label) {
+  var container = document.getElementById(clauseType + 'Container') || document.querySelector('.' + clauseType + '-list');
+  if (!container) { showToast('未找到' + label + '容器'); return; }
+  var div = document.createElement('div');
+  div.className = clauseType + '-row';
+  div.style.cssText = 'display:flex;gap:8px;margin-bottom:8px';
+  div.innerHTML = '<input type="text" placeholder="' + label + '" style="flex:1;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px" data-clause="' + clauseType + '"><button onclick="this.parentElement.remove();buildSQL();" style="padding:6px 10px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer">✕</button>';
+  container.appendChild(div);
+  div.querySelector('input').addEventListener('input', buildSQL);
+  showToast('已添加' + label);
+}
+
+function getClauseValues(clauseType) {
+  var vals = [];
+  document.querySelectorAll('[data-clause="' + clauseType + '"]').forEach(function(input) {
+    if (input.value.trim()) vals.push(input.value.trim());
+  });
+  return vals;
 }
 
 function clearAll() {
@@ -438,11 +496,24 @@ function downloadSQL() {
 }
 
 function importSQL() {
-  showToast('importSQL - coming soon!');
+  var input = document.getElementById('sqlInput') || document.querySelector('textarea[name="sql"]');
+  if (!input || !input.value.trim()) { showToast('请输入SQL'); return; }
+  var sql = input.value.trim();
+  var output = document.getElementById('sqlOutput') || document.getElementById('output') || document.querySelector('.output');
+  if (output) output.textContent = sql;
+  showToast('已导入SQL');
 }
 
 function switchType() {
-  showToast('switchType - coming soon!');
+  var sel = document.getElementById('queryType') || document.querySelector('select[name="type"]');
+  if (!sel) return;
+  var type = sel.value;
+  var panels = document.querySelectorAll('.query-panel');
+  panels.forEach(function(p) { p.style.display = 'none'; });
+  var active = document.getElementById('panel-' + type);
+  if (active) active.style.display = 'block';
+  buildSQL();
+  showToast('已切换到' + type.toUpperCase() + '查询');
 }
 </script>
 </body>

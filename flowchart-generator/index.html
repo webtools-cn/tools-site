@@ -268,8 +268,15 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function adjustZoom() {
-  showToast('adjustZoom - coming soon!');
+function adjustZoom(delta) {
+  var canvas = document.getElementById('canvas') || document.querySelector('.canvas, svg');
+  if (!canvas) { showToast('未找到画布'); return; }
+  var currentZoom = parseFloat(canvas.dataset.zoom || '1');
+  var newZoom = Math.max(0.25, Math.min(4, currentZoom + (delta || 0.1)));
+  canvas.dataset.zoom = newZoom;
+  canvas.style.transform = 'scale(' + newZoom + ')';
+  canvas.style.transformOrigin = 'center center';
+  showToast('缩放: ' + Math.round(newZoom * 100) + '%');
 }
 
 function clearEditor() {
@@ -291,7 +298,44 @@ function exportSVG() {
 }
 
 function renderChart() {
-  showToast('renderChart - coming soon!');
+  var input = document.getElementById('chartData') || document.querySelector('textarea');
+  var canvas = document.getElementById('canvas') || document.querySelector('.canvas, svg');
+  if (!input || !canvas) { showToast('未找到输入或画布'); return; }
+  
+  var lines = input.value.trim().split('\n');
+  var svg = '<svg width="100%" height="400" xmlns="http://www.w3.org/2000/svg" style="background:#0f172a">';
+  var y = 40;
+  var x = 50;
+  
+  lines.forEach(function(line, i) {
+    line = line.trim();
+    if (!line) return;
+    var parts = line.split('->');
+    if (parts.length >= 2) {
+      // Draw arrow
+      svg += '<line x1="' + (x + 120) + '" y1="' + y + '" x2="' + (x + 180) + '" y2="' + y + '" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrowhead)"/>';
+      svg += '<rect x="' + x + '" y="' + (y - 20) + '" width="120" height="40" rx="8" fill="#1e293b" stroke="#22d3ee" stroke-width="1.5"/>';
+      svg += '<text x="' + (x + 60) + '" y="' + y + '" fill="#e2e8f0" text-anchor="middle" dy=".35em" font-size="13">' + escapeXml(parts[0].trim()) + '</text>';
+      x += 180;
+      svg += '<rect x="' + x + '" y="' + (y - 20) + '" width="120" height="40" rx="8" fill="#1e293b" stroke="#22d3ee" stroke-width="1.5"/>';
+      svg += '<text x="' + (x + 60) + '" y="' + y + '" fill="#e2e8f0" text-anchor="middle" dy=".35em" font-size="13">' + escapeXml(parts[1].trim()) + '</text>';
+      y += 60;
+      x = 50;
+    } else {
+      svg += '<rect x="' + x + '" y="' + (y - 20) + '" width="120" height="40" rx="8" fill="#1e293b" stroke="#22d3ee" stroke-width="1.5"/>';
+      svg += '<text x="' + (x + 60) + '" y="' + y + '" fill="#e2e8f0" text-anchor="middle" dy=".35em" font-size="13">' + escapeXml(line) + '</text>';
+      y += 60;
+    }
+  });
+  
+  svg += '<defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/></marker></defs>';
+  svg += '</svg>';
+  canvas.innerHTML = svg;
+  showToast('流程图已渲染');
+}
+
+function escapeXml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 function resetZoom() {
