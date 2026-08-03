@@ -184,26 +184,83 @@
     s.innerHTML = h;
   }).catch(function() { s.innerHTML = ''; });
 
-// === Implementation ===
+// === Base45 RFC 9285 Implementation ===
+var B45_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
+
+function b45Encode(bytes) {
+  var out = '';
+  var i = 0;
+  while (i + 1 < bytes.length) {
+    var v = bytes[i] * 256 + bytes[i + 1];
+    out += B45_ALPHABET[v % 45];
+    v = Math.floor(v / 45);
+    out += B45_ALPHABET[v % 45];
+    v = Math.floor(v / 45);
+    out += B45_ALPHABET[v % 45];
+    i += 2;
+  }
+  if (i < bytes.length) {
+    var v = bytes[i];
+    out += B45_ALPHABET[v % 45];
+    v = Math.floor(v / 45);
+    out += B45_ALPHABET[v % 45];
+  }
+  return out;
+}
+
+function b45Decode(str) {
+  var bytes = [];
+  var i = 0;
+  while (i < str.length) {
+    var chunk = str.substr(i, 3);
+    if (chunk.length < 2) throw new Error('Invalid Base45 data length');
+    var c0 = B45_ALPHABET.indexOf(chunk[0]);
+    var c1 = B45_ALPHABET.indexOf(chunk[1]);
+    var c2 = chunk.length === 3 ? B45_ALPHABET.indexOf(chunk[2]) : 0;
+    if (c0 < 0 || c1 < 0 || (chunk.length === 3 && c2 < 0)) throw new Error('Invalid character in input');
+    var v = c0 + c1 * 45 + c2 * 45 * 45;
+    if (v > 65535) throw new Error('Value overflow (>65535)');
+    if (chunk.length === 3) {
+      bytes.push(Math.floor(v / 256));
+      bytes.push(v % 256);
+    } else {
+      if (Math.floor(v / 256) !== 0) throw new Error('Invalid encoded data');
+      bytes.push(v % 256);
+    }
+    i += 3;
+  }
+  return bytes;
+}
+
 function clearAll() {
   document.getElementById('inputText').value = '';
   document.getElementById('outputText').value = '';
-  showToast('Reset');
+  showToast('Cleared');
 }
 
 function copyResult() {
-  var text = document.getElementById('result').innerText;
+  var text = document.getElementById('outputText').value;
   if (!text) { showToast('Nothing to copy'); return; }
-  copyText(text);
+  navigator.clipboard.writeText(text).then(function(){ showToast('Copied'); }, function(){ showToast('Copy failed'); });
 }
 
 function process() {
-  var input = '';
+  var input = document.getElementById('inputText').value;
   if (!input.trim()) { showToast('Please enter data'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('Done');
+  var activeBtn = document.querySelector('.tab-btn.active');
+  var isEncode = !(activeBtn && activeBtn.textContent.indexOf('Decode') !== -1);
+  try {
+    if (isEncode) {
+      var bytes = new TextEncoder().encode(input);
+      document.getElementById('outputText').value = b45Encode(bytes);
+    } else {
+      var bytes = b45Decode(input.replace(/\s+/g, ''));
+      document.getElementById('outputText').value = new TextDecoder().decode(new Uint8Array(bytes));
+    }
+    showToast('Done');
+  } catch (e) {
+    showToast(e.message || 'Processing failed');
+  }
 }
 
 function switchTab(tab) {
@@ -213,6 +270,8 @@ function switchTab(tab) {
   btns.forEach(function(b) { b.classList.remove('active'); });
   document.getElementById(tab).style.display = 'block';
   event.target.classList.add('active');
+  document.getElementById('actionBtn').textContent = tab === 'encode' ? 'Encode' : 'Decode';
+  document.getElementById('outputText').value = '';
 }
 </script>
 </body>

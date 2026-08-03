@@ -153,7 +153,21 @@ a{color:#06b6d4;text-decoration:none}
 <div class="hero"><p>免费在线PX REM EM PT单位转换器，支持像素(px)与相对单位(rem/em)互转。可设置基准字体大小，实时批量转换，一键复制结果。前端本地运行，无需服务器。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
-    /div>
+    <h2>单位转换</h2>
+    <p style="color:#94a3b8;font-size:.85rem;margin-bottom:16px">输入数值自动转换，支持 px、rem、em、pt 单位</p>
+    <div class="converter-grid">
+      <div class="form-group">
+        <label id="fromLabel">从 (rem)</label>
+        <input type="number" id="fromValue" value="16" step="any" min="0" oninput="convertFrom()">
+      </div>
+      <div class="converter-swap">
+        <button onclick="swapUnits()" title="交换单位">⇄</button>
+      </div>
+      <div class="form-group">
+        <label id="toLabel">到 (px)</label>
+        <input type="number" id="toValue" step="any" min="0" oninput="convertTo()">
+      </div>
+    </div>
   </div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
@@ -297,24 +311,135 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function batchConvert() {
-  showToast('batchConvert - coming soon!');
+// === PX REM EM 单位转换器 核心实现 ===
+var baseFontSize = 16;
+
+function getBase() {
+  baseFontSize = parseFloat(document.getElementById('baseFontSize').value) || 16;
+  return baseFontSize;
 }
 
-function copyResult() {
-  var text = document.getElementById('resultBox').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+function convertToPx(value, unit) {
+  var base = getBase();
+  switch(unit) {
+    case 'px': return value;
+    case 'rem': return value * base;
+    case 'em': return value * base;
+    case 'pt': return value * 1.33333;
+    default: return value;
+  }
 }
 
-function updateAll() {
-  showToast('updateAll - coming soon!');
+function convertFromPx(px, unit) {
+  var base = getBase();
+  switch(unit) {
+    case 'px': return px;
+    case 'rem': return px / base;
+    case 'em': return px / base;
+    case 'pt': return px / 1.33333;
+    default: return px;
+  }
 }
 
 function updateLabels() {
-  showToast('updateLabels - coming soon!');
+  var fromUnit = document.getElementById('fromUnit').value;
+  var toUnit = document.getElementById('toUnit').value;
+  document.getElementById('fromLabel').textContent = '从 (' + fromUnit + ')';
+  document.getElementById('toLabel').textContent = '到 (' + toUnit + ')';
 }
+
+function convertFrom() {
+  var fromVal = parseFloat(document.getElementById('fromValue').value);
+  var fromUnit = document.getElementById('fromUnit').value;
+  var toUnit = document.getElementById('toUnit').value;
+  if (isNaN(fromVal)) {
+    document.getElementById('toValue').value = '';
+    document.getElementById('resultValue').textContent = '请输入数值';
+    return;
+  }
+  var px = convertToPx(fromVal, fromUnit);
+  var result = convertFromPx(px, toUnit);
+  var rounded = Math.round(result * 100) / 100;
+  document.getElementById('toValue').value = rounded;
+  document.getElementById('resultValue').textContent = fromVal + fromUnit + ' = ' + rounded + toUnit;
+  updateRefTable();
+}
+
+function convertTo() {
+  var toVal = parseFloat(document.getElementById('toValue').value);
+  var fromUnit = document.getElementById('fromUnit').value;
+  var toUnit = document.getElementById('toUnit').value;
+  if (isNaN(toVal)) {
+    document.getElementById('fromValue').value = '';
+    return;
+  }
+  var px = convertToPx(toVal, toUnit);
+  var result = convertFromPx(px, fromUnit);
+  document.getElementById('fromValue').value = Math.round(result * 100) / 100;
+  document.getElementById('resultValue').textContent = document.getElementById('fromValue').value + fromUnit + ' = ' + toVal + toUnit;
+  updateRefTable();
+}
+
+function swapUnits() {
+  var fromUnit = document.getElementById('fromUnit');
+  var toUnit = document.getElementById('toUnit');
+  var tmp = fromUnit.value;
+  fromUnit.value = toUnit.value;
+  toUnit.value = tmp;
+  updateLabels();
+  convertFrom();
+}
+
+function updateRefTable() {
+  var base = getBase();
+  document.getElementById('refBaseLabel').textContent = base + 'px';
+  var pxValues = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72, 80, 96, 120, 160];
+  var tbody = document.getElementById('refTableBody');
+  tbody.innerHTML = pxValues.map(function(px) {
+    return '<tr><td class="val-px">' + px + 'px</td><td class="val-rem">' + Math.round(px/base*100)/100 + 'rem</td><td class="val-em">' + Math.round(px/base*100)/100 + 'em</td><td class="val-pt">' + Math.round(px/1.33333*100)/100 + 'pt</td></tr>';
+  }).join('');
+}
+
+function updateAll() {
+  updateLabels();
+  convertFrom();
+  updateRefTable();
+}
+
+function batchConvert() {
+  var input = document.getElementById('batchInput').value;
+  var lines = input.split('\n').filter(function(l){return l.trim() !== ''});
+  var base = getBase();
+  var results = lines.map(function(line) {
+    var val = parseFloat(line);
+    if (isNaN(val)) return line + ' → 无效数值';
+    var rem = val / base;
+    var em = val / base;
+    var pt = val / 1.33333;
+    return val + 'px → ' + Math.round(rem*100)/100 + 'rem | ' + Math.round(em*100)/100 + 'em | ' + Math.round(pt*100)/100 + 'pt';
+  });
+  document.getElementById('batchOutput').value = results.join('\n');
+}
+
+function copyResult() {
+  var text = document.getElementById('resultValue').textContent;
+  if (!text) { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制到剪贴板')}).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('已复制');
+  });
+}
+
+// 初始化
+(function initRemPx() {
+  try {
+    updateLabels();
+    convertFrom();
+    updateRefTable();
+  } catch(e) {}
+})();
 </script>
 </body>
 </html>

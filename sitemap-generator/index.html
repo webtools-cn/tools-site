@@ -248,64 +248,131 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === Sitemap生成器 核心实现 ===
+var urlRows = [];
+
+function renderUrlList() {
+  var list = document.getElementById('urlList');
+  var section = document.getElementById('urlListSection');
+  if (!list) return;
+  list.innerHTML = '';
+  urlRows.forEach(function(row, i) {
+    var div = document.createElement('div');
+    div.className = 'url-row';
+    div.innerHTML =
+      '<input type="text" class="url-input" value="' + escapeAttr(row.url) + '" placeholder="https://example.com/page" oninput="updateUrl(' + i + ', this.value)">' +
+      '<label>频率</label><select onchange="updateFreq(' + i + ', this.value)">' +
+      '<option value="always"' + (row.freq==='always'?' selected':'') + '>always</option>' +
+      '<option value="hourly"' + (row.freq==='hourly'?' selected':'') + '>hourly</option>' +
+      '<option value="daily"' + (row.freq==='daily'?' selected':'') + '>daily</option>' +
+      '<option value="weekly"' + (row.freq==='weekly'?' selected':'') + '>weekly</option>' +
+      '<option value="monthly"' + (row.freq==='monthly'?' selected':'') + '>monthly</option>' +
+      '<option value="yearly"' + (row.freq==='yearly'?' selected':'') + '>yearly</option>' +
+      '<option value="never"' + (row.freq==='never'?' selected':'') + '>never</option>' +
+      '</select>' +
+      '<label>优先级</label><input type="number" min="0" max="1" step="0.1" value="' + row.priority + '" oninput="updatePriority(' + i + ', this.value)">' +
+      '<label>最后修改</label><input type="date" value="' + row.lastmod + '" onchange="updateLastmod(' + i + ', this.value)">' +
+      '<button class="remove-btn" onclick="removeUrlRow(' + i + ')">✖ 删除</button>';
+    list.appendChild(div);
+  });
+  document.getElementById('urlCount').textContent = urlRows.length;
+  section.style.display = urlRows.length ? 'block' : 'none';
+}
+
+function escapeAttr(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+function parseUrls() {
+  var ta = document.getElementById('urlTextarea');
+  if (!ta) return;
+  var lines = ta.value.split('\n').map(function(l){return l.trim()}).filter(function(l){return l && /^https?:\/\//i.test(l)});
+  if (!lines.length) { showToast('未找到有效URL（需以 http:// 或 https:// 开头）'); return; }
+  lines.forEach(function(l) {
+    urlRows.push({url: l, freq: 'weekly', priority: 0.8, lastmod: new Date().toISOString().split('T')[0]});
+  });
+  renderUrlList();
+  ta.value = '';
+  showToast('已解析 ' + lines.length + ' 个URL');
+}
+
 function addEmptyRow() {
-  showToast('addEmptyRow - coming soon!');
+  urlRows.push({url: '', freq: 'weekly', priority: 0.8, lastmod: new Date().toISOString().split('T')[0]});
+  renderUrlList();
+  document.getElementById('urlListSection').style.display = 'block';
+}
+
+function removeUrlRow(i) {
+  urlRows.splice(i, 1);
+  renderUrlList();
+}
+
+function updateUrl(i, v) { if (urlRows[i]) urlRows[i].url = v; }
+function updateFreq(i, v) { if (urlRows[i]) urlRows[i].freq = v; }
+function updatePriority(i, v) { if (urlRows[i]) urlRows[i].priority = parseFloat(v) || 0; }
+function updateLastmod(i, v) { if (urlRows[i]) urlRows[i].lastmod = v; }
+
+function setAllFreq() {
+  var v = prompt('设置所有URL的更新频率 (always/hourly/daily/weekly/monthly/yearly/never):', 'weekly');
+  if (!v || ['always','hourly','daily','weekly','monthly','yearly','never'].indexOf(v) === -1) { showToast('无效的频率值'); return; }
+  urlRows.forEach(function(r) { r.freq = v; });
+  renderUrlList();
+  showToast('已统一频率为 ' + v);
+}
+
+function setAllPriority() {
+  var v = prompt('设置所有URL的优先级 (0.0 - 1.0):', '0.8');
+  var n = parseFloat(v);
+  if (isNaN(n) || n < 0 || n > 1) { showToast('无效的优先级'); return; }
+  urlRows.forEach(function(r) { r.priority = n; });
+  renderUrlList();
+  showToast('已统一优先级为 ' + n);
+}
+
+function generateSitemap() {
+  var rows = urlRows.filter(function(r) { return r.url && /^https?:\/\//i.test(r.url.trim()); });
+  if (!rows.length) { showToast('请先输入至少一个有效URL'); return; }
+  var esc = function(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+  var xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+  rows.forEach(function(r) {
+    xml += '  <url>\n';
+    xml += '    <loc>' + esc(r.url.trim()) + '</loc>\n';
+    if (r.lastmod) xml += '    <lastmod>' + esc(r.lastmod) + '</lastmod>\n';
+    xml += '    <changefreq>' + esc(r.freq || 'weekly') + '</changefreq>\n';
+    xml += '    <priority>' + (r.priority !== undefined ? r.priority : 0.8) + '</priority>\n';
+    xml += '  </url>\n';
+  });
+  xml += '</urlset>';
+  document.getElementById('resultBox').textContent = xml;
+  document.getElementById('resultStats').innerHTML = '<span>URL数量: ' + rows.length + '</span><span>大小: ' + (xml.length/1024).toFixed(1) + ' KB</span>';
+  document.getElementById('resultSection').style.display = 'block';
+  showToast('Sitemap已生成（' + rows.length + '个URL）！');
 }
 
 function clearAllUrls() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  urlRows = [];
+  renderUrlList();
+  document.getElementById('urlTextarea').value = '';
+  document.getElementById('resultSection').style.display = 'none';
+  showToast('已清空');
 }
 
 function copyResult() {
-  var text = document.getElementById('resultSection').innerText;
+  var text = document.getElementById('resultBox').textContent;
   if (!text) { showToast('没有可复制的结果'); return; }
   copyText(text);
 }
 
 function downloadSitemap() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Sitemap.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
-}
-
-function generateSitemap() {
-  var input=document.querySelector('textarea');
-  if(!input||!input.value.trim()){showToast('请输入URL列表');return;}
-  var urls=input.value.trim().split('
-').filter(function(u){return u.trim();});
-  if(!urls.length){showToast('请输入至少一个URL');return;}
-  var xml='<?xml version="1.0" encoding="UTF-8"?>
-';
-  xml+='<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-';
-  urls.forEach(function(u){
-    xml+='<url>
-<loc>'+u.trim().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</loc>
-';
-    xml+='<lastmod>'+new Date().toISOString().split('T')[0]+'</lastmod>
-';
-    xml+='<changefreq>weekly</changefreq>
-';
-    xml+='<priority>0.8</priority>
-</url>
-';
-  });
-  xml+='</urlset>';
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');
-  if(out){out.textContent=xml;}
-  showToast('Sitemap已生成（'+urls.length+'个URL）！');
-}
-
-function parseUrls() {
-  showToast('parseUrls - coming soon!');
-}
-
-function setAllFreq() {
-  showToast('setAllFreq - coming soon!');
-}
-
-function setAllPriority() {
-  showToast('setAllPriority - coming soon!');
+  var text = document.getElementById('resultBox').textContent;
+  if (!text) { showToast('没有可下载的结果'); return; }
+  var blob = new Blob([text], {type: 'application/xml'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sitemap.xml';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已下载 sitemap.xml');
 }
 </script>
-</body>
-</html>

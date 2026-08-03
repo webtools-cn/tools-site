@@ -86,10 +86,6 @@ textarea:focus,input:focus,select:focus{border-color:rgba(6,182,212,.5)}
 <div class="hero"><p>免费在线罗马数字转十进制工具，支持I-MMMMCMXCIX范围内的罗马数字转换。实时输入即时转换，附带对照表。纯前端实现，无需注册。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
-
-    /div>
-  </div>
-  
   
 
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
@@ -203,23 +199,72 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
   })();
 
-// === 重写的函数实现 ===
+// === 罗马数字转十进制实现 ===
+var ROMAN_MAP = {I:1, V:5, X:10, L:50, C:100, D:500, M:1000};
+
+// 校验并转换罗马数字 -> 十进制，非法返回 null
+function romanToDecimal(s) {
+  if (!s) return null;
+  var str = s.trim().toUpperCase();
+  if (!str) return null;
+  var total = 0;
+  var prev = 0;
+  for (var i = 0; i < str.length; i++) {
+    var c = str.charAt(i);
+    if (!ROMAN_MAP.hasOwnProperty(c)) return null;
+    var v = ROMAN_MAP[c];
+    if (v > prev) {
+      // 减法组合：前面已加的值需要减掉两倍（如 IV: 先加1，再减1*2）
+      total += v - 2 * prev;
+    } else {
+      total += v;
+    }
+    prev = v;
+  }
+  if (total < 1 || total > 3999) return null;
+  return total;
+}
+
 function convert() {
   var input = document.getElementById('romanInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input; // 基础实现，后续可优化
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+  var errEl = document.getElementById('errorMsg');
+  var outEl = document.getElementById('decimalOutput');
+  var echoEl = document.getElementById('romanEcho');
+  if (!input.trim()) {
+    errEl.textContent = '请输入罗马数字';
+    outEl.textContent = '--';
+    echoEl.textContent = '';
+    return;
+  }
+  var n = romanToDecimal(input);
+  if (n === null) {
+    errEl.textContent = '无效的罗马数字，仅支持 I V X L C D M（范围 1-3999）';
+    outEl.textContent = '--';
+    echoEl.textContent = '';
+    return;
+  }
+  errEl.textContent = '';
+  outEl.textContent = String(n);
+  echoEl.textContent = input.trim().toUpperCase();
 }
 
 function copyDecimal() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var outEl = document.getElementById('decimalOutput');
+  if (!outEl || outEl.textContent === '--' || outEl.textContent === '') {
+    showToast('没有可复制的结果');
+    return;
+  }
+  var t = outEl.textContent;
+  navigator.clipboard.writeText(t).then(function(){showToast('已复制')})['catch'](function(){showToast('复制失败')});
 }
 
-function setRoman() {
-  showToast('setRoman - coming soon!');
+function setRoman(v) {
+  document.getElementById('romanInput').value = v;
+  convert();
 }
+
+// 页面加载时执行一次
+convert();
 </script>
 </body>
 </html>

@@ -285,23 +285,72 @@ textarea:focus,input:focus,select:focus{border-color:rgba(6,182,212,.5)}
     s.innerHTML = h;
   }).catch(function() { s.innerHTML = ''; });
 
-// === Implementation ===
+// === Roman Numeral to Decimal Implementation ===
+var ROMAN_MAP = {I:1, V:5, X:10, L:50, C:100, D:500, M:1000};
+
+// Validate and convert Roman numeral -> decimal, returns null if invalid
+function romanToDecimal(s) {
+  if (!s) return null;
+  var str = s.trim().toUpperCase();
+  if (!str) return null;
+  var total = 0;
+  var prev = 0;
+  for (var i = 0; i < str.length; i++) {
+    var c = str.charAt(i);
+    if (!ROMAN_MAP.hasOwnProperty(c)) return null;
+    var v = ROMAN_MAP[c];
+    if (v > prev) {
+      // Subtractive combination (e.g. IV: add 1 then subtract 1*2)
+      total += v - 2 * prev;
+    } else {
+      total += v;
+    }
+    prev = v;
+  }
+  if (total < 1 || total > 3999) return null;
+  return total;
+}
+
 function convert() {
   var input = document.getElementById('romanInput').value;
-  if (!input.trim()) { showToast('Please enter data'); return; }
-  var output = input; // Basic implementation
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('Done');
+  var errEl = document.getElementById('errorMsg');
+  var outEl = document.getElementById('decimalOutput');
+  var echoEl = document.getElementById('romanEcho');
+  if (!input.trim()) {
+    errEl.textContent = 'Please enter a Roman numeral';
+    outEl.textContent = '--';
+    echoEl.textContent = '';
+    return;
+  }
+  var n = romanToDecimal(input);
+  if (n === null) {
+    errEl.textContent = 'Invalid Roman numeral. Only I V X L C D M are supported (range 1-3999)';
+    outEl.textContent = '--';
+    echoEl.textContent = '';
+    return;
+  }
+  errEl.textContent = '';
+  outEl.textContent = String(n);
+  echoEl.textContent = input.trim().toUpperCase();
 }
 
 function copyDecimal() {
-  showToast('Done');
+  var outEl = document.getElementById('decimalOutput');
+  if (!outEl || outEl.textContent === '--' || outEl.textContent === '') {
+    showToast('Nothing to copy');
+    return;
+  }
+  var t = outEl.textContent;
+  navigator.clipboard.writeText(t).then(function(){showToast('Copied')})['catch'](function(){showToast('Copy failed')});
 }
 
-function setRoman() {
-  showToast('Done');
+function setRoman(v) {
+  document.getElementById('romanInput').value = v;
+  convert();
 }
+
+// Run once on page load
+convert();
 </script>
 </body>
 </html>

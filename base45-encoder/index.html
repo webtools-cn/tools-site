@@ -170,26 +170,83 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
+// === Base45 RFC 9285 实现 ===
+var B45_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
+
+function b45Encode(bytes) {
+  var out = '';
+  var i = 0;
+  while (i + 1 < bytes.length) {
+    var v = bytes[i] * 256 + bytes[i + 1];
+    out += B45_ALPHABET[v % 45];
+    v = Math.floor(v / 45);
+    out += B45_ALPHABET[v % 45];
+    v = Math.floor(v / 45);
+    out += B45_ALPHABET[v % 45];
+    i += 2;
+  }
+  if (i < bytes.length) {
+    var v = bytes[i];
+    out += B45_ALPHABET[v % 45];
+    v = Math.floor(v / 45);
+    out += B45_ALPHABET[v % 45];
+  }
+  return out;
+}
+
+function b45Decode(str) {
+  var bytes = [];
+  var i = 0;
+  while (i < str.length) {
+    var chunk = str.substr(i, 3);
+    if (chunk.length < 2) throw new Error('Base45 数据长度无效');
+    var c0 = B45_ALPHABET.indexOf(chunk[0]);
+    var c1 = B45_ALPHABET.indexOf(chunk[1]);
+    var c2 = chunk.length === 3 ? B45_ALPHABET.indexOf(chunk[2]) : 0;
+    if (c0 < 0 || c1 < 0 || (chunk.length === 3 && c2 < 0)) throw new Error('包含非法字符');
+    var v = c0 + c1 * 45 + c2 * 45 * 45;
+    if (v > 65535) throw new Error('数据值溢出(>65535)');
+    if (chunk.length === 3) {
+      bytes.push(Math.floor(v / 256));
+      bytes.push(v % 256);
+    } else {
+      if (Math.floor(v / 256) !== 0) throw new Error('解码数据无效');
+      bytes.push(v % 256);
+    }
+    i += 3;
+  }
+  return bytes;
+}
+
 function clearAll() {
   document.getElementById('inputText').value = '';
   document.getElementById('outputText').value = '';
-  showToast('已重置');
+  showToast('已清空');
 }
 
 function copyResult() {
-  var text = document.getElementById('result').innerText;
+  var text = document.getElementById('outputText').value;
   if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  navigator.clipboard.writeText(text).then(function(){ showToast('已复制'); }, function(){ showToast('复制失败'); });
 }
 
 function process() {
-  var input = '';
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+  var input = document.getElementById('inputText').value;
+  if (!input.trim()) { showToast('请输入内容'); return; }
+  var activeBtn = document.querySelector('.tab-btn.active');
+  var isEncode = !(activeBtn && activeBtn.textContent.indexOf('解码') !== -1);
+  try {
+    if (isEncode) {
+      var bytes = new TextEncoder().encode(input);
+      document.getElementById('outputText').value = b45Encode(bytes);
+    } else {
+      var bytes = b45Decode(input.replace(/\s+/g, ''));
+      document.getElementById('outputText').value = new TextDecoder().decode(new Uint8Array(bytes));
+    }
+    showToast('处理完成');
+  } catch (e) {
+    showToast(e.message || '处理失败');
+  }
 }
 
 function switchTab(tab) {
@@ -199,6 +256,8 @@ function switchTab(tab) {
   btns.forEach(function(b) { b.classList.remove('active'); });
   document.getElementById(tab).style.display = 'block';
   event.target.classList.add('active');
+  document.getElementById('actionBtn').textContent = tab === 'encode' ? '编码' : '解码';
+  document.getElementById('outputText').value = '';
 }
 </script>
 </body>

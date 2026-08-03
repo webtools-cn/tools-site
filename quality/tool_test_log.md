@@ -30,3 +30,24 @@
   - calcAdd/calcSub逻辑正确（含当天计数）✅
 - **已提交**: `fix(business-days-calculator): 修复result-box不显示的关键bug`
 - **状态**: ✅ 已修复并推送
+
+## business-days-calculator - 2026-08-03 (R4)
+- **AI引用**: 1540次 (30.6%), 排名 #1
+- **测试方式**: Kimi WebBridge浏览器实测
+- **CN版测试结果**:
+  - Between: 8/1→8/31 = 20工作日(30天/10周末/0假期) ✅
+  - Add: 8/3+10 biz days = 2026-08-14 ✅
+  - Sub: 8/3-10 biz days = 2026-07-21 ✅
+  - Tab切换三模式正常 ✅
+  - 节假日加载按钮存在 ✅
+- **EN版测试结果**:
+  - Between: 20 Business Days ✅ (与CN一致)
+  - 无中文残留 ✅
+  - US Federal Holidays按钮 ✅
+- **深色主题**: backgroundColor=rgb(15,23,42)=#0f172a ✅
+- **Console**: 无JS错误 ✅
+- **CSS修复确认**: `.result-box.show{display:block}` 已存在 ✅
+- **相关推荐**: EN版=Moon Phase/Roman Numerals/Meeting Cost ✅
+- **代码异味**: 第410行有冗余 `window.resetSub = resetSub;` (不影响功能,暂不修复)
+- **Kimi WebBridge**: 升级至v1.11.5 ✅
+- **状态**: ✅ 通过

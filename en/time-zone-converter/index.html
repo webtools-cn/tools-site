@@ -276,15 +276,141 @@ select{width:100%}
 </footer>
 </div>
 <div id="related-tools"></div>
-';
- }catch(e){}
- }
- document.getElementById("quickRef").innerHTML=html;
+<script>
+// === Time Zone Converter Implementation ===
+var TZ_ALL = (function(){
+  try {
+    if (Intl.supportedValuesOf) return Intl.supportedValuesOf('timeZone');
+  } catch(e) {}
+  return ['UTC','Asia/Shanghai','Asia/Tokyo','Asia/Kolkata','Asia/Dubai','Europe/London','Europe/Paris','Europe/Moscow','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','America/Sao_Paulo','Australia/Sydney','Pacific/Auckland'];
+})();
+
+var POPULAR_TZ = [
+  {tz:'UTC', name:'UTC'},
+  {tz:'Asia/Shanghai', name:'Beijing / Shanghai'},
+  {tz:'Asia/Tokyo', name:'Tokyo'},
+  {tz:'Asia/Kolkata', name:'New Delhi'},
+  {tz:'Asia/Dubai', name:'Dubai'},
+  {tz:'Europe/London', name:'London'},
+  {tz:'Europe/Paris', name:'Paris'},
+  {tz:'Europe/Moscow', name:'Moscow'},
+  {tz:'America/New_York', name:'New York'},
+  {tz:'America/Chicago', name:'Chicago'},
+  {tz:'America/Los_Angeles', name:'Los Angeles'},
+  {tz:'America/Sao_Paulo', name:'Sao Paulo'},
+  {tz:'Australia/Sydney', name:'Sydney'},
+  {tz:'Pacific/Auckland', name:'Auckland'}
+];
+
+function tzDisplay(tz) {
+  return tz.replace(/_/g, ' ');
 }
 
+function initSelects() {
+  var fromSel = document.getElementById('fromTz');
+  var toSel = document.getElementById('toTz');
+  var opts = '';
+  TZ_ALL.forEach(function(tz) {
+    opts += '<option value="' + tz + '">' + tzDisplay(tz) + '</option>';
+  });
+  fromSel.innerHTML = opts;
+  toSel.innerHTML = opts;
+  var localTz = 'UTC';
+  try { localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch(e) {}
+  if (TZ_ALL.indexOf(localTz) !== -1) fromSel.value = localTz;
+  toSel.value = 'UTC';
+}
+
+function filterSelect(selId, searchId) {
+  var q = document.getElementById(searchId).value.trim().toLowerCase();
+  var sel = document.getElementById(selId);
+  var matched = 0;
+  for (var i = 0; i < sel.options.length; i++) {
+    var label = sel.options[i].text.toLowerCase();
+    var val = sel.options[i].value.toLowerCase();
+    var show = !q || label.indexOf(q) !== -1 || val.indexOf(q) !== -1;
+    sel.options[i].style.display = show ? '' : 'none';
+    if (show) matched++;
+  }
+  if (matched === 1) {
+    for (var j = 0; j < sel.options.length; j++) {
+      if (sel.options[j].style.display !== 'none') { sel.selectedIndex = j; break; }
+    }
+  }
+  convert();
+}
+
+function useNow() {
+  var d = new Date();
+  var pad = function(n){ return n < 10 ? '0' + n : String(n); };
+  document.getElementById('timeInput').value = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  convert();
+}
+
+function getOffsetStr(date, tz) {
+  try {
+    var parts = new Intl.DateTimeFormat('en-US', {timeZone: tz, timeZoneName: 'shortOffset', hour: '2-digit', minute: '2-digit', hour12: false}).formatToParts(date);
+    var name = '';
+    parts.forEach(function(p){ if (p.type === 'timeZoneName') name = p.value; });
+    if (!name) name = '';
+    return name.replace('GMT', 'UTC');
+  } catch(e) { return ''; }
+}
+
+function convert() {
+  var fromTz = document.getElementById('fromTz').value;
+  var toTz = document.getElementById('toTz').value;
+  var timeVal = document.getElementById('timeInput').value;
+  var date;
+  if (timeVal) {
+    // The datetime-local value is a wall-clock time; treat it as the source zone's wall time
+    var m = timeVal.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+    if (m) {
+      var y = +m[1], mo = +m[2], d = +m[3], h = +m[4], mi = +m[5];
+      var target = Date.UTC(y, mo-1, d, h, mi);
+      var best = target;
+      var minDiff = Infinity;
+      for (var offset = -14*3600*1000; offset <= 14*3600*1000; offset += 15*60*1000) {
+        var cand = target - offset;
+        var parts = new Intl.DateTimeFormat('en-US', {timeZone: fromTz, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'}).formatToParts(new Date(cand));
+        var obj = {};
+        parts.forEach(function(p){ obj[p.type] = p.value; });
+        var diff = Math.abs(Date.UTC(+obj.year, +obj.month-1, +obj.day, +obj.hour % 24, +obj.minute) - target);
+        if (diff < minDiff) { minDiff = diff; best = cand; }
+        if (diff === 0) { best = cand; break; }
+      }
+      date = new Date(best);
+    } else {
+      date = new Date();
+    }
+  } else {
+    date = new Date();
+  }
+
+  var fmtTime = new Intl.DateTimeFormat('en-US', {timeZone: toTz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
+  var fmtDate = new Intl.DateTimeFormat('en-US', {timeZone: toTz, year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short'});
+  document.getElementById('resultTime').textContent = fmtTime.format(date);
+  document.getElementById('resultDate').textContent = fmtDate.format(date);
+  document.getElementById('resultOffset').textContent = getOffsetStr(date, toTz) + ' · ' + toTz;
+}
+
+function updateQuickRef() {
+  var html = '';
+  var now = new Date();
+  POPULAR_TZ.forEach(function(p) {
+    try {
+      var time = new Intl.DateTimeFormat('en-US', {timeZone: p.tz, hour: '2-digit', minute: '2-digit', hour12: false}).format(now);
+      var off = getOffsetStr(now, p.tz);
+      html += '<div class="time-card"><div class="city">' + p.name + '</div><div class="time">' + time + '</div><div class="offset">' + (off || p.tz) + '</div></div>';
+    } catch(e) {}
+  });
+  document.getElementById('quickRef').innerHTML = html;
+}
+
+initSelects();
 useNow();
 updateQuickRef();
-setInterval(updateQuickRef,30000);
+setInterval(updateQuickRef, 30000);
 </script>
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
