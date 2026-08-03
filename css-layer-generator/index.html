@@ -187,12 +187,36 @@ function copyResult() {
 }
 
 function generateCss() {
-  var input = '';
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('resultArea').textContent = output;
+  var layerNames = document.getElementById('layerNames').value || 'reset\nbase\ncomponents\nutilities';
+  var layerCss = document.getElementById('layerCss').value || '';
+  var targetLayer = document.getElementById('targetLayer').value;
+  
+  var layers = layerNames.split('\n').map(function(l){return l.trim()}).filter(function(l){return l});
+  
+  var css = '';
+  // @layer declaration
+  css += '@layer ' + layers.join(', ') + ';\n\n';
+  
+  // Put the CSS into the target layer
+  if(layerCss.trim()){
+    css += '@layer ' + targetLayer + ' {\n';
+    layerCss.split('\n').forEach(function(line){
+      css += '  ' + line + '\n';
+    });
+    css += '}\n';
+  }
+  
+  // Show all layers with empty blocks
+  css += '\n/* Layer structure */\n';
+  layers.forEach(function(layer){
+    if(layer !== targetLayer || !layerCss.trim()){
+      css += '@layer ' + layer + ' {\n  /* ' + layer + ' styles */\n}\n';
+    }
+  });
+  
+  document.getElementById('resultArea').innerHTML = '<pre style="white-space:pre-wrap;color:#7ee787;font-family:monospace;font-size:.85rem;line-height:1.6">' + css.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>';
   document.getElementById('resultArea').style.display = 'block';
-  showToast('生成完成');
+  showToast('CSS Layer已生成');
 }
 </script>
 </body>

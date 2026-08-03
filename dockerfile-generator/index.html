@@ -201,12 +201,100 @@ function downloadIt() {
 }
 
 function generate() {
-  var input = document.getElementById('port').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('output').textContent = output;
+  var lang = document.getElementById('language').value;
+  var ver = document.getElementById('baseVersion').value;
+  var port = document.getElementById('port').value || '3000';
+  var nodeVer = document.getElementById('nodeVersion').value || '22';
+  var envVars = document.getElementById('envVars').value || '';
+  var multiStage = document.getElementById('optMultiStage').checked;
+  var health = document.getElementById('optHealthcheck').checked;
+  var nonRoot = document.getElementById('optNonRoot').checked;
+  var suffix = ver === 'alpine' ? 'alpine' : (ver === 'slim' ? 'slim' : (ver === 'bookworm' ? 'bookworm' : 'latest'));
+  var df = '';
+  // Environment variables
+  var envLines = '';
+  if(envVars.trim()){
+    envVars.split('\n').forEach(function(l){
+      if(l.trim()) envLines += 'ENV ' + l.trim() + '\n';
+    });
+  }
+  if(lang === 'node'){
+    var base = 'node:' + nodeVer + '-' + suffix;
+    if(multiStage){
+      df += '# Build stage\nFROM ' + base + ' AS builder\nWORKDIR /app\nCOPY package*.json ./\nRUN npm ci --production\nCOPY . .\nRUN npm run build\n\n';
+      df += '# Production stage\nFROM ' + base + '\nWORKDIR /app\n';
+      if(envLines) df += envLines;
+      df += 'COPY --from=builder /app .\n';
+    } else {
+      df += 'FROM ' + base + '\nWORKDIR /app\nCOPY package*.json ./\nRUN npm ci --production\nCOPY . .\n';
+      if(envLines) df += envLines;
+    }
+    df += 'EXPOSE ' + port + '\n';
+    if(health) df += 'HEALTHCHECK --interval=30s --timeout=3s CMD wget --spider http://localhost:' + port + '/ || exit 1\n';
+    if(nonRoot){ df += 'RUN addgroup -S app && adduser -S app -G app\nUSER app\n'; }
+    df += 'CMD ["node", "server.js"]\n';
+  } else if(lang === 'python'){
+    var pyBase = 'python:3.12-' + suffix;
+    if(multiStage){
+      df += 'FROM ' + pyBase + ' AS builder\nWORKDIR /app\nCOPY requirements.txt .\nRUN pip install --user -r requirements.txt\n\nFROM ' + pyBase + '\nWORKDIR /app\nCOPY --from=builder /root/.local /root/.local\n';
+    } else {
+      df += 'FROM ' + pyBase + '\nWORKDIR /app\nCOPY requirements.txt .\nRUN pip install -r requirements.txt\n';
+    }
+    df += 'COPY . .\n';
+    if(envLines) df += envLines;
+    df += 'EXPOSE ' + port + '\n';
+    if(health) df += 'HEALTHCHECK --interval=30s --timeout=3s CMD curl -f http://localhost:' + port + '/ || exit 1\n';
+    if(nonRoot){ df += 'RUN adduser -D app\nUSER app\n'; }
+    df += 'CMD ["python", "app.py"]\n';
+  } else if(lang === 'go'){
+    if(multiStage){
+      df += 'FROM golang:1.22-' + suffix + ' AS builder\nWORKDIR /app\ncopy go.* ./\nRUN go mod download\nCOPY . .\nRUN CGO_ENABLED=0 go build -o server .\n\nFROM ' + suffix + '\nWORKDIR /app\nCOPY --from=builder /app/server .\n';
+    } else {
+      df += 'FROM golang:1.22-' + suffix + '\nWORKDIR /app\nCOPY . .\nRUN go build -o server .\n';
+    }
+    if(envLines) df += envLines;
+    df += 'EXPOSE ' + port + '\n';
+    if(health) df += 'HEALTHCHECK --interval=30s --timeout=3s CMD wget --spider http://localhost:' + port + '/ || exit 1\n';
+    if(nonRoot && suffix === 'alpine'){ df += 'RUN addgroup -S app && adduser -S app -G app\nUSER app\n'; }
+    df += 'CMD ["./server"]\n';
+  } else if(lang === 'react'){
+    var reactBase = 'node:' + nodeVer + '-' + suffix;
+    df += '# Build stage\nFROM ' + reactBase + ' AS builder\nWORKDIR /app\nCOPY package*.json ./\nRUN npm ci\nCOPY . .\nRUN npm run build\n\n';
+    df += '# Serve with nginx\nFROM nginx:' + suffix + '\nCOPY --from=builder /app/dist /usr/share/nginx/html\n';
+    df += 'EXPOSE ' + port + '\n';
+    df += 'CMD ["nginx", "-g", "daemon off;"]\n';
+  } else if(lang === 'nginx'){
+    df += 'FROM nginx:' + suffix + '\nCOPY . /usr/share/nginx/html\n';
+    if(envLines) df += envLines;
+    df += 'EXPOSE ' + port + '\n';
+    df += 'CMD ["nginx", "-g", "daemon off;"]\n';
+  } else if(lang === 'java'){
+    var jar = multiStage ? 'FROM maven:3.9-' + suffix + ' AS builder\nWORKDIR /app\nCOPY pom.xml .\nRUN mvn dependency:go-offline\nCOPY src ./src\nRUN mvn package -DskipTests\n\nFROM eclipse-temurin:21-jre-' + suffix + '\nWORKDIR /app\nCOPY --from=builder /app/target/*.jar app.jar\n'
+      : 'FROM eclipse-temurin:21-jdk-' + suffix + '\nWORKDIR /app\nCOPY . .\nRUN ./mvnw package -DskipTests\n';
+    df += jar;
+    if(envLines) df += envLines;
+    df += 'EXPOSE ' + port + '\n';
+    if(health) df += 'HEALTHCHECK --interval=30s --timeout=3s CMD curl -f http://localhost:' + port + '/ || exit 1\n';
+    df += 'CMD ["java", "-jar", "app.jar"]\n';
+  } else if(lang === 'rust'){
+    if(multiStage){
+      df += 'FROM rust:1.78-' + suffix + ' AS builder\nWORKDIR /app\nCOPY . .\nRUN cargo build --release\n\nFROM ' + suffix + '\nWORKDIR /app\nCOPY --from=builder /app/target/release/server .\n';
+    } else {
+      df += 'FROM rust:1.78-' + suffix + '\nWORKDIR /app\nCOPY . .\nRUN cargo build --release\n';
+    }
+    if(envLines) df += envLines;
+    df += 'EXPOSE ' + port + '\n';
+    if(nonRoot && suffix === 'alpine'){ df += 'RUN addgroup -S app && adduser -S app -G app\nUSER app\n'; }
+    df += 'CMD ["./server"]\n';
+  } else if(lang === 'php'){
+    df += 'FROM php:8.3-' + suffix + '\nWORKDIR /app\nCOPY . .\n';
+    if(envLines) df += envLines;
+    df += 'EXPOSE ' + port + '\n';
+    df += 'CMD ["php", "-S", "0.0.0.0:' + port + '", "-t", "."]\n';
+  }
+  document.getElementById('output').textContent = df;
   document.getElementById('output').style.display = 'block';
-  showToast('生成完成');
+  showToast('Dockerfile已生成');
 }
 </script>
 </body>

@@ -249,12 +249,103 @@ function downloadConfig() {
 }
 
 function generateConfig() {
-  var input = document.getElementById('domain').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('output').textContent = output;
+  var scenario = document.getElementById('scenario').value;
+  var domain = document.getElementById('domain').value || 'example.com';
+  var port = document.getElementById('port').value || '80';
+  var proxyPass = document.getElementById('proxyPass').value || 'http://127.0.0.1:3000';
+  var sslCert = document.getElementById('sslCert').value || '';
+  var sslKey = document.getElementById('sslKey').value || '';
+  var upstream = document.getElementById('upstreamServers').value || '';
+  var lbMethod = document.getElementById('lbMethod').value || 'round_robin';
+  var phpSocket = document.getElementById('phpSocket').value || '';
+  var phpRoot = document.getElementById('phpRoot').value || '/var/www/html';
+  var optGzip = document.getElementById('optGzip').checked;
+  var optCache = document.getElementById('optCache').checked;
+  var optSecurity = document.getElementById('optSecurity').checked;
+  var optLog = document.getElementById('optLog').checked;
+  var optRateLimit = document.getElementById('optRateLimit').checked;
+
+  var conf = '';
+  // Upstream block for load balancing
+  if(scenario === 'loadbalance' && upstream.trim()){
+    conf += 'upstream backend {\n';
+    if(lbMethod === 'least_conn') conf += '    least_conn;\n';
+    else if(lbMethod === 'ip_hash') conf += '    ip_hash;\n';
+    upstream.split('\n').forEach(function(s){
+      if(s.trim()) conf += '    server ' + s.trim() + ';\n';
+    });
+    conf += '}\n\n';
+  }
+
+  // Server block
+  var listenPort = scenario === 'ssl' ? '443 ssl' : port;
+  conf += 'server {\n';
+  conf += '    listen ' + listenPort + ';\n';
+  conf += '    server_name ' + domain + ';\n';
+  if(scenario === 'ssl'){
+    conf += '    ssl_certificate ' + sslCert + ';\n';
+    conf += '    ssl_certificate_key ' + sslKey + ';\n';
+    conf += '    ssl_protocols TLSv1.2 TLSv1.3;\n';
+  }
+  if(optLog){
+    conf += '    access_log /var/log/nginx/' + domain + '.access.log;\n';
+    conf += '    error_log /var/log/nginx/' + domain + '.error.log;\n';
+  }
+  if(optRateLimit){
+    conf += '    limit_req zone=api burst=20 nodelay;\n';
+  }
+  if(optGzip){
+    conf += '    gzip on;\n';
+    conf += '    gzip_types text/plain text/css application/json application/javascript text/xml;\n';
+    conf += '    gzip_min_length 1000;\n';
+  }
+  if(optSecurity){
+    conf += '    add_header X-Frame-Options "SAMEORIGIN" always;\n';
+    conf += '    add_header X-Content-Type-Options "nosniff" always;\n';
+    conf += '    add_header Strict-Transport-Security "max-age=31536000" always;\n';
+  }
+
+  if(scenario === 'static'){
+    conf += '    root /var/www/' + domain + ';\n';
+    conf += '    index index.html;\n';
+    conf += '    location / {\n        try_files $uri $uri/ =404;\n    }\n';
+  } else if(scenario === 'proxy' || scenario === 'ssl'){
+    conf += '    location / {\n';
+    conf += '        proxy_pass ' + proxyPass + ';\n';
+    conf += '        proxy_set_header Host $host;\n';
+    conf += '        proxy_set_header X-Real-IP $remote_addr;\n';
+    conf += '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n';
+    conf += '        proxy_set_header X-Forwarded-Proto $scheme;\n';
+    conf += '    }\n';
+  } else if(scenario === 'loadbalance'){
+    conf += '    location / {\n';
+    conf += '        proxy_pass http://backend;\n';
+    conf += '        proxy_set_header Host $host;\n';
+    conf += '        proxy_set_header X-Real-IP $remote_addr;\n';
+    conf += '    }\n';
+  } else if(scenario === 'spa'){
+    conf += '    root /var/www/' + domain + ';\n';
+    conf += '    index index.html;\n';
+    conf += '    location / {\n        try_files $uri $uri/ /index.html;\n    }\n';
+  } else if(scenario === 'php'){
+    conf += '    root ' + phpRoot + ';\n';
+    conf += '    index index.php index.html;\n';
+    conf += '    location / {\n        try_files $uri $uri/ /index.php?$query_string;\n    }\n';
+    conf += '    location ~ \\.php$ {\n';
+    conf += '        fastcgi_pass ' + phpSocket + ';\n';
+    conf += '        fastcgi_index index.php;\n';
+    conf += '        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;\n';
+    conf += '        include fastcgi_params;\n    }\n';
+  }
+  if(optCache){
+    conf += '    location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {\n';
+    conf += '        expires 30d;\n        add_header Cache-Control "public, immutable";\n    }\n';
+  }
+  conf += '}\n';
+
+  document.getElementById('output').textContent = conf;
   document.getElementById('output').style.display = 'block';
-  showToast('生成完成');
+  showToast('Nginx配置已生成');
 }
 </script>
 </body>

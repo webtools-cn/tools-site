@@ -205,12 +205,69 @@ function clearInput() {
 }
 
 function convert() {
-  var input = document.getElementById('optVars').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input; // 基础实现，后续可优化
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+  var css = document.getElementById('inputCSS').value;
+  if (!css.trim()) { showToast('请输入CSS代码'); return; }
+  var optVars = document.getElementById('optVars').checked;
+  var optNest = document.getElementById('optNest').checked;
+  var optMixin = document.getElementById('optMixin').checked;
+  
+  var less = css;
+  
+  // Extract variables (colors and common values)
+  if(optVars){
+    var colorMap = {};
+    var colorCount = 0;
+    // Find hex colors
+    var hexColors = less.match(/#[0-9a-fA-F]{3,8}/g);
+    if(hexColors){
+      hexColors.forEach(function(c){
+        if(!colorMap[c]){
+          colorCount++;
+          colorMap[c] = '@color' + colorCount;
+        }
+      });
+    }
+    // Build variable declarations
+    var varDecl = '';
+    for(var c in colorMap){
+      varDecl += colorMap[c] + ': ' + c + ';\n';
+    }
+    // Replace colors with variables
+    for(var c2 in colorMap){
+      less = less.replace(new RegExp(c2.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), colorMap[c2]);
+    }
+    less = varDecl + '\n' + less;
+  }
+  
+  // Nest rules
+  if(optNest){
+    // Simple nesting: find .parent { ... .child { ... } } patterns
+    // This is a simplified nesting - combines selectors with & 
+    less = less.replace(/\.([\w-]+)\s*\{([^}]*)\.([\w-]+)\s*\{/g, function(match, parent, middle, child){
+      return '.' + parent + ' {\n' + middle.trim() + '\n  &' + (child.charAt(0) === '-' ? '' : ' .') + child + ' {';
+    });
+  }
+  
+  // Extract mixins for repeated patterns (simplified)
+  if(optMixin){
+    // Find repeated border-radius patterns
+    var radiusMatch = less.match(/border-radius:\s*([^;]+);/g);
+    if(radiusMatch){
+      var seen = {};
+      radiusMatch.forEach(function(m){
+        var val = m.match(/border-radius:\s*([^;]+)/)[1].trim();
+        if(!seen[val] && val !== '0'){
+          seen[val] = true;
+          var mixinName = '.rounded-' + val.replace(/[^a-zA-Z0-9]/g,'');
+          less = mixinName + '() {\n  border-radius: ' + val + ';\n}\n' + less;
+          less = less.replace(new RegExp('border-radius:\\s*' + val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ';', 'g'), mixinName + '();');
+        }
+      });
+    }
+  }
+  
+  document.getElementById('outputLess').value = less;
+  showToast('转换为Less完成');
 }
 
 function copyOutput() {

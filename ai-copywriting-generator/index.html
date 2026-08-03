@@ -182,12 +182,86 @@ function clearAll() {
 }
 
 function generate() {
-  var input = document.getElementById('productName').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('resultArea').textContent = output;
+  var productName = document.getElementById('productName').value || '产品';
+  var sellingPoints = document.getElementById('sellingPoints').value || '';
+  var audience = document.getElementById('audience').value || '目标用户';
+  var copyType = document.getElementById('copyType').value;
+  var platform = document.getElementById('platform').value;
+  var tone = document.getElementById('tone').value;
+  var count = parseInt(document.getElementById('count').value) || 5;
+  var length = document.getElementById('length').value;
+  
+  var points = sellingPoints.split('\n').filter(function(l){return l.trim()});
+  if(points.length === 0) points = ['高质量', '性价比高', '用户信赖'];
+  
+  var toneMap = {
+    professional: '专业、信赖',
+    casual: '轻松、亲切',
+    luxury: '高端、优雅',
+    energetic: '活力、热情',
+    humorous: '幽默、有趣'
+  };
+  
+  var templates = {
+    headline: [
+      productName + '，让' + audience + '的每一天更精彩',
+      '为什么' + audience + '都在选择' + productName + '？',
+      productName + '：' + points[0] + '，超出你期待',
+      '遇见' + productName + '，遇见更好的自己',
+      productName + '，' + toneMap[tone] + '之选',
+      '不止' + points[0] + '——' + productName + '重新定义体验',
+      points[0] + '？' + productName + '做到了极致',
+      productName + '，为' + audience + '量身打造'
+    ],
+    slogan: [
+      productName + '，懂你所需',
+      '选择' + productName + '，选择品质',
+      productName + '，' + points[0],
+      '更好，从' + productName + '开始',
+      productName + '，' + audience + '的首选',
+      '极致体验，尽在' + productName,
+      productName + '，让' + points[0] + '触手可及',
+      '信赖' + productName + '，信赖未来'
+    ],
+    description: [
+      productName + '专为' + audience + '设计，' + points.join('，') + '。无论何时何地，都能享受' + toneMap[tone] + '的体验。',
+      '还在寻找完美的解决方案？' + productName + '集合' + points.join('、') + '等优势，是' + audience + '的不二之选。',
+      productName + '——' + points[0] + '，' + (points[1] || '品质保证') + '。让' + audience + '享受前所未有的' + toneMap[tone] + '体验。',
+      '每一处细节都经过精心打磨。' + productName + '凭借' + points.join('、') + '，为' + audience + '带来极致体验。',
+      productName + '不仅仅是产品，更是' + audience + '的生活方式。' + points.join('，') + '，样样出色。'
+    ],
+    cta: [
+      '立即体验' + productName + '，开启精彩之旅！',
+      '限时优惠！' + productName + '等你来选，错过再等一年',
+      '加入' + audience + '的行列，' + productName + '让生活更美好',
+      '点击了解' + productName + '，' + points[0] + '即刻拥有',
+      productName + '火热销售中，' + audience + '都在用！'
+    ]
+  };
+  
+  var pool = templates[copyType] || templates.headline;
+  var results = [];
+  // Shuffle and pick
+  var shuffled = pool.slice().sort(function(){return Math.random()-0.5});
+  for(var i=0;i<count && i<shuffled.length;i++){
+    results.push(shuffled[i]);
+  }
+  // If need more, generate variations
+  while(results.length < count){
+    results.push(productName + '，' + points[results.length % points.length] + '，为' + audience + '打造');
+  }
+  
+  var html = '';
+  results.forEach(function(r, i){
+    html += '<div style="padding:12px;margin-bottom:8px;background:rgba(6,182,212,.05);border-left:3px solid #06b6d4;border-radius:4px"><span style="color:#64748b;font-size:.75rem;margin-right:8px">#'+(i+1)+'</span><span style="color:#e2e8f0">'+r+'</span><button onclick="copyOne(\''+r.replace(/'/g,"\\'").replace(/"/g,'&quot;')+'\')" style="float:right;background:none;border:none;color:#64748b;cursor:pointer;font-size:.8rem">📋</button></div>';
+  });
+  document.getElementById('resultArea').innerHTML = html;
   document.getElementById('resultArea').style.display = 'block';
-  showToast('生成完成');
+  showToast('已生成'+results.length+'条文案');
+}
+
+function copyOne(text){
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制')})["catch"](function(){showToast('复制失败')});
 }
 </script>
 </body>

@@ -145,12 +145,58 @@ function clearAll() {
 }
 
 function convert() {
-  var input = document.getElementById('addDeclaration').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input; // 基础实现，后续可优化
-  document.getElementById('resultSection').textContent = output;
+  var input = document.getElementById('htmlInput').value;
+  if (!input.trim()) { showToast('请输入HTML代码'); return; }
+  var addDecl = document.getElementById('addDeclaration').checked;
+  var selfClose = document.getElementById('selfCloseVoid').checked;
+  var encoding = document.getElementById('encoding').value;
+  var indentSel = document.getElementById('indentSize').value;
+  var indent = indentSel === 'tab' ? '\t' : ' '.repeat(parseInt(indentSel));
+  // Use DOMParser to parse HTML
+  var parser = new DOMParser();
+  var doc = parser.parseFromString(input, 'text/html');
+  // Void elements that should be self-closed
+  var voidTags = ['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'];
+  function nodeToXml(node, depth){
+    var pad = indent.repeat(depth);
+    var result = '';
+    for(var i=0;i<node.childNodes.length;i++){
+      var child = node.childNodes[i];
+      if(child.nodeType === 3){ // text node
+        var text = child.textContent.trim();
+        if(text) result += pad + escapeXml(text) + '\n';
+      } else if(child.nodeType === 1){ // element
+        var tagName = child.tagName.toLowerCase();
+        var attrs = '';
+        for(var a=0;a<child.attributes.length;a++){
+          var attr = child.attributes[a];
+          attrs += ' '+attr.name+'="'+escapeXml(attr.value)+'"';
+        }
+        if(selfClose && voidTags.indexOf(tagName) >= 0){
+          result += pad + '<'+tagName+attrs+' />\n';
+        } else if(child.childNodes.length === 0 || (child.childNodes.length === 1 && child.childNodes[0].nodeType === 3 && !child.childNodes[0].textContent.trim())){
+          result += pad + '<'+tagName+attrs+'></'+tagName+'>\n';
+        } else {
+          result += pad + '<'+tagName+attrs+'>\n';
+          result += nodeToXml(child, depth+1);
+          result += pad + '</'+tagName+'>\n';
+        }
+      }
+    }
+    return result;
+  }
+  function escapeXml(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  var xml = '';
+  if(addDecl){
+    xml += '<?xml version="1.0" encoding="'+encoding+'"?>\n';
+  }
+  // Process body children
+  xml += nodeToXml(doc.body, 0);
+  document.getElementById('xmlOutput').value = xml;
   document.getElementById('resultSection').style.display = 'block';
-  showToast('处理完成');
+  showToast('转换完成');
 }
 
 function copyResult() {

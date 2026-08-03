@@ -222,12 +222,37 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function convert() {
-  var input = document.getElementById('inputValue').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input; // 基础实现，后续可优化
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+  var val = parseFloat(document.getElementById('inputValue').value);
+  if (isNaN(val)) { showToast('请输入有效数字'); return; }
+  var unitIdx = parseInt(document.getElementById('inputUnit').value);
+  var base = 1024;
+  var baseRadio = document.querySelector('input[name="base"]:checked');
+  if(baseRadio) base = parseInt(baseRadio.value);
+  var units = ['B','KB','MB','GB','TB','PB'];
+  var unitsIEC = ['B','KiB','MiB','GiB','TiB','PiB'];
+  var labels = base===1024 ? unitsIEC : units;
+  // Convert to bytes first
+  var bytes = val * Math.pow(base, unitIdx);
+  // Build result table
+  var html = '<tr><th>单位</th><th>值</th></tr>';
+  for(var i=0;i<units.length;i++){
+    var converted = bytes / Math.pow(base, i);
+    var display = converted >= 1 ? converted.toFixed(converted >= 100 ? 0 : (converted >= 10 ? 1 : 2)) : converted.toExponential(2);
+    if(i === unitIdx) {
+      html += '<tr style="background:rgba(6,182,212,.1)"><td><strong>'+labels[i]+'</strong> ←</td><td><strong>'+display+'</strong></td></tr>';
+    } else {
+      html += '<tr><td>'+labels[i]+'</td><td>'+display+'</td></tr>';
+    }
+  }
+  document.getElementById('resultTable').innerHTML = html;
+}
+
+function swapUnit() {
+  // Not really applicable for a table converter, but we can swap to a common unit
+  var sel = document.getElementById('inputUnit');
+  var cur = parseInt(sel.value);
+  sel.value = cur === 0 ? 3 : (cur === 3 ? 0 : (cur === 2 ? 4 : 2));
+  convert();
 }
 
 function copyResult() {

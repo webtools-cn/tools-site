@@ -294,7 +294,10 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 // === 重写的函数实现 ===
 function addAttr() {
-  showToast('addAttr - coming soon!');
+  var div = document.createElement('div');
+  div.className = 'attr-row';
+  div.innerHTML = '<input type="text" placeholder="属性名" class="attr-name"><select class="attr-type"><option value="Number">Number</option><option value="String">String</option><option value="Boolean">Boolean</option><option value="Object">Object</option><option value="Array">Array</option></select><input type="text" placeholder="默认值" class="attr-default"><label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap"><input type="checkbox" class="attr-reflect" checked> 反射</label><button class="btn btn-secondary" onclick="removeAttr(this)" style="padding:6px 10px;font-size:12px">✕</button>';
+  document.getElementById('attrList').appendChild(div);
 }
 
 function copyCode() {
@@ -304,12 +307,116 @@ function copyCode() {
 }
 
 function generate() {
-  var input = document.getElementById('componentName').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('outputCard').textContent = output;
+  var name = document.getElementById('componentName').value || 'my-element';
+  if(name.indexOf('-') === -1){ showToast('组件名必须包含连字符'); return; }
+  var extendsEl = document.getElementById('extendsElement').value;
+  var useShadow = document.getElementById('useShadow').checked;
+  var shadowOpen = document.getElementById('shadowOpen').checked;
+  var useTemplate = document.getElementById('useTemplate').checked;
+  var useSlot = document.getElementById('useSlot').checked;
+  var observeAttrs = document.getElementById('observeAttrs').checked;
+  var emitEvents = document.getElementById('emitEvents').checked;
+  var css = document.getElementById('componentCSS').value || '';
+  var events = document.getElementById('customEvents').value || '';
+  
+  // Gather attributes
+  var attrs = [];
+  var rows = document.querySelectorAll('#attrList .attr-row');
+  rows.forEach(function(row){
+    var nameEl = row.querySelector('.attr-name');
+    var typeEl = row.querySelector('.attr-type');
+    var defaultEl = row.querySelector('.attr-default');
+    var reflectEl = row.querySelector('.attr-reflect');
+    if(nameEl && nameEl.value){
+      attrs.push({
+        name: nameEl.value,
+        type: typeEl ? typeEl.value : 'String',
+        default: defaultEl ? defaultEl.value : '',
+        reflect: reflectEl ? reflectEl.checked : false
+      });
+    }
+  });
+
+  var className = name.split('-').map(function(s){return s.charAt(0).toUpperCase()+s.slice(1)}).join('');
+  var code = '';
+
+  // Template
+  if(useTemplate && useShadow){
+    code += 'const template = document.createElement(\'template\');\n';
+    var templateHtml = '<div class="container">';
+    if(useSlot) templateHtml += '<slot></slot>';
+    templateHtml += '</div>';
+    code += 'template.innerHTML = `\n  <style>\n' + css + '\n  </style>\n  ' + templateHtml + '\n`;\n\n';
+  }
+
+  // Class definition
+  code += 'class ' + className + ' extends ' + (extendsEl || 'HTMLElement') + ' {\n';
+  
+  // Constructor
+  code += '  constructor() {\n    super();\n';
+  if(useShadow){
+    code += '    const shadow = this.attachShadow({ mode: \'' + (shadowOpen ? 'open' : 'closed') + '\' });\n';
+    if(useTemplate){
+      code += '    shadow.appendChild(template.content.cloneNode(true));\n';
+    } else {
+      code += '    shadow.innerHTML = `<style>' + css.replace(/`/g,'\\`').replace(/\n/g,'\\n') + '</style><div class="container">' + (useSlot ? '<slot></slot>' : '') + '</div>`;\n';
+    }
+  }
+  // Initialize attributes defaults
+  attrs.forEach(function(a){
+    var defVal = a.type === 'Number' ? (a.default || '0') : (a.type === 'Boolean' ? (a.default === 'true' ? 'true' : 'false') : '\'' + a.default + '\'');
+    code += '    this._' + a.name + ' = ' + defVal + ';\n';
+  });
+  code += '  }\n\n';
+
+  // Observed attributes
+  if(observeAttrs && attrs.length > 0){
+    code += '  static get observedAttributes() {\n    return [' + attrs.map(function(a){return '\''+a.name+'\''}).join(', ') + '];\n  }\n\n';
+    code += '  attributeChangedCallback(name, oldVal, newVal) {\n';
+    attrs.forEach(function(a, i){
+      if(i === 0) code += '    if (name === \''+a.name+'\') {\n';
+      else code += '    } else if (name === \''+a.name+'\') {\n';
+      var conv = a.type === 'Number' ? 'Number(newVal)' : (a.type === 'Boolean' ? 'newVal !== null' : 'newVal');
+      code += '      this._'+a.name+' = '+conv+';\n';
+    });
+    if(attrs.length > 0) code += '    }\n';
+    code += '  }\n\n';
+  }
+
+  // Properties (getters/setters)
+  attrs.forEach(function(a){
+    code += '  get '+a.name+'() { return this._'+a.name+'; }\n';
+    code += '  set '+a.name+'(val) {\n    this._'+a.name+' = val;\n';
+    if(a.reflect) code += '    this.setAttribute(\''+a.name+'\', val);\n';
+    if(emitEvents && events.trim()){
+      var firstEvent = events.trim().split('\n')[0].trim();
+      code += '    this.dispatchEvent(new CustomEvent(\''+firstEvent+'\', { detail: val }));\n';
+    }
+    code += '  }\n\n';
+  });
+
+  // Connected callback
+  code += '  connectedCallback() {\n';
+  code += '    this.render();\n  }\n\n';
+  code += '  render() {\n';
+  if(!useShadow){
+    code += '    this.innerHTML = `<div class="container">' + (useSlot ? '' : '') + '</div>`;\n';
+  } else {
+    code += '    // Update shadow DOM content\n';
+  }
+  code += '  }\n';
+
+  code += '}\n\n';
+  // Register
+  if(extendsEl){
+    code += 'customElements.define(\''+name+'\', '+className+', { extends: \'' + extendsEl.toLowerCase().replace('html','').replace('element','') + '\' });\n';
+  } else {
+    code += 'customElements.define(\''+name+'\', '+className+');\n';
+  }
+
+  document.getElementById('outputCard').innerHTML = '<pre style="white-space:pre-wrap;word-break:break-all;color:#7ee787;font-family:monospace;font-size:.85rem;line-height:1.6">' + code.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>';
   document.getElementById('outputCard').style.display = 'block';
-  showToast('生成完成');
+  showToast('Web Component代码已生成');
 }
 
 function preview() {
@@ -319,8 +426,11 @@ function preview() {
   showToast('预览已更新');
 }
 
-function removeAttr() {
-  showToast('removeAttr - coming soon!');
+function removeAttr(btn) {
+  var row = btn.parentNode;
+  if(row.parentNode.children.length > 1){
+    row.parentNode.removeChild(row);
+  }
 }
 
 function resetForm() {

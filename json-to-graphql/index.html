@@ -169,27 +169,113 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var currentOutputType = 'schema';
+
+function setOutput(type) {
+  currentOutputType = type;
+  document.querySelectorAll('.toggle-btn').forEach(function(b){b.classList.remove('active')});
+  if(type === 'schema') document.getElementById('outSchema').classList.add('active');
+  else if(type === 'query') document.getElementById('outQuery').classList.add('active');
+  else document.getElementById('outMutation').classList.add('active');
+  // Re-convert if there's input
+  var inp = document.getElementById('inp').value;
+  if(inp.trim()) convert();
+}
+
+function gqlType(val, key) {
+  if (val === null) return 'String';
+  if (Array.isArray(val)) {
+    if (val.length > 0) return '[' + gqlType(val[0], key) + '!]!';
+    return '[String]';
+  }
+  switch (typeof val) {
+    case 'string': return 'String';
+    case 'number': return Number.isInteger(val) ? 'Int' : 'Float';
+    case 'boolean': return 'Boolean';
+    case 'object':
+      // Nested object → use key as type name
+      return key ? key.charAt(0).toUpperCase() + key.slice(1) : 'JSON';
+    default: return 'String';
+  }
+}
+
+function buildSchema(obj, typeName, indent) {
+  indent = indent || '  ';
+  var lines = ['type ' + typeName + ' {'];
+  var nestedTypes = [];
+  for (var key in obj) {
+    if (!obj.hasOwnProperty(key)) continue;
+    var val = obj[key];
+    var typeStr = gqlType(val, key);
+    lines.push(indent + key + ': ' + typeStr);
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+      nestedTypes.push(buildSchema(val, key.charAt(0).toUpperCase() + key.slice(1), indent));
+    }
+    if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object' && val[0] !== null) {
+      nestedTypes.push(buildSchema(val[0], key.charAt(0).toUpperCase() + key.slice(1), indent));
+    }
+  }
+  lines.push('}');
+  return lines.join('\n') + (nestedTypes.length ? '\n\n' + nestedTypes.join('\n\n') : '');
+}
+
+function buildQuery(obj, typeName, operation) {
+  var fields = [];
+  for (var key in obj) {
+    if (!obj.hasOwnProperty(key)) continue;
+    var val = obj[key];
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+      var subFields = [];
+      for (var sk in val) { if (val.hasOwnProperty(sk)) subFields.push('    ' + sk); }
+      fields.push('  ' + key + ' {\n' + subFields.join('\n') + '\n  }');
+    } else if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object') {
+      var arrFields = [];
+      for (var ak in val[0]) { if (val[0].hasOwnProperty(ak)) arrFields.push('    ' + ak); }
+      fields.push('  ' + key + ' {\n' + arrFields.join('\n') + '\n  }');
+    } else {
+      fields.push('  ' + key);
+    }
+  }
+  var op = operation === 'mutation' ? 'mutation' : 'query';
+  return op + ' Get' + typeName + '($id: ID!) {\n  ' + typeName.toLowerCase() + '(id: $id) {\n' + fields.join('\n') + '\n  }\n}';
+}
+
 function convert() {
-  var input = document.getElementById('typeName').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input; // 基础实现，后续可优化
-  document.getElementById('outputSection').textContent = output;
+  var jsonStr = document.getElementById('inp').value;
+  if (!jsonStr.trim()) { showToast('请输入JSON数据'); return; }
+  var typeName = document.getElementById('typeName').value || 'Type';
+  var obj;
+  try {
+    obj = JSON.parse(jsonStr);
+  } catch(e) {
+    showToast('JSON解析失败: ' + e.message);
+    return;
+  }
+  if (Array.isArray(obj) && obj.length > 0) obj = obj[0];
+  var result = '';
+  if (currentOutputType === 'schema') {
+    result = buildSchema(obj, typeName);
+  } else if (currentOutputType === 'query') {
+    result = buildQuery(obj, typeName, 'query');
+  } else {
+    result = buildQuery(obj, typeName, 'mutation');
+  }
+  document.getElementById('codeOutput').innerHTML = '<button class="copy-btn" onclick="copyOutput()">复制</button><pre>' + result.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>';
   document.getElementById('outputSection').style.display = 'block';
-  showToast('处理完成');
+  showToast('转换完成');
 }
 
 function copyOutput() {
-  var text = document.getElementById('outputSection').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  var text = document.getElementById('codeOutput').innerText;
+  if (!text.trim() || text === '复制') { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(text.replace(/^复制/, '')).then(function(){showToast('已复制')})["catch"](function(){showToast('复制失败')});
 }
 
 function loadSample() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
-}
-
-function setOutput() {
-  showToast('setOutput - coming soon!');
+  document.getElementById('inp').value = '{"name": "张三", "age": 25, "email": "zhangsan@example.com", "isActive": true, "tags": ["dev", "js"], "address": {"city": "北京", "zip": "100000"}}';
+  document.getElementById('typeName').value = 'User';
+  convert();
+  showToast('已加载示例');
 }
 </script>
 </body>

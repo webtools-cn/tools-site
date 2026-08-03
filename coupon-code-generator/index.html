@@ -204,12 +204,59 @@ function copyAllCodes() {
 }
 
 function generateCodes() {
-  var input = document.getElementById('prefixVal').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('resultArea').textContent = output;
+  var prefix = document.getElementById('prefixVal').value || '';
+  var count = parseInt(document.getElementById('countVal').value) || 1;
+  if(count<1)count=1; if(count>1000)count=1000;
+  var length = parseInt(document.getElementById('lengthVal').value) || 8;
+  if(length<4)length=4; if(length>32)length=32;
+  var useUpper = document.getElementById('upperVal').checked;
+  var useLower = document.getElementById('lowerVal').checked;
+  var useDigit = document.getElementById('digitVal').checked;
+  var sepStep = parseInt(document.getElementById('sepStep').value) || 0;
+  var sepChar = document.getElementById('sepChar').value;
+  var charset = '';
+  if(useUpper) charset += 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  if(useLower) charset += 'abcdefghijkmnpqrstuvwxyz';
+  if(useDigit) charset += '23456789';
+  if(!charset) charset = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var codes = [];
+  var seen = {};
+  var attempts = 0;
+  while(codes.length < count && attempts < count*10){
+    attempts++;
+    var code = '';
+    for(var i=0;i<length;i++){
+      code += charset[Math.floor(Math.random()*charset.length)];
+    }
+    if(sepStep>0){
+      var formatted = '';
+      for(var j=0;j<code.length;j++){
+        if(j>0 && j%sepStep===0) formatted += sepChar;
+        formatted += code[j];
+      }
+      code = formatted;
+    }
+    var full = prefix + code;
+    if(!seen[full]){seen[full]=true;codes.push(full)}
+  }
+  var html = '';
+  for(var k=0;k<codes.length;k++){
+    html += '<div style="padding:4px 0;border-bottom:1px solid rgba(148,163,184,.08)"><span style="color:#22d3ee">'+codes[k]+'</span> <button onclick="copyOne(\''+codes[k].replace(/'/g,"\\'")+'\')" style="float:right;background:none;border:none;color:#64748b;cursor:pointer;font-size:.8rem">📋</button></div>';
+  }
+  document.getElementById('codeList').innerHTML = html;
+  document.getElementById('countDisplay').textContent = codes.length;
   document.getElementById('resultArea').style.display = 'block';
-  showToast('生成完成');
+  showToast('已生成 '+codes.length+' 个优惠码');
+}
+
+function copyOne(code){
+  navigator.clipboard.writeText(code).then(function(){showToast('已复制: '+code)})["catch"](function(){showToast('复制失败')});
+}
+
+function copyAllCodes() {
+  var text = document.getElementById('codeList').innerText;
+  if (!text.trim()) { showToast('没有可复制的内容'); return; }
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制全部')})["catch"](function(){showToast('复制失败')});
 }
 </script>
 <section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#374151">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px"><a href="/css-loading-generator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🔧 CSS加载动画生成器</a><a href="/css-calc-builder/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🔧 🧮 CSS calc()构建器</a><a href="/css-keyframe-animation-generator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🔧 🎬 在线CSS关键帧动画生成器</a><a href="/css-shimmer-generator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🔧 ✨ 在线CSS微光效果生成器</a><a href="/css-relative-color-generator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🔧 🎨 CSS相对颜色生成器</a></div></section>

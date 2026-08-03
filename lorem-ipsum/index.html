@@ -227,12 +227,47 @@ function downloadResult() {
   showToast('已下载');
 }
 
+var LOREM_WORDS = "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duis aute irure in reprehenderit voluptate velit esse cillum eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum at vero eos accusamus iusto odio dignissimos ducimus blanditiis praesentium voluptatum deleniti atque corrupti quos quas molestias excepturi sint similique mollitia animi dolores".split(" ");
+
+function randInt(n){return Math.floor(Math.random()*n)}
+function generateSentence(){var len=8+randInt(12);var words=[];for(var i=0;i<len;i++){words.push(LOREM_WORDS[randInt(LOREM_WORDS.length)])}words[0]=words[0].charAt(0).toUpperCase()+words[0].slice(1);return words.join(" ")+"."}
+function generateParagraph(){var len=3+randInt(5);var sentences=[];for(var i=0;i<len;i++){sentences.push(generateSentence())}return sentences.join(" ")}
+
 function generate() {
-  var input = document.getElementById('genCount').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('resultBox').textContent = output;
+  var count = parseInt(document.getElementById('genCount').value)||1;
+  if(count<1)count=1;
+  var type = document.getElementById('genType').value;
+  var classic = document.getElementById('startClassic').checked;
+  var useHtml = document.getElementById('htmlTags').checked;
+  var result = "";
+  var classicStart = "Lorem ipsum dolor sit amet, consectetur adipiscing elit";
+  if(type==="paragraphs"){
+    if(count>100)count=100;
+    for(var i=0;i<count;i++){
+      var para=generateParagraph();
+      if(i===0&&classic){para=classicStart+". "+para}
+      if(useHtml){result+="<p>"+para+"</p>\n\n"}else{result+=para+"\n\n"}
+    }
+  }else if(type==="sentences"){
+    if(count>1000)count=1000;
+    for(var i=0;i<count;i++){
+      var sent=generateSentence();
+      if(i===0&&classic){sent=classicStart+"."}
+      result+=sent+" ";
+    }
+    if(useHtml){result="<p>"+result.trim()+"</p>"}
+  }else{
+    if(count>10000)count=10000;
+    var words=[];
+    if(classic){words=classicStart.split(" ");count-=words.length}
+    for(var i=0;i<count;i++){words.push(LOREM_WORDS[randInt(LOREM_WORDS.length)])}
+    result=words.join(" ");
+    if(useHtml){result="<p>"+result+"</p>"}
+  }
+  document.getElementById('resultBox').textContent = result.trim();
   document.getElementById('resultBox').style.display = 'block';
+  var wc=result.split(/\s+/).filter(function(w){return w.length>0}).length;
+  document.getElementById('resultStats').innerHTML = '<span>单词: '+wc+'</span><span>字符: '+result.length+'</span>';
   showToast('生成完成');
 }
 </script>

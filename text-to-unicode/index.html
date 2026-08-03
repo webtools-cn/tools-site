@@ -231,12 +231,61 @@ function clearInput() {
 }
 
 function convert() {
-  var input = '';
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input; // 基础实现，后续可优化
-  document.getElementById('resultSection').textContent = output;
-  document.getElementById('resultSection').style.display = 'block';
-  showToast('处理完成');
+  var input = document.getElementById('inputText').value;
+  if (!input) { showToast('请输入数据'); return; }
+  var dir = document.getElementById('convDirection').value;
+  var fmt = document.getElementById('outputFormat').value;
+  var result = '';
+  if(dir === 'encode'){
+    if(fmt === 'escape'){
+      for(var i=0;i<input.length;i++){
+        var cp = input.codePointAt(i);
+        if(cp > 0xFFFF){ i++; result += '\\u{'+cp.toString(16).toUpperCase()+'}'; }
+        else if(cp > 127){ result += '\\u'+cp.toString(16).toUpperCase().padStart(4,'0'); }
+        else { result += input[i]; }
+      }
+    } else if(fmt === 'hex'){
+      for(var i=0;i<input.length;i++){
+        var cp1 = input.codePointAt(i);
+        if(cp1 > 0xFFFF) i++;
+        result += '&#x'+cp1.toString(16).toUpperCase()+';';
+      }
+    } else if(fmt === 'decimal'){
+      for(var i=0;i<input.length;i++){
+        var cp2 = input.codePointAt(i);
+        if(cp2 > 0xFFFF) i++;
+        result += '&#'+cp2+';';
+      }
+    } else if(fmt === 'url'){
+      result = encodeURIComponent(input);
+    } else if(fmt === 'codepoint'){
+      for(var i=0;i<input.length;i++){
+        var cp3 = input.codePointAt(i);
+        if(cp3 > 0xFFFF) i++;
+        result += 'U+'+cp3.toString(16).toUpperCase().padStart(4,'0')+' ';
+      }
+      result = result.trim();
+    }
+  } else {
+    // decode
+    try {
+      if(fmt === 'escape'){
+        result = input.replace(/\\u\{([0-9a-fA-F]+)\}/g, function(m,h){return String.fromCodePoint(parseInt(h,16))})
+                       .replace(/\\u([0-9a-fA-F]{4})/g, function(m,h){return String.fromCharCode(parseInt(h,16))});
+      } else if(fmt === 'hex'){
+        result = input.replace(/&#x([0-9a-fA-F]+);/g, function(m,h){return String.fromCodePoint(parseInt(h,16))});
+      } else if(fmt === 'decimal'){
+        result = input.replace(/&#(\d+);/g, function(m,d){return String.fromCodePoint(parseInt(d,10))});
+      } else if(fmt === 'url'){
+        result = decodeURIComponent(input);
+      } else if(fmt === 'codepoint'){
+        result = input.replace(/U\+([0-9a-fA-F]+)/g, function(m,h){return String.fromCodePoint(parseInt(h,16))});
+      }
+    } catch(e){ result = '解码失败: '+e.message; }
+  }
+  document.getElementById('outputText').value = result;
+  document.getElementById('resultStats').textContent = result.length + ' 字符';
+  showToast('转换完成');
 }
 
 function copyResult() {

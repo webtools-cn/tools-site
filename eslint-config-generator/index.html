@@ -198,12 +198,71 @@ function downloadIt() {
 }
 
 function generate() {
-  var input = document.getElementById('envBrowser').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('output').textContent = output;
+  var ecmaVer = document.getElementById('ecmaVersion').value;
+  var sourceType = document.getElementById('sourceType').value;
+  var envBrowser = document.getElementById('envBrowser').checked;
+  var envNode = document.getElementById('envNode').checked;
+  var envES6 = document.getElementById('envES6').checked;
+  var envJest = document.getElementById('envJest').checked;
+  var pluginReact = document.getElementById('pluginReact').checked;
+  var pluginReactHooks = document.getElementById('pluginReactHooks').checked;
+  var pluginTS = document.getElementById('pluginTS').checked;
+  var pluginVue = document.getElementById('pluginVue').checked;
+  var pluginPrettier = document.getElementById('pluginPrettier').checked;
+  var pluginImport = document.getElementById('pluginImport').checked;
+  var severity = document.getElementById('severity').value;
+
+  var config = {
+    root: true,
+    env: {},
+    parserOptions: { ecmaVersion: ecmaVer, sourceType: sourceType },
+    extends: [],
+    rules: {}
+  };
+  if(envBrowser) config.env.browser = true;
+  if(envNode) config.env.node = true;
+  if(envES6) config.env.es2022 = true;
+  if(envJest) config.env.jest = true;
+
+  if(pluginTS){
+    config.parser = '@typescript-eslint/parser';
+    config.extends.push('eslint:recommended');
+    config.extends.push('plugin:@typescript-eslint/recommended');
+  } else {
+    config.extends.push('eslint:recommended');
+  }
+  if(pluginReact){
+    config.parserOptions.ecmaFeatures = { jsx: true };
+    config.extends.push('plugin:react/recommended');
+    config.settings = { react: { version: 'detect' } };
+  }
+  if(pluginReactHooks) config.extends.push('plugin:react-hooks/recommended');
+  if(pluginVue) config.extends.push('plugin:vue/essential');
+  if(pluginPrettier) config.extends.push('prettier');
+  if(pluginImport) config.extends.push('plugin:import/recommended');
+
+  if(severity === 'strict'){
+    config.rules['no-unused-vars'] = 'error';
+    config.rules['no-console'] = 'error';
+    config.rules['no-debugger'] = 'error';
+    config.rules['no-undef'] = 'error';
+    config.rules['prefer-const'] = 'error';
+    config.rules['no-var'] = 'error';
+    config.rules['eqeqeq'] = 'error';
+  } else if(severity === 'relaxed'){
+    config.rules['no-unused-vars'] = 'warn';
+    config.rules['no-console'] = 'off';
+    config.rules['no-debugger'] = 'warn';
+  } else {
+    config.rules['no-unused-vars'] = 'warn';
+    config.rules['no-console'] = 'warn';
+    config.rules['no-debugger'] = 'error';
+  }
+
+  var json = JSON.stringify(config, null, 2);
+  document.getElementById('output').textContent = json;
   document.getElementById('output').style.display = 'block';
-  showToast('生成完成');
+  showToast('ESLint配置已生成');
 }
 </script>
 </body>
