@@ -264,3 +264,61 @@ Google爬虫依赖语义化HTML理解页面结构，缺少`<main>`标签可能�
 - [ ] 持续监控GSC索引状态
 - [ ] 检查273个迁移占位页是否需要noindex
 - [ ] 检查英文版工具是否有类似功能缺失
+
+## 2026-08-04: 修复42个页面div标签不平衡 (P0)
+
+### 问题
+- 之前修复了49个GSC failing URLs的div问题，但全站扫描仍发现30个页面div不平衡
+- 17个英文分类页面有FAQ/Related/Footer内容块重复4次（模板生成bug）
+- 13个工具页面有不同程度的div不平衡（缺少或多余闭合标签）
+
+### 修复内容
+
+#### 1. 英文分类页面重复内容修复（17个页面）
+- **根因**：模板生成时FAQ+Related+Footer块被重复输出了4次
+- **修复**：保留主内容 + 第一个完整块（含正确footer），丢弃3个重复块
+- **影响页面**：en/office, en/json, en/text, en/math, en/calc, en/converter,
+  en/health, en/creative, en/dev, en/design, en/pdf, en/css, en/security,
+  en/fun, en/image, en/media, en/utility
+- **文件体积减少**：每个页面减少约12-15KB重复内容
+
+#### 2. 工具页面div不平衡修复（25个页面）
+- **缺少</div>（9个）**：en/ip-range-calculator(+14), en/loan-payoff-calculator(+12),
+  en/sales-tax-calculator(+8), en/text-animation-generator(+6), en/readability-score(+6),
+  en/standard-deviation-calculator(+6), en/unicode-lookup(+4),
+  en/carbon-footprint-calculator(+2), en/reading-speed-test(+2)
+  → 在</main>前添加缺失的</div>标签
+- **多余</div>（16个）**：color-picker-hex(-12), en/html-preview(-5),
+  barcode-reader(-4), en/schema-generator(-4), en/css-skeleton-loader-generator(-4),
+  en/character-frequency-analyzer(-4), line-chart-maker(-4), pie-chart-maker(-4),
+  bar-chart-maker(-4), en/diff-viewer(-2), en/seo-meta-generator(-2),
+  en/ai-context-window-comparator(-2), en/css-to-inline-styles(-2),
+  en/html-stripper(-2), cookie-editor(-2), matrix-calculator(-2)
+  → 移除多余的</div>标签
+- **color-picker-hex特殊修复**：手动修复L120重复标签(9个</div>→3个)、
+  L125错误</main>位置、L258-260多余</div>、L228多余</div>、
+  添加缺失的</main>和</div>
+
+### 验证结果
+- 全站div不平衡页面（diff≥2）：30 → **0** ✅
+- 42个修改文件JS语法检查：全部通过 ✅
+- 英文分类页面结构验证：1个faq-section, 1个footer, 1个body, 1个html ✅
+- git push成功 ✅
+
+### 当前状态汇总
+| 问题 | 状态 |
+|:-----|:-----|
+| P0: 49个Failing URLs - div不匹配 | ✅ 已修复 |
+| P0: 49个Failing URLs - 缺少main标签 | ✅ 已修复 |
+| P0: 全站30个页面div不平衡 | ✅ 已修复 |
+| P0: Meta Description偏短 | ✅ 已修复 |
+| P0: HTML引号缺失（4个EN页面）| ✅ 已修复 |
+| P1: robots标签问题 | ✅ 已确认全部OK |
+| P1: 浅色背景页面 | ✅ 已全部修复 |
+| P1: 空壳工具（62个中文） | ✅ 已全部修复 |
+| P1: 5个页面JS语法错误 | ✅ 已修复 |
+
+### 下一步
+- [ ] 在GSC中请求重新索引49个failing URLs
+- [ ] 持续监控GSC索引状态
+- [ ] 检查英文版工具是否有类似功能缺失
