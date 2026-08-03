@@ -338,25 +338,79 @@ input:focus,select:focus{border-color:rgba(6,182,212,.5)}
     s.innerHTML = h;
   }).catch(function() { s.innerHTML = ''; });
 
-// === Implementation ===
-function convert() {
-  var input = document.getElementById('hexInput').value;
-  if (!input.trim()) { showToast('Please enter data'); return; }
-  var output = input; // Basic implementation
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('Done');
+// === Real implementation ===
+function hexToHsl(hex) {
+  hex = hex.replace('#', '').trim();
+  if (hex.length === 3) hex = hex.split('').map(function(c){return c+c;}).join('');
+  if (hex.length !== 6 || !/^[0-9a-fA-F]{6}$/.test(hex)) return null;
+  var r = parseInt(hex.substr(0,2),16)/255;
+  var g = parseInt(hex.substr(2,2),16)/255;
+  var b = parseInt(hex.substr(4,2),16)/255;
+  var max = Math.max(r,g,b), min = Math.min(r,g,b);
+  var h, s, l = (max+min)/2;
+  if (max === min) { h = s = 0; }
+  else {
+    var d = max - min;
+    s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+    switch(max) {
+      case r: h = (g-b)/d + (g<b ? 6 : 0); break;
+      case g: h = (b-r)/d + 2; break;
+      case b: h = (r-g)/d + 4; break;
+    }
+    h /= 6;
+  }
+  return [Math.round(h*360), Math.round(s*100), Math.round(l*100)];
 }
 
-function copyText() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
-  if (!text) { showToast('Nothing to copy'); return; }
-  navigator.clipboard.writeText(text).then(function() { showToast('Copied'); }).catch(function() { showToast('Copy failed'); });
+function convert() {
+  var raw = document.getElementById('hexInput').value.trim();
+  var errEl = document.getElementById('errorMsg');
+  if (errEl) errEl.style.display = 'none';
+  if (!raw) { return; }
+  var hsl = hexToHsl(raw);
+  if (!hsl) { if (errEl) { errEl.textContent = 'Invalid HEX color code'; errEl.style.display = 'block'; } return; }
+  var h = hsl[0], s = hsl[1], l = hsl[2];
+  var hexNorm = raw.replace('#','').trim();
+  if (hexNorm.length === 3) hexNorm = hexNorm.split('').map(function(c){return c+c;}).join('');
+  var r = parseInt(hexNorm.substr(0,2),16), g = parseInt(hexNorm.substr(2,2),16), b = parseInt(hexNorm.substr(4,2),16);
+  document.getElementById('hslValue').textContent = 'hsl('+h+', '+s+'%, '+l+'%)';
+  document.getElementById('hValue').textContent = h + '\u00B0';
+  document.getElementById('sValue').textContent = s + '%';
+  document.getElementById('lValue').textContent = l + '%';
+  document.getElementById('rgbValue').textContent = 'rgb('+r+', '+g+', '+b+')';
+  document.getElementById('colorPreview').style.background = '#' + hexNorm;
+}
+
+function copyText(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var t = el.textContent || el.innerText;
+  navigator.clipboard.writeText(t).then(function(){ showToast('Copied'); }).catch(function(){ showToast('Copy failed'); });
 }
 
 function setFromPicker() {
-  showToast('Done');
+  var val = document.getElementById('colorPicker').value;
+  document.getElementById('hexInput').value = val.toUpperCase();
+  convert();
 }
+
+var presetColors = ['#FF5733','#33FF57','#3357FF','#FFFF33','#FF33FF','#33FFFF','#FF0066','#0066FF','#00FF66','#FFAA00','#AA00FF','#00AAFF','#FFFFFF','#CCCCCC','#666666','#000000'];
+var presetsEl = document.getElementById('presets');
+if (presetsEl) {
+  presetColors.forEach(function(c) {
+    var btn = document.createElement('button');
+    btn.style.background = c;
+    btn.title = c;
+    btn.onclick = function() {
+      document.getElementById('hexInput').value = c.toUpperCase();
+      document.getElementById('colorPicker').value = c;
+      convert();
+    };
+    presetsEl.appendChild(btn);
+  });
+}
+
+convert();
 </script>
 </body>
 </html>
