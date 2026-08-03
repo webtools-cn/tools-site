@@ -321,4 +321,61 @@ Google爬虫依赖语义化HTML理解页面结构，缺少`<main>`标签可能�
 ### 下一步
 - [ ] 在GSC中请求重新索引49个failing URLs
 - [ ] 持续监控GSC索引状态
-- [ ] 检查英文版工具是否有类似功能缺失
+- [x] 检查英文版工具是否有类似功能缺失 → 21个EN空壳页面已修复
+
+## 2026-08-04: 移除21个英文版"under development"占位文本 (P0)
+
+### 问题
+- 21个英文版工具页面包含"This tool is under active development. More features coming soon."文本
+- 这些页面实际有完整功能（4-12个JS函数，2-7个交互按钮）
+- "under development"文本误导Google认为页面未完成/低质量
+- 页面被标记为index,follow但内容质量信号矛盾
+
+### 根因分析
+英文版工具在翻译/创建时添加了一个占位FAQ section（`<div class="tool-section">`），
+其中只有"under active development"文本，没有实际FAQ内容。
+而页面后面已有完整的FAQ section（`<div class="info-section faq-section">`）。
+这个多余的占位section让Google评估页面质量时认为工具未完成。
+
+### 修复内容
+- 移除21个英文页面的"under active development" tool-section div
+- 保留页面后方的完整FAQ section
+- 影响页面：ai-sentence-rewriter, audio-normalize, audio-volume-adjuster,
+  bitwise-calculator, color-palette-from-image, crossword-generator, csv-sorter,
+  gif-to-webp, graphql-to-json, html-to-react, image-round-corners,
+  json-to-protobuf, mesh-gradient-generator, pdf-page-numbers, protobuf-to-json,
+  svg-to-base64, text-progress-bar-generator, tiff-to-jpg, webp-to-gif,
+  xml-to-yaml, yaml-to-xml
+
+### 附带修复
+- en/ai-context-window-comparator: JS语法错误 `'capacity-grid''superexitcapacity'` → 修复
+- en/css-to-inline-styles, en/diff-viewer, en/reading-speed-test: 小修
+
+### 验证结果
+- 21个文件全部移除"under active development"文本 ✅
+- div平衡: 全部0 ✅
+- JS语法: 全部通过 ✅
+- main标签: 全部存在 ✅
+- footer: 全部存在 ✅
+- FAQ section: 全部保留 ✅
+- git push成功 ✅
+
+### 当前状态汇总
+| 问题 | 状态 |
+|:-----|:-----|
+| P0: 49个Failing URLs - div不匹配 | ✅ 已修复 |
+| P0: 49个Failing URLs - 缺少main标签 | ✅ 已修复 |
+| P0: 全站30个页面div不平衡 | ✅ 已修复 |
+| P0: Meta Description偏短 | ✅ 已修复 |
+| P0: HTML引号缺失（4个EN页面）| ✅ 已修复 |
+| P0: 21个EN页面"under development"文本 | ✅ 已修复 |
+| P1: robots标签问题 | ✅ 已确认全部OK |
+| P1: 浅色背景页面 | ✅ 已全部修复 |
+| P1: 空壳工具（62个中文） | ✅ 已全部修复 |
+| P1: 5个页面JS语法错误 | ✅ 已修复 |
+
+### 下一步
+- [ ] 在GSC中请求重新索引49个failing URLs
+- [ ] 持续监控GSC索引状态
+- [ ] 检查中文版是否有类似的"under development"文本残留
+- [ ] 检查273个迁移占位页是否需要noindex
