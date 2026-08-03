@@ -1,6 +1,6 @@
 # SEO修复进度报告
 
-> 最后更新: 2026-08-03 04:00
+> 最后更新: 2026-08-03 05:00
 
 ## ✅ P0: 全站Canonical URL修复 — 重大突破 (commit `04962b7625`)
 
@@ -145,6 +145,18 @@
 | # | 工具 | 修复内容 | Commit |
 |:--|:-----|:--------|:-------|
 | 1 | diff-patch-generator | 实现LCS Unfied Diff算法替代stub | `348931b` |
+| 2 | lcm-gcd-calculator | LCM/GCD计算+步骤展示+验证 | `dcbe732` |
+| 3 | list-sorter | 13个排序/处理函数(去重/排序/反转/大小写等) | `dcbe732` |
+| 4 | text-line-processor | 12个文本行处理函数(行号/过滤/排序等) | `dcbe732` |
+| 5 | z-score-calculator | Z分数计算+正态分布概率+百分位 | `dcbe732` |
+| 6 | standard-deviation-calculator | 总体/样本标准差+方差+统计量 | `dcbe732` |
+| 7 | rounding-calculator | 四舍五入到指定小数位 | `dcbe732` |
+| 8 | trig-calculator | 6种三角函数(sin/cos/tan/csc/sec/cot) | `dcbe732` |
+| 9 | sales-tax-calculator | 销售税计算+税额+总额 | `dcbe732` |
+| 10 | ppi-calculator | PPI计算+点距+Retina判定 | `dcbe732` |
+| 11 | download-time-calculator | 下载时间估算(多单位) | `dcbe732` |
+| 12 | concrete-calculator | 3种形状混凝土体积+袋数+成本 | `dcbe732` |
+| 13 | loan-payoff-calculator | 提前还款计算+节省利息/时间 | `dcbe732` |
 
 ### 修复方法
 - LCS (Longest Common Subsequence) 算法实现逐行diff
@@ -153,7 +165,7 @@
 - 统计面板显示新增/删除行数
 
 ### 剩余空壳
-约55个空壳工具待修复。包括：css-scroll-driven-animation-generator、license-generator、jwt-generator等。
+约43个空壳工具待修复。全站"Generated at" stub已清零（0个），但仍有约250+个页面含"coming soon" stub函数（部分为EN页面的HTML提示文本非JS stub）。CN页面中约43个工具有JS stub函数需要实现。
 
 ---
 
