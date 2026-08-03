@@ -100,4 +100,26 @@
   - resultToInput: 正确的DOM引用
   - swapText: 正确的DOM引用
 - **提交**: `fix(text-reverser): 修复CN版stub函数，恢复完整reverseText实现`
+
+## email-header-analyzer - 2026-08-04 (R4)
+- **AI引用**: 24次 (38.1%), 排名 #9
+- **测试方式**: 浏览器实测 (Kimi WebBridge)
+- **CN版测试结果**:
+  - 加载示例: SPF/DKIM/DMARC全部正确解析为pass ✅
+  - 发送路径: 2跳完整展示 (mail-sor-f41 → mx.google.com) ✅
+  - 关键信息: 发件人/收件人/主题/日期/Message-ID正确 ✅
+  - 深色主题: rgb(15,23,42)=#0f172a ✅
+  - 结果显示: block ✅
+  - Toast通知: 存在 ✅
+  - JS语法: 通过 ✅
+- **EN版测试结果**:
+  - 加载示例: 同等功能正常 ✅
+  - 深色主题: #0f172a ✅
+  - 无中文残留 ✅
+  - EN版有相关工具动态加载（CN版硬编码）⚠️
+- **发现并修复的问题**:
+  - **OG description重复**: meta property=og:description包含相同内容重复2次
+  - **Schema JSON重复**: SoftwareApplication的description相同重复
+  - **相关工具CSS**: CN版h2标题color:#374151(深灰)在深色主题下不可见→改为#e2e8f0；链接背景#0f172a与body同色→改为#1e293b
+  - 修复: `fix(email-header-analyzer): 修复OG/Schema重复description，修复相关工具推荐深色主题CSS`
 - **状态**: ✅ 已修复并推送
