@@ -162,27 +162,91 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
-function clearAll() {
-  document.getElementById('jsonInput').value = '';
-  showToast('已重置');
+// === JSON转Schema实现 ===
+function getType(val){
+  if(val===null)return'null';
+  if(Array.isArray(val))return'array';
+  if(typeof val==='number')return Number.isInteger(val)?'integer':'number';
+  return typeof val;
 }
 
-function copySchema() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+function inferSchema(obj){
+  if(obj===null||obj===undefined)return{type:'null'};
+  var t=getType(obj);
+  if(t==='string')return{type:'string'};
+  if(t==='number')return{type:'number'};
+  if(t==='integer')return{type:'integer'};
+  if(t==='boolean')return{type:'boolean'};
+  if(t==='null')return{type:'null'};
+
+  if(t==='array'){
+    var schema={type:'array'};
+    if(obj.length>0){
+      var types=[];
+      for(var i=0;i<obj.length;i++){
+        var tt=getType(obj[i]);
+        if(types.indexOf(tt)===-1)types.push(tt);
+      }
+      if(types.length===1)schema.items=inferSchema(obj[0]);
+      else{
+        var anyOf=[];
+        for(var j=0;j<types.length;j++)anyOf.push({type:types[j]});
+        schema.items={anyOf:anyOf};
+      }
+    }else schema.items={};
+    return schema;
+  }
+
+  if(t==='object'){
+    var schema={type:'object',properties:{},required:[]};
+    for(var key in obj){
+      if(!obj.hasOwnProperty(key))continue;
+      schema.properties[key]=inferSchema(obj[key]);
+      if(obj[key]!==null)schema.required.push(key);
+    }
+    if(schema.required.length===0)delete schema.required;
+    return schema;
+  }
+  return{};
 }
 
-function generateSchema() {
-  var input = '';
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('生成完成');
+function generateSchema(){
+  var input=document.getElementById('jsonInput').value.trim();
+  if(!input){showToast('请输入JSON数据');return}
+  try{
+    var obj=JSON.parse(input);
+    var schema=inferSchema(obj);
+    schema.$schema='http://json-schema.org/draft-07/schema#';
+    if(typeof obj==='object'&&!Array.isArray(obj)&&obj!==null){
+      schema.title='Generated Schema';
+      schema.description='从JSON自动生成的Schema';
+    }
+    var output=JSON.stringify(schema,null,2);
+    document.getElementById('schemaOutput').textContent=output;
+    document.getElementById('copyBtn').style.display='inline-block';
+    showToast('✓ Schema生成成功');
+  }catch(e){
+    document.getElementById('schemaOutput').innerHTML='<span style="color:#f87171">❌ JSON解析错误: '+e.message+'</span>';
+    document.getElementById('copyBtn').style.display='none';
+  }
 }
 
-function loadSample() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
+function copySchema(){
+  var text=document.getElementById('schemaOutput').textContent;
+  if(!text||text.indexOf('输入JSON')!==-1)return;
+  navigator.clipboard.writeText(text).then(function(){showToast('✓ 已复制到剪贴板')}).catch(function(){showToast('复制失败')});
+}
+
+function loadSample(){
+  document.getElementById('jsonInput').value=JSON.stringify({name:'张三',age:30,email:'zhangsan@example.com',isActive:true,tags:['开发者','JavaScript'],address:{city:'北京',zipCode:'100000'},scores:[95,87,92]},null,2);
+  generateSchema();
+}
+
+function clearAll(){
+  document.getElementById('jsonInput').value='';
+  document.getElementById('schemaOutput').innerHTML='<span style="color:#64748b">输入JSON后点击生成</span>';
+  document.getElementById('copyBtn').style.display='none';
+  showToast('已清空');
 }
 </script>
 </body>
