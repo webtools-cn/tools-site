@@ -282,26 +282,140 @@ input:focus,select:focus{border-color:rgba(6,182,212,.5)}
     s.innerHTML = h;
   }).catch(function() { s.innerHTML = ''; });
 
-// === Implementation ===
-function exportData() {
-  var text = document.getElementById('output').innerText || document.getElementById('output').textContent;
-  if (!text) { showToast('Nothing to export'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'mock-data-generator-output.txt';
-  a.click();
-  showToast('Downloaded');
+// === Mock Data Generator Implementation ===
+var FIELDS = {
+  cnName: { label: 'Chinese Name', gen: genCNName },
+  enName: { label: 'English Name', gen: genENName },
+  email: { label: 'Email', gen: genEmail },
+  phone: { label: 'Phone', gen: genPhone },
+  idCard: { label: 'ID Card', gen: genIDCard },
+  company: { label: 'Company', gen: genCompany },
+  address: { label: 'Address', gen: genAddress },
+  date: { label: 'Date', gen: genDate },
+  ip: { label: 'IP Address', gen: genIP },
+  url: { label: 'URL', gen: genURL },
+  uuid: { label: 'UUID', gen: genUUID },
+  text: { label: 'Random Text', gen: genText },
+  age: { label: 'Age', gen: genAge },
+  salary: { label: 'Salary', gen: genSalary },
+  bool: { label: 'Boolean', gen: genBool }
+};
+
+var CN_SURNAMES = ['Wang','Li','Zhang','Liu','Chen','Yang','Zhao','Huang','Zhou','Wu','Xu','Sun','Hu','Zhu','Gao','Lin','He','Guo','Ma','Luo'];
+var CN_GIVEN = ['Wei','Fang','Na','XiuYing','Min','Jing','Li','Qiang','Lei','Jun','Yang','Yong','Yan','Jie','Juan','Tao','Ming','Chao','HaoRan','ZiXuan'];
+var EN_FIRST = ['James','John','Robert','Michael','William','David','Mary','Jennifer','Linda','Patricia','Elizabeth','Susan','Jessica','Sarah','Karen','Thomas','Charles','Daniel','Matthew','Anthony'];
+var EN_LAST = ['Smith','Johnson','Williams','Brown','Jones','Garcia','Miller','Davis','Rodriguez','Martinez','Wilson','Anderson','Taylor','Thomas','Moore','Jackson','Martin','Lee','Thompson','White'];
+var COMPANIES = ['Tech','Network','Info','Smart','Data','Cloud','Electronics','Communications','Software','AI'];
+var COMP_SUFFIX = ['Inc','Corp','LLC','Ltd','Co'];
+var CITIES = ['New York','Los Angeles','Chicago','Houston','Phoenix','Philadelphia','San Antonio','San Diego','Dallas','San Jose','Austin','Seattle','Denver','Boston','Portland'];
+var STREETS = ['Main St','Oak Ave','Maple Dr','Cedar Ln','Pine Rd','Elm St','Washington Blvd','Park Ave','Lake Dr','Hill Rd'];
+
+var generatedData = [];
+var fieldOrder = [];
+
+function genCNName(){ return CN_SURNAMES[rand(CN_SURNAMES.length)] + ' ' + CN_GIVEN[rand(CN_GIVEN.length)]; }
+function genENName(){ return EN_FIRST[rand(EN_FIRST.length)] + ' ' + EN_LAST[rand(EN_LAST.length)]; }
+function genEmail(){ var u='user'+rand(10000); var d=['example.com','test.com','demo.org','mail.com','sample.net']; return u+'@'+d[rand(d.length)]; }
+function genPhone(){ var p=['212','310','312','415','503','510','617','646','718','737','832','848','917','929','949']; return '+1 ('+p[rand(p.length)]+') ' + pad(rand(900)+100,3) + '-' + pad(rand(10000),4); }
+function genIDCard(){ return pad(rand(1000000),7) + (1970+rand(40)) + pad(rand(1000),4) + rand(10); }
+function genCompany(){ return COMPANIES[rand(COMPANIES.length)] + COMP_SUFFIX[rand(COMP_SUFFIX.length)]; }
+function genAddress(){ return (1+rand(999)) + ' ' + STREETS[rand(STREETS.length)] + ', ' + CITIES[rand(CITIES.length)]; }
+function genDate(){ var y=1990+rand(30); var m=1+rand(12); var d=1+rand(28); return y+'-'+pad(m,2)+'-'+pad(d,2); }
+function genIP(){ return rand(256)+'.'+rand(256)+'.'+rand(256)+'.'+rand(256); }
+function genURL(){ var protos=['https://','http://']; var domains=['example.com','test.org','demo.io','sample.net','myapp.dev']; return protos[rand(protos.length)] + domains[rand(domains.length)] + '/path' + rand(1000); }
+function genUUID(){ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){ var r=Math.random()*16|0; var v=c==='x'?r:(r&0x3|0x8); return v.toString(16); }); }
+function genText(){ var words=['project','development','testing','deployment','optimization','iteration','launch','fix','design','architecture','requirement','analysis','documentation','meeting','review','planning','goal','progress','quality','performance']; var n=3+rand(5); var arr=[]; for(var i=0;i<n;i++) arr.push(words[rand(words.length)]); return arr.join(' '); }
+function genAge(){ return 18+rand(50); }
+function genSalary(){ return (30000+rand(120000)/1000*1000).toFixed(0); }
+function genBool(){ return Math.random()>0.5?'true':'false'; }
+
+function rand(n){ return Math.floor(Math.random()*n); }
+function pad(num,len){ var s=String(num); while(s.length<len) s='0'+s; return s; }
+
+function initFields(){
+  var grid=document.getElementById('fieldGrid');
+  if(!grid) return;
+  grid.innerHTML='';
+  var defaultChecked=['enName','email','phone','company'];
+  Object.keys(FIELDS).forEach(function(key){
+    var div=document.createElement('div');
+    div.className='field-item' + (defaultChecked.indexOf(key)>=0?' selected':'');
+    var chk=document.createElement('input');
+    chk.type='checkbox'; chk.id='f_'+key; chk.checked=defaultChecked.indexOf(key)>=0;
+    chk.addEventListener('change',function(){ div.classList.toggle('selected',chk.checked); });
+    var lbl=document.createElement('label');
+    lbl.htmlFor='f_'+key; lbl.textContent=FIELDS[key].label;
+    div.appendChild(chk); div.appendChild(lbl);
+    grid.appendChild(div);
+  });
 }
 
-function generate() {
-  var input = document.getElementById('count').value;
-  if (!input.trim()) { showToast('Please enter data'); return; }
-  var output = input;
-  document.getElementById('output').textContent = output;
-  document.getElementById('output').style.display = 'block';
-  showToast('Done');
+function generate(){
+  fieldOrder=[];
+  Object.keys(FIELDS).forEach(function(key){
+    var chk=document.getElementById('f_'+key);
+    if(chk && chk.checked) fieldOrder.push(key);
+  });
+  if(fieldOrder.length===0){ showToast('Please select at least one field'); return; }
+  var count=parseInt(document.getElementById('count').value)||10;
+  if(count<1) count=1; if(count>1000) count=1000;
+  generatedData=[];
+  for(var i=0;i<count;i++){
+    var row={};
+    fieldOrder.forEach(function(key){ row[key]=FIELDS[key].gen(); });
+    generatedData.push(row);
+  }
+  renderPreview();
+  showToast('Generated '+count+' records');
 }
+
+function renderPreview(){
+  var el=document.getElementById('output');
+  if(!el) return;
+  if(generatedData.length===0){ el.textContent='Click "Generate" to start...'; return; }
+  el.textContent=JSON.stringify(generatedData.slice(0,50),null,2);
+  if(generatedData.length>50) el.textContent+='\n\n... Total '+generatedData.length+' records, showing first 50';
+  el.style.display='block';
+}
+
+function exportData(fmt){
+  if(generatedData.length===0){ showToast('Please generate data first'); return; }
+  var text='';
+  if(fmt==='json'){
+    text=JSON.stringify(generatedData,null,2);
+  }else if(fmt==='csv'){
+    var header=fieldOrder.map(function(k){ return FIELDS[k].label; });
+    text=header.join(',')+'\n';
+    generatedData.forEach(function(row){
+      var vals=fieldOrder.map(function(k){ var v=String(row[k]); return v.indexOf(',')>=0?'"'+v+'"':v; });
+      text+=vals.join(',')+'\n';
+    });
+  }else if(fmt==='sql'){
+    text='-- '+generatedData.length+' records\n';
+    generatedData.forEach(function(row){
+      var cols=fieldOrder.join(', ');
+      var vals=fieldOrder.map(function(k){ return "'"+String(row[k]).replace(/'/g,"''")+"'"; });
+      text+='INSERT INTO mock_data ('+cols+') VALUES ('+vals.join(', ')+');\n';
+    });
+  }
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(function(){ showToast('Copied '+fmt.toUpperCase()+' ('+generatedData.length+' records)'); }).catch(function(){
+      fallbackCopy(text); showToast('Copied '+fmt.toUpperCase());
+    });
+  }else{
+    fallbackCopy(text); showToast('Copied '+fmt.toUpperCase());
+  }
+}
+
+function fallbackCopy(text){
+  var ta=document.createElement('textarea');
+  ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+}
+
+initFields();
 </script>
 </body>
 </html>

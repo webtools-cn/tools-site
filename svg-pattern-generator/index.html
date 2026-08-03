@@ -116,6 +116,8 @@ a{color:#06b6d4;text-decoration:none}
     </div>
     <div class="btn-group">
       <button class="btn btn-primary" onclick="generate()">生成图案</button>
+      <button class="btn btn-secondary" onclick="copySvg()">复制SVG代码</button>
+      <button class="btn btn-secondary" onclick="downloadSvg()">下载SVG文件</button>
     </div>
     <div id="previewBox" style="background:#0a0f1e;border-radius:10px;padding:0;margin-top:12px;overflow:hidden;min-height:150px"></div>
     <div class="code-output" id="resultArea" style="display:none">
@@ -185,21 +187,102 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function copyCss() {
-  var text = document.getElementById('previewBox').innerText || document.getElementById('previewBox').textContent;
-  if (!text) { showToast('没有可复制的内容'); return; }
-  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
+// === SVG图案生成器实现 ===
+var generatedSvg = '';
+var generatedCss = '';
+
+function generate(){
+  var type=document.getElementById('patternType').value;
+  var fg=document.getElementById('fgColor').value;
+  var bg=document.getElementById('bgColor').value;
+  var size=parseInt(document.getElementById('patternSize').value)||40;
+  var sw=parseInt(document.getElementById('strokeWidth').value)||2;
+  if(size<10) size=10; if(size>200) size=200;
+  if(sw<1) sw=1; if(sw>20) sw=20;
+
+  var svg='';
+  if(type==='dots'){
+    svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'">\n  <circle cx="'+(size/2)+'" cy="'+(size/2)+'" r="'+(sw*1.5)+'" fill="'+fg+'"/>\n</svg>';
+  }else if(type==='stripes'){
+    svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'">\n  <line x1="0" y1="0" x2="0" y2="'+size+'" stroke="'+fg+'" stroke-width="'+sw+'"/>\n</svg>';
+  }else if(type==='grid'){
+    svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'">\n  <path d="M '+size+' 0 L 0 0 0 '+size+'" fill="none" stroke="'+fg+'" stroke-width="'+sw+'"/>\n</svg>';
+  }else if(type==='chevron'){
+    svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'">\n  <polyline points="'+(size/2)+',0 '+size+','+(size/2)+' '+size+','+size+'" fill="none" stroke="'+fg+'" stroke-width="'+sw+'"/>\n</svg>';
+  }else if(type==='hexagon'){
+    var r=size/2; var cx=size/2; var cy=size/2;
+    var pts=[];
+    for(var i=0;i<6;i++){ var a=Math.PI/3*i-Math.PI/2; pts.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1)); }
+    svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'">\n  <polygon points="'+pts.join(' ')+'" fill="none" stroke="'+fg+'" stroke-width="'+sw+'"/>\n</svg>';
+  }else if(type==='crosshatch'){
+    svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'">\n  <line x1="0" y1="0" x2="'+size+'" y2="'+size+'" stroke="'+fg+'" stroke-width="'+sw+'"/>\n  <line x1="0" y1="'+size+'" x2="'+size+'" y2="0" stroke="'+fg+'" stroke-width="'+sw+'"/>\n</svg>';
+  }else if(type==='triangle'){
+    svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'">\n  <polygon points="0,0 '+size+',0 0,'+size+'" fill="none" stroke="'+fg+'" stroke-width="'+sw+'"/>\n</svg>';
+  }
+
+  generatedSvg=svg;
+  var encoded=encodeURIComponent(svg).replace(/'/g,'%27').replace(/"/g,'%22');
+  generatedCss='background-color: '+bg+';\nbackground-image: url("data:image/svg+xml,'+encoded+'");\nbackground-repeat: repeat;';
+
+  var previewBox=document.getElementById('previewBox');
+  if(previewBox){
+    previewBox.style.background=bg;
+    previewBox.style.backgroundImage='url("data:image/svg+xml,'+encoded+'")';
+    previewBox.style.backgroundRepeat='repeat';
+    previewBox.style.minHeight='150px';
+    previewBox.innerHTML='';
+  }
+  var resultArea=document.getElementById('resultArea');
+  if(resultArea){
+    resultArea.style.display='block';
+    var pre=document.getElementById('resultCss');
+    if(pre) pre.textContent=generatedCss;
+  }
+  showToast('图案已生成');
 }
 
-function generate() {
-  var input = document.getElementById('fgColor').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('previewBox').textContent = output;
-  document.getElementById('previewBox').style.display = 'block';
-  showToast('生成完成');
+function copyCss(){
+  if(!generatedCss){ showToast('请先生成图案'); return; }
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(generatedCss).then(function(){ showToast('CSS已复制'); }).catch(function(){
+      fallbackCopyText(generatedCss); showToast('CSS已复制');
+    });
+  }else{
+    fallbackCopyText(generatedCss); showToast('CSS已复制');
+  }
 }
+
+function copySvg(){
+  if(!generatedSvg){ showToast('请先生成图案'); return; }
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(generatedSvg).then(function(){ showToast('SVG代码已复制'); }).catch(function(){
+      fallbackCopyText(generatedSvg); showToast('SVG代码已复制');
+    });
+  }else{
+    fallbackCopyText(generatedSvg); showToast('SVG代码已复制');
+  }
+}
+
+function downloadSvg(){
+  if(!generatedSvg){ showToast('请先生成图案'); return; }
+  var blob=new Blob([generatedSvg],{type:'image/svg+xml'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='pattern.svg';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('SVG文件已下载');
+}
+
+function fallbackCopyText(text){
+  var ta=document.createElement('textarea');
+  ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+}
+
+generate();
 </script>
 </body>
 </html>
