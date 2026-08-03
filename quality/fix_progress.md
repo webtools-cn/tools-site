@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第三十六批 - 修复3个回显型空壳)
+> 最后更新: 2026-08-03 (cron自动更新 - 第三十七批 - 修复3个回显型空壳)
 
 ## 当前真实问题
 
@@ -11,39 +11,40 @@
 | EN版模板空壳(process未定义) | 23 | 23 | 0 | ✅ 完成 | grep toolInput + process() 未定义检测 |
 | EN版假交互空壳(quickInput) | 224 | 224 | 0 | ✅ 完成 | grep quickInput + 无业务函数检测 |
 | toolInput误报(7个有功能) | 7 | 7 | 0 | ✅ 误报 | 有addEventListener绑定的真实功能 |
-| 回显型process空壳(output=input) | 30 | 6 | 24 | 🔴 进行中 | 全站扫描 var output = input + 无业务逻辑 |
+| 回显型process空壳(output=input) | 30 | 9 | 21 | 🔴 进行中 | 全站扫描 var output = input + 无业务逻辑 |
 
-## 回显型空壳清单(24个剩余)
+## 回显型空壳清单(21个剩余)
 
 > 特征：process()/convert()/generate()函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
-> 注：第三十五批修复3个(hex-to-hsl/html-escape-unescape/string-case-converter)，第三十六批修复3个(caddyfile-generator/env-to-json/haproxy-config-generator)。实际全站复扫发现30个CN版回显stub(此前清单有遗漏)。剩余24个：
+> 注：第三十五批修复3个(hex-to-hsl/html-escape-unescape/string-case-converter)，第三十六批修复3个(caddyfile-generator/env-to-json/haproxy-config-generator)，第三十七批修复3个(html-email-template/html-table-to-markdown/htpasswd-generator)。实际全站复扫发现30个CN版回显stub(此前清单有遗漏)。剩余21个：
 
-1. html-email-template
-2. html-table-to-markdown
-3. htpasswd-generator
-4. http-cache-header-generator
-5. js-destructuring-generator
-6. json-key-renamer
-7. json-schema-generator
-8. json-to-avro
-9. json-to-csv-converter
-10. json-to-go-struct
-11. json-to-kotlin-class
-12. json-to-php-object
-13. json-to-rust-struct
-14. json-to-schema
-15. json-to-swift-struct
-16. json-to-typescript-interface
-17. kubernetes-yaml-generator
-18. mock-data-generator
-19. npm-package-json
-20. svg-pattern-generator
-21. tailwind-spacing-generator
-22. typescript-utility-types
-23. unicode-range-generator
-24. yaml-to-dotenv
+1. http-cache-header-generator
+2. js-destructuring-generator
+3. json-key-renamer
+4. json-schema-generator
+5. json-to-avro
+6. json-to-csv-converter
+7. json-to-go-struct
+8. json-to-kotlin-class
+9. json-to-php-object
+10. json-to-rust-struct
+11. json-to-schema
+12. json-to-swift-struct
+13. json-to-typescript-interface
+14. kubernetes-yaml-generator
+15. mock-data-generator
+16. npm-package-json
+17. svg-pattern-generator
+18. tailwind-spacing-generator
+19. typescript-utility-types
+20. unicode-range-generator
+21. yaml-to-dotenv
 
 ## 已修复的空壳工具
+
+### 2026-08-03 (第三十七批 - 修复3个回显型空壳)
+html-email-template, html-table-to-markdown, htpasswd-generator
+注: 三个工具CN版均修复，htpasswd-generator EN版同步修复。html-email-template实现HTML邮件模板生成器(5种模板类型newsletter/welcome/transactional/promotion/notification+5种颜色主题+table-based布局兼容Outlook/Gmail+内联CSS+按钮链接+公司名/页脚+正文多段落+XHTML Transitional doctype+HTML转义+复制HTML)，替换原stub(generate()只回显emailBtnText值)；html-table-to-markdown情况同cidr-to-ip-range——页面已有完整的DOMParser解析+htmlToMdTable(rowspan/colspan合并单元格+thead/tbody/tfoot+3种对齐+多表格批量+GFM标准)+window.convert/copyResult/downloadResult/clearAll/loadSample函数，但末尾被注入stub块覆盖了这些函数，修复方式为直接删除stub块恢复原有功能；htpasswd-generator CN+EN版实现6种算法密码哈希生成(bcrypt→SHA-512+随机盐替代因浏览器不支持原生bcrypt/SHA-256/SHA-512/MD5→APR1$格式1000轮迭代/SHA-1/crypt)+纯JS MD5实现(md5cycle/md51/rhex/hexMD5)+APR1 Base64变体编码+随机盐crypto.getRandomValues+Web Crypto API subtle.digest+Base64编码bufToB64+算法说明信息+修复CN版/div>损坏残留。node逻辑测试：MD5三组已知向量(空串→d41d8cd98f00b204e9800998ecf8427e/hello→5d41402abc4b2a76b9719d911017c592/test→098f6bcd4621d373cade4e832627b4f6)全部正确；APR1格式验证通过($apr1$前缀+22字符hash)；HTML转义&→&amp;正确；html-table-to-markdown stub确认删除+原有函数恢复。4个文件JS语法验证通过。全站`var output = input` CN版从24降到21。
 
 ### 2026-08-03 (第三十六批 - 修复3个回显型空壳)
 caddyfile-generator, env-to-json, haproxy-config-generator
@@ -180,35 +181,6 @@ csv-merger
 ### 2026-08-03 (第三十二批 - 发现并修复回显型空壳)
 fibonacci-generator, text-to-binary, number-converter
 注: 发现27个回显型空壳(process()函数体var output=input直接回显输入，无业务逻辑，此前检测方式未覆盖此模式)。本轮修复3个：fibonacci-generator CN版实现斐波那契数列生成器(自定义起始值F(0)/F(1)+数量1-500+每项显示F(n)=值+相邻项比值收敛黄金比例φ+数列和)，替换var output=input回显空壳；text-to-binary CN版实现文本↔二进制互转(4格式:二进制/十六进制/八进制/十进制+4分隔符:空格/无/逗号/换行+自动补零8/7/16位+Unicode codePoint支持+3项统计:字符数/比特数/字节数+自动转换+交换方向)，添加缺失的textarea输入框，替换var output=''永远为空的空壳；number-converter CN版实现数字转中文大写(4模式:中文大写壹贰叁/中文小写一二三/金额大写人民币圆角分整/中文转数字反向解析+万亿级12位+角分处理+零处理+快捷数字按钮)，替换var output=input回显空壳。三个工具EN版均已有完整功能无需修改。所有JS语法验证通过，node逻辑测试全部通过。剩余24个回显型空壳待修。
-
-## 回显型空壳清单(24个剩余)
-
-> 特征：process()/convert()/generate()函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
-
-1. html-email-template
-2. html-table-to-markdown
-3. htpasswd-generator
-4. http-cache-header-generator
-5. js-destructuring-generator
-6. json-key-renamer
-7. json-schema-generator
-8. json-to-avro
-9. json-to-csv-converter
-10. json-to-go-struct
-11. json-to-kotlin-class
-12. json-to-php-object
-13. json-to-rust-struct
-14. json-to-schema
-15. json-to-swift-struct
-16. json-to-typescript-interface
-17. kubernetes-yaml-generator
-18. mock-data-generator
-19. npm-package-json
-20. svg-pattern-generator
-21. tailwind-spacing-generator
-22. typescript-utility-types
-23. unicode-range-generator
-24. yaml-to-dotenv
 
 ## 检测说明
 1. `check_empty_shells.py` 检测0交互工具（258个，含重定向页面+分类页面+动态UI工具）
