@@ -313,29 +313,29 @@ var totalInterest=0;
 var totalPaid=0;
 
 if(biweekly){
+/* Biweekly: pay half the monthly payment every 2 weeks.
+   26 payments/year = 13 monthly payments (1 extra vs standard 12).
+   We simulate payment every 2 weeks with biweekly interest rate. */
 var biweeklyPmt=basePayment/2;
-var week=0;
-var interestAccrued=0;
-var paymentCount=0;
-while(balance>0.01&&paymentCount<months*2+100){
-interestAccrued+=balance*(annualRate/100/26);
-week+=2;
-if(week>=4||balance<=0.01){
-var payment=biweeklyPmt;
-if(payment>balance+interestAccrued)payment=balance+interestAccrued;
-var interestPart=Math.min(interestAccrued,payment);
-var principalPart=payment-interestPart;
-balance-=principalPart;
-totalInterest+=interestPart;
-totalPaid+=payment;
-interestAccrued=0;
-week=0;
-schedule.push({month:Math.floor((paymentCount+1)/2)+1,payment:payment,interest:interestPart,principal:principalPart,balance:Math.max(0,balance)});
-}
-paymentCount++;
+var biweeklyRate=annualRate/100/26;
+var biSchedule=[];
+var biBalance=principal;
+var biTotalInterest=0;
+var biPeriod=0;
+while(biBalance>0.01&&biPeriod<months*3){
+biPeriod++;
+var biInterest=biBalance*biweeklyRate;
+var biPayment=biweeklyPmt;
+if(biPayment>biBalance+biInterest)biPayment=biBalance+biInterest;
+var biPrincipal=biPayment-biInterest;
+if(biPrincipal>biBalance)biPrincipal=biBalance;
+biBalance-=biPrincipal;
+biTotalInterest+=biInterest;
+biSchedule.push({month:Math.ceil(biPeriod*12/26),payment:biPayment,interest:biInterest,principal:biPrincipal,balance:Math.max(0,biBalance)});
 }
 var origSchedule=amortizeOriginal(principal,annualRate,months);
-return{schedule:schedule,originalSchedule:origSchedule.schedule,totalInterest:totalInterest,originalInterest:origSchedule.totalInterest,originalMonths:months,newMonths:schedule.length,basePayment:basePayment,newPayment:biweeklyPmt,biweekly:true};
+var newMonths=Math.ceil(biPeriod*12/26);
+return{schedule:biSchedule,originalSchedule:origSchedule.schedule,totalInterest:biTotalInterest,originalInterest:origSchedule.totalInterest,originalMonths:months,newMonths:newMonths,basePayment:basePayment,newPayment:biweeklyPmt,biweekly:true};
 }
 
 var monthlyPayment=basePayment+(extraMonthly||0);
