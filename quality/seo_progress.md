@@ -1,6 +1,6 @@
 # SEO修复进度报告
 
-> 最后更新: 2026-08-03 08:30
+> 最后更新: 2026-08-03 09:15
 
 ## ✅ P0: 全站Canonical URL修复 — 重大突破 (commit `04962b7625`)
 
@@ -137,6 +137,14 @@
 ### Failing URLs修复总计
 - 已修复16个Failing URL工具：gpa-calculator, token-estimator, speed-test, checksum-calculator, running-pace-calculator, compound-interest-calculator, unicode-lookup, mac-address-lookup, reaction-test, wifi-password-generator, vin-decoder, en/backwards-text, sql-explainer, en/website-status-checker, tax-calculator, metronome-online
 
+### 第五轮修复 (commit `0bc6ad17ab`)
+- **business-days-calculator**: 移除重复的resetSub函数定义(第423行覆盖第388行)
+  - 功能本身完整(工作日计算+3种模式+节假日加载)，但重复函数定义是批量脚本注入的bug模式
+  - GSC Failing URL清单中最后一个已知URL，现全部修复
+
+### Failing URLs修复总计
+- 已修复17个Failing URL工具(已知清单全部修复)：gpa-calculator, token-estimator, speed-test, checksum-calculator, running-pace-calculator, compound-interest-calculator, unicode-lookup, mac-address-lookup, reaction-test, wifi-password-generator, vin-decoder, en/backwards-text, sql-explainer, en/website-status-checker, tax-calculator, metronome-online, business-days-calculator
+
 ---
 
 ## P1: 空壳工具修复 — 进行中
@@ -176,6 +184,16 @@
 | 30 | text-line-wrapper | 文本行包装处理 | `249a5aef48` |
 | 31 | text-prefix-suffix | 文本前后缀添加 | `249a5aef48` |
 | 32 | text-to-unicode | 文本转Unicode编码 | `249a5aef48` |
+| 33 | css-border-radius-generator | 4角圆角+px/%单位+8种预设+实时预览 | `0bc6ad17ab` |
+| 34 | code-compare | LCS算法逐行diff+行号+增删统计+颜色高亮 | `0bc6ad17ab` |
+| 35 | css-divider-generator | 8种SVG分割线+颜色/高度/翻转+CSS/SVG输出 | `0bc6ad17ab` |
+| 36 | css-ribbon-generator | 丝带颜色/文字/尺寸/位置/样式+实时预览 | `0bc6ad17ab` |
+| 37 | sql-where-builder | 多条件WHERE+11种操作符+AND/OR+SQL生成 | `0bc6ad17ab` |
+| 38 | roman-numeral | 移除重复stub(真实实现已存在) | `0bc6ad17ab` |
+| 39 | toml-formatter | 移除覆盖真实实现的stub tomlToJSON | `0bc6ad17ab` |
+| 40 | csv-transposer | 移除被真实实现覆盖的stub transposeCSV | `0bc6ad17ab` |
+| 41 | css-calc-builder | 移除覆盖window.addTerm/buildCalc的stub | `0bc6ad17ab` |
+| 42 | log-parser | 移除覆盖window.parseLogs/debounceParse的stub | `0bc6ad17ab` |
 
 ### 修复方法
 - LCS (Longest Common Subsequence) 算法实现逐行diff
@@ -184,7 +202,14 @@
 - 统计面板显示新增/删除行数
 
 ### 剩余空壳
-约239个CN页面含"coming soon" stub函数待修复（全站"Generated at" stub已清零0个）。本轮修复19个生成器类工具（commit `249a5aef48`），全部通过node语法校验+WebBridge浏览器实测（lorem-ipsum/json-to-graphql/web-component-generator/dockerfile-generator/nginx-config-generator/ai-copywriting-generator抽样验证）。
+约228个CN页面含"coming soon" stub函数待修复（本轮修复10个工具，commit `0bc6ad17ab`）。全部通过node语法校验+WebBridge浏览器实测（css-border-radius-generator/code-compare/css-divider-generator/css-ribbon-generator/sql-where-builder抽样验证通过）。
+
+### 根因模式总结
+批量脚本注入的stub函数有两种覆盖模式：
+1. **stub在前，真实实现在后**：stub被真实实现覆盖，功能正常但检测器标记为空壳（roman-numeral/csv-transposer）
+2. **真实实现在前，stub在后**：stub覆盖真实实现，功能完全不可用！（toml-formatter/css-calc-builder/log-parser）
+3. **只有stub，无真实实现**：功能完全不可用（css-border-radius-generator/code-compare/css-divider-generator/css-ribbon-generator/sql-where-builder）
+修复方法：模式1&2删除stub保留真实实现，模式3完整实现功能逻辑。
 
 ---
 
