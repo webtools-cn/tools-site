@@ -1,6 +1,6 @@
 # SEO修复进度报告
 
-> 最后更新: 2026-08-02 20:52
+> 最后更新: 2026-08-03 01:00
 
 ## ✅ P0: Meta Description太短 — 已完全修复
 
@@ -30,6 +30,35 @@
 ### ⏳ 待处理
 - 工具页面也需要检查JS渲染依赖（逐个排查49个Failing URL）
 - GSC手动请求重新索引首页
+
+### 本轮修复 (commit `3d6ffcf3e2`)
+- **gpa-calculator**: `addCourse()`/`calculate()`/`copyResult()` 全部空壳→完整实现
+  - GPA计算支持4.0/5.0/百分制三种标准，加权平均GPA计算
+  - 添加/删除课程行，多课程批量计算
+- **token-estimator**: `estimateTokens()` 空壳→完整实现
+  - 6个主流LLM模型Token估算(GPT-4o/Claude/Gemini/DeepSeek等)
+  - 中英文混合文本Token计算+API费用+上下文窗口占比
+- **speed-test**: 删除末尾stub函数声明(它覆盖了真实startTest实现)
+- **checksum-calculator**: 清理head中的stub死代码(3个coming soon函数)
+- 以上4个页面均在GSC Failing URLs清单中
+
+### 第二轮修复 (commit `74a7ebea84`, `bbbaff616f`)
+- **running-pace-calculator**: `calculate()`/`onUnitChange()` 全部空壳→完整实现
+  - 3种计算模式：距离+时间→配速 / 距离+配速→时间 / 时间+配速→距离
+  - 公里/英里单位切换
+  - 常用距离配速对照表(400m/1K/5K/10K/半马/全马)
+- **compound-interest-calculator**: `calculate()` 空壳→完整实现
+  - 复利计算：本金+定期追加+4种复利频率
+  - 72法则计算投资翻倍时间
+  - Canvas绘制增长曲线图
+  - 逐年增长明细表格
+- 以上2个页面均在GSC Failing URLs清单中
+
+### Failing URLs修复进度
+- 已修复6个Failing URL工具：gpa-calculator, token-estimator, speed-test, checksum-calculator, running-pace-calculator, compound-interest-calculator
+- 根因：批量脚本注入的"重写的函数实现"stub覆盖/替换了原始实现
+- 全站仍有288个文件含"coming soon"空壳函数（非全部在Failing列表中）
+- 首页已通过noscript预渲染修复（commit `804854f6`）
 
 ---
 
