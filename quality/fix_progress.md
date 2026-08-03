@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第四十批 - 修复6个回显型空壳)
+> 最后更新: 2026-08-03 (cron自动更新 - 第四十一批 - 修复3个回显型空壳)
 
 ## 当前真实问题
 
@@ -11,23 +11,22 @@
 | EN版模板空壳(process未定义) | 23 | 23 | 0 | ✅ 完成 | grep toolInput + process() 未定义检测 |
 | EN版假交互空壳(quickInput) | 224 | 224 | 0 | ✅ 完成 | grep quickInput + 无业务函数检测 |
 | toolInput误报(7个有功能) | 7 | 7 | 0 | ✅ 误报 | 有addEventListener绑定的真实功能 |
-| 回显型process空壳(output=input) | 30 | 22 | 8 | 🔴 进行中 | 全站扫描 var output = input + 无业务逻辑 |
+| 回显型process空壳(output=input) | 30 | 27 | 3 | 🔴 进行中 | 全站扫描 var output = input + 无业务逻辑 |
 
-## 回显型空壳清单(8个剩余)
+## 回显型空壳清单(3个剩余)
 
 > 特征：函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
-> 注：第三十五批修复3个(hex-to-hsl/html-escape-unescape/string-case-converter)，第三十六批修复3个(caddyfile-generator/env-to-json/haproxy-config-generator)，第三十七批修复3个(html-email-template/html-table-to-markdown/htpasswd-generator)，第三十八批修复3个(http-cache-header-generator/js-destructuring-generator/json-key-renamer)，第三十九批修复3个(json-schema-generator/json-to-avro/json-to-csv-converter)，第四十批修复6个(json-to-go-struct/json-to-kotlin-class/json-to-php-object/json-to-rust-struct/json-to-schema/json-to-swift-struct)。剩余8个：
+> 注：第三十五批修复3个(hex-to-hsl/html-escape-unescape/string-case-converter)，第三十六批修复3个(caddyfile-generator/env-to-json/haproxy-config-generator)，第三十七批修复3个(html-email-template/html-table-to-markdown/htpasswd-generator)，第三十八批修复3个(http-cache-header-generator/js-destructuring-generator/json-key-renamer)，第三十九批修复3个(json-schema-generator/json-to-avro/json-to-csv-converter)，第四十批修复6个(json-to-go-struct/json-to-kotlin-class/json-to-php-object/json-to-rust-struct/json-to-schema/json-to-swift-struct)，第四十一批修复3个(mock-data-generator/svg-pattern-generator/tailwind-spacing-generator)。剩余3个：
 
-1. json-to-typescript-interface
-2. mock-data-generator
-3. npm-package-json
-4. svg-pattern-generator
-5. tailwind-spacing-generator
-6. typescript-utility-types
-7. unicode-range-generator
-8. yaml-to-dotenv
+1. typescript-utility-types
+2. unicode-range-generator
+3. yaml-to-dotenv
 
 ## 已修复的空壳工具
+
+### 2026-08-03 (第四十一批 - 修复3个回显型空壳)
+mock-data-generator, svg-pattern-generator, tailwind-spacing-generator
+注: 三个工具CN版均修复，mock-data-generator和tailwind-spacing-generator的EN版也同步修复。mock-data-generator CN+EN版实现完整模拟数据生成器(15种字段:中英文姓名/邮箱/手机号/身份证号/公司名/地址/日期/IP地址/URL/UUID/随机文本/年龄/薪资/布尔值+字段选择网格checkbox动态初始化initFields+1-1000条批量生成generate+JSON/CSV/SQL三种导出格式exportData(fmt)接受格式参数+CSV逗号转义+SQL单引号转义+剪贴板clipboard API+fallback execCommand+前50条预览+总数提示)，替换原stub(generate只回显count数值到output元素+exportData忽略fmt参数只下载txt)。svg-pattern-generator CN版实现7种SVG图案生成(dots圆点/stripes竖条纹/grid网格/chevron人字形/hexagon六边形计算6顶点/crosshatch交叉对角线/triangle三角形+前景色背景色+图案尺寸10-200px+线条粗细1-20px+SVG data URI encodeURIComponent编码+CSS背景代码background-image+background-repeat+实时previewBox预览+copyCss/copySvg/downloadSvg三种操作)，EN版已有完整功能(btoa base64编码+7种图案)无需修改。tailwind-spacing-generator CN+EN版情况与此前cidr-to-ip-range等相同——页面已有完整的业务逻辑函数(window.generate间距可视化+rem/px单位切换+半档位+tailwind.config.js配置代码生成+window.updatePreview盒模型预览+window.resetConfig重置+window.copyConfig复制+window.downloadConfig下载)，但末尾被注入"重写的函数实现"stub块(EN版为"// === Implementation ===")，用var output=input回显空壳覆盖了有效函数。修复方式:直接删除stub块恢复原有功能。node逻辑测试: Mock数据生成(email格式PASS/phone 11位PASS/UUID v4格式PASS/IP 4段PASS/CSV含表头PASS/SQL INSERT语句PASS)；SVG图案生成(7种类型全部含<svg>+viewBox+对应元素PASS/dots circle cx=20 cy=20 r=3 PASS/hexagon 6顶点PASS/CSS含background-color+data:image/svg+xml+repeat PASS)；Tailwind间距(0→0px/0.5→2px/1→4px/4→16px/8→32px/16→64px全部PASS/配置代码含0.25rem/1rem/2rem/4rem+px注释+module.exports PASS)。6个文件JS语法验证通过。全站`var output = input` CN版从6降到3。
 
 ### 2026-08-03 (第四十批 - 修复6个回显型空壳)
 json-to-go-struct, json-to-kotlin-class, json-to-php-object, json-to-rust-struct, json-to-schema, json-to-swift-struct
