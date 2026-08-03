@@ -106,8 +106,36 @@
   - 添加3个FAQ问答
   - 爬虫可见内容从67词增至202词
 
+### 第四轮修复 (commit `70b3c3c04c`, `5f53cf74b1`, `7278e756be`, `a4297a7100`)
+- **sql-explainer** (严重bug): 核心输入区HTML完全缺失
+  - textarea#sqlInput和示例按钮的HTML被批量脚本删除
+  - JS引用getElementById('sqlInput')但HTML中无此元素→功能完全不可用
+  - 恢复输入区HTML(textarea+7个示例按钮+解释/清空按钮)
+  - 添加noscript预渲染(SQL类型说明+示例SQL)
+  - 暴露processInput到全局作用域(window.processInput)
+  - 爬虫可见内容从104词增至185词
+  - 浏览器实测: SQL解释功能正常工作
+- **en/website-status-checker**: 修复meta标签双>>错误
+  - `<meta name="description" content="...">>` 有两个>号导致标签解析错误
+  - 重写description从128字符优化到152字符(120-160范围)
+  - 同步更新og:description
+- **tax-calculator**: 添加noscript预渲染内容
+  - 个税计算器功能说明+三种计算模式(工资个税/年终奖/税后反算)
+  - 修复嵌套h2标签
+  - 爬虫可见内容从145词增至155词
+- **metronome-online**: 添加noscript预渲染内容
+  - 节拍器功能说明+BPM/拍号/视觉指示/音色特点
+  - 修复嵌套h2标签
+  - 爬虫可见内容从112词增至127词
+
+### 系统性HTML bug修复 (commit `a4297a7100`)
+- **1271个页面**的related-tools区域有嵌套h2标签
+  - 批量脚本插入`<h2>...🔗 <h2>...相关工具推荐</h2>`导致h2嵌套
+  - 全部修复为单个h2标签
+  - 脚本: `scripts/fix_nested_h2.py`
+
 ### Failing URLs修复总计
-- 已修复12个Failing URL工具：gpa-calculator, token-estimator, speed-test, checksum-calculator, running-pace-calculator, compound-interest-calculator, unicode-lookup, mac-address-lookup, reaction-test, wifi-password-generator, vin-decoder, en/backwards-text
+- 已修复16个Failing URL工具：gpa-calculator, token-estimator, speed-test, checksum-calculator, running-pace-calculator, compound-interest-calculator, unicode-lookup, mac-address-lookup, reaction-test, wifi-password-generator, vin-decoder, en/backwards-text, sql-explainer, en/website-status-checker, tax-calculator, metronome-online
 
 ---
 

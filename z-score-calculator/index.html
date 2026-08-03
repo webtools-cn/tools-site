@@ -179,9 +179,30 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === Z-Score 计算器 ===
 function calcZScore() {
-  showToast('calcZScore - coming soon!');
+  var x = parseFloat(document.getElementById('zsValue').value);
+  var mean = parseFloat(document.getElementById('zsMean').value);
+  var std = parseFloat(document.getElementById('zsStd').value);
+  if (isNaN(x) || isNaN(mean) || isNaN(std) || std <= 0) {
+    showToast('请输入有效数值，标准差必须大于0'); return;
+  }
+  var z = (x - mean) / std;
+  document.getElementById('zsZVal').textContent = z.toFixed(4);
+  // Approximate cumulative probability using error function approximation
+  function erf(z) {
+    var t = 1 / (1 + 0.5 * Math.abs(z));
+    var ans = 1 - t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277))))))))); 
+    return z >= 0 ? ans : -ans;
+  }
+  var pLt = 0.5 * (1 + erf(z / Math.sqrt(2)));
+  var pGt = 1 - pLt;
+  var pct = pLt * 100;
+  document.getElementById('zsPLt').textContent = pLt.toFixed(4);
+  document.getElementById('zsPGt').textContent = pGt.toFixed(4);
+  document.getElementById('zsPct').textContent = pct.toFixed(2) + '%';
+  document.getElementById('zsResult').style.display = 'block';
+  showToast('Z = ' + z.toFixed(4));
 }
 
 function clearZS() {

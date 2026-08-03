@@ -180,9 +180,73 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === 提前还款计算器 ===
 function calcLoanPayoff() {
-  showToast('calcLoanPayoff - coming soon!');
+  var principal = parseFloat(document.getElementById('lpAmount').value);
+  var annualRate = parseFloat(document.getElementById('lpRate').value);
+  var monthlyPay = parseFloat(document.getElementById('lpMonthly').value);
+  var extraPay = parseFloat(document.getElementById('lpExtra').value) || 0;
+  if (isNaN(principal) || principal <= 0) { showToast('请输入有效贷款金额'); return; }
+  if (isNaN(annualRate) || annualRate < 0) { showToast('请输入有效年利率'); return; }
+  if (isNaN(monthlyPay) || monthlyPay <= 0) { showToast('请输入有效月供'); return; }
+  var monthlyRate = annualRate / 100 / 12;
+  var totalMonthly = monthlyPay + extraPay;
+  if (totalMonthly <= principal * monthlyRate) { showToast('月供不足以覆盖利息，无法还清'); return; }
+  // Calculate months to payoff without extra payment
+  var monthsNormal, monthsWithExtra;
+  if (monthlyRate === 0) {
+    monthsNormal = Math.ceil(principal / monthlyPay);
+    monthsWithExtra = Math.ceil(principal / totalMonthly);
+  } else {
+    monthsNormal = Math.ceil(Math.log(monthlyPay / (monthlyPay - principal * monthlyRate)) / Math.log(1 + monthlyRate));
+    monthsWithExtra = Math.ceil(Math.log(totalMonthly / (totalMonthly - principal * monthlyRate)) / Math.log(1 + monthlyRate));
+  }
+  // Calculate total interest
+  var bal = principal, intNormal = 0;
+  for (var i = 0; i < monthsNormal && bal > 0; i++) {
+    var interest = bal * monthlyRate;
+    var pay = Math.min(monthlyPay, bal + interest);
+    intNormal += interest;
+    bal = bal + interest - pay;
+  }
+  bal = principal; var intExtra = 0;
+  for (var i = 0; i < monthsWithExtra && bal > 0; i++) {
+    var interest = bal * monthlyRate;
+    var pay = Math.min(totalMonthly, bal + interest);
+    intExtra += interest;
+    bal = bal + interest - pay;
+  }
+  var savedInterest = intNormal - intExtra;
+  var savedMonths = monthsNormal - monthsWithExtra;
+  var savedYears = Math.floor(savedMonths / 12);
+  var savedRemMonths = savedMonths % 12;
+  var grid = document.getElementById('lpGrid');
+  grid.innerHTML = '';
+  var items = [
+    ['正常还清时间', Math.floor(monthsNormal / 12) + '年' + (monthsNormal % 12) + '月'],
+    ['提前还清时间', Math.floor(monthsWithExtra / 12) + '年' + (monthsWithExtra % 12) + '月'],
+    ['节省时间', savedYears > 0 ? savedYears + '年' + savedRemMonths + '月' : savedRemMonths + '月'],
+    ['正常总利息', '¥' + intNormal.toFixed(2)],
+    ['提前还款总利息', '¥' + intExtra.toFixed(2)],
+    ['节省利息', '¥' + savedInterest.toFixed(2)]
+  ];
+  for (var i = 0; i < items.length; i++) {
+    var div = document.createElement('div');
+    div.className = 'result-item';
+    div.innerHTML = '<div class="label">' + items[i][0] + '</div><div class="value' + (i >= 4 ? ' highlight' : '') + '">' + items[i][1] + '</div>';
+    grid.appendChild(div);
+  }
+  document.getElementById('lpResult').style.display = 'block';
+  document.getElementById('lpDetail').textContent =
+    '贷款金额: ¥' + principal.toFixed(2) + '\n' +
+    '年利率: ' + annualRate + '%\n' +
+    '月供: ¥' + monthlyPay.toFixed(2) + '\n' +
+    '额外月还: ¥' + extraPay.toFixed(2) + '\n' +
+    '实际月供: ¥' + totalMonthly.toFixed(2) + '\n' +
+    '正常还清: ' + monthsNormal + '月 (利息¥' + intNormal.toFixed(2) + ')\n' +
+    '提前还清: ' + monthsWithExtra + '月 (利息¥' + intExtra.toFixed(2) + ')\n' +
+    '节省: ' + savedMonths + '月 ¥' + savedInterest.toFixed(2);
+  showToast('节省' + savedMonths + '月 ¥' + savedInterest.toFixed(0));
 }
 
 function clearLP() {

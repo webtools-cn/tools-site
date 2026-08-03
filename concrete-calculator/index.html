@@ -225,9 +225,42 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === 混凝土计算器 ===
 function calcConcrete() {
-  showToast('calcConcrete - coming soon!');
+  var shape = document.getElementById('concreteShape').value;
+  var volume = 0;
+  if (shape === 'slab') {
+    var len = parseFloat(document.getElementById('slabLen').value);
+    var wid = parseFloat(document.getElementById('slabWid').value);
+    var thk = parseFloat(document.getElementById('slabThk').value) / 100; // cm to m
+    if (isNaN(len) || isNaN(wid) || isNaN(thk) || len <= 0 || wid <= 0 || thk <= 0) { showToast('请输入有效尺寸'); return; }
+    volume = len * wid * thk;
+  } else if (shape === 'cylinder') {
+    var dia = parseFloat(document.getElementById('cylDia').value);
+    var ht = parseFloat(document.getElementById('cylHt').value);
+    if (isNaN(dia) || isNaN(ht) || dia <= 0 || ht <= 0) { showToast('请输入有效尺寸'); return; }
+    var r = dia / 2;
+    volume = Math.PI * r * r * ht;
+  } else if (shape === 'footing') {
+    var flen = parseFloat(document.getElementById('footLen').value);
+    var fwid = parseFloat(document.getElementById('footWid').value);
+    var fdep = parseFloat(document.getElementById('footDep').value);
+    if (isNaN(flen) || isNaN(fwid) || isNaN(fdep) || flen <= 0 || fwid <= 0 || fdep <= 0) { showToast('请输入有效尺寸'); return; }
+    volume = flen * fwid * fdep;
+  }
+  var bagSize = parseFloat(document.getElementById('bagSize').value);
+  var bagPrice = parseFloat(document.getElementById('bagPrice').value);
+  // Standard: 1 bag (50kg) ≈ 0.0335 m³ concrete
+  var volPerBag = bagSize === 40 ? 0.0268 : bagSize === 25 ? 0.0167 : 0.0335;
+  var bags = Math.ceil(volume / volPerBag);
+  var cost = bags * bagPrice;
+  var recBags = Math.ceil(bags * 1.1);
+  var recCost = recBags * bagPrice;
+  document.getElementById('concreteVol').textContent = volume.toFixed(3) + ' m³';
+  document.getElementById('concreteBags').textContent = bags + ' 袋';
+  document.getElementById('concreteCost').textContent = '¥' + cost.toFixed(2);
+  document.getElementById('concreteRec').textContent = recBags + ' 袋 (¥' + recCost.toFixed(2) + ')';
+  showToast('体积: ' + volume.toFixed(3) + 'm³ 需用: ' + bags + '袋');
 }
 
 function toggleConcreteShape() {

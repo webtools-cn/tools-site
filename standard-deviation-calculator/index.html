@@ -171,9 +171,47 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === 标准差计算器 ===
 function calcStdDev() {
-  showToast('calcStdDev - coming soon!');
+  var raw = document.getElementById('sdData').value.trim();
+  if (!raw) { showToast('请输入数据'); return; }
+  var nums = raw.split(/[\s,;\n]+/).map(parseFloat).filter(function(n) { return !isNaN(n); });
+  if (nums.length < 2) { showToast('至少需要2个数据点'); return; }
+  var n = nums.length;
+  var mean = nums.reduce(function(a, b) { return a + b; }, 0) / n;
+  var variance = nums.reduce(function(s, x) { return s + Math.pow(x - mean, 2); }, 0) / n;
+  var stdDevPop = Math.sqrt(variance);
+  var varianceSample = nums.reduce(function(s, x) { return s + Math.pow(x - mean, 2); }, 0) / (n - 1);
+  var stdDevSample = Math.sqrt(varianceSample);
+  var min = Math.min.apply(null, nums);
+  var max = Math.max.apply(null, nums);
+  var range = max - min;
+  var grid = document.getElementById('sdGrid');
+  grid.innerHTML = '';
+  var items = [
+    ['数据个数', n],
+    ['均值 (Mean)', mean.toFixed(4)],
+    ['总体标准差', stdDevPop.toFixed(4)],
+    ['样本标准差', stdDevSample.toFixed(4)],
+    ['总体方差', variance.toFixed(4)],
+    ['样本方差', varianceSample.toFixed(4)],
+    ['最小值', min],
+    ['最大值', max],
+    ['极差', range]
+  ];
+  for (var i = 0; i < items.length; i++) {
+    var div = document.createElement('div');
+    div.className = 'result-item';
+    div.innerHTML = '<div class="label">' + items[i][0] + '</div><div class="value' + (i < 4 ? ' highlight' : '') + '">' + items[i][1] + '</div>';
+    grid.appendChild(div);
+  }
+  document.getElementById('sdResult').style.display = 'block';
+  var detail = '数据: ' + nums.join(', ') + '\n';
+  detail += '均值 = (' + nums.join(' + ') + ') / ' + n + ' = ' + mean.toFixed(4) + '\n';
+  detail += '总体标准差 = ' + stdDevPop.toFixed(4) + '\n';
+  detail += '样本标准差 = ' + stdDevSample.toFixed(4);
+  document.getElementById('sdDetail').textContent = detail;
+  showToast('σ=' + stdDevPop.toFixed(4) + ' s=' + stdDevSample.toFixed(4));
 }
 
 function clearSD() {

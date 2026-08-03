@@ -168,17 +168,91 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function calcBoth() {
-  showToast('calcBoth - coming soon!');
+// === LCM & GCD 计算器 ===
+function gcd2(a, b) {
+  a = Math.abs(a); b = Math.abs(b);
+  while (b) { var t = b; b = a % b; a = t; }
+  return a;
 }
-
+function lcm2(a, b) {
+  if (a === 0 || b === 0) return 0;
+  return Math.abs(a * b) / gcd2(a, b);
+}
+function getNumbers() {
+  var n1 = parseInt(document.getElementById('lcmNum1').value) || 0;
+  var n2 = parseInt(document.getElementById('lcmNum2').value) || 0;
+  var n3 = parseInt(document.getElementById('lcmNum3').value) || 0;
+  var nums = [n1, n2];
+  if (n3 > 0) nums.push(n3);
+  return nums.filter(function(n) { return n > 0; });
+}
 function calcGCD() {
-  showToast('calcGCD - coming soon!');
+  var nums = getNumbers();
+  if (nums.length < 2) { showToast('请输入至少2个正整数'); return; }
+  var result = nums.reduce(gcd2);
+  showResult(result, null, nums);
+  showSteps('GCD', nums, result);
+  showToast('GCD = ' + result);
 }
-
 function calcLCM() {
-  showToast('calcLCM - coming soon!');
+  var nums = getNumbers();
+  if (nums.length < 2) { showToast('请输入至少2个正整数'); return; }
+  var result = nums.reduce(lcm2);
+  showResult(null, result, nums);
+  showSteps('LCM', nums, result);
+  showToast('LCM = ' + result);
+}
+function calcBoth() {
+  var nums = getNumbers();
+  if (nums.length < 2) { showToast('请输入至少2个正整数'); return; }
+  var gcdResult = nums.reduce(gcd2);
+  var lcmResult = nums.reduce(lcm2);
+  showResult(gcdResult, lcmResult, nums);
+  showSteps('BOTH', nums, gcdResult, lcmResult);
+  showToast('GCD=' + gcdResult + ' LCM=' + lcmResult);
+}
+function showResult(gcd, lcm, nums) {
+  var grid = document.getElementById('lcmResult');
+  grid.style.display = 'grid';
+  if (gcd !== null) document.getElementById('gcdValue').textContent = gcd;
+  if (lcm !== null) document.getElementById('lcmValue').textContent = lcm;
+  var prod = nums.reduce(function(a, b) { return a * b; }, 1);
+  document.getElementById('prodValue').textContent = prod;
+}
+function showSteps(type, nums, gcd, lcm) {
+  var box = document.getElementById('lcmSteps');
+  var txt = document.getElementById('lcmStepsText');
+  var lines = [];
+  lines.push('输入: ' + nums.join(', '));
+  lines.push('');
+  // Pairwise GCD
+  lines.push('【GCD 逐步计算】');
+  var g = nums[0];
+  for (var i = 1; i < nums.length; i++) {
+    var prev = g;
+    g = gcd2(g, nums[i]);
+    lines.push('GCD(' + prev + ', ' + nums[i] + ') = ' + g);
+  }
+  lines.push('→ GCD = ' + g);
+  // Pairwise LCM
+  lines.push('');
+  lines.push('【LCM 逐步计算】');
+  var l = nums[0];
+  for (var i = 1; i < nums.length; i++) {
+    var prevL = l;
+    l = lcm2(l, nums[i]);
+    lines.push('LCM(' + prevL + ', ' + nums[i] + ') = ' + l);
+  }
+  lines.push('→ LCM = ' + l);
+  // Verification
+  if (nums.length === 2) {
+    lines.push('');
+    lines.push('【验证】LCM × GCD = ' + l + ' × ' + g + ' = ' + (l * g));
+    lines.push('数字乘积 = ' + (nums[0] * nums[1]));
+    lines.push('一致: ' + (l * g === nums[0] * nums[1] ? '✓' : '✗'));
+  }
+  txt.textContent = lines.join('\n');
+  box.style.display = 'block';
 }
 </script>
 </body>

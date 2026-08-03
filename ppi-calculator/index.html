@@ -257,9 +257,40 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === PPI 计算器 ===
 function calculatePPI() {
-  showToast('calculatePPI - coming soon!');
+  var screenSize = parseFloat(document.getElementById('screenSize').value);
+  var resW = parseInt(document.getElementById('resW').value);
+  var resH = parseInt(document.getElementById('resH').value);
+  var distance = parseFloat(document.getElementById('distance').value);
+  if (isNaN(screenSize) || screenSize <= 0) { showToast('请输入有效屏幕尺寸'); return; }
+  if (isNaN(resW) || resW <= 0 || isNaN(resH) || resH <= 0) { showToast('请输入有效分辨率'); return; }
+  var diagonalPixels = Math.sqrt(resW * resW + resH * resH);
+  var ppi = diagonalPixels / screenSize;
+  var totalPixels = resW * resH;
+  var aspectRatio = (resW / resH).toFixed(2);
+  var dotPitch = (screenSize * 25.4 / ppi).toFixed(2); // mm
+  // Viewing distance / PPI for Retina check
+  var retinaThreshold = 300;
+  var isRetina = ppi >= retinaThreshold;
+  var grid = document.getElementById('resultGrid');
+  grid.innerHTML = '';
+  var items = [
+    ['PPI (像素密度)', Math.round(ppi)],
+    ['总像素数', totalPixels.toLocaleString()],
+    ['宽高比', aspectRatio + ':1'],
+    ['点距 (Dot Pitch)', dotPitch + ' mm'],
+    ['对角线像素', Math.round(diagonalPixels)],
+    ['Retina 级别', isRetina ? '✓ 是 (≥300 PPI)' : '✗ 否 (<300 PPI)']
+  ];
+  for (var i = 0; i < items.length; i++) {
+    var div = document.createElement('div');
+    div.className = 'result-item';
+    div.innerHTML = '<div class="label">' + items[i][0] + '</div><div class="value' + (i === 0 ? ' highlight' : '') + '">' + items[i][1] + '</div>';
+    grid.appendChild(div);
+  }
+  document.getElementById('resultArea').style.display = 'block';
+  showToast('PPI = ' + Math.round(ppi));
 }
 
 function clearAll() {
