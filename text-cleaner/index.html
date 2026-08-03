@@ -217,8 +217,61 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var _lastInput = '';
+
 function cleanText() {
-  showToast('cleanText - coming soon!');
+  var input = document.getElementById('inputText');
+  if (!input || !input.value.trim()) { showToast('请先输入文本'); return; }
+  _lastInput = input.value;
+  var text = input.value;
+  var lines = text.split('\n');
+
+  if (document.getElementById('normalizeLineEndings').checked) {
+    text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    lines = text.split('\n');
+  }
+  if (document.getElementById('removeInvisible').checked) {
+    text = text.replace(/[\u200B-\u200D\uFEFF]/g, '');
+    lines = text.split('\n');
+  }
+  if (document.getElementById('trimLines').checked) {
+    lines = lines.map(function(l) { return l.trim(); });
+  }
+  if (document.getElementById('removeTabs').checked) {
+    lines = lines.map(function(l) { return l.replace(/\t/g, ' '); });
+  }
+  if (document.getElementById('normalizeSpaces').checked) {
+    lines = lines.map(function(l) { return l.replace(/  +/g, ' '); });
+  }
+  if (document.getElementById('removeAllBlankLines').checked) {
+    lines = lines.filter(function(l) { return l.trim() !== ''; });
+  } else if (document.getElementById('removeExtraBlankLines').checked) {
+    var result = [];
+    var prevBlank = false;
+    lines.forEach(function(l) {
+      if (l.trim() === '') {
+        if (!prevBlank) result.push(l);
+        prevBlank = true;
+      } else {
+        result.push(l);
+        prevBlank = false;
+      }
+    });
+    lines = result;
+  }
+  text = lines.join('\n');
+  if (document.getElementById('removeAllSpaces').checked) {
+    text = text.replace(/\s+/g, '');
+  }
+
+  var resultBox = document.getElementById('resultBox');
+  if (resultBox) resultBox.textContent = text;
+
+  var inStats = document.getElementById('inputStats');
+  if (inStats) inStats.textContent = input.value.length + ' 字符';
+  var outStats = document.getElementById('resultStats');
+  if (outStats) outStats.textContent = text.length + ' 字符';
+  showToast('清理完成');
 }
 
 function clearInput() {
@@ -234,23 +287,44 @@ function copyResult() {
 }
 
 function deselectAllOptions() {
-  showToast('deselectAllOptions - coming soon!');
+  document.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = false; });
+  showToast('已取消全选');
 }
 
 function pasteText() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
+  var inp = document.getElementById('inputText');
+  if (!inp) return;
+  navigator.clipboard.readText().then(function(text) {
+    inp.value = text;
+    showToast('已粘贴');
+  }).catch(function() {
+    showToast('请手动粘贴(Ctrl+V)');
+    inp.focus();
+  });
 }
 
 function resultToInput() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!out||!inp)return;inp.value=out.textContent||out.innerText;out.textContent='';if(typeof convert==='function')convert();showToast('Moved to input!');
+  var out = document.getElementById('resultBox');
+  var inp = document.getElementById('inputText');
+  if (!out || !inp) return;
+  if (!out.textContent.trim()) { showToast('没有结果可填入'); return; }
+  inp.value = out.textContent;
+  out.textContent = '';
+  showToast('已填入输入框');
 }
 
 function selectAllOptions() {
-  showToast('selectAllOptions - coming soon!');
+  document.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = true; });
+  showToast('已全选');
 }
 
 function undoLast() {
-  document.execCommand('undo');showToast('Undo!');
+  if (_lastInput) {
+    var input = document.getElementById('inputText');
+    if (input) { input.value = _lastInput; showToast('已撤销'); }
+  } else {
+    showToast('没有可撤销的操作');
+  }
 }
 </script>
 </body>

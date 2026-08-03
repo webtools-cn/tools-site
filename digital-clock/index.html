@@ -179,17 +179,77 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function setFormat() {
-  showToast('setFormat - coming soon!');
+var _clockFormat = '24h';
+var _showSeconds = true;
+
+function setFormat(fmt) {
+  _clockFormat = (typeof fmt === 'string') ? fmt : (this && this.getAttribute ? this.getAttribute('data-format') : '24h');
+  document.querySelectorAll('.ctrl-btn[data-format]').forEach(function(b){ b.classList.remove('active'); });
+  var btn = document.querySelector('.ctrl-btn[data-format="'+_clockFormat+'"]');
+  if (btn) btn.classList.add('active');
+  updateClock();
+  showToast('已切换为' + (_clockFormat === '24h' ? '24' : '12') + '小时制');
 }
 
 function toggleFullscreen() {
-  showToast('Toggled!');
+  var el = document.getElementById('clockContainer') || document.documentElement;
+  if (!document.fullscreenElement) {
+    (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el);
+    showToast('已进入全屏');
+  } else {
+    (document.exitFullscreen || document.webkitExitFullscreen || function(){}).call(document);
+    showToast('已退出全屏');
+  }
 }
 
 function toggleSeconds() {
-  showToast('Toggled!');
+  _showSeconds = !_showSeconds;
+  var btn = document.getElementById('secBtn');
+  if (btn) btn.textContent = _showSeconds ? '秒 隐藏' : '秒 显示';
+  updateClock();
 }
+
+function updateClock() {
+  var now = new Date();
+  var h = now.getHours();
+  var m = now.getMinutes();
+  var s = now.getSeconds();
+  var suffix = '';
+  if (_clockFormat === '12h') {
+    suffix = h >= 12 ? ' PM' : ' AM';
+    h = h % 12 || 12;
+  }
+  var hh = String(h).padStart(2, '0');
+  var mm = String(m).padStart(2, '0');
+  var ss = String(s).padStart(2, '0');
+  var timeStr = hh + ':' + mm + (_showSeconds ? ':' + ss : '') + suffix;
+  var td = document.getElementById('timeDisplay');
+  if (td) td.textContent = timeStr;
+
+  var days = ['日','一','二','三','四','五','六'];
+  var dateStr = now.getFullYear() + '年' + String(now.getMonth()+1).padStart(2,'0') + '月' + String(now.getDate()).padStart(2,'0') + '日 星期' + days[now.getDay()];
+  var dd = document.getElementById('dateDisplay');
+  if (dd) dd.textContent = dateStr;
+
+  var tz = document.getElementById('tzDisplay');
+  if (tz) {
+    var offset = -now.getTimezoneOffset() / 60;
+    tz.textContent = 'UTC' + (offset >= 0 ? '+' : '') + offset;
+  }
+  var ts = document.getElementById('tsDisplay');
+  if (ts) ts.textContent = Math.floor(now.getTime() / 1000);
+  var tsec = document.getElementById('todaySecs');
+  if (tsec) tsec.textContent = h * 3600 + m * 60 + s;
+  var yp = document.getElementById('yearProgress');
+  if (yp) {
+    var start = new Date(now.getFullYear(), 0, 1);
+    var end = new Date(now.getFullYear() + 1, 0, 1);
+    yp.textContent = ((now - start) / (end - start) * 100).toFixed(2) + '%';
+  }
+}
+
+updateClock();
+setInterval(updateClock, 1000);
 </script>
 </body>
 </html>

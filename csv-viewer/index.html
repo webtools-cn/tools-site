@@ -183,20 +183,130 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function clearCSV() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
-}
-
 function exportJSON() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;var blob=new Blob([el.textContent||el.innerText],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.json';a.click();showToast('Exported!');
+  if (_csvData.length === 0) { showToast('没有数据可导出'); return; }
+  var json = _csvData.map(function(row) {
+    var obj = {};
+    _csvHeaders.forEach(function(h, i) { obj[h] = row[i] !== undefined ? row[i] : ''; });
+    return obj;
+  });
+  var blob = new Blob([JSON.stringify(json, null, 2)], {type: 'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'data.json';
+  a.click();
+  showToast('已导出JSON');
 }
 
-function loadCSV() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
+function clearCSV() {
+  _csvData = [];
+  _csvHeaders = [];
+  _csvRawText = '';
+  var fileInput = document.getElementById('csvFile');
+  if (fileInput) fileInput.value = '';
+  var searchEl = document.getElementById('csvSearch');
+  if (searchEl) searchEl.value = '';
+  renderTable();
+  showToast('已清空');
+}
+
+var _csvData = [];
+var _csvHeaders = [];
+
+function loadCSV(event) {
+  var delimiter = document.getElementById('csvDelimiter');
+  var delim = delimiter ? delimiter.value : ',';
+  if (delim === 'tab') delim = '\t';
+
+  if (event && event.target && event.target.files && event.target.files[0]) {
+    var file = event.target.files[0];
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      parseCSV(e.target.result, delim);
+      renderTable();
+    };
+    reader.readAsText(file);
+  } else {
+    // Re-render with new delimiter from existing raw data
+    if (_csvRawText) {
+      parseCSV(_csvRawText, delim);
+      renderTable();
+    }
+  }
+}
+
+var _csvRawText = '';
+
+function parseCSV(text, delim) {
+  _csvRawText = text;
+  var rows = [];
+  var current = '';
+  var inQuotes = false;
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
+    if (ch === '"') {
+      if (inQuotes && text[i+1] === '"') { current += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (ch === delim && !inQuotes) {
+      if (current !== '' || true) { }
+      if (!rows.length || rows[rows.length-1] === null) rows[rows.length-1] = [];
+      rows[rows.length-1].push(current);
+      current = '';
+    } else if (ch === '\n' && !inQuotes) {
+      if (rows.length === 0) rows.push([]);
+      rows[rows.length-1].push(current);
+      current = '';
+      rows.push(null);
+    } else if (ch !== '\r') {
+      current += ch;
+    }
+  }
+  if (current) {
+    if (rows.length === 0) rows.push([]);
+    if (rows[rows.length-1] === null) rows[rows.length-1] = [];
+    rows[rows.length-1].push(current);
+  }
+  rows = rows.filter(function(r) { return r !== null && r.length > 0; });
+  if (rows.length === 0) { _csvHeaders = []; _csvData = []; return; }
+  _csvHeaders = rows[0];
+  _csvData = rows.slice(1);
 }
 
 function renderTable() {
-  showToast('renderTable - coming soon!');
+  var searchEl = document.getElementById('csvSearch');
+  var search = searchEl ? searchEl.value.toLowerCase() : '';
+  var data = _csvData;
+  if (search) {
+    data = data.filter(function(row) {
+      return row.some(function(cell) { return String(cell).toLowerCase().indexOf(search) !== -1; });
+    });
+  }
+  var table = document.getElementById('csvTable');
+  if (!table) return;
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:14px;">';
+  html += '<thead><tr>';
+  _csvHeaders.forEach(function(h) {
+    html += '<th style="padding:8px 12px;border:1px solid #334155;background:#1e293b;text-align:left;color:#cbd5e1;">' + escapeHtml(h) + '</th>';
+  });
+  html += '</tr></thead><tbody>';
+  if (data.length === 0) {
+    html += '<tr><td colspan="' + _csvHeaders.length + '" style="padding:16px;text-align:center;color:#64748b;">暂无数据' + (_csvHeaders.length === 0 ? '，请上传CSV文件' : '') + '</td></tr>';
+  } else {
+    data.forEach(function(row) {
+      html += '<tr>';
+      for (var i = 0; i < _csvHeaders.length; i++) {
+        html += '<td style="padding:6px 12px;border:1px solid #334155;color:#e2e8f0;">' + escapeHtml(row[i] !== undefined ? row[i] : '') + '</td>';
+      }
+      html += '</tr>';
+    });
+  }
+  html += '</tbody></table>';
+  html += '<div style="margin-top:8px;color:#94a3b8;font-size:13px;">共 ' + data.length + ' 行数据' + (search ? '（已过滤）' : '') + '</div>';
+  table.innerHTML = html;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
 </body>

@@ -242,28 +242,163 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 // === 重写的函数实现 ===
 function copyCron() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var el = document.getElementById('cron-display') || document.getElementById('cron-input');
+  if (!el) return;
+  var t = el.textContent || el.value || el.innerText;
+  navigator.clipboard.writeText(t).then(function() { showToast('已复制: ' + t); }).catch(function() { showToast('复制失败'); });
 }
 
 function resetCron() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  ['f-min','f-hour','f-day','f-month','f-dow'].forEach(function(id, i) {
+    var el = document.getElementById(id);
+    if (el) el.value = ['0','*','*','*','*'][i];
+  });
+  var inp = document.getElementById('cron-input');
+  if (inp) inp.value = '0 * * * *';
+  updateFromFields();
+  showToast('已重置');
 }
 
 function setPreset(value) {
-  if(typeof value === 'string') {
-    var el = document.querySelector('[data-preset="' + value + '"], [data-mode="' + value + '"]');
-    if(el) el.classList.add('active');
-  }
-  showToast('已应用');
+  var inp = document.getElementById('cron-input');
+  if (inp) inp.value = value;
+  // Sync fields
+  var parts = value.split(/\s+/);
+  var ids = ['f-min','f-hour','f-day','f-month','f-dow'];
+  parts.forEach(function(p, i) {
+    var el = document.getElementById(ids[i]);
+    if (el) el.value = p;
+  });
+  updateCronDisplay(value);
+  document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
+  showToast('已应用: ' + value);
 }
 
 function updateFromFields() {
-  showToast('updateFromFields - coming soon!');
+  var ids = ['f-min','f-hour','f-day','f-month','f-dow'];
+  var parts = ids.map(function(id) {
+    var el = document.getElementById(id);
+    return el ? el.value.trim() : '*';
+  });
+  var cron = parts.join(' ');
+  var inp = document.getElementById('cron-input');
+  if (inp) inp.value = cron;
+  updateCronDisplay(cron);
 }
 
 function updateFromInput() {
-  showToast('updateFromInput - coming soon!');
+  var inp = document.getElementById('cron-input');
+  if (!inp) return;
+  var cron = inp.value.trim();
+  var parts = cron.split(/\s+/);
+  if (parts.length !== 5) { return; }
+  var ids = ['f-min','f-hour','f-day','f-month','f-dow'];
+  parts.forEach(function(p, i) {
+    var el = document.getElementById(ids[i]);
+    if (el) el.value = p;
+  });
+  updateCronDisplay(cron);
 }
+
+function updateCronDisplay(cron) {
+  var display = document.getElementById('cron-display');
+  if (display) display.textContent = cron;
+  var desc = document.getElementById('cron-desc');
+  if (desc) desc.textContent = describeCron(cron);
+  var nextRuns = document.getElementById('next-runs');
+  if (nextRuns) {
+    var runs = getNextRuns(cron, 5);
+    nextRuns.innerHTML = runs.map(function(r) {
+      return '<div style="padding:6px 0;border-bottom:1px solid #334155;color:#cbd5e1;">' + r + '</div>';
+    }).join('');
+  }
+}
+
+function describeCron(cron) {
+  var parts = cron.split(/\s+/);
+  if (parts.length !== 5) return '无效的Cron表达式（需要5个字段）';
+  var min = parts[0], hour = parts[1], day = parts[2], month = parts[3], dow = parts[4];
+  var desc = [];
+  // Time part
+  if (min === '*' && hour === '*') desc.push('每分钟执行');
+  else if (min === '0' && hour === '*') desc.push('每小时整点执行');
+  else if (min.indexOf('*/') === 0) desc.push('每' + min.slice(2) + '分钟执行');
+  else if (hour.indexOf('*/') === 0) desc.push('每' + hour.slice(2) + '小时执行');
+  else if (min === '0' && hour === '0') desc.push('每天零点执行');
+  else if (min === '0') desc.push('每天 ' + hour + ' 点整执行');
+  else desc.push('在 ' + hour + ':' + (min.length === 1 ? '0' + min : min) + ' 执行');
+  // Day part
+  if (day !== '*' && day !== '?') {
+    if (dow === '1' || dow === 'MON') desc[desc.length-1] += '（每周一）';
+    else if (dow === '0' || dow === 'SUN') desc[desc.length-1] += '（每周日）';
+    else if (dow === '1-5') desc[desc.length-1] += '（工作日）';
+    else if (dow === '0,6' || dow === '6,0') desc[desc.length-1] += '（周末）';
+    else if (day !== '*') desc[desc.length-1] += '（每月' + day + '日）';
+  }
+  // Month part
+  if (month !== '*' && month !== '?') desc[desc.length-1] += '（' + month + '月）';
+  return desc.join('，');
+}
+
+function getNextRuns(cron, count) {
+  var parts = cron.split(/\s+/);
+  if (parts.length !== 5) return ['无效表达式'];
+  var runs = [];
+  var now = new Date();
+  now.setSeconds(0, 0);
+  now.setMinutes(now.getMinutes() + 1);
+  var maxIter = 500000;
+  while (runs.length < count && maxIter-- > 0) {
+    if (matchCron(parts, now)) {
+      runs.push(now.getFullYear() + '-' +
+        String(now.getMonth()+1).padStart(2,'0') + '-' +
+        String(now.getDate()).padStart(2,'0') + ' ' +
+        String(now.getHours()).padStart(2,'0') + ':' +
+        String(now.getMinutes()).padStart(2,'0'));
+    }
+    now.setMinutes(now.getMinutes() + 1);
+  }
+  if (runs.length === 0) return ['无法计算（表达式可能无效）'];
+  return runs;
+}
+
+function matchCronField(field, value, min, max) {
+  if (field === '*' || field === '?') return true;
+  var parts = field.split(',');
+  for (var i = 0; i < parts.length; i++) {
+    var p = parts[i];
+    if (p.indexOf('*/') === 0) {
+      var step = parseInt(p.slice(2));
+      if (step > 0 && value % step === 0) return true;
+    } else if (p.indexOf('-') > 0) {
+      var range = p.split('-');
+      var lo = parseInt(range[0]), hi = parseInt(range[1]);
+      if (value >= lo && value <= hi) return true;
+    } else {
+      if (parseInt(p) === value) return true;
+    }
+  }
+  return false;
+}
+
+function matchCron(parts, date) {
+  var min = parts[0], hour = parts[1], day = parts[2], month = parts[3], dow = parts[4];
+  if (!matchCronField(min, date.getMinutes(), 0, 59)) return false;
+  if (!matchCronField(hour, date.getHours(), 0, 23)) return false;
+  if (!matchCronField(month, date.getMonth()+1, 1, 12)) return false;
+  // Day of month
+  var dayMatch = (day === '*' || day === '?') || matchCronField(day, date.getDate(), 1, 31);
+  // Day of week (0=Sunday)
+  var dowVal = date.getDay();
+  var dowMatch = (dow === '*' || dow === '?') || matchCronField(dow, dowVal, 0, 6);
+  if (day !== '*' && day !== '?' && dow !== '*' && dow !== '?') {
+    return dayMatch || dowMatch; // Quartz semantics: either matches
+  }
+  return dayMatch && dowMatch;
+}
+
+// Initialize
+updateFromFields();
 </script>
 </body>
 </html>

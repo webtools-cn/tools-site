@@ -231,9 +231,96 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var _selectedMood = 3;
+var _moodEntries = [];
+
+// Load from localStorage
+try {
+  var saved = localStorage.getItem('moodEntries');
+  if (saved) _moodEntries = JSON.parse(saved);
+} catch(e) {}
+
+// Initialize mood selector
+document.querySelectorAll('#moodSelector span[data-mood]').forEach(function(span) {
+  span.addEventListener('click', function() {
+    _selectedMood = parseInt(this.getAttribute('data-mood'));
+    document.querySelectorAll('#moodSelector span[data-mood]').forEach(function(s) {
+      s.style.background = '';
+      s.style.transform = '';
+    });
+    this.style.background = 'rgba(79,70,229,0.3)';
+    this.style.transform = 'scale(1.2)';
+  });
+});
+
 function saveMood() {
-  showToast('saveMood - coming soon!');
+  var note = document.getElementById('moodNote');
+  var noteText = note ? note.value : '';
+  var today = new Date().toISOString().split('T')[0];
+
+  // Remove existing entry for today
+  _moodEntries = _moodEntries.filter(function(e) { return e.date !== today; });
+
+  _moodEntries.push({
+    date: today,
+    mood: _selectedMood,
+    note: noteText,
+    time: new Date().toISOString()
+  });
+
+  // Sort by date
+  _moodEntries.sort(function(a, b) { return a.date.localeCompare(b.date); });
+
+  // Save to localStorage
+  try { localStorage.setItem('moodEntries', JSON.stringify(_moodEntries)); } catch(e) {}
+
+  // Reset note
+  if (note) note.value = '';
+
+  renderMoodEntries();
+  showToast('心情已记录');
 }
+
+function renderMoodEntries() {
+  var entriesEl = document.getElementById('moodEntries');
+  if (!entriesEl) return;
+  var moodEmoji = {1:'😢', 2:'😟', 3:'😐', 4:'😊', 5:'🥰'};
+  var moodLabel = {1:'很差', 2:'不好', 3:'一般', 4:'不错', 5:'很棒'};
+
+  if (_moodEntries.length === 0) {
+    entriesEl.innerHTML = '<p style="text-align:center;color:#64748b;padding:20px;">暂无记录，开始记录今天的心情吧！</p>';
+  } else {
+    var html = '';
+    _moodEntries.slice().reverse().forEach(function(entry) {
+      html += '<div style="display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid #334155;">';
+      html += '<span style="font-size:2rem;">' + (moodEmoji[entry.mood] || '😐') + '</span>';
+      html += '<div><div style="color:#e2e8f0;font-weight:600;">' + entry.date + ' · ' + (moodLabel[entry.mood] || '') + '</div>';
+      if (entry.note) html += '<div style="color:#94a3b8;font-size:13px;margin-top:2px;">' + escapeHtmlMood(entry.note) + '</div>';
+      html += '</div></div>';
+    });
+    entriesEl.innerHTML = html;
+  }
+
+  // Update average
+  var avgEl = document.getElementById('moodAvg');
+  if (avgEl && _moodEntries.length > 0) {
+    var sum = _moodEntries.reduce(function(a, e) { return a + e.mood; }, 0);
+    avgEl.textContent = (sum / _moodEntries.length).toFixed(1) + ' / 5';
+  }
+  var daysEl = document.getElementById('moodDays');
+  if (daysEl) daysEl.textContent = _moodEntries.length + ' 天';
+}
+
+function escapeHtmlMood(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Auto-select mood 3
+document.addEventListener('DOMContentLoaded', function() {
+  var defaultSpan = document.querySelector('#moodSelector span[data-mood="3"]');
+  if (defaultSpan) { defaultSpan.style.background = 'rgba(79,70,229,0.3)'; defaultSpan.style.transform = 'scale(1.2)'; }
+  renderMoodEntries();
+});
 </script>
 </div>
 
