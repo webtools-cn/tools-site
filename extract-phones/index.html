@@ -171,35 +171,105 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 // === 重写的函数实现 ===
 function clearAll() {
-  document.getElementById('opt-mobile').value = '';
-  document.getElementById('opt-landline').value = '';
-  document.getElementById('opt-400').value = '';
-  document.getElementById('opt-intl').value = '';
-  document.getElementById('opt-dedup').value = '';
-  document.getElementById('input').value = '';
-  document.getElementById('output').value = '';
-  showToast('已重置');
+  var inp = document.getElementById('input'); if (inp) inp.value = '';
+  var out = document.getElementById('output'); if (out) out.value = '';
+  var stats = document.getElementById('stats'); if (stats) stats.innerHTML = '';
+  showToast('已清空');
 }
 
 function copyResult() {
-  var text = document.getElementById('result').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  var out = document.getElementById('output');
+  if (!out || !out.value) { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(out.value).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
 }
 
 function downloadResult() {
-  var text = document.getElementById('result').innerText;
-  if (!text) { showToast('没有可下载的结果'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
+  var out = document.getElementById('output');
+  if (!out || !out.value) { showToast('没有可下载的结果'); return; }
+  var blob = new Blob([out.value], {type: 'text/plain'});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'extract-phones-result.txt';
+  a.download = 'extracted-phones.txt';
   a.click();
   showToast('已下载');
 }
 
 function extract() {
-  showToast('extract - coming soon!');
+  var inp = document.getElementById('input');
+  if (!inp || !inp.value.trim()) { showToast('请输入文本'); return; }
+  var text = inp.value;
+  var optMobile = document.getElementById('opt-mobile') ? document.getElementById('opt-mobile').checked : true;
+  var optLandline = document.getElementById('opt-landline') ? document.getElementById('opt-landline').checked : true;
+  var opt400 = document.getElementById('opt-400') ? document.getElementById('opt-400').checked : true;
+  var optIntl = document.getElementById('opt-intl') ? document.getElementById('opt-intl').checked : true;
+  var optDedup = document.getElementById('opt-dedup') ? document.getElementById('opt-dedup').checked : true;
+
+  var results = [];
+  var counts = { mobile: 0, landline: 0, tel400: 0, intl: 0 };
+
+  // Mobile: 1[3-9]XXXXXXXXX
+  if (optMobile) {
+    var mobileRe = /1[3-9]\d{9}/g;
+    var m;
+    while ((m = mobileRe.exec(text)) !== null) {
+      results.push(m[0]);
+      counts.mobile++;
+    }
+  }
+
+  // Landline: 0XX-XXXXXXX or 0XXXXXXXXX
+  if (optLandline) {
+    var landRe = /0\d{2,3}[-\s]?\d{7,8}/g;
+    var l;
+    while ((l = landRe.exec(text)) !== null) {
+      results.push(l[0]);
+      counts.landline++;
+    }
+  }
+
+  // 400 numbers: 400-XXX-XXXX or 400XXXXXXX
+  if (opt400) {
+    var re400 = /400[-\s]?\d{3}[-\s]?\d{4}/g;
+    var f;
+    while ((f = re400.exec(text)) !== null) {
+      results.push(f[0]);
+      counts.tel400++;
+    }
+  }
+
+  // International: +country code numbers
+  if (optIntl) {
+    var intlRe = /\+\d{1,3}[\s-]?\d{1,4}[\s-]?\d{3,4}[\s-]?\d{3,4}/g;
+    var il;
+    while ((il = intlRe.exec(text)) !== null) {
+      results.push(il[0]);
+      counts.intl++;
+    }
+  }
+
+  if (optDedup) {
+    var seen = {};
+    results = results.filter(function(r) {
+      if (seen[r]) return false;
+      seen[r] = true;
+      return true;
+    });
+  }
+
+  var out = document.getElementById('output');
+  if (out) out.value = results.join('\n');
+
+  var stats = document.getElementById('stats');
+  if (stats) {
+    stats.innerHTML = '<span style="color:#94a3b8">共提取 <strong style="color:#22d3ee">' + results.length + '</strong> 个号码' +
+      (counts.mobile ? ' · 手机' + counts.mobile : '') +
+      (counts.landline ? ' · 座机' + counts.landline : '') +
+      (counts.tel400 ? ' · 400号' + counts.tel400 : '') +
+      (counts.intl ? ' · 国际' + counts.intl : '') +
+      '</span>';
+  }
+
+  showToast('已提取' + results.length + '个号码');
 }
 </script>
 </body>

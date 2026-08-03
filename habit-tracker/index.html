@@ -185,10 +185,99 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function addHabit() {
-  showToast('addHabit - coming soon!');
+// === 习惯追踪核心逻辑 ===
+var habits = [];
+
+try {
+  var saved = localStorage.getItem('habits_v1');
+  if (saved) habits = JSON.parse(saved);
+} catch(e) {}
+
+function saveHabits() {
+  try { localStorage.setItem('habits_v1', JSON.stringify(habits)); } catch(e) {}
 }
+
+function getTodayKey() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function getStreak(habit) {
+  var streak = 0;
+  var d = new Date();
+  while (true) {
+    var key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    if (habit.checkins && habit.checkins[key]) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+function renderHabits() {
+  var list = document.getElementById('habitList');
+  if (!list) return;
+  if (!habits.length) {
+    list.innerHTML = '<p style="color:#64748b;text-align:center;padding:20px">还没有添加习惯，开始你的第一个吧！</p>';
+    return;
+  }
+  var today = getTodayKey();
+  list.innerHTML = habits.map(function(h, i) {
+    var streak = getStreak(h);
+    var checkedToday = h.checkins && h.checkins[today];
+    return '<div style="padding:14px;background:#0f172a;border-radius:10px;margin-bottom:10px;border-left:4px solid ' + h.color + '">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between">' +
+        '<div>' +
+          '<span style="color:#e2e8f0;font-weight:600">' + h.name + '</span>' +
+          '<span style="margin-left:8px;font-size:.8rem;color:#22d3ee">🔥 ' + streak + '天连续</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;align-items:center">' +
+          '<button onclick="toggleCheckin(' + i + ')" style="padding:6px 14px;border-radius:6px;border:1px solid ' + (checkedToday ? '#4ade80' : 'rgba(148,163,184,.3)') + ';background:' + (checkedToday ? 'rgba(74,222,128,.15)' : 'transparent') + ';color:' + (checkedToday ? '#4ade80' : '#94a3b8') + ';cursor:pointer;font-size:.85rem">' + (checkedToday ? '✓ 已打卡' : '打卡') + '</button>' +
+          '<button onclick="deleteHabit(' + i + ')" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:1rem">✕</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleCheckin(i) {
+  if (!habits[i]) return;
+  if (!habits[i].checkins) habits[i].checkins = {};
+  var today = getTodayKey();
+  if (habits[i].checkins[today]) {
+    delete habits[i].checkins[today];
+    showToast('已取消今日打卡');
+  } else {
+    habits[i].checkins[today] = true;
+    showToast('打卡成功！连续' + getStreak(habits[i]) + '天');
+  }
+  saveHabits();
+  renderHabits();
+}
+
+function deleteHabit(i) {
+  habits.splice(i, 1);
+  saveHabits();
+  renderHabits();
+  showToast('已删除习惯');
+}
+
+function addHabit() {
+  var inp = document.getElementById('newHabitName');
+  if (!inp || !inp.value.trim()) { showToast('请输入习惯名称'); return; }
+  var color = document.getElementById('newHabitColor') ? document.getElementById('newHabitColor').value : '#22d3ee';
+  habits.push({ name: inp.value.trim(), color: color, checkins: {}, created: Date.now() });
+  inp.value = '';
+  saveHabits();
+  renderHabits();
+  showToast('已添加习惯');
+}
+
+// Initial render
+renderHabits();
 </script>
 </body>
 </html>

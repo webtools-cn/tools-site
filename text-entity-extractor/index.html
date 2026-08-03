@@ -240,18 +240,138 @@ function clearAll() {
 }
 
 function copyActiveResult() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  if (!activeTab || !extractedData[activeTab]) { showToast('没有可复制的结果'); return; }
+  var text = extractedData[activeTab].items.join('\n');
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
 }
 
-function exportResult() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;var blob=new Blob([el.textContent||el.innerText],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.json';a.click();showToast('Exported!');
+function exportResult(format) {
+  if (!Object.keys(extractedData).length) { showToast('没有可导出的结果'); return; }
+  var content = '';
+  if (format === 'json') {
+    var obj = {};
+    Object.keys(extractedData).forEach(function(k) { obj[k] = extractedData[k].items; });
+    content = JSON.stringify(obj, null, 2);
+  } else {
+    Object.keys(extractedData).forEach(function(k) {
+      content += '=== ' + extractedData[k].name + ' ===\n';
+      content += extractedData[k].items.join('\n') + '\n\n';
+    });
+  }
+  var blob = new Blob([content], {type: 'text/plain'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'extracted-entities.' + format;
+  a.click();
+  showToast('已导出' + format.toUpperCase());
 }
+
+// === 实体提取核心逻辑 ===
+var activeTab = '';
+var extractedData = {};
+
+var ENTITY_PATTERNS = {
+  url: { name: 'URL链接', regex: /https?:\/\/[^\s<>'"]+/gi },
+  email: { name: '邮箱地址', regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi },
+  phone: { name: '手机号', regex: /1[3-9]\d{9}/g },
+  ipv4: { name: 'IPv4地址', regex: /\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b/g },
+  ipv6: { name: 'IPv6地址', regex: /\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b/g },
+  idcard: { name: '身份证号', regex: /\b[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx]\b/g },
+  date: { name: '日期', regex: /\b(?:19|20)\d{2}[-/年.]\d{1,2}[-/月.]\d{1,2}日?\b|\b\d{1,2}[-/]\d{1,2}[-/](?:19|20)\d{2}\b/g },
+  bankcard: { name: '银行卡号', regex: /\b(?:62|4|5)\d{15,18}\b/g }
+};
 
 function extractEntities() {
-  showToast('extractEntities - coming soon!');
+  var inp = document.getElementById('inputText');
+  if (!inp || !inp.value.trim()) { showToast('请输入文本'); return; }
+  var text = inp.value;
+  var cbs = document.querySelectorAll('#entityOptions input[type=checkbox]');
+  var selected = [];
+  cbs.forEach(function(cb) { if (cb.checked) selected.push(cb.value); });
+
+  extractedData = {};
+  var total = 0;
+
+  selected.forEach(function(type) {
+    var pat = ENTITY_PATTERNS[type];
+    if (!pat) return;
+    var matches = text.match(pat.regex) || [];
+    // Deduplicate
+    var seen = {};
+    matches = matches.filter(function(m) {
+      if (seen[m]) return false;
+      seen[m] = true;
+      return true;
+    });
+    if (matches.length > 0) {
+      extractedData[type] = { name: pat.name, items: matches };
+      total += matches.length;
+    }
+  });
+
+  // Render tabs
+  var tabsEl = document.getElementById('resultTabs');
+  var contentEl = document.getElementById('resultContents');
+  if (!tabsEl || !contentEl) return;
+
+  var types = Object.keys(extractedData);
+  if (!types.length) {
+    tabsEl.innerHTML = '';
+    contentEl.innerHTML = '<p style="color:#64748b;text-align:center;padding:20px">未找到匹配的实体</p>';
+    var stats = document.getElementById('inputStats');
+    if (stats) stats.textContent = '';
+    showToast('未找到匹配实体');
+    return;
+  }
+
+  activeTab = types[0];
+  tabsEl.innerHTML = types.map(function(t) {
+    return '<button class="tab-btn' + (t === activeTab ? ' active' : '') + '" onclick="switchResultTab(\'' + t + '\')">' + extractedData[t].name + ' (' + extractedData[t].items.length + ')</button>';
+  }).join('');
+
+  renderResultContent();
+
+  var stats = document.getElementById('inputStats');
+  if (stats) {
+    stats.textContent = '文本: ' + text.length + '字符 | 提取: ' + total + '个实体 | ' + types.length + '种类型';
+  }
+  showToast('已提取' + total + '个实体');
+}
+
+function switchResultTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('#resultTabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  event.target.classList.add('active');
+  renderResultContent();
+}
+
+function renderResultContent() {
+  var contentEl = document.getElementById('resultContents');
+  if (!contentEl || !activeTab || !extractedData[activeTab]) return;
+  var data = extractedData[activeTab];
+  contentEl.innerHTML = '<div style="background:#0f172a;border-radius:8px;padding:12px">' +
+    data.items.map(function(item, i) {
+      return '<div style="padding:6px 8px;border-bottom:1px solid rgba(148,163,184,.08);color:#22d3ee;font-family:monospace">' +
+        '<span style="color:#64748b;margin-right:8px">' + (i+1) + '.</span>' + item + '</div>';
+    }).join('') +
+    '</div>';
+}
+
+function clearAll() {
+  var inp = document.getElementById('inputText'); if (inp) inp.value = '';
+  var tabsEl = document.getElementById('resultTabs'); if (tabsEl) tabsEl.innerHTML = '';
+  var contentEl = document.getElementById('resultContents'); if (contentEl) contentEl.innerHTML = '';
+  var stats = document.getElementById('inputStats'); if (stats) stats.textContent = '';
+  extractedData = {};
+  showToast('已清空');
 }
 
 function toggleAll(el) {
+  if (typeof el === 'boolean') {
+    // Checkbox select/deselect all
+    document.querySelectorAll('#entityOptions input[type=checkbox]').forEach(function(cb) { cb.checked = el; });
+    return;
+  }
   if(el) {
     var content = el.nextElementSibling;
     if(content) content.style.display = content.style.display === 'none' ? 'block' : 'none';

@@ -180,22 +180,127 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === 周计划核心逻辑 ===
+var weekData = {};
+var currentWeekStart = '';
+
+function getWeekKey(date) {
+  var d = new Date(date);
+  var day = d.getDay() || 7; // Sunday = 7
+  d.setDate(d.getDate() - day + 1); // Monday
+  return d.getFullYear() + '-W' + String(getWeekOfYear(d)).padStart(2,'0');
+}
+
+function getWeekOfYear(d) {
+  var onejan = new Date(d.getFullYear(), 0, 1);
+  return Math.ceil(((d - onejan) / 86400000 + onejan.getDay() + 1) / 7);
+}
+
+function getMondayOf(dateStr) {
+  var d = dateStr ? new Date(dateStr) : new Date();
+  var day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function formatDateKey(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+var dayNames = ['周一','周二','周三','周四','周五','周六','周日'];
+
+function loadWeekData(weekKey) {
+  try {
+    var saved = localStorage.getItem('weekplan_' + weekKey);
+    return saved ? JSON.parse(saved) : {};
+  } catch(e) { return {}; }
+}
+
+function saveWeekData(weekKey, data) {
+  try { localStorage.setItem('weekplan_' + weekKey, JSON.stringify(data)); } catch(e) {}
+}
+
+function renderWeek() {
+  var monday = getMondayOf(currentWeekStart);
+  var weekKey = getWeekKey(monday);
+  weekData = loadWeekData(weekKey);
+
+  var grid = document.getElementById('weekGrid');
+  if (!grid) return;
+
+  var nextSunday = new Date(monday);
+  nextSunday.setDate(nextSunday.getDate() + 6);
+
+  var html = '<div style="text-align:center;margin-bottom:12px;color:#22d3ee;font-size:1rem">';
+  html += formatDateKey(monday) + ' ~ ' + formatDateKey(nextSunday);
+  html += '</div>';
+
+  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">';
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(monday);
+    d.setDate(d.getDate() + i);
+    var dateKey = formatDateKey(d);
+    var tasks = weekData[dateKey] || [];
+    html += '<div style="background:#0f172a;border-radius:8px;padding:8px;min-height:120px">';
+    html += '<div style="color:#22d3ee;font-size:.8rem;font-weight:600;margin-bottom:4px">' + dayNames[i] + '</div>';
+    html += '<div style="color:#64748b;font-size:.7rem;margin-bottom:6px">' + (d.getMonth()+1) + '/' + d.getDate() + '</div>';
+    tasks.forEach(function(t, ti) {
+      var priorityColor = t.priority === 'high' ? '#f87171' : t.priority === 'medium' ? '#fbbf24' : '#4ade80';
+      html += '<div style="background:' + (t.done ? 'rgba(74,222,128,.1)' : 'rgba(148,163,184,.08)') + ';border-radius:4px;padding:4px 6px;margin-bottom:3px;font-size:.75rem;color:' + (t.done ? '#64748b;text-decoration:line-through' : '#e2e8f0') + ';border-left:2px solid ' + priorityColor + '">' + t.text + '</div>';
+    });
+    html += '<input type="text" placeholder="+ 添加" style="width:100%;background:transparent;border:1px solid rgba(148,163,184,.15);border-radius:4px;padding:4px;color:#e2e8f0;font-size:.75rem;margin-top:4px" onkeydown="if(event.key===\'Enter\'){addWeekTask(\'' + dateKey + '\',this.value,this)}">';
+    html += '</div>';
+  }
+  html += '</div>';
+  grid.innerHTML = html;
+
+  var ws = document.getElementById('weekStart');
+  if (ws) ws.value = formatDateKey(monday);
+}
+
+function addWeekTask(dateKey, text, inputEl) {
+  if (!text.trim()) return;
+  var weekKey = getWeekKey(getMondayOf(currentWeekStart));
+  if (!weekData[dateKey]) weekData[dateKey] = [];
+  weekData[dateKey].push({ text: text.trim(), priority: 'medium', done: false });
+  saveWeekData(weekKey, weekData);
+  if (inputEl) inputEl.value = '';
+  renderWeek();
+  showToast('已添加任务');
+}
+
 function clearWeek() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  var weekKey = getWeekKey(getMondayOf(currentWeekStart));
+  weekData = {};
+  saveWeekData(weekKey, weekData);
+  renderWeek();
+  showToast('已清空本周');
 }
 
 function loadWeek() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
+  var ws = document.getElementById('weekStart');
+  currentWeekStart = ws && ws.value ? ws.value : formatDateKey(new Date());
+  renderWeek();
 }
 
 function nextWeek() {
-  showToast('nextWeek - coming soon!');
+  var monday = getMondayOf(currentWeekStart);
+  monday.setDate(monday.getDate() + 7);
+  currentWeekStart = formatDateKey(monday);
+  renderWeek();
 }
 
 function prevWeek() {
-  showToast('prevWeek - coming soon!');
+  var monday = getMondayOf(currentWeekStart);
+  monday.setDate(monday.getDate() - 7);
+  currentWeekStart = formatDateKey(monday);
+  renderWeek();
 }
+
+// Initialize
+currentWeekStart = formatDateKey(new Date());
+renderWeek();
 </script>
 </body>
 </html>

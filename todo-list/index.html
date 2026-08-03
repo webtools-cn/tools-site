@@ -185,21 +185,82 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === 待办事项核心逻辑 ===
+var todos = [];
+
+try {
+  var saved = localStorage.getItem('todos_v1');
+  if (saved) todos = JSON.parse(saved);
+} catch(e) {}
+
+function saveTodos() {
+  try { localStorage.setItem('todos_v1', JSON.stringify(todos)); } catch(e) {}
+}
+
+function renderTodos() {
+  var list = document.getElementById('todoList');
+  if (!list) return;
+  if (!todos.length) {
+    list.innerHTML = '<p style="color:#64748b;text-align:center;padding:20px">暂无任务，添加一个吧！</p>';
+  } else {
+    var priorityLabel = { high: '高', medium: '中', low: '低' };
+    var priorityColor = { high: '#f87171', medium: '#fbbf24', low: '#4ade80' };
+    var categoryLabel = { work: '工作', personal: '个人', study: '学习', health: '健康', other: '其他' };
+    list.innerHTML = todos.map(function(t, i) {
+      return '<div style="display:flex;align-items:center;gap:8px;padding:10px;background:#0f172a;border-radius:8px;margin-bottom:8px;border-left:3px solid ' + priorityColor[t.priority] + '">' +
+        '<input type="checkbox" ' + (t.done ? 'checked' : '') + ' onchange="toggleTodo(' + i + ')" style="width:18px;height:18px;accent-color:#06b6d4">' +
+        '<span style="flex:1;color:' + (t.done ? '#64748b;text-decoration:line-through' : '#e2e8f0') + '">' + t.text + '</span>' +
+        '<span style="font-size:.75rem;color:' + priorityColor[t.priority] + '">' + priorityLabel[t.priority] + '</span>' +
+        '<span style="font-size:.75rem;color:#64748b">' + categoryLabel[t.category] + '</span>' +
+        '<button onclick="deleteTodo(' + i + ')" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:1rem">✕</button>' +
+        '</div>';
+    }).join('');
+  }
+  // Update stats
+  var stats = document.getElementById('todoStats');
+  if (stats) {
+    var done = todos.filter(function(t) { return t.done; }).length;
+    stats.textContent = '总计: ' + todos.length + ' | 已完成: ' + done + ' | 未完成: ' + (todos.length - done);
+  }
+}
+
+function toggleTodo(i) {
+  if (todos[i]) { todos[i].done = !todos[i].done; saveTodos(); renderTodos(); }
+}
+
+function deleteTodo(i) {
+  todos.splice(i, 1); saveTodos(); renderTodos();
+  showToast('已删除');
+}
+
 function addTodo() {
-  showToast('addTodo - coming soon!');
+  var inp = document.getElementById('todoInput');
+  if (!inp || !inp.value.trim()) { showToast('请输入任务内容'); return; }
+  var priority = document.getElementById('todoPriority') ? document.getElementById('todoPriority').value : 'medium';
+  var category = document.getElementById('todoCategory') ? document.getElementById('todoCategory').value : 'other';
+  todos.push({ text: inp.value.trim(), priority: priority, category: category, done: false, created: Date.now() });
+  inp.value = '';
+  saveTodos();
+  renderTodos();
+  showToast('已添加任务');
 }
 
 function clearAll() {
-  document.getElementById('todoInput').value = '';
-  document.getElementById('todoPriority').selectedIndex = 0;
-  document.getElementById('todoCategory').selectedIndex = 0;
-  showToast('已重置');
+  todos = [];
+  saveTodos();
+  renderTodos();
+  showToast('已清空全部');
 }
 
 function clearCompleted() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  todos = todos.filter(function(t) { return !t.done; });
+  saveTodos();
+  renderTodos();
+  showToast('已清除已完成');
 }
+
+// Initial render
+renderTodos();
 </script>
 </body>
 </html>
