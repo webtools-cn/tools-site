@@ -253,12 +253,45 @@ function loadExample() {
   showToast('已加载示例');
 }
 
-function previewResult() {
-  showToast('previewResult - coming soon!');
+function sanitize() {
+  var input = document.getElementById('input-html').value;
+  if (!input) { showToast('请输入HTML代码'); return; }
+  // 使用DOMParser安全解析HTML
+  var doc = new DOMParser().parseFromString(input, 'text/html');
+  // 移除危险元素和属性
+  var dangerous = doc.querySelectorAll('script,iframe,object,embed,form,link[rel=import],meta[http-equiv],base');
+  dangerous.forEach(function(el) { el.remove(); });
+  // 移除事件属性
+  doc.querySelectorAll('*').forEach(function(el) {
+    var attrs = el.attributes;
+    for (var i = attrs.length - 1; i >= 0; i--) {
+      var name = attrs[i].name.toLowerCase();
+      if (name.startsWith('on') || name === 'style' && /expression|javascript:/i.test(attrs[i].value)) {
+        el.removeAttribute(attrs[i].name);
+      }
+      if (name === 'href' || name === 'src') {
+        var val = attrs[i].value.trim().toLowerCase();
+        if (val.startsWith('javascript:') || val.startsWith('data:text/html')) {
+          el.removeAttribute(attrs[i].name);
+        }
+      }
+    }
+  });
+  var clean = doc.body.innerHTML;
+  document.getElementById('output-html').textContent = clean;
+  document.getElementById('output-html').style.display = 'block';
+  showToast('✅ HTML已消毒');
 }
 
-function sanitize() {
-  showToast('sanitize - coming soon!');
+function previewResult() {
+  var input = document.getElementById('input-html').value;
+  if (!input) { showToast('请先输入HTML代码'); return; }
+  sanitize();
+  var clean = document.getElementById('output-html').textContent;
+  var previewWin = window.open('', '_blank');
+  previewWin.document.write('<html><head><meta charset="UTF-8"><title>HTML预览</title></head><body style="font-family:sans-serif;padding:20px">' + clean + '</body></html>');
+  previewWin.document.close();
+  showToast('✅ 已在新窗口预览');
 }
 </script>
 </body>

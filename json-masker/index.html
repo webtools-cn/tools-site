@@ -234,7 +234,85 @@ function loadExample() {
 }
 
 function maskJSON() {
-  showToast('maskJSON - coming soon!');
+  var input = document.getElementById('jsonInput').value.trim();
+  if (!input) { showToast('请输入JSON数据'); return; }
+  var data;
+  try {
+    data = JSON.parse(input);
+  } catch(e) {
+    document.getElementById('inputError').textContent = '❌ JSON解析失败: ' + e.message;
+    document.getElementById('inputError').style.display = 'block';
+    return;
+  }
+  document.getElementById('inputError').style.display = 'none';
+
+  var mode = document.getElementById('maskMode').value;
+  var maskChar = document.getElementById('maskChar').value;
+  var customFields = document.getElementById('customFields').value.trim().split(',').map(function(s){return s.trim().toLowerCase();}).filter(function(s){return s;});
+
+  // Build sensitive field list
+  var sensitiveFields = [];
+  if (document.getElementById('chkPhone').checked) sensitiveFields.push('phone','mobile','tel','telephone');
+  if (document.getElementById('chkEmail').checked) sensitiveFields.push('email','mail','e-mail');
+  if (document.getElementById('chkIdCard').checked) sensitiveFields.push('idcard','id_card','identity','id_number','idnumber','身份证');
+  if (document.getElementById('chkPassword').checked) sensitiveFields.push('password','pwd','passwd','pass','secret','token','apikey','api_key');
+  if (document.getElementById('chkBankCard').checked) sensitiveFields.push('bankcard','bank_card','cardnumber','card_number','cardno','银行卡');
+  if (document.getElementById('chkIP').checked) sensitiveFields.push('ip','ipaddress','ip_address');
+  if (document.getElementById('chkAddress').checked) sensitiveFields.push('address','addr','地址','住址');
+  if (document.getElementById('chkName').checked) sensitiveFields.push('name','username','user_name','姓名','realname','real_name');
+  sensitiveFields = sensitiveFields.concat(customFields);
+
+  function maskValue(val, fieldName) {
+    if (mode === 'remove') return undefined;
+    if (typeof val !== 'string') val = String(val);
+    if (mode === 'full') return maskChar.repeat(Math.min(val.length, 8));
+
+    // Partial masking based on field type
+    var fl = fieldName.toLowerCase();
+    if (/phone|mobile|tel/.test(fl) && val.length >= 7) {
+      return val.substring(0,3) + maskChar.repeat(4) + val.substring(val.length-4);
+    }
+    if (/email|mail/.test(fl) && val.indexOf('@') > 0) {
+      var parts = val.split('@');
+      return parts[0].substring(0,1) + maskChar.repeat(3) + '@' + parts[1];
+    }
+    if (/idcard|identity|id_number/.test(fl) && val.length >= 7) {
+      return val.substring(0,3) + maskChar.repeat(val.length-7) + val.substring(val.length-4);
+    }
+    if (/bankcard|card/.test(fl) && val.length >= 8) {
+      return val.substring(0,4) + maskChar.repeat(val.length-8) + val.substring(val.length-4);
+    }
+    // Default: keep first and last char
+    if (val.length <= 2) return maskChar.repeat(val.length);
+    return val.substring(0,1) + maskChar.repeat(val.length-2) + val.substring(val.length-1);
+  }
+
+  function process(obj) {
+    if (Array.isArray(obj)) {
+      return obj.map(process);
+    } else if (obj && typeof obj === 'object') {
+      var result = {};
+      for (var key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          var lk = key.toLowerCase();
+          var isSensitive = sensitiveFields.some(function(sf) { return lk.includes(sf); });
+          if (isSensitive) {
+            var masked = maskValue(obj[key], key);
+            if (masked !== undefined) result[key] = masked;
+          } else {
+            result[key] = process(obj[key]);
+          }
+        }
+      }
+      return result;
+    }
+    return obj;
+  }
+
+  var masked = process(data);
+  var output = JSON.stringify(masked, null, 2);
+  document.getElementById('jsonOutput').value = output;
+  showToast('✅ 脱敏完成');
 }
 </script>
 </body>

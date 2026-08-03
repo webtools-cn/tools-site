@@ -258,13 +258,67 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+var currentShape = 'rectangle';
+function selectShape(shape) {
+  currentShape = shape;
+  document.querySelectorAll('.shape-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelector('[data-shape="' + shape + '"]').classList.add('active');
+  document.querySelectorAll('.shape-fields').forEach(function(f) { f.classList.remove('show'); });
+  document.getElementById('shape-' + shape).classList.add('show');
+}
+
+// 单位转平方米的系数
+var unitToM2 = { m: 1, cm: 0.0001, ft: 0.092903, in: 0.00064516 };
+var unitLabels = { m: 'm', cm: 'cm', ft: 'ft', in: 'in' };
+
 function calculateArea() {
-  showToast('calculateArea - coming soon!');
+  var unit = document.getElementById('unitInput').value;
+  var factor = unitToM2[unit] || 1;
+  var areaInUnitSq = 0;
+
+  if (currentShape === 'rectangle') {
+    var len = parseFloat(document.getElementById('rectLen').value) || 0;
+    var wid = parseFloat(document.getElementById('rectWid').value) || 0;
+    areaInUnitSq = len * wid;
+  } else if (currentShape === 'lshape') {
+    var a = parseFloat(document.getElementById('lA').value) || 0;
+    var b = parseFloat(document.getElementById('lB').value) || 0;
+    var c = parseFloat(document.getElementById('lC').value) || 0;
+    areaInUnitSq = a * c + (b - c) * c;
+    if (b < c) { showToast('短边B应大于宽边C'); return; }
+  } else if (currentShape === 'circle') {
+    var dia = parseFloat(document.getElementById('circleDia').value) || 0;
+    var r = dia / 2;
+    areaInUnitSq = Math.PI * r * r;
+  } else if (currentShape === 'triangle') {
+    var base = parseFloat(document.getElementById('triBase').value) || 0;
+    var height = parseFloat(document.getElementById('triHeight').value) || 0;
+    areaInUnitSq = 0.5 * base * height;
+  }
+
+  if (areaInUnitSq <= 0) { showToast('请输入有效的尺寸'); return; }
+
+  // 转为平方米
+  var areaM2 = areaInUnitSq * factor;
+  var areaFt2 = areaM2 / 0.092903;
+  var areaCm2 = areaM2 * 10000;
+  var areaIn2 = areaM2 / 0.00064516;
+
+  var unitLabel = unitLabels[unit] || 'm';
+  document.getElementById('areaDisplay').textContent = areaInUnitSq.toFixed(2) + ' ' + unitLabel + '²';
+  document.getElementById('areaM2').textContent = areaM2.toFixed(4);
+  document.getElementById('areaFt2').textContent = areaFt2.toFixed(2);
+  document.getElementById('areaCm2').textContent = areaCm2.toFixed(2);
+  document.getElementById('areaIn2').textContent = areaIn2.toFixed(2);
+  document.getElementById('resultSection').classList.add('show');
+  showToast('✅ 计算完成');
 }
 
 function onUnitChange() {
-  showToast('onUnitChange - coming soon!');
+  // 单位切换时如果有结果则重新计算
+  if (document.getElementById('resultSection').classList.contains('show')) {
+    calculateArea();
+  }
 }
 
 function resetForm() {

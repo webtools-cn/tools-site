@@ -233,16 +233,114 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === 浏览器信息检测实现 ===
 function copyUA() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
+  var text = document.getElementById('uaFull').textContent || '';
   if (!text) { showToast('没有可复制的内容'); return; }
-  copyText(text);
+  navigator.clipboard.writeText(text).then(function(){showToast('✅ UA已复制到剪贴板');}).catch(function(){showToast('复制失败');});
 }
 
 function detectAll() {
-  showToast('detectAll - coming soon!');
+  var ua = navigator.userAgent;
+  document.getElementById('uaFull').textContent = ua;
+
+  // 浏览器与操作系统
+  var browserName = 'Unknown', browserVer = '', engine = '', os = 'Unknown';
+  if(/Edg\/([\d.]+)/.test(ua)){browserName='Microsoft Edge';browserVer=RegExp.$1;}
+  else if(/OPR\/([\d.]+)/.test(ua)){browserName='Opera';browserVer=RegExp.$1;}
+  else if(/Chrome\/([\d.]+)/.test(ua)){browserName='Chrome';browserVer=RegExp.$1;}
+  else if(/Firefox\/([\d.]+)/.test(ua)){browserName='Firefox';browserVer=RegExp.$1;}
+  else if(/Version\/([\d.]+).*Safari/.test(ua)){browserName='Safari';browserVer=RegExp.$1;}
+  if(/AppleWebKit/.test(ua))engine='Blink/Webkit';
+  else if(/Gecko\/\d/.test(ua))engine='Gecko';
+  if(/Windows NT ([\d.]+)/.test(ua)){os='Windows NT '+RegExp.$1;}
+  else if(/Mac OS X ([\d_]+)/.test(ua)){os='macOS '+RegExp.$1.replace(/_/g,'.');}
+  else if(/Android ([\d.]+)/.test(ua)){os='Android '+RegExp.$1;}
+  else if(/iPhone OS ([\d_]+)/.test(ua)){os='iOS '+RegExp.$1.replace(/_/g,'.');}
+  else if(/Linux/.test(ua))os='Linux';
+
+  var browserItems = [
+    {label:'浏览器名称',value:browserName},
+    {label:'浏览器版本',value:browserVer||'—'},
+    {label:'渲染引擎',value:engine||'—'},
+    {label:'操作系统',value:os},
+    {label:'平台',value:navigator.platform||'—'},
+    {label:'语言',value:navigator.language||'—'},
+    {label:'所有语言',value:(navigator.languages||[]).join(', ')||'—'},
+    {label:'Do Not Track',value:navigator.doNotTrack==='1'?'✅ 已启用':'❌ 未启用'}
+  ];
+  document.getElementById('browserGrid').innerHTML = browserItems.map(function(i){
+    return '<div class="info-item"><div class="label">'+i.label+'</div><div class="value">'+i.value+'</div></div>';
+  }).join('');
+
+  // 屏幕与显示
+  var screenItems = [
+    {label:'屏幕分辨率',value:screen.width+' × '+screen.height+' px'},
+    {label:'可用分辨率',value:screen.availWidth+' × '+screen.availHeight+' px'},
+    {label:'颜色深度',value:screen.colorDepth+' bit'},
+    {label:'像素深度',value:screen.pixelDepth+' bit'},
+    {label:'设备像素比(DPR)',value:window.devicePixelRatio||'1'},
+    {label:'视口尺寸',value:window.innerWidth+' × '+window.innerHeight+' px'},
+    {label:'屏幕方向',value:(screen.orientation&&screen.orientation.type)?screen.orientation.type:'—'},
+    {label:'色彩gamut',value:(window.matchMedia)?(function(){var g=['rec2020','p3','srgb'];for(var i=0;i<g.length;i++){if(window.matchMedia('(color-gamut: '+g[i]+')').matches)return g[i];}return 'unknown';})():'—'}
+  ];
+  document.getElementById('screenGrid').innerHTML = screenItems.map(function(i){
+    return '<div class="info-item"><div class="label">'+i.label+'</div><div class="value">'+i.value+'</div></div>';
+  }).join('');
+
+  // 硬件信息
+  var hwItems = [
+    {label:'CPU逻辑核心数',value:navigator.hardwareConcurrency||'—'},
+    {label:'设备内存',value:navigator.deviceMemory?navigator.deviceMemory+' GB':'—'},
+    {label:'最大触摸点',value:navigator.maxTouchPoints||'0'},
+    {label:'触摸支持',value:('ontouchstart' in window)?'✅ 支持':'❌ 不支持'},
+    {label:'Cookie启用',value:navigator.cookieEnabled?'✅ 是':'❌ 否'},
+    {label:'WebSocket支持',value:('WebSocket' in window)?'✅ 支持':'❌ 不支持'}
+  ];
+  document.getElementById('hardwareGrid').innerHTML = hwItems.map(function(i){
+    return '<div class="info-item"><div class="label">'+i.label+'</div><div class="value">'+i.value+'</div></div>';
+  }).join('');
+
+  // 网络与时区
+  var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  var netItems = [
+    {label:'在线状态',value:navigator.onLine?'✅ 在线':'❌ 离线'},
+    {label:'时区',value:Intl.DateTimeFormat().resolvedOptions().timeZone||'—'},
+    {label:'时区偏移',value:'UTC'+(new Date().getTimezoneOffset()>0?'-':'+')+Math.abs(new Date().getTimezoneOffset()/60)+'h'},
+    {label:'网络类型',value:conn&&conn.effectiveType?conn.effectiveType:'—'},
+    {label:'下行速度',value:conn&&conn.downlink?conn.downlink+' Mbps':'—'},
+    {label:'RTT',value:conn&&conn.rtt?conn.rtt+' ms':'—'}
+  ];
+  document.getElementById('networkGrid').innerHTML = netItems.map(function(i){
+    return '<div class="info-item"><div class="label">'+i.label+'</div><div class="value">'+i.value+'</div></div>';
+  }).join('');
+
+  // 浏览器功能与API
+  var featItems = [
+    {label:'WebGL',value:('WebGLRenderingContext' in window)?'<span class="tag tag-ok">✅ 支持</span>':'<span class="tag tag-err">❌ 不支持</span>'},
+    {label:'WebGL 2.0',value:('WebGL2RenderingContext' in window)?'<span class="tag tag-ok">✅ 支持</span>':'<span class="tag tag-err">❌ 不支持</span>'},
+    {label:'Service Worker',value:('serviceWorker' in navigator)?'<span class="tag tag-ok">✅ 支持</span>':'<span class="tag tag-err">❌ 不支持</span>'},
+    {label:'WebAssembly',value:('WebAssembly' in window)?'<span class="tag tag-ok">✅ 支持</span>':'<span class="tag tag-err">❌ 不支持</span>'},
+    {label:'Clipboard API',value:(navigator.clipboard)?'<span class="tag tag-ok">✅ 支持</span>':'<span class="tag tag-err">❌ 不支持</span>'},
+    {label:'Geolocation',value:('geolocation' in navigator)?'<span class="tag tag-ok">✅ 支持</span>':'<span class="tag tag-err">❌ 不支持</span>'},
+    {label:'Notification',value:('Notification' in window)?'<span class="tag tag-ok">✅ 支持</span>':'<span class="tag tag-err">❌ 不支持</span>'},
+    {label:'Web Share',value:(navigator.share)?'<span class="tag tag-ok">✅ 支持</span>':'<span class="tag tag-err">❌ 不支持</span>'},
+    {label:'Local Storage',value:('localStorage' in window)?'<span class="tag tag-ok">✅ 支持</span>':'<span class="tag tag-err">❌ 不支持</span>'},
+    {label:'Session Storage',value:('sessionStorage' in window)?'<span class="tag tag-ok">✅ 支持</span>':'<span class="tag tag-err">❌ 不支持</span>'},
+    {label:'IndexedDB',value:('indexedDB' in window)?'<span class="tag tag-ok">✅ 支持</span>':'<span class="tag tag-err">❌ 不支持</span>'},
+    {label:'WebRTC',value:('RTCPeerConnection' in window)?'<span class="tag tag-ok">✅ 支持</span>':'<span class="tag tag-err">❌ 不支持</span>'},
+    {label:'Payment Request',value:('PaymentRequest' in window)?'<span class="tag tag-ok">✅ 支持</span>':'<span class="tag tag-err">❌ 不支持</span>'},
+    {label:'Credentials',value:('credentials' in navigator)?'<span class="tag tag-ok">✅ 支持</span>':'<span class="tag tag-err">❌ 不支持</span>'}
+  ];
+  document.getElementById('featureGrid').innerHTML = featItems.map(function(i){
+    return '<div class="info-item"><div class="label">'+i.label+'</div><div class="value">'+i.value+'</div></div>';
+  }).join('');
+
+  showToast('✅ 检测完成，已刷新所有信息');
 }
+
+// 页面加载时自动检测
+detectAll();
 </script>
 </div>
 
