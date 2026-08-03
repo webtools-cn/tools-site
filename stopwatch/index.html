@@ -232,18 +232,144 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function recordLap() {
-  showToast('recordLap - coming soon!');
+// === 秒表核心逻辑 ===
+var swState = { running: false, startTime: 0, elapsed: 0, laps: [], lapStart: 0, rafId: null };
+
+function formatTime(ms) {
+  var totalSec = Math.floor(ms / 1000);
+  var min = Math.floor(totalSec / 60);
+  var sec = totalSec % 60;
+  var millis = ms % 1000;
+  return String(min).padStart(2, '0') + ':' + String(sec).padStart(2, '0') + '<span class="millis">.' + String(millis).padStart(3, '0') + '</span>';
 }
 
-function resetTimer() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+function formatTimeText(ms) {
+  var totalSec = Math.floor(ms / 1000);
+  var min = Math.floor(totalSec / 60);
+  var sec = totalSec % 60;
+  var millis = ms % 1000;
+  return String(min).padStart(2, '0') + ':' + String(sec).padStart(2, '0') + '.' + String(millis).padStart(3, '0');
+}
+
+function updateDisplay() {
+  var ms = swState.elapsed;
+  if (swState.running) {
+    ms += Date.now() - swState.startTime;
+  }
+  var el = document.getElementById('timerDisplay');
+  if (el) el.innerHTML = formatTime(ms);
+  if (swState.running) {
+    swState.rafId = requestAnimationFrame(updateDisplay);
+  }
 }
 
 function toggleTimer() {
-  showToast('Toggled!');
+  var btn = document.getElementById('startBtn');
+  var lapBtn = document.getElementById('lapBtn');
+  if (!swState.running) {
+    swState.running = true;
+    swState.startTime = Date.now();
+    swState.lapStart = swState.elapsed;
+    if (btn) btn.textContent = '暂停';
+    if (lapBtn) lapBtn.disabled = false;
+    updateDisplay();
+  } else {
+    swState.running = false;
+    swState.elapsed += Date.now() - swState.startTime;
+    if (swState.rafId) cancelAnimationFrame(swState.rafId);
+    if (btn) btn.textContent = '继续';
+  }
 }
+
+function recordLap() {
+  if (!swState.running && swState.elapsed === 0) {
+    showToast('请先开始计时');
+    return;
+  }
+  var currentMs = swState.elapsed;
+  if (swState.running) {
+    currentMs += Date.now() - swState.startTime;
+  }
+  var lapTime = currentMs - swState.lapStart;
+  swState.lapStart = currentMs;
+  swState.laps.push({ total: currentMs, split: lapTime });
+
+  // Show lap section
+  var lapSection = document.getElementById('lapSection');
+  if (lapSection) lapSection.style.display = '';
+
+  // Add row to table
+  var tbody = document.getElementById('lapTable');
+  if (tbody) {
+    var lapNum = swState.laps.length;
+    var row = tbody.insertRow(0);
+    row.innerHTML = '<td>第' + lapNum + '圈</td><td>' + formatTimeText(currentMs) + '</td><td>' + formatTimeText(lapTime) + '</td><td>—</td>';
+    // Update diff column for all rows
+    var rows = tbody.querySelectorAll('tr');
+    if (rows.length > 1) {
+      var fastest = Math.min.apply(null, swState.laps.map(function(l) { return l.split; }));
+      var slowest = Math.max.apply(null, swState.laps.map(function(l) { return l.split; }));
+      rows.forEach(function(r, idx) {
+        var cells = r.querySelectorAll('td');
+        if (cells.length >= 4 && idx < swState.laps.length) {
+          var split = swState.laps[swState.laps.length - 1 - idx].split;
+          if (split === fastest && swState.laps.length > 1) {
+            cells[3].innerHTML = '<span style="color:#22c55e">最快</span>';
+          } else if (split === slowest && swState.laps.length > 1) {
+            cells[3].innerHTML = '<span style="color:#ef4444">最慢</span>';
+          } else {
+            cells[3].textContent = '—';
+          }
+        }
+      });
+    }
+  }
+
+  // Update stats
+  var statsArea = document.getElementById('statsArea');
+  if (statsArea) statsArea.style.display = '';
+  var splits = swState.laps.map(function(l) { return l.split; });
+  var fastest = Math.min.apply(null, splits);
+  var slowest = Math.max.apply(null, splits);
+  var avg = splits.reduce(function(a, b) { return a + b; }, 0) / splits.length;
+  var el;
+  el = document.getElementById('statCount'); if (el) el.textContent = swState.laps.length;
+  el = document.getElementById('statFastest'); if (el) el.textContent = formatTimeText(fastest);
+  el = document.getElementById('statSlowest'); if (el) el.textContent = formatTimeText(slowest);
+  el = document.getElementById('statAvg'); if (el) el.textContent = formatTimeText(avg);
+
+  showToast('已记录第' + swState.laps.length + '圈');
+}
+
+function resetTimer() {
+  swState.running = false;
+  swState.startTime = 0;
+  swState.elapsed = 0;
+  swState.laps = [];
+  swState.lapStart = 0;
+  if (swState.rafId) cancelAnimationFrame(swState.rafId);
+  var btn = document.getElementById('startBtn');
+  if (btn) btn.textContent = '开始';
+  var lapBtn = document.getElementById('lapBtn');
+  if (lapBtn) lapBtn.disabled = true;
+  var el = document.getElementById('timerDisplay');
+  if (el) el.innerHTML = '00:00<span class="millis">.000</span>';
+  var statsArea = document.getElementById('statsArea');
+  if (statsArea) statsArea.style.display = 'none';
+  var lapSection = document.getElementById('lapSection');
+  if (lapSection) lapSection.style.display = 'none';
+  var tbody = document.getElementById('lapTable');
+  if (tbody) tbody.innerHTML = '';
+  showToast('已重置');
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.code === 'Space') { e.preventDefault(); toggleTimer(); }
+  else if (e.key === 'l' || e.key === 'L') { e.preventDefault(); recordLap(); }
+  else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); resetTimer(); }
+});
 </script>
 </body>
 </html>

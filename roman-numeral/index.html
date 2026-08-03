@@ -267,26 +267,103 @@ function clearInput() {
   showToast('已清空');
 }
 
+function intToRoman(num) {
+  if (num < 1 || num > 3999) return '';
+  var val = [1000,900,500,400,100,90,50,40,10,9,5,4,1];
+  var sym = ['M','CM','D','CD','C','XC','L','XL','X','IX','V','IV','I'];
+  var result = '';
+  for (var i = 0; i < val.length; i++) {
+    while (num >= val[i]) { result += sym[i]; num -= val[i]; }
+  }
+  return result;
+}
+
+function romanToInt(str) {
+  str = str.toUpperCase().trim();
+  var map = {I:1,V:5,X:10,L:50,C:100,D:500,M:1000};
+  var total = 0, prev = 0;
+  for (var i = str.length - 1; i >= 0; i--) {
+    var c = map[str[i]];
+    if (!c) return -1;
+    if (c < prev) total -= c; else total += c;
+    prev = c;
+  }
+  // Validate by round-trip
+  if (intToRoman(total) !== str) return -1;
+  return total;
+}
+
 function convertNumToRoman() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;if(typeof mainConvert==='function')mainConvert();else{{out.textContent=inp.value;showToast('Converted!')}};
+  var inp = document.getElementById('numInput');
+  var out = document.getElementById('numResult');
+  if (!inp || !out) return;
+  var num = parseInt(inp.value);
+  if (isNaN(num)) { out.textContent = '请输入数字'; return; }
+  if (num < 1 || num > 3999) { out.textContent = '请输入1-3999之间的数字'; return; }
+  out.textContent = intToRoman(num);
 }
 
 function convertRomanToNum() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;if(typeof mainConvert==='function')mainConvert();else{{out.textContent=inp.value;showToast('Converted!')}};
+  var inp = document.getElementById('romanInput');
+  var out = document.getElementById('romanResult');
+  if (!inp || !out) return;
+  var str = inp.value.trim();
+  if (!str) { out.textContent = '请输入罗马数字'; return; }
+  var num = romanToInt(str);
+  if (num < 0) { out.textContent = '无效的罗马数字'; return; }
+  out.textContent = num;
 }
 
-function copyResult() {
-  var text = document.getElementById('result').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+function copyResult(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var text = el.textContent || el.innerText;
+  if (!text || text.indexOf('...') >= 0) { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
+}
+
+function batchConvert() {
+  var inp = document.getElementById('batchInput');
+  var out = document.getElementById('batchResult');
+  if (!inp || !out) return;
+  var lines = inp.value.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; });
+  if (!lines.length) { showToast('请输入要转换的内容'); return; }
+  var html = '<table><thead><tr><th>输入</th><th>结果</th></tr></thead><tbody>';
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var result = '';
+    if (/^\d+$/.test(line)) {
+      var num = parseInt(line);
+      if (num >= 1 && num <= 3999) result = intToRoman(num);
+      else result = '<span style="color:#ef4444">超出范围(1-3999)</span>';
+    } else {
+      var n = romanToInt(line);
+      if (n > 0) result = String(n);
+      else result = '<span style="color:#ef4444">无效罗马数字</span>';
+    }
+    html += '<tr><td>' + line + '</td><td>' + result + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  out.innerHTML = html;
+  showToast('已转换' + lines.length + '项');
+}
+
+function clearInput(id) {
+  var el = document.getElementById(id);
+  if (el) el.value = '';
+  if (id === 'batchInput') {
+    var out = document.getElementById('batchResult');
+    if (out) out.innerHTML = '';
+  }
+  showToast('已清空');
 }
 
 function switchTab(tab) {
-  var tabs = document.querySelectorAll('.tab-content');
-  tabs.forEach(function(t) { t.style.display = 'none'; });
-  var btns = document.querySelectorAll('.tab-btn');
-  btns.forEach(function(b) { b.classList.remove('active'); });
-  document.getElementById(tab).style.display = 'block';
+  ['num2roman','roman2num','batch'].forEach(function(t) {
+    var el = document.getElementById('tab-' + t);
+    if (el) el.style.display = (t === tab) ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach(function(b) { b.classList.remove('active'); });
   event.target.classList.add('active');
 }
 </script>
