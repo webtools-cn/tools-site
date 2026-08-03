@@ -285,28 +285,146 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+function selectMode(mode) {
+  document.querySelectorAll('.mode-fields').forEach(function(el) { el.classList.remove('show'); });
+  var el = document.getElementById('mode-' + mode);
+  if (el) el.classList.add('show');
+  document.querySelectorAll('.mode-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.getAttribute('data-mode') === mode);
+  });
+}
+
+function setDist(id, val) {
+  var el = document.getElementById(id);
+  if (el) { el.value = val; }
+}
+
+function getSelectedUnit() {
+  var radio = document.querySelector('input[name="unit"]:checked');
+  return radio ? radio.value : 'km';
+}
+
+function formatTime(seconds) {
+  seconds = Math.round(seconds);
+  var h = Math.floor(seconds / 3600);
+  var m = Math.floor((seconds % 3600) / 60);
+  var s = seconds % 60;
+  if (h > 0) return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+function formatPace(secondsPerKm) {
+  var m = Math.floor(secondsPerKm / 60);
+  var s = Math.round(secondsPerKm % 60);
+  if (s === 60) { m++; s = 0; }
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+function convertToKm(dist, unit) {
+  if (unit === 'km') return dist;
+  if (unit === 'm') return dist / 1000;
+  if (unit === 'mile') return dist * 1.60934;
+  return dist;
+}
+
 function calculate() {
-  var dtDist = parseFloat(document.getElementById('dtDist').value);
-  var dtHour = parseFloat(document.getElementById('dtHour').value);
-  var dtMin = parseFloat(document.getElementById('dtMin').value);
-  if (dtDist === undefined || isNaN(dtDist)) {
-    showToast('请输入有效数值');
-    return;
+  var activeMode = document.querySelector('.mode-btn.active');
+  if (!activeMode) { showToast('请选择计算模式'); return; }
+  var mode = activeMode.getAttribute('data-mode');
+  var unit = getSelectedUnit();
+  var grid = document.getElementById('resultGrid');
+  var tableWrapper = document.getElementById('paceTableWrapper');
+  var html = '';
+
+  if (mode === 'distanceTime') {
+    var dist = parseFloat(document.getElementById('dtDist').value);
+    var distUnit = document.getElementById('dtDistUnit').value;
+    var hour = parseFloat(document.getElementById('dtHour').value) || 0;
+    var min = parseFloat(document.getElementById('dtMin').value) || 0;
+    var sec = parseFloat(document.getElementById('dtSec').value) || 0;
+    if (isNaN(dist) || dist <= 0) { showToast('请输入有效距离'); return; }
+    var totalSec = hour * 3600 + min * 60 + sec;
+    if (totalSec <= 0) { showToast('请输入有效时间'); return; }
+    var distKm = convertToKm(dist, distUnit);
+    var paceSec = totalSec / distKm;
+    var speed = distKm / (totalSec / 3600);
+    var paceUnit = unit === 'mile' ? '/英里' : '/公里';
+    var paceDisplay = unit === 'mile' ? formatPace(paceSec / 1.60934) : formatPace(paceSec);
+    html = '<div class="result-item"><span class="result-label">配速</span><span class="result-value">' + paceDisplay + paceUnit + '</span></div>' +
+      '<div class="result-item"><span class="result-label">速度</span><span class="result-value">' + speed.toFixed(2) + ' km/h</span></div>' +
+      '<div class="result-item"><span class="result-label">总时间</span><span class="result-value">' + formatTime(totalSec) + '</span></div>' +
+      '<div class="result-item"><span class="result-label">距离</span><span class="result-value">' + dist + ' ' + distUnit + '</span></div>';
+  } else if (mode === 'distancePace') {
+    var dist = parseFloat(document.getElementById('dpDist').value);
+    var distUnit = document.getElementById('dpDistUnit').value;
+    var paceMin = parseFloat(document.getElementById('dpPaceMin').value) || 0;
+    var paceSec = parseFloat(document.getElementById('dpPaceSec').value) || 0;
+    if (isNaN(dist) || dist <= 0) { showToast('请输入有效距离'); return; }
+    var paceTotalSec = paceMin * 60 + paceSec;
+    if (paceTotalSec <= 0) { showToast('请输入有效配速'); return; }
+    var distKm = convertToKm(dist, distUnit);
+    var totalSec = paceTotalSec * distKm;
+    var speed = distKm / (totalSec / 3600);
+    html = '<div class="result-item"><span class="result-label">完赛时间</span><span class="result-value">' + formatTime(totalSec) + '</span></div>' +
+      '<div class="result-item"><span class="result-label">速度</span><span class="result-value">' + speed.toFixed(2) + ' km/h</span></div>' +
+      '<div class="result-item"><span class="result-label">配速</span><span class="result-value">' + formatPace(paceTotalSec) + '/公里</span></div>' +
+      '<div class="result-item"><span class="result-label">距离</span><span class="result-value">' + dist + ' ' + distUnit + '</span></div>';
+  } else if (mode === 'timePace') {
+    var hour = parseFloat(document.getElementById('tpHour').value) || 0;
+    var min = parseFloat(document.getElementById('tpMin').value) || 0;
+    var sec = parseFloat(document.getElementById('tpSec').value) || 0;
+    var paceMin = parseFloat(document.getElementById('tpPaceMin').value) || 0;
+    var paceSec = parseFloat(document.getElementById('tpPaceSec').value) || 0;
+    var totalSec = hour * 3600 + min * 60 + sec;
+    var paceTotalSec = paceMin * 60 + paceSec;
+    if (totalSec <= 0) { showToast('请输入有效时间'); return; }
+    if (paceTotalSec <= 0) { showToast('请输入有效配速'); return; }
+    var distKm = totalSec / paceTotalSec;
+    var speed = distKm / (totalSec / 3600);
+    var distDisplay = unit === 'mile' ? (distKm / 1.60934).toFixed(2) + ' mile' : distKm.toFixed(2) + ' km';
+    html = '<div class="result-item"><span class="result-label">距离</span><span class="result-value">' + distDisplay + '</span></div>' +
+      '<div class="result-item"><span class="result-label">速度</span><span class="result-value">' + speed.toFixed(2) + ' km/h</span></div>' +
+      '<div class="result-item"><span class="result-label">配速</span><span class="result-value">' + formatPace(paceTotalSec) + '/公里</span></div>' +
+      '<div class="result-item"><span class="result-label">总时间</span><span class="result-value">' + formatTime(totalSec) + '</span></div>';
   }
-  var result = dtDist * dtHour;
-  document.getElementById('resultSection').innerHTML = '<div class="result-item"><span class="result-label">结果</span><span class="result-value">' + result + '</span></div>';
+
+  grid.innerHTML = html;
   document.getElementById('resultSection').style.display = 'block';
+
+  // Generate pace table
+  var distances = [
+    {name:'400米', km:0.4},
+    {name:'1公里', km:1},
+    {name:'5公里', km:5},
+    {name:'10公里', km:10},
+    {name:'半马', km:21.0975},
+    {name:'全马', km:42.195}
+  ];
+  var refPace = mode === 'distanceTime' ? (totalSec / distKm) : (mode === 'distancePace' ? paceTotalSec : paceTotalSec);
+  var tableHtml = '<h3 style="color:#f1f5f9;font-size:1rem;margin-bottom:8px">常用距离配速对照表</h3><table style="width:100%;border-collapse:collapse;font-size:.85rem"><tr style="background:rgba(6,182,212,.05)"><th style="padding:8px;text-align:left;color:#e2e8f0">距离</th><th style="padding:8px;text-align:left;color:#e2e8f0">预估时间</th></tr>';
+  distances.forEach(function(d) {
+    tableHtml += '<tr><td style="padding:8px;color:#94a3b8;border-bottom:1px solid rgba(148,163,184,.1)">' + d.name + '</td><td style="padding:8px;color:#22d3ee;border-bottom:1px solid rgba(148,163,184,.1)">' + formatTime(refPace * d.km) + '</td></tr>';
+  });
+  tableHtml += '</table>';
+  tableWrapper.innerHTML = tableHtml;
   showToast('计算完成');
 }
 
 function onUnitChange() {
-  showToast('onUnitChange - coming soon!');
+  var unit = getSelectedUnit();
+  var selects = document.querySelectorAll('select[id$="DistUnit"]');
+  selects.forEach(function(sel) {
+    sel.value = unit === 'mile' ? 'mile' : 'km';
+  });
 }
 
 function resetForm() {
-  document.querySelectorAll('input').forEach(function(el) { if(el.type==='number') el.value=''; else if(el.type==='text') el.value=''; });
+  document.querySelectorAll('input[type="number"]').forEach(function(el) { el.value = ''; });
+  document.querySelectorAll('input[type="text"]').forEach(function(el) { el.value = ''; });
   document.querySelectorAll('select').forEach(function(el) { el.selectedIndex = 0; });
-  document.getElementById('resultSection').innerHTML = '';
+  document.getElementById('resultGrid').innerHTML = '';
+  document.getElementById('paceTableWrapper').innerHTML = '';
+  document.getElementById('resultSection').style.display = 'none';
   showToast('已重置');
 }
 </script>
