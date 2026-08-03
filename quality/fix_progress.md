@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第三十九批 - 修复3个回显型空壳)
+> 最后更新: 2026-08-03 (cron自动更新 - 第四十批 - 修复6个回显型空壳)
 
 ## 当前真实问题
 
@@ -11,30 +11,28 @@
 | EN版模板空壳(process未定义) | 23 | 23 | 0 | ✅ 完成 | grep toolInput + process() 未定义检测 |
 | EN版假交互空壳(quickInput) | 224 | 224 | 0 | ✅ 完成 | grep quickInput + 无业务函数检测 |
 | toolInput误报(7个有功能) | 7 | 7 | 0 | ✅ 误报 | 有addEventListener绑定的真实功能 |
-| 回显型process空壳(output=input) | 30 | 15 | 15 | 🔴 进行中 | 全站扫描 var output = input + 无业务逻辑 |
+| 回显型process空壳(output=input) | 30 | 22 | 8 | 🔴 进行中 | 全站扫描 var output = input + 无业务逻辑 |
 
-## 回显型空壳清单(15个剩余)
+## 回显型空壳清单(8个剩余)
 
-> 特征：process()/convert()/generate()函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
-> 注：第三十五批修复3个(hex-to-hsl/html-escape-unescape/string-case-converter)，第三十六批修复3个(caddyfile-generator/env-to-json/haproxy-config-generator)，第三十七批修复3个(html-email-template/html-table-to-markdown/htpasswd-generator)，第三十八批修复3个(http-cache-header-generator/js-destructuring-generator/json-key-renamer)，第三十九批修复3个(json-schema-generator/json-to-avro/json-to-csv-converter)。实际全站复扫发现30个CN版回显stub(此前清单有遗漏)。剩余15个：
+> 特征：函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
+> 注：第三十五批修复3个(hex-to-hsl/html-escape-unescape/string-case-converter)，第三十六批修复3个(caddyfile-generator/env-to-json/haproxy-config-generator)，第三十七批修复3个(html-email-template/html-table-to-markdown/htpasswd-generator)，第三十八批修复3个(http-cache-header-generator/js-destructuring-generator/json-key-renamer)，第三十九批修复3个(json-schema-generator/json-to-avro/json-to-csv-converter)，第四十批修复6个(json-to-go-struct/json-to-kotlin-class/json-to-php-object/json-to-rust-struct/json-to-schema/json-to-swift-struct)。剩余8个：
 
-1. json-to-go-struct
-2. json-to-kotlin-class
-3. json-to-php-object
-4. json-to-rust-struct
-5. json-to-schema
-6. json-to-swift-struct
-7. json-to-typescript-interface
-8. kubernetes-yaml-generator
-9. mock-data-generator
-10. npm-package-json
-11. svg-pattern-generator
-12. tailwind-spacing-generator
-13. typescript-utility-types
-14. unicode-range-generator
-15. yaml-to-dotenv
+1. json-to-typescript-interface
+2. mock-data-generator
+3. npm-package-json
+4. svg-pattern-generator
+5. tailwind-spacing-generator
+6. typescript-utility-types
+7. unicode-range-generator
+8. yaml-to-dotenv
 
 ## 已修复的空壳工具
+
+### 2026-08-03 (第四十批 - 修复6个回显型空壳)
+json-to-go-struct, json-to-kotlin-class, json-to-php-object, json-to-rust-struct, json-to-schema, json-to-swift-struct
+注: 六个工具CN+EN版均修复(json-to-schema EN版已有完整功能无需修改)。json-to-go-struct/json-to-kotlin-class/json-to-php-object/json-to-rust-struct/json-to-swift-struct情况与此前cidr-to-ip-range等相同——页面已有完整的业务逻辑函数(jsonToGo递归类型映射string/bool/int/float64/[]T/interface{}/指针+struct tags json/bson/none+嵌套struct; jsonToKotlin String/Boolean/Int/Long/Double/List<T>/可空?+注解SerializedName/Gson/None+data class+package; jsonToPhp string/int/float/bool/array/null+构造函数+getter/setter+PHP 7.4/8.0+namespace; jsonToRust String/i32/i64/f64/bool/Vec<T>/Option<T>/嵌套struct+serde derive+visibility; jsonToSwift String/Int/Double/Bool/[T]/嵌套struct+Codable+Optional+CodingKeys+访问控制),但末尾被注入"重写的函数实现"stub块(EN版为"// === Implementation ==="),用var output=input回显空壳覆盖了有效函数(包括convert/copyResult/downloadResult/formatJSON/loadExample/clearAll)。修复方式:直接删除stub块恢复原有功能。json-to-schema情况不同——页面无完整业务逻辑函数,只有纯回显stub(generateSchema读取input=''永远为空),从EN版移植inferSchema递归类型推断(string/number/integer/boolean/array/object/null+anyOf联合类型+required必填字段推断null值可选+Draft-07 $schema+title/description)+getType整数/浮点区分+generateSchema/copySchema/loadSample/clearAll完整实现。node逻辑测试: Go struct生成(id:int/name:string/tags:[]string/address:*Address嵌套struct)PASS; JSON Schema生成(type:object+properties含integer/string/boolean/array items:string/object嵌套/null+required排除null字段avatar)PASS。12个文件JS语法验证通过。全站`var output = input` CN版从14降到8。
+
 
 ### 2026-08-03 (第三十九批 - 修复3个回显型空壳)
 json-schema-generator, json-to-avro, json-to-csv-converter
