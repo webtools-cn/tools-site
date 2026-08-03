@@ -43,6 +43,7 @@
 | 辅助页面全英文 | 3 | ✅ 0 | - |
 | DNS API失效 | 1 | ✅ 0 | - |
 | 空壳(Generated at stub) | 55 | ✅ 0 | grep "Generated at" |
+| toolInput模板空壳 | 1 | ✅ 0 | check_empty_shells.py |
 
 ## 已修复的空壳工具
 
@@ -153,6 +154,10 @@ favicon-downloader, social-share-generator, gif-tools
 ### 2026-08-03 (第二十八批 - EN版假交互残留区域批量清零)
 全站212个EN版页面
 注: 发现212个EN版工具页面含有auto-injected假交互区域(quickInput/quickResult)，按钮只回显"You typed: xxx"无真实业务逻辑。其中大部分页面已有真实功能(如area-calculator有calculate函数、daily-horoscope有getHoroscope事件、paragraph-counter有段落统计逻辑)，假交互区是模板生成时残留的无用代码；少数页面(如text-effects-tools)是工具集合索引页不需要交互。用remove_fake_interaction.py批量删除所有<!-- auto-injected minimal interaction -->注释+整个div块，212个EN文件全部清理完毕。同时提交之前未提交的CN版})(;语法修复(audio-joiner/breadcrumb-generator/cbor-encoder等10个文件)。验证：'You typed:'→0, 'auto-injected'→0, 'quickInput'→0, 'Generated at'→0, div标签平衡性未受影响(假交互块2开2闭删除不改变平衡)。
+
+### 2026-08-03 (第二十九批 - 最后一个模板空壳清零)
+regex-cheat-sheet
+注: 最后1个toolInput模板空壳修复，全部清零。regex-cheat-sheet CN版完整重写为正则表达式速查表+实时测试器(模式输入+标志位+测试文本+实时匹配高亮+分组捕获显示)，添加7类速查表(字符类/量词/锚点边界/分组引用/断言/特殊字符/标志位)，点击速查表任意模式直接插入测试器，4种常用模式预设(邮箱/URL/手机号/IP地址)，修复HTML结构损坏(/div>残留、未闭合标签)，移除空壳onclick=process()无函数定义的stub。EN版已有完整功能(window.testRegex/insertPattern/insertFlag/loadPattern)无需修改。2个JS脚本语法验证通过，模板空壳从1降到0。
 
 ## 检测说明
 1. `check_empty_shells.py` 检测0交互工具（258个，含重定向页面+分类页面+动态UI工具）
