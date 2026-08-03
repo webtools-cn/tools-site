@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第三十批 - 全站空壳工具确认全部清零)
+> 最后更新: 2026-08-03 (cron自动更新 - 第三十一批 - 发现并修复csv-merger漏网空壳)
 
 ## 当前真实问题
 
@@ -14,14 +14,18 @@
 
 ## 验证结果 (2026-08-03)
 
-全站空壳指标全部归零：
+全站空壳指标全部归零（第三十一批复核）：
 - `Generated at`: 0 (全站CN+EN)
 - `处理完成:`: 0
 - `基于输入参数`: 0
 - `quickInput`: 0 (全站CN+EN)
 - `auto-injected`: 0 (全站CN+EN)
+- 回显型process()空壳(直接output=input): 0
+- 短函数体process()空壳(<100字符无业务逻辑): 0
 
-7个toolInput页面确认为误报（有完整addEventListener逻辑）：
+第三十一批复核发现并修复漏网空壳 csv-merger：CN版process()只回显输入(`var output = input`)，且HTML有`/div>`损坏残留。此前依赖`Generated at`等关键词检测未覆盖此模式。本轮新增两种检测方式（回显型process扫描+短函数体扫描），全站扫描确认仅此1个漏网。
+
+8个toolInput页面确认为误报（有完整真实逻辑，其中7个此前已确认+ai-sentence-rewriter有rewriteFormal等真实改写逻辑）：
 - subnet-mask-calc: 子网掩码计算(CIDR解析+IP转整数+掩码/网络/广播地址计算) ✅
 - html-color-picker: 颜色解析(HEX/RGB/HSL互转+预览) ✅
 - rss-to-json: RSS XML转JSON(DOMParser解析+递归nodeToObject) ✅
@@ -29,6 +33,7 @@
 - domain-typo-generator: 域名变体生成(漏字/多字/错位/替换/换TLD) ✅
 - fake-identity-generator: 假身份生成(中/英/英式/日4国数据) ✅
 - css-specificity-calc: CSS优先级计算(ID/类/属性/伪类/元素计数+权重值) ✅
+- ai-sentence-rewriter: 句子改写(4风格词库替换+规则变换) ✅
 
 215个"0交互"页面全部为重定向页面或已有JS动态交互(通过addEventListener/innerHTML实现)，非空壳。
 
@@ -179,6 +184,10 @@ favicon-downloader, social-share-generator, gif-tools
 ### 2026-08-03 (第二十九批 - 最后一个模板空壳清零)
 regex-cheat-sheet
 注: 最后1个toolInput模板空壳修复，全部清零。regex-cheat-sheet CN版完整重写为正则表达式速查表+实时测试器(模式输入+标志位+测试文本+实时匹配高亮+分组捕获显示)，添加7类速查表(字符类/量词/锚点边界/分组引用/断言/特殊字符/标志位)，点击速查表任意模式直接插入测试器，4种常用模式预设(邮箱/URL/手机号/IP地址)，修复HTML结构损坏(/div>残留、未闭合标签)，移除空壳onclick=process()无函数定义的stub。EN版已有完整功能(window.testRegex/insertPattern/insertFlag/loadPattern)无需修改。2个JS脚本语法验证通过，模板空壳从1降到0。
+
+### 2026-08-03 (第三十一批 - 发现并修复漏网空壳csv-merger)
+csv-merger
+注: 第三十批复核称"全站空壳全部清零"，但本轮新增两种检测方式（回显型process()扫描：函数体直接output=input无业务逻辑；短函数体扫描：<100字符无业务关键字）发现漏网空壳 csv-merger。CN版process()只回显输入(var output = input)，HTML还有`/div>`损坏残留(line 60)，页面声称"CSV文件合并"但实际无合并功能，只有一个输入框+执行按钮。本轮完整重写CN版：多文件拖拽上传+文件列表管理(删除单个文件)、parseCSV解析器(支持逗号/分号/Tab分隔符+引号转义+CRLF行尾，node实测5组用例全部通过)、3个合并选项(跳过后续表头/去重/按首列排序)、合并结果表格预览(前50行+总行数)、下载合并结果(BOM+CSV)、清空。修复/div>损坏残留、移除toolInput假交互区、修复title(原"无需注册册"乱码)。保持深色主题+GA+Schema+FAQ，全中文。EN版已有完整功能(mergeFiles/parseCSV/downloadResult)无需修改。全站新增两种检测扫描确认无其他漏网。所有JS语法验证通过，空壳指标维持全0。
 
 ## 检测说明
 1. `check_empty_shells.py` 检测0交互工具（258个，含重定向页面+分类页面+动态UI工具）
