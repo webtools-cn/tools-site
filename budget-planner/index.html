@@ -199,17 +199,83 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var budgets=JSON.parse(localStorage.getItem('budgetPlannerData')||'[]');
+function saveBudgets(){localStorage.setItem('budgetPlannerData',JSON.stringify(budgets))}
+function updateCatSelect(){
+  var sel=document.getElementById('bpTxCat');
+  sel.innerHTML='';
+  budgets.forEach(function(b,i){var o=document.createElement('option');o.value=i;o.textContent=b.category;sel.appendChild(o)});
+}
+function renderBudgets(){
+  var list=document.getElementById('budgetList');
+  var overview=document.getElementById('budgetOverview');
+  list.innerHTML='';overview.innerHTML='';
+  if(budgets.length===0){list.innerHTML='<p style="color:#64748b;text-align:center;padding:12px">暂无预算，请添加预算分类</p>';updateCatSelect();return}
+  var totalBudget=0,totalSpent=0;
+  budgets.forEach(function(b,idx){
+    var spent=b.expenses.reduce(function(s,e){return s+e.amount},0);
+    var pct=b.amount>0?Math.round(spent/b.amount*100):0;
+    var over=spent>b.amount;
+    totalBudget+=b.amount;totalSpent+=spent;
+    var div=document.createElement('div');
+    div.style.cssText='background:#0f172a;border-radius:8px;padding:12px;margin:8px 0';
+    var barColor=over?'#ef4444':pct>80?'#f59e0b':'#10b981';
+    div.innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="color:#e2e8f0;font-weight:600">'+b.category+'</span><span style="color:#94a3b8">¥'+spent.toFixed(2)+' / ¥'+b.amount.toFixed(2)+(over?' <span style="color:#ef4444">超支!</span>':'')+'</span></div><div style="background:rgba(148,163,184,.1);border-radius:4px;height:8px;overflow:hidden"><div style="background:'+barColor+';height:100%;width:'+Math.min(pct,100)+'%;border-radius:4px"></div></div><div style="font-size:.75rem;color:#64748b;margin-top:4px">'+pct+'%'+(b.expenses.length>0?' · '+b.expenses.length+'笔支出':'')+'</div>';
+    if(b.expenses.length>0){
+      var expList=document.createElement('div');
+      expList.style.cssText='margin-top:8px';
+      b.expenses.forEach(function(e,eidx){
+        var row=document.createElement('div');
+        row.style.cssText='display:flex;justify-content:space-between;font-size:.8rem;color:#94a3b8;padding:2px 0';
+        row.innerHTML='<span>'+e.desc+'</span><span>¥'+e.amount.toFixed(2)+' <button onclick="delExpense('+idx+','+eidx+')" style="color:#f87171;background:none;border:none;cursor:pointer">✕</button></span>';
+        expList.appendChild(row);
+      });
+      div.appendChild(expList);
+    }
+    var delBtn=document.createElement('button');
+    delBtn.textContent='删除预算';delBtn.style.cssText='margin-top:6px;font-size:.75rem;color:#f87171;background:none;border:none;cursor:pointer';
+    delBtn.onclick=function(){budgets.splice(idx,1);saveBudgets();renderBudgets()};
+    div.appendChild(delBtn);
+    list.appendChild(div);
+  });
+  var totalDiv=document.createElement('div');
+  totalDiv.style.cssText='display:flex;justify-content:space-between;padding:8px 0;font-size:.9rem;font-weight:600';
+  var totalOver=totalSpent>totalBudget;
+  totalDiv.innerHTML='<span style="color:#e2e8f0">总计</span><span style="color:'+(totalOver?'#ef4444':'#10b981')+'">¥'+totalSpent.toFixed(2)+' / ¥'+totalBudget.toFixed(2)+'</span>';
+  overview.appendChild(totalDiv);
+  updateCatSelect();
+}
 function addBudget() {
-  showToast('addBudget - coming soon!');
+  var cat=document.getElementById('bpCategory').value.trim();
+  var amt=parseFloat(document.getElementById('bpAmount').value);
+  if(!cat){showToast('请输入预算分类');return;}
+  if(!amt||amt<=0){showToast('请输入有效金额');return;}
+  budgets.push({category:cat,amount:amt,expenses:[]});
+  saveBudgets();renderBudgets();
+  document.getElementById('bpCategory').value='';document.getElementById('bpAmount').value='';
+  showToast('预算已添加: '+cat);
 }
-
 function addExpense() {
-  showToast('addExpense - coming soon!');
+  var desc=document.getElementById('bpTxDesc').value.trim();
+  var amt=parseFloat(document.getElementById('bpTxAmt').value);
+  var catIdx=parseInt(document.getElementById('bpTxCat').value);
+  if(!desc){showToast('请输入消费描述');return;}
+  if(!amt||amt<=0){showToast('请输入有效金额');return;}
+  if(isNaN(catIdx)||!budgets[catIdx]){showToast('请先添加预算分类');return;}
+  budgets[catIdx].expenses.push({desc:desc,amount:amt});
+  saveBudgets();renderBudgets();
+  document.getElementById('bpTxDesc').value='';document.getElementById('bpTxAmt').value='';
+  showToast('支出已记录: '+desc);
 }
-
+function delExpense(bIdx,eIdx){
+  budgets[bIdx].expenses.splice(eIdx,1);
+  saveBudgets();renderBudgets();
+}
 function resetBudgets() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  budgets=[];saveBudgets();renderBudgets();
+  showToast('所有预算已重置');
 }
+renderBudgets();
 </script>
 </body>
 </html>

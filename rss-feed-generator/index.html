@@ -176,51 +176,82 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var rssItems=[];
+
 function addItem() {
-  showToast('addItem - coming soon!');
+  var title=document.getElementById('itemTitle')?document.getElementById('itemTitle').value:'';
+  var link=document.getElementById('itemLink')?document.getElementById('itemLink').value:'';
+  var desc=document.getElementById('itemDesc')?document.getElementById('itemDesc').value:'';
+  if(!title){showToast('请输入条目标题');return;}
+  rssItems.push({title:title,link:link,description:desc,pubDate:new Date().toUTCString()});
+  renderItems();
+  if(document.getElementById('itemTitle'))document.getElementById('itemTitle').value='';
+  if(document.getElementById('itemLink'))document.getElementById('itemLink').value='';
+  if(document.getElementById('itemDesc'))document.getElementById('itemDesc').value='';
+  showToast('条目已添加: '+title);
 }
 
-function copyResult() {
-  var text = document.getElementById('resultArea').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
-}
-
-function downloadRSS() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='RSS.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
-}
-
-function generateRSS() {
-  var title=document.querySelector('input[id*=title]');
-  var link=document.querySelector('input[id*=link]');
-  var desc=document.querySelector('input[id*=desc]')||document.querySelector('textarea');
-  if(!title||!title.value.trim()){showToast('请输入频道标题');return;}
-  var t=title.value.trim(),l=link?link.value.trim():'',d=desc?desc.value.trim():'';
-  var xml='<?xml version="1.0" encoding="UTF-8"?>
-';
-  xml+='<rss version="2.0">
-<channel>
-';
-  xml+='<title>'+t+'</title>
-';
-  if(l)xml+='<link>'+l+'</link>
-';
-  if(d)xml+='<description>'+d+'</description>
-';
-  xml+='<language>zh-CN</language>
-';
-  xml+='<lastBuildDate>'+new Date().toUTCString()+'</lastBuildDate>
-';
-  xml+='</channel>
-</rss>';
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');
-  if(out){out.textContent=xml;}
-  showToast('RSS Feed已生成！');
+function renderItems(){
+  var container=document.getElementById('itemsContainer');
+  if(!container)return;
+  if(rssItems.length===0){container.innerHTML='<p style="color:#64748b;text-align:center;padding:8px">暂无条目</p>';return}
+  var html='';
+  rssItems.forEach(function(item,idx){
+    html+='<div style="background:#0f172a;border-radius:8px;padding:10px;margin:6px 0;display:flex;justify-content:space-between;align-items:center">';
+    html+='<div><strong style="color:#e2e8f0">'+item.title+'</strong>';
+    if(item.link)html+='<div style="font-size:.8rem;color:#06b6d4">'+item.link+'</div>';
+    if(item.description)html+='<div style="font-size:.8rem;color:#94a3b8">'+item.description.substring(0,60)+'</div>';
+    html+='</div>';
+    html+='<button onclick="rssItems.splice('+idx+',1);renderItems();previewRSS()" style="color:#f87171;background:none;border:none;cursor:pointer">✕</button>';
+    html+='</div>';
+  });
+  container.innerHTML=html;
 }
 
 function previewRSS() {
-  showToast('previewRSS - coming soon!');
+  var chTitle=document.getElementById('chTitle')?document.getElementById('chTitle').value:'';
+  var chLink=document.getElementById('chLink')?document.getElementById('chLink').value:'';
+  var chDesc=document.getElementById('chDesc')?document.getElementById('chDesc').value:'';
+  var chLang=document.getElementById('chLang')?document.getElementById('chLang').value:'zh-CN';
+  if(!chTitle){showToast('请输入频道标题');return;}
+  var xml='<?xml version="1.0" encoding="UTF-8"?>\\n';
+  xml+='<rss version="2.0">\\n<channel>\\n';
+  xml+='<title>'+chTitle+'</title>\\n';
+  if(chLink)xml+='<link>'+chLink+'</link>\\n';
+  if(chDesc)xml+='<description>'+chDesc+'</description>\\n';
+  xml+='<language>'+chLang+'</language>\\n';
+  xml+='<lastBuildDate>'+new Date().toUTCString()+'</lastBuildDate>\\n';
+  rssItems.forEach(function(item){
+    xml+='<item>\\n';
+    xml+='<title>'+item.title+'</title>\\n';
+    if(item.link)xml+='<link>'+item.link+'</link>\\n';
+    if(item.description)xml+='<description>'+item.description+'</description>\\n';
+    xml+='<pubDate>'+item.pubDate+'</pubDate>\\n';
+    xml+='</item>\\n';
+  });
+  xml+='</channel>\\n</rss>';
+  var area=document.getElementById('resultArea');
+  if(area){area.style.display='block';document.getElementById('resultText').textContent=xml}
+  showToast('RSS已生成: '+rssItems.length+'条');
 }
+
+function downloadRSS() {
+  var text=document.getElementById('resultText')?document.getElementById('resultText').textContent:'';
+  if(!text){showToast('请先生成RSS');return;}
+  var blob=new Blob([text],{type:'application/rss+xml'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='feed.rss';a.click();
+  URL.revokeObjectURL(a.href);showToast('已下载');
+}
+
+function copyResult() {
+  var text=document.getElementById('resultText')?document.getElementById('resultText').textContent:'';
+  if(!text){showToast('请先生成RSS');return;}
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});
+}
+
+function generateRSS(){previewRSS()}
+
+renderItems();
 </script>
 </body>
 </html>

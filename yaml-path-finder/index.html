@@ -156,7 +156,27 @@ function clearAll() {
 }
 
 function listAllPaths() {
-  showToast('listAllPaths - coming soon!');
+  var input=document.getElementById('yamlInput').value;
+  if(!input.trim()){showToast('请输入YAML内容');return;}
+  var lines=input.split('\n');
+  var paths=[];
+  var stack=[];
+  lines.forEach(function(line){
+    if(!line.trim()||line.trim().startsWith('#'))return;
+    var indent=line.length-line.replace(/^\s+/,'').length;
+    var match=line.match(/^(\s*)([\w-]+):\s*(.*)$/);
+    if(!match)return;
+    var key=match[2];
+    var val=match[3].trim();
+    while(stack.length>0&&stack[stack.length-1].indent>=indent){stack.pop()}
+    stack.push({indent:indent,key:key});
+    var path=stack.map(function(s){return s.key}).join('.');
+    if(val){paths.push(path+' = '+val)}else{paths.push(path)}
+  });
+  var html=paths.map(function(p){return '<div style="padding:2px 0;color:#94a3b8;font-family:monospace;font-size:.85rem">'+p+'</div>'}).join('');
+  document.getElementById('pathList').innerHTML=html;
+  document.getElementById('pathListArea').style.display='block';
+  showToast('共'+paths.length+'条路径');
 }
 
 function loadExample() {
@@ -166,7 +186,37 @@ function loadExample() {
 }
 
 function queryPath() {
-  showToast('queryPath - coming soon!');
+  var input=document.getElementById('yamlInput').value;
+  var path=document.getElementById('pathInput').value.trim();
+  if(!input.trim()){showToast('请输入YAML内容');return;}
+  if(!path){showToast('请输入路径表达式');return;}
+  var lines=input.split('\n');
+  var data={};
+  var stack=[{indent:-1,obj:data}];
+  lines.forEach(function(line){
+    if(!line.trim()||line.trim().startsWith('#'))return;
+    var indent=line.length-line.replace(/^\s+/,'').length;
+    var match=line.match(/^(\s*)([\w-]+):\s*(.*)$/);
+    if(!match)return;
+    var key=match[2];
+    var val=match[3].trim();
+    while(stack.length>1&&stack[stack.length-1].indent>=indent){stack.pop()}
+    var parent=stack[stack.length-1].obj;
+    if(val){parent[key]=val}else{parent[key]={};stack.push({indent:indent,obj:parent[key]})}
+  });
+  var keys=path.split('.');
+  var result=data;
+  for(var i=0;i<keys.length;i++){
+    if(result===undefined||result===null)break;
+    result=result[keys[i]];
+  }
+  var html='';
+  if(result===undefined){html='<span style="color:#f87171">未找到路径: '+path+'</span>'}
+  else if(typeof result==='object'){html='<pre style="color:#e2e8f0;font-size:.85rem">'+JSON.stringify(result,null,2)+'</pre>'}
+  else{html='<div style="color:#22d3ee;font-size:1.1rem;font-family:monospace">'+result+'</div>'}
+  document.getElementById('resultArea').style.display='block';
+  document.getElementById('resultArea').innerHTML='<h2>查询结果</h2>'+html;
+  showToast('查询完成');
 }
 </script>
 </body>

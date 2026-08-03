@@ -229,24 +229,117 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 })();
 
 // === 重写的函数实现 ===
+var paletteMode='complementary';
+
+function hexToHsl(hex){
+  hex=hex.replace('#','');
+  if(hex.length!==6)return[0,0,0];
+  var r=parseInt(hex.substr(0,2),16)/255;
+  var g=parseInt(hex.substr(2,2),16)/255;
+  var b=parseInt(hex.substr(4,2),16)/255;
+  var max=Math.max(r,g,b),min=Math.min(r,g,b);
+  var h,s,l=(max+min)/2;
+  if(max===min){h=s=0}
+  else{var d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);
+    switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break}
+    h/=6;
+  }
+  return[h*360,s*100,l*100];
+}
+
+function hslToHex(h,s,l){
+  h=((h%360)+360)%360;s=Math.max(0,Math.min(100,s));l=Math.max(0,Math.min(100,l));
+  h/=360;s/=100;l/=100;
+  var r,g,b;
+  if(s===0){r=g=b=l}
+  else{
+    var hue2rgb=function(p,q,t){
+      if(t<0)t+=1;if(t>1)t-=1;
+      if(t<1/6)return p+(q-p)*6*t;
+      if(t<1/2)return q;
+      if(t<2/3)return p+(q-p)*(2/3-t)*6;
+      return p;
+    };
+    var q=l<0.5?l*(1+s):l+s-l*s;
+    var p=2*l-q;
+    r=hue2rgb(p,q,h+1/3);g=hue2rgb(p,q,h);b=hue2rgb(p,q,h-1/3);
+  }
+  var toHex=function(x){var v=Math.round(x*255).toString(16);return v.length===1?'0'+v:v};
+  return'#'+toHex(r)+toHex(g)+toHex(b);
+}
+
+function generatePalette(hex,mode){
+  var hsl=hexToHsl(hex);
+  var h=hsl[0],s=Math.max(40,hsl[1]),l=hsl[2];
+  var colors=[];
+  switch(mode){
+    case'complementary':colors=[{h:h,s:s,l:l},{h:h+180,s:s,l:l}];break;
+    case'analogous':colors=[{h:h-30,s:s,l:l},{h:h,s:s,l:l},{h:h+30,s:s,l:l}];break;
+    case'triadic':colors=[{h:h,s:s,l:l},{h:h+120,s:s,l:l},{h:h+240,s:s,l:l}];break;
+    case'split-complementary':colors=[{h:h,s:s,l:l},{h:h+150,s:s,l:l},{h:h+210,s:s,l:l}];break;
+    case'tetradic':colors=[{h:h,s:s,l:l},{h:h+90,s:s,l:l},{h:h+180,s:s,l:l},{h:h+270,s:s,l:l}];break;
+    case'monochromatic':colors=[{h:h,s:s,l:30},{h:h,s:s,l:50},{h:h,s:s,l:70},{h:h,s:s,l:90}];break;
+  }
+  return colors.map(function(c){return hslToHex(c.h,c.s,c.l)});
+}
+
+function renderPalette(colors){
+  var grid=document.getElementById('paletteGrid');
+  grid.innerHTML='';
+  colors.forEach(function(hex){
+    var card=document.createElement('div');
+    card.className='color-card';
+    card.onclick=function(){navigator.clipboard.writeText(hex).then(function(){showToast(hex+' 已复制')})};
+    var r=parseInt(hex.substr(1,2),16),g=parseInt(hex.substr(3,2),16),b=parseInt(hex.substr(5,2),16);
+    card.innerHTML='<div class="color-preview" style="background:'+hex+'"></div><div class="color-info"><div class="color-hex">'+hex.toUpperCase()+'</div><div class="color-rgb">rgb('+r+', '+g+', '+b+')</div></div>';
+    grid.appendChild(card);
+  });
+}
+
 function copyAllColors() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var cards=document.querySelectorAll('.color-hex');
+  if(cards.length===0){showToast('无颜色可复制');return}
+  var hexList=Array.from(cards).map(function(c){return c.textContent});
+  navigator.clipboard.writeText(hexList.join(', ')).then(function(){showToast('全部颜色已复制')}).catch(function(){showToast('复制失败')});
 }
 
 function randomColor() {
-  var result = Math.random() > 0.5 ? '正面' : '反面';
-  document.getElementById('result').textContent = result;
-  document.getElementById('result').style.display = 'block';
-  showToast('随机结果已生成');
+  var h=Math.floor(Math.random()*360);
+  var s=50+Math.floor(Math.random()*50);
+  var l=40+Math.floor(Math.random()*30);
+  var hex=hslToHex(h,s,l);
+  document.getElementById('baseColor').value=hex;
+  document.getElementById('hexInput').value=hex;
+  var colors=generatePalette(hex,paletteMode);
+  renderPalette(colors);
+  showToast('随机颜色已生成');
 }
 
 function updateFromHex() {
-  showToast('updateFromHex - coming soon!');
+  var hex=document.getElementById('hexInput').value;
+  if(!/^#[0-9A-Fa-f]{6}$/.test(hex)){showToast('请输入有效的HEX颜色');return;}
+  document.getElementById('baseColor').value=hex;
+  var colors=generatePalette(hex,paletteMode);
+  renderPalette(colors);
 }
 
 function updateFromPicker() {
-  showToast('updateFromPicker - coming soon!');
+  var hex=document.getElementById('baseColor').value;
+  document.getElementById('hexInput').value=hex;
+  var colors=generatePalette(hex,paletteMode);
+  renderPalette(colors);
 }
+
+document.querySelectorAll('.mode-btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.mode-btn').forEach(function(b){b.classList.remove('active')});
+    btn.classList.add('active');
+    paletteMode=btn.dataset.mode;
+    updateFromPicker();
+  });
+});
+
+updateFromPicker();
 </script>
 </body>
 </html>

@@ -176,70 +176,103 @@ function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.c
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
 // === 重写的函数实现 ===
-function addVariable() {
-  showToast('addVariable - coming soon!');
-}
-
-function clearAll() {
-  document.getElementById('showValues').value = '';
-  document.getElementById('rawInput').value = '';
-  document.getElementById('output').value = '';
-  document.getElementById('exportFormat').selectedIndex = 0;
-  document.getElementById('sortMode').selectedIndex = 0;
-  document.getElementById('resultSection').innerHTML = '';
-  document.getElementById('resultSection').style.display = 'none';
-  showToast('已重置');
-}
-
-function copyResult() {
-  var text = document.getElementById('resultSection').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
-}
-
-function downloadResult() {
-  var text = document.getElementById('resultSection').innerText;
-  if (!text) { showToast('没有可下载的结果'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'dotenv-editor-result.txt';
-  a.click();
-  showToast('已下载');
-}
-
-function loadExample() {
-  document.getElementById('showValues').value = '100';
-  document.getElementById('rawInput').value = '示例数据';
-  document.getElementById('output').value = '示例数据';
-  showToast('已加载示例');
-}
+var envVars=[];
+var currentGroup='';
 
 function parseInput() {
-  showToast('parseInput - coming soon!');
+  var raw=document.getElementById('rawInput').value;
+  if(!raw.trim()){document.getElementById('editorSection').style.display='none';return}
+  envVars=[];
+  var groups={};
+  var comments=0;
+  var errors=0;
+  var currentGrp='';
+  raw.split('\n').forEach(function(line){
+    var trimmed=line.trim();
+    if(!trimmed)return;
+    if(trimmed.startsWith('#')){
+      var grpMatch=trimmed.match(/^#\s*(.+)/);
+      if(grpMatch){currentGrp=grpMatch[1];groups[currentGrp]=true}
+      comments++;return;
+    }
+    var match=trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if(!match){errors++;return}
+    var key=match[1],val=match[2];
+    if(val.startsWith('"')&&val.endsWith('"'))val=val.slice(1,-1);
+    if(val.startsWith("'")&&val.endsWith("'"))val=val.slice(1,-1);
+    envVars.push({key:key,value:val,group:currentGrp||'ungrouped'});
+  });
+  document.getElementById('statVars').textContent=envVars.length;
+  document.getElementById('statGroups').textContent=Object.keys(groups).length;
+  document.getElementById('statErrors').textContent=errors;
+  document.getElementById('statComments').textContent=comments;
+  document.getElementById('statsRow').style.display='flex';
+  document.getElementById('editorSection').style.display='block';
+  renderTable();
+  updatePreview();
 }
 
 function renderTable() {
-  showToast('renderTable - coming soon!');
-}
-
-function shareLink() {
-  navigator.clipboard.writeText(window.location.href).then(function(){{showToast('Link copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var showValues=document.getElementById('showValues').checked;
+  var container=document.getElementById('envTableContainer');
+  if(envVars.length===0){container.innerHTML='<p style="color:#64748b;text-align:center">无变量</p>';return}
+  var html='<table style="width:100%;border-collapse:collapse;font-size:.85rem">';
+  html+='<tr><th style="text-align:left;padding:6px;border-bottom:1px solid rgba(148,163,184,.2);color:#94a3b8">变量名</th><th style="text-align:left;padding:6px;border-bottom:1px solid rgba(148,163,184,.2);color:#94a3b8">值</th><th style="text-align:left;padding:6px;border-bottom:1px solid rgba(148,163,184,.2);color:#94a3b8">分组</th><th></th></tr>';
+  envVars.forEach(function(v,idx){
+    html+='<tr><td style="padding:6px;border-bottom:1px solid rgba(148,163,184,.08);color:#e2e8f0;font-family:monospace">'+v.key+'</td>';
+    html+='<td style="padding:6px;border-bottom:1px solid rgba(148,163,184,.08);color:'+(showValues?'#22d3ee':'#64748b')+';font-family:monospace">'+(showValues?v.value:'••••••')+'</td>';
+    html+='<td style="padding:6px;border-bottom:1px solid rgba(148,163,184,.08);color:#94a3b8;font-size:.8rem">'+v.group+'</td>';
+    html+='<td style="padding:6px;border-bottom:1px solid rgba(148,163,184,.08)"><button onclick="envVars.splice('+idx+',1);renderTable();updatePreview()" style="color:#f87171;background:none;border:none;cursor:pointer">✕</button></td></tr>';
+  });
+  html+='</table>';
+  container.innerHTML=html;
 }
 
 function sortAndRender() {
-  showToast('sortAndRender - coming soon!');
+  var mode=document.getElementById('sortMode').value;
+  if(mode==='key'){envVars.sort(function(a,b){return a.key.localeCompare(b.key)})}
+  else if(mode==='group'){envVars.sort(function(a,b){return a.group.localeCompare(b.group)})}
+  renderTable();updatePreview();
+}
+
+function addVariable() {
+  var key=prompt('变量名:');
+  if(!key)return;
+  var val=prompt('变量值:')||'';
+  var grp=prompt('分组(可留空):')||'ungrouped';
+  envVars.push({key:key,value:val,group:grp});
+  renderTable();updatePreview();
+  showToast('变量已添加: '+key);
 }
 
 function updatePreview() {
-  var el = document.getElementById('resultSection');
-  if (!el) return;
-  el.style.display = 'block';
-  showToast('预览已更新');
+  var format=document.getElementById('exportFormat').value;
+  var output='';
+  if(format==='dotenv'){
+    var lastGrp='';
+    envVars.forEach(function(v){
+      if(v.group!==lastGrp){output+='# '+v.group+'\n';lastGrp=v.group}
+      output+=v.key+'='+v.value+'\n';
+    });
+  }else if(format==='json'){
+    var obj={};envVars.forEach(function(v){obj[v.key]=v.value});
+    output=JSON.stringify(obj,null,2);
+  }else if(format==='yaml'){
+    envVars.forEach(function(v){output+=v.key+': '+v.value+'\n'});
+  }
+  var out=document.getElementById('output');
+  if(out)out.value=output;
+  var section=document.getElementById('resultSection');
+  if(section)section.style.display='block';
 }
 
-function validateAll() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;var v=inp.value.trim();if(!v){{out.textContent='Please enter input';return}}out.textContent=v.length>0?'Valid ✓':'Invalid ✗';showToast('Validated!');
+function clearAll() {
+  document.getElementById('rawInput').value='';
+  document.getElementById('output').value='';
+  document.getElementById('editorSection').style.display='none';
+  document.getElementById('statsRow').style.display='none';
+  envVars=[];
+  showToast('已清空');
 }
 </script>
 </body>

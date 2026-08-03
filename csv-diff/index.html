@@ -234,28 +234,91 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 })();
 
 // === 重写的函数实现 ===
-function applyFilter() {
-  showToast('applyFilter - coming soon!');
+var diffData=[];
+function compare() {
+  var a=document.getElementById('csvA').value;
+  var b=document.getElementById('csvB').value;
+  if(!a.trim()||!b.trim()){showToast('请输入两个CSV文件内容');return;}
+  var delimEl=document.getElementById('delimiter');
+  var delim=delimEl.value;
+  if(delim==='auto'){delim=a.indexOf('\t')>-1?'\t':a.indexOf(';')>-1?';':','}
+  var ignoreCase=document.getElementById('ignoreCase').checked;
+  var ignoreWS=document.getElementById('ignoreWS').checked;
+  var linesA=a.split('\n').filter(function(l){return l.trim()!==''});
+  var linesB=b.split('\n').filter(function(l){return l.trim()!==''});
+  function norm(s){s=ignoreCase?s.toLowerCase():s;return ignoreWS?s.replace(/\s+/g,' ').trim():s}
+  diffData=[];
+  var maxLen=Math.max(linesA.length,linesB.length);
+  for(var i=0;i<maxLen;i++){
+    var rowA=i<linesA.length?linesA[i]:'';
+    var rowB=i<linesB.length?linesB[i]:'';
+    if(!rowA&&rowB){diffData.push({type:'added',line:i+1,a:'',b:rowB})}
+    else if(rowA&&!rowB){diffData.push({type:'removed',line:i+1,a:rowA,b:''})}
+    else if(norm(rowA)!==norm(rowB)){diffData.push({type:'modified',line:i+1,a:rowA,b:rowB})}
+  }
+  document.getElementById('diffStats').textContent='共'+diffData.length+'处差异';
+  document.getElementById('exportBtn').disabled=false;
+  applyFilter();
+  showToast('对比完成: '+diffData.length+'处差异');
 }
+
+function applyFilter() {
+  var filter=document.getElementById('filterType').value;
+  var result=document.getElementById('diffResult');
+  var filtered=filter==='all'?diffData:diffData.filter(function(d){return d.type===filter});
+  if(filtered.length===0){result.innerHTML='<div style="text-align:center;color:#64748b;padding:20px">没有差异</div>';return}
+  var html='';
+  filtered.forEach(function(d){
+    var cls=d.type==='added'?'diff-added':d.type==='removed'?'diff-removed':'diff-modified';
+    var label=d.type==='added'?'新增':d.type==='removed'?'删除':'修改';
+    html+='<div style="margin:4px 0"><span class="'+cls+'">['+label+' 第'+d.line+'行]</span> ';
+    if(d.type==='added'){html+=escapeHtml(d.b)}
+    else if(d.type==='removed'){html+=escapeHtml(d.a)}
+    else{html+='<br>A: '+escapeHtml(d.a)+'<br>B: '+escapeHtml(d.b)}
+    html+='</div>';
+  });
+  result.innerHTML=html;
+}
+
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
 function clearCSV() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  document.getElementById('csvA').value='';
+  document.getElementById('csvB').value='';
+  document.getElementById('diffResult').innerHTML='上传两个CSV文件后点击对比';
+  document.getElementById('diffStats').textContent='';
+  document.getElementById('exportBtn').disabled=true;
+  diffData=[];
+  showToast('已清除');
 }
 
-function compare() {
-  showToast('compare - coming soon!');
-}
-
-function exportHTML() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;var blob=new Blob([el.textContent||el.innerText],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.json';a.click();showToast('Exported!');
-}
-
-function loadFile() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
+function loadFile(input,targetId) {
+  var file=input.files[0];
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){document.getElementById(targetId).value=e.target.result;showToast('文件已加载')};
+  reader.readAsText(file);
 }
 
 function loadSample() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
+  document.getElementById('csvA').value='id,name,score\n1,Alice,85\n2,Bob,90\n3,Carol,78';
+  document.getElementById('csvB').value='id,name,score\n1,Alice,85\n2,Bob,95\n4,Dave,92\n3,Carol,78';
+  showToast('示例已加载');
+}
+
+function exportHTML() {
+  if(diffData.length===0){showToast('没有差异可导出');return}
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CSV Diff Report</title>';
+  html+='<style>body{font-family:monospace;padding:20px}.added{color:green}.removed{color:red}.modified{color:orange}</style>';
+  html+='</head><body><h1>CSV Diff Report</h1><p>'+diffData.length+' differences</p>';
+  diffData.forEach(function(d){
+    var cls=d.type==='added'?'added':d.type==='removed'?'removed':'modified';
+    html+='<p class="'+cls+'">['+d.type+' line '+d.line+'] '+d.a+' -> '+d.b+'</p>';
+  });
+  html+='</body></html>';
+  var blob=new Blob([html],{type:'text/html'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='diff_report.html';a.click();
+  URL.revokeObjectURL(a.href);showToast('报告已导出');
 }
 </script>
 </body>

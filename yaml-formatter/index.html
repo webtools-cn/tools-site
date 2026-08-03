@@ -282,7 +282,31 @@ function formatYaml() {
 }
 
 function jsonToYaml() {
-  showToast('jsonToYaml - coming soon!');
+  var input=document.getElementById('jsonInput')?document.getElementById('jsonInput').value:document.querySelector('textarea').value;
+  if(!input.trim()){showToast('请输入JSON内容');return;}
+  try{var obj=JSON.parse(input)}catch(e){showToast('JSON解析失败: '+e.message);return;}
+  function toYaml(obj,indent){
+    var sp=''.repeat(indent);
+    if(obj===null)return 'null';
+    if(typeof obj!=='object')return String(obj);
+    if(Array.isArray(obj)){
+      var lines=obj.map(function(v){
+        if(typeof v==='object'&&v!==null)return '\n'+sp+'- '+toYaml(v,indent+2).replace(/^\s+/,'');
+        return '\n'+sp+'- '+String(v);
+      });
+      return lines.join('');
+    }
+    var lines=Object.keys(obj).map(function(k){
+      var v=obj[k];
+      if(typeof v==='object'&&v!==null)return sp+k+':\n'+toYaml(v,indent+2);
+      return sp+k+': '+String(v);
+    });
+    return lines.join('\n');
+  }
+  var yaml=toYaml(obj,0);
+  var out=document.getElementById('yamlOutput')||document.getElementById('output');
+  if(out){out.value=yaml;out.textContent=yaml}
+  showToast('已转换为YAML');
 }
 
 function minifyYaml() {
@@ -298,7 +322,31 @@ function validateYaml() {
 }
 
 function yamlToJson() {
-  showToast('yamlToJson - coming soon!');
+  var input=document.getElementById('yamlInput')?document.getElementById('yamlInput').value:document.querySelector('textarea').value;
+  if(!input.trim()){showToast('请输入YAML内容');return;}
+  var lines=input.split('\n');
+  var result={};
+  var stack=[{indent:-1,obj:result}];
+  lines.forEach(function(line){
+    if(!line.trim()||line.trim().startsWith('#'))return;
+    var indent=line.length-line.replace(/^\s+/,'').length;
+    var match=line.match(/^(\s*)([\w-]+):\s*(.*)$/);
+    if(!match)return;
+    var key=match[2];var val=match[3].trim();
+    while(stack.length>1&&stack[stack.length-1].indent>=indent){stack.pop()}
+    var parent=stack[stack.length-1].obj;
+    if(val){
+      if(val==='true')parent[key]=true;
+      else if(val==='false')parent[key]=false;
+      else if(val==='null')parent[key]=null;
+      else if(!isNaN(val))parent[key]=Number(val);
+      else parent[key]=val.replace(/^["']|["']$/g,'');
+    }else{parent[key]={};stack.push({indent:indent,obj:parent[key]})}
+  });
+  var json=JSON.stringify(result,null,2);
+  var out=document.getElementById('jsonOutput')||document.getElementById('output');
+  if(out){out.value=json;out.textContent=json}
+  showToast('已转换为JSON');
 }
 </script>
 </body>

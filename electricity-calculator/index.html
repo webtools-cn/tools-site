@@ -173,20 +173,43 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var applianceCount=1;
 function addAppliance() {
-  showToast('addAppliance - coming soon!');
+  var container=document.getElementById('appliances');
+  var div=document.createElement('div');
+  div.className='form-row appliance-item';
+  div.dataset.idx=applianceCount;
+  div.innerHTML='<div class="form-group"><label>电器名称</label><input type="text" id="name_'+applianceCount+'" value="电器 '+(applianceCount+1)+'"></div><div class="form-group"><label>功率 (W)</label><input type="number" id="power_'+applianceCount+'" step="1" min="0" placeholder="e.g. 1000"></div><div class="form-group"><label>每日使用 (小时)</label><input type="number" id="hours_'+applianceCount+'" step="0.5" min="0" placeholder="e.g. 4"></div><button class="btn btn-danger" style="margin-top:24px" onclick="this.parentElement.remove()">✕</button>';
+  container.appendChild(div);
+  applianceCount++;
+  showToast('已添加电器行');
 }
 
 function calculate() {
-  var rate = parseFloat(document.getElementById('rate').value);
-  if (rate === undefined || isNaN(rate)) {
-    showToast('请输入有效数值');
-    return;
-  }
-  var result = rate;
-  document.getElementById('resultSection').innerHTML = '<div class="result-item"><span class="result-label">结果</span><span class="result-value">' + result + '</span></div>';
-  document.getElementById('resultSection').style.display = 'block';
-  showToast('计算完成');
+  var rate=parseFloat(document.getElementById('rate').value);
+  if(!rate||rate<=0||isNaN(rate)){showToast('请输入有效的电费单价');return;}
+  var items=document.querySelectorAll('.appliance-item');
+  var totalDailyKWh=0;
+  var details=[];
+  items.forEach(function(item){
+    var idx=item.dataset.idx;
+    var name=document.getElementById('name_'+idx)?document.getElementById('name_'+idx).value||'电器':'电器';
+    var power=parseFloat(document.getElementById('power_'+idx)?document.getElementById('power_'+idx).value:0)||0;
+    var hours=parseFloat(document.getElementById('hours_'+idx)?document.getElementById('hours_'+idx).value:0)||0;
+    if(power>0&&hours>0){
+      var dailyKWh=power*hours/1000;
+      totalDailyKWh+=dailyKWh;
+      details.push({name:name,dailyKWh:dailyKWh,dailyCost:dailyKWh*rate});
+    }
+  });
+  if(totalDailyKWh===0){showToast('请至少输入一个电器的功率和使用时间');return;}
+  var dailyCost=totalDailyKWh*rate;
+  var monthlyCost=dailyCost*30;
+  var yearlyCost=dailyCost*365;
+  document.getElementById('resDaily').textContent='¥'+dailyCost.toFixed(2);
+  document.getElementById('resMonthly').textContent='¥'+monthlyCost.toFixed(2);
+  document.getElementById('resYearly').textContent='¥'+yearlyCost.toFixed(2);
+  showToast('计算完成: 日用电'+totalDailyKWh.toFixed(2)+'度');
 }
 </script>
 </body>

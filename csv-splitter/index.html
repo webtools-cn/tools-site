@@ -199,11 +199,53 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function clearCS() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  document.getElementById('csInput').value='';
+  document.getElementById('csResult').style.display='none';
+  showToast('已清空');
 }
 
 function splitCSV() {
-  showToast('splitCSV - coming soon!');
+  var input=document.getElementById('csInput').value;
+  if(!input.trim()){showToast('请输入CSV数据');return;}
+  var delim=document.getElementById('csDelim').value;
+  var splitBy=document.getElementById('csSplitBy').value;
+  var num=parseInt(document.getElementById('csNum').value)||100;
+  var keepHeader=document.getElementById('csHeader').checked;
+  var lines=input.split('\n');
+  var header=keepHeader?lines[0]:null;
+  var dataLines=keepHeader?lines.slice(1):lines;
+  var chunks=[];
+  if(splitBy==='rows'){
+    for(var i=0;i<dataLines.length;i+=num){
+      chunks.push(dataLines.slice(i,i+num));
+    }
+  }else{
+    var perFile=Math.ceil(dataLines.length/num);
+    for(var i=0;i<num;i++){
+      chunks.push(dataLines.slice(i*perFile,(i+1)*perFile));
+    }
+  }
+  var grid=document.getElementById('csGrid');
+  var filesDiv=document.getElementById('csFiles');
+  grid.innerHTML='';filesDiv.innerHTML='';
+  var stats=document.createElement('div');stats.className='stat-row';
+  stats.innerHTML='<span class="stat-label">总行数</span><span class="stat-value">'+dataLines.length+'</span>';
+  grid.appendChild(stats);
+  stats=document.createElement('div');stats.className='stat-row';
+  stats.innerHTML='<span class="stat-label">分割文件数</span><span class="stat-value">'+chunks.length+'</span>';
+  grid.appendChild(stats);
+  chunks.forEach(function(chunk,idx){
+    var content=header?header+'\n'+chunk.join('\n'):chunk.join('\n');
+    var blob=new Blob([content],{type:'text/csv'});
+    var url=URL.createObjectURL(blob);
+    var btn=document.createElement('button');
+    btn.className='btn btn-success';btn.style.cssText='margin:4px';
+    btn.textContent='下载文件 '+(idx+1)+' ('+chunk.length+'行)';
+    btn.onclick=function(){var u=url;var b=btn;return function(){b.href=u;b.download='split_'+(idx+1)+'.csv';var a=document.createElement('a');a.href=u;a.download='split_'+(idx+1)+'.csv';a.click()}}();
+    filesDiv.appendChild(btn);
+  });
+  document.getElementById('csResult').style.display='block';
+  showToast('已分割为'+chunks.length+'个文件');
 }
 </script>
 </body>

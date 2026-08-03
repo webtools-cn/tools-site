@@ -188,19 +188,43 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function clearCT() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  document.getElementById('ctInput').value='';
+  document.getElementById('ctResult').style.display='none';
+  showToast('已清空');
 }
 
 function copyCTResult() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var t=document.getElementById('ctOutput').textContent;
+  navigator.clipboard.writeText(t).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});
 }
 
 function downloadCT() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='CT.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+  var t=document.getElementById('ctOutput').textContent;
+  var blob=new Blob([t],{type:'text/csv'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='transposed.csv';a.click();
+  URL.revokeObjectURL(a.href);showToast('已下载');
 }
 
 function transposeCSV() {
-  showToast('transposeCSV - coming soon!');
+  var input=document.getElementById('ctInput').value;
+  if(!input.trim()){showToast('请输入CSV数据');return;}
+  var delim=document.getElementById('ctDelim').value;
+  var hasHeader=document.getElementById('ctHeader').checked;
+  var lines=input.split('\n').filter(function(l){return l.trim()!==''});
+  if(lines.length===0){showToast('无有效数据');return;}
+  var rows=lines.map(function(l){return l.split(delim)});
+  var maxCols=Math.max.apply(null,rows.map(function(r){return r.length}));
+  rows.forEach(function(r){while(r.length<maxCols)r.push('')});
+  var transposed=[];
+  for(var c=0;c<maxCols;c++){
+    var newRow=[];
+    for(var r=0;r<rows.length;r++){newRow.push(rows[r][c]||'')}
+    transposed.push(newRow.join(delim));
+  }
+  var result=transposed.join('\n');
+  document.getElementById('ctResult').style.display='block';
+  document.getElementById('ctOutput').textContent=result;
+  showToast('转置完成: '+rows.length+'行x'+maxCols+'列 → '+maxCols+'行x'+rows.length+'列');
 }
 </script>
 </body>

@@ -194,17 +194,93 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+function hexToHsl(hex){
+  hex=hex.replace('#','');
+  var r=parseInt(hex.substr(0,2),16)/255;
+  var g=parseInt(hex.substr(2,2),16)/255;
+  var b=parseInt(hex.substr(4,2),16)/255;
+  var max=Math.max(r,g,b),min=Math.min(r,g,b);
+  var h,s,l=(max+min)/2;
+  if(max===min){h=s=0}
+  else{var d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);
+    switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break}
+    h/=6;
+  }
+  return[h*360,s*100,l*100];
+}
+
+function hslToHex(h,s,l){
+  h=((h%360)+360)%360;s=Math.max(0,Math.min(100,s));l=Math.max(0,Math.min(100,l));
+  h/=360;s/=100;l/=100;
+  var r,g,b;
+  if(s===0){r=g=b=l}
+  else{
+    var hue2rgb=function(p,q,t){
+      if(t<0)t+=1;if(t>1)t-=1;
+      if(t<1/6)return p+(q-p)*6*t;
+      if(t<1/2)return q;
+      if(t<2/3)return p+(q-p)*(2/3-t)*6;
+      return p;
+    };
+    var q=l<0.5?l*(1+s):l+s-l*s;
+    var p=2*l-q;
+    r=hue2rgb(p,q,h+1/3);g=hue2rgb(p,q,h);b=hue2rgb(p,q,h-1/3);
+  }
+  var toHex=function(x){var v=Math.round(x*255).toString(16);return v.length===1?'0'+v:v};
+  return'#'+toHex(r)+toHex(g)+toHex(b);
+}
+
 function copyHarmony() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var t=document.getElementById('harmOutput').value;
+  if(!t){showToast('无颜色可复制');return}
+  navigator.clipboard.writeText(t).then(function(){showToast('颜色代码已复制')}).catch(function(){showToast('复制失败')});
 }
 
 function randomHarmony() {
-  showToast('randomHarmony - coming soon!');
+  var h=Math.floor(Math.random()*360);
+  var s=50+Math.floor(Math.random()*50);
+  var l=40+Math.floor(Math.random()*30);
+  var hex=hslToHex(h,s,l);
+  document.getElementById('harmBaseColor').value=hex;
+  updateHarmony();
+  showToast('随机配色已生成');
 }
 
 function updateHarmony() {
-  showToast('updateHarmony - coming soon!');
+  var baseHex=document.getElementById('harmBaseColor').value;
+  var rule=document.getElementById('harmRule').value;
+  var sat=parseInt(document.getElementById('harmSaturation').value);
+  var lit=parseInt(document.getElementById('harmLightness').value);
+  var hsl=hexToHsl(baseHex);
+  var h=hsl[0];
+  var colors=[];
+  var lits=[];
+  switch(rule){
+    case'complementary':colors=[h,h+180];lits=[lit,lit];break;
+    case'analogous':colors=[h-30,h,h+30];lits=[lit,lit,lit];break;
+    case'triadic':colors=[h,h+120,h+240];lits=[lit,lit,lit];break;
+    case'tetradic':colors=[h,h+90,h+180,h+270];lits=[lit,lit,lit,lit];break;
+    case'monochromatic':colors=[h,h,h,h];lits=[lit-20,lit,lit+15,lit+30];break;
+    case'split-complementary':colors=[h,h+150,h+210];lits=[lit,lit,lit];break;
+  }
+  var container=document.getElementById('harmColors');
+  container.innerHTML='';
+  var hexList=[];
+  colors.forEach(function(c,i){
+    var hh=((c%360)+360)%360;
+    var ll=Math.max(5,Math.min(95,lits[i]||lit));
+    var hex=hslToHex(hh,sat,ll);
+    hexList.push(hex.toUpperCase());
+    var wrap=document.createElement('div');
+    wrap.className='color-swatch-wrap';
+    wrap.onclick=function(){navigator.clipboard.writeText(hex).then(function(){showToast(hex+' 已复制')})};
+    wrap.innerHTML='<div class="color-swatch" style="background:'+hex+'"></div><div class="color-swatch-label">'+hex.toUpperCase()+'</div>';
+    container.appendChild(wrap);
+  });
+  document.getElementById('harmOutput').value=hexList.join('\n');
 }
+
+updateHarmony();
 </script>
 </body>
 </html>
