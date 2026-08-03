@@ -186,8 +186,16 @@ function clearAll() {
   showToast('已重置');
 }
 
-function filterRequests() {
-  showToast('filterRequests - coming soon!');
+function filterRequests(){
+  var search=document.getElementById('search')||document.getElementById('filter')||document.querySelector('input[type=search]')||document.querySelector('input[type=text]');
+  if(!search){showToast('未找到搜索框');return;}
+  var keyword=search.value.toLowerCase();
+  var rows=document.querySelectorAll('.request-row,tr');
+  rows.forEach(function(row){
+    var text=row.textContent.toLowerCase();
+    row.style.display=(!keyword||text.indexOf(keyword)>=0)?'':'none';
+  });
+  showToast('已过滤');
 }
 
 function handleFile(e) {
@@ -210,8 +218,29 @@ function loadExample() {
   showToast('已加载示例');
 }
 
-function parseInput() {
-  showToast('parseInput - coming soon!');
+function parseInput(){
+  var input=document.getElementById('harInput')||document.getElementById('input')||document.querySelector('textarea');
+  var output=document.getElementById('output')||document.getElementById('result');
+  if(!input||!input.value){showToast('请输入HAR数据');return;}
+  try{
+    var har=JSON.parse(input.value);
+    var entries=har.log?har.log.entries:[];
+    var html='<table style="width:100%;border-collapse:collapse;font-size:.8rem">';
+    html+='<tr><th style="padding:6px;border:1px solid rgba(148,163,184,.2);color:#22d3ee">方法</th><th style="padding:6px;border:1px solid rgba(148,163,184,.2);color:#22d3ee">URL</th><th style="padding:6px;border:1px solid rgba(148,163,184,.2);color:#22d3ee">状态</th><th style="padding:6px;border:1px solid rgba(148,163,184,.2);color:#22d3ee">耗时</th></tr>';
+    entries.forEach(function(e){
+      var url=e.request.url.length>80?e.request.url.substring(0,80)+'...':e.request.url;
+      var status=e.response.status;
+      var color=status>=200&&status<300?'#4ade80':(status>=400?'#f87171':'#fbbf24');
+      html+='<tr class="request-row"><td style="padding:6px;border:1px solid rgba(148,163,184,.1);color:#94a3b8">'+e.request.method+'</td><td style="padding:6px;border:1px solid rgba(148,163,184,.1);color:#94a3b8">'+url+'</td><td style="padding:6px;border:1px solid rgba(148,163,184,.1);color:'+color+'">'+status+'</td><td style="padding:6px;border:1px solid rgba(148,163,184,.1);color:#94a3b8">'+(e.time||0).toFixed(0)+'ms</td></tr>';
+    });
+    html+='</table>';
+    html+='<p style="color:#64748b;font-size:.8rem;margin-top:8px">共'+entries.length+'个请求</p>';
+    if(output){output.innerHTML=html;output.style.display='block';}
+    showToast('解析成功: '+entries.length+'个请求');
+  }catch(err){
+    if(output)output.textContent='解析失败: '+err.message;
+    showToast('解析失败');
+  }
 }
 
 function switchTab(tab) {

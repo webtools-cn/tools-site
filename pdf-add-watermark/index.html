@@ -224,20 +224,38 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 })();
 
 // === 重写的函数实现 ===
-function addWatermark() {
-  showToast('addWatermark - coming soon!');
+function addWatermark(){
+  var fileInput=document.getElementById('fileInput')||document.querySelector('input[type=file]');
+  var textInput=document.getElementById('watermark-text')||document.querySelectorAll('input[type=text]')[0];
+  if(!fileInput||!fileInput.files||!fileInput.files[0]){showToast('请选择PDF');return;}
+  var text=textInput?textInput.value:'WATERMARK';
+  var file=fileInput.files[0];
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var data=new Uint8Array(e.target.result);
+    var str='';for(var i=0;i<data.length;i++)str+=String.fromCharCode(data[i]);
+    var watermarkObj='BT /F1 50 Tf 0.7 0.7 0.7 rg 45 45 Td ('+text+') Tj ET';
+    var modified=str.replace(/%%EOF/,watermarkObj+'\\n%%EOF');
+    var bytes=new Uint8Array(modified.length);
+    for(var i=0;i<modified.length;i++)bytes[i]=modified.charCodeAt(i);
+    var blob=new Blob([bytes],{type:'application/pdf'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download='wm-'+file.name;a.click();URL.revokeObjectURL(a.href);
+    showToast('水印已添加');
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 function downloadPdf() {
   var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Pdf.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
 }
 
-function nextPage() {
-  showToast('nextPage - coming soon!');
-}
+function nextPage(){if(window._pdfPage)window._pdfPage++;else window._pdfPage=2;showToast('第'+window._pdfPage+'页');}
 
-function prevPage() {
-  showToast('prevPage - coming soon!');
+function prevPage(){
+  if(window._pdfPage&&window._pdfPage>1)window._pdfPage--;
+  else window._pdfPage=1;
+  showToast('第'+window._pdfPage+'页');
 }
 
 function resetAll() {

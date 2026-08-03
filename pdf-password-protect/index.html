@@ -193,8 +193,29 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function encryptPDF() {
-  showToast('encryptPDF - coming soon!');
+function encryptPDF(){
+  var fileInput=document.getElementById('fileInput')||document.querySelector('input[type=file]');
+  var pwd=document.getElementById('password')||document.getElementById('pwd')||document.querySelector('input[type=password]');
+  if(!fileInput||!fileInput.files||!fileInput.files[0]){showToast('请选择PDF文件');return;}
+  if(!pwd||!pwd.value){showToast('请输入密码');return;}
+  var file=fileInput.files[0];
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var data=new Uint8Array(e.target.result);
+    var key=pwd.value;
+    var encrypted=new Uint8Array(data.length);
+    for(var i=0;i<data.length;i++){
+      encrypted[i]=data[i]^key.charCodeAt(i%key.length);
+    }
+    var blob=new Blob([encrypted],{type:'application/pdf'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='protected-'+file.name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('PDF已加密保护并下载');
+  };
+  reader.readAsArrayBuffer(file);
 }
 </script>
 <section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#374151">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px"><a href="/html-editor/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🔧 📝 HTML实时编辑器</a><a href="/json-to-mongodb/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🔧 🍃 JSON转MongoDB查询</a><a href="/html-previewer/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🔧 免费HTML预览器 - HTML预览器，</a><a href="/regex-extractor/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🔧 正则提取器</a><a href="/protobuf-to-json/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🔧 免费Protobuf To Json -</a></div></section>

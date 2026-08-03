@@ -265,8 +265,41 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function applyPixelArt() {
-  showToast('applyPixelArt - coming soon!');
+function applyPixelArt(){
+  var fileInput=document.getElementById('fileInput')||document.querySelector('input[type=file]');
+  if(!fileInput||!fileInput.files||!fileInput.files[0]){showToast('请先选择图片');return;}
+  var sizeEl=document.getElementById('pixelSize')||document.querySelector('input[type=range]');
+  var pixelSize=sizeEl?parseInt(sizeEl.value):8;
+  var file=fileInput.files[0];
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var canvas=document.createElement('canvas');
+      var w=Math.floor(img.width/pixelSize);
+      var h=Math.floor(img.height/pixelSize);
+      canvas.width=w;
+      canvas.height=h;
+      var ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      var preview=document.getElementById('preview')||document.getElementById('result')||document.getElementById('output');
+      if(preview){
+        preview.innerHTML='';
+        var displayCanvas=document.createElement('canvas');
+        displayCanvas.width=w*pixelSize;
+        displayCanvas.height=h*pixelSize;
+        displayCanvas.style.cssText='image-rendering:pixelated;max-width:100%;border-radius:8px';
+        var dCtx=displayCanvas.getContext('2d');
+        dCtx.imageSmoothingEnabled=false;
+        dCtx.drawImage(canvas,0,0,w*pixelSize,h*pixelSize);
+        preview.appendChild(displayCanvas);
+        window._pixelArtCanvas=displayCanvas;
+      }
+      showToast('像素化完成');
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 function downloadResult() {

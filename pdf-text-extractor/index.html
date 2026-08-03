@@ -271,8 +271,57 @@ function downloadTxt() {
   showToast('已下载');
 }
 
-function extractText() {
-  showToast('extractText - coming soon!');
+function extractText(){
+  var fileInput = document.getElementById('fileInput') || document.querySelector('input[type=file]');
+  var output = document.getElementById('output') || document.getElementById('result') || document.getElementById('result-text');
+  if(!fileInput || !fileInput.files || !fileInput.files[0]){
+    showToast('请先选择PDF文件');
+    return;
+  }
+  if(output){
+    output.textContent = '正在提取文本...';
+    output.style.display = 'block';
+  }
+  var file = fileInput.files[0];
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var text = '';
+    try {
+      var bytes = new Uint8Array(e.target.result);
+      var str = '';
+      for(var i = 0; i < bytes.length; i++){
+        str += String.fromCharCode(bytes[i]);
+      }
+      var regex = /\(([^)]+)\)/g;
+      var match;
+      var count = 0;
+      while((match = regex.exec(str)) !== null && count < 1000){
+        if(match[1].length > 0 && match[1].length < 200){
+          text += match[1] + ' ';
+          count++;
+        }
+      }
+      var tjRegex = /\[([^\]]*)\]\s*TJ/g;
+      while((match = tjRegex.exec(str)) !== null && count < 2000){
+        var parts = match[1].match(/\(([^)]+)\)/g);
+        if(parts){
+          parts.forEach(function(p){
+            text += p.replace(/[()]/g, '');
+          });
+          text += ' ';
+          count++;
+        }
+      }
+    } catch(err) { text = ''; }
+    if(text.trim().length > 10){
+      if(output) output.textContent = text.trim();
+      showToast('文本提取完成');
+    } else {
+      if(output) output.textContent = '无法从该PDF中提取文本。该PDF可能包含扫描图像而非文本内容。建议使用OCR工具进行识别。';
+      showToast('未找到可提取的文本');
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
 </script>
 </body>

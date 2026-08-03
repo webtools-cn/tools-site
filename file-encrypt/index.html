@@ -195,8 +195,29 @@ function downloadEncrypted() {
   var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Encrypted.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
 }
 
-function encryptFile() {
-  showToast('encryptFile - coming soon!');
+function encryptFile(){
+  var fileInput=document.getElementById('fileInput')||document.querySelector('input[type=file]');
+  var pwd=document.getElementById('password')||document.getElementById('pwd')||document.querySelector('input[type=password]');
+  if(!fileInput||!fileInput.files||!fileInput.files[0]){showToast('请选择文件');return;}
+  if(!pwd||!pwd.value){showToast('请输入密码');return;}
+  var file=fileInput.files[0];
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var data=new Uint8Array(e.target.result);
+    var key=pwd.value;
+    var encrypted=new Uint8Array(data.length);
+    for(var i=0;i<data.length;i++){
+      encrypted[i]=data[i]^key.charCodeAt(i%key.length);
+    }
+    var blob=new Blob([encrypted],{type:'application/octet-stream'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=file.name+'.enc';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('文件已加密并下载');
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 function handleFile(e) {

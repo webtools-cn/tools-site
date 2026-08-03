@@ -277,8 +277,44 @@ function clearAll() {
   showToast('已重置');
 }
 
-function mergePDFs() {
-  showToast('mergePDFs - coming soon!');
+function mergePDFs(){
+  var fileInput = document.getElementById('fileInput') || document.querySelector('input[type=file]');
+  if(!fileInput || !fileInput.files || fileInput.files.length < 2){
+    showToast('请至少选择2个PDF文件');
+    return;
+  }
+  var output = document.getElementById('output') || document.getElementById('result') || document.getElementById('status');
+  if(output) output.textContent = '正在合并...';
+  var files = Array.from(fileInput.files);
+  var readers = files.map(function(f){
+    return new Promise(function(resolve){
+      var r = new FileReader();
+      r.onload = function(e){ resolve({name: f.name, data: new Uint8Array(e.target.result)}); };
+      r.readAsArrayBuffer(f);
+    });
+  });
+  Promise.all(readers).then(function(results){
+    var totalLength = 0;
+    results.forEach(function(r){ totalLength += r.data.length; });
+    var merged = new Uint8Array(totalLength);
+    var offset = 0;
+    results.forEach(function(r){
+      merged.set(r.data, offset);
+      offset += r.data.length;
+    });
+    var blob = new Blob([merged], {type: 'application/pdf'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'merged.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+    if(output) output.textContent = '合并完成！';
+    showToast('已合并' + files.length + '个PDF文件');
+  })['catch'](function(){
+    if(output) output.textContent = '合并失败';
+    showToast('合并失败');
+  });
 }
 </script>
 </body>

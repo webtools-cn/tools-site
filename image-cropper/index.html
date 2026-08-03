@@ -320,38 +320,214 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function applyCrop() {
-  showToast('applyCrop - coming soon!');
+// === 图片裁剪工具 - 完整实现 ===
+var sourceImg = null;
+var sourceCanvas = document.getElementById('sourceCanvas');
+var resultCanvas = document.getElementById('resultCanvas');
+var croppedDataURL = null;
+
+// 文件上传
+var uploadArea = document.getElementById('uploadArea');
+var fileInput = document.getElementById('fileInput');
+uploadArea.addEventListener('click', function(){ fileInput.click(); });
+fileInput.addEventListener('change', function(e){ if(e.target.files[0]) loadFile(e.target.files[0]); });
+uploadArea.addEventListener('dragover', function(e){ e.preventDefault(); uploadArea.classList.add('has-file'); });
+uploadArea.addEventListener('dragleave', function(e){ e.preventDefault(); uploadArea.classList.remove('has-file'); });
+uploadArea.addEventListener('drop', function(e){
+  e.preventDefault();
+  uploadArea.classList.remove('has-file');
+  if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+});
+
+function loadFile(file){
+  if(!file.type.startsWith('image/')){ showToast('请选择图片文件'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      sourceImg = img;
+      document.getElementById('fileName').textContent = file.name;
+      document.getElementById('fileSize').textContent = (file.size/1024).toFixed(1) + ' KB';
+      document.getElementById('fileDim').textContent = img.width + ' × ' + img.height;
+      document.getElementById('fileInfo').classList.add('show');
+      document.getElementById('controlSection').style.display = 'block';
+      document.getElementById('previewSection').style.display = 'block';
+      drawSource();
+      showToast('图片已加载');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
-function centerCrop() {
-  showToast('centerCrop - coming soon!');
+function drawSource(){
+  var ctx = sourceCanvas.getContext('2d');
+  var maxW = 400, maxH = 400;
+  var w = sourceImg.width, h = sourceImg.height;
+  var scale = Math.min(maxW/w, maxH/h, 1);
+  sourceCanvas.width = w * scale;
+  sourceCanvas.height = h * scale;
+  ctx.drawImage(sourceImg, 0, 0, sourceCanvas.width, sourceCanvas.height);
 }
 
-function clearImage() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+function applyCrop(){
+  if(!sourceImg){ showToast('请先上传图片'); return; }
+  var w = sourceImg.width, h = sourceImg.height;
+  var cw = parseInt(document.getElementById('cropWidth').value) || w;
+  var ch = parseInt(document.getElementById('cropHeight').value) || h;
+  var cx = parseInt(document.getElementById('cropX').value) || 0;
+  var cy = parseInt(document.getElementById('cropY').value) || 0;
+  var ratio = document.getElementById('cropRatio').value;
+  var angle = parseInt(document.getElementById('rotateAngle').value);
+  var flip = document.getElementById('flipMode').value;
+
+  // 固定比例约束
+  if(ratio !== 'free'){
+    var parts = ratio.split(':');
+    var rw = parseFloat(parts[0]), rh = parseFloat(parts[1]);
+    ch = Math.round(cw * rh / rw);
+  }
+
+  // 确保不越界
+  cw = Math.min(cw, w - cx);
+  ch = Math.min(ch, h - cy);
+  if(cw < 1) cw = 1;
+  if(ch < 1) ch = 1;
+
+  // 先在临时canvas上裁剪
+  var tmpCanvas = document.createElement('canvas');
+  tmpCanvas.width = cw;
+  tmpCanvas.height = ch;
+  var tmpCtx = tmpCanvas.getContext('2d');
+  tmpCtx.drawImage(sourceImg, cx, cy, cw, ch, 0, 0, cw, ch);
+
+  // 应用旋转
+  var rotCanvas = tmpCanvas;
+  if(angle !== 0){
+    rotCanvas = document.createElement('canvas');
+    var rCtx = rotCanvas.getContext('2d');
+    if(angle === 90){ rotCanvas.width = ch; rotCanvas.height = cw; }
+    else if(angle === 180){ rotCanvas.width = cw; rotCanvas.height = ch; }
+    else if(angle === 270){ rotCanvas.width = ch; rotCanvas.height = cw; }
+    rCtx.translate(rotCanvas.width/2, rotCanvas.height/2);
+    rCtx.rotate(angle * Math.PI / 180);
+    rCtx.drawImage(tmpCanvas, -cw/2, -ch/2);
+  }
+
+  // 应用翻转
+  var flipCanvas = rotCanvas;
+  if(flip !== 'none'){
+    flipCanvas = document.createElement('canvas');
+    flipCanvas.width = rotCanvas.width;
+    flipCanvas.height = rotCanvas.height;
+    var fCtx = flipCanvas.getContext('2d');
+    if(flip === 'horizontal'){ fCtx.scale(-1, 1); fCtx.drawImage(rotCanvas, -rotCanvas.width, 0); }
+    else { fCtx.scale(1, -1); fCtx.drawImage(rotCanvas, 0, -rotCanvas.height); }
+  }
+
+  // 绘制到结果canvas
+  var ctx = resultCanvas.getContext('2d');
+  var maxW = 400, maxH = 400;
+  var scale = Math.min(maxW/flipCanvas.width, maxH/flipCanvas.height, 1);
+  resultCanvas.width = flipCanvas.width * scale;
+  resultCanvas.height = flipCanvas.height * scale;
+  ctx.drawImage(flipCanvas, 0, 0, resultCanvas.width, resultCanvas.height);
+
+  // 保存完整分辨率结果
+  croppedDataURL = flipCanvas.toDataURL(document.getElementById('exportFormat').value, 0.92);
+
+  // 显示结果区域
+  document.getElementById('resultSection').style.display = 'block';
+  document.getElementById('resultPlaceholder').style.display = 'none';
+  // 如果resultWrapper里没有canvas，添加一个
+  var existingCanvas = document.getElementById('resultCanvasFull');
+  if(!existingCanvas){
+    existingCanvas = document.createElement('canvas');
+    existingCanvas.id = 'resultCanvasFull';
+    existingCanvas.style.maxWidth = '100%';
+    existingCanvas.style.maxHeight = '350px';
+    document.getElementById('resultWrapper').appendChild(existingCanvas);
+  }
+  existingCanvas.width = flipCanvas.width;
+  existingCanvas.height = flipCanvas.height;
+  existingCanvas.getContext('2d').drawImage(flipCanvas, 0, 0);
+
+  // 显示元信息
+  document.getElementById('resultMeta').innerHTML =
+    '<span>尺寸: ' + flipCanvas.width + ' × ' + flipCanvas.height + ' px</span>' +
+    '<span>裁剪区域: (' + cx + ', ' + cy + ')</span>' +
+    '<span>旋转: ' + angle + '°</span>' +
+    '<span>翻转: ' + (flip === 'none' ? '无' : flip) + '</span>';
+
+  showToast('裁剪完成！');
 }
 
-function copyResult() {
-  var text = document.getElementById('previewSection').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+function centerCrop(){
+  if(!sourceImg){ showToast('请先上传图片'); return; }
+  var w = sourceImg.width, h = sourceImg.height;
+  var cw = parseInt(document.getElementById('cropWidth').value) || Math.min(w, h);
+  var ch = parseInt(document.getElementById('cropHeight').value) || Math.min(w, h);
+  var ratio = document.getElementById('cropRatio').value;
+  if(ratio !== 'free'){
+    var parts = ratio.split(':');
+    var rw = parseFloat(parts[0]), rh = parseFloat(parts[1]);
+    var size = Math.min(w, h);
+    cw = size;
+    ch = Math.round(size * rh / rw);
+    if(cw > w){ cw = w; ch = Math.round(w * rh / rw); }
+    if(ch > h){ ch = h; cw = Math.round(h * rw / rh); }
+  }
+  document.getElementById('cropWidth').value = cw;
+  document.getElementById('cropHeight').value = ch;
+  document.getElementById('cropX').value = Math.round((w - cw) / 2);
+  document.getElementById('cropY').value = Math.round((h - ch) / 2);
+  showToast('已居中');
 }
 
-function downloadResult() {
-  var text = document.getElementById('previewSection').innerText;
-  if (!text) { showToast('没有可下载的结果'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
+function resetCrop(){
+  document.getElementById('cropWidth').value = '';
+  document.getElementById('cropHeight').value = '';
+  document.getElementById('cropX').value = '';
+  document.getElementById('cropY').value = '';
+  document.getElementById('rotateAngle').value = '0';
+  document.getElementById('flipMode').value = 'none';
+  document.getElementById('cropRatio').value = 'free';
+  showToast('已重置');
+}
+
+function clearImage(){
+  sourceImg = null;
+  croppedDataURL = null;
+  fileInput.value = '';
+  document.getElementById('fileInfo').classList.remove('show');
+  document.getElementById('controlSection').style.display = 'none';
+  document.getElementById('previewSection').style.display = 'none';
+  document.getElementById('resultSection').style.display = 'none';
+  var sCtx = sourceCanvas.getContext('2d');
+  sCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+  var rCtx = resultCanvas.getContext('2d');
+  rCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+  showToast('已清除');
+}
+
+function copyResult(){
+  if(!croppedDataURL){ showToast('请先裁剪图片'); return; }
+  fetch(croppedDataURL).then(function(r){ return r.blob(); }).then(function(blob){
+    navigator.clipboard.write([new ClipboardItem({})]).then(function(){ showToast('已复制到剪贴板'); })['catch'](function(){
+      showToast('复制失败，请使用下载');
+    });
+  })['catch'](function(){ showToast('复制失败'); });
+}
+
+function downloadResult(){
+  if(!croppedDataURL){ showToast('请先裁剪图片'); return; }
+  var fmt = document.getElementById('exportFormat').value;
+  var ext = fmt === 'image/png' ? 'png' : 'jpg';
   var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'image-cropper-result.txt';
+  a.href = croppedDataURL;
+  a.download = 'cropped-' + Date.now() + '.' + ext;
   a.click();
   showToast('已下载');
-}
-
-function resetCrop() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
 }
 </script>
 </body>

@@ -279,8 +279,43 @@ function clearAll() {
   showToast('已重置');
 }
 
-function compressCurrent() {
-  showToast('compressCurrent - coming soon!');
+function compressCurrent(){
+  var fileInput=document.getElementById('fileInput')||document.querySelector('input[type=file]');
+  if(!fileInput||!fileInput.files||!fileInput.files[0]){showToast('请先选择图片');return;}
+  var qualityEl=document.getElementById('quality')||document.querySelector('input[type=range]');
+  var quality=qualityEl?parseFloat(qualityEl.value)/100:0.7;
+  var file=fileInput.files[0];
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var canvas=document.createElement('canvas');
+      canvas.width=img.width;
+      canvas.height=img.height;
+      var ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0);
+      var dataURL=canvas.toDataURL('image/jpeg',quality);
+      var preview=document.getElementById('preview')||document.getElementById('result')||document.getElementById('output');
+      if(preview){
+        preview.innerHTML='';
+        var imgEl=document.createElement('img');
+        imgEl.src=dataURL;
+        imgEl.style.maxWidth='100%';
+        imgEl.style.borderRadius='8px';
+        preview.appendChild(imgEl);
+        var info=document.createElement('p');
+        info.style.cssText='color:#94a3b8;font-size:.85rem;margin-top:8px';
+        var originalKB=(file.size/1024).toFixed(1);
+        var compressedKB=(dataURL.length*0.75/1024).toFixed(1);
+        info.textContent='原始: '+originalKB+'KB → 压缩后: '+compressedKB+'KB (质量: '+Math.round(quality*100)+'%)';
+        preview.appendChild(info);
+      }
+      window._compressedDataURL=dataURL;
+      showToast('压缩完成');
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 function downloadCurrent() {

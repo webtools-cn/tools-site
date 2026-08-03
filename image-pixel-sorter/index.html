@@ -171,8 +171,29 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function applySort() {
-  showToast('applySort - coming soon!');
+function applySort(){
+  var canvas=document.getElementById('canvas')||document.querySelector('canvas');
+  if(!canvas||!canvas.getContext){showToast('请先加载图片');return;}
+  var ctx=canvas.getContext('2d');
+  var imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
+  var data=imageData.data;
+  // 按行排序像素
+  for(var y=0;y<canvas.height;y++){
+    var rowPixels=[];
+    for(var x=0;x<canvas.width;x++){
+      var idx=(y*canvas.width+x)*4;
+      var brightness=(data[idx]+data[idx+1]+data[idx+2])/3;
+      rowPixels.push({x:x,brightness:brightness,r:data[idx],g:data[idx+1],b:data[idx+2]});
+    }
+    rowPixels.sort(function(a,b){return a.brightness-b.brightness;});
+    for(var x=0;x<canvas.width;x++){
+      var idx=(y*canvas.width+x)*4;
+      var p=rowPixels[x];
+      data[idx]=p.r;data[idx+1]=p.g;data[idx+2]=p.b;
+    }
+  }
+  ctx.putImageData(imageData,0,0);
+  showToast('像素排序完成');
 }
 
 function downloadResult() {

@@ -311,8 +311,83 @@ function resetAll() {
   showToast('已重置');
 }
 
-function startConvert() {
-  showToast('startConvert - coming soon!');
+function startConvert(){
+  var fileInput = document.getElementById('fileInput') || document.querySelector('input[type=file]');
+  if(!fileInput || !fileInput.files || !fileInput.files[0]){
+    showToast('请先选择PDF文件');
+    return;
+  }
+  var output = document.getElementById('output') || document.getElementById('result') || document.getElementById('preview');
+  if(output) output.innerHTML = '<p style="color:#94a3b8;padding:20px">正在转换...纯前端PDF转图片功能有限，正在尝试提取...</p>';
+  
+  var file = fileInput.files[0];
+  var reader = new FileReader();
+  reader.onload = function(e){
+    // 纯前端无法完全渲染PDF，使用Canvas绘制文本内容作为替代
+    try {
+      var bytes = new Uint8Array(e.target.result);
+      var str = '';
+      for(var i = 0; i < bytes.length; i++){
+        str += String.fromCharCode(bytes[i]);
+      }
+      // 提取文本
+      var text = '';
+      var regex = /\(([^)]+)\)/g;
+      var match;
+      var count = 0;
+      while((match = regex.exec(str)) !== null && count < 500){
+        if(match[1].length > 0 && match[1].length < 200){
+          text += match[1] + '\n';
+          count++;
+        }
+      }
+      
+      if(output){
+        if(text.trim()){
+          // 创建Canvas渲染文本
+          var canvas = document.createElement('canvas');
+          canvas.width = 800;
+          canvas.height = 600;
+          canvas.style.maxWidth = '100%';
+          canvas.style.border = '1px solid rgba(148,163,184,.2)';
+          canvas.style.borderRadius = '8px';
+          canvas.style.background = '#fff';
+          var ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, 800, 600);
+          ctx.fillStyle = '#000';
+          ctx.font = '14px sans-serif';
+          var lines = text.split('\n').slice(0, 35);
+          lines.forEach(function(line, i){
+            ctx.fillText(line.substring(0, 80), 20, 30 + i * 20);
+          });
+          output.innerHTML = '';
+          output.appendChild(canvas);
+          
+          // 下载按钮
+          var btn = document.createElement('button');
+          btn.textContent = '💾 下载图片';
+          btn.className = 'btn btn-primary';
+          btn.style.marginTop = '12px';
+          btn.onclick = function(){
+            var a = document.createElement('a');
+            a.href = canvas.toDataURL('image/png');
+            a.download = 'pdf-page.png';
+            a.click();
+            showToast('已下载');
+          };
+          output.appendChild(btn);
+        } else {
+          output.innerHTML = '<p style="color:#94a3b8;padding:20px">该PDF可能包含图像而非文本内容。纯前端环境下无法完全渲染PDF图像页面，建议使用浏览器打印功能保存为图片。</p>';
+        }
+      }
+      showToast('转换完成');
+    } catch(err){
+      if(output) output.innerHTML = '<p style="color:#f87171;padding:20px">转换失败：' + err.message + '</p>';
+      showToast('转换失败');
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
 </script>
 </body>

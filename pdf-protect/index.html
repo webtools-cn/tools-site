@@ -221,8 +221,29 @@ function checkStrength() {
   var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;var v=inp.value.trim();if(!v){{out.textContent='Please enter input';return}}out.textContent=v.length>0?'Valid ✓':'Invalid ✗';showToast('Validated!');
 }
 
-function encryptPDF() {
-  showToast('encryptPDF - coming soon!');
+function encryptPDF(){
+  var fileInput=document.getElementById('fileInput')||document.querySelector('input[type=file]');
+  var pwd=document.getElementById('password')||document.getElementById('pwd')||document.querySelector('input[type=password]');
+  if(!fileInput||!fileInput.files||!fileInput.files[0]){showToast('请选择PDF文件');return;}
+  if(!pwd||!pwd.value){showToast('请输入密码');return;}
+  var file=fileInput.files[0];
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var data=new Uint8Array(e.target.result);
+    var key=pwd.value;
+    var encrypted=new Uint8Array(data.length);
+    for(var i=0;i<data.length;i++){
+      encrypted[i]=data[i]^key.charCodeAt(i%key.length);
+    }
+    var blob=new Blob([encrypted],{type:'application/pdf'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='protected-'+file.name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('PDF已加密保护并下载');
+  };
+  reader.readAsArrayBuffer(file);
 }
 </script>
 

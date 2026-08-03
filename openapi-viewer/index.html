@@ -146,8 +146,20 @@ function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.c
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
 // === 重写的函数实现 ===
-function autoDetect() {
-  showToast('autoDetect - coming soon!');
+function autoDetect(){
+  var input=document.getElementById('api-url')||document.getElementById('url')||document.querySelector('input[type=url]')||document.querySelector('input[type=text]');
+  if(!input||!input.value){showToast('请输入API URL');return;}
+  var url=input.value.trim();
+  var candidates=[url,url+'/openapi.json',url+'/swagger.json',url+'/api-docs'];
+  var idx=0;
+  function tryNext(){
+    if(idx>=candidates.length){showToast('未找到OpenAPI文档');return;}
+    fetch(candidates[idx]).then(function(r){if(!r.ok)throw new Error('not found');return r.json();}).then(function(data){
+      parseDoc(JSON.stringify(data));
+      showToast('已自动发现: '+candidates[idx]);
+    })['catch'](function(){idx++;tryNext();});
+  }
+  tryNext();
 }
 
 function clearAll() {
@@ -176,8 +188,16 @@ function downloadResult() {
   showToast('已下载');
 }
 
-function filterEndpoints() {
-  showToast('filterEndpoints - coming soon!');
+function filterEndpoints(){
+  var search=document.getElementById('search')||document.getElementById('filter')||document.querySelector('input[type=search]')||document.querySelector('input[type=text]');
+  if(!search){showToast('未找到搜索框');return;}
+  var keyword=search.value.toLowerCase();
+  var items=document.querySelectorAll('.endpoint-item,.endpoint');
+  items.forEach(function(item){
+    var text=item.textContent.toLowerCase();
+    item.style.display=(!keyword||text.indexOf(keyword)>=0)?'':'none';
+  });
+  showToast('已过滤');
 }
 
 function loadExample() {
@@ -187,8 +207,33 @@ function loadExample() {
   showToast('已加载示例');
 }
 
-function parseDoc() {
-  showToast('parseDoc - coming soon!');
+function parseDoc(){
+  var input=document.getElementById('api-input')||document.getElementById('input')||document.querySelector('textarea');
+  var output=document.getElementById('output')||document.getElementById('result')||document.getElementById('endpoints');
+  var raw=arguments[0]||(input?input.value:'');
+  if(!raw){showToast('请输入OpenAPI文档');return;}
+  try{
+    var doc=JSON.parse(raw);
+    var paths=doc.paths||{};
+    var html='<div style="margin-bottom:16px"><h3 style="color:#e2e8f0">'+(doc.info?doc.info.title:'API')+' '+(doc.info?doc.info.version:'')+'</h3></div>';
+    Object.keys(paths).forEach(function(path){
+      Object.keys(paths[path]).forEach(function(method){
+        var endpoint=paths[path][method];
+        var color={get:'#22d3ee',post:'#4ade80',put:'#fbbf24',delete:'#f87171',patch:'#a78bfa'}[method]||'#94a3b8';
+        html+='<div style="background:#0f172a;border-radius:8px;padding:12px;margin-bottom:8px;border-left:3px solid '+color+'">';
+        html+='<div style="display:flex;gap:8px;align-items:center">';
+        html+='<span style="background:'+color+';color:#0f172a;padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:bold;text-transform:uppercase">'+method+'</span>';
+        html+='<code style="color:#e2e8f0;font-size:.85rem">'+path+'</code></div>';
+        if(endpoint.summary)html+='<p style="color:#94a3b8;font-size:.8rem;margin-top:4px">'+endpoint.summary+'</p>';
+        html+='</div>';
+      });
+    });
+    if(output){output.innerHTML=html;output.style.display='block';}
+    showToast('解析成功: '+Object.keys(paths).length+'个路径');
+  }catch(e){
+    if(output)output.textContent='解析失败: '+e.message;
+    showToast('解析失败');
+  }
 }
 </script>
 </body>

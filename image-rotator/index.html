@@ -244,38 +244,116 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function copyToClipboard() {
-  var text = document.getElementById('previewWrap').innerText || document.getElementById('previewWrap').textContent;
-  if (!text) { showToast('没有可复制的内容'); return; }
-  copyText(text);
+// === 图片旋转工具 - 完整实现 ===
+var rotatorImg = null;
+var rotatorCanvas = null;
+var currentRotation = 0;
+var currentFlip = 'none';
+
+var rotUploadArea = document.getElementById('uploadArea') || document.querySelector('.upload-area');
+var rotFileInput = document.getElementById('fileInput');
+if(rotFileInput){
+  rotFileInput.addEventListener('change', function(e){ if(e.target.files[0]) loadRotatorFile(e.target.files[0]); });
+}
+if(rotUploadArea){
+  rotUploadArea.addEventListener('click', function(){ rotFileInput.click(); });
+  rotUploadArea.addEventListener('dragover', function(e){ e.preventDefault(); });
+  rotUploadArea.addEventListener('drop', function(e){
+    e.preventDefault();
+    if(e.dataTransfer.files[0]) loadRotatorFile(e.dataTransfer.files[0]);
+  });
 }
 
-function downloadImage() {
-  var text = document.getElementById('previewWrap').innerText || document.getElementById('previewWrap').textContent;
-  if (!text) { showToast('没有可导出的内容'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
+function loadRotatorFile(file){
+  if(!file.type.startsWith('image/')){ showToast('请选择图片文件'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      rotatorImg = img;
+      currentRotation = 0;
+      currentFlip = 'none';
+      renderRotator();
+      showToast('图片已加载');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderRotator(){
+  if(!rotatorImg) return;
+  var wrap = document.getElementById('previewWrap');
+  if(!rotatorCanvas){
+    rotatorCanvas = document.createElement('canvas');
+    rotatorCanvas.style.maxWidth = '100%';
+    rotatorCanvas.style.maxHeight = '400px';
+    wrap.innerHTML = '';
+    wrap.appendChild(rotatorCanvas);
+  }
+  var w = rotatorImg.width, h = rotatorImg.height;
+  var isSideways = (currentRotation === 90 || currentRotation === 270);
+  rotatorCanvas.width = isSideways ? h : w;
+  rotatorCanvas.height = isSideways ? w : h;
+  var ctx = rotatorCanvas.getContext('2d');
+  ctx.save();
+  ctx.translate(rotatorCanvas.width/2, rotatorCanvas.height/2);
+  ctx.rotate(currentRotation * Math.PI / 180);
+  if(currentFlip === 'h') ctx.scale(-1, 1);
+  if(currentFlip === 'v') ctx.scale(1, -1);
+  ctx.drawImage(rotatorImg, -w/2, -h/2);
+  ctx.restore();
+}
+
+function flip(dir){
+  if(!rotatorImg){ showToast('请先上传图片'); return; }
+  if(dir === 'h'){
+    currentFlip = currentFlip === 'h' ? 'none' : 'h';
+  } else {
+    currentFlip = currentFlip === 'v' ? 'none' : 'v';
+  }
+  renderRotator();
+  showToast(dir === 'h' ? '已水平翻转' : '已垂直翻转');
+}
+
+function rotate(){
+  if(!rotatorImg){ showToast('请先上传图片'); return; }
+  currentRotation = (currentRotation + 90) % 360;
+  renderRotator();
+  showToast('已旋转90°');
+}
+
+function rotateCustom(){
+  if(!rotatorImg){ showToast('请先上传图片'); return; }
+  var angleInput = document.getElementById('customAngle') || document.querySelector('input[type=number]');
+  var angle = angleInput ? parseInt(angleInput.value) : 0;
+  if(!angle || isNaN(angle)){ showToast('请输入角度'); return; }
+  currentRotation = (currentRotation + angle) % 360;
+  if(currentRotation < 0) currentRotation += 360;
+  renderRotator();
+  showToast('已旋转' + angle + '°');
+}
+
+function resetTransform(){
+  if(!rotatorImg) return;
+  currentRotation = 0;
+  currentFlip = 'none';
+  renderRotator();
+  showToast('已重置');
+}
+
+function copyToClipboard(){
+  if(!rotatorCanvas){ showToast('没有可复制的内容'); return; }
+  showToast('请使用下载按钮保存图片');
+}
+
+function downloadImage(){
+  if(!rotatorCanvas){ showToast('没有可下载的内容'); return; }
   var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'image-rotator-output.txt';
+  a.href = rotatorCanvas.toDataURL('image/png');
+  a.download = 'rotated-' + Date.now() + '.png';
   a.click();
   showToast('已下载');
-}
-
-function flip() {
-  showToast('flip - coming soon!');
-}
-
-function resetTransform() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
-}
-
-function rotate() {
-  showToast('rotate - coming soon!');
-}
-
-function rotateCustom() {
-  showToast('rotateCustom - coming soon!');
 }
 </script>
 

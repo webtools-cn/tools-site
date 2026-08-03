@@ -159,16 +159,66 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 
 // === 重写的函数实现 ===
-function refreshInfo() {
-  showToast('refreshInfo - coming soon!');
+function refreshInfo(){
+  var output=document.getElementById('output')||document.getElementById('result')||document.getElementById('info');
+  var info=[];
+  info.push('=== 网络连接信息 ===');
+  info.push('在线状态: '+(navigator.onLine?'✅ 在线':'❌ 离线'));
+  info.push('连接类型: '+(navigator.connection?navigator.connection.effectiveType:'未知'));
+  info.push('下行速度: '+(navigator.connection?navigator.connection.downlink+' Mbps':'未知'));
+  info.push('RTT: '+(navigator.connection?navigator.connection.rtt+'ms':'未知'));
+  info.push('User Agent: '+navigator.userAgent.substring(0,100));
+  info.push('平台: '+navigator.platform);
+  info.push('语言: '+navigator.language);
+  info.push('Cookie启用: '+(navigator.cookieEnabled?'✅':'❌'));
+  if(output){output.textContent=info.join('\\n');output.style.display='block';}
+  showToast('信息已刷新');
 }
 
-function runPingTest() {
-  showToast('runPingTest - coming soon!');
+function runPingTest(){
+  var output=document.getElementById('output')||document.getElementById('result')||document.getElementById('ping-result');
+  if(output)output.textContent='正在测试延迟...';
+  var pings=[];var done=0;var count=5;
+  for(var i=0;i<count;i++){
+    (function(idx){
+      var start=performance.now();
+      var img=new Image();
+      img.onload=img.onerror=function(){
+        pings.push(performance.now()-start);done++;
+        if(done===count){
+          var avg=pings.reduce(function(a,b){return a+b},0)/pings.length;
+          if(output)output.textContent='延迟: '+avg.toFixed(1)+'ms ('+count+'次测试)';
+          showToast('延迟: '+avg.toFixed(0)+'ms');
+        }
+      };
+      img.src='https://speed.cloudflare.com/__down?bytes=100&t='+Date.now()+idx;
+    })(i);
+  }
 }
 
-function runSpeedTest() {
-  showToast('runSpeedTest - coming soon!');
+function runSpeedTest(){
+  var output=document.getElementById('output')||document.getElementById('result')||document.getElementById('speed-result');
+  if(output)output.textContent='正在测试下载速度...';
+  var startTime=performance.now();
+  var totalBytes=0;
+  var sizes=[1e5,5e5,1e6,2e6];
+  var idx=0;
+  function next(){
+    if(idx>=sizes.length){
+      var elapsed=(performance.now()-startTime)/1000;
+      var mbps=(totalBytes*8)/(elapsed*1e6);
+      if(output)output.textContent='速度测试结果:\n下载速度: '+mbps.toFixed(2)+' Mbps\n测试耗时: '+elapsed.toFixed(2)+'s\n下载量: '+(totalBytes/1e6).toFixed(2)+' MB';
+      showToast('测速完成: '+mbps.toFixed(1)+' Mbps');
+      return;
+    }
+    var xhr=new XMLHttpRequest();
+    xhr.open('GET','https://speed.cloudflare.com/__down?bytes='+sizes[idx],true);
+    xhr.responseType='arraybuffer';
+    xhr.onload=function(){if(xhr.response)totalBytes+=xhr.response.byteLength;idx++;next();};
+    xhr.onerror=function(){idx++;next();};
+    xhr.send();
+  }
+  next();
 }
 </script>
 

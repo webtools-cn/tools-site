@@ -222,8 +222,48 @@ function clearAll() {
   showToast('已重置');
 }
 
-function fetchAndAnalyze() {
-  showToast('fetchAndAnalyze - coming soon!');
+function fetchAndAnalyze(){
+  var urlInput=document.getElementById('url')||document.getElementById('urlInput')||document.querySelector('input[type=url]')||document.querySelector('input[type=text]');
+  var output=document.getElementById('output')||document.getElementById('result');
+  if(!urlInput||!urlInput.value){showToast('请输入URL');return;}
+  var url=urlInput.value.trim();
+  if(!url.match(/^https?:\/\//)){url='https://'+url;}
+  if(output)output.textContent='正在分析...';
+  fetch(url).then(function(r){return r.text();}).then(function(html){
+    var results=[];
+    var ogTitle=html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i);
+    var ogDesc=html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i);
+    var ogImage=html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
+    var ogUrl=html.match(/<meta[^>]*property=["']og:url["'][^>]*content=["']([^"']+)["']/i);
+    var ogType=html.match(/<meta[^>]*property=["']og:type["'][^>]*content=["']([^"']+)["']/i);
+    var twCard=html.match(/<meta[^>]*name=["']twitter:card["'][^>]*content=["']([^"']+)["']/i);
+    var twTitle=html.match(/<meta[^>]*name=["']twitter:title["'][^>]*content=["']([^"']+)["']/i);
+    var title=html.match(/<title>([^<]+)<\/title>/i);
+    var desc=html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
+    results.push('=== 页面基本信息 ===');
+    results.push('Title: '+(title?title[1]:'❌ 缺失'));
+    results.push('Description: '+(desc?desc[1]:'❌ 缺失'));
+    results.push('');
+    results.push('=== Open Graph 标签 ===');
+    results.push('og:title: '+(ogTitle?ogTitle[1]:'❌ 缺失'));
+    results.push('og:description: '+(ogDesc?ogDesc[1]:'❌ 缺失'));
+    results.push('og:image: '+(ogImage?ogImage[1]:'❌ 缺失'));
+    results.push('og:url: '+(ogUrl?ogUrl[1]:'❌ 缺失'));
+    results.push('og:type: '+(ogType?ogType[1]:'❌ 缺失'));
+    results.push('');
+    results.push('=== Twitter Card 标签 ===');
+    results.push('twitter:card: '+(twCard?twCard[1]:'❌ 缺失'));
+    results.push('twitter:title: '+(twTitle?twTitle[1]:'❌ 缺失'));
+    var score=0;var total=7;
+    if(title)score++;if(desc)score++;if(ogTitle)score++;if(ogDesc)score++;if(ogImage)score++;if(twCard)score++;if(ogUrl)score++;
+    results.push('');
+    results.push('=== 评分: '+score+'/'+total+' ===');
+    if(output)output.textContent=results.join('\n');
+    showToast('分析完成，得分: '+score+'/'+total);
+  })['catch'](function(err){
+    if(output)output.textContent='分析失败: '+err.message+'\n\n可能原因: CORS限制或URL不可达。纯前端工具受同源策略限制，建议使用浏览器开发者工具查看。';
+    showToast('分析失败（CORS限制）');
+  });
 }
 
 function loadExample() {

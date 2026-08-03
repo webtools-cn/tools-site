@@ -292,8 +292,89 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function startTest() {
-  showToast('startTest - coming soon!');
+function startTest(){
+  var btn = document.querySelector('button[onclick="startTest()"]');
+  if(btn){ btn.disabled = true; btn.textContent = '测试中...'; }
+  
+  var pingEl = document.getElementById('ping') || document.getElementById('ping-result');
+  var downEl = document.getElementById('download') || document.getElementById('download-speed');
+  var upEl = document.getElementById('upload') || document.getElementById('upload-speed');
+  var statusEl = document.getElementById('status') || document.getElementById('test-status');
+  
+  if(statusEl) statusEl.textContent = '正在测试延迟...';
+  
+  // 测试延迟
+  var pings = [];
+  var pingDone = 0;
+  var pingCount = 5;
+  
+  for(var i = 0; i < pingCount; i++){
+    (function(idx){
+      var start = performance.now();
+      var img = new Image();
+      img.onload = img.onerror = function(){
+        var latency = performance.now() - start;
+        pings.push(latency);
+        pingDone++;
+        if(pingDone === pingCount){
+          var avg = pings.reduce(function(a,b){return a+b},0) / pings.length;
+          if(pingEl) pingEl.textContent = Math.round(avg) + ' ms';
+          if(statusEl) statusEl.textContent = '正在测试下载速度...';
+          testDownloadSpeed(downEl, upEl, statusEl, btn);
+        }
+      };
+      img.src = 'https://speed.cloudflare.com/__down?bytes=1000&t=' + Date.now() + idx;
+    })(i);
+  }
+}
+
+function testDownloadSpeed(downEl, upEl, statusEl, btn){
+  var sizes = [1e5, 5e5, 1e6, 2e6];
+  var totalBytes = 0;
+  var startTime = performance.now();
+  var idx = 0;
+  
+  function nextChunk(){
+    if(idx >= sizes.length){
+      var elapsed = (performance.now() - startTime) / 1000;
+      var mbps = (totalBytes * 8) / (elapsed * 1e6);
+      if(downEl) downEl.textContent = mbps.toFixed(2) + ' Mbps';
+      if(statusEl) statusEl.textContent = '正在测试上传速度...';
+      testUploadSpeed(upEl, statusEl, btn);
+      return;
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://speed.cloudflare.com/__down?bytes=' + sizes[idx], true);
+    xhr.responseType = 'arraybuffer';
+    xhr.onload = function(){
+      if(xhr.response) totalBytes += xhr.response.byteLength;
+      idx++;
+      nextChunk();
+    };
+    xhr.onerror = function(){ idx++; nextChunk(); };
+    xhr.send();
+  }
+  nextChunk();
+}
+
+function testUploadSpeed(upEl, statusEl, btn){
+  var data = new ArrayBuffer(1e6);
+  var startTime = performance.now();
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://speed.cloudflare.com/__up', true);
+  xhr.onload = function(){
+    var elapsed = (performance.now() - startTime) / 1000;
+    var mbps = (1e6 * 8) / (elapsed * 1e6);
+    if(upEl) upEl.textContent = mbps.toFixed(2) + ' Mbps';
+    if(statusEl) statusEl.textContent = '测试完成！';
+    if(btn){ btn.disabled = false; btn.textContent = '开始测速'; }
+  };
+  xhr.onerror = function(){
+    if(upEl) upEl.textContent = 'N/A';
+    if(statusEl) statusEl.textContent = '上传测试失败';
+    if(btn){ btn.disabled = false; btn.textContent = '开始测速'; }
+  };
+  xhr.send(data);
 }
 </script>
 </div>

@@ -160,8 +160,36 @@ function downloadCollage() {
   var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Collage.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
 }
 
-function makeCollage() {
-  showToast('makeCollage - coming soon!');
+function makeCollage(){
+  var fileInput=document.getElementById('fileInput')||document.querySelector('input[type=file]');
+  if(!fileInput||!fileInput.files||!fileInput.files.length){showToast('请先选择图片');return;}
+  var files=Array.from(fileInput.files).slice(0,4);
+  if(files.length<2){showToast('至少选择2张图片');return;}
+  var canvas=document.createElement('canvas');
+  canvas.width=600;canvas.height=600;
+  canvas.style.maxWidth='100%';canvas.style.borderRadius='8px';
+  var ctx=canvas.getContext('2d');
+  ctx.fillStyle='#0f172a';ctx.fillRect(0,0,600,600);
+  var loaded=0;
+  files.forEach(function(file,idx){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        var positions=[[0,0],[300,0],[0,300],[300,300]];
+        var pos=positions[idx];
+        ctx.drawImage(img,pos[0],pos[1],300,300);
+        loaded++;
+        if(loaded===files.length){
+          var output=document.getElementById('preview')||document.getElementById('output')||document.getElementById('result');
+          if(output){output.innerHTML='';output.appendChild(canvas);}
+          showToast('拼贴完成！');
+        }
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 </script>
 

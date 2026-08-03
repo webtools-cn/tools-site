@@ -190,8 +190,13 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 
 // === 重写的函数实现 ===
-function addRegexRow() {
-  showToast('addRegexRow - coming soon!');
+function addRegexRow(){
+  var container=document.getElementById('regex-rows')||document.querySelector('.regex-rows');
+  if(!container){showToast('未找到容器');return;}
+  var row=document.createElement('div');
+  row.innerHTML='<input type="text" placeholder="正则表达式" style="flex:1;padding:8px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;color:#e2e8f0;font-family:monospace">';
+  container.appendChild(row);
+  showToast('已添加一行');
 }
 
 function copyResults() {
@@ -207,12 +212,39 @@ function loadExample() {
   showToast('已加载示例');
 }
 
-function removeLastRow() {
-  showToast('removeLastRow - coming soon!');
+function removeLastRow(){
+  var rows=document.querySelectorAll('.regex-row');
+  if(rows.length>1){rows[rows.length-1].remove();showToast('已删除');}else{showToast('至少保留一行');}
 }
 
-function runBenchmark() {
-  showToast('runBenchmark - coming soon!');
+function runBenchmark(){
+  var rows=document.querySelectorAll('.regex-row input')||document.querySelectorAll('input[type=text]');
+  var testInput=document.getElementById('test-input')||document.getElementById('testInput')||document.querySelector('textarea');
+  var output=document.getElementById('output')||document.getElementById('result');
+  var testStr=testInput?testInput.value:'';
+  var results=[];
+  rows.forEach(function(input,idx){
+    var pattern=input.value;
+    if(!pattern){return;}
+    try{
+      var regex=new RegExp(pattern);
+      var start=performance.now();
+      var iterations=1000;
+      for(var i=0;i<iterations;i++){
+        regex.test(testStr);
+      }
+      var elapsed=performance.now()-start;
+      var matches=testStr.match(regex);
+      results.push('正则#'+(idx+1)+': '+pattern);
+      results.push('  耗时: '+elapsed.toFixed(3)+'ms ('+iterations+'次)');
+      results.push('  匹配: '+(matches?matches.length:0)+'个');
+      results.push('');
+    }catch(e){
+      results.push('正则#'+(idx+1)+': '+pattern+' - 错误: '+e.message);
+    }
+  });
+  if(output){output.textContent=results.join('\n');output.style.display='block';}
+  showToast('基准测试完成');
 }
 </script>
 
