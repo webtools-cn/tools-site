@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第三十一批 - 发现并修复csv-merger漏网空壳)
+> 最后更新: 2026-08-03 (cron自动更新 - 第三十二批 - 发现27个回显型空壳并修复3个)
 
 ## 当前真实问题
 
@@ -11,6 +11,7 @@
 | EN版模板空壳(process未定义) | 23 | 23 | 0 | ✅ 完成 | grep toolInput + process() 未定义检测 |
 | EN版假交互空壳(quickInput) | 224 | 224 | 0 | ✅ 完成 | grep quickInput + 无业务函数检测 |
 | toolInput误报(7个有功能) | 7 | 7 | 0 | ✅ 误报 | 有addEventListener绑定的真实功能 |
+| 回显型process空壳(output=input) | 27 | 3 | 24 | 🔴 进行中 | grep "var output = input" + 无业务逻辑 |
 
 ## 验证结果 (2026-08-03)
 
@@ -188,6 +189,39 @@ regex-cheat-sheet
 ### 2026-08-03 (第三十一批 - 发现并修复漏网空壳csv-merger)
 csv-merger
 注: 第三十批复核称"全站空壳全部清零"，但本轮新增两种检测方式（回显型process()扫描：函数体直接output=input无业务逻辑；短函数体扫描：<100字符无业务关键字）发现漏网空壳 csv-merger。CN版process()只回显输入(var output = input)，HTML还有`/div>`损坏残留(line 60)，页面声称"CSV文件合并"但实际无合并功能，只有一个输入框+执行按钮。本轮完整重写CN版：多文件拖拽上传+文件列表管理(删除单个文件)、parseCSV解析器(支持逗号/分号/Tab分隔符+引号转义+CRLF行尾，node实测5组用例全部通过)、3个合并选项(跳过后续表头/去重/按首列排序)、合并结果表格预览(前50行+总行数)、下载合并结果(BOM+CSV)、清空。修复/div>损坏残留、移除toolInput假交互区、修复title(原"无需注册册"乱码)。保持深色主题+GA+Schema+FAQ，全中文。EN版已有完整功能(mergeFiles/parseCSV/downloadResult)无需修改。全站新增两种检测扫描确认无其他漏网。所有JS语法验证通过，空壳指标维持全0。
+
+### 2026-08-03 (第三十二批 - 发现并修复回显型空壳)
+fibonacci-generator, text-to-binary, number-converter
+注: 发现27个回显型空壳(process()函数体var output=input直接回显输入，无业务逻辑，此前检测方式未覆盖此模式)。本轮修复3个：fibonacci-generator CN版实现斐波那契数列生成器(自定义起始值F(0)/F(1)+数量1-500+每项显示F(n)=值+相邻项比值收敛黄金比例φ+数列和)，替换var output=input回显空壳；text-to-binary CN版实现文本↔二进制互转(4格式:二进制/十六进制/八进制/十进制+4分隔符:空格/无/逗号/换行+自动补零8/7/16位+Unicode codePoint支持+3项统计:字符数/比特数/字节数+自动转换+交换方向)，添加缺失的textarea输入框，替换var output=''永远为空的空壳；number-converter CN版实现数字转中文大写(4模式:中文大写壹贰叁/中文小写一二三/金额大写人民币圆角分整/中文转数字反向解析+万亿级12位+角分处理+零处理+快捷数字按钮)，替换var output=input回显空壳。三个工具EN版均已有完整功能无需修改。所有JS语法验证通过，node逻辑测试全部通过。剩余24个回显型空壳待修。
+
+## 回显型空壳清单(24个剩余)
+
+> 特征：process()/convert()/generate()函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
+
+1. ai-copywriting-generator
+2. coupon-code-generator
+3. css-has-selector-generator
+4. css-layer-generator
+5. css-media-query-generator
+6. css-scroll-driven-animation
+7. css-to-less
+8. dockerfile-generator
+9. eslint-config-generator
+10. file-size-converter
+11. gradient-border-animation
+12. html-email-template
+13. html-to-xml
+14. json-to-graphql
+15. lorem-ipsum
+16. nginx-config-generator
+17. prettier-config-generator
+18. readme-generator
+19. seo-meta-tag-generator
+20. svg-pattern-generator
+21. text-line-wrapper
+22. text-prefix-suffix
+23. text-to-unicode
+24. web-component-generator
 
 ## 检测说明
 1. `check_empty_shells.py` 检测0交互工具（258个，含重定向页面+分类页面+动态UI工具）
