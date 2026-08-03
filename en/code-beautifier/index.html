@@ -280,204 +280,7 @@ footer{text-align:center;padding:30px;color:#999;font-size:13px;}
   <p style="text-align:center;color:#64748b;font-size:12px;margin-top:12px">Feedback: dexshuang@google.com</p>
 </footer>
 
-<script>
-  const langSelect = document.getElementById('langSelect');
-  const indentSize = document.getElementById('indentSize');
-  const useTabs = document.getElementById('useTabs');
-  const inputCode = document.getElementById('inputCode');
-  const outputCode = document.getElementById('outputCode');
-  const btnBeautify = document.getElementById('btnBeautify');
-  const errorMsg = document.getElementById('errorMsg');
-  const inputStats = document.getElementById('inputStats');
-  const outputStats = document.getElementById('outputStats');
-
-  function getIndent(){
-    return useTabs.checked ? '\t' : ' '.repeat(parseInt(indentSize.value)||2);
-  }
-
-  function updateStats(input, output){
-    const il = input.split('\n').length;
-    const ic = input.length;
-    inputStats.textContent = il + ' lines · ' + ic + ' chars';
-    if(output){
-      const ol = output.split('\n').length;
-      const oc = output.length;
-      outputStats.textContent = ol + ' lines · ' + oc + ' chars';
-    }
-  }
-
-  function beautifyJSON(code, indent){
-    const obj = JSON.parse(code);
-    return JSON.stringify(obj, null, indent === '\t' ? '\t' : parseInt(indentSize.value)||2);
-  }
-
-  function beautifyXML(code, indent){
-    let formatted = '';
-    let pad = 0;
-    const lines = code.replace(/>\s*</g, '>\n<').split('\n');
-    lines.forEach(line => {
-      line = line.trim();
-      if(!line) return;
-      if(line.match(/^<\/\w/)) pad--;
-      formatted += indent.repeat(pad) + line + '\n';
-      if(line.match(/^<\w[^>]*[^\/]>.*$/) && !line.match(/^<\w[^>]*\/>/)) pad++;
-    });
-    return formatted.trim();
-  }
-
-  function beautifySQL(code, indent){
-    const keywords = ['SELECT','FROM','WHERE','AND','OR','ORDER BY','GROUP BY','HAVING','INSERT INTO','VALUES','UPDATE','SET','DELETE FROM','CREATE TABLE','ALTER TABLE','DROP TABLE','JOIN','LEFT JOIN','RIGHT JOIN','INNER JOIN','OUTER JOIN','ON','UNION','LIMIT','OFFSET','AS','IN','NOT','IS','LIKE','BETWEEN','EXISTS','DISTINCT','CASE','WHEN','THEN','ELSE','END','ASC','DESC','NULL'];
-    let result = code;
-    keywords.forEach(kw => {
-      const regex = new RegExp('\\b(' + kw + ')\\b', 'gi');
-      result = result.replace(regex, '\n' + kw.toUpperCase());
-    });
-    result = result.replace(/^\n+/, '').replace(/\n{3}/g, '\n\n');
-    const lines = result.split('\n');
-    let pad = 0;
-    const formatted = lines.map(line => {
-      line = line.trim();
-      if(!line) return '';
-      const isMain = /^(SELECT|FROM|WHERE|ORDER|GROUP|HAVING|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|JOIN|LEFT|RIGHT|INNER|OUTER|UNION|LIMIT|SET|VALUES)/i.test(line);
-      if(isMain && pad > 0 && !/^(SELECT|INSERT|CREATE|ALTER|DROP|UPDATE|DELETE)/i.test(line)) pad = 1;
-      if(/^(SELECT|INSERT|CREATE|ALTER|DROP|UPDATE|DELETE)/i.test(line)) pad = 0;
-      const indented = indent.repeat(pad) + line;
-      if(/^(SELECT|FROM|WHERE|SET|VALUES)/i.test(line)) pad = 1;
-      return indented;
-    }).join('\n');
-    return formatted;
-  }
-
-  function beautifyCSS(code, indent){
-    let result = code;
-    result = result.replace(/\s*{\s*/g, ' {\n');
-    result = result.replace(/\s*}\s*/g, '\n}\n\n');
-    result = result.replace(/;\s*/g, ';\n');
-    result = result.replace(/,\s*/g, ',\n');
-    const lines = result.split('\n');
-    let pad = 0;
-    return lines.map(line => {
-      line = line.trim();
-      if(!line) return '';
-      if(line === '}') pad = Math.max(0, pad-1);
-      const indented = indent.repeat(pad) + line;
-      if(line.endsWith('{')) pad++;
-      return indented;
-    }).join('\n').replace(/\n{3}/g, '\n\n').trim();
-  }
-
-  function beautifyHTML(code, indent){
-    const selfClosing = /^<(br|hr|img|input|meta|link|area|base|col|embed|source|track|wbr)\b/i;
-    const inlineTags = /^(a|abbr|b|bdi|bdo|cite|code|data|dfn|em|i|kbd|mark|q|rp|rt|ruby|s|samp|small|span|strong|sub|sup|time|u|var|label)\b/i;
-    let result = code.replace(/>\s*</g, '>\n<');
-    const lines = result.split('\n');
-    let pad = 0;
-    return lines.map(line => {
-      line = line.trim();
-      if(!line) return '';
-      const isClosing = /^<\//.test(line);
-      const isOpening = /^<[a-zA-Z]/.test(line) && !selfClosing.test(line) && !line.match(/\/>$/);
-      const isSelfClose = selfClosing.test(line) || line.match(/\/>$/);
-      if(isClosing) pad = Math.max(0, pad-1);
-      const indented = indent.repeat(pad) + line;
-      if(isOpening && !isSelfClose && !inlineTags.test(line)) pad++;
-      return indented;
-    }).join('\n').trim();
-  }
-
-  function beautifyJS(code, indent){
-    let result = code;
-    result = result.replace(/\s*{\s*/g, ' {\n');
-    result = result.replace(/\s*}\s*/g, '\n}\n');
-    result = result.replace(/;(?!\s*\n)/g, ';\n');
-    ['else','catch','finally'].forEach(kw => {
-      result = result.replace(new RegExp('\\n\\s*}\\s*' + kw, 'g'), '\n} ' + kw);
-    });
-    const lines = result.split('\n');
-    let pad = 0;
-    return lines.map(line => {
-      line = line.trim();
-      if(!line) return '';
-      const isClosing = /^}|^\)/.test(line);
-      if(isClosing) pad = Math.max(0, pad-1);
-      const indented = indent.repeat(pad) + line;
-      if(line.endsWith('{') || line.endsWith('(')) pad++;
-      return indented;
-    }).join('\n').replace(/\n{3}/g, '\n\n').trim();
-  }
-
-  function beautifyPython(code, indent){
-    return code.split('\n').map(l => l.replace(/\s+$/,'')).join('\n').trim();
-  }
-
-  function beautify(code, lang, indent){
-    switch(lang){
-      case 'json': return beautifyJSON(code, indent);
-      case 'xml': return beautifyXML(code, indent);
-      case 'sql': return beautifySQL(code, indent);
-      case 'css': return beautifyCSS(code, indent);
-      case 'html': return beautifyHTML(code, indent);
-      case 'javascript': return beautifyJS(code, indent);
-      case 'python': return beautifyPython(code, indent);
-      default: return beautifyJS(code, indent);
-    }
-  }
-
-  btnBeautify.onclick = function(){
-    errorMsg.style.display = 'none';
-    const code = inputCode.value;
-    if(!code.trim()){
-      errorMsg.textContent = 'Please enter code to beautify';
-      errorMsg.style.display = 'block';
-      return;
-    }
-    try {
-      const result = beautify(code, langSelect.value, getIndent());
-      outputCode.value = result;
-      updateStats(code, result);
-    } catch(e){
-      errorMsg.textContent = 'Beautify failed: ' + e.message;
-      errorMsg.style.display = 'block';
-    }
-  };
-
-  inputCode.addEventListener('input', function(){
-    updateStats(inputCode.value, outputCode.value || null);
-  });
-
-  window.copyResult = function(){
-    if(outputCode.value) navigator.clipboard.writeText(outputCode.value);
-  };
-
-  window.downloadResult = function(){
-    if(!outputCode.value) return;
-    const exts = {javascript:'js',html:'html',css:'css',json:'json',xml:'xml',sql:'sql',python:'py'};
-    const ext = exts[langSelect.value] || 'txt';
-    const blob = new Blob([outputCode.value], {type:'text/plain'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'beautified.' + ext;
-    a.click();
-  };
-
-  window.clearAll = function(){
-    inputCode.value = '';
-    outputCode.value = '';
-    inputStats.textContent = '';
-    outputStats.textContent = '';
-  };
-
-  const samples = {
-    javascript: 'function fibonacci(n){if(n<=1)return n;let a=0,b=1;for(let i=2;i<=n;i++){let temp=a+b;a=b;b=temp;}return b;}const result=fibonacci(10);
-',
-    html: '<!DOCTYPE html><html><head><title>Test</title>
-
-<link rel="icon" type="image/svg+xml" href="../favicon.svg">
-<meta name="robots" content="index, follow">
-</head><body><div class="container"><h2>Hello</h2><p>World</p><ul><li>Item 1</li><li>Item 2</li></ul></div><script>
-
-<div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
-<script>
+<script>(function() {
   'use strict';
   var s = document.getElementById('related-tools-section');
   if (!s) return;
@@ -495,20 +298,19 @@ footer{text-align:center;padding:30px;color:#999;font-size:13px;}
     var data = en ? d.en : d.cn;
     var t = data[slug];
     if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 RelatedToolsRecommended')
-      + '</h3><div class="related-tools-grid">';
+    var h = '\x3Cdiv class="related-tools-inner">\x3Ch3 class="related-tools-title">'
+      + (en ? 'You May Also Like' : '相关工具推荐')
+      + '\x3C/h3>\x3Cdiv class="related-tools-grid">';
     t.related.forEach(function(r) {
       var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '<a href="' + link + '" class="related-tool-card">'
-        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
-        + '<span class="related-tool-name">' + r.name + '</span></a>';
+      h += '\x3Ca href="' + link + '" class="related-tool-card">'
+        + '\x3Cspan class="related-tool-icon">' + (r.icon || '🔧') + '\x3C/span>'
+        + '\x3Cspan class="related-tool-name">' + r.name + '\x3C/span>\x3C/a>';
     });
-    h += '</div></div>';
+    h += '\x3C/div>\x3C/div>';
     s.innerHTML = h;
-  }.catch(function( { s.innerHTML = ''; };
-}(;))))
-</script>
+  }).catch(function() { s.innerHTML = ''; });
+})();</script>
 </body></html>',
     css: 'body{margin:0;padding:0;font-family:sans-serif;}.container{max-width:1200px;margin:0 auto;padding:20px;}.header{background:#333;color:#fff;padding:10px 20px;}.header h1{font-size:24px;margin:0;}',
     json: '{"name":"John Doe","age":30,"address":{"city":"New York","street":"5th Avenue"},"hobbies":["reading","coding","travel"],"active":true}',
