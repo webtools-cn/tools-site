@@ -1,6 +1,6 @@
 # SEO修复进度报告
 
-> 最后更新: 2026-08-03 03:30
+> 最后更新: 2026-08-03 04:00
 
 ## ✅ P0: 全站Canonical URL修复 — 重大突破 (commit `04962b7625`)
 
@@ -85,6 +85,29 @@
 - 根因：批量脚本注入的"重写的函数实现"stub覆盖/替换了原始实现
 - 全站仍有288个文件含"coming soon"空壳函数（非全部在Failing列表中）
 - 首页已通过noscript预渲染修复（commit `804854f6`）
+
+### 第三轮修复 (commit `f93bb07baa`, `703a70c576`, `29a1c776a5`)
+- **unicode-lookup**: 移除重复Schema(2个SoftwareApplication→1, 2个HowTo→1, 6个FAQ→3)
+  - 添加noscript预渲染内容(分类列表+码点速查)
+  - 添加Unicode编码介绍静态文本
+  - 爬虫可见内容从47词增至90词
+- **mac-address-lookup**: FAQ答案从display:none改为默认可见
+  - 添加MAC地址和OUI介绍静态文本
+  - 爬虫可见内容从74词增至83词
+- **reaction-test**: 填充空FAQ section(3个问答)
+  - 添加FAQPage schema(之前缺失)
+  - meta description从118字符扩充到123字符
+- **wifi-password-generator**: 添加FAQPage schema
+  - meta description从121字符扩充到125字符
+  - 移除空的FAQ div
+- **vin-decoder**: FAQ从1个问答扩充到5个(与schema匹配)
+- **en/backwards-text** (重大修复): 核心UI从JS innerHTML改为静态HTML
+  - Google爬虫之前看不到任何交互元素
+  - 添加3个FAQ问答
+  - 爬虫可见内容从67词增至202词
+
+### Failing URLs修复总计
+- 已修复12个Failing URL工具：gpa-calculator, token-estimator, speed-test, checksum-calculator, running-pace-calculator, compound-interest-calculator, unicode-lookup, mac-address-lookup, reaction-test, wifi-password-generator, vin-decoder, en/backwards-text
 
 ---
 
