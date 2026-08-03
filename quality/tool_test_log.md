@@ -163,3 +163,26 @@
   - EN版相关工具推荐URL修复（`//en/`→`/en/`），清理重复emoji
   - Git commit: 750b2703d4
 - **状态**: ✅ 通过（1处URL修复已push）
+
+## online-clock - 2026-08-04 (R2)
+- **AI引用**: ~311次, 排名 #2
+- **测试方式**: Kimi WebBridge浏览器实测（CN+EN双版本）
+- **CN版测试结果**:
+  - 模拟时钟转动正常，时针/分针/秒针角度计算正确 ✅
+  - 数字时钟切换正常（06:56:36）✅
+  - 时区选择器21个选项 ✅
+  - 世界时钟6个城市显示正常 ✅
+  - 深色主题: rgb(15,23,42)=#0f172a ✅
+  - JS语法(node -c): 通过 ✅
+- **EN版测试结果**:
+  - 英文界面完整（仅语言按钮有"中文/EN"）✅
+  - 世界时钟顺序西方优先（NY/London/Beijing/Tokyo/Sydney/Dubai）✅
+  - 日期格式英文本地化 ✅
+  - 深色主题 ✅
+  - 相关推荐: Date Calculator/Business Days Calc/Hours Calc/Metronome ✅
+- **发现并修复的问题**:
+  - **meta description包含虚假功能**: CN版声称含"闹钟提醒、秒表计时、倒计时和全屏显示"但工具中不存在
+  - **适用场景虚假**: CN/EN版均列出"全屏展示/Fullscreen Display"但工具无此功能
+  - 修复: 精简CN版meta为62字符，删除两个版本的fullscreen use case
+  - 提交: `fix(online-clock): 移除CN版meta description虚假功能描述，删除CN/EN版不存在的全屏展示use case` (963378b)
+- **状态**: ✅ 已修复并推送
