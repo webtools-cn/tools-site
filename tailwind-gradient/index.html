@@ -254,23 +254,71 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 })();
 
 // === 重写的函数实现 ===
+var gradientStops=[{color:'#06b6d4',pos:0},{color:'#8b5cf6',pos:100}];
+
+function updateGradient(){
+  var type=document.getElementById('gradType').value;
+  var angle=document.getElementById('angleSlider').value;
+  document.getElementById('angleVal').textContent=angle;
+  var stopsStr=gradientStops.map(function(s){return s.color+' '+s.pos+'%'}).join(', ');
+  var css='';
+  if(type==='linear'){css='linear-gradient('+angle+'deg, '+stopsStr+')'}
+  else if(type==='radial'){css='radial-gradient(circle, '+stopsStr+')'}
+  else if(type==='conic'){css='conic-gradient(from '+angle+'deg, '+stopsStr+')'}
+  document.getElementById('preview').style.background=css;
+  document.getElementById('preview').textContent='';
+  var twClasses='bg-gradient-to-'+(type==='linear'?'r':type==='radial'?'a':'c');
+  gradientStops.forEach(function(s,i){
+    if(i===0)twClasses+=' from-'+s.color.replace('#','').replace(/(.{2})(.{2})(.{2})/,'$1$2$3');
+  });
+  document.getElementById('twOutput').textContent='background: '+css+';\n/* Tailwind: '+twClasses+' */';
+}
+
 function addStop() {
-  showToast('addStop - coming soon!');
+  if(gradientStops.length>=6){showToast('最多6个色标');return}
+  var pos=Math.round(gradientStops[gradientStops.length-1].pos/2);
+  gradientStops.push({color:'#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'),pos:pos});
+  gradientStops.sort(function(a,b){return a.pos-b.pos});
+  renderStops();updateGradient();
+  showToast('色标已添加');
 }
 
-function copyCss() {
-  var text = document.getElementById('preview').innerText || document.getElementById('preview').textContent;
-  if (!text) { showToast('没有可复制的内容'); return; }
-  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
-}
-
-function copyTw() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+function renderStops(){
+  var container=document.getElementById('stopsContainer');
+  container.innerHTML='';
+  gradientStops.forEach(function(s,idx){
+    var div=document.createElement('div');
+    div.style.cssText='display:flex;gap:8px;align-items:center;margin:4px 0';
+    div.innerHTML='<input type="color" value="'+s.color+'" oninput="gradientStops['+idx+'].color=this.value;updateGradient()" style="width:40px;height:32px;border:none;border-radius:4px;background:transparent"><input type="range" min="0" max="100" value="'+s.pos+'" oninput="gradientStops['+idx+'].pos=parseInt(this.value);updateGradient()" style="flex:1"><span style="color:#94a3b8;font-size:.8rem;min-width:40px">'+s.pos+'%</span><button onclick="gradientStops.splice('+idx+',1);renderStops();updateGradient()" style="color:#f87171;background:none;border:none;cursor:pointer">✕</button>';
+    container.appendChild(div);
+  });
 }
 
 function randomGradient() {
-  showToast('randomGradient - coming soon!');
+  var n=2+Math.floor(Math.random()*3);
+  gradientStops=[];
+  for(var i=0;i<n;i++){
+    gradientStops.push({color:'#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'),pos:Math.round(i*100/(n-1))});
+  }
+  renderStops();updateGradient();
+  showToast('随机渐变已生成');
 }
+
+function copyCss() {
+  var css=document.getElementById('twOutput').textContent;
+  if(!css){showToast('无内容可复制');return}
+  navigator.clipboard.writeText(css).then(function(){showToast('CSS已复制')}).catch(function(){showToast('复制失败')});
+}
+
+function copyTw() {
+  var css=document.getElementById('twOutput').textContent;
+  if(!css){showToast('无内容可复制');return}
+  navigator.clipboard.writeText(css).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});
+}
+
+document.getElementById('gradType').addEventListener('change',updateGradient);
+document.getElementById('angleSlider').addEventListener('input',updateGradient);
+renderStops();updateGradient();
 </script>
 </body>
 </html>

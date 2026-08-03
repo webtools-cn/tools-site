@@ -201,32 +201,95 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 })();
 
 // === 重写的函数实现 ===
-function addCol() {
-  showToast('addCol - coming soon!');
+var tableData=[];
+var tableRows=4,tableCols=3;
+
+function initTable(){
+  tableRows=parseInt(document.getElementById('rows').value)||4;
+  tableCols=parseInt(document.getElementById('cols').value)||3;
+  tableData=[];
+  for(var r=0;r<tableRows;r++){
+    var row=[];
+    for(var c=0;c<tableCols;c++){row.push(r===0?'列'+(c+1):'')}
+    tableData.push(row);
+  }
+  renderEditTable();
+  previewMd();
+}
+
+function renderEditTable(){
+  var tbl=document.getElementById('editTable');
+  var html='';
+  for(var r=0;r<tableData.length;r++){
+    html+='<tr>';
+    for(var c=0;c<tableData[r].length;c++){
+      var tag=r===0?'th':'td';
+      html+='<'+tag+'><input type="text" value="'+tableData[r][c]+'" oninput="tableData['+r+']['+c+']=this.value;previewMd()" style="width:100%;background:transparent;border:none;color:#e2e8f0;font-size:.85rem;padding:4px"></'+tag+'>';
+    }
+    html+='</tr>';
+  }
+  tbl.innerHTML=html;
 }
 
 function addRow() {
-  var container = document.querySelector('.conditions-container, .fields-container, .rows-container, .params-container, .steps-container');
-  if (!container) container = document.querySelector('.section:nth-child(2)');
-  if (!container) { showToast('无法添加'); return; }
-  var div = document.createElement('div');
-  div.className = 'condition-item, field-item';
-  div.innerHTML = '<input type="text" placeholder="输入内容" style="width:80%;padding:8px;margin:4px 0;"> <button onclick="this.parentElement.remove()" class="btn" style="padding:4px 8px;">删除</button>';
-  container.appendChild(div);
-  showToast('已添加');
+  var row=[];for(var c=0;c<tableCols;c++){row.push('')}
+  tableData.push(row);tableRows++;
+  document.getElementById('rows').value=tableRows;
+  renderEditTable();previewMd();
+  showToast('行已添加');
 }
 
-function copyMd() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
-}
-
-function previewHtml() {
-  showToast('previewHtml - coming soon!');
+function addCol() {
+  tableCols++;
+  document.getElementById('cols').value=tableCols;
+  tableData.forEach(function(r){r.push('')});
+  if(tableData[0])tableData[0][tableCols-1]='列'+tableCols;
+  renderEditTable();previewMd();
+  showToast('列已添加');
 }
 
 function resizeTable() {
-  showToast('resizeTable - coming soon!');
+  initTable();
+  showToast('表格已调整: '+tableRows+'行×'+tableCols+'列');
 }
+
+function previewMd() {
+  var md='';
+  if(tableData.length===0)return;
+  var cols=tableData[0].length;
+  md+='| '+tableData[0].join(' | ')+' |\\n';
+  md+='|'+Array(cols+1).join(' --- |')+'\\n';
+  for(var r=1;r<tableData.length;r++){
+    md+='| '+tableData[r].join(' | ')+' |\\n';
+  }
+  document.getElementById('mdPreview').innerHTML='<pre style="white-space:pre-wrap;color:#e2e8f0;font-family:monospace;font-size:.85rem;padding:12px">'+md+'</pre>';
+}
+
+function previewHtml() {
+  var html='<table style="border-collapse:collapse;width:100%">';
+  for(var r=0;r<tableData.length;r++){
+    html+='<tr>';
+    for(var c=0;c<tableData[r].length;c++){
+      var tag=r===0?'th':'td';
+      html+='<'+tag+' style="border:1px solid #ddd;padding:8px">'+tableData[r][c]+'</'+tag+'>';
+    }
+    html+='</tr>';
+  }
+  html+='</table>';
+  document.getElementById('htmlPreviewContent').innerHTML=html;
+  document.getElementById('htmlPreview').style.display='block';
+  showToast('HTML预览已生成');
+}
+
+function copyMd() {
+  var md=document.getElementById('mdPreview').innerText;
+  navigator.clipboard.writeText(md).then(function(){showToast('Markdown已复制')}).catch(function(){showToast('复制失败')});
+}
+
+// Watch for row/col changes
+document.getElementById('rows').addEventListener('change',resizeTable);
+document.getElementById('cols').addEventListener('change',resizeTable);
+initTable();
 </script>
 </body>
 </html>
