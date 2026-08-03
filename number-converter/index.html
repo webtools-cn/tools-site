@@ -215,29 +215,189 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var upperDigits = ['零','壹','贰','叁','肆','伍','陆','柒','捌','玖'];
+var upperUnits = ['','拾','佰','仟'];
+var upperBigUnits = ['','万','亿','万亿'];
+var lowerDigits = ['零','一','二','三','四','五','六','七','八','九'];
+var lowerUnits = ['','十','百','千'];
+var lowerBigUnits = ['','万','亿','万亿'];
+
+function insertNum(val) {
+  document.getElementById('numInput').value = val;
+  convert();
+}
+
 function clearInput() {
-  document.querySelectorAll('input[type="text"],input[type="number"],textarea').forEach(function(el) { el.value = ''; });
-  document.getElementById('resultBox').innerHTML = '';
+  document.getElementById('numInput').value = '';
+  document.getElementById('resultBox').textContent = '请输入数字后点击转换...';
   showToast('已清空');
+}
+
+function convertGroup(digits, dMap, uMap) {
+  var result = '';
+  var nonZero = false;
+  for (var i = 0; i < digits.length; i++) {
+    var d = parseInt(digits[i]);
+    var pos = digits.length - 1 - i;
+    if (d !== 0) {
+      result += dMap[d] + uMap[pos];
+      nonZero = true;
+    } else {
+      if (nonZero && i < digits.length - 1) {
+        if (!result.endsWith(dMap[0])) result += dMap[0];
+      }
+    }
+  }
+  return result;
+}
+
+function numberToChinese(numStr, dMap, uMap, bMap) {
+  numStr = numStr.replace(/,/g, '').trim();
+  if (!/^\d+(\.\d+)?$/.test(numStr)) return '请输入有效的数字';
+  var parts = numStr.split('.');
+  var intPart = parts[0];
+  var decPart = parts[1] || '';
+  intPart = intPart.replace(/^0+/, '') || '0';
+  if (intPart === '0' && !decPart) return dMap[0];
+  var groups = [];
+  while (intPart.length > 0) {
+    groups.unshift(intPart.slice(-4));
+    intPart = intPart.slice(0, -4);
+  }
+  var result = '';
+  var firstNonZero = false;
+  for (var i = 0; i < groups.length; i++) {
+    var groupStr = convertGroup(groups[i], dMap, uMap);
+    if (groupStr) {
+      if (firstNonZero && !groupStr.startsWith(dMap[0])) {
+        result += dMap[0];
+      }
+      result += groupStr + bMap[groups.length - 1 - i];
+      firstNonZero = true;
+    }
+  }
+  result = result.replace(new RegExp(dMap[0] + '+', 'g'), dMap[0]);
+  result = result.replace(new RegExp(dMap[0] + '$'), '');
+  if (decPart) {
+    result += dMap[0];
+    for (var j = 0; j < decPart.length && j < 2; j++) {
+      var dd = parseInt(decPart[j]);
+      if (dd !== 0) result += dMap[dd] + (j === 0 ? (dMap === upperDigits ? '角' : '角') : (dMap === upperDigits ? '分' : '分'));
+    }
+  }
+  return result;
+}
+
+function numberToAmount(numStr) {
+  numStr = numStr.replace(/,/g, '').trim();
+  if (!/^\d+(\.\d+)?$/.test(numStr)) return '请输入有效的金额';
+  var parts = numStr.split('.');
+  var intPart = parts[0];
+  var decPart = (parts[1] || '').padEnd(2, '0').slice(0, 2);
+  var isZeroInt = intPart.replace(/^0+/, '') === '';
+  intPart = intPart.replace(/^0+/, '') || '0';
+  var groups = [];
+  while (intPart.length > 0) {
+    groups.unshift(intPart.slice(-4));
+    intPart = intPart.slice(0, -4);
+  }
+  var result = '';
+  var firstNonZero = false;
+  for (var i = 0; i < groups.length; i++) {
+    var groupStr = convertGroup(groups[i], upperDigits, upperUnits);
+    if (groupStr) {
+      if (firstNonZero && !groupStr.startsWith(upperDigits[0])) {
+        result += upperDigits[0];
+      }
+      result += groupStr + upperBigUnits[groups.length - 1 - i];
+      firstNonZero = true;
+    }
+  }
+  result = result.replace(new RegExp(upperDigits[0] + '+', 'g'), upperDigits[0]);
+  result = result.replace(new RegExp(upperDigits[0] + '$'), '');
+  var jiao = parseInt(decPart[0]);
+  var fen = parseInt(decPart[1]);
+  if (isZeroInt && jiao === 0 && fen === 0) {
+    return upperDigits[0] + '圆整';
+  }
+  if (isZeroInt) {
+    result = upperDigits[0];
+  }
+  result += '圆';
+  if (jiao === 0 && fen === 0) {
+    result += '整';
+  } else {
+    if (jiao > 0) result += upperDigits[jiao] + '角';
+    if (jiao === 0 && fen > 0) result += upperDigits[0];
+    if (fen > 0) result += upperDigits[fen] + '分';
+  }
+  return result;
+}
+function chineseToNumber(str) {
+  var dMap = {};
+  for (var i = 0; i < 10; i++) {
+    dMap[upperDigits[i]] = i;
+    dMap[lowerDigits[i]] = i;
+  }
+  dMap['两'] = 2;
+  var unitMap = { '拾': 10, '十': 10, '佰': 100, '百': 100, '仟': 1000, '千': 1000 };
+  var bigMap = { '万': 10000, '亿': 100000000, '万亿': 1000000000000 };
+  str = str.replace(/圆|元|整|正|角|分/g, '').trim();
+  var total = 0;
+  var current = 0;
+  var section = 0;
+  for (var i = 0; i < str.length; i++) {
+    var ch = str[i];
+    if (ch in dMap) {
+      current = dMap[ch];
+    } else if (ch in unitMap) {
+      if (current === 0) current = 1;
+      section += current * unitMap[ch];
+      current = 0;
+    } else if (ch === '万' || ch === '亿') {
+      section += current;
+      if (ch === '亿' && str[i + 1] === '万') {
+        section *= 100000000;
+        i++;
+      } else {
+        total += section;
+        section = 0;
+        if (ch === '万') {
+          total *= 10000;
+        } else {
+          total *= 100000000;
+        }
+      }
+      current = 0;
+    }
+  }
+  section += current;
+  total += section;
+  return total;
 }
 
 function convert() {
   var input = document.getElementById('numInput').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input; // 基础实现，后续可优化
-  document.getElementById('resultBox').textContent = output;
-  document.getElementById('resultBox').style.display = 'block';
-  showToast('处理完成');
+  if (!input.trim()) { showToast('请输入数字'); return; }
+  var mode = document.querySelector('input[name="mode"]:checked').value;
+  var result = '';
+  if (mode === 'upper') {
+    result = numberToChinese(input, upperDigits, upperUnits, upperBigUnits);
+  } else if (mode === 'lower') {
+    result = numberToChinese(input, lowerDigits, lowerUnits, lowerBigUnits);
+  } else if (mode === 'amount') {
+    result = numberToAmount(input);
+  } else if (mode === 'reverse') {
+    result = chineseToNumber(input).toString();
+  }
+  document.getElementById('resultBox').textContent = result;
+  showToast('转换完成');
 }
 
 function copyResult() {
-  var text = document.getElementById('resultBox').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
-}
-
-function insertNum() {
-  showToast('insertNum - coming soon!');
+  var text = document.getElementById('resultBox').textContent;
+  if (!text || text === '请输入数字后点击转换...') { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); })['catch'](function() { showToast('复制失败'); });
 }
 </script>
 </body>

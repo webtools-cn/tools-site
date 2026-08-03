@@ -137,14 +137,28 @@ textarea:focus{border-color:rgba(6,182,212,.4);box-shadow:0 0 0 3px rgba(6,182,2
   </span>
 </div>
 
-  <div class="form-row">
+  <div class="section">
+    <h2>输入内容</h2>
+    <textarea id="input" placeholder="在此输入要转换的文本或二进制代码..." style="width:100%;min-height:120px;padding:14px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;color:#e2e8f0;font-family:'SFMono-Regular','Fira Code',Consolas,monospace;font-size:.9rem;resize:vertical;outline:none;transition:all .2s"></textarea>
+    <div class="form-row" style="margin-top:12px">
       <div class="form-group">
-        <label>编码方式</label>
-        <select id="encoding" onchange="autoConvert()">
-          <option value="utf8">UTF-8</option>
-          <option value="ascii">ASCII</option>
+        <label>转换方向</label>
+        <select id="direction" onchange="autoConvert()">
+          <option value="text2bin">文本 → 二进制</option>
+          <option value="bin2text">二进制 → 文本</option>
         </select>
       </div>
+      <div class="form-group">
+        <label>输出格式</label>
+        <select id="format" onchange="autoConvert()">
+          <option value="binary">二进制</option>
+          <option value="hex">十六进制</option>
+          <option value="octal">八进制</option>
+          <option value="decimal">十进制</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
       <div class="form-group">
         <label>分隔符</label>
         <select id="separator" onchange="autoConvert()">
@@ -154,15 +168,15 @@ textarea:focus{border-color:rgba(6,182,212,.4);box-shadow:0 0 0 3px rgba(6,182,2
           <option value="newline">换行</option>
         </select>
       </div>
-    </div>
-    <div class="form-group">
-      <label>补零位数</label>
-      <select id="padding" onchange="autoConvert()">
-        <option value="8">8位 (标准)</option>
-        <option value="7">7位 (ASCII)</option>
-        <option value="16">16位 (Unicode)</option>
-        <option value="auto">自动</option>
-      </select>
+      <div class="form-group">
+        <label>补零位数</label>
+        <select id="padding" onchange="autoConvert()">
+          <option value="8">8位 (标准)</option>
+          <option value="7">7位 (ASCII)</option>
+          <option value="16">16位 (Unicode)</option>
+          <option value="auto">自动</option>
+        </select>
+      </div>
     </div>
     <div style="color:#94a3b8;font-size:.85rem;margin-bottom:10px">💡 输入内容后自动转换，也可手动点击按钮</div>
     <div class="btn-group">
@@ -258,35 +272,107 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var autoConvertTimer = null;
 function autoConvert() {
-  showToast('autoConvert - coming soon!');
+  if (autoConvertTimer) clearTimeout(autoConvertTimer);
+  autoConvertTimer = setTimeout(function() { convert(); }, 300);
 }
 
 function clearAll() {
+  document.getElementById('input').value = '';
   document.getElementById('output').value = '';
-  document.getElementById('encoding').selectedIndex = 0;
-  document.getElementById('separator').selectedIndex = 0;
-  document.getElementById('padding').selectedIndex = 0;
-  showToast('已重置');
+  document.getElementById('statChars').textContent = '0';
+  document.getElementById('statBits').textContent = '0';
+  document.getElementById('statBytes').textContent = '0';
+  showToast('已清空');
 }
 
 function convert() {
-  var input = '';
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input; // 基础实现，后续可优化
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('处理完成');
+  var input = document.getElementById('input').value;
+  if (!input) { showToast('请输入要转换的内容'); return; }
+  var direction = document.getElementById('direction').value;
+  var format = document.getElementById('format').value;
+  var separator = document.getElementById('separator').value;
+  var padding = document.getElementById('padding').value;
+  var result = '', totalBits = 0, totalBytes = 0;
+  if (direction === 'text2bin') {
+    var parts = [];
+    for (var i = 0; i < input.length; i++) {
+      var code = input.codePointAt(i);
+      if (code > 0xFFFF) i++;
+      var val;
+      if (format === 'binary') {
+        var pad = padding === 'auto' ? (code > 0xFF ? 16 : 8) : parseInt(padding);
+        val = code.toString(2).padStart(pad, '0');
+      } else if (format === 'hex') {
+        val = code.toString(16).toUpperCase().padStart(2, '0');
+      } else if (format === 'octal') {
+        val = code.toString(8).padStart(3, '0');
+      } else {
+        val = code.toString(10);
+      }
+      parts.push(val);
+      totalBytes += code > 0xFFFF ? 4 : code > 0xFF ? 2 : 1;
+    }
+    totalBits = totalBytes * 8;
+    var sep = separator === 'space' ? ' ' : separator === 'comma' ? ',' : separator === 'newline' ? '\n' : '';
+    result = parts.join(sep);
+  } else {
+    var sep = separator === 'none' ? null : (separator === 'space' ? ' ' : separator === 'comma' ? ',' : '\n');
+    var parts2;
+    if (sep) {
+      parts2 = input.split(sep).filter(function(s) { return s.trim(); });
+    } else {
+      if (format === 'binary') {
+        var pad2 = padding === 'auto' ? 8 : parseInt(padding);
+        parts2 = input.match(new RegExp('.{1,' + pad2 + '}', 'g')) || [];
+      } else if (format === 'hex') {
+        parts2 = input.match(/.{1,2}/g) || [];
+      } else if (format === 'octal') {
+        parts2 = input.match(/.{1,3}/g) || [];
+      } else {
+        parts2 = input.match(/\d+/g) || [];
+      }
+    }
+    var chars = [];
+    for (var j = 0; j < parts2.length; j++) {
+      var trimmed = parts2[j].trim();
+      if (!trimmed) continue;
+      var code2;
+      if (format === 'binary') code2 = parseInt(trimmed, 2);
+      else if (format === 'hex') code2 = parseInt(trimmed, 16);
+      else if (format === 'octal') code2 = parseInt(trimmed, 8);
+      else code2 = parseInt(trimmed, 10);
+      if (isNaN(code2)) continue;
+      chars.push(String.fromCodePoint(code2));
+      totalBytes += code2 > 0xFFFF ? 4 : code2 > 0xFF ? 2 : 1;
+    }
+    result = chars.join('');
+    totalBits = totalBytes * 8;
+  }
+  document.getElementById('output').value = result;
+  document.getElementById('statChars').textContent = direction === 'text2bin' ? input.length : result.length;
+  document.getElementById('statBits').textContent = totalBits;
+  document.getElementById('statBytes').textContent = totalBytes;
+  showToast('转换完成');
 }
 
 function copyResult() {
-  var text = document.getElementById('result').innerText;
+  var text = document.getElementById('output').value;
   if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); })['catch'](function() { showToast('复制失败'); });
 }
 
 function swapDirection() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!inp||!out)return;var t=inp.value;inp.value=out.textContent||out.innerText;out.textContent=t;showToast('Swapped!');
+  var dir = document.getElementById('direction');
+  var inp = document.getElementById('input');
+  var out = document.getElementById('output');
+  if (!inp || !out) return;
+  dir.value = dir.value === 'text2bin' ? 'bin2text' : 'text2bin';
+  var t = inp.value;
+  inp.value = out.value;
+  convert();
+  showToast('已交换方向');
 }
 </script>
 </body>

@@ -175,16 +175,41 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function copyResult() {
-  var text = document.getElementById('resultArea').innerText;
+  var text = document.getElementById('resultText').textContent;
   if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); })['catch'](function() { showToast('复制失败'); });
 }
 
 function generate() {
-  var input = document.getElementById('count').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('resultArea').textContent = output;
+  var n = parseInt(document.getElementById('count').value);
+  var a = parseInt(document.getElementById('start0').value);
+  var b = parseInt(document.getElementById('start1').value);
+  if (isNaN(n) || n < 1) { showToast('请输入有效的生成数量'); return; }
+  if (n > 500) { showToast('最多生成500项'); return; }
+  if (isNaN(a)) a = 0;
+  if (isNaN(b)) b = 1;
+  var seq = [a, b];
+  for (var i = 2; i < n; i++) {
+    var c = a + b;
+    seq.push(c);
+    a = b;
+    b = c;
+  }
+  if (n === 1) seq = [a];
+  var lines = '';
+  for (var i = 0; i < seq.length; i++) {
+    lines += 'F(' + i + ') = ' + seq[i];
+    if (i >= 2) {
+      var ratio = seq[i] / seq[i - 1];
+      lines += '  (比值=' + ratio.toFixed(10) + ')';
+    }
+    lines += '\n';
+  }
+  var finalRatio = seq.length >= 3 ? (seq[seq.length - 1] / seq[seq.length - 2]) : 0;
+  lines += '\n--- 黄金比例 φ ≈ 1.6180339887 ---\n';
+  lines += '最终比值: ' + finalRatio.toFixed(10);
+  lines += '\n数列和: ' + seq.reduce(function(s, v) { return s + v; }, 0);
+  document.getElementById('resultText').textContent = lines;
   document.getElementById('resultArea').style.display = 'block';
   showToast('生成完成');
 }
