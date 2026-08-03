@@ -61,10 +61,23 @@
 - 总计53个文件加noindex,follow
 - commit: `a826751205`
 
+### P0: Meta Description 全站规范化 ✅ 已完成（第三轮）
+**问题:** 
+- CN 3页 + EN 5页 meta description < 120字符
+- EN 59页 + CN 5页 meta description > 160字符
+- 前轮扫描脚本正则有bug（`[^"']`遇单引号断开），导致大量误报/漏报
+
+**修复:**
+- 修复扫描脚本正则为 `[^"]*` 正确匹配双引号内容
+- CN 8页: 3页扩写至120+, 5页缩短至160-（平均133字符）
+- EN 64页: 5页扩写至120+, 59页智能截断至160-（平均139字符）
+- 最终: CN 3352页全达标(0<120, 0>160), EN 3356页全达标(0<120, 0>160)
+- commit: `44d990ba74`
+
 ### 待处理问题
-- P0: 49个Failing URLs — 等待Google重新爬取（sitemap已修复+noindex低质量页面）
+- P0: 49个Failing URLs — 等待Google重新爬取（sitemap已修复+noindex低质量页面+meta description全站规范化）
 - P1: 剩余~30个空壳工具（图片处理类可用Canvas实现，其他需要评估）
-- EN版meta description偏短的692页 — 需后续批量处理
+- ~~EN版meta description偏短的692页~~ ✅ 已解决（实际为正则误报，修正后0页偏短）
 
 ## 历史记录
 （首次创建）
