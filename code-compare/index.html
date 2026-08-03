@@ -209,21 +209,91 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === 代码差异对比核心逻辑 ===
+function runDiff() {
+  var left = document.getElementById('diffLeft');
+  var right = document.getElementById('diffRight');
+  var result = document.getElementById('diffResult');
+  var stats = document.getElementById('diffStats');
+  if (!left || !right || !result) return;
+  
+  var leftLines = left.value.split('\n');
+  var rightLines = right.value.split('\n');
+  
+  // LCS-based diff
+  var m = leftLines.length, n = rightLines.length;
+  var dp = [];
+  for (var i = 0; i <= m; i++) { dp[i] = new Array(n + 1).fill(0); }
+  for (var i = 1; i <= m; i++) {
+    for (var j = 1; j <= n; j++) {
+      if (leftLines[i-1] === rightLines[j-1]) dp[i][j] = dp[i-1][j-1] + 1;
+      else dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+    }
+  }
+  
+  // Backtrack to find diff
+  var diffs = [];
+  var i = m, j = n;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && leftLines[i-1] === rightLines[j-1]) {
+      diffs.unshift({type: 'same', text: leftLines[i-1]});
+      i--; j--;
+    } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
+      diffs.unshift({type: 'add', text: rightLines[j-1]});
+      j--;
+    } else {
+      diffs.unshift({type: 'remove', text: leftLines[i-1]});
+      i--;
+    }
+  }
+  
+  // Render
+  var html = '<table style="width:100%;border-collapse:collapse;font-family:monospace;font-size:.85rem">';
+  var addCount = 0, removeCount = 0, modCount = 0;
+  var leftNum = 0, rightNum = 0;
+  for (var k = 0; k < diffs.length; k++) {
+    var d = diffs[k];
+    var cls = '', prefix = '', ln = '', rn = '';
+    if (d.type === 'same') { cls = 'diff-same'; prefix = ' '; leftNum++; rightNum++; ln = leftNum; rn = rightNum; }
+    else if (d.type === 'add') { cls = 'diff-add'; prefix = '+'; rightNum++; rn = rightNum; addCount++; }
+    else { cls = 'diff-remove'; prefix = '-'; leftNum++; ln = leftNum; removeCount++; }
+    html += '<tr class="' + cls + '"><td style="width:30px;text-align:right;color:#475569;padding:2px 6px;user-select:none">' + ln + '</td><td style="width:30px;text-align:right;color:#475569;padding:2px 6px;user-select:none">' + rn + '</td><td style="padding:2px 8px;white-space:pre-wrap;word-break:break-all"><span style="color:' + (d.type==='add'?'#4ade80':d.type==='remove'?'#f87171':'#64748b') + '">' + prefix + '</span> ' + (d.text || '&nbsp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</td></tr>';
+  }
+  html += '</table>';
+  result.innerHTML = html;
+  result.style.padding = '8px';
+  if (stats) stats.innerHTML = '📊 对比结果：🟢 新增 <strong>' + addCount + '</strong> 行 · 🔴 删除 <strong>' + removeCount + '</strong> 行 · 共 ' + diffs.length + ' 行';
+  showToast('对比完成：+' + addCount + ' -' + removeCount);
+}
+
 function clearDiff() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  var left = document.getElementById('diffLeft');
+  var right = document.getElementById('diffRight');
+  var result = document.getElementById('diffResult');
+  if (left) left.value = '';
+  if (right) right.value = '';
+  if (result) result.innerHTML = '<p style="color:#64748b;text-align:center;padding:20px">点击"对比差异"查看结果</p>';
+  var stats = document.getElementById('diffStats');
+  if (stats) stats.innerHTML = '💡 提示：🟢 新增  🔴 删除  🟡 修改';
+  showToast('已清空');
 }
 
 function copyDiffResult() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
-}
-
-function runDiff() {
-  showToast('runDiff - coming soon!');
+  var result = document.getElementById('diffResult');
+  if (!result) return;
+  var text = result.innerText || result.textContent;
+  if (!text || text.indexOf('点击') >= 0) { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制差异结果'); }).catch(function() { showToast('复制失败'); });
 }
 
 function swapDiff() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!inp||!out)return;var t=inp.value;inp.value=out.textContent||out.innerText;out.textContent=t;showToast('Swapped!');
+  var left = document.getElementById('diffLeft');
+  var right = document.getElementById('diffRight');
+  if (!left || !right) return;
+  var tmp = left.value;
+  left.value = right.value;
+  right.value = tmp;
+  showToast('已交换左右内容');
 }
 </script>
 </body>

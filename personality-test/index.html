@@ -238,16 +238,107 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 
 // === 重写的函数实现 ===
-function nextQuestion() {
-  showToast('nextQuestion - coming soon!');
+var pAnswers = [];
+var pTotalQ = 12;
+
+var personalityTypes = {
+  'ESTJ': { name: '执行者', desc: '务实、果断、有组织力，善于管理项目和人员。你重视秩序和效率，是可靠的领导者。', traits: '高效·务实·果断·有责任心' },
+  'ESTP': { name: '冒险家', desc: '灵活、行动力强、善于应变。你享受当下的刺激，擅长处理紧急情况。', traits: '灵活·勇敢·实际·精力充沛' },
+  'ESTJ2': { name: '执行者', desc: '务实果断。', traits: '' },
+  'ESFJ': { name: '关怀者', desc: '热情、友善、有责任感。你善于照顾他人感受，是团队中不可或缺的凝聚力。', traits: '温暖·合作·忠诚·善于协调' },
+  'ESFP': { name: '表演者', desc: '活泼、开朗、热爱生活。你善于营造欢乐氛围，是天生的社交达人。', traits: '活泼·热情·随和·有感染力' },
+  'ENTJ': { name: '指挥官', desc: '有远见、有魄力、善于战略规划。你天生的领导力让人愿意追随。', traits: '果断·战略·自信·高效' },
+  'ENTP': { name: '辩论家', desc: '聪明、好奇、善于创新。你享受智力挑战，总能发现新的可能性。', traits: '创新·机智·灵活·好奇心强' },
+  'ENFJ': { name: '主人公', desc: '有魅力、有同理心、善于激励他人。你是天生的导师和领袖。', traits: '温暖·有感染力·有远见·善解人意' },
+  'ENFP': { name: '竞选者', desc: '热情、有创造力、善于发现机会。你对生活充满热情，总能感染身边的人。', traits: '热情·创意·好奇·乐观' },
+  'ISTJ': { name: '物流师', desc: '严谨、可靠、注重细节。你是规则的守护者，值得信赖的执行者。', traits: '严谨·可靠·有条理·负责任' },
+  'ISTP': { name: '鉴赏家', desc: '冷静、善于分析、动手能力强。你擅长解决实际问题，是冷静的危机处理者。', traits: '冷静·务实·灵活·善于分析' },
+  'ISFJ': { name: '守护者', desc: '温和、体贴、忠诚可靠。你默默付出，是身边人最坚实的后盾。', traits: '温和·细心·忠诚·有耐心' },
+  'ISFP': { name: '探险家', desc: '敏感、有艺术天赋、注重和谐。你用独特的方式感受和表达世界。', traits: '敏感·温和·有审美·善解人意' },
+  'INTJ': { name: '建筑师', desc: '独立、有战略眼光、追求完美。你善于系统性思考，是长远规划的大师。', traits: '独立·理性·有远见·追求卓越' },
+  'INTP': { name: '逻辑学家', desc: '善于思考、求知欲强、追求真理。你享受智力探索，是天生的分析者。', traits: '理性·好奇·独立·善于分析' },
+  'INFJ': { name: '提倡者', desc: '有洞察力、有理想、关心他人。你安静而深刻，致力于让世界变得更好。', traits: '深刻·有理想·有同理心·坚定' },
+  'INFP': { name: '调停者', desc: '理想主义、有创造力、重视价值观。你温柔而坚定，追求内心的真实和美好。', traits: '理想主义·有创意·温和·忠诚' }
+};
+
+function nextQuestion(qIndex) {
+  var selected = document.querySelector('input[name="q' + qIndex + '"]:checked');
+  if (!selected) { showToast('请选择一个答案'); return; }
+  pAnswers[qIndex] = parseInt(selected.value);
+  
+  if (qIndex + 1 < pTotalQ) {
+    document.getElementById('q' + qIndex).style.display = 'none';
+    document.getElementById('q' + (qIndex + 1)).style.display = 'block';
+  } else {
+    showPersonalityResult();
+  }
+}
+
+function showPersonalityResult() {
+  for (var i = 0; i < pTotalQ; i++) {
+    var el = document.getElementById('q' + i);
+    if (el) el.style.display = 'none';
+  }
+  document.getElementById('resultArea').style.display = 'block';
+  
+  var eCount = 0, sCount = 0, tCount = 0, jCount = 0;
+  var eTotal = 0, sTotal = 0, tTotal = 0, jTotal = 0;
+  var dimMap = [0,1,2,3,1,2,0,1,2,3,3,2];
+  for (var i = 0; i < pAnswers.length; i++) {
+    var dim = dimMap[i];
+    if (dim === 0) { eTotal++; if (pAnswers[i] === 0) eCount++; }
+    if (dim === 1) { sTotal++; if (pAnswers[i] === 0) sCount++; }
+    if (dim === 2) { tTotal++; if (pAnswers[i] === 0) tCount++; }
+    if (dim === 3) { jTotal++; if (pAnswers[i] === 0) jCount++; }
+  }
+  var type = (eCount >= eTotal/2 ? 'E' : 'I') +
+             (sCount >= sTotal/2 ? 'S' : 'N') +
+             (tCount >= tTotal/2 ? 'T' : 'F') +
+             (jCount >= jTotal/2 ? 'J' : 'P');
+  
+  var pt = personalityTypes[type] || personalityTypes['INFP'];
+  document.getElementById('typeBadge').textContent = type + ' - ' + pt.name;
+  document.getElementById('typeDesc').textContent = pt.desc;
+  document.getElementById('typeTraits').textContent = pt.traits;
+  
+  var dims = [
+    { label: '外向(E)', val: Math.round(eCount/eTotal*100), label2: '内向(I)', val2: Math.round((1-eCount/eTotal)*100) },
+    { label: '感觉(S)', val: Math.round(sCount/sTotal*100), label2: '直觉(N)', val2: Math.round((1-sCount/sTotal)*100) },
+    { label: '思考(T)', val: Math.round(tCount/tTotal*100), label2: '情感(F)', val2: Math.round((1-tCount/tTotal)*100) },
+    { label: '判断(J)', val: Math.round(jCount/jTotal*100), label2: '感知(P)', val2: Math.round((1-jCount/jTotal)*100) }
+  ];
+  var barsHtml = '';
+  dims.forEach(function(d) {
+    barsHtml += '<div style="margin-bottom:12px">' +
+      '<div style="display:flex;justify-content:space-between;color:#cbd5e1;font-size:.85rem;margin-bottom:4px">' +
+      '<span>' + d.label + ' ' + d.val + '%</span><span>' + d.label2 + ' ' + d.val2 + '%</span></div>' +
+      '<div style="height:8px;border-radius:4px;background:#1e293b;display:flex;overflow:hidden">' +
+      '<div style="width:' + d.val + '%;background:#06b6d4"></div>' +
+      '<div style="width:' + d.val2 + '%;background:#8b5cf6"></div></div></div>';
+  });
+  document.getElementById('dimensionBars').innerHTML = barsHtml;
 }
 
 function restart() {
-  showToast('restart - coming soon!');
+  pAnswers = [];
+  for (var i = 0; i < pTotalQ; i++) {
+    var el = document.getElementById('q' + i);
+    if (el) el.style.display = (i === 0) ? 'block' : 'none';
+    var radios = document.querySelectorAll('input[name="q' + i + '"]');
+    radios.forEach(function(r) { r.checked = false; });
+  }
+  document.getElementById('resultArea').style.display = 'none';
 }
 
 function shareResult() {
-  showToast('shareResult - coming soon!');
+  var badge = document.getElementById('typeBadge').textContent;
+  var desc = document.getElementById('typeDesc').textContent;
+  var text = '我的人格类型: ' + badge + ' - ' + desc.substring(0, 60) + '... 来自 free-toolbase.com';
+  navigator.clipboard.writeText(text).then(function() {
+    showToast('结果已复制到剪贴板，快去分享吧！');
+  }).catch(function() {
+    showToast('复制失败，请手动截图分享');
+  });
 }
 </script>
 </body>

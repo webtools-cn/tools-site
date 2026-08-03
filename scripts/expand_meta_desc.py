@@ -62,6 +62,10 @@ def clean_cn_desc(desc):
         r'[，。]?无需注册[，。]?完全免费[。]?$',
         r'[，。]?完全免费[，。]?无需注册[。]?$',
         r'[，。]?数据不上传服务器[，。]?$',
+        r'[，。]?(代码|数据|文件|内容|信息|输入)不会?上传服务器[，。]?$',
+        r'[，。]?(代码|数据|文件|内容|信息|输入)不会?上传[，。]?$',
+        r'[，。]?(代码|数据|文件|内容|信息|输入)不(会|离开)(本地|浏览器)[，。]?$',
+        r'[，。]?(代码|数据|文件|内容|信息|输入)本地处理[，。]?$',
         r'[，。]?纯前端本地(处理|计算)[。]?$',
         r'[，。]?纯前端(处理|计算)[，。]?$',
         r'[，。]?浏览器端运行[，。]?$',
@@ -188,9 +192,13 @@ def process_files(dry_run=True):
     cn_shorter = en_shorter = 0
     cn_samples = en_samples = 0
     
+    # 只跳过顶层系统目录，避免子串匹配误伤 json-*/css-* 等工具目录
+    SKIP_DIRS = {'scripts', 'quality', 'css', 'js', 'node_modules', '.gsc', '.gsc-data'}
     for root, dirs, files in os.walk('.'):
         rel = os.path.relpath(root, '.')
-        if any(s in rel for s in ['.git', 'scripts', 'quality', 'css', 'js', 'node_modules', '.gsc', '_gen']):
+        if rel == '.':
+            pass
+        elif rel.split(os.sep)[0] in SKIP_DIRS or any(s in rel.split(os.sep) for s in ('.git', 'node_modules', '.gsc', '.gsc-data')):
             continue
         
         for f in files:

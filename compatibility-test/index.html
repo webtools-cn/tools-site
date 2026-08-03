@@ -200,20 +200,92 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 
 // === 重写的函数实现 ===
-function nextQ() {
-  showToast('nextQ - coming soon!');
+var currentQ = 0;
+var answers = [];
+var totalQuestions = 8;
+
+function startTest() {
+  var name1 = document.getElementById('name1').value.trim();
+  var name2 = document.getElementById('name2').value.trim();
+  if (!name1 || !name2) { showToast('请输入两人的名字'); return; }
+  answers = [];
+  currentQ = 0;
+  document.getElementById('inputSection').style.display = 'none';
+  document.getElementById('questionSection').style.display = 'block';
+  document.getElementById('resultArea').style.display = 'none';
+  for (var i = 0; i < totalQuestions; i++) {
+    var el = document.getElementById('q' + i);
+    if (el) el.style.display = (i === 0) ? 'block' : 'none';
+  }
+}
+
+function nextQ(qIndex) {
+  var selected = document.querySelector('input[name="q' + qIndex + '"]:checked');
+  if (!selected) { showToast('请选择一个答案'); return; }
+  answers[qIndex] = parseInt(selected.value);
+  
+  if (qIndex + 1 < totalQuestions) {
+    document.getElementById('q' + qIndex).style.display = 'none';
+    document.getElementById('q' + (qIndex + 1)).style.display = 'block';
+    currentQ = qIndex + 1;
+  } else {
+    showResult();
+  }
+}
+
+function showResult() {
+  document.getElementById('questionSection').style.display = 'none';
+  document.getElementById('resultArea').style.display = 'block';
+  
+  var matchCount = 0;
+  for (var i = 0; i < answers.length; i++) {
+    if (answers[i] === 0) matchCount++;
+  }
+  var score = Math.round((matchCount / totalQuestions) * 100);
+  
+  document.getElementById('scoreNum').textContent = score + '%';
+  
+  var badge = document.getElementById('levelBadge');
+  var desc = document.getElementById('levelDesc');
+  
+  if (score >= 75) {
+    badge.textContent = '高度兼容';
+    badge.style.cssText = 'display:inline-block;padding:4px 16px;border-radius:20px;background:rgba(16,185,129,.2);color:#10b981;font-weight:600;margin-top:8px';
+    desc.textContent = '你们在大多数方面非常匹配，相处融洽。继续保持良好的沟通和理解，珍惜这份难得的默契。';
+  } else if (score >= 50) {
+    badge.textContent = '中等兼容';
+    badge.style.cssText = 'display:inline-block;padding:4px 16px;border-radius:20px;background:rgba(245,158,11,.2);color:#f59e0b;font-weight:600;margin-top:8px';
+    desc.textContent = '你们有一定程度的匹配，也有需要磨合的地方。通过开放的沟通和相互尊重，可以建立更好的关系。';
+  } else {
+    badge.textContent = '互补型';
+    badge.style.cssText = 'display:inline-block;padding:4px 16px;border-radius:20px;background:rgba(139,92,246,.2);color:#8b5cf6;font-weight:600;margin-top:8px';
+    desc.textContent = '你们在很多方面有所不同，但这正是互补的魅力。差异可以带来新的视角和成长机会，关键是学会欣赏彼此的不同。';
+  }
 }
 
 function restart() {
-  showToast('restart - coming soon!');
+  answers = [];
+  currentQ = 0;
+  document.getElementById('inputSection').style.display = 'block';
+  document.getElementById('questionSection').style.display = 'none';
+  document.getElementById('resultArea').style.display = 'none';
+  for (var i = 0; i < totalQuestions; i++) {
+    var radios = document.querySelectorAll('input[name="q' + i + '"]');
+    radios.forEach(function(r) { r.checked = false; });
+  }
 }
 
 function shareResult() {
-  showToast('shareResult - coming soon!');
-}
-
-function startTest() {
-  showToast('startTest - coming soon!');
+  var score = document.getElementById('scoreNum').textContent;
+  var level = document.getElementById('levelBadge').textContent;
+  var name1 = document.getElementById('name1').value.trim() || '我';
+  var name2 = document.getElementById('name2').value.trim() || 'TA';
+  var text = name1 + ' 和 ' + name2 + ' 的兼容性指数: ' + score + ' (' + level + ') - 来自 free-toolbase.com';
+  navigator.clipboard.writeText(text).then(function() {
+    showToast('结果已复制到剪贴板，快去分享吧！');
+  }).catch(function() {
+    showToast('复制失败，请手动截图分享');
+  });
 }
 </script>
 </body>

@@ -287,44 +287,153 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function applyPreset(value) {
-  if(typeof value === 'string') {
-    var el = document.querySelector('[data-preset="' + value + '"], [data-mode="' + value + '"]');
-    if(el) el.classList.add('active');
+// === CSS圆角生成器核心逻辑 ===
+var currentUnit = 'px';
+var currentTL = 0, currentTR = 0, currentBR = 0, currentBL = 0;
+
+function getRadiusCSS() {
+  var u = currentUnit;
+  if (currentTL === currentTR && currentTR === currentBR && currentBR === currentBL) {
+    return currentTL + u;
   }
-  showToast('已应用');
-}
-
-function changeUnit() {
-  showToast('changeUnit - coming soon!');
-}
-
-function copyCSS() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
-}
-
-function copyFullCSS() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
-}
-
-function toggleUnify() {
-  showToast('Toggled!');
-}
-
-function updateFromSeparate() {
-  showToast('updateFromSeparate - coming soon!');
-}
-
-function updateFromUnified() {
-  showToast('updateFromUnified - coming soon!');
+  return currentTL + u + ' ' + currentTR + u + ' ' + currentBR + u + ' ' + currentBL + u;
 }
 
 function updatePreview() {
-  var el = document.getElementById('previewBox');
+  var box = document.getElementById('previewBox');
+  if (!box) return;
+  var w = document.getElementById('boxWidth');
+  var h = document.getElementById('boxHeight');
+  if (w) box.style.width = Math.max(50, Math.min(400, parseInt(w.value) || 200)) + 'px';
+  if (h) box.style.height = Math.max(50, Math.min(400, parseInt(h.value) || 200)) + 'px';
+  var css = getRadiusCSS();
+  box.style.borderRadius = css;
+  var out = document.getElementById('cssOutput');
+  if (out) out.textContent = 'border-radius: ' + css + ';';
+}
+
+function updateFromUnified() {
+  var range = document.getElementById('unifiedRange');
+  if (!range) return;
+  var val = parseInt(range.value);
+  currentTL = currentTR = currentBR = currentBL = val;
+  var u = currentUnit;
+  var label = document.getElementById('unifiedVal');
+  if (label) label.textContent = val + u;
+  // Sync separate sliders
+  ['tlRange','trRange','brRange','blRange'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = val;
+  });
+  ['tlVal','trVal','brVal','blVal'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = val + u;
+  });
+  updatePreview();
+}
+
+function updateFromSeparate() {
+  var tl = document.getElementById('tlRange');
+  var tr = document.getElementById('trRange');
+  var br = document.getElementById('brRange');
+  var bl = document.getElementById('blRange');
+  if (!tl || !tr || !br || !bl) return;
+  currentTL = parseInt(tl.value);
+  currentTR = parseInt(tr.value);
+  currentBR = parseInt(br.value);
+  currentBL = parseInt(bl.value);
+  var u = currentUnit;
+  document.getElementById('tlVal').textContent = currentTL + u;
+  document.getElementById('trVal').textContent = currentTR + u;
+  document.getElementById('brVal').textContent = currentBR + u;
+  document.getElementById('blVal').textContent = currentBL + u;
+  // Sync unified slider
+  var ur = document.getElementById('unifiedRange');
+  if (ur && currentTL === currentTR && currentTR === currentBR && currentBR === currentBL) {
+    ur.value = currentTL;
+    var ul = document.getElementById('unifiedVal');
+    if (ul) ul.textContent = currentTL + u;
+  }
+  updatePreview();
+}
+
+function changeUnit() {
+  var pxLabel = document.getElementById('unitPx');
+  var pctLabel = document.getElementById('unitPct');
+  var checked = document.querySelector('input[name="unit"]:checked');
+  if (!checked) return;
+  currentUnit = checked.value;
+  if (pxLabel) pxLabel.classList.toggle('active', currentUnit === 'px');
+  if (pctLabel) pctLabel.classList.toggle('active', currentUnit === '%');
+  // Update all labels
+  var u = currentUnit;
+  var ur = document.getElementById('unifiedVal');
+  if (ur) ur.textContent = (parseInt(document.getElementById('unifiedRange').value) || 0) + u;
+  ['tlVal','trVal','brVal','blVal'].forEach(function(id, i) {
+    var rangeId = ['tlRange','trRange','brRange','blRange'][i];
+    var el = document.getElementById(id);
+    var rel = document.getElementById(rangeId);
+    if (el && rel) el.textContent = (parseInt(rel.value) || 0) + u;
+  });
+  updatePreview();
+}
+
+function applyPreset(tl, tr, br, bl) {
+  currentTL = tl; currentTR = tr; currentBR = br; currentBL = bl;
+  var u = currentUnit;
+  // Update unified slider if all same
+  var ur = document.getElementById('unifiedRange');
+  if (ur) {
+    ur.value = (tl === tr && tr === br && br === bl) ? tl : 0;
+    var ul = document.getElementById('unifiedVal');
+    if (ul) ul.textContent = ((tl === tr && tr === br && br === bl) ? tl : 0) + u;
+  }
+  // Update separate sliders
+  var ids = ['tlRange','trRange','brRange','blRange'];
+  var vals = [tl, tr, br, bl];
+  var labelIds = ['tlVal','trVal','brVal','blVal'];
+  for (var i = 0; i < 4; i++) {
+    var el = document.getElementById(ids[i]);
+    if (el) el.value = vals[i];
+    var lab = document.getElementById(labelIds[i]);
+    if (lab) lab.textContent = vals[i] + u;
+  }
+  updatePreview();
+  showToast('已应用预设');
+}
+
+function toggleUnify() {
+  var cb = document.getElementById('unifyMode');
+  var unified = document.getElementById('unifiedControl');
+  var separate = document.getElementById('separateControls');
+  if (!cb || !unified || !separate) return;
+  if (cb.checked) {
+    unified.style.display = 'block';
+    separate.style.display = 'none';
+    updateFromUnified();
+  } else {
+    unified.style.display = 'none';
+    separate.style.display = 'block';
+    updateFromSeparate();
+  }
+}
+
+function copyCSS() {
+  var el = document.getElementById('cssOutput');
   if (!el) return;
-  el.style.display = 'block';
-  showToast('预览已更新');
+  var text = el.textContent || el.innerText;
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制: ' + text); }).catch(function() { showToast('复制失败'); });
+}
+
+function copyFullCSS() {
+  var box = document.getElementById('previewBox');
+  if (!box) return;
+  var w = document.getElementById('boxWidth');
+  var h = document.getElementById('boxHeight');
+  var width = w ? w.value + 'px' : '200px';
+  var height = h ? h.value + 'px' : '200px';
+  var css = '.rounded-box {\n  width: ' + width + ';\n  height: ' + height + ';\n  background: linear-gradient(135deg, #06b6d4, #22d3ee);\n  border-radius: ' + getRadiusCSS() + ';\n}';
+  navigator.clipboard.writeText(css).then(function() { showToast('已复制完整CSS'); }).catch(function() { showToast('复制失败'); });
 }
 </script>
 </body>

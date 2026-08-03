@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="CSS分割线生成器，创建波浪、曲线、角度等多种样式的网页分割线。支持自定义颜色、高度、翻转和位置等参数，实时预览并一键复制CSS代码。适合网页设计视觉分隔和装饰美化，纯CSS实现无需图片，完全免费。纯前端本地处理，数据安全有保障。">
+<meta name="description" content="CSS分割线生成器，创建波浪、曲线、角度等多种样式的网页分割线。支持自定义颜色、高度、翻转和位置等参数，实时预览并一键复制CSS代码。适合网页设计视觉分隔和装饰美化，纯CSS实现无需图片，完全免费。纯前端本地处理，数据不上传服务器，完全免费无需注册。">
 <meta name="keywords" content="CSS分割线生成器,工具,在线工具,免费">
 <title>免费CSS分割线生成器 - CSS分割线生成器，创建波浪、曲线、角度等多种样式 | 无需注册</title>
 <link rel="canonical" href="https://free-toolbase.com/css-divider-generator/">
@@ -118,6 +118,7 @@ canvas{max-width:100%}
   <button class="btn btn-primary" onclick="copyDividerCSS()">📋 复制CSS</button>
   <button class="btn btn-success" onclick="copyDividerSVG()">📋 复制SVG</button>
 </div>
+<div class="css-output" id="dvCode" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.85rem;color:#22d3ee;min-height:60px;white-space:pre-wrap;word-break:break-all;margin-top:12px"></div>
 <p class="info-text">💡 调整参数实时预览，一键复制CSS/SVG代码到项目中</p></div></div>
 <div class="section"><h2>常见问题 (FAQ)</h2>
 <div class="faq-item"><h3>需要安装吗？</h3><p>不需要。CSS分割线生成器是一个纯前端工具，直接在浏览器中运行，无需安装任何软件或应用。所有代码都在您的浏览器本地执行，不会上传任何数据到服务器。</p></div>
@@ -184,17 +185,75 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === CSS分割线生成器核心逻辑 ===
+var _dividerSVG = '';
+var _dividerCSS = '';
+
+function updateDivider() {
+  var style = document.getElementById('dvStyle');
+  var color = document.getElementById('dvColor');
+  var bg = document.getElementById('dvBg');
+  var height = document.getElementById('dvHeight');
+  var flip = document.getElementById('dvFlip');
+  var render = document.getElementById('dvRender');
+  var code = document.getElementById('dvCode');
+  if (!style || !color || !bg || !height || !render) return;
+  
+  var s = style.value, c = color.value, b = bg.value, h = parseInt(height.value) || 120;
+  var f = flip ? flip.value : 'none';
+  
+  // Generate SVG path based on style
+  var path = '';
+  switch(s) {
+    case 'wave':
+      path = 'M0,' + (h/2) + ' C' + (h/4) + ',0 ' + (h*3/4) + ',' + h + ' ' + h + ',' + (h/2) + ' L' + h + ',' + h + ' L0,' + h + ' Z';
+      break;
+    case 'curve':
+      path = 'M0,0 Q' + (h*2) + ',' + h + ' ' + (h*4) + ',0 L' + (h*4) + ',' + h + ' L0,' + h + ' Z';
+      break;
+    case 'angle':
+      path = 'M0,0 L' + (h*4) + ',' + h + ' L' + (h*4) + ',' + h + ' L0,' + h + ' Z';
+      break;
+    case 'arrow':
+      path = 'M0,0 L' + (h*2) + ',' + (h/2) + ' L' + (h*4) + ',0 L' + (h*4) + ',' + h + ' L0,' + h + ' Z';
+      break;
+    case 'tilt':
+      path = 'M0,' + (h*0.3) + ' L' + (h*4) + ',0 L' + (h*4) + ',' + h + ' L0,' + h + ' Z';
+      break;
+    case 'triangle':
+      path = 'M0,0 L' + (h*2) + ',' + h + ' L' + (h*4) + ',0 L' + (h*4) + ',' + h + ' L0,' + h + ' Z';
+      break;
+    case 'cloud':
+      path = 'M0,' + h + ' L0,' + (h*0.5) + ' Q' + (h*0.5) + ',0 ' + h + ',' + (h*0.3) + ' T' + (h*2) + ',' + (h*0.3) + ' T' + (h*3) + ',' + (h*0.3) + ' T' + (h*4) + ',' + (h*0.5) + ' L' + (h*4) + ',' + h + ' Z';
+      break;
+    case 'zigzag':
+      path = 'M0,0 L' + (h/2) + ',' + (h*0.7) + ' L' + h + ',0 L' + (h*1.5) + ',' + (h*0.7) + ' L' + (h*2) + ',0 L' + (h*2.5) + ',' + (h*0.7) + ' L' + (h*3) + ',0 L' + (h*3.5) + ',' + (h*0.7) + ' L' + (h*4) + ',0 L' + (h*4) + ',' + h + ' L0,' + h + ' Z';
+      break;
+    default:
+      path = 'M0,0 L' + (h*4) + ',0 L' + (h*4) + ',' + h + ' L0,' + h + ' Z';
+  }
+  
+  var transform = '';
+  if (f === 'horizontal') transform = 'transform="scale(-1,1) translate(-' + (h*4) + ',0)"';
+  else if (f === 'vertical') transform = 'transform="scale(1,-1) translate(0,-' + h + ')"';
+  else if (f === 'both') transform = 'transform="scale(-1,-1) translate(-' + (h*4) + ',-' + h + ')"';
+  
+  _dividerSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + (h*4) + ' ' + h + '" preserveAspectRatio="none" style="display:block;width:100%;height:' + h + 'px">' + (transform ? '<g ' + transform + '>' : '') + '<path d="' + path + '" fill="' + c + '"/>' + (transform ? '</g>' : '') + '</svg>';
+  
+  _dividerCSS = '.divider {\n  height: ' + h + 'px;\n  background-color: ' + b + ';\n  position: relative;\n}\n.divider svg {\n  display: block;\n  width: 100%;\n  height: ' + h + 'px;\n}';
+  
+  render.innerHTML = '<div style="background:' + b + ';height:' + h + 'px">' + _dividerSVG + '</div>';
+  if (code) code.textContent = _dividerCSS;
+}
+
 function copyDividerCSS() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  if (!_dividerCSS) { showToast('请先生成分割线'); return; }
+  navigator.clipboard.writeText(_dividerCSS).then(function() { showToast('已复制CSS代码'); }).catch(function() { showToast('复制失败'); });
 }
 
 function copyDividerSVG() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
-}
-
-function updateDivider() {
-  showToast('updateDivider - coming soon!');
+  if (!_dividerSVG) { showToast('请先生成分割线'); return; }
+  navigator.clipboard.writeText(_dividerSVG).then(function() { showToast('已复制SVG代码'); }).catch(function() { showToast('复制失败'); });
 }
 </script>
 </body>

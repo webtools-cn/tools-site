@@ -195,17 +195,78 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === CSS丝带生成器核心逻辑 ===
+var _ribbonCSS = '';
+var _ribbonHTML = '';
+
+function updateRibbon() {
+  var color = document.getElementById('ribbonColor');
+  var textColor = document.getElementById('textColor');
+  var text = document.getElementById('ribbonText');
+  var fontSize = document.getElementById('fontSize');
+  var width = document.getElementById('ribbonWidth');
+  var height = document.getElementById('ribbonHeight');
+  var fold = document.getElementById('foldSize');
+  var pos = document.getElementById('ribbonPos');
+  var style = document.getElementById('ribbonStyle');
+  var preview = document.getElementById('ribbonPreview');
+  var code = document.getElementById('codeOutput');
+  if (!color || !text || !preview || !code) return;
+  
+  var c = color.value, tc = textColor.value, t = text.value || '热卖';
+  var fs = parseInt(fontSize.value) || 14;
+  var w = parseInt(width.value) || 160;
+  var h = parseInt(height.value) || 36;
+  var f = parseInt(fold.value) || 8;
+  var p = pos ? pos.value : 'top-left';
+  var st = style ? style.value : 'classic';
+  
+  // Update labels
+  var cl = document.getElementById('colorVal'); if (cl) cl.textContent = c;
+  var tcl = document.getElementById('textColorVal'); if (tcl) tcl.textContent = tc;
+  var fsl = document.getElementById('fontSizeVal'); if (fsl) fsl.textContent = fs + 'px';
+  var wl = document.getElementById('widthVal'); if (wl) wl.textContent = w + 'px';
+  var hl = document.getElementById('heightVal'); if (hl) hl.textContent = h + 'px';
+  var fl = document.getElementById('foldVal'); if (fl) fl.textContent = f + 'px';
+  
+  // Position
+  var posCSS = '';
+  if (p === 'top-left') posCSS = 'top:0;left:-8px';
+  else if (p === 'top-right') posCSS = 'top:0;right:-8px';
+  else if (p === 'bottom-left') posCSS = 'bottom:0;left:-8px';
+  else if (p === 'bottom-right') posCSS = 'bottom:0;right:-8px';
+  
+  // Build CSS based on style
+  var borderRadius = '';
+  var extraCSS = '';
+  if (st === 'classic') {
+    borderRadius = '0';
+    extraCSS = '';
+  } else if (st === 'rounded') {
+    borderRadius = '0 ' + (h/2) + 'px ' + (h/2) + 'px 0';
+    if (p.indexOf('right') >= 0) borderRadius = (h/2) + 'px 0 0 ' + (h/2) + 'px';
+  } else if (st === 'flag') {
+    extraCSS = 'clip-path: polygon(0 0, 100% 0, 100% 100%, ' + (100 - f*100/w) + '% 100%, 100% 50%, ' + (100 - f*100/w) + '% 0)';
+  }
+  
+  _ribbonCSS = '.ribbon {\n  position: absolute;\n  ' + posCSS + ';\n  width: ' + w + 'px;\n  height: ' + h + 'px;\n  background: ' + c + ';\n  color: ' + tc + ';\n  font-size: ' + fs + 'px;\n  font-weight: 700;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  border-radius: ' + borderRadius + ';\n  ' + extraCSS + '\n  box-shadow: 0 2px 8px rgba(0,0,0,.2);\n}';
+  
+  _ribbonHTML = '<div class="ribbon">' + t + '</div>';
+  
+  // Render preview
+  preview.innerHTML = '<div style="position:relative;width:300px;height:200px;background:#1e293b;border-radius:8px;overflow:hidden;margin:0 auto"><div style="position:absolute;' + posCSS + ';width:' + w + 'px;height:' + h + 'px;background:' + c + ';color:' + tc + ';font-size:' + fs + 'px;font-weight:700;display:flex;align-items:center;justify-content:center;border-radius:' + borderRadius + ';' + extraCSS + ';box-shadow:0 2px 8px rgba(0,0,0,.2)">' + t + '</div></div>';
+  
+  code.textContent = '/* CSS */\n' + _ribbonCSS + '\n\n/* HTML */\n' + _ribbonHTML;
+}
+
 function copyCSS() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  if (!_ribbonCSS) { showToast('请先生成丝带'); return; }
+  navigator.clipboard.writeText(_ribbonCSS).then(function() { showToast('已复制CSS代码'); }).catch(function() { showToast('复制失败'); });
 }
 
 function copyHTML() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
-}
-
-function updateRibbon() {
-  showToast('updateRibbon - coming soon!');
+  if (!_ribbonHTML) { showToast('请先生成丝带'); return; }
+  navigator.clipboard.writeText(_ribbonHTML).then(function() { showToast('已复制HTML代码'); }).catch(function() { showToast('复制失败'); });
 }
 </script>
 </body>
