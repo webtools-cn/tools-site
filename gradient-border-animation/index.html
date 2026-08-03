@@ -195,20 +195,76 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function copyResult() {
-  var text = document.getElementById('previewBox').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+// === 渐变边框动画生成器 - 完整实现 ===
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function generate() {
-  var input = document.getElementById('c1').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('previewBox').textContent = output;
-  document.getElementById('previewBox').style.display = 'block';
-  showToast('生成完成');
+  var c1 = document.getElementById('c1').value;
+  var c2 = document.getElementById('c2').value;
+  var c3 = document.getElementById('c3').value;
+  var c4 = document.getElementById('c4').value;
+  var bw = parseInt(document.getElementById('bdrWidth').value) || 4;
+  var br = parseInt(document.getElementById('bdrRadius').value) || 12;
+  var sp = parseFloat(document.getElementById('animSpeed').value) || 3;
+  var dir = document.getElementById('gradDir').value;
+
+  var colors = [c1, c2];
+  if (c3 && c3 !== '#000000') colors.push(c3);
+  if (c4 && c4 !== '#000000') colors.push(c4);
+  if (colors.length < 2) colors = ['#06b6d4', '#8b5cf6'];
+
+  var grad = 'conic-gradient(from var(--ga-angle), ' + colors.join(', ') + ', ' + colors[0] + ')';
+  var css = '/* 渐变动画边框 - 使用conic-gradient + @property实现平滑旋转 */\n';
+  css += '@property --ga-angle {\n';
+  css += '  syntax: "<angle>";\n';
+  css += '  inherits: false;\n';
+  css += '  initial-value: 0deg;\n';
+  css += '}\n\n';
+  css += '.gradient-border {\n';
+  css += '  --ga-angle: 0deg;\n';
+  css += '  position: relative;\n';
+  css += '  border-radius: ' + br + 'px;\n';
+  css += '  background: ' + grad.replace('var(--ga-angle)', '0deg') + ';\n';
+  css += '  padding: ' + bw + 'px;\n';
+  css += '  animation: gradient-border-spin ' + sp + 's linear infinite;\n';
+  css += '}\n\n';
+  css += '.gradient-border > * {\n';
+  css += '  border-radius: ' + Math.max(0, br - bw) + 'px;\n';
+  css += '}\n\n';
+  css += '@keyframes gradient-border-spin {\n';
+  css += '  to { --ga-angle: 360deg; }\n';
+  css += '}';
+
+  // 实时预览：把渐变边框应用到预览元素
+  var preview = document.getElementById('previewEl');
+  preview.style.borderRadius = br + 'px';
+  preview.style.padding = bw + 'px';
+  preview.style.background = grad.replace('var(--ga-angle)', '0deg');
+  preview.style.animation = 'gradient-border-spin ' + sp + 's linear infinite';
+  var inner = document.createElement('div');
+  inner.style.cssText = 'border-radius:' + Math.max(0, br - bw) + 'px;background:#0a0f1e;padding:20px 40px;color:#f1f5f9;font-size:1rem;font-weight:500';
+  inner.textContent = '✨ 渐变边框预览';
+  preview.textContent = '';
+  preview.appendChild(inner);
+  // 确保keyframes存在
+  if (!document.getElementById('gba-keyframes')) {
+    var st = document.createElement('style');
+    st.id = 'gba-keyframes';
+    st.textContent = '@property --ga-angle{syntax:"<angle>";inherits:false;initial-value:0deg}@keyframes gradient-border-spin{to{--ga-angle:360deg}}';
+    document.head.appendChild(st);
+  }
+
+  document.getElementById('resultCss').textContent = css;
+  document.getElementById('resultArea').style.display = 'block';
+  showToast('CSS已生成');
+}
+
+function copyResult() {
+  var text = document.getElementById('resultCss').textContent || document.getElementById('resultCss').innerText;
+  if (!text || text.indexOf('@keyframes') === -1) { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
 }
 </script>
 </body>

@@ -311,73 +311,221 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function addCondition() {
-  var container = document.querySelector('.conditions-container, .fields-container, .rows-container, .params-container, .steps-container');
-  if (!container) container = document.querySelector('.section:nth-child(2)');
-  if (!container) { showToast('无法添加'); return; }
+// === CSS媒体查询生成器 - 完整实现 ===
+var FEATURE_VALUES = {
+  'min-width': '768px',
+  'max-width': '480px',
+  'min-height': '600px',
+  'max-height': '800px',
+  'orientation': 'landscape',
+  'aspect-ratio': '16/9',
+  'min-aspect-ratio': '4/3',
+  'max-aspect-ratio': '16/9',
+  'prefers-color-scheme': 'dark',
+  'prefers-reduced-motion': 'reduce',
+  'prefers-contrast': 'more',
+  'hover': 'hover',
+  'pointer': 'fine',
+  'resolution': '2dppx',
+  'min-resolution': '2dppx',
+  'max-resolution': '1dppx',
+  'color-gamut': 'p3',
+  'display-mode': 'standalone',
+  'forced-colors': 'active',
+  'inverted-colors': 'inverted',
+  'scripting': 'enabled',
+  'update': 'fast'
+};
+
+function addCondition(feature, value) {
+  var list = document.getElementById('conditionsList');
   var div = document.createElement('div');
-  div.className = 'condition-item, field-item';
-  div.innerHTML = '<input type="text" placeholder="输入内容" style="width:80%;padding:8px;margin:4px 0;"> <button onclick="this.parentElement.remove()" class="btn" style="padding:4px 8px;">删除</button>';
-  container.appendChild(div);
-  showToast('已添加');
+  div.className = 'condition-item';
+  div.innerHTML = '<select class="logic-select" onchange="generate()">' +
+    '<option value="and">and</option><option value="or">or</option>' +
+    '<option value="only">only</option><option value="not">not</option></select>' +
+    '<select class="feature-select" onchange="generate();syncValue(this)">' +
+    Object.keys(FEATURE_VALUES).map(function(f){ return '<option value="' + f + '">' + f + '</option>'; }).join('') +
+    '</select>' +
+    '<input type="text" class="value-input" placeholder="值，如 768px" oninput="generate()">' +
+    '<button class="remove-btn" onclick="removeCondition(this)">删除</button>';
+  list.appendChild(div);
+  if (feature) {
+    div.querySelector('.feature-select').value = feature;
+    div.querySelector('.value-input').value = value || FEATURE_VALUES[feature] || '';
+  } else {
+    div.querySelector('.value-input').value = FEATURE_VALUES['min-width'] || '768px';
+  }
+  generate();
 }
 
-function addPreset() {
-  showToast('addPreset - coming soon!');
+function syncValue(sel) {
+  var item = sel.closest('.condition-item');
+  var val = item.querySelector('.value-input');
+  val.value = FEATURE_VALUES[sel.value] || val.value;
+  generate();
+}
+
+function addPreset(type) {
+  var presets = {
+    phone:   [['min-width', '320px'], ['max-width', '480px']],
+    tablet:  [['min-width', '481px'], ['max-width', '768px']],
+    desktop: [['min-width', '769px'], ['max-width', '1024px']],
+    large:   [['min-width', '1025px']]
+  };
+  var conds = presets[type];
+  if (!conds) return;
+  clearConditions(true);
+  conds.forEach(function(c, i) {
+    var list = document.getElementById('conditionsList');
+    var div = document.createElement('div');
+    div.className = 'condition-item';
+    div.innerHTML = '<select class="logic-select" onchange="generate()">' +
+      '<option value="and">and</option><option value="or">or</option>' +
+      '<option value="only">only</option><option value="not">not</option></select>' +
+      '<select class="feature-select" onchange="generate();syncValue(this)">' +
+      Object.keys(FEATURE_VALUES).map(function(f){ return '<option value="' + f + '">' + f + '</option>'; }).join('') +
+      '</select>' +
+      '<input type="text" class="value-input" placeholder="值，如 768px" oninput="generate()">' +
+      '<button class="remove-btn" onclick="removeCondition(this)">删除</button>';
+    list.appendChild(div);
+    div.querySelector('.feature-select').value = c[0];
+    div.querySelector('.value-input').value = c[1];
+    if (i === 0) div.querySelector('.logic-select').value = 'and';
+  });
+  generate();
 }
 
 function applyTemplate(value) {
-  if(typeof value === 'string') {
-    var el = document.querySelector('[data-preset="' + value + '"], [data-mode="' + value + '"]');
-    if(el) el.classList.add('active');
-  }
-  showToast('已应用');
+  var tpl = {
+    'dark-mode': [['prefers-color-scheme', 'dark']],
+    'print':     [['type', 'print']],
+    'motion':    [['prefers-reduced-motion', 'reduce']],
+    'hover':     [['hover', 'hover']],
+    'landscape': [['orientation', 'landscape']]
+  };
+  var conds = tpl[value];
+  if (!conds) { showToast('模板不存在'); return; }
+  clearConditions(true);
+  conds.forEach(function(c, i) {
+    var list = document.getElementById('conditionsList');
+    var div = document.createElement('div');
+    div.className = 'condition-item';
+    div.innerHTML = '<select class="logic-select" onchange="generate()">' +
+      '<option value="and">and</option><option value="or">or</option>' +
+      '<option value="only">only</option><option value="not">not</option></select>' +
+      '<select class="feature-select" onchange="generate();syncValue(this)">' +
+      Object.keys(FEATURE_VALUES).map(function(f){ return '<option value="' + f + '">' + f + '</option>'; }).join('') +
+      '<option value="type">type</option></select>' +
+      '<input type="text" class="value-input" placeholder="值，如 768px" oninput="generate()">' +
+      '<button class="remove-btn" onclick="removeCondition(this)">删除</button>';
+    list.appendChild(div);
+    if (c[0] === 'type') {
+      div.querySelector('.feature-select').value = 'type';
+    } else {
+      div.querySelector('.feature-select').value = c[0];
+    }
+    div.querySelector('.value-input').value = c[1];
+  });
+  generate();
 }
 
-function clearConditions() {
-  document.querySelectorAll('input[type="text"],input[type="number"],textarea').forEach(function(el) { el.value = ''; });
-  document.getElementById('previewBox').innerHTML = '';
-  showToast('已清空');
+function clearConditions(keepOne) {
+  var list = document.getElementById('conditionsList');
+  var items = list.querySelectorAll('.condition-item');
+  items.forEach(function(el) { el.remove(); });
+  // keepOne=true: 由调用方(addPreset/applyTemplate)添加自己的条件，此处不留默认行
+  if (!keepOne) {
+    addCondition('min-width', '768px');
+  }
 }
 
 function copyCode() {
-  var text = document.getElementById('previewBox').innerText || document.getElementById('previewBox').textContent;
-  if (!text) { showToast('没有可复制的内容'); return; }
+  var text = document.getElementById('codeOutput').innerText || document.getElementById('codeOutput').textContent;
+  if (!text || text.indexOf('@media') === -1) { showToast('没有可复制的代码'); return; }
   navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
 }
 
 function downloadCSS() {
-  var text = document.getElementById('previewBox').innerText || document.getElementById('previewBox').textContent;
-  if (!text) { showToast('没有可导出的内容'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
+  var text = document.getElementById('codeOutput').innerText || document.getElementById('codeOutput').textContent;
+  if (!text || text.indexOf('@media') === -1) { showToast('没有可导出的代码'); return; }
+  var blob = new Blob([text], {type: 'text/css'});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'css-media-query-generator-output.txt';
+  a.download = 'media-queries.css';
   a.click();
   showToast('已下载');
 }
 
+function getConditions() {
+  var list = document.getElementById('conditionsList');
+  var items = list.querySelectorAll('.condition-item');
+  var conds = [];
+  items.forEach(function(item) {
+    var logic = item.querySelector('.logic-select').value;
+    var feature = item.querySelector('.feature-select').value;
+    var value = item.querySelector('.value-input').value.trim();
+    if (feature && value) conds.push({logic: logic, feature: feature, value: value});
+  });
+  return conds;
+}
+
 function generate() {
-  var input = document.getElementById('previewWidth').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('previewBox').textContent = output;
-  document.getElementById('previewBox').style.display = 'block';
-  showToast('生成完成');
+  var conds = getConditions();
+  if (conds.length === 0) {
+    document.getElementById('codeOutput').textContent = '/* 请先添加媒体查询条件 */';
+    updatePreview();
+    return;
+  }
+  var parts = [];
+  var current = [];
+  conds.forEach(function(c, i) {
+    if (i === 0) {
+      current.push('(' + c.feature + ': ' + c.value + ')');
+    } else if (c.logic === 'or') {
+      parts.push(current.join(' and '));
+      current = ['(' + c.feature + ': ' + c.value + ')'];
+    } else if (c.logic === 'not') {
+      current.push('not (' + c.feature + ': ' + c.value + ')');
+    } else if (c.logic === 'only') {
+      current.push('(' + c.feature + ': ' + c.value + ')');
+    } else {
+      current.push('(' + c.feature + ': ' + c.value + ')');
+    }
+  });
+  parts.push(current.join(' and '));
+  var media = '@media ' + parts.join(',\n       ') + ' {\n  /* 在此编写响应式样式 */\n}';
+  document.getElementById('codeOutput').textContent = media;
+  updatePreview();
+  showToast('已生成媒体查询代码');
 }
 
 function removeCondition(el) {
-  if(el) el.parentElement.remove();
-  else { var items = document.querySelectorAll('.condition-item, .field-item'); if(items.length>0) items[items.length-1].remove(); }
-  showToast('已删除');
+  if (el) el.parentElement.remove();
+  else { var items = document.querySelectorAll('.condition-item'); if (items.length > 0) items[items.length - 1].remove(); }
+  generate();
 }
 
 function updatePreview() {
-  var el = document.getElementById('previewBox');
-  if (!el) return;
-  el.style.display = 'block';
-  showToast('预览已更新');
+  var w = parseInt(document.getElementById('previewWidth').value) || 800;
+  var h = parseInt(document.getElementById('previewHeight').value) || 600;
+  document.getElementById('widthValue').textContent = w + 'px';
+  document.getElementById('heightValue').textContent = h + 'px';
+  var box = document.getElementById('previewBox');
+  var conds = getConditions();
+  var matched = true;
+  conds.forEach(function(c) {
+    var v = parseFloat(c.value);
+    var hasVal = !isNaN(v);
+    if (c.feature === 'min-width' && hasVal && w < v) matched = false;
+    if (c.feature === 'max-width' && hasVal && w > v) matched = false;
+    if (c.feature === 'min-height' && hasVal && h < v) matched = false;
+    if (c.feature === 'max-height' && hasVal && h > v) matched = false;
+    if (c.feature === 'orientation' && c.value === 'landscape' && w < h) matched = false;
+    if (c.feature === 'orientation' && c.value === 'portrait' && w > h) matched = false;
+  });
+  var dot = '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;background:' + (matched ? '#22c55e' : '#ef4444') + '"></span>';
+  box.innerHTML = dot + '当前视口：' + w + '×' + h + 'px &nbsp;|&nbsp; 媒体查询' + (matched ? '<span style="color:#22c55e">匹配 ✓</span>' : '<span style="color:#ef4444">不匹配 ✗</span>');
 }
 </script>
 </body>

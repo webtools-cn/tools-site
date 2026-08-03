@@ -222,22 +222,85 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function copyCSS() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+// === CSS滚动驱动动画生成器 - 完整实现 ===
+var timelineType = 'scroll';
+
+function setTimeline(type) {
+  timelineType = type;
+  document.getElementById('tlScroll').classList.toggle('active', type === 'scroll');
+  document.getElementById('tlView').classList.toggle('active', type === 'view');
+  generate();
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function generate() {
-  var input = document.getElementById('fromVal').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('outputSection').textContent = output;
+  var prop = document.getElementById('animProp').value;
+  var fromVal = document.getElementById('fromVal').value.trim();
+  var toVal = document.getElementById('toVal').value.trim();
+  var dir = document.getElementById('scrollDir').value;
+  var selector = document.getElementById('selector').value.trim() || '.animate-on-scroll';
+  if (!fromVal) fromVal = '0';
+  if (!toVal) toVal = '1';
+
+  // 属性示例值（未填写时给出合理默认）
+  var defs = {
+    opacity: ['0', '1'],
+    'transform': ['translateY(0px)', 'translateY(-120px)'],
+    'background-color': ['#06b6d4', '#22d3ee'],
+    'filter': ['blur(0px)', 'blur(8px)']
+  };
+  var from = fromVal === '' ? defs[prop][0] : fromVal;
+  var to = toVal === '' ? defs[prop][1] : toVal;
+
+  var css = '/* CSS滚动驱动动画 - ' + (timelineType === 'scroll' ? 'scroll()' : 'view()') + '时间线 */\n';
+  css += '@supports (animation-timeline: ' + timelineType + '()) {\n';
+  css += '  ' + selector + ' {\n';
+  css += '    animation: scrollAnim linear both;\n';
+  css += '    animation-timeline: ' + timelineType + '(' + dir + ');\n';
+  css += '  }\n';
+  css += '}\n';
+  css += '\n@keyframes scrollAnim {\n';
+  css += '  from { ' + prop + ': ' + from + '; }\n';
+  css += '  to   { ' + prop + ': ' + to + '; }\n';
+  css += '}';
+
+  var out = document.getElementById('codeOutput');
+  out.innerHTML = '<button class="copy-btn" onclick="copyCSS()">复制</button><pre style="margin:0;color:#7ee787;font-family:monospace;font-size:.85rem;white-space:pre-wrap">' + escapeHtml(css) + '</pre>';
   document.getElementById('outputSection').style.display = 'block';
-  showToast('生成完成');
+
+  // 实时预览：在滚动容器内生成多个元素应用动画
+  var content = document.getElementById('scrollContent');
+  content.innerHTML = '';
+  for (var i = 0; i < 5; i++) {
+    var el = document.createElement('div');
+    el.className = 'anim-element';
+    el.style.cssText = 'display:flex;align-items:center;justify-content:center;color:#0f172a;font-weight:700;' + prop + ':' + from + ';';
+    el.textContent = i + 1;
+    content.appendChild(el);
+  }
+  // 注入预览样式
+  var styleId = 'sda-preview-style';
+  var st = document.getElementById(styleId);
+  if (!st) {
+    st = document.createElement('style');
+    st.id = styleId;
+    document.head.appendChild(st);
+  }
+  st.textContent = '#previewScroll .anim-element{animation:previewAnim linear both;animation-timeline:' + timelineType + '(' + dir + ')}' +
+    '@keyframes previewAnim{from{' + prop + ':' + from + '}to{' + prop + ':' + to + '}}';
+  document.getElementById('previewSection').style.display = 'block';
+  showToast('CSS已生成');
 }
 
-function setTimeline() {
-  showToast('setTimeline - coming soon!');
+function copyCSS() {
+  var el = document.getElementById('codeOutput');
+  if (!el) return;
+  var t = el.innerText || el.textContent;
+  if (!t || t.indexOf('@keyframes') === -1) { showToast('没有可复制的代码'); return; }
+  navigator.clipboard.writeText(t).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
 }
 </script>
 </body>
