@@ -76,6 +76,12 @@ HTML标签不匹配导致Google爬虫无法正确解析页面DOM结构，可能�
 以及og标签的property属性缺少闭合引号 `property="og:title content="`
 导致HTML parser无法正确解析后续所有meta标签，Google爬虫可能因此标记为failing。
 
+#### 3. JS语法错误修复（5个页面）
+- html-entity-encoder: clearAll()函数缺少闭合花括号 `}`
+- 4个EN页面: error listener脚本缺少引号 `(error,` → `("error",` 和 `===)` → `==="")`
+  - en/crypto-tax-calculator, en/debt-to-income-calculator
+  - en/fire-calculator, en/rent-vs-buy-calculator
+
 ### 验证结果
 - 全站3357个CN页面: 0个meta desc偏短 ✅
 - 全站3359个EN页面: 0个meta desc偏短 ✅
