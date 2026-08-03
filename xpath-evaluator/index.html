@@ -181,17 +181,66 @@ function copyResult() {
 }
 
 function evaluateXPath() {
-  showToast('evaluateXPath - coming soon!');
+  var xmlInput = document.getElementById('xml-input');
+  var xpathInput = document.getElementById('xpath-input');
+  var resultEl = document.getElementById('xpath-result');
+  if (!xmlInput || !xpathInput || !resultEl) return;
+  if (!xmlInput.value.trim()) { showToast('请输入XML/HTML文档'); return; }
+  if (!xpathInput.value.trim()) { showToast('请输入XPath表达式'); return; }
+
+  var xml = xmlInput.value;
+  var xpath = xpathInput.value.trim();
+
+  try {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(xml, 'text/xml');
+    var parseError = doc.querySelector('parsererror');
+    if (parseError) {
+      // Try as HTML
+      doc = parser.parseFromString(xml, 'text/html');
+    }
+
+    // Check if it's a function-type XPath (count(), etc.)
+    if (/^(count|sum|string|number|boolean|name|local-name|namespace-uri)\s*\(/.test(xpath)) {
+      var funcResult = doc.evaluate(xpath, doc, null, XPathResult.ANY_TYPE, null);
+      resultEl.innerHTML = '<div style="color:#22d3ee;font-family:monospace;font-size:1rem">结果: ' + funcResult.numberValue !== undefined ? funcResult.numberValue : funcResult.stringValue + '</div>';
+      showToast('查询完成');
+      return;
+    }
+
+    var iterator = doc.evaluate(xpath, doc, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    var results = [];
+    for (var i = 0; i < iterator.snapshotLength; i++) {
+      var node = iterator.snapshotItem(i);
+      if (node.nodeType === 2) { // Attribute
+        results.push(node.value);
+      } else if (node.nodeType === 1) { // Element
+        results.push('<' + node.tagName + '>' + (node.textContent ? ' ' + node.textContent.trim() : ''));
+      } else {
+        results.push(node.textContent ? node.textContent.trim() : node.nodeValue);
+      }
+    }
+
+    if (!results.length) {
+      resultEl.innerHTML = '<div style="color:#f87171">未找到匹配的节点</div>';
+      showToast('未找到匹配');
+    } else {
+      resultEl.innerHTML = '<div style="color:#94a3b8;font-size:.85rem;margin-bottom:8px">找到 ' + results.length + ' 个结果：</div>' +
+        results.map(function(r, i) {
+          return '<div style="padding:6px 8px;background:rgba(148,163,184,.05);border-radius:4px;margin-bottom:4px;color:#22d3ee;font-family:monospace;font-size:.85rem"><span style="color:#64748b;margin-right:6px">' + (i+1) + '.</span>' + r.replace(/</g, '&lt;') + '</div>';
+        }).join('');
+      showToast('找到' + results.length + '个结果');
+    }
+  } catch(e) {
+    resultEl.innerHTML = '<div style="color:#f87171">错误: ' + e.message + '</div>';
+    showToast('XPath错误');
+  }
 }
 
-function loadExample() {
-  document.getElementById('xpath-input').value = '示例文本';
-  document.getElementById('xml-input').value = '示例数据';
-  showToast('已加载示例');
-}
-
-function setXPath() {
-  showToast('setXPath - coming soon!');
+function setXPath(expr) {
+  var inp = document.getElementById('xpath-input');
+  if (inp) inp.value = expr;
+  evaluateXPath();
 }
 </script>
 <div>

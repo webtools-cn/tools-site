@@ -219,8 +219,117 @@ function formatTOML() {
   var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;try{{var obj=JSON.parse(el.textContent||el.innerText);el.textContent=JSON.stringify(obj,null,2);showToast('Formatted!')}}catch(e){{showToast('Format failed: not valid JSON')}};
 }
 
+function tomlToJSON() {
+  var inp = document.getElementById('inputArea');
+  var out = document.getElementById('resultBox');
+  if (!inp || !out) return;
+  if (!inp.value.trim()) { showToast('请输入TOML内容'); return; }
+  try {
+    var obj = parseTOML(inp.value);
+    out.textContent = JSON.stringify(obj, null, 2);
+    showToast('已转换为JSON');
+  } catch(e) {
+    out.textContent = '解析错误: ' + e.message;
+    showToast('TOML解析失败');
+  }
+}
+
 function jsonToTOML() {
-  showToast('jsonToTOML - coming soon!');
+  var inp = document.getElementById('inputArea');
+  var out = document.getElementById('resultBox');
+  if (!inp || !out) return;
+  if (!inp.value.trim()) { showToast('请输入JSON内容'); return; }
+  try {
+    var obj = JSON.parse(inp.value);
+    out.textContent = toTOML(obj, '');
+    showToast('已转换为TOML');
+  } catch(e) {
+    out.textContent = '解析错误: ' + e.message;
+    showToast('JSON解析失败');
+  }
+}
+
+// Simple TOML parser (supports tables, key-value, arrays, strings, numbers, booleans)
+function parseTOML(text) {
+  var result = {};
+  var current = result;
+  var lines = text.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line || line.startsWith('#')) continue;
+    // Table header [section]
+    var tableMatch = line.match(/^\[([^\]]+)\]$/);
+    if (tableMatch) {
+      var parts = tableMatch[1].split('.');
+      current = result;
+      for (var p = 0; p < parts.length; p++) {
+        var key = parts[p].trim();
+        if (!current[key]) current[key] = {};
+        current = current[key];
+      }
+      continue;
+    }
+    // Key = value
+    var kvMatch = line.match(/^([\w-]+)\s*=\s*(.*)$/);
+    if (kvMatch) {
+      var k = kvMatch[1];
+      var v = kvMatch[2].trim();
+      // Remove inline comments (but not # inside strings)
+      if (!v.startsWith('"') && !v.startsWith("'")) {
+        var hashIdx = v.indexOf(' #');
+        if (hashIdx >= 0) v = v.substring(0, hashIdx).trim();
+      }
+      current[k] = parseTOMLValue(v);
+    }
+  }
+  return result;
+}
+
+function parseTOMLValue(v) {
+  if (v === 'true') return true;
+  if (v === 'false') return false;
+  if (v.startsWith('"') && v.endsWith('"')) return v.slice(1, -1);
+  if (v.startsWith("'") && v.endsWith("'")) return v.slice(1, -1);
+  if (v.startsWith('[') && v.endsWith(']')) {
+    var inner = v.slice(1, -1).trim();
+    if (!inner) return [];
+    return inner.split(',').map(function(item) { return parseTOMLValue(item.trim()); });
+  }
+  var num = parseFloat(v);
+  if (!isNaN(num)) return num;
+  return v;
+}
+
+function toTOML(obj, prefix) {
+  var lines = [];
+  var keys = Object.keys(obj);
+  // Simple values first
+  keys.forEach(function(k) {
+    var val = obj[k];
+    if (val === null || typeof val !== 'object' || Array.isArray(val)) {
+      lines.push(k + ' = ' + toTOMLValue(val));
+    }
+  });
+  // Tables
+  keys.forEach(function(k) {
+    var val = obj[k];
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+      var tableKey = prefix ? prefix + '.' + k : k;
+      lines.push('');
+      lines.push('[' + tableKey + ']');
+      lines.push(toTOML(val, tableKey));
+    }
+  });
+  return lines.join('\n').replace(/\n\n\n/g, '\n\n');
+}
+
+function toTOMLValue(val) {
+  if (val === true) return 'true';
+  if (val === false) return 'false';
+  if (typeof val === 'string') return '"' + val.replace(/"/g, '\\"') + '"';
+  if (typeof val === 'number') return String(val);
+  if (Array.isArray(val)) return '[' + val.map(toTOMLValue).join(', ') + ']';
+  return '"' + String(val) + '"';
 }
 
 function resultToInput() {

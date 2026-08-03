@@ -201,9 +201,111 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function addTx() {
-  showToast('addTx - coming soon!');
+// === 开销追踪核心逻辑 ===
+var transactions = [];
+
+try {
+  var saved = localStorage.getItem('expenses_v1');
+  if (saved) transactions = JSON.parse(saved);
+} catch(e) {}
+
+function saveTx() {
+  try { localStorage.setItem('expenses_v1', JSON.stringify(transactions)); } catch(e) {}
 }
+
+function renderTx() {
+  var list = document.getElementById('txList');
+  if (!list) return;
+
+  // Calculate stats
+  var now = new Date();
+  var monthKey = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  var monthExpense = 0, monthIncome = 0;
+  var catTotals = {};
+
+  transactions.forEach(function(t) {
+    var tDate = new Date(t.date);
+    var tKey = tDate.getFullYear() + '-' + String(tDate.getMonth()+1).padStart(2,'0');
+    if (tKey === monthKey) {
+      if (t.type === 'expense') {
+        monthExpense += t.amount;
+        catTotals[t.category] = (catTotals[t.category] || 0) + t.amount;
+      } else {
+        monthIncome += t.amount;
+      }
+    }
+  });
+
+  var elExpense = document.getElementById('monthlyExpense');
+  if (elExpense) elExpense.textContent = '¥' + monthExpense.toFixed(2);
+  var elIncome = document.getElementById('monthlyIncome');
+  if (elIncome) elIncome.textContent = '¥' + monthIncome.toFixed(2);
+
+  // Category breakdown
+  var catEl = document.getElementById('categoryBreakdown');
+  if (catEl) {
+    var cats = Object.keys(catTotals).sort(function(a,b) { return catTotals[b] - catTotals[a]; });
+    if (!cats.length) {
+      catEl.innerHTML = '<p style="color:#64748b;text-align:center">本月暂无支出</p>';
+    } else {
+      var maxVal = catTotals[cats[0]];
+      catEl.innerHTML = cats.map(function(c) {
+        var pct = Math.round(catTotals[c] / maxVal * 100);
+        return '<div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:2px"><span style="color:#e2e8f0">' + c + '</span><span style="color:#f87171">¥' + catTotals[c].toFixed(2) + '</span></div><div style="height:6px;background:rgba(148,163,184,.1);border-radius:3px"><div style="height:100%;width:' + pct + '%;background:#f87171;border-radius:3px"></div></div></div>';
+      }).join('');
+    }
+  }
+
+  // Transaction list
+  if (!transactions.length) {
+    list.innerHTML = '<p style="color:#64748b;text-align:center;padding:20px">暂无记录</p>';
+    return;
+  }
+  var sorted = transactions.slice().reverse();
+  list.innerHTML = sorted.map(function(t, i) {
+    var realIdx = transactions.length - 1 - i;
+    var date = new Date(t.date);
+    var dateStr = (date.getMonth()+1) + '/' + date.getDate();
+    var color = t.type === 'expense' ? '#f87171' : '#4ade80';
+    var sign = t.type === 'expense' ? '-' : '+';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:#0f172a;border-radius:8px;margin-bottom:6px">' +
+      '<div style="flex:1"><div style="color:#e2e8f0;font-size:.9rem">' + t.desc + '</div><div style="color:#64748b;font-size:.75rem">' + dateStr + ' · ' + t.category + '</div></div>' +
+      '<div style="color:' + color + ';font-weight:600">' + sign + '¥' + t.amount.toFixed(2) + '</div>' +
+      '<button onclick="deleteTx(' + realIdx + ')" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:.9rem">✕</button>' +
+      '</div>';
+  }).join('');
+}
+
+function deleteTx(i) {
+  transactions.splice(i, 1);
+  saveTx();
+  renderTx();
+  showToast('已删除');
+}
+
+function addTx() {
+  var descEl = document.getElementById('txDesc');
+  var amountEl = document.getElementById('txAmount');
+  var typeEl = document.getElementById('txType');
+  var catEl = document.getElementById('txCategory');
+  if (!descEl || !descEl.value.trim()) { showToast('请输入描述'); return; }
+  if (!amountEl || !amountEl.value || parseFloat(amountEl.value) <= 0) { showToast('请输入有效金额'); return; }
+  transactions.push({
+    desc: descEl.value.trim(),
+    amount: parseFloat(amountEl.value),
+    type: typeEl ? typeEl.value : 'expense',
+    category: catEl ? catEl.value : '其他',
+    date: new Date().toISOString()
+  });
+  descEl.value = '';
+  amountEl.value = '';
+  saveTx();
+  renderTx();
+  showToast('已添加记录');
+}
+
+// Initial render
+renderTx();
 </script>
 </body>
 </html>
