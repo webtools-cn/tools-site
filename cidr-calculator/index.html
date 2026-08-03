@@ -178,6 +178,44 @@ footer{text-align:center;padding:30px;color:#999;font-size:13px;}
 </div>
 <div class="toast" id="toast"></div>
 
+<script>
+// CIDR Calculator
+function setInput(val){document.getElementById('cidrInput').value=val;calc();}
+function showToast(msg){var t=document.getElementById('toast');if(t){t.textContent=msg;t.style.display='block';setTimeout(function(){t.style.display='none';},2000);}}
+function ipToInt(ip){var p=ip.split('.');if(p.length!==4)return null;var n=0;for(var i=0;i<4;i++){var o=parseInt(p[i]);if(isNaN(o)||o<0||o>255)return null;n=(n<<8)|o;}return n>>>0;}
+function intToIp(n){return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join('.');}
+function prefixToMask(p){return p===0?0:((0xFFFFFFFF<<(32-p))>>>0);}
+function maskToPrefix(mask){var c=0;for(var i=31;i>=0;i--){if((mask&(1<<i))!==0)c++;}return c;}
+function calc(){
+var input=document.getElementById('cidrInput').value.trim();
+var errEl=document.getElementById('errorMsg');
+var grid=document.getElementById('resultGrid');
+errEl.style.display='none';grid.style.display='none';
+if(!input){errEl.textContent='请输入CIDR地址';errEl.style.display='block';return;}
+var parts=input.split('/');var ip=parts[0];var prefix=parts[1]?parseInt(parts[1]):24;
+if(isNaN(prefix)||prefix<0||prefix>32){errEl.textContent='前缀长度必须在0-32之间';errEl.style.display='block';return;}
+var ipInt=ipToInt(ip);if(ipInt===null){errEl.textContent='无效的IP地址';errEl.style.display='block';return;}
+var mask=prefixToMask(prefix);var network=(ipInt&mask)>>>0;var broadcast=(network|((~mask)>>>0))>>>0;
+var totalIp=Math.pow(2,32-prefix);var usableIp=prefix>=31?totalIp:totalIp-2;
+var firstUsable=prefix>=31?network:(network+1)>>>0;var lastUsable=prefix>=31?broadcast:(broadcast-1)>>>0;
+var wildcard=(~mask)>>>0;var maskBin=mask.toString(2).padStart(32,'0').match(/.{8}/g).join('.');
+var isPrivate=(ipInt>=ipToInt('10.0.0.0')&&ipInt<=ipToInt('10.255.255.255'))||(ipInt>=ipToInt('172.16.0.0')&&ipInt<=ipToInt('172.31.255.255'))||(ipInt>=ipToInt('192.168.0.0')&&ipInt<=ipToInt('192.168.255.255'));
+var ipType=prefix===32?'主机地址':(prefix===0?'整个互联网':(isPrivate?'私有网络':'公网地址'));
+document.getElementById('netAddr').textContent=intToIp(network);
+document.getElementById('broadAddr').textContent=intToIp(broadcast);
+document.getElementById('subnetMask').textContent=intToIp(mask);
+document.getElementById('maskBinary').textContent=maskBin;
+document.getElementById('prefixLen').textContent='/'+prefix;
+document.getElementById('usableRange').textContent=prefix>=31?intToIp(network):intToIp(firstUsable)+' - '+intToIp(lastUsable);
+document.getElementById('ipCount').textContent=totalIp.toLocaleString()+' / '+usableIp.toLocaleString();
+document.getElementById('ipType').textContent=ipType;
+document.getElementById('wildcardMask').textContent=intToIp(wildcard);
+grid.style.display='grid';
+}
+document.getElementById('btnCalc').addEventListener('click',calc);
+document.getElementById('cidrInput').addEventListener('keydown',function(e){if(e.key==='Enter')calc();});
+</script>
+
 </div>
 
 </body>
