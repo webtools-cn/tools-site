@@ -202,29 +202,172 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var _wheelOptions = [];
+var _wheelColors = ['#ef4444','#f97316','#eab308','#22c55e','#06b6d4','#3b82f6','#8b5cf6','#ec4899'];
+var _scheme = 0;
+var _isSpinning = false;
+var _currentAngle = 0;
+
 function addOption() {
-  showToast('addOption - coming soon!');
+  var input = document.getElementById('optionInput');
+  if (!input || !input.value.trim()) { showToast('请输入选项'); return; }
+  _wheelOptions.push(input.value.trim());
+  input.value = '';
+  renderOptionList();
+  drawWheel();
+  showToast('已添加选项');
 }
 
 function clearOptions() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  _wheelOptions = [];
+  renderOptionList();
+  drawWheel();
+  showToast('已清空');
 }
 
-function loadPreset() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
+function loadPreset(type) {
+  var presets = {
+    food: ['披萨', '汉堡', '寿司', '火锅', '烤肉', '沙拉', '面条', '炒饭'],
+    colors: ['红色', '蓝色', '绿色', '黄色', '紫色', '橙色', '粉色', '青色'],
+    movies: ['动作片', '喜剧片', '爱情片', '科幻片', '恐怖片', '动画片'],
+    travel: ['日本', '泰国', '欧洲', '美国', '澳大利亚', '韩国', '新加坡']
+  };
+  _wheelOptions = presets[type] ? presets[type].slice() : [];
+  renderOptionList();
+  drawWheel();
+  showToast('已加载预设');
 }
 
 function removeSelected() {
-  showToast('removeSelected - coming soon!');
+  var selected = document.querySelectorAll('#optionList input[type="checkbox"]:checked');
+  if (selected.length === 0) { showToast('请先勾选要移除的选项'); return; }
+  var toRemove = [];
+  selected.forEach(function(cb) { toRemove.push(parseInt(cb.getAttribute('data-idx'))); });
+  _wheelOptions = _wheelOptions.filter(function(_, i) { return toRemove.indexOf(i) === -1; });
+  renderOptionList();
+  drawWheel();
+  showToast('已移除 ' + toRemove.length + ' 个选项');
 }
 
-function setScheme() {
-  showToast('setScheme - coming soon!');
+function setScheme(scheme) {
+  _scheme = scheme;
+  var schemes = [
+    ['#ef4444','#f97316','#eab308','#22c55e','#06b6d4','#3b82f6','#8b5cf6','#ec4899'],
+    ['#0ea5e9','#06b6d4','#14b8a6','#0891b2','#155e75','#0e7490','#075985','#0c4a6e'],
+    ['#f43f5e','#fb7185','#fda4af','#fecdd3','#e11d48','#be123c','#9f1239','#881337']
+  ];
+  _wheelColors = schemes[scheme] || schemes[0];
+  drawWheel();
+  showToast('已切换配色');
+}
+
+function renderOptionList() {
+  var list = document.getElementById('optionList');
+  if (!list) return;
+  if (_wheelOptions.length === 0) {
+    list.innerHTML = '<p style="color:#64748b;text-align:center;padding:12px;">暂无选项，请添加</p>';
+    return;
+  }
+  list.innerHTML = _wheelOptions.map(function(opt, i) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;"><input type="checkbox" data-idx="' + i + '"><span style="color:#e2e8f0;">' + escapeHtmlWheel(opt) + '</span></div>';
+  }).join('');
+}
+
+function escapeHtmlWheel(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function drawWheel() {
+  var canvas = document.getElementById('wheelCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var cx = canvas.width / 2;
+  var cy = canvas.height / 2;
+  var radius = Math.min(cx, cy) - 10;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (_wheelOptions.length === 0) {
+    ctx.fillStyle = '#1e293b';
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.fillStyle = '#64748b';
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('添加选项后转动', cx, cy);
+    return;
+  }
+  var anglePerSlice = (2 * Math.PI) / _wheelOptions.length;
+  for (var i = 0; i < _wheelOptions.length; i++) {
+    var startAngle = i * anglePerSlice + _currentAngle;
+    var endAngle = startAngle + anglePerSlice;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = _wheelColors[i % _wheelColors.length];
+    ctx.fill();
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // Text
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(startAngle + anglePerSlice / 2);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 14px sans-serif';
+    var text = _wheelOptions[i].length > 10 ? _wheelOptions[i].substring(0, 10) + '…' : _wheelOptions[i];
+    ctx.fillText(text, radius - 15, 5);
+    ctx.restore();
+  }
+  // Center circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, 20, 0, 2 * Math.PI);
+  ctx.fillStyle = '#0f172a';
+  ctx.fill();
+  ctx.strokeStyle = '#22d3ee';
+  ctx.lineWidth = 2;
+  ctx.stroke();
 }
 
 function spin() {
-  showToast('spin - coming soon!');
+  if (_isSpinning) return;
+  if (_wheelOptions.length < 2) { showToast('至少需要2个选项'); return; }
+  _isSpinning = true;
+  var targetAngle = Math.random() * Math.PI * 2 + Math.PI * 10; // At least 5 rotations
+  var startAngle = _currentAngle;
+  var duration = 3000;
+  var startTime = Date.now();
+  function animate() {
+    var elapsed = Date.now() - startTime;
+    var progress = Math.min(elapsed / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+    _currentAngle = startAngle + (targetAngle - startAngle) * eased;
+    drawWheel();
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      _isSpinning = false;
+      // Determine winner
+      var normalized = ((_currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      var anglePerSlice = (2 * Math.PI) / _wheelOptions.length;
+      // Pointer is at top (0 = -PI/2 in canvas coords), adjust
+      var pointerAngle = (2 * Math.PI - normalized + Math.PI / 2) % (2 * Math.PI);
+      var winnerIdx = Math.floor(pointerAngle / anglePerSlice) % _wheelOptions.length;
+      var resultText = document.getElementById('resultText');
+      if (resultText) {
+        resultText.textContent = '🎉 中选: ' + _wheelOptions[winnerIdx];
+        resultText.style.display = 'block';
+      }
+      showToast('中选: ' + _wheelOptions[winnerIdx]);
+    }
+  }
+  animate();
 }
+
+// Initialize
+renderOptionList();
+drawWheel();
 </script>
 <section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#374151">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px"><a href="/pdf-rotator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🔧 🔄 在线PDF旋转工具</a><a href="/audio-joiner/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🔧 音频合并工具</a><a href="/mean-median-mode/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🔧 📊 均值中位数众数计算器</a><a href="/ini-parser/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🔧 ⚙️ INI文件解析工具</a><a href="/serp-preview-tool/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🔧 SERP预览工具</a></div></section>
 </body>

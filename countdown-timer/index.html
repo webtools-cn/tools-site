@@ -300,24 +300,92 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var _timerInterval = null;
+var _totalSeconds = 0;
+var _remainingSeconds = 0;
+var _isRunning = false;
+
+function updateDisplay() {
+  var d = Math.floor(_remainingSeconds / 86400);
+  var h = Math.floor((_remainingSeconds % 86400) / 3600);
+  var m = Math.floor((_remainingSeconds % 3600) / 60);
+  var s = _remainingSeconds % 60;
+  var dEl = document.getElementById('days');
+  var hEl = document.getElementById('hours');
+  var mEl = document.getElementById('minutes');
+  var sEl = document.getElementById('seconds');
+  if (dEl) dEl.textContent = String(d).padStart(2, '0');
+  if (hEl) hEl.textContent = String(h).padStart(2, '0');
+  if (mEl) mEl.textContent = String(m).padStart(2, '0');
+  if (sEl) sEl.textContent = String(s).padStart(2, '0');
+  var fill = document.getElementById('progressFill');
+  var pText = document.getElementById('progressText');
+  if (fill && _totalSeconds > 0) {
+    var pct = ((_totalSeconds - _remainingSeconds) / _totalSeconds * 100);
+    fill.style.width = pct + '%';
+    if (pText) pText.textContent = pct.toFixed(1) + '%';
+  }
+}
+
 function applyCustomTime() {
-  showToast('applyCustomTime - coming soon!');
-}
-
-function pauseTimer() {
-  showToast('pauseTimer - coming soon!');
-}
-
-function resetTimer() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  var cd = parseInt(document.getElementById('customDays') ? document.getElementById('customDays').value : 0) || 0;
+  var ch = parseInt(document.getElementById('customHours') ? document.getElementById('customHours').value : 0) || 0;
+  var cm = parseInt(document.getElementById('customMinutes') ? document.getElementById('customMinutes').value : 0) || 0;
+  var cs = parseInt(document.getElementById('customSeconds') ? document.getElementById('customSeconds').value : 0) || 0;
+  _totalSeconds = cd * 86400 + ch * 3600 + cm * 60 + cs;
+  _remainingSeconds = _totalSeconds;
+  if (_totalSeconds <= 0) { showToast('请输入有效时间'); return; }
+  updateDisplay();
+  showToast('已设置: ' + cd + '天 ' + ch + '时 ' + cm + '分 ' + cs + '秒');
 }
 
 function startTimer() {
-  showToast('startTimer - coming soon!');
+  if (_remainingSeconds <= 0) { showToast('请先设置倒计时时间'); return; }
+  if (_isRunning) return;
+  _isRunning = true;
+  document.getElementById('startBtn').style.display = 'none';
+  document.getElementById('pauseBtn').style.display = '';
+  _timerInterval = setInterval(function() {
+    _remainingSeconds--;
+    updateDisplay();
+    if (_remainingSeconds <= 0) {
+      clearInterval(_timerInterval);
+      _isRunning = false;
+      document.getElementById('startBtn').style.display = '';
+      document.getElementById('pauseBtn').style.display = 'none';
+      showToast('⏰ 倒计时结束！');
+      try { new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==').play(); } catch(e) {}
+    }
+  }, 1000);
+  showToast('倒计时开始');
+}
+
+function pauseTimer() {
+  if (!_isRunning) return;
+  clearInterval(_timerInterval);
+  _isRunning = false;
+  document.getElementById('startBtn').style.display = '';
+  document.getElementById('pauseBtn').style.display = 'none';
+  showToast('已暂停');
+}
+
+function resetTimer() {
+  clearInterval(_timerInterval);
+  _isRunning = false;
+  _remainingSeconds = _totalSeconds;
+  updateDisplay();
+  document.getElementById('startBtn').style.display = '';
+  document.getElementById('pauseBtn').style.display = 'none';
+  showToast('已重置');
 }
 
 function toggleFullscreen() {
-  showToast('Toggled!');
+  var el = document.getElementById('timerDisplay') || document.documentElement;
+  if (!document.fullscreenElement) {
+    (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el);
+  } else {
+    (document.exitFullscreen || document.webkitExitFullscreen || function(){}).call(document);
+  }
 }
 </script>
 </body>
