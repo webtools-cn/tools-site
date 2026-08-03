@@ -95,16 +95,31 @@ label{display:block;margin-bottom:6px;color:#94a3b8;font-size:.9rem;font-weight:
 
 <div class="section">
 <h2>API响应时间测试器</h2>
-<p style="color:#94a3b8;margin-bottom:16px">输入内容，点击按钮进行处理。</p>
+<p style="color:#94a3b8;margin-bottom:16px">输入API端点URL（每行一个），点击开始测试。支持HTTP/HTTPS，并发请求，实时显示响应延迟、状态码和响应体大小。</p>
 <div class="row" style="margin-bottom:12px">
-<textarea id="input" placeholder="输入内容..."></textarea>
+<textarea id="input" placeholder="https://api.github.com/users/octocat&#10;https://jsonplaceholder.typicode.com/posts/1&#10;https://httpbin.org/get" style="min-height:140px"></textarea>
 </div>
-<div class="row" style="margin-bottom:12px">
-<button class="btn" onclick="process()">处理</button>
+<div class="row" style="margin-bottom:12px;align-items:center">
+<label style="margin:0;white-space:nowrap">并发数</label>
+<select id="concurrency" style="width:80px">
+<option value="1">1</option>
+<option value="3" selected>3</option>
+<option value="5">5</option>
+<option value="10">10</option>
+</select>
+<label style="margin:0 0 0 12px;white-space:nowrap">超时(ms)</label>
+<select id="timeout" style="width:100px">
+<option value="3000">3000</option>
+<option value="5000" selected>5000</option>
+<option value="10000">10000</option>
+<option value="30000">30000</option>
+</select>
+<button class="btn" onclick="process()">开始测试</button>
 <button class="btn" style="background:#334155" onclick="clearAll()">清空</button>
-<button class="btn" style="background:#334155" onclick="copyResult()">复制结果</button>
+<button class="btn" style="background:#334155" onclick="exportCSV()">导出CSV</button>
 </div>
-<div class="result-box" id="output">等待输入...</div>
+<div id="progress" style="display:none;margin-bottom:12px;color:#22d3ee;font-size:.9rem"></div>
+<div id="output" style="margin-top:12px"></div>
 </div>
 
 <div class="section faq">
@@ -140,22 +155,135 @@ label{display:block;margin-bottom:6px;color:#94a3b8;font-size:.9rem;font-weight:
 </div>
 
 <script>
+var testResults = [];
+
 function process() {
-    const input = document.getElementById('input').value.trim();
-    if (!input) { showToast('请先输入内容'); return; }
-    document.getElementById('output').textContent = input;
-    showToast('处理完成');
+    var input = document.getElementById('input').value.trim();
+    if (!input) { showToast('请输入API端点URL'); return; }
+    var urls = input.split('\n').map(function(u){return u.trim();}).filter(function(u){return u.length>0;});
+    if (urls.length === 0) { showToast('请输入至少一个URL'); return; }
+    var concurrency = parseInt(document.getElementById('concurrency').value);
+    var timeout = parseInt(document.getElementById('timeout').value);
+    testResults = [];
+    var output = document.getElementById('output');
+    var progress = document.getElementById('progress');
+    output.innerHTML = '';
+    progress.style.display = 'block';
+    progress.textContent = '准备测试 ' + urls.length + ' 个端点...';
+    
+    var idx = 0, completed = 0;
+    function next() {
+        while (idx < urls.length && completed - (idx - completed) < concurrency) {
+            (function(url, i) {
+                testOne(url, timeout, function(res) {
+                    testResults.push(res);
+                    completed++;
+                    progress.textContent = '已完成 ' + completed + '/' + urls.length + ' ...';
+                    renderRow(res, i);
+                    if (completed < urls.length) { next(); }
+                    else { finishTest(); }
+                });
+            })(urls[idx], idx);
+            idx++;
+        }
+    }
+    next();
 }
+
+function testOne(url, timeout, cb) {
+    var start = performance.now();
+    var controller = new AbortController();
+    var timer = setTimeout(function(){ controller.abort(); }, timeout);
+    fetch(url, {method:'GET', signal:controller.signal, redirect:'follow'})
+    .then(function(resp) {
+        return resp.text().then(function(body) {
+            clearTimeout(timer);
+            var elapsed = Math.round(performance.now() - start);
+            cb({url:url, status:resp.status, ok:resp.ok, time:elapsed, size:body.length, error:null});
+        });
+    })
+    .catch(function(err) {
+        clearTimeout(timer);
+        var elapsed = Math.round(performance.now() - start);
+        var msg = err.name === 'AbortError' ? '请求超时' : err.message;
+        cb({url:url, status:0, ok:false, time:elapsed, size:0, error:msg});
+    });
+}
+
+function statusColor(s) {
+    if (s === 0) return '#ef4444';
+    if (s < 300) return '#22c55e';
+    if (s < 400) return '#22d3ee';
+    if (s < 500) return '#eab308';
+    return '#ef4444';
+}
+
+function timeColor(t) {
+    if (t < 500) return '#22c55e';
+    if (t < 1500) return '#eab308';
+    return '#ef4444';
+}
+
+function renderRow(res, idx) {
+    var output = document.getElementById('output');
+    var div = document.createElement('div');
+    div.className = 'result-box';
+    div.style.cssText = 'display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px;padding:12px 16px';
+    var statusHtml = res.error
+        ? '<span style="color:#ef4444;font-weight:bold">❌ ' + escapeHtml(res.error) + '</span>'
+        : '<span style="color:' + statusColor(res.status) + ';font-weight:bold">' + res.status + (res.ok ? ' ✓' : '') + '</span>';
+    var timeHtml = '<span style="color:' + timeColor(res.time) + '">' + res.time + 'ms</span>';
+    var sizeHtml = res.size > 0 ? '<span style="color:#94a3b8">' + formatSize(res.size) + '</span>' : '<span style="color:#64748b">-</span>';
+    div.innerHTML = '<span style="color:#64748b;font-size:.8rem">#' + (idx+1) + '</span>' +
+        '<span style="color:#e2e8f0;font-family:monospace;font-size:.85rem;flex:1;min-width:200px;word-break:break-all">' + escapeHtml(res.url) + '</span>' +
+        statusHtml + timeHtml + sizeHtml;
+    output.appendChild(div);
+}
+
+function finishTest() {
+    var progress = document.getElementById('progress');
+    var times = testResults.filter(function(r){return !r.error;}).map(function(r){return r.time;});
+    var avg = times.length ? Math.round(times.reduce(function(a,b){return a+b;},0) / times.length) : 0;
+    var minT = times.length ? Math.min.apply(null, times) : 0;
+    var maxT = times.length ? Math.max.apply(null, times) : 0;
+    var okCount = testResults.filter(function(r){return r.ok;}).length;
+    var errCount = testResults.filter(function(r){return r.error || !r.ok;}).length;
+    progress.innerHTML = '测试完成 ✓ 成功: <b style="color:#22c55e">' + okCount + '</b> 失败: <b style="color:#ef4444">' + errCount + '</b>' +
+        ' | 平均: <b style="color:#22d3ee">' + avg + 'ms</b> 最快: <b style="color:#22c55e">' + minT + 'ms</b> 最慢: <b style="color:#ef4444">' + maxT + 'ms</b>';
+}
+
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + 'B';
+    if (bytes < 1048576) return (bytes/1024).toFixed(1) + 'KB';
+    return (bytes/1048576).toFixed(2) + 'MB';
+}
+
+function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function exportCSV() {
+    if (testResults.length === 0) { showToast('没有测试结果可导出'); return; }
+    var csv = 'URL,Status,Time(ms),Size(bytes),Error\n';
+    testResults.forEach(function(r) {
+        csv += '"' + r.url.replace(/"/g,'""') + '",' + r.status + ',' + r.time + ',' + r.size + ',"' + (r.error||'').replace(/"/g,'""') + '"\n';
+    });
+    var blob = new Blob(['\ufeff' + csv], {type:'text/csv'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'api-test-results.csv';
+    a.click();
+    showToast('CSV已导出');
+}
+
 function clearAll() {
     document.getElementById('input').value = '';
-    document.getElementById('output').textContent = '等待输入...';
+    document.getElementById('output').innerHTML = '';
+    document.getElementById('progress').style.display = 'none';
+    testResults = [];
     showToast('已清空');
 }
-function copyResult() {
-    const text = document.getElementById('output').textContent;
-    if (!text || text === '等待输入...') { showToast('没有可复制的内容'); return; }
-    navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板'));
-}
+
 function showToast(msg) {
     let t = document.querySelector('.toast');
     if (!t) {

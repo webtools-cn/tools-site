@@ -97,17 +97,33 @@ label{display:block;margin-bottom:6px;color:#94a3b8;font-size:.9rem;font-weight:
 <div class="hero"><p>Free OnlineMarkdowntable FormatTools，autodynamicAlignmenttable column，supportsCSVandMarkdown convert，table Beautify.Pure Frontendprocess，No Signup Required.</p><span class="badge">zerodependent·canofflineusing</span></div>
 
 <div class="section">
-<h2>Markdowntable Format</h2>
-<p style="color:#94a3b8;margin-bottom:16px">Inputcontent，clickbuttonenterrowprocess.</p>
-<div class="row" style="margin-bottom:12px">
-<textarea id="input" placeholder="Inputcontent..."></textarea>
+<h2>Markdown Table Formatter</h2>
+<p style="color:#94a3b8;margin-bottom:16px">Enter Markdown table source code to automatically parse and format alignment. Supports column alignment, CSV conversion.</p>
+<div class="row" style="margin-bottom:12px;align-items:center">
+<label style="margin:0;white-space:nowrap">Alignment</label>
+<select id="alignMode" style="width:140px">
+<option value="auto" selected>Auto (preserve original)</option>
+<option value="left">All left</option>
+<option value="center">All center</option>
+<option value="right">All right</option>
+</select>
+<label style="margin:0 0 0 12px;white-space:nowrap">Output</label>
+<select id="outFormat" style="width:120px">
+<option value="md" selected>Markdown</option>
+<option value="csv">CSV</option>
+</select>
 </div>
 <div class="row" style="margin-bottom:12px">
-<button class="btn" onclick="process()">process</button>
+<textarea id="input" placeholder="| Name | Age | City |&#10;|------|-----|------|&#10;| Alice | 25 | NYC |&#10;| Bob | 30 | LA |" style="min-height:140px"></textarea>
+</div>
+<div class="row" style="margin-bottom:12px">
+<button class="btn" onclick="process()">Format</button>
+<button class="btn" style="background:#334155" onclick="loadExample()">Load Example</button>
 <button class="btn" style="background:#334155" onclick="clearAll()">Clear</button>
-<button class="btn" style="background:#334155" onclick="copyResult()">CopyResult</button>
+<button class="btn" style="background:#334155" onclick="copyResult()">Copy Result</button>
 </div>
-<div class="result-box" id="output">etc Input...</div>
+<div id="stats" style="color:#64748b;font-size:.85rem;margin-bottom:8px"></div>
+<div class="result-box" id="output">Waiting for input...</div>
 </div>
 
 <div class="section faq">
@@ -135,22 +151,141 @@ label{display:block;margin-bottom:6px;color:#94a3b8;font-size:.9rem;font-weight:
 </div>
 
 <script>
-function process() {
-    const input = document.getElementById('input').value.trim();
-    if (!input) { showToast(''); return; }
-    document.getElementById('output').textContent = input;
-    showToast('Processing complete');
+function parseMDTable(text) {
+    var lines = text.trim().split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+    if (lines.length < 2) return null;
+    var rows = lines.map(function(line) {
+        if (line.startsWith('|')) line = line.slice(1);
+        if (line.endsWith('|')) line = line.slice(0, -1);
+        return line.split('|').map(function(c){return c.trim();});
+    });
+    var header = rows[0];
+    var separator = rows[1];
+    var aligns = [];
+    for (var i = 0; i < separator.length; i++) {
+        var s = separator[i].trim();
+        if (s.startsWith(':') && s.endsWith(':')) aligns.push('center');
+        else if (s.endsWith(':')) aligns.push('right');
+        else if (s.startsWith(':')) aligns.push('left');
+        else aligns.push('left');
+    }
+    var dataRows = rows.slice(2).filter(function(r){return r.length>0 && r.some(function(c){return c.length>0;});});
+    return {header:header, aligns:aligns, rows:dataRows};
 }
+
+function getStringWidth(s) {
+    var w = 0;
+    for (var i = 0; i < s.length; i++) {
+        w += s.charCodeAt(i) > 127 ? 2 : 1;
+    }
+    return w;
+}
+
+function padCell(row, widths, aligns) {
+    var parts = [];
+    for (var c = 0; c < widths.length; c++) {
+        var cell = c < row.length ? row[c] : '';
+        var padLen = widths[c] - getStringWidth(cell);
+        var a = aligns[c];
+        if (a === 'center') {
+            var left = Math.floor(padLen / 2);
+            var right = padLen - left;
+            parts.push(' '.repeat(left) + cell + ' '.repeat(right));
+        } else if (a === 'right') {
+            parts.push(' '.repeat(padLen) + cell);
+        } else {
+            parts.push(cell + ' '.repeat(padLen));
+        }
+    }
+    return parts.join(' | ');
+}
+
+function formatMDTable(table, alignOverride) {
+    var colCount = table.header.length;
+    var allRows = [table.header].concat(table.rows);
+    var widths = [];
+    for (var c = 0; c < colCount; c++) {
+        var maxW = 0;
+        for (var r = 0; r < allRows.length; r++) {
+            if (c < allRows[r].length) {
+                var w = getStringWidth(allRows[r][c]);
+                if (w > maxW) maxW = w;
+            }
+        }
+        widths.push(maxW);
+    }
+    var aligns = table.aligns;
+    if (alignOverride && alignOverride !== 'auto') {
+        aligns = aligns.map(function(){return alignOverride;});
+    }
+    var result = '';
+    result += '| ' + padCell(table.header, widths, aligns) + ' |\n';
+    var sep = [];
+    for (var c = 0; c < colCount; c++) {
+        var a = aligns[c];
+        var w = widths[c];
+        if (a === 'center') sep.push(':' + '-'.repeat(w) + ':');
+        else if (a === 'right') sep.push('-'.repeat(w) + ':');
+        else sep.push(':' + '-'.repeat(w));
+    }
+    result += '| ' + sep.join(' | ') + ' |\n';
+    for (var r = 0; r < table.rows.length; r++) {
+        result += '| ' + padCell(table.rows[r], widths, aligns) + ' |\n';
+    }
+    return result;
+}
+
+function toCSV(table) {
+    var lines = [table.header.join(',')];
+    for (var i = 0; i < table.rows.length; i++) {
+        lines.push(table.rows[i].map(function(c) {
+            if (c.indexOf(',') >= 0 || c.indexOf('"') >= 0 || c.indexOf('\n') >= 0) {
+                return '"' + c.replace(/"/g, '""') + '"';
+            }
+            return c;
+        }).join(','));
+    }
+    return lines.join('\n');
+}
+
+function process() {
+    var input = document.getElementById('input').value.trim();
+    if (!input) { showToast('Please enter a Markdown table'); return; }
+    var table = parseMDTable(input);
+    if (!table) { showToast('Cannot parse as Markdown table, please check format'); return; }
+    if (table.header.length < 1) { showToast('Table needs at least 1 column'); return; }
+    
+    var alignMode = document.getElementById('alignMode').value;
+    var outFormat = document.getElementById('outFormat').value;
+    var result;
+    if (outFormat === 'csv') {
+        result = toCSV(table);
+    } else {
+        result = formatMDTable(table, alignMode);
+    }
+    document.getElementById('output').textContent = result;
+    document.getElementById('stats').textContent = 'Rows: ' + (table.rows.length + 1) + ' (incl. header) | Columns: ' + table.header.length + ' | Data rows: ' + table.rows.length;
+    showToast('Formatting complete');
+}
+
+function loadExample() {
+    document.getElementById('input').value = '| Name|Price|Stock|Status |\n|--|--|--|--|\n|Keyboard|299|50|In Stock|\n|Mouse|89|0|Out of Stock|\n|Monitor|1299|15|In Stock|\n|Headset|459|3|Low Stock|';
+    process();
+}
+
 function clearAll() {
     document.getElementById('input').value = '';
-    document.getElementById('output').textContent = '';
-    showToast('AlreadyClear');
+    document.getElementById('output').textContent = 'Waiting for input...';
+    document.getElementById('stats').textContent = '';
+    showToast('Cleared');
 }
+
 function copyResult() {
-    const text = document.getElementById('output').textContent;
-    if (!text || text === '') { showToast('nohavecanCopy content'); return; }
-    navigator.clipboard.writeText(text).then(() => showToast(''));
+    var text = document.getElementById('output').textContent;
+    if (!text || text === 'Waiting for input...') { showToast('Nothing to copy'); return; }
+    navigator.clipboard.writeText(text).then(function() { showToast('Copied to clipboard'); });
 }
+
 function showToast(msg) {
     let t = document.querySelector('.toast');
     if (!t) {
