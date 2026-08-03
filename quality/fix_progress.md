@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-04 (cron自动更新 - 第四十二批 - 修复3个回显型空壳+4个EN版遗漏stub)
+> 最后更新: 2026-08-04 (cron自动更新 - 第四十三批 - 修复2个回显型空壳CN+EN版)
 
 ## 当前真实问题
 
@@ -20,7 +20,9 @@
 
 ## 已修复的空壳工具
 
-### 2026-08-04 (第四十二批 - 修复3个回显型空壳+4个EN版遗漏stub)
+### 2026-08-04 (第四十三批 - 修复2个回显型空壳CN+EN版)
+api-response-time-tester, markdown-table-formatter
+注: 两个工具CN+EN版均修复。采用新检测方法（精确提取function process完整函数体+检查output.textContent=input回显+body<250字符）发现此前漏网的2个空壳。api-response-time-tester CN+EN版实现API响应时间测试器(多URL批量输入每行一个+并发数选择1/3/5/10+超时3-30s+fetch+AbortController超时控制+performance.now精确计时+HTTP状态码彩色显示2xx绿3xx青4xx黄5xx红+响应时间颜色<500ms绿<1.5s黄慢红+响应体大小格式化B/KB/MB+错误处理超时/网络错误+实时进度+完成后统计成功/失败/平均/最快/最慢+CSV导出含URL/状态码/耗时/大小/错误信息+BOM UTF-8)，替换原stub(process只回显input到output)；markdown-table-formatter CN+EN版实现Markdown表格格式化器(parseMDTable解析|分隔+首尾|剥离+separator对齐检测+formatMDTable格式化列宽自动计算+getStringWidth双宽字符CJK对齐+padCell三种对齐left/right/center+4种对齐模式auto保留原对齐/全左/全居中/全右+Markdown/CSV双格式输出toCSV含引号转义+行数列数数据行统计+加载示例+复制结果)，替换原stub(process只回显input到output)。4个文件JS语法验证通过，node逻辑测试全部通过(MD表格解析+格式化+CJK宽度对齐+右对齐+CSV转换全PASS; API测试formatSize/statusColor/escapeHtml/URL解析全PASS)。
 typescript-utility-types, unicode-range-generator, yaml-to-dotenv
 注: 三个工具CN+EN版均修复，情况与此前cidr-to-ip-range等相同——页面已有完整的业务逻辑函数(typescript-utility-types: parseInterface正则解析interface名+属性名/optional?/type+makePartial全加?+makeRequired全去?+makeReadonly加readonly+makePick选取指定属性+makeOmit排除指定属性+addCard卡片渲染+Record映射+escapeHtml+Ctrl+Enter快捷键; unicode-range-generator: parseRange解析U+XXXX-YYYY+通配符U+XX??+charsToRanges字符转码点+codePointAt代理对处理+mergeRanges相邻范围合并+formatRange/formatRanges格式化+16种预设字符集网格+auto/chars/codepoints三模式+字符预览+saveHistory localStorage+实时debounce; yaml-to-dotenv: parseYAML缩进栈式解析+类型推断string/number/boolean/null+引号剥离+flatten递归扁平化+分隔符选择_/_-_/连字符+大写选项+前缀+值引号+跳过空值+copyDockerFormat Docker Compose environment格式+实时debounce)，但末尾被注入"重写的函数实现"stub块(EN版为"// === Implementation ===")，用var output=input回显空壳覆盖了有效函数(包括generate/clearAll/copyResult/downloadResult/loadExample等)。修复方式:直接删除stub块恢复原有功能。同时修复4个EN版遗漏的stub块(cidr-to-ip-range/decimal-to-roman/htaccess-generator/kubernetes-yaml-generator)，这些CN版在第三十四批已修复但EN版stub块未同步删除。node逻辑测试: TS工具类型(parseInterface解析6属性id/name/email/age?/avatar?/role+Partial全加?+Required全去?+Pick选取name/email排除id PASS); Unicode Range(charsToRanges你好→U+4F60+U+597D码点正确+parseRange U+4E00-9FFF起止正确+mergeRanges ASCII A-Z+[-\`合并为U+0041-0060 CJK单独 PASS); YAML转.env(parseYAML深度2+flatten 7变量+DATABASE_HOST=localhost+DATABASE_PORT=5432数字+DATABASE_CREDENTIALS_USERNAME=admin嵌套+APP_DEBUG=false布尔 PASS)。10个文件JS语法验证通过。全站`var output = input`从5降到1(仅en/json-escape为误报: var output=input.replace()链是真实JSON转义逻辑非stub)。回显型空壳全部清零！
 
