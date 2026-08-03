@@ -175,29 +175,106 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+var courseCount = 1;
+
 function addCourse() {
-  showToast('addCourse - coming soon!');
+  var container = document.getElementById('courses');
+  var idx = courseCount;
+  var div = document.createElement('div');
+  div.className = 'form-row course-item';
+  div.setAttribute('data-idx', idx);
+  div.style.marginTop = '8px';
+  div.innerHTML = '<div class="form-group"><label>课程名称</label><input type="text" id="cname_' + idx + '" value="课程 ' + (idx + 1) + '"></div>' +
+    '<div class="form-group"><label>学分</label><input type="number" id="credit_' + idx + '" step="0.5" min="0" value="3" placeholder="例如 3"></div>' +
+    '<div class="form-group"><label>成绩</label><input type="number" id="grade_' + idx + '" step="any" min="0" max="100" value="85" placeholder="例如 85"></div>' +
+    '<div class="form-group" style="flex:0 0 auto;display:flex;align-items:flex-end"><button class="btn btn-secondary" onclick="removeCourse(this)" style="padding:10px 14px">✕</button></div>';
+  container.appendChild(div);
+  courseCount++;
+  showToast('已添加课程');
+}
+
+function removeCourse(btn) {
+  var item = btn.closest('.course-item');
+  if (!item) return;
+  var courses = document.querySelectorAll('.course-item');
+  if (courses.length <= 1) { showToast('至少保留一门课程'); return; }
+  item.remove();
+}
+
+function gradeToGPA(grade, scale) {
+  grade = parseFloat(grade);
+  if (isNaN(grade)) return 0;
+  if (scale === '4.0') {
+    if (grade >= 90) return 4.0;
+    if (grade >= 85) return 3.7;
+    if (grade >= 82) return 3.3;
+    if (grade >= 78) return 3.0;
+    if (grade >= 75) return 2.7;
+    if (grade >= 72) return 2.3;
+    if (grade >= 68) return 2.0;
+    if (grade >= 64) return 1.5;
+    if (grade >= 60) return 1.0;
+    return 0;
+  } else if (scale === '5.0') {
+    if (grade >= 95) return 5.0;
+    if (grade >= 90) return 4.5;
+    if (grade >= 85) return 4.0;
+    if (grade >= 80) return 3.5;
+    if (grade >= 75) return 3.0;
+    if (grade >= 70) return 2.5;
+    if (grade >= 65) return 2.0;
+    if (grade >= 60) return 1.5;
+    return 0;
+  } else {
+    // 百分制转4.0
+    if (grade >= 90) return 4.0;
+    if (grade >= 80) return 3.0;
+    if (grade >= 70) return 2.0;
+    if (grade >= 60) return 1.0;
+    return 0;
+  }
 }
 
 function calculate() {
-  var cname_0 = parseFloat(document.getElementById('cname_0').value);
-  var credit_0 = parseFloat(document.getElementById('credit_0').value);
-  var grade_0 = parseFloat(document.getElementById('grade_0').value);
-  if (cname_0 === undefined || isNaN(cname_0)) {
-    showToast('请输入有效数值');
+  var scale = document.getElementById('scaleType').value;
+  var courses = document.querySelectorAll('.course-item');
+  var totalCredits = 0;
+  var totalWeightedGPA = 0;
+  var validCount = 0;
+
+  courses.forEach(function(course) {
+    var idx = course.getAttribute('data-idx');
+    var creditEl = document.getElementById('credit_' + idx);
+    var gradeEl = document.getElementById('grade_' + idx);
+    if (!creditEl || !gradeEl) return;
+    var credit = parseFloat(creditEl.value);
+    var grade = parseFloat(gradeEl.value);
+    if (isNaN(credit) || isNaN(grade) || credit <= 0) return;
+    var gpa = gradeToGPA(grade, scale);
+    totalCredits += credit;
+    totalWeightedGPA += gpa * credit;
+    validCount++;
+  });
+
+  if (validCount === 0 || totalCredits === 0) {
+    showToast('请输入有效的课程数据');
     return;
   }
-  var result = cname_0 * credit_0;
-  document.getElementById('result').innerHTML = '<div class="result-item"><span class="result-label">结果</span><span class="result-value">' + result + '</span></div>';
-  document.getElementById('result').style.display = 'block';
-  showToast('计算完成');
+
+  var gpa = (totalWeightedGPA / totalCredits).toFixed(2);
+  document.getElementById('resGPA').textContent = gpa;
+  document.getElementById('resCredits').textContent = totalCredits.toFixed(1);
+  document.getElementById('resCourses').textContent = validCount;
+  showToast('GPA计算完成');
 }
 
 function copyResult() {
-  var text = document.getElementById('result').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  var gpa = document.getElementById('resGPA').textContent;
+  var credits = document.getElementById('resCredits').textContent;
+  var count = document.getElementById('resCourses').textContent;
+  if (gpa === '—') { showToast('请先计算GPA'); return; }
+  var text = 'GPA: ' + gpa + ' | 总学分: ' + credits + ' | 课程数: ' + count;
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制结果') }).catch(function() { showToast('复制失败') });
 }
 </script>
 </body>

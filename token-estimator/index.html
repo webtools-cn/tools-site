@@ -210,26 +210,83 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var MODELS = [
+  {name:'GPT-4o', inputPrice:2.50, outputPrice:10, context:128000, ratio:0.75},
+  {name:'GPT-4 Turbo', inputPrice:10, outputPrice:30, context:128000, ratio:0.75},
+  {name:'GPT-4o mini', inputPrice:0.15, outputPrice:0.60, context:128000, ratio:0.75},
+  {name:'Claude 3.5 Sonnet', inputPrice:3, outputPrice:15, context:200000, ratio:0.75},
+  {name:'Gemini 1.5 Pro', inputPrice:1.25, outputPrice:5, context:1000000, ratio:0.75},
+  {name:'DeepSeek V3', inputPrice:0.27, outputPrice:1.10, context:64000, ratio:0.75}
+];
+
+function estimateTokens() {
+  var text = document.getElementById('inputText').value;
+  var charCount = text.length;
+  
+  // Count words and characters
+  var chineseChars = (text.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || []).length;
+  var englishWords = (text.match(/[a-zA-Z]+/g) || []).length;
+  var otherChars = charCount - chineseChars - (text.match(/[a-zA-Z]/g) || []).length;
+  
+  document.getElementById('charCount').textContent = charCount + ' 字符';
+  document.getElementById('wordCount').textContent = (chineseChars + englishWords) + ' 词';
+  
+  if (!text.trim()) {
+    document.getElementById('resultArea').style.display = 'none';
+    return;
+  }
+  
+  // Estimate tokens for each model
+  // Chinese: ~1.5 tokens per char; English: ~1.3 tokens per word
+  var baseTokens = Math.ceil(chineseChars * 1.5 + englishWords * 1.3 + otherChars * 0.3);
+  
+  var grid = document.getElementById('modelGrid');
+  grid.innerHTML = '';
+  
+  MODELS.forEach(function(m) {
+    // Each model has slightly different tokenization
+    var tokens = Math.ceil(baseTokens * m.ratio / 0.75);
+    var inputCost = (tokens * m.inputPrice / 1000000).toFixed(4);
+    var outputCost = (tokens * m.outputPrice / 1000000).toFixed(4);
+    var contextPct = (tokens / m.context * 100).toFixed(2);
+    var barColor = contextPct < 50 ? '#22c55e' : contextPct < 80 ? '#f59e0b' : '#ef4444';
+    
+    var card = document.createElement('div');
+    card.className = 'model-card';
+    card.innerHTML = 
+      '<div class="model-name">' + m.name + '</div>' +
+      '<div class="model-stat"><span class="model-stat-label">估算Token数</span><span class="model-stat-value">' + tokens.toLocaleString() + '</span></div>' +
+      '<div class="model-stat"><span class="model-stat-label">输入费用</span><span class="model-stat-value">$' + inputCost + '</span></div>' +
+      '<div class="model-stat"><span class="model-stat-label">输出费用</span><span class="model-stat-value">$' + outputCost + '</span></div>' +
+      '<div class="model-stat"><span class="model-stat-label">上下文占比</span><span class="model-stat-value">' + contextPct + '%</span></div>' +
+      '<div class="context-bar"><div class="context-fill" style="width:' + Math.min(contextPct, 100) + '%;background:' + barColor + '"></div></div>' +
+      '<div class="model-stat" style="margin-top:4px"><span class="model-stat-label">上下文窗口</span><span class="model-stat-value">' + (m.context / 1000) + 'K</span></div>';
+    grid.appendChild(card);
+  });
+  
+  document.getElementById('resultArea').style.display = 'block';
+}
+
 function clearAll() {
   document.getElementById('inputText').value = '';
-  document.getElementById('resultArea').innerHTML = '';
+  document.getElementById('charCount').textContent = '0 字符';
+  document.getElementById('wordCount').textContent = '0 词';
+  document.getElementById('modelGrid').innerHTML = '';
   document.getElementById('resultArea').style.display = 'none';
-  showToast('已重置');
+  showToast('已清空');
 }
 
 function copyResult() {
   var text = document.getElementById('resultArea').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
-}
-
-function estimateTokens() {
-  showToast('estimateTokens - coming soon!');
+  if (!text.trim()) { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制结果') }).catch(function() { showToast('复制失败') });
 }
 
 function loadExample() {
-  document.getElementById('inputText').value = '示例数据';
-  showToast('已加载示例');
+  var example = '人工智能（Artificial Intelligence，AI）是计算机科学的一个分支，致力于研究和开发能够模拟人类智能行为的系统。AI技术包括机器学习、深度学习、自然语言处理、计算机视觉等多个领域。近年来，随着大语言模型（LLM）的快速发展，AI在文本生成、代码编写、图像创作等方面展现出了强大的能力。GPT-4、Claude和Gemini等模型的出现，标志着通用人工智能迈出了重要一步。然而，AI的发展也带来了伦理、隐私和就业等方面的挑战，需要社会各界共同应对。';
+  document.getElementById('inputText').value = example;
+  estimateTokens();
+  showToast('已加载示例文本');
 }
 </script>
 </body>
