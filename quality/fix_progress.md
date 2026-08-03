@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第三十二批 - 发现27个回显型空壳并修复3个)
+> 最后更新: 2026-08-03 (cron自动更新 - 第三十三批 - 全站复扫发现29个回显型空壳并修复3个)
 
 ## 当前真实问题
 
@@ -11,68 +11,48 @@
 | EN版模板空壳(process未定义) | 23 | 23 | 0 | ✅ 完成 | grep toolInput + process() 未定义检测 |
 | EN版假交互空壳(quickInput) | 224 | 224 | 0 | ✅ 完成 | grep quickInput + 无业务函数检测 |
 | toolInput误报(7个有功能) | 7 | 7 | 0 | ✅ 误报 | 有addEventListener绑定的真实功能 |
-| 回显型process空壳(output=input) | 27 | 3 | 24 | 🔴 进行中 | grep "var output = input" + 无业务逻辑 |
+| 回显型process空壳(output=input) | 29 | 3 | 26 | 🔴 进行中 | 全站扫描 var output = input + 无业务逻辑 |
 
-## 验证结果 (2026-08-03)
+## 回显型空壳清单(26个剩余)
 
-全站空壳指标全部归零（第三十一批复核）：
-- `Generated at`: 0 (全站CN+EN)
-- `处理完成:`: 0
-- `基于输入参数`: 0
-- `quickInput`: 0 (全站CN+EN)
-- `auto-injected`: 0 (全站CN+EN)
-- 回显型process()空壳(直接output=input): 0
-- 短函数体process()空壳(<100字符无业务逻辑): 0
+> 特征：process()/convert()/generate()函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
+> 注：第三十三批全站复扫发现此前清单(24个)大部分已修复但遗漏记录，实际全站有29个回显stub，本轮修复3个(CSS类)，剩余26个：
 
-第三十一批复核发现并修复漏网空壳 csv-merger：CN版process()只回显输入(`var output = input`)，且HTML有`/div>`损坏残留。此前依赖`Generated at`等关键词检测未覆盖此模式。本轮新增两种检测方式（回显型process扫描+短函数体扫描），全站扫描确认仅此1个漏网。
-
-8个toolInput页面确认为误报（有完整真实逻辑，其中7个此前已确认+ai-sentence-rewriter有rewriteFormal等真实改写逻辑）：
-- subnet-mask-calc: 子网掩码计算(CIDR解析+IP转整数+掩码/网络/广播地址计算) ✅
-- html-color-picker: 颜色解析(HEX/RGB/HSL互转+预览) ✅
-- rss-to-json: RSS XML转JSON(DOMParser解析+递归nodeToObject) ✅
-- cicd-pipeline-generator: CI/CD配置生成(GitHub Actions/GitLab CI/Jenkins) ✅
-- domain-typo-generator: 域名变体生成(漏字/多字/错位/替换/换TLD) ✅
-- fake-identity-generator: 假身份生成(中/英/英式/日4国数据) ✅
-- css-specificity-calc: CSS优先级计算(ID/类/属性/伪类/元素计数+权重值) ✅
-- ai-sentence-rewriter: 句子改写(4风格词库替换+规则变换) ✅
-
-215个"0交互"页面全部为重定向页面或已有JS动态交互(通过addEventListener/innerHTML实现)，非空壳。
-
-## EN版假交互空壳清单(0个剩余 - 全部清零)
-
-> 特征：有id="quickInput"+quickResult假交互("You typed: xxx"回显)，无真实业务函数，HTML结构损坏
-
-1. avif-converter ✅
-2. avif-to-png ✅
-3. calendar-generator ✅
-4. coin-flipper ✅
-5. curl-to-code ✅
-6. email-security-checker ✅
-7. favicon-downloader ✅
-8. gif-tools ✅
-9. social-share-generator ✅
-
-## EN版模板空壳清单(0个剩余 - 全部清零)
-
-无
-
-## 已清零问题
-
-| 问题 | 总数 | 状态 | 检测脚本 |
-|:-----|:----:|:------:|:---------|
-| CN页面英文混杂 | ~200 | ✅ 0 | check_language_consistency.py |
-| EN页面含中文 | 0(误报排除) | ✅ 0 | check_en_chinese.py |
-| 浅色背景 | 71 | ✅ 0 | grep背景色 |
-| 假评分 | 3614 | ✅ 0 | - |
-| GA缺失 | 921 | ✅ 0 | - |
-| Footer残缺 | 660 | ✅ 0 | - |
-| Related Tools英文 | 136 | ✅ 0 | - |
-| 辅助页面全英文 | 3 | ✅ 0 | - |
-| DNS API失效 | 1 | ✅ 0 | - |
-| 空壳(Generated at stub) | 55 | ✅ 0 | grep "Generated at" |
-| toolInput模板空壳 | 1 | ✅ 0 | check_empty_shells.py |
+1. ai-json-schema-generator
+2. ai-system-prompt-builder
+3. api-response-time-tester
+4. base45-encoder
+5. caddyfile-generator
+6. cidr-to-ip-range
+7. csp-generator
+8. csv-to-markdown-table
+9. env-to-json
+10. haproxy-config-generator
+11. hex-to-hsl
+12. html-email-template
+13. html-escape-unescape
+14. html-table-to-markdown
+15. htaccess-generator
+16. htpasswd-generator
+17. http-cache-header-generator
+18. kubernetes-yaml-generator
+19. markdown-table-formatter
+20. mock-data-generator
+21. npm-package-json
+22. roman-to-decimal
+23. string-case-converter
+24. svg-pattern-generator
+25. tailwind-spacing-generator
+26. time-zone-converter
+27. typescript-utility-types
+28. unicode-range-generator
+29. yaml-to-dotenv
 
 ## 已修复的空壳工具
+
+### 2026-08-03 (第三十三批 - 全站复扫+修复3个CSS回显stub)
+css-media-query-generator, css-scroll-driven-animation, gradient-border-animation
+注: 第三十三批全站复扫（全目录遍历检测`var output = input`+无业务逻辑），发现此前清单(24个)大部分已修复但遗漏记录，实际全站有29个回显stub。本轮修复3个：css-media-query-generator CN版重写(预设断点phone/tablet/desktop/large+22种媒体特性下拉+and/or/only/not逻辑组合+or转逗号分隔+5种模板dark-mode/print/motion/hover/landscape+实时预览匹配检测+复制/下载CSS)，EN版已有完整功能无需修改；css-scroll-driven-animation CN版重写(scroll()/view()时间线切换+动画属性opacity/transform/background-color/filter+起止值+block/inline方向+@supports渐进增强CSS生成+滚动容器5元素实时预览+复制)，EN版已有完整功能无需修改；gradient-border-animation CN版重写(4色选择+conic-gradient+@property --ga-angle平滑旋转+边框宽度/圆角/速度/方向自定义+实时预览+复制CSS)，EN版已有完整功能无需修改。所有3个JS脚本语法验证通过+浏览器实测通过（Kimi WebBridge）。剩余26个待修。
 
 ### 2026-08-03 (第一批)
 cookie-consent-banner, correlation-calculator, css-card-generator
