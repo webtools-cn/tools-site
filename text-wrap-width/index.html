@@ -249,7 +249,97 @@ function loadExample() {
 }
 
 function wrapText() {
-  showToast('wrapText - coming soon!');
+  var input = document.getElementById('inputText').value;
+  var lineWidth = parseInt(document.getElementById('lineWidth').value) || 80;
+  var firstIndent = parseInt(document.getElementById('firstIndent').value) || 0;
+  var hangIndent = parseInt(document.getElementById('hangIndent').value) || 0;
+  var breakMode = document.getElementById('breakMode').value;
+  var resultSection = document.getElementById('resultSection');
+  var resultText = document.getElementById('resultText');
+  
+  if (!input.trim()) { showToast('请输入文本'); return; }
+  
+  var words = input.split(/\s+/).filter(function(w) { return w.length > 0; });
+  var lines = [];
+  var currentLine = '';
+  var currentWidth = 0;
+  var isFirstLine = true;
+  
+  for (var i = 0; i < words.length; i++) {
+    var word = words[i];
+    var indent = isFirstLine ? firstIndent : hangIndent;
+    var availableWidth = lineWidth - indent;
+    var prefix = '';
+    for (var j = 0; j < indent; j++) prefix += ' ';
+    
+    if (currentLine === '') {
+      if (word.length > availableWidth) {
+        if (breakMode === 'none') {
+          lines.push(prefix + word);
+          currentLine = '';
+        } else {
+          var broken = word;
+          while (broken.length > availableWidth) {
+            var part = broken.substring(0, availableWidth);
+            if (breakMode === 'hyphen' && broken.length > availableWidth) {
+              part = part.substring(0, availableWidth - 1) + '-';
+            }
+            lines.push(prefix + part);
+            broken = broken.substring(breakMode === 'hyphen' ? availableWidth - 1 : availableWidth);
+            prefix = '';
+            for (var j2 = 0; j2 < hangIndent; j2++) prefix += ' ';
+          }
+          currentLine = prefix + broken;
+          currentWidth = broken.length;
+        }
+      } else {
+        currentLine = prefix + word;
+        currentWidth = word.length;
+      }
+      isFirstLine = false;
+    } else {
+      if (currentWidth + 1 + word.length > lineWidth - (isFirstLine ? firstIndent : hangIndent)) {
+        lines.push(currentLine);
+        isFirstLine = false;
+        var newPrefix = '';
+        for (var j3 = 0; j3 < hangIndent; j3++) newPrefix += ' ';
+        if (word.length > lineWidth - hangIndent) {
+          if (breakMode === 'none') {
+            lines.push(newPrefix + word);
+            currentLine = '';
+          } else {
+            var broken = word;
+            while (broken.length > lineWidth - hangIndent) {
+              var part = broken.substring(0, lineWidth - hangIndent);
+              if (breakMode === 'hyphen') {
+                part = part.substring(0, part.length - 1) + '-';
+              }
+              lines.push(newPrefix + part);
+              broken = broken.substring(breakMode === 'hyphen' ? part.length - 1 : part.length);
+              newPrefix = '';
+              for (var j4 = 0; j4 < hangIndent; j4++) newPrefix += ' ';
+            }
+            currentLine = newPrefix + broken;
+            currentWidth = broken.length;
+          }
+        } else {
+          currentLine = newPrefix + word;
+          currentWidth = word.length;
+        }
+      } else {
+        currentLine += ' ' + word;
+        currentWidth += 1 + word.length;
+      }
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  
+  var result = lines.join('\n');
+  resultText.value = result;
+  document.getElementById('lineCount').textContent = lines.length;
+  document.getElementById('resultCharCount').textContent = result.length;
+  resultSection.style.display = 'block';
+  showToast('换行完成，共' + lines.length + '行');
 }
 </script>
 </body>

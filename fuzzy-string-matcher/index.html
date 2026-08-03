@@ -441,7 +441,99 @@ function loadExample() {
 }
 
 function search() {
-  showToast('search - coming soon!');
+  var query = document.getElementById('searchInput').value.trim();
+  var candidatesText = document.getElementById('candidates').value.trim();
+  var algorithm = document.getElementById('algorithm').value;
+  var ngramSize = parseInt(document.getElementById('ngramSize').value) || 2;
+  var maxResults = parseInt(document.getElementById('maxResults').value) || 10;
+  var resultSection = document.getElementById('resultSection');
+  
+  if (!query) { showToast('请输入搜索字符串'); return; }
+  if (!candidatesText) { showToast('请输入候选词'); return; }
+  
+  var candidates = candidatesText.split('\n').map(function(s) { return s.trim(); }).filter(function(s) { return s; });
+  var results = [];
+  
+  for (var i = 0; i < candidates.length; i++) {
+    var score = 0;
+    if (algorithm === 'levenshtein') {
+      var dist = levenshtein(query.toLowerCase(), candidates[i].toLowerCase());
+      var maxLen = Math.max(query.length, candidates[i].length);
+      score = maxLen > 0 ? (1 - dist / maxLen) * 100 : 0;
+    } else if (algorithm === 'ngram') {
+      score = ngramSimilarity(query.toLowerCase(), candidates[i].toLowerCase(), ngramSize);
+    } else if (algorithm === 'jaro') {
+      score = jaroSimilarity(query.toLowerCase(), candidates[i].toLowerCase()) * 100;
+    } else {
+      // contains
+      score = candidates[i].toLowerCase().includes(query.toLowerCase()) ? 100 : 0;
+    }
+    results.push({ word: candidates[i], score: Math.round(score) });
+  }
+  
+  results.sort(function(a, b) { return b.score - a.score; });
+  results = results.slice(0, maxResults);
+  
+  var html = '<div style="margin-bottom:12px;color:#94a3b8;font-size:.9rem">找到 ' + results.length + ' 个匹配结果</div>';
+  for (var i = 0; i < results.length; i++) {
+    var r = results[i];
+    var color = r.score >= 80 ? '#4ade80' : r.score >= 50 ? '#fbbf24' : '#f87171';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#0f172a;border-radius:8px;margin-bottom:6px;border:1px solid rgba(148,163,184,.1)">';
+    html += '<span style="color:#e2e8f0">' + r.word.replace(/</g,'&lt;') + '</span>';
+    html += '<span style="color:' + color + ';font-weight:600">' + r.score + '%</span>';
+    html += '</div>';
+  }
+  resultSection.innerHTML = html;
+  resultSection.style.display = 'block';
+  showToast('搜索完成');
+}
+function levenshtein(a, b) {
+  var m = [];
+  for (var i = 0; i <= a.length; i++) m[i] = [i];
+  for (var j = 0; j <= b.length; j++) m[0][j] = j;
+  for (var i = 1; i <= a.length; i++) {
+    for (var j = 1; j <= b.length; j++) {
+      m[i][j] = a[i-1] === b[j-1] ? m[i-1][j-1] : Math.min(m[i-1][j-1]+1, m[i][j-1]+1, m[i-1][j]+1);
+    }
+  }
+  return m[a.length][b.length];
+}
+function ngramSimilarity(a, b, n) {
+  if (a.length < n || b.length < n) return a === b ? 100 : 0;
+  var gramsA = {}, gramsB = {};
+  for (var i = 0; i <= a.length - n; i++) { var g = a.substr(i, n); gramsA[g] = (gramsA[g]||0)+1; }
+  for (var i = 0; i <= b.length - n; i++) { var g = b.substr(i, n); gramsB[g] = (gramsB[g]||0)+1; }
+  var intersection = 0, union = 0;
+  for (var g in gramsA) { intersection += Math.min(gramsA[g], gramsB[g]||0); union += gramsA[g]; }
+  for (var g in gramsB) { if (!gramsA[g]) union += gramsB[g]; }
+  return union > 0 ? (intersection / union) * 100 : 0;
+}
+function jaroSimilarity(a, b) {
+  if (a === b) return 1;
+  if (a.length === 0 || b.length === 0) return 0;
+  var matchDist = Math.floor(Math.max(a.length, b.length) / 2) - 1;
+  if (matchDist < 0) matchDist = 0;
+  var aMatches = [], bMatches = [];
+  var matches = 0;
+  for (var i = 0; i < a.length; i++) {
+    var start = Math.max(0, i - matchDist);
+    var end = Math.min(i + matchDist + 1, b.length);
+    for (var j = start; j < end; j++) {
+      if (bMatches[j]) continue;
+      if (a[i] !== b[j]) continue;
+      aMatches[i] = true; bMatches[j] = true; matches++; break;
+    }
+  }
+  if (matches === 0) return 0;
+  var t = 0, k = 0;
+  for (var i = 0; i < a.length; i++) {
+    if (!aMatches[i]) continue;
+    while (!bMatches[k]) k++;
+    if (a[i] !== b[k]) t++;
+    k++;
+  }
+  t = t / 2;
+  return (matches/a.length + matches/b.length + (matches-t)/matches) / 3;
 }
 </script>
 </body>

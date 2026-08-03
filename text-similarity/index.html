@@ -268,7 +268,57 @@ function clearAll() {
 }
 
 function compare() {
-  showToast('compare - coming soon!');
+  var input1 = document.getElementById('text1') || document.getElementById('input1') || document.getElementById('source');
+  var input2 = document.getElementById('text2') || document.getElementById('input2') || document.getElementById('target');
+  var result = document.getElementById('result') || document.getElementById('output') || document.getElementById('resultArea');
+  if (!input1 || !input2) { showToast('输入框未找到'); return; }
+  var t1 = input1.value || input1.textContent;
+  var t2 = input2.value || input2.textContent;
+  if (!t1.trim() || !t2.trim()) { showToast('请输入两段文本'); return; }
+  
+  var matrix = [];
+  for (var i = 0; i <= t1.length; i++) {
+    matrix[i] = [i];
+  }
+  for (var j = 0; j <= t2.length; j++) {
+    matrix[0][j] = j;
+  }
+  for (var i = 1; i <= t1.length; i++) {
+    for (var j = 1; j <= t2.length; j++) {
+      if (t1[i-1] === t2[j-1]) {
+        matrix[i][j] = matrix[i-1][j-1];
+      } else {
+        matrix[i][j] = Math.min(matrix[i-1][j-1] + 1, matrix[i][j-1] + 1, matrix[i-1][j] + 1);
+      }
+    }
+  }
+  var distance = matrix[t1.length][t2.length];
+  var maxLength = Math.max(t1.length, t2.length);
+  var similarity = maxLength === 0 ? 100 : Math.round((1 - distance / maxLength) * 100);
+  
+  var words1 = new Set(t1.toLowerCase().split(/\s+/));
+  var words2 = new Set(t2.toLowerCase().split(/\s+/));
+  var intersection = 0;
+  words1.forEach(function(w) { if (words2.has(w)) intersection++; });
+  var union = words1.size + words2.size - intersection;
+  var jaccardSim = union === 0 ? 0 : Math.round((intersection / union) * 100);
+  
+  var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">';
+  html += '<div style="background:#0f172a;padding:16px;border-radius:8px;text-align:center">';
+  html += '<div style="color:#94a3b8;font-size:.85rem;margin-bottom:4px">字符相似度</div>';
+  html += '<div style="font-size:2rem;font-weight:700;color:' + (similarity >= 80 ? '#4ade80' : similarity >= 50 ? '#fbbf24' : '#f87171') + '">' + similarity + '%</div>';
+  html += '</div>';
+  html += '<div style="background:#0f172a;padding:16px;border-radius:8px;text-align:center">';
+  html += '<div style="color:#94a3b8;font-size:.85rem;margin-bottom:4px">词汇相似度</div>';
+  html += '<div style="font-size:2rem;font-weight:700;color:' + (jaccardSim >= 80 ? '#4ade80' : jaccardSim >= 50 ? '#fbbf24' : '#f87171') + '">' + jaccardSim + '%</div>';
+  html += '</div></div>';
+  html += '<div style="color:#94a3b8;font-size:.85rem">编辑距离: ' + distance + ' | 文本1长度: ' + t1.length + ' | 文本2长度: ' + t2.length + '</div>';
+  
+  if (result) {
+    result.innerHTML = html;
+    result.style.display = 'block';
+  }
+  showToast('比较完成');
 }
 
 function loadExample() {

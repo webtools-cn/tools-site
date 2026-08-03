@@ -221,7 +221,88 @@ function validateYAML() {
 }
 
 function yamlToJSON() {
-  showToast('yamlToJSON - coming soon!');
+  var input = document.getElementById('yamlInput') || document.getElementById('input') || document.querySelector('textarea');
+  var output = document.getElementById('result') || document.getElementById('output') || document.getElementById('jsonOutput');
+  if (!input || !input.value.trim()) { showToast('请输入YAML'); return; }
+  var yaml = input.value.trim();
+  try {
+    var result = parseYAML(yaml);
+    var json = JSON.stringify(result, null, 2);
+    if (output) {
+      output.value = json;
+      output.textContent = json;
+    }
+    showToast('YAML有效');
+  } catch(e) {
+    if (output) {
+      var d = document.createElement('div');
+      d.style.color = '#f87171';
+      d.textContent = 'YAML解析错误: ' + e.message;
+      output.innerHTML = '';
+      output.appendChild(d);
+    }
+    showToast('YAML无效: ' + e.message);
+  }
+}
+function parseYAML(text) {
+  var result = {};
+  var lines = text.split('\n');
+  var stack = [{indent: -1, obj: result}];
+  
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var trimmed = line.replace(/#.*$/, '').replace(/\s+$/, '');
+    if (!trimmed) continue;
+    var indent = line.length - line.replace(/^\s*/, '').length;
+    var content = trimmed.trim();
+    
+    while (stack.length > 1 && stack[stack.length-1].indent >= indent) {
+      stack.pop();
+    }
+    var parent = stack[stack.length-1];
+    
+    if (content.startsWith('- ')) {
+      var itemValue = content.substring(2).trim();
+      if (!parent.obj[parent._currentKey]) {
+        parent.obj[parent._currentKey] = [];
+      }
+      if (itemValue.includes(':')) {
+        var kv = itemValue.split(':', 2);
+        var obj = {};
+        obj[kv[0].trim()] = parseYAMLValue(kv[1].trim());
+        parent.obj[parent._currentKey].push(obj);
+      } else {
+        parent.obj[parent._currentKey].push(parseYAMLValue(itemValue));
+      }
+    } else if (content.includes(':')) {
+      var idx = content.indexOf(':');
+      var key = content.substring(0, idx).trim();
+      var val = content.substring(idx + 1).trim();
+      if (val === '') {
+        parent.obj[key] = {};
+        parent._currentKey = key;
+        stack.push({indent: indent, obj: parent.obj[key]});
+      } else {
+        parent.obj[key] = parseYAMLValue(val);
+        parent._currentKey = key;
+      }
+    }
+  }
+  return result;
+}
+function parseYAMLValue(val) {
+  if (val === 'true') return true;
+  if (val === 'false') return false;
+  if (val === 'null' || val === '~') return null;
+  if (/^-?\d+$/.test(val)) return parseInt(val);
+  if (/^-?\d+\.\d+$/.test(val)) return parseFloat(val);
+  if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+    return val.substring(1, val.length - 1);
+  }
+  if (val.startsWith('[') && val.endsWith(']')) {
+    return val.substring(1, val.length-1).split(',').map(function(s) { return parseYAMLValue(s.trim()); });
+  }
+  return val;
 }
 </script>
 </body>

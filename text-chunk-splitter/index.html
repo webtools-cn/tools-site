@@ -445,7 +445,80 @@ function loadExample() {
 }
 
 function splitText() {
-  showToast('splitText - coming soon!');
+  var input = document.getElementById('inputText').value;
+  var strategy = document.getElementById('strategy').value;
+  var chunkSize = parseInt(document.getElementById('chunkSize').value) || 500;
+  var overlap = parseInt(document.getElementById('overlapSize').value) || 0;
+  var resultSection = document.getElementById('resultSection');
+  if (!input.trim()) { showToast('请输入文本'); return; }
+  
+  var chunks = [];
+  if (strategy === 'char') {
+    for (var i = 0; i < input.length; i += chunkSize - overlap) {
+      chunks.push(input.substring(i, i + chunkSize));
+      if (i + chunkSize >= input.length) break;
+    }
+  } else if (strategy === 'word') {
+    var words = input.split(/\s+/);
+    for (var i = 0; i < words.length; i += chunkSize - overlap) {
+      chunks.push(words.slice(i, i + chunkSize).join(' '));
+      if (i + chunkSize >= words.length) break;
+    }
+  } else if (strategy === 'sentence') {
+    var sentences = input.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [input];
+    var current = '';
+    var count = 0;
+    for (var i = 0; i < sentences.length; i++) {
+      if (count + 1 > chunkSize && current) {
+        chunks.push(current);
+        if (overlap > 0 && overlap < sentences.length) {
+          var overlapSentences = sentences.slice(Math.max(0, i - overlap), i);
+          current = overlapSentences.join('') + sentences[i];
+          count = overlapSentences.length + 1;
+        } else {
+          current = sentences[i];
+          count = 1;
+        }
+      } else {
+        current += sentences[i];
+        count++;
+      }
+    }
+    if (current) chunks.push(current);
+  } else if (strategy === 'line') {
+    var lines = input.split('\n');
+    for (var i = 0; i < lines.length; i += chunkSize - overlap) {
+      chunks.push(lines.slice(i, i + chunkSize).join('\n'));
+      if (i + chunkSize >= lines.length) break;
+    }
+  } else {
+    // paragraph
+    var paras = input.split(/\n\s*\n/);
+    var currentP = '';
+    var countP = 0;
+    for (var i = 0; i < paras.length; i++) {
+      if (countP + 1 > chunkSize && currentP) {
+        chunks.push(currentP);
+        currentP = paras[i];
+        countP = 1;
+      } else {
+        currentP += (currentP ? '\n\n' : '') + paras[i];
+        countP++;
+      }
+    }
+    if (currentP) chunks.push(currentP);
+  }
+  
+  var html = '<div style="margin-bottom:12px;color:#94a3b8;font-size:.9rem">共分成 ' + chunks.length + ' 个文本块</div>';
+  for (var i = 0; i < chunks.length; i++) {
+    html += '<div style="background:#0f172a;border-radius:8px;padding:12px;margin-bottom:8px;border:1px solid rgba(148,163,184,.1)">';
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#22d3ee;font-size:.85rem">块 #' + (i+1) + '</span><span style="color:#64748b;font-size:.8rem">' + chunks[i].length + ' 字符</span></div>';
+    html += '<pre style="white-space:pre-wrap;color:#e2e8f0;font-size:.85rem;margin:0;max-height:200px;overflow-y:auto">' + chunks[i].replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>';
+    html += '</div>';
+  }
+  resultSection.innerHTML = html;
+  resultSection.style.display = 'block';
+  showToast('分块完成，共' + chunks.length + '块');
 }
 </script>
 </body>

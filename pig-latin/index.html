@@ -196,7 +196,74 @@ function swapText() {
 }
 
 function translate() {
-  showToast('translate - coming soon!');
+  var input = document.getElementById('input').value;
+  var output = document.getElementById('output');
+  if (!input.trim()) { output.value = ''; return; }
+  var suffix = currentSuffix || 'ay';
+  var result = '';
+  if (currentMode === 'encode') {
+    result = input.replace(/\b([a-zA-Z]+)\b/g, function(word) {
+      return encodeWord(word, suffix);
+    });
+  } else {
+    result = input.replace(/\b([a-zA-Z]+)\b/g, function(word) {
+      return decodeWord(word, suffix);
+    });
+  }
+  output.value = result;
+}
+var currentMode = 'encode';
+var currentSuffix = 'ay';
+function setMode(m) {
+  currentMode = m;
+  document.querySelectorAll('.mode-tab').forEach(function(t) { t.classList.remove('active'); });
+  if (event && event.target) event.target.classList.add('active');
+  var il = document.getElementById('input-label');
+  var ol = document.getElementById('output-label');
+  if (il) il.textContent = m === 'encode' ? '输入英文文本' : '输入Pig Latin文本';
+  if (ol) ol.textContent = m === 'encode' ? 'Pig Latin结果' : '英文结果';
+}
+function setSuffix(s, el) {
+  currentSuffix = s;
+  document.querySelectorAll('.suffix-option').forEach(function(o) { o.classList.remove('active'); });
+  el.classList.add('active');
+}
+function encodeWord(word, suffix) {
+  if (/^[aeiouAEIOU]/.test(word)) {
+    return word + suffix;
+  }
+  var match = word.match(/^([^aeiouAEIOU]*)(.*)/);
+  if (!match) return word + suffix;
+  var consonants = match[1];
+  var rest = match[2];
+  var isCapital = word[0] === word[0].toUpperCase();
+  var result = rest + consonants + 'ay';
+  if (isCapital) {
+    result = result.charAt(0).toUpperCase() + result.slice(1).toLowerCase();
+  }
+  return result;
+}
+function decodeWord(word, suffix) {
+  var lower = word.toLowerCase();
+  if (lower.endsWith(suffix)) {
+    var stem = word.substring(0, word.length - suffix.length);
+    if (suffix === 'way' || suffix === 'yay') {
+      return stem;
+    }
+    var match = stem.match(/^(.+?)([aeiou].*)$/i);
+    if (match) {
+      var consonants = match[1];
+      var rest = match[2];
+      var isCapital = word[0] === word[0].toUpperCase();
+      var result = consonants + rest;
+      if (isCapital) {
+        result = result.charAt(0).toUpperCase() + result.slice(1).toLowerCase();
+      }
+      return result;
+    }
+    return stem;
+  }
+  return word;
 }
 </script>
 </body>

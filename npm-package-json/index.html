@@ -236,25 +236,83 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
-function copyOutput() {
-  var text = document.getElementById('output').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
-}
-
-function downloadJSON() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='JSON.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+// === 真实功能实现 ===
+function parseDeps(text) {
+  var deps = {};
+  if (!text || !text.trim()) return deps;
+  text.split('\n').forEach(function(line) {
+    line = line.trim();
+    if (!line) return;
+    var idx = line.lastIndexOf('@');
+    if (idx > 0) {
+      var pkg = line.substring(0, idx);
+      var ver = line.substring(idx + 1);
+      if (pkg && ver) deps[pkg] = ver;
+    } else {
+      deps[line] = '*';
+    }
+  });
+  return deps;
 }
 
 function generate() {
-  var input = document.getElementById('name').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('生成完成');
+  var pkg = {};
+  var name = document.getElementById('name').value.trim();
+  if (name) pkg.name = name;
+  pkg.version = document.getElementById('version').value.trim() || '1.0.0';
+  var desc = document.getElementById('description').value.trim();
+  if (desc) pkg.description = desc;
+  pkg.main = document.getElementById('main').value.trim() || 'index.js';
+  var author = document.getElementById('author').value.trim();
+  if (author) pkg.author = author;
+  pkg.license = document.getElementById('license').value || 'MIT';
+  if (document.getElementById('private').checked) pkg.private = true;
+
+  var scripts = {};
+  var sStart = document.getElementById('script-start').value.trim();
+  var sTest = document.getElementById('script-test').value.trim();
+  var sBuild = document.getElementById('script-build').value.trim();
+  var sDev = document.getElementById('script-dev').value.trim();
+  if (sStart) scripts.start = sStart;
+  if (sTest) scripts.test = sTest;
+  if (sBuild) scripts.build = sBuild;
+  if (sDev) scripts.dev = sDev;
+  if (Object.keys(scripts).length > 0) pkg.scripts = scripts;
+
+  var deps = parseDeps(document.getElementById('dependencies').value);
+  if (Object.keys(deps).length > 0) pkg.dependencies = deps;
+  var devDeps = parseDeps(document.getElementById('devDependencies').value);
+  if (Object.keys(devDeps).length > 0) pkg.devDependencies = devDeps;
+
+  var kw = document.getElementById('keywords').value.trim();
+  if (kw) pkg.keywords = kw.split(',').map(function(k) { return k.trim(); }).filter(Boolean);
+
+  var repoUrl = document.getElementById('repoUrl').value.trim();
+  var repoType = document.getElementById('repoType').value || 'git';
+  if (repoUrl) pkg.repository = { type: repoType, url: repoUrl };
+
+  document.getElementById('output').value = JSON.stringify(pkg, null, 2);
 }
+
+function copyOutput() {
+  var text = document.getElementById('output').value;
+  if (!text) { showToast('没有可复制的内容'); return; }
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制到剪贴板'); }, function() { showToast('复制失败'); });
+}
+
+function downloadJSON() {
+  var text = document.getElementById('output').value;
+  if (!text) { showToast('没有可下载的内容'); return; }
+  var blob = new Blob([text], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'package.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已下载 package.json');
+}
+
+generate();
 </script>
 </body>
 </html>

@@ -201,7 +201,36 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 // === 重写的函数实现 ===
 function autoValidate() {
-  showToast('autoValidate - coming soon!');
+  var input = document.getElementById('jsonInput') || document.getElementById('input') || document.querySelector('textarea');
+  var output = document.getElementById('result') || document.getElementById('output') || document.getElementById('jsonOutput');
+  if (!input || !input.value.trim()) { showToast('请输入JSON'); return; }
+  var text = input.value.trim();
+  try {
+    var parsed = JSON.parse(text);
+    var formatted = JSON.stringify(parsed, null, 2);
+    if (output) {
+      output.value = formatted;
+      output.textContent = formatted;
+    }
+    showToast('JSON有效');
+  } catch(e) {
+    var msg = e.message;
+    var posMatch = msg.match(/position (\d+)/i);
+    var posInfo = '';
+    if (posMatch) {
+      var pos = parseInt(posMatch[1]);
+      var lines = text.substring(0, pos).split('\n');
+      posInfo = ' (行' + lines.length + ', 列' + (lines[lines.length-1].length+1) + ')';
+    }
+    if (output) {
+      var d = document.createElement('div');
+      d.style.color = '#f87171';
+      d.textContent = 'JSON解析错误: ' + msg + posInfo;
+      output.innerHTML = '';
+      output.appendChild(d);
+    }
+    showToast('JSON无效: ' + msg);
+  }
 }
 
 function clearAll() {

@@ -192,8 +192,60 @@ function loadSample() {
 }
 
 function parseCookie() {
-  showToast('parseCookie - coming soon!');
+  var input = document.getElementById('cookieInput').value.trim();
+  if (!input) { showToast('请输入Cookie字符串'); return; }
+  var urlDecode = document.getElementById('urlDecode').checked;
+  var showRaw = document.getElementById('showRaw').checked;
+  var result = document.getElementById('cookieResult');
+  var cookies = [];
+  var parts = input.split(';');
+  for (var i = 0; i < parts.length; i++) {
+    var part = parts[i].trim();
+    if (!part) continue;
+    var eqIdx = part.indexOf('=');
+    if (eqIdx === -1) {
+      cookies.push({name: part, value: '', attrs: []});
+    } else {
+      var name = part.substring(0, eqIdx).trim();
+      var value = part.substring(eqIdx + 1).trim();
+      if (urlDecode) {
+        try { value = decodeURIComponent(value); } catch(e) {}
+      }
+      cookies.push({name: name, value: value, attrs: []});
+    }
+  }
+  // Detect attributes (HttpOnly, Secure, SameSite, Max-Age, Expires, Domain, Path)
+  var attrNames = ['HttpOnly', 'Secure', 'SameSite', 'Max-Age', 'Expires', 'Domain', 'Path'];
+  for (var c of cookies) {
+    for (var a of attrNames) {
+      var re = new RegExp('\b' + a + '=([^;]+)', 'i');
+      var m = input.match(re);
+      if (m) c.attrs.push(a + '=' + m[1].trim());
+      else if (new RegExp('\b' + a + '\b', 'i').test(input) && c.name.toLowerCase() !== a.toLowerCase()) {
+        if (c.attrs.indexOf(a) === -1) c.attrs.push(a);
+      }
+    }
+  }
+  if (cookies.length === 0) {
+    result.innerHTML = '<span style="color:#f87171">未解析到Cookie</span>';
+    return;
+  }
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:.9rem">';
+  html += '<thead><tr style="background:#0f172a"><th style="padding:8px;text-align:left;border-bottom:1px solid #334155">名称</th><th style="padding:8px;text-align:left;border-bottom:1px solid #334155">值</th><th style="padding:8px;text-align:left;border-bottom:1px solid #334155">属性</th></tr></thead><tbody>';
+  for (var c of cookies) {
+    var displayVal = showRaw ? c.value : (c.value.length > 50 ? c.value.substring(0,50) + '...' : c.value);
+    html += '<tr style="border-bottom:1px solid rgba(148,163,184,.1)">';
+    html += '<td style="padding:8px;color:#22d3ee;font-weight:500">' + escapeHtml(c.name) + '</td>';
+    html += '<td style="padding:8px;color:#e2e8f0;word-break:break-all">' + escapeHtml(displayVal) + '</td>';
+    html += '<td style="padding:8px;color:#94a3b8;font-size:.8rem">' + (c.attrs.length ? c.attrs.join(', ') : '-') + '</td>';
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  html += '<div style="margin-top:12px;color:#64748b;font-size:.85rem">共解析到 ' + cookies.length + ' 个Cookie</div>';
+  result.innerHTML = html;
+  showToast('解析完成，共' + cookies.length + '个Cookie');
 }
+function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
 </body>
 </html>

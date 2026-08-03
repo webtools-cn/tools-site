@@ -176,7 +176,44 @@ function submitFeedback(){var type=document.getElementById("feedback-type")?docu
 
 // === 重写的函数实现 ===
 function calcRes() {
-  showToast('calcRes - coming soon!');
+  var w = parseInt(document.getElementById('width').value) || 0;
+  var h = parseInt(document.getElementById('height').value) || 0;
+  var diagonal = parseFloat(document.getElementById('diagonal').value) || 0;
+  if (w <= 0 || h <= 0) { showToast('请输入有效的宽度和高度'); return; }
+  
+  // Aspect ratio (simplified)
+  function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+  var g = gcd(w, h);
+  var aspectW = w / g, aspectH = h / g;
+  // Simplify common ratios
+  if (aspectW > 50 || aspectH > 50) {
+    var ratio = w / h;
+    var common = [[16,9],[4,3],[21,9],[16,10],[3,2],[5,4],[1,1]];
+    var bestDiff = Infinity, bestW = aspectW, bestH = aspectH;
+    for (var i = 0; i < common.length; i++) {
+      var diff = Math.abs(ratio - common[i][0] / common[i][1]);
+      if (diff < bestDiff) { bestDiff = diff; bestW = common[i][0]; bestH = common[i][1]; }
+    }
+    aspectW = bestW; aspectH = bestH;
+  }
+  document.getElementById('rAspect').textContent = aspectW + ':' + aspectH;
+  
+  // Total pixels
+  var pixels = w * h;
+  document.getElementById('rPixels').textContent = pixels.toLocaleString();
+  document.getElementById('rMP').textContent = (pixels / 1000000).toFixed(2);
+  
+  // PPI and diagonal
+  var diagPixels = Math.sqrt(w * w + h * h);
+  if (diagonal > 0) {
+    var ppi = diagPixels / diagonal;
+    document.getElementById('rPPI').textContent = Math.round(ppi) + ' PPI';
+    document.getElementById('rDiag').textContent = diagonal + '"';
+  } else {
+    document.getElementById('rPPI').textContent = '- 需输入对角线';
+    document.getElementById('rDiag').textContent = diagPixels + ' px';
+  }
+  showToast('计算完成');
 }
 
 function swapWH() {

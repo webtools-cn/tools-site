@@ -229,7 +229,59 @@ function doLookup() {
 }
 
 function lookupMyIP() {
-  showToast('lookupMyIP - coming soon!');
+  var resultArea = document.getElementById('resultArea');
+  if (resultArea) {
+    resultArea.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8">正在查询本机IP地址...</div>';
+  }
+  fetch('https://api.ipify.org?format=json')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var ip = data.ip;
+      document.getElementById('ipInput').value = ip;
+      if (typeof lookup === 'function') lookup();
+      else lookupIPInfo(ip);
+    })
+    .catch(function() {
+      fetch('https://api.ipify.org?format=text')
+        .then(function(r) { return r.text(); })
+        .then(function(ip) {
+          document.getElementById('ipInput').value = ip;
+          if (typeof lookup === 'function') lookup();
+          else lookupIPInfo(ip);
+        })
+        .catch(function() {
+          if (resultArea) resultArea.innerHTML = '<div style="color:#f87171">查询失败，请检查网络连接</div>';
+          showToast('查询失败');
+        });
+    });
+}
+function lookupIPInfo(ip) {
+  var resultArea = document.getElementById('resultArea');
+  if (!resultArea) return;
+  resultArea.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8">正在查询IP信息...</div>';
+  fetch('https://ipapi.co/' + ip + '/json/')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+      html += ipInfoCard('IP地址', ip);
+      html += ipInfoCard('城市', data.city || '-');
+      html += ipInfoCard('地区', data.region || '-');
+      html += ipInfoCard('国家', data.country_name || '-');
+      html += ipInfoCard('运营商', data.org || '-');
+      html += ipInfoCard('时区', data.timezone || '-');
+      html += ipInfoCard('经度', data.longitude || '-');
+      html += ipInfoCard('纬度', data.latitude || '-');
+      html += '</div>';
+      resultArea.innerHTML = html;
+      showToast('查询完成');
+    })
+    .catch(function() {
+      resultArea.innerHTML = '<div style="color:#f87171">IP信息查询失败</div>';
+      showToast('查询失败');
+    });
+}
+function ipInfoCard(label, value) {
+  return '<div style="background:#0f172a;padding:12px;border-radius:8px;border:1px solid rgba(148,163,184,.1)"><div style="color:#64748b;font-size:.8rem;margin-bottom:4px">' + label + '</div><div style="color:#e2e8f0;font-weight:500">' + value + '</div></div>';
 }
 </script>
 </body>

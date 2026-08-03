@@ -300,7 +300,85 @@ function copyResult() {
 }
 
 function executeQuery() {
-  showToast('executeQuery - coming soon!');
+  var jsonInput = document.getElementById('jsonInput').value.trim();
+  var pathInput = document.getElementById('jsonPathInput').value.trim();
+  var resultBox = document.getElementById('resultBox');
+  var resultStats = document.getElementById('resultStats');
+  if (!jsonInput) { showToast('请输入JSON数据'); return; }
+  if (!pathInput) { showToast('请输入JSONPath表达式'); return; }
+  
+  var data;
+  try {
+    data = JSON.parse(jsonInput);
+  } catch(e) {
+    resultBox.innerHTML = '<span style="color:#f87171">JSON解析错误: ' + e.message + '</span>';
+    return;
+  }
+  
+  try {
+    var results = jsonPath(data, pathInput);
+    if (results.length === 0) {
+      resultStats.textContent = '0 个匹配';
+      resultBox.innerHTML = '<span style="color:#94a3b8">没有匹配的结果</span>';
+    } else {
+      resultStats.textContent = results.length + ' 个匹配';
+      var html = '<pre style="background:#0f172a;padding:12px;border-radius:8px;overflow-x:auto;color:#7ee787;font-size:.85rem">' + JSON.stringify(results, null, 2) + '</pre>';
+      resultBox.innerHTML = html;
+    }
+    showToast('查询完成');
+  } catch(e) {
+    resultBox.innerHTML = '<span style="color:#f87171">JSONPath错误: ' + e.message + '</span>';
+  }
+}
+function jsonPath(obj, path) {
+  if (!path.startsWith('$')) path = '$' + path;
+  path = path.substring(1);
+  var tokens = [];
+  var current = '';
+  var inBracket = false;
+  for (var i = 0; i < path.length; i++) {
+    var ch = path[i];
+    if (ch === '.' && !inBracket) {
+      if (current) tokens.push(current);
+      current = '';
+    } else if (ch === '[') {
+      if (current) tokens.push(current);
+      current = '';
+      inBracket = true;
+    } else if (ch === ']') {
+      tokens.push(current);
+      current = '';
+      inBracket = false;
+    } else {
+      current += ch;
+    }
+  }
+  if (current) tokens.push(current);
+  
+  var results = [obj];
+  for (var t = 0; t < tokens.length; t++) {
+    var token = tokens[t];
+    var newResults = [];
+    for (var r = 0; r < results.length; r++) {
+      var item = results[r];
+      if (token === '*') {
+        if (Array.isArray(item)) {
+          for (var k = 0; k < item.length; k++) newResults.push(item[k]);
+        } else if (item && typeof item === 'object') {
+          for (var key in item) newResults.push(item[key]);
+        }
+      } else if (/^\d+$/.test(token)) {
+        var idx = parseInt(token);
+        if (Array.isArray(item) && idx < item.length) newResults.push(item[idx]);
+      } else {
+        if (item && typeof item === 'object' && item[token] !== undefined) {
+          newResults.push(item[token]);
+        }
+      }
+    }
+    results = newResults;
+  }
+  return results;
 }
 
 function formatJSON() {

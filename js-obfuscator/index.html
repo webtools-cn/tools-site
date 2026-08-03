@@ -192,7 +192,46 @@ function copyOutput() {
 }
 
 function obfuscate() {
-  showToast('obfuscate - coming soon!');
+  var input = document.getElementById('inputCode').value;
+  var output = document.getElementById('outputCode');
+  if (!input.trim()) { showToast('请输入代码'); return; }
+  
+  var result = input;
+  // Variable name obfuscation
+  var varNames = {};
+  var counter = 0;
+  result = result.replace(/\b(var|let|const)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g, function(match, keyword, name) {
+    if (!varNames[name]) {
+      varNames[name] = '_0x' + counter.toString(16).padStart(4, '0');
+      counter++;
+    }
+    return keyword + ' ' + varNames[name];
+  });
+  // Replace all occurrences of obfuscated variable names
+  for (var original in varNames) {
+    var obf = varNames[original];
+    result = result.replace(new RegExp('\\b' + original + '\\b', 'g'), obf);
+  }
+  // String encoding (hex)
+  result = result.replace(/'([^'\n]*)'/g, function(match, str) {
+    if (str.length < 3) return match;
+    var hex = str.split('').map(function(c) { return '\\x' + c.charCodeAt(0).toString(16).padStart(2, '0'); }).join('');
+    return "'" + hex + "'";
+  });
+  result = result.replace(/"([^"\n]*)"/g, function(match, str) {
+    if (str.length < 3) return match;
+    var hex = str.split('').map(function(c) { return '\\x' + c.charCodeAt(0).toString(16).padStart(2, '0'); }).join('');
+    return '"' + hex + '"';
+  });
+  // Remove comments
+  result = result.replace(/\/\/[^\n]*/g, '');
+  result = result.replace(/\/\*[\s\S]*?\*\//g, '');
+  // Remove extra whitespace
+  result = result.replace(/\n\s*\n/g, '\n');
+  result = result.trim();
+  
+  output.value = result;
+  showToast('混淆完成');
 }
 </script>
 </body>

@@ -273,7 +273,47 @@ function loadExample() {
 }
 
 function playMorse() {
-  showToast('playMorse - coming soon!');
+  var result = document.getElementById('resultOutput');
+  if (!result || !result.value.trim()) { showToast('请先转换摩尔斯码'); return; }
+  var morse = result.value.trim();
+  var freq = parseInt(document.getElementById('freq').value) || 700;
+  var wpm = parseInt(document.getElementById('speed').value) || 15;
+  var unit = 1.2 / wpm; // seconds per dot
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var time = ctx.currentTime;
+    for (var i = 0; i < morse.length; i++) {
+      var ch = morse[i];
+      if (ch === '.') {
+        playTone(ctx, freq, time, unit);
+        time += unit * 2;
+      } else if (ch === '-') {
+        playTone(ctx, freq, time, unit * 3);
+        time += unit * 4;
+      } else if (ch === ' ') {
+        time += unit * 3;
+      } else if (ch === '/') {
+        time += unit * 7;
+      }
+    }
+    showToast('正在播放摩尔斯码');
+  } catch(e) {
+    showToast('音频播放不支持');
+  }
+}
+function playTone(ctx, freq, startTime, duration) {
+  var osc = ctx.createOscillator();
+  var gain = ctx.createGain();
+  osc.frequency.value = freq;
+  osc.type = 'sine';
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
+  gain.gain.setValueAtTime(0.3, startTime + duration - 0.01);
+  gain.gain.linearRampToValueAtTime(0, startTime + duration);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(startTime);
+  osc.stop(startTime + duration);
 }
 
 function swapIO() {

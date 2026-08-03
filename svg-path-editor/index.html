@@ -190,7 +190,53 @@ function loadExample() {
 }
 
 function parsePath() {
-  showToast('parsePath - coming soon!');
+  var input = document.getElementById('pathInput').value.trim();
+  var parseText = document.getElementById('parseText');
+  if (!input) { showToast('请输入SVG路径'); return; }
+  
+  var commands = [];
+  var re = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
+  var match;
+  while ((match = re.exec(input)) !== null) {
+    var cmd = match[1];
+    var args = match[2].trim().split(/[\s,]+/).filter(function(s) { return s; }).map(parseFloat);
+    var desc = '';
+    switch(cmd.toUpperCase()) {
+      case 'M': desc = 'Move To'; break;
+      case 'L': desc = 'Line To'; break;
+      case 'H': desc = 'Horizontal Line'; break;
+      case 'V': desc = 'Vertical Line'; break;
+      case 'C': desc = 'Cubic Bezier'; break;
+      case 'S': desc = 'Smooth Cubic'; break;
+      case 'Q': desc = 'Quadratic Bezier'; break;
+      case 'T': desc = 'Smooth Quadratic'; break;
+      case 'A': desc = 'Arc'; break;
+      case 'Z': desc = 'Close Path'; break;
+    }
+    commands.push({ cmd: cmd, desc: desc, args: args });
+  }
+  
+  var html = '<div style="color:#94a3b8;font-size:.85rem;margin-bottom:8px">共 ' + commands.length + ' 条指令</div>';
+  for (var i = 0; i < commands.length; i++) {
+    var c = commands[i];
+    html += '<div style="display:flex;gap:12px;padding:6px 8px;background:#0f172a;border-radius:6px;margin-bottom:4px;font-size:.8rem">';
+    html += '<span style="color:#22d3ee;font-weight:600;min-width:24px">' + c.cmd + '</span>';
+    html += '<span style="color:#94a3b8;min-width:100px">' + c.desc + '</span>';
+    html += '<span style="color:#e2e8f0">' + (c.args.length ? c.args.join(', ') : '-') + '</span>';
+    html += '</div>';
+  }
+  parseText.innerHTML = html;
+  
+  // Render SVG preview
+  var svgEl = document.getElementById('svgPreview');
+  if (svgEl) {
+    var viewSize = parseInt(document.getElementById('viewSize').value) || 200;
+    var stroke = document.getElementById('strokeColor').value;
+    var fill = document.getElementById('fillColor').value;
+    var sw = document.getElementById('strokeWidth').value;
+    svgEl.innerHTML = '<svg viewBox="0 0 ' + viewSize + ' ' + viewSize + '" width="' + viewSize + '" height="' + viewSize + '"><path d="' + input.replace(/</g,'&lt;') + '" stroke="' + stroke + '" fill="' + fill + '" stroke-width="' + sw + '"/></svg>';
+  }
+  showToast('解析完成，共' + commands.length + '条指令');
 }
 
 function updatePreview() {
