@@ -222,12 +222,100 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 // === 重写的函数实现 ===
 function generateCSP() {
-  var input = document.getElementById('extraSources').value;
-  if (!input.trim()) { showToast('请输入数据'); return; }
-  var output = input;
-  document.getElementById('result').textContent = output;
-  document.getElementById('result').style.display = 'block';
-  showToast('生成完成');
+  var checks = document.querySelectorAll('#cspChecks input[type=checkbox]');
+  var defaultSrc = document.getElementById('defaultSource').value;
+  var extraRaw = document.getElementById('extraSources').value.trim();
+  var extraSources = extraRaw ? extraRaw.split(/[,，]/).map(function(s){return s.trim();}).filter(function(s){return s;}) : [];
+
+  // Build source value for a directive
+  function buildSource(dir) {
+    var parts = [];
+    if (dir === 'default-src') {
+      parts.push(defaultSrc);
+    } else {
+      // Use default-src as base, plus extras
+      parts.push(defaultSrc);
+    }
+    extraSources.forEach(function(s) {
+      // Add protocol prefix if missing
+      if (s.indexOf('http') === 0 || s.indexOf("'") === 0) {
+        parts.push(s);
+      } else if (s === '*') {
+        parts.push('*');
+      } else {
+        parts.push('https://' + s);
+      }
+    });
+    // Add common safe sources per directive type
+    if (dir === 'img-src') {
+      parts.push('data:');
+      parts.push('blob:');
+    }
+    if (dir === 'font-src') {
+      parts.push('data:');
+    }
+    if (dir === 'connect-src') {
+      parts.push('https:');
+    }
+    return parts.join(' ');
+  }
+
+  var directives = [];
+  checks.forEach(function(cb) {
+    if (cb.checked) {
+      var dir = cb.getAttribute('data-dir');
+      directives.push(dir + ' ' + buildSource(dir));
+    }
+  });
+
+  if (directives.length === 0) {
+    showToast('请至少选择一个指令');
+    return;
+  }
+
+  var cspString = directives.join('; ');
+  var headerCode = 'Content-Security-Policy: ' + cspString;
+  var metaCode = '<meta http-equiv="Content-Security-Policy" content="' + cspString.replace(/"/g, '&quot;') + '">';
+
+  var resultEl = document.getElementById('result');
+  var cspResultEl = document.getElementById('cspResult');
+  var html = '';
+  html += '<div style="margin-bottom:16px">';
+  html += '<h3 style="color:#f1f5f9;font-size:.95rem;margin-bottom:8px">📡 HTTP响应头</h3>';
+  html += '<pre style="background:#0f172a;border-radius:8px;padding:12px;color:#4ade80;font-size:.82rem;overflow-x:auto;white-space:pre-wrap;word-break:break-all">' + escapeHtml(headerCode) + '</pre>';
+  html += '<button class="btn btn-secondary" style="margin-top:6px;font-size:.8rem" onclick="copyCspText(this)" data-text="' + escapeAttr(headerCode) + '">📋 复制</button>';
+  html += '</div>';
+  html += '<div style="margin-bottom:16px">';
+  html += '<h3 style="color:#f1f5f9;font-size:.95rem;margin-bottom:8px">📄 HTML Meta标签</h3>';
+  html += '<pre style="background:#0f172a;border-radius:8px;padding:12px;color:#22d3ee;font-size:.82rem;overflow-x:auto;white-space:pre-wrap;word-break:break-all">' + escapeHtml(metaCode) + '</pre>';
+  html += '<button class="btn btn-secondary" style="margin-top:6px;font-size:.8rem" onclick="copyCspText(this)" data-text="' + escapeAttr(metaCode) + '">📋 复制</button>';
+  html += '</div>';
+  html += '<div style="background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12);border-radius:8px;padding:12px;margin-top:12px">';
+  html += '<strong style="color:#22d3ee;font-size:.85rem">📊 策略摘要</strong>';
+  html += '<div style="color:#94a3b8;font-size:.82rem;margin-top:6px">已启用 ' + directives.length + ' 个指令';
+  if (extraSources.length) {
+    html += ' · 额外来源 ' + extraSources.length + ' 个';
+  }
+  html += '</div></div>';
+
+  cspResultEl.innerHTML = html;
+  resultEl.style.display = 'block';
+  showToast('CSP策略已生成');
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escapeAttr(s) {
+  return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function copyCspText(btn) {
+  var text = btn.getAttribute('data-text');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function(){showToast('已复制');}).catch(function(){showToast('复制失败');});
+  } else {
+    showToast('已复制');
+  }
 }
 </script>
 </body>
