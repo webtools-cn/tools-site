@@ -210,41 +210,99 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var currentMode = 'char';
+
 function clearAll() {
-  document.getElementById('trimWhitespace').value = '';
-  document.getElementById('keepParagraphs').value = '';
   document.getElementById('inputText').value = '';
-  document.getElementById('resultBox').innerHTML = '';
-  document.getElementById('resultBox').style.display = 'none';
+  document.getElementById('resultBox').textContent = '';
+  document.getElementById('resultBox').style.display = '';
   document.getElementById('resultStats').innerHTML = '';
-  document.getElementById('resultStats').style.display = 'none';
+  document.getElementById('inputStats').innerHTML = '';
+  document.getElementById('trimWhitespace').checked = false;
+  document.getElementById('keepParagraphs').checked = false;
   showToast('已重置');
 }
 
 function copyResult() {
   var text = document.getElementById('resultBox').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  if (!text || text === '结果将显示在这里...') { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制到剪贴板'); })['catch'](function() { showToast('复制失败'); });
 }
 
 function resultToInput() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!out||!inp)return;inp.value=out.textContent||out.innerText;out.textContent='';if(typeof convert==='function')convert();showToast('Moved to input!');
+  var out = document.getElementById('resultBox');
+  var inp = document.getElementById('inputText');
+  if (!out || !inp) return;
+  var text = out.innerText;
+  if (!text || text === '结果将显示在这里...') { showToast('没有结果可填入'); return; }
+  inp.value = text;
+  out.textContent = '';
+  showToast('结果已填入输入框');
 }
 
 function reverseText() {
-  showToast('reverseText - coming soon!');
+  var input = document.getElementById('inputText').value;
+  if (!input) { showToast('请先输入文本'); return; }
+  var trimWs = document.getElementById('trimWhitespace').checked;
+  var keepPara = document.getElementById('keepParagraphs').checked;
+  var text = input;
+  if (trimWs) text = text.trim();
+  var result = '';
+  if (currentMode === 'char') {
+    // Use Array.from for proper Unicode surrogate pair handling
+    result = Array.from(text).reverse().join('');
+  } else if (currentMode === 'word') {
+    var lines = text.split('\n');
+    result = lines.map(function(line) {
+      var words = line.split(/(\s+)/);
+      // Filter out empty strings, reverse words (keeping separators)
+      var parts = words.filter(function(w) { return w.length > 0; });
+      return parts.reverse().join('');
+    }).join('\n');
+  } else if (currentMode === 'line') {
+    if (keepPara) {
+      // Split by double newlines (paragraphs), reverse lines within each paragraph
+      var paras = text.split(/\n\s*\n/);
+      result = paras.map(function(para) {
+        return para.split('\n').reverse().join('\n');
+      }).reverse().join('\n\n');
+    } else {
+      result = text.split('\n').reverse().join('\n');
+    }
+  }
+  var resultBox = document.getElementById('resultBox');
+  resultBox.textContent = result;
+  resultBox.style.display = '';
+  // Update stats
+  var inChars = Array.from(input).length;
+  var inWords = input.split(/\s+/).filter(function(w) { return w.length > 0; }).length;
+  var inLines = input.split('\n').length;
+  document.getElementById('inputStats').innerHTML = '<span>字符: ' + inChars + '</span><span>单词: ' + inWords + '</span><span>行数: ' + inLines + '</span>';
+  var outChars = Array.from(result).length;
+  var outWords = result.split(/\s+/).filter(function(w) { return w.length > 0; }).length;
+  var outLines = result.split('\n').length;
+  document.getElementById('resultStats').innerHTML = '<span>字符: ' + outChars + '</span><span>单词: ' + outWords + '</span><span>行数: ' + outLines + '</span>';
+  showToast('倒序完成');
 }
 
 function setMode(value) {
-  if(typeof value === 'string') {
-    var el = document.querySelector('[data-preset="' + value + '"], [data-mode="' + value + '"]');
-    if(el) el.classList.add('active');
-  }
-  showToast('已应用');
+  currentMode = value;
+  var btns = document.querySelectorAll('.mode-btn');
+  btns.forEach(function(b) { b.classList.remove('active'); });
+  var activeBtn = document.querySelector('[data-mode="' + value + '"]');
+  if (activeBtn) activeBtn.classList.add('active');
 }
 
 function swapText() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!inp||!out)return;var t=inp.value;inp.value=out.textContent||out.innerText;out.textContent=t;showToast('Swapped!');
+  var inp = document.getElementById('inputText');
+  var out = document.getElementById('resultBox');
+  if (!inp || !out) return;
+  var outText = out.innerText;
+  if (!outText || outText === '结果将显示在这里...') { showToast('没有结果可交换'); return; }
+  var t = inp.value;
+  inp.value = outText;
+  out.textContent = t;
+  showToast('已交换');
 }
 </script>
 </body>
