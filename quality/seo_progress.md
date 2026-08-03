@@ -1,6 +1,6 @@
 # SEO修复进度报告
 
-> 最后更新: 2026-08-03 05:00
+> 最后更新: 2026-08-03 08:30
 
 ## ✅ P0: 全站Canonical URL修复 — 重大突破 (commit `04962b7625`)
 
@@ -157,6 +157,25 @@
 | 11 | download-time-calculator | 下载时间估算(多单位) | `dcbe732` |
 | 12 | concrete-calculator | 3种形状混凝土体积+袋数+成本 | `dcbe732` |
 | 13 | loan-payoff-calculator | 提前还款计算+节省利息/时间 | `dcbe732` |
+| 14 | lorem-ipsum | 段落/句子/单词三种模式+经典开头+HTML标签 | `249a5aef48` |
+| 15 | json-to-graphql | JSON→GraphQL Schema转换(嵌套类型) | `249a5aef48` |
+| 16 | web-component-generator | 完整Web Component代码生成(模板+样式+逻辑) | `249a5aef48` |
+| 17 | dockerfile-generator | Dockerfile生成(基础镜像+构建阶段) | `249a5aef48` |
+| 18 | nginx-config-generator | Nginx配置生成(server/location/代理) | `249a5aef48` |
+| 19 | ai-copywriting-generator | 多类型文案生成(广告语/产品描述/社媒) | `249a5aef48` |
+| 20 | coupon-code-generator | 优惠券代码生成 | `249a5aef48` |
+| 21 | css-has-selector-generator | CSS :has() 选择器生成 | `249a5aef48` |
+| 22 | css-layer-generator | CSS @layer 结构生成 | `249a5aef48` |
+| 23 | css-to-less | CSS转LESS转换器 | `249a5aef48` |
+| 24 | eslint-config-generator | ESLint配置生成 | `249a5aef48` |
+| 25 | file-size-converter | 文件大小单位转换 | `249a5aef48` |
+| 26 | html-to-xml | HTML转XML转换器 | `249a5aef48` |
+| 27 | prettier-config-generator | Prettier配置生成 | `249a5aef48` |
+| 28 | readme-generator | README生成器 | `249a5aef48` |
+| 29 | seo-meta-tag-generator | SEO Meta标签生成 | `249a5aef48` |
+| 30 | text-line-wrapper | 文本行包装处理 | `249a5aef48` |
+| 31 | text-prefix-suffix | 文本前后缀添加 | `249a5aef48` |
+| 32 | text-to-unicode | 文本转Unicode编码 | `249a5aef48` |
 
 ### 修复方法
 - LCS (Longest Common Subsequence) 算法实现逐行diff
@@ -165,7 +184,7 @@
 - 统计面板显示新增/删除行数
 
 ### 剩余空壳
-约43个空壳工具待修复。全站"Generated at" stub已清零（0个），但仍有约250+个页面含"coming soon" stub函数（部分为EN页面的HTML提示文本非JS stub）。CN页面中约43个工具有JS stub函数需要实现。
+约239个CN页面含"coming soon" stub函数待修复（全站"Generated at" stub已清零0个）。本轮修复19个生成器类工具（commit `249a5aef48`），全部通过node语法校验+WebBridge浏览器实测（lorem-ipsum/json-to-graphql/web-component-generator/dockerfile-generator/nginx-config-generator/ai-copywriting-generator抽样验证）。
 
 ---
 
