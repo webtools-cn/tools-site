@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第三十三批 - 全站复扫发现29个回显型空壳并修复3个)
+> 最后更新: 2026-08-03 (cron自动更新 - 第三十四批 - 修复3个回显型空壳)
 
 ## 当前真实问题
 
@@ -11,44 +11,44 @@
 | EN版模板空壳(process未定义) | 23 | 23 | 0 | ✅ 完成 | grep toolInput + process() 未定义检测 |
 | EN版假交互空壳(quickInput) | 224 | 224 | 0 | ✅ 完成 | grep quickInput + 无业务函数检测 |
 | toolInput误报(7个有功能) | 7 | 7 | 0 | ✅ 误报 | 有addEventListener绑定的真实功能 |
-| 回显型process空壳(output=input) | 29 | 3 | 26 | 🔴 进行中 | 全站扫描 var output = input + 无业务逻辑 |
+| 回显型process空壳(output=input) | 29 | 6 | 23 | 🔴 进行中 | 全站扫描 var output = input + 无业务逻辑 |
 
-## 回显型空壳清单(26个剩余)
+## 回显型空壳清单(23个剩余)
 
 > 特征：process()/convert()/generate()函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
-> 注：第三十三批全站复扫发现此前清单(24个)大部分已修复但遗漏记录，实际全站有29个回显stub，本轮修复3个(CSS类)，剩余26个：
+> 注：第三十四批修复3个(cidr-to-ip-range/csv-to-markdown-table/csp-generator)，剩余23个：
 
 1. ai-json-schema-generator
 2. ai-system-prompt-builder
 3. api-response-time-tester
 4. base45-encoder
 5. caddyfile-generator
-6. cidr-to-ip-range
-7. csp-generator
-8. csv-to-markdown-table
-9. env-to-json
-10. haproxy-config-generator
-11. hex-to-hsl
-12. html-email-template
-13. html-escape-unescape
-14. html-table-to-markdown
-15. htaccess-generator
-16. htpasswd-generator
-17. http-cache-header-generator
-18. kubernetes-yaml-generator
-19. markdown-table-formatter
-20. mock-data-generator
-21. npm-package-json
-22. roman-to-decimal
-23. string-case-converter
-24. svg-pattern-generator
-25. tailwind-spacing-generator
-26. time-zone-converter
-27. typescript-utility-types
-28. unicode-range-generator
-29. yaml-to-dotenv
+6. env-to-json
+7. haproxy-config-generator
+8. hex-to-hsl
+9. html-email-template
+10. html-escape-unescape
+11. html-table-to-markdown
+12. htaccess-generator
+13. htpasswd-generator
+14. http-cache-header-generator
+15. kubernetes-yaml-generator
+16. mock-data-generator
+17. npm-package-json
+18. roman-to-decimal
+19. string-case-converter
+20. svg-pattern-generator
+21. tailwind-spacing-generator
+22. time-zone-converter
+23. typescript-utility-types
+24. unicode-range-generator
+25. yaml-to-dotenv
 
 ## 已修复的空壳工具
+
+### 2026-08-03 (第三十四批 - 修复3个回显型空壳)
+cidr-to-ip-range, csv-to-markdown-table, csp-generator
+注: 三个工具CN版均修复。cidr-to-ip-range和csv-to-markdown-table的情况特殊——页面已有完整的业务逻辑函数(calcCidr/ipToNum/numToIp/convert和parseCSV/csvToMarkdownTable/convert)，但末尾/开头被注入了"重写的函数实现"stub块，用`var output = input`回显空壳覆盖了有效函数。修复方式：直接删除stub块，恢复原有完整功能。cidr-to-ip-range原有功能：CIDR解析→网络地址/子网掩码/起始IP/结束IP/广播地址/可用主机数+批量多行+实时输入转换+CSV下载，node实测5组用例(192.168.1.0/24→254主机等)全部正确；csv-to-markdown-table原有功能：CSV解析(引号支持)+5种分隔符+3种对齐+Markdown源码/表格预览双标签页+行列统计。csp-generator CN+EN版用真实CSP生成逻辑替换stub(11种指令复选框default-src/script-src/style-src/img-src/font-src/connect-src/media-src/frame-src/object-src/base-uri/form-action+self/none/*默认源下拉+额外来源逗号分隔自动加https前缀+img/font/connect安全源补充data:/blob:/https:+HTTP响应头和HTML Meta标签双格式输出+策略摘要+一键复制按钮)，node测试CSP生成正确。4个文件JS语法验证通过。全站`var output = input`从33降到30。剩余23个待修。
 
 ### 2026-08-03 (第三十三批 - 全站复扫+修复3个CSS回显stub)
 css-media-query-generator, css-scroll-driven-animation, gradient-border-animation
