@@ -333,8 +333,64 @@ function loadSample() {
 }
 
 function parseCSV() {
-  showToast('parseCSV - coming soon!');
+  var input = document.getElementById('csvInput').value;
+  var hasHeader = document.getElementById('hasHeader').checked;
+  var trimSpaces = document.getElementById('trimSpaces').checked;
+  var tableContainer = document.getElementById('tableContainer') || document.getElementById('csvTable');
+  if (!input.trim()) { showToast('请输入CSV数据'); return; }
+  
+  var rows = parseCSVText(input, trimSpaces);
+  if (rows.length === 0) { showToast('未解析到数据'); return; }
+  
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:.85rem">';
+  var startIdx = hasHeader ? 1 : 0;
+  if (hasHeader && rows.length > 0) {
+    html += '<thead><tr>';
+    for (var c = 0; c < rows[0].length; c++) {
+      html += '<th style="padding:6px 10px;border:1px solid #334155;background:#0f172a;color:#22d3ee;text-align:left">' + escapeHtml(rows[0][c]) + '</th>';
+    }
+    html += '</tr></thead>';
+  }
+  html += '<tbody>';
+  for (var r = startIdx; r < rows.length; r++) {
+    html += '<tr>';
+    for (var c = 0; c < rows[r].length; c++) {
+      html += '<td style="padding:6px 10px;border:1px solid rgba(148,163,184,.1);color:#e2e8f0" contenteditable="true">' + escapeHtml(rows[r][c]) + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  html += '<div style="margin-top:8px;color:#64748b;font-size:.8rem">' + (rows.length - startIdx) + ' 行 \u00d7 ' + (rows[0] ? rows[0].length : 0) + ' 列</div>';
+  if (tableContainer) {
+    tableContainer.innerHTML = html;
+    tableContainer.style.display = 'block';
+  }
+  showToast('解析完成，' + (rows.length - startIdx) + '行数据');
 }
+function parseCSVText(text, trim) {
+  var rows = [];
+  var current = [];
+  var field = '';
+  var inQuotes = false;
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i+1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else { field += ch; }
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === ',') { current.push(trim ? field.trim() : field); field = ''; }
+      else if (ch === '\n') { current.push(trim ? field.trim() : field); rows.push(current); current = []; field = ''; }
+      else if (ch === '\r') { /* skip */ }
+      else field += ch;
+    }
+  }
+  if (field || current.length > 0) { current.push(trim ? field.trim() : field); rows.push(current); }
+  return rows;
+}
+function escapeHtml(s) { var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 </script>
 </body>
 </html>

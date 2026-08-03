@@ -201,7 +201,67 @@ function clearGraph() {
 }
 
 function plotGraph() {
-  showToast('plotGraph - coming soon!');
+  var eq = document.getElementById('eqInput').value.trim();
+  var xMin = parseFloat(document.getElementById('eqXMin').value) || -10;
+  var xMax = parseFloat(document.getElementById('eqXMax').value) || 10;
+  var yMin = parseFloat(document.getElementById('eqYMin').value) || -5;
+  var yMax = parseFloat(document.getElementById('eqYMax').value) || 5;
+  var canvas = document.getElementById('graphCanvas');
+  if (!canvas || !eq) { if (!eq) showToast('请输入函数'); return; }
+  
+  // Parse equation - support sin, cos, tan, sqrt, abs, exp, log, pow, ^, *, /, +, -, x, pi, e
+  var expr = eq.replace(/\^/g, '**').replace(/\bpi\b/gi, 'Math.PI').replace(/\be\b/g, 'Math.E');
+  expr = expr.replace(/\bsin\b/gi, 'Math.sin').replace(/\bcos\b/gi, 'Math.cos');
+  expr = expr.replace(/\btan\b/gi, 'Math.tan').replace(/\bsqrt\b/gi, 'Math.sqrt');
+  expr = expr.replace(/\babs\b/gi, 'Math.abs').replace(/\bexp\b/gi, 'Math.exp');
+  expr = expr.replace(/\blog\b/gi, 'Math.log').replace(/\bfloor\b/gi, 'Math.floor');
+  expr = expr.replace(/\bceil\b/gi, 'Math.ceil').replace(/\bround\b/gi, 'Math.round');
+  expr = expr.replace(/\bpow\b/gi, 'Math.pow');
+  
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, w, h);
+  
+  // Draw grid
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 1;
+  var xRange = xMax - xMin, yRange = yMax - yMin;
+  for (var x = Math.ceil(xMin); x <= xMax; x++) {
+    var px = (x - xMin) / xRange * w;
+    ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.stroke();
+  }
+  for (var y = Math.ceil(yMin); y <= yMax; y++) {
+    var py = h - (y - yMin) / yRange * h;
+    ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke();
+  }
+  // Axes
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 2;
+  var x0 = (0 - xMin) / xRange * w;
+  var y0 = h - (0 - yMin) / yRange * h;
+  ctx.beginPath(); ctx.moveTo(x0, 0); ctx.lineTo(x0, h); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, y0); ctx.lineTo(w, y0); ctx.stroke();
+  // Plot
+  ctx.strokeStyle = '#22d3ee';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  var started = false;
+  for (var px = 0; px <= w; px++) {
+    var x = xMin + (px / w) * xRange;
+    var y;
+    try {
+      y = eval('(function(x){return ' + expr + ';})(' + x + ')');
+    } catch(e) { started = false; continue; }
+    if (!isFinite(y) || isNaN(y)) { started = false; continue; }
+    var py = h - (y - yMin) / yRange * h;
+    if (py < -100 || py > h + 100) { started = false; continue; }
+    if (!started) { ctx.moveTo(px, py); started = true; }
+    else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+  showToast('绘图完成');
 }
 </script>
 </body>
