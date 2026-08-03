@@ -211,9 +211,81 @@ document.getElementById('feedback-success').style.display='block';
 
 /* base58 functions implemented below */
 
-// === 重写的函数实现 ===
+// Base58 字母表 (Bitcoin)
+var B58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+var B58_MAP = {};
+for (var i = 0; i < B58_ALPHABET.length; i++) B58_MAP[B58_ALPHABET[i]] = i;
+
+function base58Decode(str) {
+  var bytes = [];
+  for (var i = 0; i < str.length; i++) {
+    var c = str[i];
+    if (B58_MAP[c] === undefined) return null;
+    var carry = B58_MAP[c];
+    for (var j = 0; j < bytes.length; j++) {
+      carry += bytes[j] * 58;
+      bytes[j] = carry & 0xFF;
+      carry >>= 8;
+    }
+    while (carry > 0) { bytes.push(carry & 0xFF); carry >>= 8; }
+  }
+  for (var i = 0; i < str.length && str[i] === '1'; i++) bytes.push(0);
+  bytes.reverse();
+  return bytes;
+}
+
+function base58Encode(bytes) {
+  var result = '';
+  var zeros = 0;
+  while (zeros < bytes.length && bytes[zeros] === 0) { result += '1'; zeros++; }
+  var num = bytes.slice(zeros);
+  var encoded = [];
+  for (var i = 0; i < num.length; i++) {
+    var carry = num[i];
+    for (var j = 0; j < encoded.length; j++) {
+      carry += encoded[j] << 8;
+      encoded[j] = carry % 58;
+      carry = Math.floor(carry / 58);
+    }
+    while (carry > 0) { encoded.push(carry % 58); carry = Math.floor(carry / 58); }
+  }
+  for (var i = encoded.length - 1; i >= 0; i--) result += B58_ALPHABET[encoded[i]];
+  return result;
+}
+
 function autoDecode() {
-  showToast('autoDecode - coming soon!');
+  var input = document.getElementById('inputText').value.trim();
+  var output = document.getElementById('outputText');
+  if (!input) { output.value = ''; return; }
+  var decoded = base58Decode(input);
+  if (decoded === null) {
+    output.value = '⚠️ 无效的Base58字符串（包含非Base58字符）';
+    return;
+  }
+  var mode = document.getElementById('decodeMode').value;
+  var outputMode = document.getElementById('outputMode').value;
+  var result;
+  if (mode === 'encode') {
+    // 编码模式
+    var bytes = [];
+    for (var i = 0; i < input.length; i++) bytes.push(input.charCodeAt(i));
+    result = base58Encode(bytes);
+  } else {
+    // 解码模式
+    try {
+      var text = '';
+      for (var i = 0; i < decoded.length; i++) text += String.fromCharCode(decoded[i]);
+      result = text;
+      if (outputMode === 'hex') {
+        result = decoded.map(function(b) { return b.toString(16).padStart(2, '0'); }).join(' ');
+      } else if (outputMode === 'base64') {
+        result = btoa(text);
+      }
+    } catch(e) {
+      result = '解码失败: ' + e.message;
+    }
+  }
+  output.value = result;
 }
 
 function clearAll() {

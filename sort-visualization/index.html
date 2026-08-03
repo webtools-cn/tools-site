@@ -220,16 +220,133 @@ function generateData() {
   showToast('已生成'+n+'个数据点！');
 }
 
+var sortData = [];
+var sortRunning = false;
+var sortPaused = false;
+var sortComparisons = 0;
+var sortSwaps = 0;
+var sortHighlight = [-1, -1];
+
+function generateData() {
+  var size = parseInt(document.getElementById('sizeSlider').value);
+  var type = document.getElementById('dataType').value;
+  sortData = [];
+  for (var i = 0; i < size; i++) sortData.push(Math.floor(Math.random() * 300) + 10);
+  if (type === 'nearly') { sortData.sort(function(a,b){return a-b;}); for (var i = 0; i < size/10; i++) { var a = Math.floor(Math.random()*size), b = Math.floor(Math.random()*size); var t = sortData[a]; sortData[a] = sortData[b]; sortData[b] = t; } }
+  if (type === 'reversed') sortData.sort(function(a,b){return b-a;});
+  if (type === 'few-unique') { var vals = [50, 100, 150, 200, 250]; for (var i = 0; i < size; i++) sortData[i] = vals[Math.floor(Math.random()*vals.length)]; }
+  sortComparisons = 0; sortSwaps = 0;
+  document.getElementById('statCompares').textContent = '0';
+  document.getElementById('statSwaps').textContent = '0';
+  document.getElementById('statTime').textContent = '0ms';
+  document.getElementById('statStatus').textContent = '就绪';
+  drawSort();
+}
+
+function drawSort() {
+  var canvas = document.getElementById('sortCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width = canvas.offsetWidth;
+  var h = canvas.height = 200;
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, w, h);
+  if (sortData.length === 0) return;
+  var barW = w / sortData.length;
+  var maxVal = Math.max.apply(null, sortData);
+  for (var i = 0; i < sortData.length; i++) {
+    var barH = (sortData[i] / maxVal) * (h - 10);
+    if (i === sortHighlight[0] || i === sortHighlight[1]) ctx.fillStyle = '#f59e0b';
+    else ctx.fillStyle = '#22d3ee';
+    ctx.fillRect(i * barW, h - barH, Math.max(barW - 1, 1), barH);
+  }
+}
+
+function sleep(ms) { return new Promise(function(r){setTimeout(r, ms)}); }
+
+async function startSort() {
+  if (sortRunning) return;
+  if (sortData.length === 0) generateData();
+  sortRunning = true; sortPaused = false;
+  sortComparisons = 0; sortSwaps = 0;
+  var startTime = Date.now();
+  document.getElementById('statStatus').textContent = '排序中...';
+  var algo = document.getElementById('algoSelect').value;
+  var speed = parseInt(document.getElementById('speedSlider').value);
+  var delay = Math.max(1, 101 - speed);
+  
+  async function swap(i, j) { var t = sortData[i]; sortData[i] = sortData[j]; sortData[j] = t; sortSwaps++; }
+  async function compare(i, j) { sortComparisons++; sortHighlight = [i, j]; drawSort(); await sleep(delay); return sortData[i] - sortData[j]; }
+  
+  if (algo === 'bubble') {
+    for (var i = 0; i < sortData.length - 1; i++) {
+      for (var j = 0; j < sortData.length - 1 - i; j++) {
+        if (await compare(j, j+1) > 0) { await swap(j, j+1); drawSort(); await sleep(delay); }
+        if (!sortRunning) break;
+      }
+      if (!sortRunning) break;
+    }
+  } else if (algo === 'selection') {
+    for (var i = 0; i < sortData.length; i++) {
+      var minIdx = i;
+      for (var j = i + 1; j < sortData.length; j++) {
+        if (await compare(j, minIdx) < 0) minIdx = j;
+        if (!sortRunning) break;
+      }
+      if (minIdx !== i) { await swap(i, minIdx); drawSort(); }
+      if (!sortRunning) break;
+    }
+  } else if (algo === 'insertion') {
+    for (var i = 1; i < sortData.length; i++) {
+      var j = i;
+      while (j > 0 && (await compare(j-1, j)) > 0) { await swap(j-1, j); drawSort(); j--; if (!sortRunning) break; }
+      if (!sortRunning) break;
+    }
+  } else if (algo === 'quick') {
+    async function quickSort(lo, hi) {
+      if (lo < hi && sortRunning) {
+        var pivot = sortData[hi], i = lo - 1;
+        for (var j = lo; j < hi; j++) {
+          if (await compare(j, hi) <= 0) { i++; await swap(i, j); drawSort(); }
+          if (!sortRunning) break;
+        }
+        await swap(i+1, hi); drawSort();
+        await quickSort(lo, i); await quickSort(i+2, hi);
+      }
+    }
+    await quickSort(0, sortData.length - 1);
+  } else {
+    // 默认用冒泡
+    for (var i = 0; i < sortData.length - 1; i++) {
+      for (var j = 0; j < sortData.length - 1 - i; j++) {
+        if (await compare(j, j+1) > 0) { await swap(j, j+1); drawSort(); await sleep(delay); }
+        if (!sortRunning) break;
+      }
+      if (!sortRunning) break;
+    }
+  }
+  
+  sortRunning = false;
+  sortHighlight = [-1, -1];
+  drawSort();
+  document.getElementById('statCompares').textContent = sortComparisons;
+  document.getElementById('statSwaps').textContent = sortSwaps;
+  document.getElementById('statTime').textContent = (Date.now() - startTime) + 'ms';
+  document.getElementById('statStatus').textContent = sortRunning ? '排序中' : '完成';
+  if (!sortRunning) showToast('排序完成');
+}
+
 function pauseSort() {
-  showToast('pauseSort - coming soon!');
+  sortRunning = false;
+  document.getElementById('statStatus').textContent = '已暂停';
+  showToast('已暂停');
 }
 
 function resetSort() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
-}
-
-function startSort() {
-  showToast('startSort - coming soon!');
+  sortRunning = false;
+  generateData();
+  document.getElementById('statStatus').textContent = '已重置';
+  showToast('已重置');
 }
 </script>
 </body>

@@ -344,7 +344,38 @@ function resetEditor() {
 }
 
 function updateFilter() {
-  showToast('updateFilter - coming soon!');
+  var intensity = parseInt(document.getElementById('intensity').value);
+  document.getElementById('intensityValue').textContent = intensity + '%';
+  var fileInput = document.getElementById('fileInput');
+  if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.querySelector('canvas') || document.getElementById('previewCanvas');
+      if (!canvas) canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var data = imageData.data;
+      var strength = intensity / 100;
+      for (var i = 0; i < data.length; i += 4) {
+        var r = data[i], g = data[i+1], b = data[i+2];
+        var sr = 0.393*r + 0.769*g + 0.189*b;
+        var sg = 0.349*r + 0.686*g + 0.168*b;
+        var sb = 0.272*r + 0.534*g + 0.131*b;
+        data[i] = Math.min(255, r * (1 - strength) + sr * strength);
+        data[i+1] = Math.min(255, g * (1 - strength) + sg * strength);
+        data[i+2] = Math.min(255, b * (1 - strength) + sb * strength);
+      }
+      ctx.putImageData(imageData, 0, 0);
+      showToast('滤镜已应用');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(fileInput.files[0]);
 }
 </script>
 </body>

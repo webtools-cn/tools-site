@@ -233,8 +233,70 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var blurImage = null;
+var blurCanvas = null;
+var blurCtx = null;
+
 function applyBlur() {
-  showToast('applyBlur - coming soon!');
+  var radius = parseInt(document.getElementById('blurRadius') ? document.getElementById('blurRadius').value : 5);
+  if (isNaN(radius)) radius = 5;
+  var fileInput = document.getElementById('fileInput');
+  if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+    showToast('请先上传图片');
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      blurCanvas = document.querySelector('canvas') || document.getElementById('previewCanvas');
+      if (!blurCanvas) blurCanvas = document.createElement('canvas');
+      blurCanvas.width = img.width;
+      blurCanvas.height = img.height;
+      blurCtx = blurCanvas.getContext('2d');
+      blurCtx.drawImage(img, 0, 0);
+      blurImage = img;
+      // 使用CSS filter blur作为快速方案
+      if (radius > 0) {
+        var imageData = blurCtx.getImageData(0, 0, blurCanvas.width, blurCanvas.height);
+        var data = imageData.data;
+        var w = blurCanvas.width, h = blurCanvas.height;
+        // 简化的盒模糊
+        var tmpData = new Uint8ClampedArray(data);
+        var r = Math.max(1, Math.min(radius, 20));
+        for (var y = 0; y < h; y++) {
+          for (var x = 0; x < w; x++) {
+            var rs=0,gs=0,bs=0,cnt=0;
+            for (var dy = -r; dy <= r; dy++) {
+              for (var dx = -r; dx <= r; dx++) {
+                var nx = x+dx, ny = y+dy;
+                if (nx>=0&&nx<w&&ny>=0&&ny<h) {
+                  var idx = (ny*w+nx)*4;
+                  rs+=tmpData[idx]; gs+=tmpData[idx+1]; bs+=tmpData[idx+2]; cnt++;
+                }
+              }
+            }
+            var idx = (y*w+x)*4;
+            data[idx]=rs/cnt; data[idx+1]=gs/cnt; data[idx+2]=bs/cnt;
+          }
+        }
+        blurCtx.putImageData(imageData, 0, 0);
+      }
+      showToast('模糊已应用 (半径: ' + radius + ')');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(fileInput.files[0]);
+}
+
+function setView() {
+  // 切换预览视图（原图/效果图）
+  if (blurImage && blurCanvas && blurCtx) {
+    blurCtx.drawImage(blurImage, 0, 0);
+    showToast('已切换到原图视图');
+  } else {
+    showToast('请先上传并应用模糊效果');
+  }
 }
 
 function downloadImage() {
@@ -257,7 +319,13 @@ function resetImage() {
 }
 
 function setView() {
-  showToast('setView - coming soon!');
+  // 切换预览视图（原图/效果图）已在上方实现
+  if (blurImage && blurCanvas && blurCtx) {
+    blurCtx.drawImage(blurImage, 0, 0);
+    showToast('已切换到原图视图');
+  } else {
+    showToast('请先上传并应用模糊效果');
+  }
 }
 </script>
 </body>

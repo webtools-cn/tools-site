@@ -290,33 +290,180 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === 工作日计算器核心逻辑 ===
+var holidays = []; // [{date:'YYYY-MM-DD', name:'节假日'}]
+
+function isHoliday(dateStr) {
+  return holidays.some(function(h) { return h.date === dateStr; });
+}
+
+function isWorkday(date, excludeSat, excludeSun) {
+  var day = date.getDay();
+  var dateStr = date.toISOString().slice(0, 10);
+  if (isHoliday(dateStr)) return false;
+  if (excludeSat && day === 6) return false;
+  if (excludeSun && day === 0) return false;
+  return true;
+}
+
+function formatDate(date) {
+  var y = date.getFullYear();
+  var m = String(date.getMonth() + 1).padStart(2, '0');
+  var d = String(date.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + d;
+}
+
 function addCNHolidays() {
-  showToast('addCNHolidays - coming soon!');
+  var cn2025 = [
+    {date:'2025-01-01', name:'元旦'},
+    {date:'2025-01-28', name:'春节除夕'},
+    {date:'2025-01-29', name:'春节初一'},
+    {date:'2025-01-30', name:'春节初二'},
+    {date:'2025-01-31', name:'春节初三'},
+    {date:'2025-02-01', name:'春节初四'},
+    {date:'2025-02-02', name:'春节初五'},
+    {date:'2025-02-03', name:'春节初六'},
+    {date:'2025-04-04', name:'清明节'},
+    {date:'2025-05-01', name:'劳动节'},
+    {date:'2025-05-02', name:'劳动节'},
+    {date:'2025-05-03', name:'劳动节'},
+    {date:'2025-05-04', name:'劳动节'},
+    {date:'2025-05-05', name:'劳动节'},
+    {date:'2025-05-31', name:'端午节'},
+    {date:'2025-06-01', name:'端午节'},
+    {date:'2025-06-02', name:'端午节'},
+    {date:'2025-10-01', name:'国庆节'},
+    {date:'2025-10-02', name:'国庆节'},
+    {date:'2025-10-03', name:'国庆节'},
+    {date:'2025-10-04', name:'国庆节'},
+    {date:'2025-10-05', name:'国庆节'},
+    {date:'2025-10-06', name:'中秋节'},
+    {date:'2025-10-07', name:'国庆节'},
+    {date:'2025-10-08', name:'国庆节'}
+  ];
+  var added = 0;
+  cn2025.forEach(function(h) {
+    if (!isHoliday(h.date)) {
+      holidays.push(h);
+      added++;
+    }
+  });
+  renderHolidayList();
+  showToast('已添加' + added + '个2025年中国法定节假日');
 }
 
 function addHoliday() {
-  showToast('addHoliday - coming soon!');
+  var dateInput = document.getElementById('holidayDate');
+  var nameInput = document.getElementById('holidayName');
+  var date = dateInput.value;
+  var name = nameInput.value.trim() || '自定义节假日';
+  if (!date) {
+    showToast('请选择节假日日期');
+    return;
+  }
+  if (isHoliday(date)) {
+    showToast('该日期已是节假日');
+    return;
+  }
+  holidays.push({date: date, name: name});
+  renderHolidayList();
+  nameInput.value = '';
+  dateInput.value = '';
+  showToast('已添加节假日: ' + name);
+}
+
+function renderHolidayList() {
+  var list = document.getElementById('holidayList');
+  if (holidays.length === 0) {
+    list.style.display = 'none';
+    return;
+  }
+  list.style.display = 'block';
+  var html = '';
+  holidays.sort(function(a, b) { return a.date.localeCompare(b.date); });
+  holidays.forEach(function(h, i) {
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:#0f172a;border-radius:6px;margin-bottom:4px;border:1px solid rgba(148,163,184,.15)"><span style="color:#e2e8f0;font-size:.85rem">' + h.date + ' ' + h.name + '</span><button onclick="removeHoliday(' + i + ')" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:.85rem">删除</button></div>';
+  });
+  list.innerHTML = html;
+}
+
+function removeHoliday(idx) {
+  holidays.splice(idx, 1);
+  renderHolidayList();
+  showToast('已删除');
 }
 
 function calculateForwardDate() {
-  showToast('calculateForwardDate - coming soon!');
+  var startDate = document.getElementById('forwardStartDate');
+  var workdayCount = parseInt(document.getElementById('workdayCount').value);
+  if (!startDate || !startDate.value) {
+    showToast('请选择起始日期');
+    return;
+  }
+  if (isNaN(workdayCount) || workdayCount < 1) {
+    showToast('请输入有效的工作日数量');
+    return;
+  }
+  var excludeSat = document.getElementById('excludeSat').checked;
+  var excludeSun = document.getElementById('excludeSun').checked;
+  var current = new Date(startDate.value + 'T00:00:00');
+  var count = 0;
+  while (count < workdayCount) {
+    current.setDate(current.getDate() + 1);
+    if (isWorkday(current, excludeSat, excludeSun)) {
+      count++;
+    }
+  }
+  var targetDate = formatDate(current);
+  var dayOfWeek = ['日','一','二','三','四','五','六'][current.getDay()];
+  document.getElementById('resultSection').style.display = 'block';
+  document.getElementById('resultNumber').textContent = targetDate;
+  document.getElementById('resultLabel').textContent = '（星期' + dayOfWeek + '）';
+  document.getElementById('resultDetail').innerHTML = '<div style="color:#94a3b8;font-size:.9rem;margin-top:8px">从 ' + startDate.value + ' 开始，经过 ' + workdayCount + ' 个工作日后，目标日期为 <strong style="color:#22d3ee">' + targetDate + '</strong>（星期' + dayOfWeek + '）</div>';
+  showToast('计算完成');
 }
 
 function calculateWorkdays() {
-  var workdayCount = parseFloat(document.getElementById('workdayCount').value);
-  if (workdayCount === undefined || isNaN(workdayCount)) {
-    showToast('请输入有效数值');
+  var startDate = document.getElementById('startDate');
+  var endDate = document.getElementById('endDate');
+  if (!startDate.value || !endDate.value) {
+    showToast('请选择开始和结束日期');
     return;
   }
-  var result = workdayCount;
-  document.getElementById('resultSection').innerHTML = '<div class="result-item"><span class="result-label">结果</span><span class="result-value">' + result + '</span></div>';
+  var start = new Date(startDate.value + 'T00:00:00');
+  var end = new Date(endDate.value + 'T00:00:00');
+  if (start > end) {
+    showToast('开始日期不能晚于结束日期');
+    return;
+  }
+  var excludeSat = document.getElementById('excludeSat').checked;
+  var excludeSun = document.getElementById('excludeSun').checked;
+  var totalDays = 0, workdays = 0, weekendDays = 0, holidayDays = 0;
+  var current = new Date(start);
+  while (current <= end) {
+    totalDays++;
+    var day = current.getDay();
+    var dateStr = formatDate(current);
+    if (isHoliday(dateStr)) {
+      holidayDays++;
+    } else if ((excludeSat && day === 6) || (excludeSun && day === 0)) {
+      weekendDays++;
+    } else {
+      workdays++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
   document.getElementById('resultSection').style.display = 'block';
+  document.getElementById('resultNumber').textContent = workdays;
+  document.getElementById('resultLabel').textContent = '个工作日';
+  document.getElementById('resultDetail').innerHTML = '<div style="color:#94a3b8;font-size:.9rem;margin-top:8px">总天数: ' + totalDays + ' | 工作日: ' + workdays + ' | 周末: ' + weekendDays + ' | 节假日: ' + holidayDays + '</div>';
   showToast('计算完成');
 }
 
 function clearHolidays() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  holidays = [];
+  renderHolidayList();
+  showToast('已清空所有节假日');
 }
 </script>
 </body>
