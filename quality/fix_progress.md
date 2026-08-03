@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-03 (cron自动更新 - 第三十七批 - 修复3个回显型空壳)
+> 最后更新: 2026-08-03 (cron自动更新 - 第三十八批 - 修复3个回显型空壳)
 
 ## 当前真实问题
 
@@ -11,36 +11,37 @@
 | EN版模板空壳(process未定义) | 23 | 23 | 0 | ✅ 完成 | grep toolInput + process() 未定义检测 |
 | EN版假交互空壳(quickInput) | 224 | 224 | 0 | ✅ 完成 | grep quickInput + 无业务函数检测 |
 | toolInput误报(7个有功能) | 7 | 7 | 0 | ✅ 误报 | 有addEventListener绑定的真实功能 |
-| 回显型process空壳(output=input) | 30 | 9 | 21 | 🔴 进行中 | 全站扫描 var output = input + 无业务逻辑 |
+| 回显型process空壳(output=input) | 30 | 12 | 18 | 🔴 进行中 | 全站扫描 var output = input + 无业务逻辑 |
 
-## 回显型空壳清单(21个剩余)
+## 回显型空壳清单(18个剩余)
 
 > 特征：process()/convert()/generate()函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
-> 注：第三十五批修复3个(hex-to-hsl/html-escape-unescape/string-case-converter)，第三十六批修复3个(caddyfile-generator/env-to-json/haproxy-config-generator)，第三十七批修复3个(html-email-template/html-table-to-markdown/htpasswd-generator)。实际全站复扫发现30个CN版回显stub(此前清单有遗漏)。剩余21个：
+> 注：第三十五批修复3个(hex-to-hsl/html-escape-unescape/string-case-converter)，第三十六批修复3个(caddyfile-generator/env-to-json/haproxy-config-generator)，第三十七批修复3个(html-email-template/html-table-to-markdown/htpasswd-generator)，第三十八批修复3个(http-cache-header-generator/js-destructuring-generator/json-key-renamer)。实际全站复扫发现30个CN版回显stub(此前清单有遗漏)。剩余18个：
 
-1. http-cache-header-generator
-2. js-destructuring-generator
-3. json-key-renamer
-4. json-schema-generator
-5. json-to-avro
-6. json-to-csv-converter
-7. json-to-go-struct
-8. json-to-kotlin-class
-9. json-to-php-object
-10. json-to-rust-struct
-11. json-to-schema
-12. json-to-swift-struct
-13. json-to-typescript-interface
-14. kubernetes-yaml-generator
-15. mock-data-generator
-16. npm-package-json
-17. svg-pattern-generator
-18. tailwind-spacing-generator
-19. typescript-utility-types
-20. unicode-range-generator
-21. yaml-to-dotenv
+1. json-schema-generator
+2. json-to-avro
+3. json-to-csv-converter
+4. json-to-go-struct
+5. json-to-kotlin-class
+6. json-to-php-object
+7. json-to-rust-struct
+8. json-to-schema
+9. json-to-swift-struct
+10. json-to-typescript-interface
+11. kubernetes-yaml-generator
+12. mock-data-generator
+13. npm-package-json
+14. svg-pattern-generator
+15. tailwind-spacing-generator
+16. typescript-utility-types
+17. unicode-range-generator
+18. yaml-to-dotenv
 
 ## 已修复的空壳工具
+
+### 2026-08-03 (第三十八批 - 修复3个回显型空壳)
+http-cache-header-generator, js-destructuring-generator, json-key-renamer
+注: 三个工具情况与此前cidr-to-ip-range等相同——页面已有完整的业务逻辑函数，但末尾被注入"重写的函数实现"stub块(EN版为"// === Implementation ===")，用var output=input回显空壳覆盖了有效函数。修复方式：直接删除stub块恢复原有功能。http-cache-header-generator CN版已有功能：6种预设策略(静态资源/HTML/API/敏感数据/图片/自定义)+6种Cache-Control指令(public/private/no-cache/no-store/must-revalidate/immutable)+max-age/s-maxage+ETag/Last-Modified验证+6种资源类型+策略评估+HTTP响应头生成+Nginx/Apache/Node.js/Caddy配置代码生成+下载配置；js-destructuring-generator CN+EN版已有功能：JSON解析+对象解构(generateObjectDestruct)+数组解构(generateArrayDestruct)+深层解构+默认值+属性重命名+TypeScript类型生成(generateObjectType/generateArrayType)+const/let/var声明+3种示例+复制/下载JS；json-key-renamer CN+EN版已有功能：5种命名风格转换(camelCase/snake_case/kebab-case/PascalCase/CONSTANT_CASE)+toWords拆词+自定义键名映射+深度遍历+递归renameKeys+实时输入转换debounce+统计信息+复制/下载JSON。node逻辑测试：Cache-Control生成(public,max-age=31536000,must-revalidate,immutable)PASS；JS解构(const {name='Alice',age=28,active=true}=data)PASS；snake→camel(user_name→userName)PASS。5个文件JS语法验证通过。全站`var output = input` CN版从21降到18。
 
 ### 2026-08-03 (第三十七批 - 修复3个回显型空壳)
 html-email-template, html-table-to-markdown, htpasswd-generator
