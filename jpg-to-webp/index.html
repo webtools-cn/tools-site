@@ -81,8 +81,6 @@ a{color:#06b6d4;text-decoration:none}
 <div class="hero"><p>免费在线JPG转WebP工具，批量将JPG/JPEG图片转换为WebP格式，大幅减少文件体积，无需注册，图片不上传服务器，保护隐私安全。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
-
-    /div>
   </div>
   <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -140,14 +138,13 @@ a{color:#06b6d4;text-decoration:none}
 <div class="faq-item"><h3>可以批量转换吗？图片会上传吗？</h3><p>支持批量转换！您可以一次选择多张JPG图片。所有转换操作都在您的浏览器本地完成，图片不会上传到任何服务器，完全保护您的隐私。文件数量没有限制，但大量大图可能影响转换速度。</p></div>
 </div>
 </main>
-<div>
 <!-- AdSense -->
 
 <section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="color:#e2e8f0;font-size:18px;margin-bottom:12px">🔗 相关工具推荐</h2>
   <a href="../natural-date-parser/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">自然语言日期解析器</a>
   <a href="../work-hours-calculator/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">工时计算器</a>
   <a href="../online-compass/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">在线指南针</a>
-</div></section>
+</section>
 <footer class="footer container">
 <div style="margin-bottom:12px">
 <a href="../index.html">首页</a>
@@ -163,6 +160,90 @@ a{color:#06b6d4;text-decoration:none}
 <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
 </div>
 <div class="toast" id="toast"></div>
+<script>
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+var convertedFiles=[];
+function formatBytes(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(2)+' MB'}
+function handleFiles(files){
+  if(!files||!files.length)return;
+  for(var i=0;i<files.length;i++){
+    if(files[i].type==='image/jpeg'||files[i].type==='image/jpg'){convertImage(files[i]);}
+    else{showToast('请选择JPG图片：'+files[i].name);}
+  }
+}
+function convertImage(file){
+  var quality=parseInt(document.getElementById('quality').value)/100;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var canvas=document.createElement('canvas');
+      canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+      var ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0);
+      canvas.toBlob(function(blob){
+        if(!blob){showToast('转换失败：'+file.name);return;}
+        var item={
+          name:file.name.replace(/\.[^.]+$/,'')+'.webp',
+          originalSize:file.size,convertedSize:blob.size,
+          url:URL.createObjectURL(blob),
+          width:img.naturalWidth,height:img.naturalHeight
+        };
+        convertedFiles.push(item);
+        renderResults();
+        showToast('转换成功：'+item.name);
+      },'image/webp',quality);
+    };
+    img.onerror=function(){showToast('无法加载图片：'+file.name);};
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function renderResults(){
+  var container=document.getElementById('results');
+  if(convertedFiles.length===0){container.innerHTML='';document.getElementById('batchActions').style.display='none';return;}
+  var html='';
+  convertedFiles.forEach(function(f,i){
+    var ratio=((1-f.convertedSize/f.originalSize)*100).toFixed(1);
+    var sign=ratio>0?'↓':'↑';
+    html+='<div class="result-item">'+
+      '<img src="'+f.url+'">'+
+      '<div class="info"><div class="name">'+f.name+'</div>'+
+      '<div class="size">'+f.width+'×'+f.height+'px · 原始 '+formatBytes(f.originalSize)+' → 转换后 '+formatBytes(f.convertedSize)+' · '+sign+Math.abs(ratio)+'%</div></div>'+
+      '<a href="'+f.url+'" download="'+f.name+'" class="btn btn-primary">📥 下载</a>'+
+      '<button class="btn btn-secondary" onclick="removeItem('+i+')">🗑️</button>'+
+    '</div>';
+  });
+  container.innerHTML=html;
+  document.getElementById('batchActions').style.display='block';
+}
+function removeItem(i){
+  URL.revokeObjectURL(convertedFiles[i].url);
+  convertedFiles.splice(i,1);
+  renderResults();
+}
+function downloadAll(){
+  convertedFiles.forEach(function(f,i){
+    setTimeout(function(){var a=document.createElement('a');a.href=f.url;a.download=f.name;a.click();},i*300);
+  });
+}
+function clearResults(){
+  convertedFiles.forEach(function(f){URL.revokeObjectURL(f.url);});
+  convertedFiles=[];
+  renderResults();
+  showToast('已清空');
+}
+// 拖拽支持
+var dropZone=document.getElementById('uploadZone');
+if(dropZone){
+  dropZone.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('dragover');});
+  dropZone.addEventListener('dragleave',function(e){this.classList.remove('dragover');});
+  dropZone.addEventListener('drop',function(e){
+    e.preventDefault();this.classList.remove('dragover');
+    handleFiles(e.dataTransfer.files);
+  });
+}
+</script>
 
 </body>
 </html>
