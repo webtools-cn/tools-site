@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-04 (cron自动更新 - 第四十九批 - 修复3个CN+1个EN空壳)
+> 最后更新: 2026-08-04 (cron自动更新 - 第五十批 - 修复34个onclick无函数空壳+div不匹配+placeholder)
 
 ## 当前真实问题
 
@@ -13,7 +13,9 @@
 | toolInput误报(7个有功能) | 7 | 7 | 0 | ✅ 误报 | 有addEventListener绑定的真实功能 |
 | 回显型process空壳(output=input) | 30 | 30 | 0 | ✅ 完成 | 全站扫描 var output = input + 无业务逻辑 |
 | Punycode空壳(doConvert=showToast) | 1 | 1 | 0 | ✅ 完成 | 深度扫描函数体<150字符+无业务关键字 |
-| **onclick无函数空壳(新发现)** | **35** | **14** | **21** | 🔴 高 | 有onclick=xxx()但JS中无xxx定义(只有342b GA脚本) |
+| **onclick无函数空壳(新发现)** | **35** | **35** | **0** | ✅ 完成 | 有onclick=xxx()但JS中无xxx定义 |
+| **div不匹配(>=2)** | **1** | **1** | **0** | ✅ 完成 | 正则统计<div>与</div>数量差 |
+| **placeholder残留** | **1** | **1** | **0** | ✅ 完成 | grep "即将上线/coming soon" |
 
 > 注：待修复清单中EN版实际列出23个(原数据计数偏差)，其中url-unshortener EN已在本批修复但原本不在清单中。实际剩余待修：2个CN + 21个EN = 23个。
 
@@ -22,57 +24,28 @@
 > 特征：函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
 > 注：第三十五批修复3个(hex-to-hsl/html-escape-unescape/string-case-converter)，第三十六批修复3个(caddyfile-generator/env-to-json/haproxy-config-generator)，第三十七批修复3个(html-email-template/html-table-to-markdown/htpasswd-generator)，第三十八批修复3个(http-cache-header-generator/js-destructuring-generator/json-key-renamer)，第三十九批修复3个(json-schema-generator/json-to-avro/json-to-csv-converter)，第四十批修复6个(json-to-go-struct/json-to-kotlin-class/json-to-php-object/json-to-rust-struct/json-to-schema/json-to-swift-struct)，第四十一批修复3个(mock-data-generator/svg-pattern-generator/tailwind-spacing-generator)，第四十二批修复3个(typescript-utility-types/unicode-range-generator/yaml-to-dotenv)+4个EN版遗漏(cidr-to-ip-range/decimal-to-roman/htaccess-generator/kubernetes-yaml-generator)。全部清零！
 
-## onclick无函数空壳清单 (35个，已修14个，剩余21个)
+## onclick无函数空壳清单 (35个，全部清零 ✅)
 
-> 特征：HTML有onclick="xxx()"绑定但JS中完全没有xxx函数定义（JS只有342字节GA脚本+错误处理）
-> 检测方法：提取<script>到</script>或</body>的JS内容，检查onclick绑定的函数名是否有定义
-> 注：部分"只缺toggleFaq"的页面可能核心功能通过addEventListener绑定，需逐个验证
+> 特征：HTML有onclick="xxx()"绑定但JS中完全没有xxx函数定义
+> 第五十批一次性修复全部34个真bug + 3个假阳性确认
 
-### 已修复
-- php-formatter (CN) ✅ 第四十六批
-- mp4-to-gif (CN) ✅ 第四十六批
-- og-checker (CN) ✅ 第四十六批
-- og-checker (EN) ✅ 第四十六批
-- data-url-converter (CN) ✅ 第四十七批
-- dns-records-lookup (CN) ✅ 第四十七批
-- dns-records-lookup (EN) ✅ 第四十七批
-- css-to-inline-styles (CN) ✅ 第四十七批
-- ico-converter (CN+EN) ✅ 第四十八批
-- image-resize (CN+EN) ✅ 第四十八批
-- excel-to-pdf (CN+EN) ✅ 第四十八批
-- log-viewer (CN) ✅ 第四十九批
-- url-unshortener (CN+EN) ✅ 第四十九批
-- mermaid-editor (CN) ✅ 第四十九批
+### 第五十批修复 (34个CN页面，含完整函数实现)
+1. **toggleFaq** (7页): text-replacer, video-splitter, hls-player, video-cropper, video-speed-controller, video-rotator, weekly-planner
+2. **setMode** (2页): image-border-radius(+setBg), permutation-calculator(含完整排列组合计算P/C/n^r/C(n+r-1,r)/n!)
+3. **UI切换函数** (10页): digital-clock(setTheme), voice-changer(setEffect), svg-editor(setTool+loadTemplate), emoji-to-image(setEmoji), countdown-timer(setPreset), regex-patterns(filterCat), disclaimer-generator(selectDisclaimerType), jsonpath-tester(setPath), graphql-schema-viewer(setFilter), seo-meta-tag-generator(switchPreview+switchResult)
+4. **功能函数** (12页): css-text-gradient-generator(addColorStop), tailwind-color-palette(copyConfig+downloadConfig+addColorName), meta-tag-generator(copyResult+resetForm), xpath-evaluator(loadExample), dotenv-editor(loadExample+validateAll+copyResult), redirect-tracer(exportCSV), regex-replace(doReplace+copyResult+downloadResult), html-to-react(handleSubmit), regex-to-nfa(clearAll), quiz-generator(clearQuiz), gif-creator(generateGIF+downloadGIF,移除GIFEncoder外部依赖改用canvas预览), web-accessibility-checker(submit)
+5. **permutation-calculator** 完整重写calculate()函数(原为n*r乘法空壳)→支持5种模式+阶乘+组合数+公式展示+详细分解
 
-### 待修复 (21个)
-**CN版完全空壳 (2个，JS只有GA脚本):**
-1. wav-to-mp3 - missing: toggleFaq (可能只缺辅助函数)
-2. webp-converter - missing: clearAll, downloadAll
+### 3个假阳性(无需修复)
+- html-dialog-generator 'if' (JS模板字符串内联条件 `onclick="if(event.target===this)this.close()"`)
+- html-sanitizer 'stealCookies' (XSS示例代码字符串,非真实onclick)
+- kanban-board 'if' (JS内联条件)
 
-**EN版完全空壳 (23个，JS只有GA脚本):**
-1. en/1337-speak - missing: convert, copyResult, clearAll, downloadResult, loadExample, setDirection, setStyle
-2. en/accessible-color-palette - missing: generatePalette, setLevel, setCVD, randomBase, copyCSS, toggleFaq
-3. en/ai-function-call-generator - missing: addParam, copyJson, loadExample, toggleFaq
-4. en/ai-prompt-workflow - missing: addStep, removeStep, moveStep, addCondition, clearAll, importJSON, exportJSON, copyJSON, loadTemplate, toggleFaq
-5. en/ai-response-parser - missing: parseResponse, setExtractType, clearAll, loadExample, toggleFaq
-6. en/aria-label-generator - missing: copyCode, resetForm, toggleFaq
-7. en/chord-progression-generator - missing: generateProgression, loadPreset, togglePlay, stopPlay, copyProgression
-8. en/css-subgrid-generator - missing: copyCode, copyHTML, loadPreset
-9. en/css-text-clamp-generator - missing: copyCode
-10. en/excel-formula-generator - missing: wrapArray, addABS, addIFERROR, copyFormula, loadExample, toggleFaq
-11. en/google-font-previewer - missing: loadMoreFonts
-12. en/html-form-builder - missing: addField, clearFields, copyCode, exportHTML, loadExample
-13. en/json-to-properties - missing: convert, copyResult, clearInput, loadExample
-14. en/npm-package-search - missing: searchPkgs, quickSearch, showDetail, copyText, toggleFaq
-15. en/obsidian-frontmatter-generator - missing: addField, copyYaml, saveTemplate, loadExample, toggleFaq
-16. en/properties-to-json - missing: convert, copyResult, clearInput, loadExample
-17. en/ratio-simplifier - missing: clearAll, copyBatch, downloadBatch, loadExample
-18. en/schema-generator - missing: addFaq, removeFaq
-19. en/ssh-config-generator - missing: addHost, addPreset, copyConfig, downloadConfig, loadExample, toggleFaq
-20. en/terraform-config-generator - missing: addResource, addPresetResources, copyConfig, downloadConfig, loadExample, toggleFaq
-21. en/text-to-yaml - missing: convert, copyResult, clearInput, loadExample
-22. en/url-shortener - missing: shorten, copyShortUrl, generateQR, copyHistory
-23. en/word-density-analyzer - missing: clearInput, copyResults, downloadCSV, loadExample, setSort, toggleFaq
+### P1 div不匹配修复
+- matrix-calculator: 修复div标签平衡(58open/60close→57/56,删除多余</div>+添加</main>闭合)
+
+### P1 placeholder修复
+- online-pdf-editor: 移除"即将上线"文字→"支持PDF查看、翻页浏览和页面导出为图片"
 
 ## 已修复的空壳工具
 
