@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-04 (cron自动更新 - 第四十七批 - 修复3个CN空壳+1个EN空壳)
+> 最后更新: 2026-08-04 (cron自动更新 - 第四十八批 - 修复3个CN+3个EN空壳)
 
 ## 当前真实问题
 
@@ -13,7 +13,7 @@
 | toolInput误报(7个有功能) | 7 | 7 | 0 | ✅ 误报 | 有addEventListener绑定的真实功能 |
 | 回显型process空壳(output=input) | 30 | 30 | 0 | ✅ 完成 | 全站扫描 var output = input + 无业务逻辑 |
 | Punycode空壳(doConvert=showToast) | 1 | 1 | 0 | ✅ 完成 | 深度扫描函数体<150字符+无业务关键字 |
-| **onclick无函数空壳(新发现)** | **35** | **8** | **27** | 🔴 高 | 有onclick=xxx()但JS中无xxx定义(只有342b GA脚本) |
+| **onclick无函数空壳(新发现)** | **35** | **11** | **24** | 🔴 高 | 有onclick=xxx()但JS中无xxx定义(只有342b GA脚本) |
 
 ## 回显型空壳清单(全部清零)
 
@@ -35,19 +35,19 @@
 - dns-records-lookup (CN) ✅ 第四十七批
 - dns-records-lookup (EN) ✅ 第四十七批
 - css-to-inline-styles (CN) ✅ 第四十七批
+- ico-converter (CN+EN) ✅ 第四十八批
+- image-resize (CN+EN) ✅ 第四十八批
+- excel-to-pdf (CN+EN) ✅ 第四十八批
 
-### 待修复 (27个)
-**CN版完全空壳 (8个，JS只有GA脚本):**
-1. excel-to-pdf - missing: clearResults, downloadAll
-2. ico-converter - missing: clearResults, downloadAll
-3. image-resize - missing: clearResults, downloadAll
-4. log-viewer - missing: toggleFaq, toggleLevel (可能只缺辅助函数)
-5. mermaid-editor - missing: exportSVG, copyCode, loadPreset
-6. url-unshortener - missing: unshorten
-7. wav-to-mp3 - missing: toggleFaq (可能只缺辅助函数)
-8. webp-converter - missing: clearAll, downloadAll
+### 待修复 (24个)
+**CN版完全空壳 (5个，JS只有GA脚本):**
+1. log-viewer - missing: toggleFaq, toggleLevel (可能只缺辅助函数)
+2. mermaid-editor - missing: exportSVG, copyCode, loadPreset
+3. url-unshortener - missing: unshorten
+4. wav-to-mp3 - missing: toggleFaq (可能只缺辅助函数)
+5. webp-converter - missing: clearAll, downloadAll
 
-**EN版完全空壳 (20个，JS只有GA脚本):**
+**EN版完全空壳 (17个，JS只有GA脚本):**
 1. en/1337-speak - missing: convert, copyResult, clearAll, downloadResult, loadExample, setDirection, setStyle
 2. en/accessible-color-palette - missing: generatePalette, setLevel, setCVD, randomBase, copyCSS, toggleFaq
 3. en/ai-function-call-generator - missing: addParam, copyJson, loadExample, toggleFaq
@@ -73,6 +73,10 @@
 23. en/word-density-analyzer - missing: clearInput, copyResults, downloadCSV, loadExample, setSort, toggleFaq
 
 ## 已修复的空壳工具
+
+### 2026-08-04 (第四十八批 - 修复3个CN+3个EN空壳)
+ico-converter, image-resize, excel-to-pdf
+注: 三个工具CN+EN版均修复。ico-converter CN+EN实现图片转ICO格式转换器(FileReader读取图片→Canvas渲染目标尺寸16/32/48/64/128/256→toBlob输出PNG→createICO构建ICO二进制文件: ICONDIR 6字节头reserved=0+type=1 icon+count=1, ICONDIRENTRY 16字节目录width/height+colorPlanes=1+bitsPerPixel=32+imageDataSize+offset=22, 末尾PNG数据; size>=256时width/height字节=0表示256; 透明/白色/黑色背景选项; contain模式缩放Math.min; 批量上传+拖拽+单个下载+批量下载+清空), 替换原空壳(HTML有onclick=downloadAll/clearResults但JS只有GA脚本)。image-resize CN+EN实现图片尺寸调整工具(Canvas高质量双线性插值缩放imageSmoothingQuality=high; 两种模式: 按像素宽高输入+保持比例联动targetW/targetH事件监听/ 按百分比1-200%滑块; 输出格式保持原格式/PNG/JPG/WebP+质量滑块10-100%; 批量上传+拖拽+原始/转换后文件大小对比+压缩率显示), 替换原空壳。excel-to-pdf CN+EN实现CSV/TSV转PDF工具(纯前端CSV解析器引号感知+自动分隔符检测逗号/Tab/分号/竖线+转义双引号""→"; 表格预览渲染escapeHtml; 纸张A4/Letter/Legal+方向纵向/横向+字号选择; printPDF: window.open新窗口+@page CSS size+margin+print-color-adjust:exact+斑马纹表格th背景色+tr:nth-child(even)→浏览器打印对话框保存为PDF; 支持上传CSV/TSV文件或粘贴文本+CSV导出BOM UTF-8; 无需引入SheetJS/jsPDF等外部库, 符合AGENTS.md禁止外部JS库要求), 替换原空壳。6个文件JS语法验证通过, node逻辑测试全部通过(ICO createICO 10组字段验证全PASS reserved=0/type=1/count=1/width=32/bpp=32/offset=22/total=32/width@256=0; CSV parseCSV 6组用例全PASS 基础3x3/引号内逗号/转义双引号/分号检测/Tab检测/空行过滤; escapeHtml 4组PASS, formatSize 3组PASS)。剩余24个待修(5个CN+17个EN)。
 
 ### 2026-08-04 (第四十七批 - 修复3个CN空壳+1个EN空壳)
 data-url-converter, dns-records-lookup, css-to-inline-styles
