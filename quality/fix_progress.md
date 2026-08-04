@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-04 (cron自动更新 - 第四十六批 - 发现并修复新空壳类型: onclick无函数定义)
+> 最后更新: 2026-08-04 (cron自动更新 - 第四十七批 - 修复3个CN空壳+1个EN空壳)
 
 ## 当前真实问题
 
@@ -13,14 +13,14 @@
 | toolInput误报(7个有功能) | 7 | 7 | 0 | ✅ 误报 | 有addEventListener绑定的真实功能 |
 | 回显型process空壳(output=input) | 30 | 30 | 0 | ✅ 完成 | 全站扫描 var output = input + 无业务逻辑 |
 | Punycode空壳(doConvert=showToast) | 1 | 1 | 0 | ✅ 完成 | 深度扫描函数体<150字符+无业务关键字 |
-| **onclick无函数空壳(新发现)** | **35** | **4** | **31** | 🔴 高 | 有onclick=xxx()但JS中无xxx定义(只有342b GA脚本) |
+| **onclick无函数空壳(新发现)** | **35** | **8** | **27** | 🔴 高 | 有onclick=xxx()但JS中无xxx定义(只有342b GA脚本) |
 
 ## 回显型空壳清单(全部清零)
 
 > 特征：函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
 > 注：第三十五批修复3个(hex-to-hsl/html-escape-unescape/string-case-converter)，第三十六批修复3个(caddyfile-generator/env-to-json/haproxy-config-generator)，第三十七批修复3个(html-email-template/html-table-to-markdown/htpasswd-generator)，第三十八批修复3个(http-cache-header-generator/js-destructuring-generator/json-key-renamer)，第三十九批修复3个(json-schema-generator/json-to-avro/json-to-csv-converter)，第四十批修复6个(json-to-go-struct/json-to-kotlin-class/json-to-php-object/json-to-rust-struct/json-to-schema/json-to-swift-struct)，第四十一批修复3个(mock-data-generator/svg-pattern-generator/tailwind-spacing-generator)，第四十二批修复3个(typescript-utility-types/unicode-range-generator/yaml-to-dotenv)+4个EN版遗漏(cidr-to-ip-range/decimal-to-roman/htaccess-generator/kubernetes-yaml-generator)。全部清零！
 
-## onclick无函数空壳清单 (35个，已修4个，剩余31个)
+## onclick无函数空壳清单 (35个，已修8个，剩余27个)
 
 > 特征：HTML有onclick="xxx()"绑定但JS中完全没有xxx函数定义（JS只有342字节GA脚本+错误处理）
 > 检测方法：提取<script>到</script>或</body>的JS内容，检查onclick绑定的函数名是否有定义
@@ -31,20 +31,21 @@
 - mp4-to-gif (CN) ✅ 第四十六批
 - og-checker (CN) ✅ 第四十六批
 - og-checker (EN) ✅ 第四十六批
+- data-url-converter (CN) ✅ 第四十七批
+- dns-records-lookup (CN) ✅ 第四十七批
+- dns-records-lookup (EN) ✅ 第四十七批
+- css-to-inline-styles (CN) ✅ 第四十七批
 
-### 待修复 (31个)
-**CN版完全空壳 (11个，JS只有GA脚本):**
-1. data-url-converter - missing: copyDataUrl, downloadAsDataUrl, openDataUrl
-2. dns-records-lookup - missing: lookupDNS
-3. excel-to-pdf - missing: clearResults, downloadAll
-4. ico-converter - missing: clearResults, downloadAll
-5. image-resize - missing: clearResults, downloadAll
-6. log-viewer - missing: toggleFaq, toggleLevel (可能只缺辅助函数)
-7. mermaid-editor - missing: exportSVG, copyCode, loadPreset
-8. url-unshortener - missing: unshorten
-9. wav-to-mp3 - missing: toggleFaq (可能只缺辅助函数)
-10. webp-converter - missing: clearAll, downloadAll
-11. css-to-inline-styles - missing: convertToInline, clearResult, copyResult, downloadResult, loadSample, previewResult
+### 待修复 (27个)
+**CN版完全空壳 (8个，JS只有GA脚本):**
+1. excel-to-pdf - missing: clearResults, downloadAll
+2. ico-converter - missing: clearResults, downloadAll
+3. image-resize - missing: clearResults, downloadAll
+4. log-viewer - missing: toggleFaq, toggleLevel (可能只缺辅助函数)
+5. mermaid-editor - missing: exportSVG, copyCode, loadPreset
+6. url-unshortener - missing: unshorten
+7. wav-to-mp3 - missing: toggleFaq (可能只缺辅助函数)
+8. webp-converter - missing: clearAll, downloadAll
 
 **EN版完全空壳 (20个，JS只有GA脚本):**
 1. en/1337-speak - missing: convert, copyResult, clearAll, downloadResult, loadExample, setDirection, setStyle
@@ -72,6 +73,10 @@
 23. en/word-density-analyzer - missing: clearInput, copyResults, downloadCSV, loadExample, setSort, toggleFaq
 
 ## 已修复的空壳工具
+
+### 2026-08-04 (第四十七批 - 修复3个CN空壳+1个EN空壳)
+data-url-converter, dns-records-lookup, css-to-inline-styles
+注: 三个工具CN版+dns-records-lookup EN版修复。data-url-converter CN实现FileReader读取文件→Data URL转换(handleFile读取文件readAsDataURL+MIME类型自动识别+图片预览+文件信息显示文件名/大小/类型/Data URL长度+formatSize B/KB/MB格式化+copyDataUrl clipboard API+execCommand fallback+downloadAsDataUrl Blob下载txt+openDataUrl新标签页打开+uploadZone拖拽上传dragover/dragleave/drop事件)，替换原空壳(HTML有onclick=handleFile/copyDataUrl/downloadAsDataUrl/openDataUrl但JS只有GA脚本)。dns-records-lookup CN+EN实现DNS记录查询(域名输入清洗去协议去路径去www+Google DNS-over-HTTPS API fetch dns.google/resolve?name=&type=+7种记录类型A/AAAA/MX/CNAME/TXT/NS/SOA+ALL模式批量查询并发fetch+typeName数字类型映射1→A/28→AAAA/15→MX等+结果表格渲染Type/Name/Value/TTL+loading状态+错误处理网络/CORS+空结果提示)，替换原空壳(HTML有onclick=lookupDNS但JS只有GA脚本)。css-to-inline-styles CN实现CSS内联转换器(parseCSSRules正则解析style标签内容+@media规则分离+CSS声明解析prop:val+DOMParser解析HTML+querySelectorAll选择器匹配+样式合并到style属性保留已有内联样式+media规则保留在style标签+convertToInline主转换+copyResult clipboard API+execCommand fallback+clearResult+previewResult window.open+downloadResult Blob下载html+修复loadSample被截断的bug:原代码在模板字符串中间被AdSense注释截断+修复</main>缺失+showToast通知)，替换原空壳(HTML有onclick=convertToInline/copyResult/clearResult/previewResult/downloadResult/loadSample但JS只有updateStats和被截断的loadSample)。4个文件JS语法验证通过，node逻辑测试全部通过(formatSize 3组100B/2KB/1MB PASS+typeName 5组A/AAAA/MX/TXT/TYPE99 PASS+parseCSSRules 2组.btn/#header PASS+escapeHtml &<>转义PASS)。剩余27个待修(8个CN+19个EN，dns-records-lookup EN为检测清单外额外发现并修复)。
 
 ### 2026-08-04 (第四十六批 - 发现并修复新空壳类型: onclick无函数定义)
 php-formatter, mp4-to-gif, og-checker(CN+EN)
