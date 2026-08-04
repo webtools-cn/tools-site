@@ -133,3 +133,28 @@
 - P1: 浅色背景页面 — 已排查, 实际无需修复（`#fff`均为预览区域样式，非body背景）
 - P1: 62个空壳工具 — 需实现实际功能或加noindex
 - 100个页面desc在160-200区间 — 优先级低，后续可优化
+
+### 2026-08-04 第四轮 SEO 修复
+
+#### Meta Description过短扩写 (2个页面)
+| 页面 | 旧长度 | 新长度 | 修复内容 |
+|:-----|:------:|:------:|:---------|
+| bolt-torque-calculator | 82 | 110 | 增加"精确计算""预紧力""机械设计/装配工艺/质量检验"适用场景 |
+| tire-size-calculator | 92 | 119 | 增加双规格示例(225/45R17与235/40R18)和"轮胎升级改装/替换选型"用途 |
+- 同步更新了两个页面的og:description和Schema.org SoftwareApplication description
+
+#### Div不匹配假阳性确认 (10个文件)
+精确检查（排除`<script>`块后）确认全部10个div不匹配文件均为假阳性：
+- en/diff-viewer, en/markdown-to-react, en/loan-payoff-calculator, en/carbon-footprint-calculator
+- en/sales-tax-calculator, en/ai-context-window-comparator, en/css-skeleton-loader-generator
+- en/character-frequency-analyzer, en/standard-deviation-calculator, en/reading-speed-test
+- 原因：JS字符串(innerHTML)中包含`</div>`文本，被扫描脚本误计为HTML标签
+
+#### 当前扫描结果
+| 指标 | 数值 | 状态 |
+|:-----|:----:|:----:|
+| meta过短(<100) | 0 | ✅ |
+| EN缺robots | 0 | ✅ |
+| placeholder | 0 | ✅ |
+| div不匹配(>=2) | 10 (假阳性) | ✅ |
+| 缺main标签 | 0 | ✅ |
