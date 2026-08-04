@@ -78,7 +78,7 @@ footer a{color:#4a6cf7;text-decoration:none}
 <meta property="og:image" content="https://free-toolbase.com/og-image.svg">
 <meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="robots" content="noindex, follow">
+<meta name="robots" content="index, follow">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 
 </head>
@@ -91,8 +91,34 @@ footer a{color:#4a6cf7;text-decoration:none}
 <div class="hero"><p>免费在线WAV转MP3工具。将WAV音频文件转换为MP3格式，支持调节比特率（64-320kbps）、批量转换，纯前端lamejs本地处理，不上传服务器。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
-    
 
+<div class="tool-card">
+  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+    <div class="icon">🎵</div>
+    <p>拖放WAV文件到此处，或点击上传（支持批量）</p>
+    <p style="color:#64748b;font-size:.8rem">仅支持 WAV 格式音频文件</p>
+  </div>
+  <input type="file" id="fileInput" accept="audio/wav,.wav" multiple style="display:none" onchange="handleFiles(this.files)">
+
+  <div class="controls">
+    <label>比特率：
+      <select id="bitrate">
+        <option value="64">64 kbps（语音）</option>
+        <option value="128">128 kbps（标准）</option>
+        <option value="192" selected>192 kbps（高品质）</option>
+        <option value="256">256 kbps（超高）</option>
+        <option value="320">320 kbps（最高）</option>
+      </select>
+    </label>
+    <button class="btn btn-primary" id="convertBtn" onclick="convertAll()" disabled>开始转换</button>
+    <button class="btn btn-secondary" onclick="clearAll()">清空列表</button>
+  </div>
+
+  <div class="file-list" id="fileList"></div>
+</div>
+
+<div class="faq-section">
+  <h2>常见问题</h2>
 <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">❓ 比特率应该选多少？</div><div class="faq-a"><p>比特率决定MP3的音质和文件大小。128kbps是标准音质，适合语音和普通音乐；192kbps是高品质，适合大多数音乐；320kbps是最高品质，文件也最大。64kbps适合语音录音，文件最小。一般推荐192kbps作为音质和文件大小的平衡点。</p></div></div>
 <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">❓ 支持批量转换吗？</div><div class="faq-a"><p>支持。你可以一次选择多个WAV文件进行批量转换。每个文件会按相同的比特率设置独立编码，转换完成后可以单独下载。</p></div></div>
 <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">❓ 转换后的MP3音质会有损失吗？</div><div class="faq-a"><p>MP3是有损压缩格式，转换过程中会丢失部分音频数据。但使用192kbps或更高的比特率时，大多数人听不出与原始WAV的区别。比特率越高，音质越接近原始WAV，但文件也越大。</p></div></div>
@@ -102,7 +128,6 @@ footer a{color:#4a6cf7;text-decoration:none}
 </div>
 </div>
 
-<div class="section"><h2>常见问题</h2></div>
 </main>
 <div>
 <!-- AdSense -->
@@ -128,6 +153,177 @@ footer a{color:#4a6cf7;text-decoration:none}
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+<script>
+function toggleFaq(el){
+  el.classList.toggle("active");
+  var answer = el.nextElementSibling;
+  if(answer) answer.classList.toggle("show");
+}
 
+function showToast(msg){
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(function(){ t.classList.remove("show"); }, 2000);
+}
+
+var files = [];
+
+var zone = document.getElementById("uploadZone");
+if(zone){
+  zone.addEventListener("dragover", function(e){ e.preventDefault(); zone.classList.add("dragover"); });
+  zone.addEventListener("dragleave", function(){ zone.classList.remove("dragover"); });
+  zone.addEventListener("drop", function(e){
+    e.preventDefault();
+    zone.classList.remove("dragover");
+    handleFiles(e.dataTransfer.files);
+  });
+}
+
+function handleFiles(fileList) {
+  for (var i = 0; i < fileList.length; i++) {
+    var f = fileList[i];
+    if (f.type === 'audio/wav' || f.name.toLowerCase().endsWith('.wav')) {
+      files.push({ file: f, status: 'waiting', progress: 0, mp3Blob: null });
+    } else {
+      showToast('已跳过非WAV文件: ' + f.name);
+    }
+  }
+  renderFileList();
+  document.getElementById("convertBtn").disabled = files.length === 0;
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function renderFileList() {
+  var html = '';
+  for (var i = 0; i < files.length; i++) {
+    var f = files[i];
+    var statusClass = 'status-' + f.status;
+    var statusText = { waiting: '等待中', converting: '转换中...', done: '完成', error: '错误' }[f.status];
+    html += '<div class="file-item">';
+    html += '<div class="file-info">';
+    html += '<div class="file-name">' + f.file.name + '</div>';
+    html += '<div class="file-meta">' + formatSize(f.file.size) + (f.status === 'done' && f.mp3Blob ? ' → ' + formatSize(f.mp3Blob.size) : '') + '</div>';
+    if (f.status === 'converting') {
+      html += '<div class="progress-bar"><div class="progress-fill" style="width:' + f.progress + '%"></div></div>';
+    }
+    html += '</div>';
+    html += '<span class="file-status ' + statusClass + '">' + statusText + '</span>';
+    if (f.status === 'done' && f.mp3Blob) {
+      var mp3Name = f.file.name.replace(/\.wav$/i, '.mp3');
+      html += '<button class="btn btn-success" style="padding:6px 16px;font-size:13px" onclick="downloadFile(' + i + ',\'' + mp3Name.replace(/'/g, "\\'") + '\')">⬇ 下载</button>';
+    }
+    html += '</div>';
+  }
+  document.getElementById("fileList").innerHTML = html;
+}
+
+function downloadFile(index, name) {
+  var blob = files[index].mp3Blob;
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function convertAll() {
+  var bitrate = parseInt(document.getElementById("bitrate").value);
+  document.getElementById("convertBtn").disabled = true;
+  var idx = 0;
+
+  function next() {
+    if (idx >= files.length) {
+      document.getElementById("convertBtn").disabled = false;
+      showToast('全部转换完成！');
+      return;
+    }
+    var item = files[idx];
+    if (item.status === 'done') { idx++; next(); return; }
+    item.status = 'converting';
+    item.progress = 0;
+    renderFileList();
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtx.decodeAudioData(e.target.result, function(buffer) {
+        var mp3Blob = encodeMp3(buffer, bitrate);
+        item.status = 'done';
+        item.mp3Blob = mp3Blob;
+        item.progress = 100;
+        renderFileList();
+        idx++;
+        next();
+      }, function(err) {
+        item.status = 'error';
+        renderFileList();
+        idx++;
+        next();
+      });
+    };
+    reader.readAsArrayBuffer(item.file);
+  }
+  next();
+}
+
+function encodeMp3(audioBuffer, bitrate) {
+  var channels = audioBuffer.numberOfChannels;
+  var sampleRate = audioBuffer.sampleRate;
+  var mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, bitrate);
+  var mp3Data = [];
+  var samplesPerFrame = 1152;
+
+  var left = audioBuffer.getChannelData(0);
+  var leftInt16 = floatTo16BitPCM(left);
+  var rightInt16 = null;
+  if (channels > 1) {
+    var right = audioBuffer.getChannelData(1);
+    rightInt16 = floatTo16BitPCM(right);
+  }
+
+  var offset = 0;
+  while (offset < leftInt16.length) {
+    var leftChunk = leftInt16.subarray(offset, offset + samplesPerFrame);
+    var mp3buf;
+    if (channels > 1) {
+      var rightChunk = rightInt16.subarray(offset, offset + samplesPerFrame);
+      mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+    } else {
+      mp3buf = mp3encoder.encodeBuffer(leftChunk);
+    }
+    if (mp3buf.length > 0) mp3Data.push(mp3buf);
+    offset += samplesPerFrame;
+  }
+  var endBuf = mp3encoder.flush();
+  if (endBuf.length > 0) mp3Data.push(endBuf);
+
+  return new Blob(mp3Data, { type: 'audio/mp3' });
+}
+
+function floatTo16BitPCM(float32Array) {
+  var int16 = new Int16Array(float32Array.length);
+  for (var i = 0; i < float32Array.length; i++) {
+    var s = Math.max(-1, Math.min(1, float32Array[i]));
+    int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+  }
+  return int16;
+}
+
+function clearAll() {
+  files = [];
+  document.getElementById("fileList").innerHTML = '';
+  document.getElementById("convertBtn").disabled = true;
+  document.getElementById("fileInput").value = '';
+}
+</script>
+
+</div>
 </body>
 </html>
