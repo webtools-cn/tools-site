@@ -107,8 +107,10 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; Google Fonts 字体配对生成器</p>
 <div class="hero"><p>免费在线Google Fonts字体配对生成器，浏览精选字体搭配方案，自定义标题和正文字体，实时预览排版效果，一键复制CSS @import 和 font-family 代码。纯前端本地运行。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section">
-    /div>
+<div>
+  <div class="section">
+    <h2>精选字体配对</h2>
+    <div class="presets" id="presetsGrid"></div>
   </div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
@@ -252,7 +254,53 @@ a{color:#06b6d4;text-decoration:none}
 </div>
 <div class="toast" id="toast"></div>
 <script>
-function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+const PRESETS=[
+  {name:'经典',heading:'Playfair Display',body:'Source Sans Pro',hw:'700',bw:'400',tag:'Serif+Sans'},
+  {name:'现代',heading:'Inter',body:'Roboto',hw:'600',bw:'400',tag:'Sans+Sans'},
+  {name:'优雅',heading:'Cormorant Garamond',body:'Lora',hw:'600',bw:'400',tag:'Serif+Serif'},
+  {name:'技术',heading:'Fira Code',body:'Inter',hw:'500',bw:'400',tag:'Mono+Sans'},
+  {name:'活力',heading:'Poppins',body:'Open Sans',hw:'600',bw:'400',tag:'Sans+Sans'},
+  {name:'简约',heading:'Montserrat',body:'Lato',hw:'500',bw:'400',tag:'Sans+Sans'},
+  {name:'文艺',heading:'Merriweather',body:'Nunito',hw:'700',bw:'400',tag:'Serif+Sans'},
+  {name:'创意',heading:'Caveat',body:'Work Sans',hw:'600',bw:'400',tag:'Handwriting+Sans'},
+  {name:'商务',heading:'Libre Baskerville',body:'Libre Franklin',hw:'700',bw:'400',tag:'Serif+Sans'},
+  {name:'高端',heading:'Jost',body:'EB Garamond',hw:'600',bw:'400',tag:'Sans+Serif'},
+];
+const hi=document.getElementById('headingFont'),bi=document.getElementById('bodyFont'),hw=document.getElementById('headingWeight'),bw=document.getElementById('bodyWeight'),hs=document.getElementById('headingSize'),hsv=document.getElementById('headingSizeVal'),ph=document.getElementById('previewHeading'),ps=document.getElementById('previewSubheading'),pb=document.getElementById('previewBody'),pb2=document.getElementById('previewBody2'),pm=document.getElementById('previewMeta'),co=document.getElementById('cssOutput'),pg=document.getElementById('presetsGrid');
+function renderPresets(){
+  pg.innerHTML='';
+  PRESETS.forEach((p,i)=>{
+    const d=document.createElement('div');d.className='preset-card';
+    d.innerHTML='<div class="preset-title" style="font-family:\''+p.heading+'\'">'+p.name+'</div><div class="preset-heading" style="font-family:\''+p.heading+'\',serif">标题: '+p.heading+'</div><div class="preset-body" style="font-family:\''+p.body+'\',sans-serif">正文: '+p.body+'</div><span class="preset-tag">'+p.tag+'</span>';
+    d.addEventListener('click',function(){hi.value=p.heading;bi.value=p.body;hw.value=p.hw;bw.value=p.bw;apply();document.querySelectorAll('.preset-card').forEach(function(e){e.classList.remove('active')});d.classList.add('active')});
+    pg.appendChild(d);
+  });
+}
+function apply(){
+  var h=hi.value.trim()||'Playfair Display',b=bi.value.trim()||'Source Sans Pro',hW=hw.value,bW=bw.value,hS=parseInt(hs.value);
+  hsv.textContent=hS+'px';
+  var families=[],hF=h.replace(/ /g,'+'),bF=b.replace(/ /g,'+');
+  if(h!==b){families.push('family='+hF+':wght@'+hW);families.push('family='+bF+':wght@'+bW)}else families.push('family='+hF+':wght@'+hW+';'+bW);
+  var url='https://fonts.googleapis.com/css2?'+families.join('&')+'&display=swap';
+  var link=document.createElement('link');link.href=url;link.rel='stylesheet';link.id='gfl';
+  var old=document.getElementById('gfl');if(old)old.remove();document.head.appendChild(link);
+  ph.style.fontFamily="'"+h+"',serif";ph.style.fontWeight=hW;ph.style.fontSize=hS+'px';
+  ps.style.fontFamily="'"+b+"',sans-serif";ps.style.fontWeight=bW;ps.style.fontSize=Math.round(hS*0.7)+'px';
+  pb.style.fontFamily="'"+b+"',sans-serif";pb.style.fontWeight=bW;pb.style.fontSize='1rem';
+  pb2.style.fontFamily="'"+b+"',sans-serif";pb2.style.fontWeight=bW;pb2.style.fontSize='1rem';
+  pm.textContent='标题: '+h+' '+hW+' · 正文: '+b+' '+bW;
+  co.textContent="@import url('"+url+"');\n\n/* 标题 */\nh1, h2, h3, h4, h5, h6 {\n  font-family: '"+h+"', serif;\n  font-weight: "+hW+";\n}\n\n/* 正文 */\nbody {\n  font-family: '"+b+"', sans-serif;\n  font-weight: "+bW+";\n}";
+}
+hs.addEventListener('input',function(){hsv.textContent=hs.value+'px';apply()});
+document.getElementById('applyBtn').addEventListener('click',apply);
+[hi,bi,hw,bw].forEach(function(el){el.addEventListener('change',apply)});
+document.getElementById('copyBtn').addEventListener('click',function(){navigator.clipboard.writeText(co.textContent).then(function(){showToast('已复制 ✓')}).catch(function(){var r=document.createRange();r.selectNode(co);window.getSelection().removeAllRanges();window.getSelection().addRange(r);document.execCommand('copy');showToast('已复制 ✓')})});
+function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+renderPresets();apply();
+</script>
+
+<script>
+function showToast2(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
