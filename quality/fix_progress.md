@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-04 (cron自动更新 - 第五十批 - 修复34个onclick无函数空壳+div不匹配+placeholder)
+> 最后更新: 2026-08-04 (cron自动更新 - 第五十一批 - 修复matrix-calculator JS结构损坏+html-dialog CSS语法错误+kanban-board缺失modal容器)
 
 ## 当前真实问题
 
@@ -16,6 +16,9 @@
 | **onclick无函数空壳(新发现)** | **35** | **35** | **0** | ✅ 完成 | 有onclick=xxx()但JS中无xxx定义 |
 | **div不匹配(>=2)** | **1** | **1** | **0** | ✅ 完成 | 正则统计<div>与</div>数量差 |
 | **placeholder残留** | **1** | **1** | **0** | ✅ 完成 | grep "即将上线/coming soon" |
+| **matrix-calculator JS结构损坏** | **1** | **1** | **0** | ✅ 完成 | 重复IIFE代码块+缺失det函数定义 |
+| **html-dialog CSS语法错误** | **1** | **1** | **0** | ✅ 完成 | @keyframes缺失body+多余闭合括号 |
+| **kanban-board缺失modal容器** | **1** | **1** | **0** | ✅ 完成 | JS引用modal-container但HTML无此元素 |
 
 > 注：待修复清单中EN版实际列出23个(原数据计数偏差)，其中url-unshortener EN已在本批修复但原本不在清单中。实际剩余待修：2个CN + 21个EN = 23个。
 
