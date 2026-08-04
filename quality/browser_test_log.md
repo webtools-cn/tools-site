@@ -81,3 +81,30 @@
 **注意**: 本轮因浏览器扩展未连接，采用静态深度检测代替浏览器实测。检测内容包括：JS语法验证、DOM引用完整性、深色主题合规(背景/文字/hover色)、Schema完整性、Footer完整性、meta描述长度、空壳检测、aggregateRating检测。
 
 **修复总结**: 6个工具共修复 15处深色文字问题 + 3处浅色背景问题 + 1处紫色渐变 → 全部改为标准深色主题配色。
+
+## 2026-08-04 质检批次 #55
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| csv-merger | CN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| csv-merger | EN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| unicode-analyzer | CN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| unicode-analyzer | EN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| high-yield-savings-calculator | CN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| high-yield-savings-calculator | EN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| cron-to-text | CN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| cron-to-text | EN | ✅深色 | ✅ | ✅ | N/A | 缺Breadcrumb schema → 已修复 | passed |
+| firewood-cord-calculator | CN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| firewood-cord-calculator | EN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| rule-of-72-calculator | CN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| rule-of-72-calculator | EN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| forex-profit-calculator | CN | ✅深色 | ✅(已修) | ✅ | N/A | pip计算bug→已修复 | passed |
+| forex-profit-calculator | EN | ✅深色 | ✅(已修) | ✅ | N/A | pip计算bug+related链接格式→已修复 | passed |
+
+### 修复详情
+1. **forex-profit-calculator CN+EN**: pip计算严重bug — pipsRounded使用价格差(exit-entry)而非pip数量。修复：pipCount/pipSize(0.0001或JPY对0.01) → 正确pip数量。验证：EUR/USD buy 1.1000→1.1050 = 50 pips × $10 = $500 (原计算$0.05，相差10000倍)
+2. **forex-profit-calculator CN**: 修复重复related-tools链接(两个相同tip-calculator)
+3. **forex-profit-calculator EN**: 修复related-tools链接格式(`//en/`→`../`)+标题深色文字(#374151→#e2e8f0)
+4. **cron-to-text EN**: 添加缺失的BreadcrumbList schema
+
+> 注：浏览器扩展未连接(extension_connected:false)，使用Node.js提取JS逻辑验证代替浏览器实测。所有7个工具14个页面(CN+EN)的JS语法通过+核心计算逻辑通过Node验证。
