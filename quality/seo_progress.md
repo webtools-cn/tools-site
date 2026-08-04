@@ -1,5 +1,77 @@
 # SEO修复进度记录
 
+## 2026-08-04: 14个文件HTML结构和meta标签修复 (P0)
+
+### 问题
+1. 5个EN金融计算器页面meta description内容包含`<title>`标签，导致HTML解析器在meta标签处中断，后续所有meta标签无法被Google爬虫解析
+2. 5个CN页面meta description包含未转义的`<`和`>`符号，可能导致部分HTML解析器提前关闭标签
+3. en/jpg-to-webp HTML结构严重损坏（CSS和body混合、标签未闭合、评分系统JS残留、重复</head></html>），且缺少转换功能JS函数
+4. jpg-to-webp(CN) 有`/div>`损坏残留、多余`</div>`、缺少handleFiles等JS函数
+5. markdown-to-react `</body>`前有多余`</div>`
+6. html-table-of-contents og:description未闭合引号导致JS代码泄漏到head区
+7. svg-sprite-generator JS语法错误：`URL.revokeObjectURL(url;`缺少闭括号`)`
+
+### 修复内容
+
+#### P0: 5个EN金融计算器meta标签含<title>（严重）
+- en/high-yield-savings-calculator: `content="Free online <title>..."` → 清理
+- en/market-cap-calculator: 同上
+- en/gross-margin-calculator: 同上
+- en/ebitda-calculator: 同上
+- en/roas-calculator: 同上
+全部：移除content中的`<title>`标签、修复重复`<title><title>`标签、重写meta description到120-160字符
+
+#### P0: en/jpg-to-webp完全重写
+- 原文件HTML结构严重损坏（CSS和body混在一起、标签未闭合、评分系统JS残留、重复</head></html>）
+- 完整重写为规范的HTML5结构，添加JPG转WebP转换功能（FileReader→Canvas→toBlob WebP）
+
+#### P0: jpg-to-webp(CN)修复
+- 修复`/div>`损坏残留（应为`<div>`）
+- 移除多余`</div>`（related-tools section）
+- 添加缺失的JS函数：handleFiles/convertImage/renderResults/removeItem/downloadAll/clearResults + 拖拽支持
+
+#### P0: markdown-to-react移除多余</div>
+- `</body>`前有一个多余`</div>`标签
+
+#### P0: html-table-of-contents修复og:description
+- 原og:description未闭合引号，导致JS代码`});while(stack.length>1)...`泄漏到head区
+- 修复为正确闭合的og:description
+
+#### P1: 5个CN页面meta description转义<>
+- capital-gains-tax-calculator: `>1年`→`&gt;1年` `>2优秀`→`&gt;2优秀`
+- current-ratio: `<1警示`→`&lt;1警示` `>2优秀`→`&gt;2优秀`
+- svg-sprite-generator: `<symbol>`→`&lt;symbol&gt;` + 修复JS语法错误
+- debt-service-coverage-ratio: `DSCR>1.25`→`DSCR&gt;1.25`
+- bracket-matcher: `<>`→`&lt;&gt;`
+
+### 重要发现：div不匹配假阳性
+之前报告的"18个文件div不匹配"中有16个是**假阳性**——`</div>`出现在JS字符串字面量中
+（如`+'</div></div>'`用于动态生成内容），不是HTML结构问题。
+使用去除`<script>`块后的HTML-only div计数验证，仅2个文件有真实div不匹配：
+- en/jpg-to-webp（已修复，完全重写）
+- markdown-to-react（已修复，移除多余</div>）
+
+### 验证
+- 14个文件div平衡全部OK ✅
+- JS语法检查全部通过 ✅
+- meta description 120-160字符 ✅
+- git push成功 ✅
+
+### 当前状态汇总
+| 问题 | 状态 |
+|:-----|:-----|
+| P0: 49个Failing URLs - div不匹配 | ✅ 已修复（真阳性2个+假阳性16个已确认） |
+| P0: Meta Description偏短 | ✅ 已修复 |
+| P0: 5个EN页面meta含<title>标签 | ✅ 本轮修复 |
+| P0: en/jpg-to-webp HTML严重损坏 | ✅ 本轮完全重写 |
+| P0: html-table-of-contents JS泄漏 | ✅ 本轮修复 |
+| P1: robots标签问题 | ✅ 全部已有index,follow |
+| P1: 浅色背景页面 | ✅ 已全部修复 |
+| P1: 5个CN页面meta含未转义<> | ✅ 本轮修复 |
+| P1: svg-sprite-generator JS语法错误 | ✅ 本轮修复 |
+| P1: 空壳工具 | ✅ 已清零 |
+| 下一轮: 在GSC中请求重新索引failing URLs | 待做 |
+
 ## 2026-08-04: HTML div标签不匹配修复 (P0)
 
 ### 问题
