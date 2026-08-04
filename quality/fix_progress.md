@@ -241,3 +241,14 @@ fibonacci-generator, text-to-binary, number-converter
 2. 精确过滤：排除重定向页面、分类页面、有innerHTML/业务函数/addEventListener的工具
 
 精确过滤后剩余约34个真正的空壳工具（有CSS样式但无交互UI和JS逻辑）。
+
+### 2026-08-04 (第三十三批 - 修复空函数体空壳)
+ai-detector, anagram-finder, animated-gradient-background, alarm-clock, aes-encrypt, aspect-ratio-calculator
+注: 新增检测维度——空函数体扫描(function name(){}模式)，发现25个页面存在空函数定义绑在按钮onclick上。本轮修复6个最严重的：
+- ai-detector: detectAI()/loadExample()/updateCharCount() 3个空函数 → 实现完整AI文本检测器(TTR词汇多样性/句子长度CV/二元组重复率/标点密度 5维统计评分+中英文支持+可视化指标卡片+详细分析报告)
+- anagram-finder: findAnagrams()/randomShuffle() 2个空函数 → 实现变位词查找器(内置300+词词典匹配+≤7字符全排列生成+统计面板+结果展示)
+- animated-gradient-background: updatePreview()/addColor() 2个空函数 → 实现动态渐变背景生成器(颜色选择器+增删颜色+速度/角度滑块+实时预览+CSS代码生成+keyframes注入)
+- alarm-clock: startAlarmClock()/previewRingtone()/stopAlarm() 3个空函数 → 实现闹钟(Web Audio API合成5种铃声+倒计时显示+音量控制+到点自动响铃)
+- aes-encrypt: encryptText()/decryptText()/switchTab() 3个空函数 → 实现AES-256-GCM加密(PBKDF2密钥派生100K迭代+随机salt/IV+Base64输出+加密/解密双面板切换)
+- aspect-ratio-calculator: calculateRatio()/reverseCalculate()/setPreset() 3个空函数 → 实现宽高比计算器(GCD最简比+反推尺寸+9种预设+可视化预览)
+所有JS语法验证通过。剩余19个空函数页面待修(多数为示例代码中的函数如js-beautify的hello/code-compare的farewell，非真实空壳)。
