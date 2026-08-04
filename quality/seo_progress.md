@@ -222,3 +222,34 @@
 | div不匹配(>=2) | 12 (误报) | ⚠️ JS字面量 |
 | div不匹配(>=2, HTML only) | 0 | ✅ |
 | 缺main标签 | 0 | ✅ |
+
+---
+
+## 2026-08-04 第二轮SEO修复
+
+### P0: html-stripper 空壳页面修复 ✅
+**问题**: `html-stripper/index.html` 中文版缺少核心工具交互区（输入框、按钮、结果区），仅有CSS和JS但无对应HTML元素。同时存在div不匹配（多余的闭合标签）和重复的script块。
+
+**修复内容**:
+- 补全完整的工具交互区（textarea输入框、4个选项checkbox、2个快捷示例按钮、去除标签/复制结果按钮、结果展示区+统计）
+- 修复div不匹配：移除3个多余的`</div>`闭合标签
+- 移除2段重复的`toggleFeedback`/`submitFeedback` script
+- 补全`.faq-item`缺失的`</div>`闭合标签
+
+### P0: early-payoff-calculator 语义化+robots修复 ✅
+**问题**: 中英文版均使用`<div class="container">`而非`<main>`标签，英文版缺robots标签，中文版meta description仅98字符。
+
+**修复内容**:
+- `en/early-payoff-calculator/index.html`: 添加`<meta name="robots" content="index, follow">`, `<div class="container">` → `<main class="container">`
+- `early-payoff-calculator/index.html`: meta description从98字符扩写到120+字符（追加"完全免费无需注册"等关键词）, 添加robots标签, `<div class="container">` → `<main class="container">`
+
+### 当前扫描结果（全量）
+| 指标 | 数值 | 状态 |
+|:-----|:----:|:----:|
+| meta过短(<100) | 0 | ✅ |
+| EN缺robots | 0 | ✅ |
+| placeholder | 0 | ✅ |
+| div不匹配(>=2, HTML only) | 0 | ✅ |
+| 缺main标签 | 0 | ✅ |
+
+- **提交**: `19c59a19c8`
