@@ -210,3 +210,15 @@
 | smoking-cost-calculator | EN | ✅ | ✅ | ✅ | ✅ | related-tools标题#374151不可见 | ✅已修 |
 | battery-capacity-tester | CN | ✅ | ✅ | ✅ | ✅ | 无 | ✅ |
 | battery-capacity-tester | EN | ✅ | ✅ | ✅ | ✅ | related-tools链接//en/双斜杠+#374151 | ✅已修 |
+
+## 2026-08-05 质检轮次
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| file-compare | CN | ✅深色 | ✅computeDiff+事件 | ✅中文 | ✅无错误 | 无 | ✅passed |
+| bandwidth-calculator | CN | ✅深色 | ✅setMode+计算 | ✅中文 | ✅无错误 | 无 | ✅passed |
+| json-to-swift | CN | ✅深色 | ✅跳转页(已迁移) | ✅中文 | ✅无错误 | 无 | ✅passed |
+| carb-calculator | CN | ✅深色 | ✅calculate+事件 | ✅中文 | ✅无错误 | 无 | ✅passed |
+| daily-planner | CN | ✅深色 | ✅localStorage+CRUD | ✅中文 | ✅无错误 | 无 | ✅passed |
+| css-shadow-generator | CN | ✅深色 | ❌空壳→✅已修 | ✅中文 | ✅已修 | CN缺核心JS,EN语法错 | ✅已修复 |
+| image-censor | CN | ✅深色 | ✅Canvas+马赛克 | ✅中文 | ✅无错误 | 无 | ✅passed |
