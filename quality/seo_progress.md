@@ -52,7 +52,11 @@
 - en/website-status-checker: `index, follow` ✅
 
 ### 待处理问题
-- P0: 49个Failing URLs — 需逐个检查GSC报告的具体失败原因
+- P0: 49个Failing URLs — 内容质量优化进行中
+  - 已优化8个页面（gpa-calculator, checksum-calculator, compound-interest-calculator, reaction-test, speed-test, vin-decoder, running-pace-calculator, metronome-online）
+  - 修复内容：替换通用HowTo schema模板为工具特定步骤 + 添加深度内容（对照表、计算详解、使用场景）
+  - 剩余约41个URL待处理（下批优先处理：tax-calculator, business-days-calculator, mac-address-lookup, unicode-lookup, sql-explainer, wifi-password-generator, en/backwards-text, en/website-status-checker）
+  - 根因分析：所有URL返回HTTP 200，技术层面正常（canonical/robots/sitemap均正确）。GSC failing最可能是"已发现-未编入索引"，需提升内容质量
 - P1: 浅色背景页面 (CN 52页 + EN 53页) — 需批量改为#0f172a
 - P1: 62个空壳工具 — 需实现实际功能或加noindex
 - 100个页面desc在160-200区间 — 优先级低，后续可优化
