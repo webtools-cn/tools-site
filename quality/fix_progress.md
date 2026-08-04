@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-04 (cron自动更新 - 第四十五批 - 修复punycode-converter空壳)
+> 最后更新: 2026-08-04 (cron自动更新 - 第四十六批 - 发现并修复新空壳类型: onclick无函数定义)
 
 ## 当前真实问题
 
@@ -13,14 +13,69 @@
 | toolInput误报(7个有功能) | 7 | 7 | 0 | ✅ 误报 | 有addEventListener绑定的真实功能 |
 | 回显型process空壳(output=input) | 30 | 30 | 0 | ✅ 完成 | 全站扫描 var output = input + 无业务逻辑 |
 | Punycode空壳(doConvert=showToast) | 1 | 1 | 0 | ✅ 完成 | 深度扫描函数体<150字符+无业务关键字 |
+| **onclick无函数空壳(新发现)** | **35** | **4** | **31** | 🔴 高 | 有onclick=xxx()但JS中无xxx定义(只有342b GA脚本) |
 
 ## 回显型空壳清单(全部清零)
 
 > 特征：函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
 > 注：第三十五批修复3个(hex-to-hsl/html-escape-unescape/string-case-converter)，第三十六批修复3个(caddyfile-generator/env-to-json/haproxy-config-generator)，第三十七批修复3个(html-email-template/html-table-to-markdown/htpasswd-generator)，第三十八批修复3个(http-cache-header-generator/js-destructuring-generator/json-key-renamer)，第三十九批修复3个(json-schema-generator/json-to-avro/json-to-csv-converter)，第四十批修复6个(json-to-go-struct/json-to-kotlin-class/json-to-php-object/json-to-rust-struct/json-to-schema/json-to-swift-struct)，第四十一批修复3个(mock-data-generator/svg-pattern-generator/tailwind-spacing-generator)，第四十二批修复3个(typescript-utility-types/unicode-range-generator/yaml-to-dotenv)+4个EN版遗漏(cidr-to-ip-range/decimal-to-roman/htaccess-generator/kubernetes-yaml-generator)。全部清零！
 
+## onclick无函数空壳清单 (35个，已修4个，剩余31个)
+
+> 特征：HTML有onclick="xxx()"绑定但JS中完全没有xxx函数定义（JS只有342字节GA脚本+错误处理）
+> 检测方法：提取<script>到</script>或</body>的JS内容，检查onclick绑定的函数名是否有定义
+> 注：部分"只缺toggleFaq"的页面可能核心功能通过addEventListener绑定，需逐个验证
+
+### 已修复
+- php-formatter (CN) ✅ 第四十六批
+- mp4-to-gif (CN) ✅ 第四十六批
+- og-checker (CN) ✅ 第四十六批
+- og-checker (EN) ✅ 第四十六批
+
+### 待修复 (31个)
+**CN版完全空壳 (11个，JS只有GA脚本):**
+1. data-url-converter - missing: copyDataUrl, downloadAsDataUrl, openDataUrl
+2. dns-records-lookup - missing: lookupDNS
+3. excel-to-pdf - missing: clearResults, downloadAll
+4. ico-converter - missing: clearResults, downloadAll
+5. image-resize - missing: clearResults, downloadAll
+6. log-viewer - missing: toggleFaq, toggleLevel (可能只缺辅助函数)
+7. mermaid-editor - missing: exportSVG, copyCode, loadPreset
+8. url-unshortener - missing: unshorten
+9. wav-to-mp3 - missing: toggleFaq (可能只缺辅助函数)
+10. webp-converter - missing: clearAll, downloadAll
+11. css-to-inline-styles - missing: convertToInline, clearResult, copyResult, downloadResult, loadSample, previewResult
+
+**EN版完全空壳 (20个，JS只有GA脚本):**
+1. en/1337-speak - missing: convert, copyResult, clearAll, downloadResult, loadExample, setDirection, setStyle
+2. en/accessible-color-palette - missing: generatePalette, setLevel, setCVD, randomBase, copyCSS, toggleFaq
+3. en/ai-function-call-generator - missing: addParam, copyJson, loadExample, toggleFaq
+4. en/ai-prompt-workflow - missing: addStep, removeStep, moveStep, addCondition, clearAll, importJSON, exportJSON, copyJSON, loadTemplate, toggleFaq
+5. en/ai-response-parser - missing: parseResponse, setExtractType, clearAll, loadExample, toggleFaq
+6. en/aria-label-generator - missing: copyCode, resetForm, toggleFaq
+7. en/chord-progression-generator - missing: generateProgression, loadPreset, togglePlay, stopPlay, copyProgression
+8. en/css-subgrid-generator - missing: copyCode, copyHTML, loadPreset
+9. en/css-text-clamp-generator - missing: copyCode
+10. en/excel-formula-generator - missing: wrapArray, addABS, addIFERROR, copyFormula, loadExample, toggleFaq
+11. en/google-font-previewer - missing: loadMoreFonts
+12. en/html-form-builder - missing: addField, clearFields, copyCode, exportHTML, loadExample
+13. en/json-to-properties - missing: convert, copyResult, clearInput, loadExample
+14. en/npm-package-search - missing: searchPkgs, quickSearch, showDetail, copyText, toggleFaq
+15. en/obsidian-frontmatter-generator - missing: addField, copyYaml, saveTemplate, loadExample, toggleFaq
+16. en/properties-to-json - missing: convert, copyResult, clearInput, loadExample
+17. en/ratio-simplifier - missing: clearAll, copyBatch, downloadBatch, loadExample
+18. en/schema-generator - missing: addFaq, removeFaq
+19. en/ssh-config-generator - missing: addHost, addPreset, copyConfig, downloadConfig, loadExample, toggleFaq
+20. en/terraform-config-generator - missing: addResource, addPresetResources, copyConfig, downloadConfig, loadExample, toggleFaq
+21. en/text-to-yaml - missing: convert, copyResult, clearInput, loadExample
+22. en/url-shortener - missing: shorten, copyShortUrl, generateQR, copyHistory
+23. en/word-density-analyzer - missing: clearInput, copyResults, downloadCSV, loadExample, setSort, toggleFaq
+
 ## 已修复的空壳工具
 
+### 2026-08-04 (第四十六批 - 发现并修复新空壳类型: onclick无函数定义)
+php-formatter, mp4-to-gif, og-checker(CN+EN)
+注: 发现此前所有检测脚本遗漏的新空壳模式——HTML有onclick="xxx()"绑定但JS中完全没有xxx函数定义(JS只有342字节GA脚本+错误处理)。此前检测覆盖了"Generated at"stub、"var output=input"回显、quickInput假交互、toolInput模板空壳，但没检测"有onclick无函数"模式。新检测脚本(提取<script>到</script>或</body>的JS内容+检查onclick绑定的函数名是否有function/window.xxx/const/let/var定义)发现35个真空壳。本轮修复4个(3个CN+1个EN): php-formatter CN实现PHP代码格式化器(formatPHP缩进层级+addSpacing运算符/逗号/关键字空格规范使用临时占位符处理多字符操作符===,==,!=,<=,>=,=>,.=,+=,-=,*=,/=+countBraces字符串感知括号计数+copyOutput clipboard API+downloadOutput Blob下载，7组addSpacing测试+4组countBraces测试全PASS); mp4-to-gif CN实现MP4转GIF转换器(handleVideo视频上传URL.createObjectURL+convertToGIF Canvas逐帧渲染v.currentTime seeked事件+createGIF纯JS LZW GIF编码器GIF89a头+Netscape循环扩展+Graphic Control Extension+Image Descriptor+quantize均匀颜色量化+indexImage调色板映射+lzwEncode LZW压缩clearCode/endCode/字典重建+downloadGIF/resetAll/updateTimeLabels/formatSize); og-checker CN+EN实现Open Graph标签检查器(checkOG通过allorigins.win CORS代理fetch URL→extractOG/extractTwitter正则提取og:/twitter: meta标签支持正反属性顺序+单双引号→displayResults评分表格required/recommended/twitter/title+displayPreview社交分享卡片预览+checkManual手动粘贴HTML兜底)。6个文件JS语法验证通过，node逻辑测试全部通过(OG提取11组用例全PASS)。剩余31个待修(11个CN+20个EN)。
 ### 2026-08-04 (第四十五批 - 深度扫描发现并修复punycode-converter空壳)
 punycode-converter
 注: 深度扫描(提取所有function process/convert/generate/doConvert等函数体<150字符且无业务关键字)发现EN版punycode-converter的doConvert()函数体仅`showToast('Done')`无任何Punycode编解码逻辑，usePreset()同样只显示toast。CN版doConvert()调用不存在的mainConvert()函数并fallback到回显输入。两个版本均无真正的RFC 3492 Punycode算法实现。本轮完整实现CN+EN版：pcEncode(Unicode→Punycode编码，adapt偏移调整+digitToChar+codePointAt处理代理对)+pcDecode(Punycode→Unicode解码，charToDigit+splice插入+fromCodePoint)+encodeDomain(域名多标签处理，仅非ASCII标签加xn--前缀)+decodeDomain(域名多标签解码)+doConvert(编码/解码模式切换+错误处理)+usePreset(预设示例直接填入并自动转换)+clearAll/copyText。同时修复EN版多个问题：copyText引用错误id('result'→'pOutput')+缺少showToast函数定义+缺少toast div元素+related-tools脚本顶层return语法错误(包裹IIFE)+预设按钮文本错误(zhongwen.cn/daylocal .jp→中国.cn/日本語.jp)。8组测试用例全部PASS(中国.cn→xn--fiqs8s.cn/中文.cn→xn--fiq228c.cn/日本語.jp→xn--wgv71a119e.jp/münchen.de→xn--mnchen-3ya.de/παράδειγμα.gr→xn--hxajbheg2az3al.gr编解码+roundtrip+纯ASCII域名不变)。2个文件JS语法验证通过。
