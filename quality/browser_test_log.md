@@ -222,3 +222,24 @@
 | daily-planner | CN | ✅深色 | ✅localStorage+CRUD | ✅中文 | ✅无错误 | 无 | ✅passed |
 | css-shadow-generator | CN | ✅深色 | ❌空壳→✅已修 | ✅中文 | ✅已修 | CN缺核心JS,EN语法错 | ✅已修复 |
 | image-censor | CN | ✅深色 | ✅Canvas+马赛克 | ✅中文 | ✅无错误 | 无 | ✅passed |
+
+## 2026-08-05 质检轮次
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:-------|:-----|:-----|
+| currency-bill-counter | CN | ✅修复浅色背景 | JS OK | OK | 无 | btn-secondary:hover浅色背景→已修 | ✅passed |
+| currency-bill-counter | EN | ✅修复浅色背景 | JS OK | OK | 无 | 同上 | ✅passed |
+| border-text-online | CN | OK | 重定向页 | OK | 无 | 无(301跳转页) | ✅passed |
+| border-text-online | EN | OK | 重定向页 | OK | 无 | 无(301跳转页) | ✅passed |
+| moon-phase-calculator | CN | ✅修复浅色背景 | JS OK | OK | 无 | info-item+btn-outline+phase-chip浅色背景→已修 | ✅passed |
+| moon-phase-calculator | EN | ✅修复浅色背景 | ✅修复JS语法 | OK | 无 | JS语法错误updateDisplay(;+浅色背景→已修 | ✅passed |
+| remove-duplicates | CN | ✅修复深色文字 | JS OK | OK | 无 | color:#333深色文字→已修 | ✅passed |
+| remove-duplicates | EN | ✅修复深色文字 | JS OK | OK | 无 | color:#333深色文字→已修 | ✅passed |
+| fake-news-detector | CN | ✅修复浅色背景 | JS OK | OK | 无 | .output浅色背景#f1f5f9→已修 | ✅passed |
+| fake-news-detector | EN | ✅修复浅色背景 | JS OK | OK | 无 | 同上 | ✅passed |
+| unix-timestamp-converter | CN | OK | JS OK | OK | 无 | 无 | ✅passed |
+| unix-timestamp-converter | EN | OK | JS OK | ✅修复中文残留 | 无 | 6处中文残留+toLocaleString('zh-CN')→已修 | ✅passed |
+| depreciation-calculator | CN | OK | JS OK | OK | 无 | 无 | ✅passed |
+| depreciation-calculator | EN | OK | JS OK | OK | 无 | 无 | ✅passed |
+
+**本轮修复总结：14个问题修复，涉及9个文件**
