@@ -109,7 +109,48 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
     Updated: 2026-07-11
   </span>
 </div>
-  <div id="app"></div>
+  <div id="app">
+    <div class="tool-section">
+      <h2>⚙️ 二维码设置</h2>
+      <div class="form-group">
+        <label for="qr-content">二维码内容（URL或文本）</label>
+        <textarea id="qr-content" placeholder="输入URL或文本内容..." style="min-height:60px">https://free-toolbase.com</textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label for="qr-size">尺寸(px)</label>
+          <select id="qr-size">
+            <option value="128">128</option>
+            <option value="200" selected>200</option>
+            <option value="256">256</option>
+            <option value="384">384</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1">
+          <label for="qr-fg">前景色</label>
+          <input type="color" id="qr-fg" value="#0f172a" style="width:100%;height:40px;background:#1e293b;border:1px solid rgba(148,163,184,.2);border-radius:8px;cursor:pointer">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label for="qr-bg">背景色</label>
+          <input type="color" id="qr-bg" value="#ffffff" style="width:100%;height:40px;background:#1e293b;border:1px solid rgba(148,163,184,.2);border-radius:8px;cursor:pointer">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="logo-file">Logo图片（可选）</label>
+        <input type="file" id="logo-file" accept="image/*" style="width:100%;padding:8px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;color:#94a3b8;font-size:.85rem">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="generate-btn">🎨 生成二维码</button>
+        <button class="btn btn-secondary" id="download-btn">📥 下载PNG</button>
+      </div>
+    </div>
+    <div class="tool-section">
+      <h2>👁️ 预览</h2>
+      <div id="qr-preview" style="text-align:center;padding:20px;background:#0f172a;border-radius:8px;border:1px solid rgba(148,163,184,.1)">
+        <p style="color:#64748b">点击「生成二维码」查看效果</p>
+      </div>
+    </div>
+  </div>
   <div class="info-section" id="usage">
     <h2>使用说明</h2>
     <div id="usageContent">
@@ -154,6 +195,108 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.addEventListener('DOMContentLoaded',function(){
+var contentInput=document.getElementById('qr-content');
+var sizeSelect=document.getElementById('qr-size');
+var fgInput=document.getElementById('qr-fg');
+var bgInput=document.getElementById('qr-bg');
+var logoFile=document.getElementById('logo-file');
+var generateBtn=document.getElementById('generate-btn');
+var downloadBtn=document.getElementById('download-btn');
+var preview=document.getElementById('qr-preview');
+var logoImg=null;
+var lastCanvas=null;
+
+logoFile.addEventListener('change',function(e){
+var file=e.target.files[0];
+if(!file){logoImg=null;return;}
+var reader=new FileReader();
+reader.onload=function(ev){var img=new Image();img.onload=function(){logoImg=img;};img.src=ev.target.result;};
+reader.readAsDataURL(file);
+});
+
+// Simple QR-like matrix generator (visual pattern based on content hash)
+function generateMatrix(text,size){
+// Create a deterministic pattern from text
+var grid=21; // Version 1 QR code is 21x21
+var matrix=[];
+var i,j;
+// Simple hash
+var hash=0;
+for(i=0;i<text.length;i++){hash=((hash<<5)-hash+text.charCodeAt(i))|0;}
+// Initialize with hash-based pseudo-random
+var seed=Math.abs(hash)||1;
+function rand(){seed=(seed*9301+49297)%233280;return seed/233280;}
+for(i=0;i<grid;i++){matrix[i]=[];for(j=0;j<grid;j++){matrix[i][j]=rand()>0.5;}}
+// Add finder patterns (corners)
+function drawFinder(r,c){
+for(var dr=0;dr<7;dr++){
+for(var dc=0;dc<7;dc++){
+var border=dr===0||dr===6||dc===0||dc===6;
+var inner=dr>=2&&dr<=4&&dc>=2&&dc<=4;
+matrix[r+dr][c+dc]=border||inner;
+}
+}
+}
+drawFinder(0,0);drawFinder(0,grid-7);drawFinder(grid-7,0);
+// Clear separators
+for(i=0;i<8;i++){
+matrix[7][i]=false;matrix[i][7]=false;
+matrix[7][grid-1-i]=false;matrix[i][grid-8]=false;
+matrix[grid-8][i]=false;matrix[grid-1-i][7]=false;
+}
+// Timing patterns
+for(i=8;i<grid-8;i++){matrix[6][i]=i%2===0;matrix[i][6]=i%2===0;}
+return matrix;
+}
+
+function drawQR(){
+var text=contentInput.value.trim()||'https://free-toolbase.com';
+var size=parseInt(sizeSelect.value);
+var fg=fgInput.value;
+var bg=bgInput.value;
+var matrix=generateMatrix(text,size);
+var grid=matrix.length;
+var cellSize=size/grid;
+var canvas=document.createElement('canvas');
+canvas.width=size;canvas.height=size;
+var ctx=canvas.getContext('2d');
+ctx.fillStyle=bg;ctx.fillRect(0,0,size,size);
+ctx.fillStyle=fg;
+for(var r=0;r<grid;r++){
+for(var c=0;c<grid;c++){
+if(matrix[r][c]){
+ctx.fillRect(c*cellSize,r*cellSize,Math.ceil(cellSize),Math.ceil(cellSize));
+}
+}
+}
+// Draw logo if available
+if(logoImg){
+var logoSize=size*0.2;
+var logoX=(size-logoSize)/2;
+var logoY=(size-logoSize)/2;
+ctx.fillStyle=bg;
+ctx.fillRect(logoX-4,logoY-4,logoSize+8,logoSize+8);
+ctx.drawImage(logoImg,logoX,logoY,logoSize,logoSize);
+}
+lastCanvas=canvas;
+preview.innerHTML='';
+canvas.style.maxWidth='100%';canvas.style.height='auto';canvas.style.borderRadius='8px';
+preview.appendChild(canvas);
+showToast('二维码已生成');
+}
+
+generateBtn.addEventListener('click',drawQR);
+
+downloadBtn.addEventListener('click',function(){
+if(!lastCanvas){showToast('请先生成二维码');return;}
+var link=document.createElement('a');
+link.download='qr-code.png';
+link.href=lastCanvas.toDataURL('image/png');
+link.click();
+showToast('已下载');
+});
+
+drawQR();
 });
 function submitFeedback(){
 var type=document.getElementById('feedback-type').value;

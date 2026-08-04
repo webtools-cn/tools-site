@@ -84,7 +84,51 @@ textarea{font-family:monospace;resize:vertical;min-height:120px}
     Updated: 2026-07-11
   </span>
 </div>
-  <div id="app"></div>
+  <div id="app">
+    <div class="tool-section">
+      <h2>⚙️ 选择音阶</h2>
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label for="root-note">调性（根音）</label>
+          <select id="root-note">
+            <option value="0">C</option><option value="1">C# / Db</option>
+            <option value="2">D</option><option value="3">D# / Eb</option>
+            <option value="4">E</option><option value="5">F</option>
+            <option value="6">F# / Gb</option><option value="7">G</option>
+            <option value="8">G# / Ab</option><option value="9">A</option>
+            <option value="10">A# / Bb</option><option value="11">B</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1">
+          <label for="scale-type">音阶类型</label>
+          <select id="scale-type">
+            <option value="major">大调（Ionian）</option>
+            <option value="minor">自然小调（Aeolian）</option>
+            <option value="harmonicMinor">和声小调</option>
+            <option value="melodicMinor">旋律小调</option>
+            <option value="majorPentatonic">大调五声音阶</option>
+            <option value="minorPentatonic">小调五声音阶</option>
+            <option value="blues">布鲁斯音阶</option>
+            <option value="dorian">多利亚（Dorian）</option>
+            <option value="phrygian">弗里吉亚（Phrygian）</option>
+            <option value="lydian">利底亚（Lydian）</option>
+            <option value="mixolydian">混合利底亚（Mixolydian）</option>
+            <option value="locrian">洛克里亚（Locrian）</option>
+            <option value="wholeTone">全音阶</option>
+            <option value="chromatic">半音阶</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="tool-section">
+      <h2>🎹 钢琴键盘</h2>
+      <p style="color:#64748b;font-size:.85rem;margin-bottom:12px">音阶音符以青色高亮显示，点击任意琴键可试听音高</p>
+      <div id="keyboard" style="overflow-x:auto;padding-bottom:8px"></div>
+      <div id="scale-info" style="margin-top:12px;padding:10px;background:#0f172a;border-radius:8px;border:1px solid rgba(148,163,184,.1)">
+        <p style="color:#94a3b8;font-size:.85rem"></p>
+      </div>
+    </div>
+  </div>
   <div class="info-section">
     <h2>功能介绍</h2>
     <p>免费在线音阶参考工具，适合音乐学习者和创作者。选择调性和音阶类型，在钢琴键盘上直观查看音阶音符分布，点击任意音符即可试听音高。支持大调、小调、五声音阶、布鲁斯音阶、全音阶、减音阶等20+种音阶类型。</p>
@@ -136,6 +180,131 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.addEventListener('DOMContentLoaded',function(){
+var NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+var SCALES={
+major:[0,2,4,5,7,9,11],
+minor:[0,2,3,5,7,8,10],
+harmonicMinor:[0,2,3,5,7,8,11],
+melodicMinor:[0,2,3,5,7,9,11],
+majorPentatonic:[0,2,4,7,9],
+minorPentatonic:[0,3,5,7,10],
+blues:[0,3,5,6,7,10],
+dorian:[0,2,3,5,7,9,10],
+phrygian:[0,1,3,5,7,8,10],
+lydian:[0,2,4,6,7,9,11],
+mixolydian:[0,2,4,5,7,9,10],
+locrian:[0,1,3,5,6,8,10],
+wholeTone:[0,2,4,6,8,10],
+chromatic:[0,1,2,3,4,5,6,7,8,9,10,11]
+};
+var SCALE_LABELS={
+major:'大调',minor:'自然小调',harmonicMinor:'和声小调',melodicMinor:'旋律小调',
+majorPentatonic:'大调五声',minorPentatonic:'小调五声',blues:'布鲁斯',
+dorian:'多利亚',phrygian:'弗里吉亚',lydian:'利底亚',mixolydian:'混合利底亚',
+locrian:'洛克里亚',wholeTone:'全音阶',chromatic:'半音阶'
+};
+var rootSel=document.getElementById('root-note');
+var scaleSel=document.getElementById('scale-type');
+var keyboard=document.getElementById('keyboard');
+var scaleInfo=document.getElementById('scale-info').querySelector('p');
+var audioCtx=null;
+
+function getScaleNotes(root,scaleType){
+var intervals=SCALES[scaleType]||SCALES.major;
+var notes=[];
+for(var oct=0;oct<=1;oct++){
+intervals.forEach(function(interval){
+notes.push((root+interval)%12);
+});
+}
+return notes;
+}
+
+function playNote(midiNote){
+if(!audioCtx){try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return;}}
+var freq=440*Math.pow(2,(midiNote-69)/12);
+var osc=audioCtx.createOscillator();
+var gain=audioCtx.createGain();
+osc.type='sine';
+osc.frequency.value=freq;
+gain.gain.setValueAtTime(0.3,audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.8);
+osc.connect(gain);
+gain.connect(audioCtx.destination);
+osc.start();
+osc.stop(audioCtx.currentTime+0.8);
+}
+
+function renderKeyboard(){
+var root=parseInt(rootSel.value);
+var scaleType=scaleSel.value;
+var scaleNotes=getScaleNotes(root,scaleType);
+// Build 2 octaves starting from C4 (MIDI 60)
+var startMidi=60-root; // Start at the root note of octave 4
+var html='<div style="display:inline-flex;position:relative;height:160px">';
+var whiteKeys=[];
+var blackKeyOffsets={1:0,3:1,6:3,8:4,10:5}; // Black key positions after white keys
+for(var i=0;i<24;i++){
+var midi=startMidi+i;
+var noteClass=midi%12;
+var isBlack=[1,3,6,8,10].indexOf(noteClass)>=0;
+var isInScale=scaleNotes.indexOf(noteClass)>=0;
+var noteName=NOTE_NAMES[noteClass];
+var octave=Math.floor(midi/12)-1;
+if(!isBlack){
+whiteKeys.push({midi:midi,name:noteName,octave:octave,inScale:isInScale});
+}
+}
+var whiteCount=whiteKeys.length;
+var whiteWidth=40;
+var totalWidth=whiteCount*whiteWidth;
+whiteKeys.forEach(function(k,idx){
+var bg=k.inScale?'rgba(6,182,212,.3)':'#f1f5f9';
+var border=k.inScale?'rgba(6,182,212,.6)':'#cbd5e1';
+html+='<div style="width:'+whiteWidth+'px;height:160px;background:'+bg+';border:1px solid '+border+';border-radius:0 0 6px 6px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:6px;cursor:pointer;margin-right:1px;transition:all .1s" onmouseover="this.style.opacity=.8" onmouseout="this.style.opacity=1" data-midi="'+k.midi+'"><span style="font-size:.7rem;color:'+(k.inScale?'#22d3ee':'#475569')+';font-weight:'+(k.inScale?'700':'400')+'">'+k.name+k.octave+'</span></div>';
+});
+// Black keys overlay
+for(var i=0;i<24;i++){
+var midi=startMidi+i;
+var noteClass=midi%12;
+var isBlack=[1,3,6,8,10].indexOf(noteClass)>=0;
+if(!isBlack)continue;
+var isInScale=scaleNotes.indexOf(noteClass)>=0;
+var noteName=NOTE_NAMES[noteClass];
+var octave=Math.floor(midi/12)-1;
+// Find position: count white keys before this one
+var whiteBefore=0;
+for(var j=0;j<i;j++){
+var jc=(startMidi+j)%12;
+if([1,3,6,8,10].indexOf(jc)<0)whiteBefore++;
+}
+var leftPos=whiteBefore*whiteWidth+whiteWidth*0.7;
+var bg=isInScale?'rgba(6,182,212,.5)':'#1e293b';
+var border=isInScale?'rgba(6,182,212,.8)':'#0f172a';
+html+='<div style="position:absolute;left:'+leftPos+'px;top:0;width:'+(whiteWidth*0.6)+'px;height:100px;background:'+bg+';border:1px solid '+border+';border-radius:0 0 4px 4px;z-index:2;cursor:pointer;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:4px" data-midi="'+midi+'"><span style="font-size:.6rem;color:'+(isInScale?'#22d3ee':'#64748b')+';font-weight:'+(isInScale?'700':'400')+'">'+noteName+'</span></div>';
+}
+html+='</div>';
+keyboard.innerHTML=html;
+
+// Show scale info
+var scaleNoteNames=scaleNotes.map(function(n){return NOTE_NAMES[n];});
+var uniqueNotes=[];
+scaleNoteNames.forEach(function(n){if(uniqueNotes.indexOf(n)<0)uniqueNotes.push(n);});
+var rootName=NOTE_NAMES[root];
+scaleInfo.textContent=rootName+' '+SCALE_LABELS[scaleType]+'：'+uniqueNotes.join(' - ');
+
+// Add click handlers
+keyboard.querySelectorAll('[data-midi]').forEach(function(key){
+key.addEventListener('click',function(){
+var midi=parseInt(this.getAttribute('data-midi'));
+playNote(midi);
+});
+});
+}
+
+rootSel.addEventListener('change',renderKeyboard);
+scaleSel.addEventListener('change',renderKeyboard);
+renderKeyboard();
 });
 function submitFeedback(){
 var type=document.getElementById('feedback-type').value;

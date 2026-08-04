@@ -44,6 +44,8 @@ input[type=text]:focus,input[type=url]:focus,textarea:focus{outline:none;border-
 .row .field{flex:1;min-width:200px}
 .btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
 .btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2);color:#e2e8f0}
 .btn-primary:hover{background:rgba(6,182,212,.3)}
 .btn-success{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.2)}
 .btn-success:hover{background:rgba(34,197,94,.25)}
@@ -124,7 +126,26 @@ input[type=text]:focus,input[type=url]:focus,textarea:focus{outline:none;border-
     Updated: 2026-07-11
   </span>
 </div>
-  <div id="app"></div>
+  <div id="app">
+    <div class="tool-section">
+      <h2>⚙️ 游戏设置</h2>
+      <div class="difficulty-selector" id="difficulty-selector">
+        <button class="difficulty-btn active" data-level="fun">🎉 趣味模式</button>
+        <button class="difficulty-btn" data-level="spicy">🔥 刺激模式</button>
+        <button class="difficulty-btn" data-level="family">👨‍👩‍👧 家庭模式</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="truth-btn" style="background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);padding:12px 28px;font-size:1rem">💬 真心话</button>
+        <button class="btn btn-primary" id="dare-btn" style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2);padding:12px 28px;font-size:1rem">🎯 大冒险</button>
+        <button class="btn btn-secondary" id="random-btn" style="padding:12px 28px;font-size:1rem">🎲 随机</button>
+      </div>
+    </div>
+    <div class="tool-section">
+      <div class="truth-dare-display" id="display">
+        <p style="color:#64748b">点击「真心话」或「大冒险」开始游戏</p>
+      </div>
+    </div>
+  </div>
   <div class="info-section" id="usage">
     <h2>如何使用</h2>
     <div id="usageContent">
@@ -166,6 +187,52 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.addEventListener('DOMContentLoaded',function(){
+var truths={
+fun:['你最喜欢的电影是什么？','你最尴尬的时刻是什么？','你最想拥有什么超能力？','你小时候最怕什么？','你最奇怪的习惯是什么？','你最近一次撒谎是什么时候？','你最喜欢的童年回忆是什么？','如果可以变成动物你想变成什么？'],
+spicy:['你暗恋过在座的人吗？','你做过最疯狂的事是什么？','你最后悔的决定是什么？','你有什么不为人知的秘密？','你暗恋过谁？','你做过最尴尬的梦是什么？','你曾经背叛过朋友吗？','你最不想让别人知道的事是什么？'],
+family:['你最喜欢的家庭活动是什么？','你最佩服家里哪个人？','你小时候最有趣的糗事？','你最想和家人去哪里旅行？','你最喜欢的家常菜是什么？','你最近一次和家人大笑是什么时候？','你最珍贵的家庭回忆是什么？','如果可以回到小时候你想做什么？']
+};
+var dares={
+fun:['模仿一个在场的人','用奇怪的声音说一段话','做一个夸张的表情拍照','模仿一种动物的叫声','用左手写自己的名字','原地转三圈然后走直线','唱一首歌的副歌部分','做一个搞笑的鬼脸'],
+spicy:['给你通讯录第5个人打电话说"我爱你"','发一条朋友圈只写"我疯了"','让左边的人在你脸上画画','给一个不在场的人发"我想你了"','模仿婴儿哭一分钟','用牙齿咬住鼻子坚持10秒','对着窗外大喊"我是最美的"','给在场的人每人一个拥抱'],
+family:['给大家表演一个才艺','学一种动物的叫声让大家猜','讲一个你小时候的故事','给妈妈/爸爸说一句感谢的话','做一个鬼脸让大家都笑了才算完成','模仿一个家人的口头禅','唱一首你最喜欢的儿歌','给大家鞠个躬说"你们辛苦了"']
+};
+var currentLevel='fun';
+var display=document.getElementById('display');
+var lastIdx=-1;
+
+document.getElementById('difficulty-selector').addEventListener('click',function(e){
+var btn=e.target.closest('[data-level]');
+if(!btn)return;
+document.querySelectorAll('.difficulty-btn').forEach(function(b){b.classList.remove('active');});
+btn.classList.add('active');
+currentLevel=btn.getAttribute('data-level');
+});
+
+function pick(arr){
+if(arr.length<=1)return arr[0];
+var idx;
+do{idx=Math.floor(Math.random()*arr.length);}while(idx===lastIdx);
+lastIdx=idx;
+return arr[idx];
+}
+
+function showContent(type){
+var arr=type==='truth'?truths[currentLevel]:dares[currentLevel];
+var text=pick(arr);
+display.className='truth-dare-display '+(type==='truth'?'truth':'dare')+' fade-in';
+var label=type==='truth'?'💬 真心话':'🎯 大冒险';
+display.innerHTML='<div><p style="font-size:.9rem;margin-bottom:8px;opacity:.7">'+label+'</p><p>'+text+'</p></div>';
+// Trigger reflow for animation
+void display.offsetWidth;
+display.classList.add('fade-in');
+}
+
+document.getElementById('truth-btn').addEventListener('click',function(){showContent('truth');});
+document.getElementById('dare-btn').addEventListener('click',function(){showContent('dare');});
+document.getElementById('random-btn').addEventListener('click',function(){
+showContent(Math.random()<0.5?'truth':'dare');
+});
 });
 function submitFeedback(){
 var type=document.getElementById('feedback-type').value;

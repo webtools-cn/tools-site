@@ -104,7 +104,52 @@ input[type=range]{width:100%;margin-bottom:12px;accent-color:#06b6d4}
     Updated: 2026-07-11
   </span>
 </div>
-  <div id="app"></div>
+  <div id="app">
+    <div class="tool-section">
+      <h2>✏️ 文字转SVG</h2>
+      <div class="form-group">
+        <label for="svg-text">输入文字</label>
+        <input type="text" id="svg-text" value="Hello" placeholder="输入要转换的文字">
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label for="font-size">字号</label>
+          <input type="number" id="font-size" value="48" min="8" max="200">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label for="text-color">文字颜色</label>
+          <input type="color" id="text-color" value="#22d3ee" style="width:100%;height:40px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;cursor:pointer">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label for="bg-color">背景颜色</label>
+          <input type="color" id="bg-color" value="#0f172a" style="width:100%;height:40px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;cursor:pointer">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label for="font-family">字体</label>
+          <select id="font-family">
+            <option value="sans-serif">无衬线</option>
+            <option value="serif">衬线</option>
+            <option value="monospace">等宽</option>
+            <option value="cursive">手写</option>
+            <option value="fantasy">幻想</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="generate-btn">🎨 生成SVG</button>
+        <button class="btn btn-secondary" id="copy-svg-btn">📋 复制SVG代码</button>
+        <button class="btn btn-secondary" id="download-btn">📥 下载SVG</button>
+      </div>
+    </div>
+    <div class="tool-section" id="preview-section">
+      <h2>👁️ 预览</h2>
+      <div id="svg-preview" style="text-align:center;padding:16px;background:#0f172a;border-radius:8px;border:1px solid rgba(148,163,184,.1);overflow-x:auto"></div>
+      <div class="form-group" style="margin-top:12px">
+        <label for="svg-code">SVG代码</label>
+        <textarea id="svg-code" readonly style="min-height:100px;font-size:.8rem"></textarea>
+      </div>
+    </div>
+  </div>
   <div class="info-section" id="usage">
     <h2>使用说明</h2>
     <div id="usageContent">
@@ -149,6 +194,63 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.addEventListener('DOMContentLoaded',function(){
+var textInput=document.getElementById('svg-text');
+var fontSizeInput=document.getElementById('font-size');
+var textColorInput=document.getElementById('text-color');
+var bgColorInput=document.getElementById('bg-color');
+var fontFamilyInput=document.getElementById('font-family');
+var generateBtn=document.getElementById('generate-btn');
+var copyBtn=document.getElementById('copy-svg-btn');
+var downloadBtn=document.getElementById('download-btn');
+var preview=document.getElementById('svg-preview');
+var codeArea=document.getElementById('svg-code');
+
+function escapeXml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');}
+
+function generateSVG(){
+var text=textInput.value||'Hello';
+var fontSize=parseInt(fontSizeInput.value)||48;
+var textColor=textColorInput.value;
+var bgColor=bgColorInput.value;
+var fontFamily=fontFamilyInput.value;
+var padding=fontSize*0.5;
+var width=text.length*fontSize*0.6+padding*2;
+var height=fontSize+padding*2;
+var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+height+'" viewBox="0 0 '+width+' '+height+'">';
+svg+='<rect width="'+width+'" height="'+height+'" fill="'+bgColor+'"/>';
+svg+='<text x="'+(width/2)+'" y="'+(height/2+fontSize*0.35)+'" font-size="'+fontSize+'" font-family="'+fontFamily+'" fill="'+textColor+'" text-anchor="middle">'+escapeXml(text)+'</text>';
+svg+='</svg>';
+return svg;
+}
+
+function updatePreview(){
+var svg=generateSVG();
+preview.innerHTML=svg;
+codeArea.value=svg;
+}
+
+generateBtn.addEventListener('click',updatePreview);
+[textInput,fontSizeInput,textColorInput,bgColorInput,fontFamilyInput].forEach(function(el){
+el.addEventListener('input',updatePreview);
+});
+
+copyBtn.addEventListener('click',function(){
+if(!codeArea.value){showToast('请先生成SVG');return;}
+navigator.clipboard.writeText(codeArea.value).then(function(){showToast('SVG代码已复制');})['catch'](function(){showToast('复制失败');});
+});
+
+downloadBtn.addEventListener('click',function(){
+var svg=codeArea.value||generateSVG();
+var blob=new Blob([svg],{type:'image/svg+xml'});
+var a=document.createElement('a');
+a.href=URL.createObjectURL(blob);
+a.download='text-to-svg.svg';
+a.click();
+URL.revokeObjectURL(a.href);
+showToast('SVG已下载');
+});
+
+updatePreview();
 });
 function submitFeedback(){
 var type=document.getElementById('feedback-type').value;

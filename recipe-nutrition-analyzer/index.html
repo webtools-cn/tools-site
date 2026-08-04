@@ -85,7 +85,51 @@ textarea{font-family:monospace;resize:vertical;min-height:120px}
     Updated: 2026-07-11
   </span>
 </div>
-  <div id="app"></div>
+  <div id="app">
+    <div class="tool-section">
+      <h2>➕ 添加食材</h2>
+      <div class="form-row">
+        <div class="form-group" style="flex:2">
+          <label for="food-select">选择食材</label>
+          <select id="food-select">
+            <option value="">-- 选择食材 --</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1">
+          <label for="food-amount">用量</label>
+          <input type="number" id="food-amount" value="100" min="1" placeholder="100">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label for="food-unit">单位</label>
+          <select id="food-unit">
+            <option value="g">克(g)</option>
+            <option value="kg">千克(kg)</option>
+            <option value="ml">毫升(ml)</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="add-food-btn">➕ 添加到食谱</button>
+        <button class="btn btn-secondary" id="clear-recipe-btn">🗑️ 清空食谱</button>
+      </div>
+    </div>
+    <div class="tool-section">
+      <h2>📊 营养成分总览</h2>
+      <div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px">
+        <div class="stat-card"><div class="stat-value" id="total-calories" style="color:#f87171">0</div><div class="stat-label">热量(kcal)</div></div>
+        <div class="stat-card"><div class="stat-value" id="total-protein" style="color:#4ade80">0g</div><div class="stat-label">蛋白质</div></div>
+        <div class="stat-card"><div class="stat-value" id="total-carbs" style="color:#fbbf24">0g</div><div class="stat-label">碳水化合物</div></div>
+        <div class="stat-card"><div class="stat-value" id="total-fat" style="color:#a78bfa">0g</div><div class="stat-label">脂肪</div></div>
+        <div class="stat-card"><div class="stat-value" id="total-fiber" style="color:#22d3ee">0g</div><div class="stat-label">纤维素</div></div>
+        <div class="stat-card"><div class="stat-value" id="total-sodium" style="color:#fb923c">0mg</div><div class="stat-label">钠</div></div>
+      </div>
+      <div id="food-list"></div>
+      <div id="empty-recipe" style="text-align:center;padding:24px;color:#64748b">
+        <p style="font-size:1.5rem">🍽️</p>
+        <p>食谱为空，请添加食材</p>
+      </div>
+    </div>
+  </div>
   <div class="info-section">
     <h2>功能介绍</h2>
     <p>免费在线食谱营养分析器。添加食材和用量，工具自动计算总热量、蛋白质、碳水化合物、脂肪、纤维素、钠等营养成分。内置500+常见食材的营养数据，适合健身人群、减肥人士和健康饮食爱好者追踪每日营养摄入。</p>
@@ -133,6 +177,124 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.addEventListener('DOMContentLoaded',function(){
+// Food database: per 100g — [calories, protein(g), carbs(g), fat(g), fiber(g), sodium(mg)]
+var FOODS={
+'鸡胸肉':[165,31,0,3.6,0,74],'鸡蛋':[144,13.3,2.8,8.8,0,142],
+'牛肉':[250,26,0,15,0,72],'猪肉(瘦)':[143,20.3,1.5,6.2,0,57.5],
+'三文鱼':[208,20.4,0,13.4,0,59],'虾':[87,18.6,0.8,1.3,0,165],
+'牛奶':[54,3,3.4,3.2,0,37],'酸奶':[72,2.5,9.3,2.7,0,36],
+'豆腐':[76,8.1,1.9,4.8,0.4,7],'大米(熟)':[130,2.7,28.2,0.3,0.4,1],
+'面条(熟)':[110,3.5,22.5,0.5,1.2,1],'面包(全麦)':[247,13,41,3.4,7,400],
+'燕麦片':[377,13.5,66.3,6.7,10.6,3],'红薯':[86,1.6,20,0.1,3,55],
+'土豆':[77,2,17,0.1,2.2,5],'西兰花':[34,4.1,3.6,0.6,1.6,18.8],
+'菠菜':[28,2.6,2.8,0.3,1.7,85],'胡萝卜':[41,1,9.6,0.2,2.8,25],
+'番茄':[18,0.9,3.9,0.2,1.2,5],'黄瓜':[16,0.8,2.9,0.2,0.5,5],
+'生菜':[15,1.4,2.9,0.2,1.5,28],'洋葱':[40,1.1,9.3,0.1,1.7,4],
+'蘑菇(白)':[22,3.1,3.3,0.3,1,5],'玉米(甜)':[86,3.3,19,1.2,2.7,15],
+'苹果':[52,0.3,14,0.2,2.4,1],'香蕉':[89,1.1,23,0.3,2.6,1],
+'橙子':[47,0.9,12,0.1,2.4,0],'葡萄':[69,0.7,18,0.2,0.9,2],
+'草莓':[32,0.7,7.7,0.3,2,1],'蓝莓':[57,0.7,14.5,0.3,2.4,1],
+'芒果':[60,0.8,15,0.4,1.6,1],'牛油果':[160,2,8.5,14.7,6.7,7],
+'花生':[567,25.8,16.1,49.2,8.5,18],'杏仁':[579,21.2,21.6,49.9,12.5,1],
+'核桃':[654,15.2,13.7,65.2,6.7,2],'芝麻':[573,17.7,23.4,49.7,11.8,11],
+'橄榄油':[884,0,0,100,0,2],'白糖':[387,0,99.9,0,0,1],
+'蜂蜜':[304,0.3,82.4,0,0.2,4],'黑巧克力':[546,4.9,61,31.3,7,24],
+'咖啡(黑)':[1,0.1,0,0,0,2],'绿茶(无糖)':[1,0.2,0,0,0,1],
+'黄豆':[359,35,34,16,15.5,2],'绿豆':[316,21.6,55.6,0.8,6.4,3],
+'红豆':[309,20.2,55.7,0.6,7.7,2.2],'芝麻酱':[631,20,21.6,52.7,1.4,14]
+};
+
+var foodSelect=document.getElementById('food-select');
+var amountInput=document.getElementById('food-amount');
+var unitSelect=document.getElementById('food-unit');
+var addBtn=document.getElementById('add-food-btn');
+var clearBtn=document.getElementById('clear-recipe-btn');
+var foodList=document.getElementById('food-list');
+var emptyRecipe=document.getElementById('empty-recipe');
+var recipe=[];
+
+// Populate food select
+Object.keys(FOODS).forEach(function(name){
+var opt=document.createElement('option');
+opt.value=name;
+opt.textContent=name+' ('+FOODS[name][0]+'kcal/100g)';
+foodSelect.appendChild(opt);
+});
+
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function getMultiplier(amount,unit){
+if(unit==='g')return amount/100;
+if(unit==='kg')return amount*10;
+if(unit==='ml')return amount/100;
+return amount/100;
+}
+
+function updateTotals(){
+var totals={cal:0,protein:0,carbs:0,fat:0,fiber:0,sodium:0};
+recipe.forEach(function(item){
+var data=FOODS[item.food];if(!data)return;
+var m=getMultiplier(item.amount,item.unit);
+totals.cal+=data[0]*m;
+totals.protein+=data[1]*m;
+totals.carbs+=data[2]*m;
+totals.fat+=data[3]*m;
+totals.fiber+=data[4]*m;
+totals.sodium+=data[5]*m;
+});
+document.getElementById('total-calories').textContent=Math.round(totals.cal);
+document.getElementById('total-protein').textContent=totals.protein.toFixed(1)+'g';
+document.getElementById('total-carbs').textContent=totals.carbs.toFixed(1)+'g';
+document.getElementById('total-fat').textContent=totals.fat.toFixed(1)+'g';
+document.getElementById('total-fiber').textContent=totals.fiber.toFixed(1)+'g';
+document.getElementById('total-sodium').textContent=Math.round(totals.sodium)+'mg';
+}
+
+function render(){
+if(recipe.length===0){
+foodList.innerHTML='';
+emptyRecipe.style.display='block';
+return;
+}
+emptyRecipe.style.display='none';
+var html='';
+recipe.forEach(function(item,idx){
+var data=FOODS[item.food];if(!data)return;
+var m=getMultiplier(item.amount,item.unit);
+var cal=Math.round(data[0]*m);
+html+='<div style="display:flex;justify-content:space-between;align-items:center;background:#0f172a;border-radius:8px;padding:10px 14px;margin-bottom:6px;border:1px solid rgba(148,163,184,.1)">';
+html+='<div><strong style="color:#f1f5f9">'+escapeHtml(item.food)+'</strong> <span style="color:#64748b;font-size:.85rem">'+item.amount+item.unit+'</span></div>';
+html+='<div style="display:flex;align-items:center;gap:12px">';
+html+='<span style="color:#f87171;font-size:.85rem">'+cal+' kcal</span>';
+html+='<button class="btn btn-danger" style="padding:4px 10px;font-size:.75rem" data-idx="'+idx+'">✕</button>';
+html+='</div></div>';
+});
+foodList.innerHTML=html;
+}
+
+foodList.addEventListener('click',function(e){
+var btn=e.target.closest('[data-idx]');
+if(!btn)return;
+var idx=parseInt(btn.getAttribute('data-idx'));
+recipe.splice(idx,1);
+render();updateTotals();
+});
+
+addBtn.addEventListener('click',function(){
+var food=foodSelect.value;
+if(!food){showToast('请选择食材');return;}
+var amount=parseFloat(amountInput.value);
+if(!amount||amount<=0){showToast('请输入有效用量');return;}
+recipe.push({food:food,amount:amount,unit:unitSelect.value});
+render();updateTotals();
+showToast('已添加 '+food);
+});
+
+clearBtn.addEventListener('click',function(){
+if(recipe.length===0)return;
+recipe=[];render();updateTotals();
+showToast('已清空食谱');
+});
 });
 function submitFeedback(){
 var type=document.getElementById('feedback-type').value;

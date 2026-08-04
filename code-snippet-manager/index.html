@@ -35,6 +35,12 @@ input[type=text],input[type=number],select,textarea{width:100%;padding:10px 12px
 input[type=text]:focus,input[type=number]:focus,select:focus,textarea:focus{border-color:rgba(6,182,212,.5)}
 textarea{font-family:monospace;resize:vertical;min-height:120px}
 .btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2);color:#e2e8f0}
+.btn-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .result-box{background:#0f172a;border-radius:8px;padding:12px 16px;margin:8px 0;border:1px solid rgba(148,163,184,.08);word-break:break-all}
 .result-row{display:flex;justify-content:space-between;align-items:center;background:#0f172a;border-radius:8px;padding:12px 16px;margin:6px 0;border:1px solid rgba(148,163,184,.08)}
@@ -84,7 +90,70 @@ textarea{font-family:monospace;resize:vertical;min-height:120px}
     Updated: 2026-07-11
   </span>
 </div>
-  <div id="app"></div>
+  <div id="app">
+    <div class="tool-section">
+      <h2>➕ 新建代码片段</h2>
+      <div class="form-group">
+        <label for="snippet-title">标题</label>
+        <input type="text" id="snippet-title" placeholder="例如：React useEffect清理函数">
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label for="snippet-lang">语言</label>
+          <select id="snippet-lang">
+            <option value="javascript">JavaScript</option>
+            <option value="typescript">TypeScript</option>
+            <option value="python">Python</option>
+            <option value="html">HTML</option>
+            <option value="css">CSS</option>
+            <option value="java">Java</option>
+            <option value="cpp">C++</option>
+            <option value="csharp">C#</option>
+            <option value="php">PHP</option>
+            <option value="ruby">Ruby</option>
+            <option value="go">Go</option>
+            <option value="rust">Rust</option>
+            <option value="sql">SQL</option>
+            <option value="bash">Bash</option>
+            <option value="json">JSON</option>
+            <option value="yaml">YAML</option>
+            <option value="markdown">Markdown</option>
+            <option value="text">纯文本</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1">
+          <label for="snippet-tags">标签（逗号分隔）</label>
+          <input type="text" id="snippet-tags" placeholder="react, hooks, cleanup">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="snippet-code">代码</label>
+        <textarea id="snippet-code" placeholder="粘贴或输入代码..." style="min-height:150px"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="save-btn">💾 保存片段</button>
+        <button class="btn btn-secondary" id="clear-form-btn">清空表单</button>
+      </div>
+    </div>
+    <div class="tool-section">
+      <h2>📚 我的代码片段</h2>
+      <div class="form-group">
+        <input type="text" id="search-input" placeholder="搜索标题、标签或代码内容...">
+      </div>
+      <div class="btn-row" style="margin-top:0;margin-bottom:12px">
+        <button class="btn btn-secondary" id="export-btn">📥 导出JSON</button>
+        <button class="btn btn-secondary" id="import-btn">📤 导入JSON</button>
+        <input type="file" id="import-file" accept=".json" style="display:none">
+        <button class="btn btn-danger" id="clear-all-btn">🗑️ 清空全部</button>
+      </div>
+      <div id="snippet-list"></div>
+      <div id="empty-state" style="text-align:center;padding:32px;color:#64748b">
+        <p style="font-size:2rem;margin-bottom:8px">📭</p>
+        <p>还没有保存任何代码片段</p>
+        <p style="font-size:.8rem;margin-top:4px">在上方填写表单并点击「保存片段」</p>
+      </div>
+    </div>
+  </div>
   <div class="info-section">
     <h2>功能介绍</h2>
     <p>免费在线代码片段管理器，帮助开发者收藏和管理常用代码片段。支持创建分类、添加标签、语法高亮显示，内置全文搜索快速找到你需要的内容。所有数据保存在浏览器本地存储中，支持导出为JSON文件备份。</p>
@@ -136,6 +205,172 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 document.addEventListener('DOMContentLoaded',function(){
+var STORAGE_KEY='code-snippets-v1';
+var snippets=[];
+var editingId=null;
+
+try{var raw=localStorage.getItem(STORAGE_KEY);if(raw)snippets=JSON.parse(raw);}catch(e){snippets=[];}
+
+function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(snippets));}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+
+var titleEl=document.getElementById('snippet-title');
+var langEl=document.getElementById('snippet-lang');
+var tagsEl=document.getElementById('snippet-tags');
+var codeEl=document.getElementById('snippet-code');
+var saveBtn=document.getElementById('save-btn');
+var clearFormBtn=document.getElementById('clear-form-btn');
+var searchInput=document.getElementById('search-input');
+var exportBtn=document.getElementById('export-btn');
+var importBtn=document.getElementById('import-btn');
+var importFile=document.getElementById('import-file');
+var clearAllBtn=document.getElementById('clear-all-btn');
+var listEl=document.getElementById('snippet-list');
+var emptyEl=document.getElementById('empty-state');
+
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function render(){
+var q=(searchInput.value||'').toLowerCase().trim();
+var filtered=snippets.filter(function(s){
+if(!q)return true;
+return(s.title||'').toLowerCase().indexOf(q)>=0||(s.tags||'').toLowerCase().indexOf(q)>=0||(s.code||'').toLowerCase().indexOf(q)>=0;
+});
+if(filtered.length===0){
+listEl.innerHTML='';
+emptyEl.style.display='block';
+if(q)emptyEl.querySelector('p').textContent='没有找到匹配的代码片段';
+else{emptyEl.querySelector('p').textContent='还没有保存任何代码片段';}
+return;
+}
+emptyEl.style.display='none';
+var html='';
+filtered.forEach(function(s){
+var preview=(s.code||'').substring(0,200);
+if(s.code&&s.code.length>200)preview+='...';
+html+='<div style="background:#0f172a;border-radius:8px;padding:14px;margin-bottom:10px;border:1px solid rgba(148,163,184,.1)">';
+html+='<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">';
+html+='<strong style="color:#f1f5f9;font-size:.95rem">'+escapeHtml(s.title||'无标题')+'</strong>';
+html+='<span style="background:rgba(6,182,212,.15);color:#22d3ee;padding:2px 8px;border-radius:10px;font-size:.72rem">'+escapeHtml(s.lang||'text')+'</span>';
+html+='</div>';
+if(s.tags){
+var tags=s.tags.split(',').map(function(t){return t.trim();}).filter(Boolean);
+if(tags.length){
+html+='<div style="margin-bottom:6px">';
+tags.forEach(function(t){
+html+='<span style="display:inline-block;background:rgba(148,163,184,.1);color:#94a3b8;padding:2px 8px;border-radius:10px;font-size:.72rem;margin-right:4px">'+escapeHtml(t)+'</span>';
+});
+html+='</div>';
+}
+}
+html+='<pre style="background:#000;padding:10px;border-radius:6px;overflow-x:auto;font-size:.8rem;color:#e2e8f0;margin:6px 0;max-height:200px"><code>'+escapeHtml(preview)+'</code></pre>';
+html+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
+html+='<button class="btn btn-secondary" style="padding:4px 12px;font-size:.78rem" data-action="copy" data-id="'+s.id+'">📋 复制</button>';
+html+='<button class="btn btn-secondary" style="padding:4px 12px;font-size:.78rem" data-action="edit" data-id="'+s.id+'">✏️ 编辑</button>';
+html+='<button class="btn btn-danger" style="padding:4px 12px;font-size:.78rem" data-action="delete" data-id="'+s.id+'">🗑️ 删除</button>';
+html+='</div>';
+html+='</div>';
+});
+listEl.innerHTML=html;
+}
+
+listEl.addEventListener('click',function(e){
+var btn=e.target.closest('[data-action]');
+if(!btn)return;
+var id=btn.getAttribute('data-id');
+var action=btn.getAttribute('data-action');
+var idx=snippets.findIndex(function(s){return s.id===id;});
+if(idx<0)return;
+if(action==='copy'){
+navigator.clipboard.writeText(snippets[idx].code||'').then(function(){showToast('已复制到剪贴板');})['catch'](function(){showToast('复制失败');});
+}else if(action==='edit'){
+var s=snippets[idx];
+titleEl.value=s.title||'';
+langEl.value=s.lang||'text';
+tagsEl.value=s.tags||'';
+codeEl.value=s.code||'';
+editingId=id;
+saveBtn.textContent='✏️ 更新片段';
+titleEl.scrollIntoView({behavior:'smooth'});
+}else if(action==='delete'){
+snippets.splice(idx,1);
+save();
+render();
+showToast('已删除');
+}
+});
+
+saveBtn.addEventListener('click',function(){
+var title=titleEl.value.trim();
+var code=codeEl.value;
+if(!title){showToast('请输入标题');return;}
+if(!code){showToast('请输入代码');return;}
+var data={title:title,lang:langEl.value,tags:tagsEl.value.trim(),code:code};
+if(editingId){
+var idx=snippets.findIndex(function(s){return s.id===editingId;});
+if(idx>=0){data.id=editingId;snippets[idx]=data;}
+editingId=null;
+saveBtn.textContent='💾 保存片段';
+}else{
+data.id=uid();
+data.created=Date.now();
+snippets.unshift(data);
+}
+save();
+render();
+titleEl.value='';tagsEl.value='';codeEl.value='';
+showToast(editingId?'已更新':'已保存');
+});
+
+clearFormBtn.addEventListener('click',function(){
+titleEl.value='';tagsEl.value='';codeEl.value='';
+editingId=null;
+saveBtn.textContent='💾 保存片段';
+});
+
+searchInput.addEventListener('input',render);
+
+exportBtn.addEventListener('click',function(){
+if(snippets.length===0){showToast('没有可导出的片段');return;}
+var blob=new Blob([JSON.stringify(snippets,null,2)],{type:'application/json'});
+var a=document.createElement('a');
+a.href=URL.createObjectURL(blob);
+a.download='code-snippets-'+new Date().toISOString().slice(0,10)+'.json';
+a.click();
+URL.revokeObjectURL(a.href);
+showToast('已导出'+snippets.length+'个片段');
+});
+
+importBtn.addEventListener('click',function(){importFile.click();});
+importFile.addEventListener('change',function(e){
+var file=e.target.files[0];
+if(!file)return;
+var reader=new FileReader();
+reader.onload=function(ev){
+try{
+var imported=JSON.parse(ev.target.result);
+if(!Array.isArray(imported))throw new Error('invalid');
+imported.forEach(function(s){
+if(!s.id)s.id=uid();
+if(!s.created)s.created=Date.now();
+snippets.push(s);
+});
+save();render();
+showToast('已导入'+imported.length+'个片段');
+}catch(err){showToast('导入失败：文件格式错误');}
+};
+reader.readAsText(file);
+importFile.value='';
+});
+
+clearAllBtn.addEventListener('click',function(){
+if(snippets.length===0){showToast('没有可清空的片段');return;}
+if(!confirm('确定要清空所有'+snippets.length+'个代码片段吗？此操作不可撤销。'))return;
+snippets=[];save();render();
+showToast('已清空全部片段');
+});
+
+render();
 });
 function submitFeedback(){
 var type=document.getElementById('feedback-type').value;
