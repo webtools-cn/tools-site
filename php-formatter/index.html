@@ -131,8 +131,106 @@ return \$this->db->insert(users,\$data);}}</textarea>
 <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
 </div>
 <div class="toast" id="toast"></div>
-
-
+<script>
+function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.className='toast show';clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},2000);}
+function formatCode(){
+  var input=document.getElementById('inputCode').value;
+  if(!input.trim()){showToast('请输入PHP代码');return;}
+  try{
+    var formatted=formatPHP(input);
+    document.getElementById('outputCode').value=formatted;
+    document.getElementById('origSize').textContent=input.split('\n').length;
+    document.getElementById('fmtSize').textContent=formatted.split('\n').length;
+    showToast('格式化完成');
+  }catch(e){showToast('格式化失败: '+e.message);}
+}
+function formatPHP(code){
+  var indent=0;
+  var lines=code.split('\n');
+  var result=[];
+  var inString=false;
+  var stringChar='';
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i].trim();
+    if(!line){result.push('');continue;}
+    // Decrease indent for closing braces/keywords at start
+    if(line[0]==='}'||line.match(/^(end|endif|endfor|endforeach|endwhile|endswitch)\b/i)){
+      indent=Math.max(0,indent-1);
+    }
+    var prefix='';
+    for(var j=0;j<indent;j++){prefix+='    ';}
+    // Process string-aware spacing
+    var processed=addSpacing(line);
+    result.push(prefix+processed);
+    // Count braces to determine indent change (string-aware)
+    var depthChange=countBraces(processed);
+    indent=Math.max(0,indent+depthChange);
+    // Handle case where opening and closing on same line like function(){}
+    if(line[0]==='}'&&depthChange>0){indent=Math.max(0,indent);}
+  }
+  // Clean up multiple blank lines
+  var output=result.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  return output+'\n';
+}
+function addSpacing(line){
+  // Fix -> and :: first (no space)
+  line=line.replace(/-\s+>/g,'->');
+  line=line.replace(/:\s*:/g,'::');
+  // Space after commas
+  line=line.replace(/,(?!\s)/g,', ');
+  // Protect multi-char operators by temporarily replacing
+  var ops=[['===','\x01'],['!==','\x02'],['==','\x03'],['!=','\x04'],['<=','\x05'],['>=','\x06'],['=>','\x07'],['.=','\x08'],['+=','\x09'],['-=','\x0A'],['*=','\x0B'],['/=','\x0C']];
+  ops.forEach(function(o){line=line.replace(new RegExp(o[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'),o[1]);});
+  // Single = spacing
+  line=line.replace(/(\S)=(\S)/g,'$1 = $2');
+  // Restore multi-char operators with spacing
+  ops.forEach(function(o){line=line.replace(new RegExp(o[1],'g'),' '+o[0]+' ');});
+  // Trim double spaces
+  line=line.replace(/  +/g,' ');
+  // Space after control keywords only
+  line=line.replace(/\b(if|elseif|while|for|foreach|switch|return|catch)\(/g,'$1 (');
+  line=line.replace(/\bfunction\s*\(/g,'function (');
+  // Space before opening brace
+  line=line.replace(/\)(\s*)\{/g,') {');
+  // Remove space before semicolons
+  line=line.replace(/\s+;/g,';');
+  // Space after semicolons (not end of line)
+  line=line.replace(/;(?!\s|$)/g,'; ');
+  return line.trim();
+}
+function countBraces(line){
+  var depth=0;
+  var inStr=false;
+  var strChar='';
+  for(var i=0;i<line.length;i++){
+    var c=line[i];
+    if(inStr){
+      if(c===strChar&&line[i-1]!=='\\'){inStr=false;}
+      continue;
+    }
+    if(c==='"'||c==="'"){inStr=true;strChar=c;continue;}
+    if(c==='{'){depth++;}
+    else if(c=='}'){depth--;}
+  }
+  return depth;
+}
+function copyOutput(){
+  var out=document.getElementById('outputCode');
+  if(!out.value){showToast('没有可复制的内容');return;}
+  navigator.clipboard.writeText(out.value).then(function(){showToast('已复制到剪贴板');}).catch(function(){showToast('复制失败');});
+}
+function downloadOutput(){
+  var out=document.getElementById('outputCode');
+  if(!out.value){showToast('没有可下载的内容');return;}
+  var blob=new Blob([out.value],{type:'text/plain;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='formatted.php';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已下载');
+}
+</script>
 </div>
 </body>
 </html>

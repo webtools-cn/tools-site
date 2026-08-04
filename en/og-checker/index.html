@@ -378,6 +378,127 @@ input{width:100%}
     obs.observe(document.body,{childList:true,subtree:true});
   }
 })();</script>
+<script>
+function showToast(m){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.className='toast';t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none';document.body.appendChild(t);}t.textContent=m;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},3000);}
+function checkOG(){
+  var url=document.getElementById('url').value.trim();
+  if(!url){showToast('Please enter a URL');return;}
+  if(!/^https?:\/\//.test(url)){showToast('URL must start with http:// or https://');return;}
+  var result=document.getElementById('result');
+  var preview=document.getElementById('preview');
+  result.innerHTML='<p style="color:#94a3b8;text-align:center;padding:20px">⏳ Fetching page content...</p>';
+  preview.innerHTML='';
+  var proxyUrl='https://api.allorigins.win/raw?url='+encodeURIComponent(url);
+  fetch(proxyUrl).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.text();
+  }).then(function(html){
+    var ogTags=extractOG(html);
+    var twitterTags=extractTwitter(html);
+    var titleTag=extractTitle(html);
+    displayResults(ogTags,twitterTags,titleTag,url);
+    displayPreview(ogTags,titleTag,url);
+  }).catch(function(e){
+    result.innerHTML='<p style="color:#ef4444;padding:16px">❌ Failed: '+escapeHtml(e.message)+'<br><br>Possible reasons:<br>• Cross-origin access blocked<br>• Incorrect URL<br>• Network issue<br><br>You can also manually paste the HTML source code below.</p><textarea id="manualHtml" placeholder="Paste HTML source..." style="width:100%;min-height:150px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.82rem;margin-top:12px"></textarea><button class="btn btn-primary" onclick="checkManual()" style="margin-top:8px">🔍 Check Pasted HTML</button>';
+  });
+}
+function checkManual(){
+  var html=document.getElementById('manualHtml').value;
+  if(!html.trim()){showToast('Please paste HTML source');return;}
+  var ogTags=extractOG(html);
+  var twitterTags=extractTwitter(html);
+  var titleTag=extractTitle(html);
+  displayResults(ogTags,twitterTags,titleTag,'');
+  displayPreview(ogTags,titleTag,'');
+}
+function extractOG(html){
+  var tags={};
+  var re=/<meta\s+property=["']og:([^"']+)["']\s+content=["']([^"']*)["']/gi;
+  var re2=/<meta\s+content=["']([^"']*)["']\s+property=["']og:([^"']+)["']/gi;
+  var m;
+  while(m=re.exec(html)){tags[m[1]]=m[2];}
+  while(m=re2.exec(html)){if(!tags[m[2]])tags[m[2]]=m[1];}
+  return tags;
+}
+function extractTwitter(html){
+  var tags={};
+  var re=/<meta\s+name=["']twitter:([^"']+)["']\s+content=["']([^"']*)["']/gi;
+  var re2=/<meta\s+content=["']([^"']*)["']\s+name=["']twitter:([^"']+)["']/gi;
+  var m;
+  while(m=re.exec(html)){tags[m[1]]=m[2];}
+  while(m=re2.exec(html)){if(!tags[m[2]])tags[m[2]]=m[1];}
+  return tags;
+}
+function extractTitle(html){
+  var m=html.match(/<title[^>]*>([^<]*)<\/title>/i);
+  return m?m[1].trim():'';
+}
+function displayResults(og,twitter,title,url){
+  var result=document.getElementById('result');
+  var required=['title','description','image','url'];
+  var recommended=['type','site_name','locale'];
+  var score=0,total=required.length+recommended.length;
+  var html='<div style="margin-bottom:16px">';
+  html+='<h3 style="color:#f1f5f9;font-size:1rem;margin-bottom:8px">📊 Score</h3>';
+  required.forEach(function(r){if(og[r]){score++;}else{total--;}});
+  recommended.forEach(function(r){if(og[r]){score++;}});
+  var pct=total>0?Math.round(score/total*100):0;
+  var color=pct>=80?'#22c55e':pct>=50?'#fbbf24':'#ef4444';
+  html+='<div style="display:flex;align-items:center;gap:12px"><div style="flex:1;height:12px;background:#0f172a;border-radius:6px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+color+';transition:width .5s"></div></div><span style="color:'+color+';font-weight:600">'+pct+'/100</span></div></div>';
+  html+='<table style="width:100%;border-collapse:collapse;font-size:.85rem"><thead><tr style="border-bottom:1px solid rgba(148,163,184,.2)"><th style="text-align:left;padding:8px;color:#94a3b8">Tag</th><th style="text-align:left;padding:8px;color:#94a3b8">Value</th><th style="text-align:center;padding:8px;color:#94a3b8">Status</th></tr></thead><tbody>';
+  required.forEach(function(r){
+    var val=og[r]||'';
+    var status=val?'<span style="color:#22c55e">✓</span>':'<span style="color:#ef4444">✗ Missing</span>';
+    html+='<tr style="border-bottom:1px solid rgba(148,163,184,.1)"><td style="padding:8px;color:#e2e8f0">og:'+r+'</td><td style="padding:8px;color:#94a3b8;max-width:300px;word-break:break-all">'+escapeHtml(val||'(empty)')+'</td><td style="padding:8px;text-align:center">'+status+'</td></tr>';
+  });
+  recommended.forEach(function(r){
+    var val=og[r]||'';
+    var status=val?'<span style="color:#22c55e">✓</span>':'<span style="color:#64748b">○ Optional</span>';
+    html+='<tr style="border-bottom:1px solid rgba(148,163,184,.1)"><td style="padding:8px;color:#94a3b8">og:'+r+'</td><td style="padding:8px;color:#64748b;max-width:300px;word-break:break-all">'+escapeHtml(val||'(empty)')+'</td><td style="padding:8px;text-align:center">'+status+'</td></tr>';
+  });
+  if(twitter.card||twitter.title||twitter.image){
+    html+='<tr style="border-bottom:1px solid rgba(148,163,184,.1)"><td colspan="3" style="padding:8px;color:#06b6d4;font-weight:600">Twitter Card Tags</td></tr>';
+    Object.keys(twitter).forEach(function(k){
+      html+='<tr style="border-bottom:1px solid rgba(148,163,184,.1)"><td style="padding:8px;color:#94a3b8">twitter:'+k+'</td><td style="padding:8px;color:#94a3b8;max-width:300px;word-break:break-all">'+escapeHtml(twitter[k])+'</td><td style="padding:8px;text-align:center"><span style="color:#22c55e">✓</span></td></tr>';
+    });
+  }
+  if(title){
+    html+='<tr><td style="padding:8px;color:#94a3b8">&lt;title&gt;</td><td style="padding:8px;color:#94a3b8;max-width:300px;word-break:break-all">'+escapeHtml(title)+'</td><td style="padding:8px;text-align:center"><span style="color:#22c55e">✓</span></td></tr>';
+  }
+  html+='</tbody></table>';
+  var tips=[];
+  if(!og.title)tips.push('Add og:title tag');
+  if(!og.description)tips.push('Add og:description tag');
+  if(!og.image)tips.push('Add og:image tag (recommended 1200×630px)');
+  if(!og.url)tips.push('Add og:url canonical URL tag');
+  if(!og.type)tips.push('Add og:type tag (e.g. website/article)');
+  if(!twitter.card)tips.push('Add twitter:card tag (e.g. summary_large_image)');
+  if(tips.length){
+    html+='<div style="margin-top:16px;padding:12px;background:rgba(251,191,36,.1);border-radius:8px;border:1px solid rgba(251,191,36,.2)"><strong style="color:#fbbf24">💡 Suggestions:</strong><ul style="margin:8px 0 0 20px;color:#94a3b8;font-size:.85rem">'+tips.map(function(t){return '<li>'+t+'</li>';}).join('')+'</ul></div>';
+  }
+  result.innerHTML=html;
+}
+function displayPreview(og,title,url){
+  var preview=document.getElementById('preview');
+  var pTitle=og.title||title||'No title';
+  var pDesc=og.description||'';
+  var pImg=og.image||'';
+  var pUrl=og.url||url||'';
+  var html='<div style="margin-top:16px"><h3 style="color:#f1f5f9;font-size:1rem;margin-bottom:12px">👁️ Share Preview</h3>';
+  html+='<div style="max-width:500px;background:#1e293b;border-radius:12px;overflow:hidden;border:1px solid rgba(148,163,184,.15)">';
+  if(pImg){
+    html+='<div style="background:#0f172a;height:260px;display:flex;align-items:center;justify-content:center;overflow:hidden"><img src="'+escapeAttr(pImg)+'" style="max-width:100%;max-height:260px" onerror="this.parentNode.innerHTML=\'<span style=color:#64748b>Image load failed</span>\'"></div>';
+  }else{
+    html+='<div style="background:#0f172a;height:120px;display:flex;align-items:center;justify-content:center"><span style="color:#64748b">No image</span></div>';
+  }
+  html+='<div style="padding:12px"><p style="color:#64748b;font-size:.75rem;margin-bottom:4px;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(pUrl||'')+'</p>';
+  html+='<p style="color:#e2e8f0;font-size:.95rem;font-weight:600;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(pTitle)+'</p>';
+  html+='<p style="color:#94a3b8;font-size:.85rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+escapeHtml(pDesc)+'</p></div></div></div>';
+  preview.innerHTML=html;
+}
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function escapeAttr(s){return String(s).replace(/"/g,'&quot;');}
+</script>
 </main>
 
 </body>

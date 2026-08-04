@@ -161,7 +161,287 @@ a{color:#06b6d4;text-decoration:none}
 <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
 </div>
 <div class="toast" id="toast"></div>
-
+<script>
+function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.className='toast show';clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},3000);}
+var videoFile=null;
+var videoURL=null;
+var gifBlob=null;
+function handleVideo(file){
+  if(!file){return;}
+  if(!file.type.startsWith('video/')){showToast('请上传视频文件');return;}
+  videoFile=file;
+  if(videoURL){URL.revokeObjectURL(videoURL);}
+  videoURL=URL.createObjectURL(file);
+  var v=document.getElementById('srcVideo');
+  v.src=videoURL;
+  v.style.display='block';
+  v.onloadedmetadata=function(){
+    document.getElementById('videoInfo').style.display='block';
+    var maxEnd=Math.min(30,v.duration);
+    document.getElementById('startTime').max=maxEnd;
+    document.getElementById('endTime').max=maxEnd;
+    document.getElementById('endTime').value=Math.min(5,maxEnd);
+    updateTimeLabels();
+    document.getElementById('convertBtn').disabled=false;
+    showToast('视频已加载: '+file.name);
+  };
+}
+function updateTimeLabels(){
+  var s=parseFloat(document.getElementById('startTime').value);
+  var e=parseFloat(document.getElementById('endTime').value);
+  document.getElementById('startLabel').textContent=s.toFixed(1)+'s';
+  document.getElementById('endLabel').textContent=e.toFixed(1)+'s';
+}
+function convertToGIF(){
+  if(!videoFile){showToast('请先上传视频');return;}
+  var start=parseFloat(document.getElementById('startTime').value);
+  var end=parseFloat(document.getElementById('endTime').value);
+  var fps=parseInt(document.getElementById('fps').value);
+  var wSel=document.getElementById('width').value;
+  var colors=parseInt(document.getElementById('colors').value);
+  if(end<=start){showToast('结束时间必须大于开始时间');return;}
+  var duration=end-start;
+  var totalFrames=Math.ceil(duration*fps);
+  if(totalFrames>300){showToast('帧数过多('+totalFrames+')，请缩短时间或降低帧率');return;}
+  var btn=document.getElementById('convertBtn');
+  btn.disabled=true;
+  btn.textContent='⏳ 转换中...';
+  var v=document.getElementById('srcVideo');
+  var canvas=document.createElement('canvas');
+  var ctx=canvas.getContext('2d');
+  v.addEventListener('loadeddata',doConvert,{once:true});
+  // Set video time to start
+  v.currentTime=start;
+  var frameCount=0;
+  var frames=[];
+  function doConvert(){
+    var vw=v.videoWidth;
+    var vh=v.videoHeight;
+    var targetW=wSel==='original'?vw:parseInt(wSel);
+    var targetH=Math.round(vh*(targetW/vw));
+    canvas.width=targetW;
+    canvas.height=targetH;
+    ctx.fillStyle='#000';
+    ctx.fillRect(0,0,targetW,targetH);
+    function captureFrame(){
+      if(frameCount>=totalFrames){
+        // All frames captured, generate GIF
+        btn.textContent='⏳ 生成GIF...';
+        setTimeout(function(){
+          try{
+            gifBlob=createGIF(frames,targetW,targetH,colors,fps);
+            var img=document.getElementById('gifImg');
+            img.src=URL.createObjectURL(gifBlob);
+            document.getElementById('gifResult').style.display='block';
+            var srcSize=videoFile.size;
+            var gifSize=gifBlob.size;
+            document.getElementById('sizeCompare').innerHTML='原视频: '+formatSize(srcSize)+' → GIF: '+formatSize(gifSize)+' ('+(gifSize<srcSize?'↓'+Math.round((1-gifSize/srcSize)*100)+'%':'↑'+Math.round((gifSize/srcSize-1)*100)+'%')+')';
+            btn.disabled=false;
+            btn.textContent='🎞️ 转换为GIF';
+            showToast('GIF生成完成！');
+          }catch(e){
+            btn.disabled=false;
+            btn.textContent='🎞️ 转换为GIF';
+            showToast('生成失败: '+e.message);
+          }
+        },50);
+        return;
+      }
+      var targetTime=start+(frameCount/fps);
+      if(targetTime>end){frameCount=totalFrames;captureFrame();return;}
+      v.currentTime=targetTime;
+    }
+    v.addEventListener('seeked',function(){
+      ctx.drawImage(v,0,0,targetW,targetH);
+      var imgData=ctx.getImageData(0,0,targetW,targetH);
+      frames.push({data:new Uint8ClampedArray(imgData.data),w:targetW,h:targetH});
+      frameCount++;
+      btn.textContent='⏳ '+Math.round(frameCount/totalFrames*100)+'% ('+frameCount+'/'+totalFrames+')';
+      captureFrame();
+    });
+    captureFrame();
+  }
+}
+function createGIF(frames,w,h,colors,fps){
+  // Simple GIF encoder using LZW
+  var delay=Math.round(100/fps);
+  // Quantize colors
+  var palette=quantize(frames[0].data,colors);
+  var gifBytes=[];
+  // GIF Header
+  gifBytes.push(0x47,0x49,0x46,0x38,0x39,0x61); // GIF89a
+  // Logical screen descriptor
+  writeU16(gifBytes,w);
+  writeU16(gifBytes,h);
+  var palBits=Math.log2(palette.length);
+  if(palBits<1)palBits=1;
+  if(palBits>8)palBits=8;
+  var palSize=palBits-1;
+  gifBytes.push(0x80|palSize<<4|palSize); // global color table
+  gifBytes.push(0); // background color index
+  gifBytes.push(0); // pixel aspect ratio
+  // Global color table
+  for(var i=0;i<Math.pow(2,palBits);i++){
+    if(i<palette.length){
+      gifBytes.push(palette[i][0],palette[i][1],palette[i][2]);
+    }else{
+      gifBytes.push(0,0,0);
+    }
+  }
+  // Netscape extension for looping
+  gifBytes.push(0x21,0xFF,0x0B);
+  pushStr(gifBytes,'NETSCAPE2.0');
+  gifBytes.push(0x03,0x01,0x00,0x00,0x00);
+  // For each frame
+  for(var f=0;f<frames.length;f++){
+    var indexed=indexImage(frames[f].data,palette);
+    // Graphic control extension
+    gifBytes.push(0x21,0xF9,0x04,0x00);
+    writeU16(gifBytes,delay);
+    gifBytes.push(0x00,0x00);
+    // Image descriptor
+    gifBytes.push(0x2C);
+    writeU16(gifBytes,0);
+    writeU16(gifBytes,0);
+    writeU16(gifBytes,w);
+    writeU16(gifBytes,h);
+    gifBytes.push(palSize|0x40); // local color table + interlace off
+    // Local color table
+    for(var i=0;i<Math.pow(2,palBits);i++){
+      if(i<palette.length){
+        gifBytes.push(palette[i][0],palette[i][1],palette[i][2]);
+      }else{
+        gifBytes.push(0,0,0);
+      }
+    }
+    // LZW encode
+    var minCodeSize=palSize+1;
+    if(minCodeSize<2)minCodeSize=2;
+    gifBytes.push(minCodeSize);
+    var lzwData=lzwEncode(indexed,minCodeSize);
+    // Write sub-blocks
+    var pos=0;
+    while(pos<lzwData.length){
+      var chunk=Math.min(255,lzwData.length-pos);
+      gifBytes.push(chunk);
+      for(var i=0;i<chunk;i++){gifBytes.push(lzwData[pos+i]);}
+      pos+=chunk;
+    }
+    gifBytes.push(0); // block terminator
+  }
+  gifBytes.push(0x3B); // trailer
+  return new Blob([new Uint8Array(gifBytes)],{type:'image/gif'});
+}
+function writeU16(arr,val){arr.push(val&0xFF,(val>>8)&0xFF);}
+function pushStr(arr,str){for(var i=0;i<str.length;i++){arr.push(str.charCodeAt(i));}}
+function quantize(data,maxColors){
+  // Simple color quantization: uniform reduction
+  var colorMap={};
+  var step=Math.max(1,Math.ceil(256/Math.pow(maxColors,1/3)));
+  for(var i=0;i<data.length;i+=4){
+    var r=Math.floor(data[i]/step)*step;
+    var g=Math.floor(data[i+1]/step)*step;
+    var b=Math.floor(data[i+2]/step)*step;
+    var key=r+','+g+','+b;
+    if(!colorMap[key]){colorMap[key]=[r,g,b,0];}
+    colorMap[key][3]++;
+  }
+  var palette=Object.values(colorMap).sort(function(a,b){return b[3]-a[3];}).slice(0,maxColors).map(function(c){return [c[0],c[1],c[2]];});
+  if(palette.length===0){palette=[[0,0,0]];}
+  return palette;
+}
+function indexImage(data,palette){
+  var indexed=new Uint8Array(data.length/4);
+  for(var i=0;i<indexed.length;i++){
+    var r=data[i*4],g=data[i*4+1],b=data[i*4+2];
+    var bestDist=Infinity,bestIdx=0;
+    for(var j=0;j<palette.length;j++){
+      var dr=r-palette[j][0],dg=g-palette[j][1],db=b-palette[j][2];
+      var dist=dr*dr+dg*dg+db*db;
+      if(dist<bestDist){bestDist=dist;bestIdx=j;}
+    }
+    indexed[i]=bestIdx;
+  }
+  return indexed;
+}
+function lzwEncode(data,minCodeSize){
+  var clearCode=1<<minCodeSize;
+  var endCode=clearCode+1;
+  var nextCode=endCode+1;
+  var codeSize=minCodeSize+1;
+  var dict={};
+  for(var i=0;i<clearCode;i++){dict[String.fromCharCode(i)]=i;}
+  var output=[];
+  var buffer='';
+  function writeCode(code){
+    output.push(code);
+  }
+  writeCode(clearCode);
+  buffer=String.fromCharCode(data[0]);
+  for(var i=1;i<data.length;i++){
+    var ch=String.fromCharCode(data[i]);
+    var test=buffer+ch;
+    if(dict[test]!==undefined){
+      buffer=test;
+    }else{
+      writeCode(dict[buffer]);
+      if(nextCode<4096){
+        dict[test]=nextCode++;
+        if(nextCode>(1<<codeSize)&&codeSize<12){codeSize++;}
+      }else{
+        writeCode(clearCode);
+        dict={};
+        for(var j=0;j<clearCode;j++){dict[String.fromCharCode(j)]=j;}
+        nextCode=endCode+1;
+        codeSize=minCodeSize+1;
+      }
+      buffer=ch;
+    }
+  }
+  writeCode(dict[buffer]);
+  writeCode(endCode);
+  // Pack codes into bytes (LSB first)
+  var bytes=[];
+  var bitBuffer=0,bitCount=0;
+  for(var i=0;i<output.length;i++){
+    bitBuffer|=(output[i]<<bitCount);
+    bitCount+=codeSize;
+    while(bitCount>=8){
+      bytes.push(bitBuffer&0xFF);
+      bitBuffer>>=8;
+      bitCount-=8;
+    }
+  }
+  if(bitCount>0){bytes.push(bitBuffer&0xFF);}
+  return bytes;
+}
+function downloadGIF(){
+  if(!gifBlob){showToast('请先生成GIF');return;}
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(gifBlob);
+  a.download=(videoFile?videoFile.name.replace(/\.[^.]+$/,''):'video')+'.gif';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已下载');
+}
+function resetAll(){
+  if(videoURL){URL.revokeObjectURL(videoURL);videoURL=null;}
+  videoFile=null;gifBlob=null;
+  document.getElementById('fileInput').value='';
+  document.getElementById('videoInfo').style.display='none';
+  document.getElementById('gifResult').style.display='none';
+  document.getElementById('srcVideo').style.display='none';
+  document.getElementById('srcVideo').src='';
+  document.getElementById('convertBtn').disabled=true;
+  document.getElementById('convertBtn').textContent='🎞️ 转换为GIF';
+  showToast('已重置');
+}
+function formatSize(bytes){
+  if(bytes<1024)return bytes+'B';
+  if(bytes<1048576)return (bytes/1024).toFixed(1)+'KB';
+  return (bytes/1048576).toFixed(1)+'MB';
+}
+</script>
 
 </main>
 </body>
