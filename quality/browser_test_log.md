@@ -136,3 +136,32 @@
 3. **image-pixel-art EN**: 第541行 `};)` → `});` — addEventListener回调闭合错误，语法错误导致功能不可用
 
 > 注：浏览器扩展未连接，使用Node.js提取JS语法检查+CSS变量/浅色背景/深色文字grep验证代替。所有7个工具14个页面(CN+EN)验证通过，发现3个语法错误已修复并推送。
+
+## 第18轮 - 2026-08-05
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:-------|:-----|:-----|
+| recipe-converter | CN | ✅深色 | ✅计算正确 | ✅ | ✅ | 无 | passed |
+| recipe-converter | EN | ✅深色 | ✅计算正确 | ✅ | ✅ | 无 | passed |
+| image-tinter | CN | ✅深色 | ✅JS语法通过 | ✅ | ✅ | 无 | passed |
+| image-tinter | EN | ✅深色 | ✅已修复 | ✅ | ✅ | **JS语法错误已修**: `e.preventDefault(;}` → `e.preventDefault();}` + `};))` → `});` | fixed+passed |
+| guitar-chord-generator | CN | ✅已修复 | ✅JS通过 | ✅ | ✅ | **主题色已修**: 添加CSS变量, 修复不可见文字(#1a1a2e→#e2e8f0), 强调色(#667eea→#06b6d4), 卡片背景(#0f172a→#1e293b), Canvas颜色全部适配深色 | fixed+passed |
+| guitar-chord-generator | EN | ✅已修复 | ✅JS通过 | ✅ | ✅ | 同CN版修复 | fixed+passed |
+| sep-ira-calculator | CN | ✅深色 | ✅计算正确 | ✅ | ✅ | 无 | passed |
+| sep-ira-calculator | EN | ✅深色 | ✅计算正确 | ✅ | ✅ | 无 | passed |
+| college-cost-calculator | CN | ✅深色 | ✅计算正确 | ✅ | ✅ | 无 | passed |
+| college-cost-calculator | EN | ✅深色 | ✅计算正确 | ✅ | ✅ | 无 | passed |
+| terms-of-service | CN | ✅深色 | ✅页面正常 | ✅ | ✅ | 无 | passed |
+| terms-of-service | EN | ✅深色 | ✅页面正常 | ✅ | ✅ | 无 | passed |
+| subnet-mask-calc | CN | ✅深色 | ✅计算正确 | ✅ | ✅ | 无 | passed |
+| subnet-mask-calc | EN | ✅深色 | ✅计算正确 | ✅ | ✅ | 无 | passed |
+
+### 本轮修复
+1. **en/image-tinter**: 2处JS语法错误 — `e.preventDefault(;}` 缺少右括号 + `};))` addEventListener闭合错误
+2. **guitar-chord-generator CN+EN**: 大量深色主题违规 — 无CSS变量系统, 文字色#1a1a2e在深色背景不可见, 强调色用#667eea(非标准), 卡片背景用#0f172a(应为#1e293b), Canvas绘制颜色未适配深色主题
+
+### 测试方法
+- JS语法: Python HTMLParser提取script内容 → node -c 验证
+- 功能逻辑: Node.js mock DOM环境执行JS + 手动测试核心计算函数
+- 静态检查: grep验证CSS变量/浅色背景/深色文字/假评分/GA/meta
+- EN中文检查: 正则匹配中文字符(排除ld+json和语言切换链接)
