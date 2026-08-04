@@ -279,8 +279,84 @@ select{padding:8px 12px}
   }).catch(function() { s.innerHTML = ''; });
 
 // === Implementation ===
-function unshorten() {
-  showToast('Done');
+function showToast(msg){var t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";t.className="toast";document.body.appendChild(t)}t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function escapeHtml(str){return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+var knownSafeDomains=['github.com','gitlab.com','google.com','youtube.com','stackoverflow.com','wikipedia.org','mozilla.org','apple.com','microsoft.com','amazon.com'];
+
+async function unshorten(){
+  var input=document.getElementById("shortUrl").value.trim();
+  var resultBox=document.getElementById("result");
+  var expandResult=document.getElementById("expandResult");
+  if(!input){showToast("Please enter a short URL");return;}
+  var url=input;
+  if(!/^https?:\/\//i.test(url)){url="https://"+url;}
+  expandResult.innerHTML='<div class="loading">⏳ Expanding link, please wait...</div>';
+  resultBox.style.display="none";
+  try{
+    var redirectChain=[];
+    var currentUrl=url;
+    var maxRedirects=10;
+    var finalUrl=url;
+    var finalStatus=0;
+
+    for(var i=0;i<maxRedirects;i++){
+      var apiUrl="https://api.allorigins.win/raw?url="+encodeURIComponent(currentUrl);
+      var resp=await fetch(apiUrl,{method:"GET",redirect:"follow"});
+      finalStatus=resp.status;
+      redirectChain.push({step:i+1,url:currentUrl,status:resp.status});
+      if(resp.redirected){
+        finalUrl=resp.url;
+        currentUrl=resp.url;
+      }else{
+        finalUrl=currentUrl;
+        break;
+      }
+    }
+
+    var isSafe=false;
+    try{
+      var finalDomain=new URL(finalUrl).hostname.replace(/^www\./,'');
+      isSafe=knownSafeDomains.some(function(d){return finalDomain===d||finalDomain.endsWith('.'+d)});
+    }catch(e){}
+
+    var html='<table>';
+    html+='<tr><td>Original Short URL</td><td>'+escapeHtml(url)+'</td></tr>';
+    html+='<tr><td>Final URL</td><td><span class="'+(finalStatus>=200&&finalStatus<400?'status-ok':'status-err')+'">'+escapeHtml(finalUrl)+'</span></td></tr>';
+    html+='<tr><td>Final Status</td><td>'+finalStatus+'</td></tr>';
+    html+='<tr><td>Redirects</td><td>'+(redirectChain.length-1)+'</td></tr>';
+    html+='<tr><td>Safety Check</td><td>'+(isSafe?'<span class="status-ok">✅ Known safe domain</span>':'<span class="status-warn">⚠️ Unknown domain, proceed with caution</span>')+'</td></tr>';
+    if(redirectChain.length>1){
+      html+='<tr><td>Redirect Path</td><td>';
+      redirectChain.forEach(function(r){
+        html+='<div style="margin:2px 0;font-size:.8rem"><span style="color:#64748b">'+r.step+'.</span> '+r.status+' → '+escapeHtml(r.url)+'</div>';
+      });
+      html+='</td></tr>';
+    }
+    html+='</table>';
+    html+='<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">';
+    html+='<button class="btn btn-primary" onclick="copyResult(\''+finalUrl.replace(/'/g,"\\'")+'\')">📋 Copy URL</button>';
+    html+='<button class="btn btn-secondary" onclick="window.open(\''+finalUrl.replace(/'/g,"\\'")+'\')">🌐 Open Link</button>';
+    html+='</div>';
+
+    expandResult.innerHTML='';
+    resultBox.innerHTML=html;
+    resultBox.style.display="block";
+  }catch(err){
+    expandResult.innerHTML='<div style="color:#f87171;padding:16px">❌ Failed to expand: '+escapeHtml(err.message)+'<br><br>Possible reasons:<br>1. Invalid or expired short URL<br>2. Target site does not support CORS<br>3. Network connection issue<br><br>You can try visiting the link manually.</div>';
+  }
+}
+
+function copyResult(url){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(url).then(function(){showToast("Copied to clipboard")}).catch(function(){fallbackCopy(url)});
+  }else{fallbackCopy(url)}
+}
+function fallbackCopy(url){
+  var ta=document.createElement("textarea");
+  ta.value=url;document.body.appendChild(ta);ta.select();
+  try{document.execCommand("copy");showToast("Copied to clipboard")}catch(e){showToast("Copy failed")}
+  document.body.removeChild(ta);
 }
 </script>
 </main>

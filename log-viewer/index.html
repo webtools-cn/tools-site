@@ -102,21 +102,45 @@ footer a{color:#4a6cf7;text-decoration:none}
 <div class="hero"><p>免费在线日志查看器。上传或粘贴日志文件，支持语法高亮、错误过滤、搜索、时间戳解析、日志级别筛选，无需注册。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
-    
 
-  <div class="controls" id="filterBar" style="display:none">
-    <button class="level-btn active" data-level="all" onclick="toggleLevel(this)">全部</button>
-    <button class="level-btn" data-level="error" onclick="toggleLevel(this)">ERROR</button>
-    <button class="level-btn" data-level="warn" onclick="toggleLevel(this)">WARN</button>
-    <button class="level-btn" data-level="info" onclick="toggleLevel(this)">INFO</button>
-    <button class="level-btn" data-level="debug" onclick="toggleLevel(this)">DEBUG</button>
-    <button class="level-btn" data-level="trace" onclick="toggleLevel(this)">TRACE</button>
-    <input type="text" id="searchInput" placeholder="搜索关键字（支持正则）..." oninput="filterLogs()">
-    <label style="font-size:13px;display:flex;align-items:center;gap:4px"><input type="checkbox" id="regexMode" onchange="filterLogs()"> 正则</label>
+    <div class="file-upload" id="uploadZone" style="border:2px dashed rgba(148,163,184,.2);border-radius:8px;padding:20px;text-align:center;cursor:pointer;margin-bottom:12px;transition:all .2s">
+      <div style="font-size:32px;margin-bottom:8px">📄</div>
+      <p style="color:#94a3b8;font-size:.85rem">点击或拖拽日志文件到此处上传</p>
+      <input type="file" id="fileInput" accept=".log,.txt,.csv,*" style="display:none">
+    </div>
+
+    <div class="form-group" style="margin-bottom:12px">
+      <textarea id="logInput" placeholder="或粘贴日志内容到这里..." style="width:100%;min-height:120px;padding:10px 14px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;color:#e2e8f0;font-size:.85rem;font-family:'SF Mono','Consolas','Monaco',monospace;resize:vertical;outline:none"></textarea>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="parseLog()">📊 解析日志</button>
+      <button class="btn btn-secondary" onclick="loadExample()">📝 加载示例</button>
+      <button class="btn btn-secondary" onclick="clearAll()">🗑️ 清空</button>
+    </div>
+
+    <div class="stats-bar" id="statsBar" style="display:none">
+      <div class="stat">总行数: <span class="stat-count" id="totalLines" style="color:#e2e8f0">0</span></div>
+      <div class="stat"><span style="color:#f87171">●</span> ERROR: <span class="stat-count" id="errorCount" style="color:#f87171">0</span></div>
+      <div class="stat"><span style="color:#fbbf24">●</span> WARN: <span class="stat-count" id="warnCount" style="color:#fbbf24">0</span></div>
+      <div class="stat"><span style="color:#60a5fa">●</span> INFO: <span class="stat-count" id="infoCount" style="color:#60a5fa">0</span></div>
+      <div class="stat"><span style="color:#a5b4fc">●</span> DEBUG: <span class="stat-count" id="debugCount" style="color:#a5b4fc">0</span></div>
+      <div class="stat"><span style="color:#9ca3af">●</span> TRACE: <span class="stat-count" id="traceCount" style="color:#9ca3af">0</span></div>
+    </div>
+
+    <div class="controls" id="filterBar" style="display:none">
+      <button class="level-btn active" data-level="all" onclick="toggleLevel(this)">全部</button>
+      <button class="level-btn" data-level="error" onclick="toggleLevel(this)">ERROR</button>
+      <button class="level-btn" data-level="warn" onclick="toggleLevel(this)">WARN</button>
+      <button class="level-btn" data-level="info" onclick="toggleLevel(this)">INFO</button>
+      <button class="level-btn" data-level="debug" onclick="toggleLevel(this)">DEBUG</button>
+      <button class="level-btn" data-level="trace" onclick="toggleLevel(this)">TRACE</button>
+      <input type="text" id="searchInput" placeholder="搜索关键字（支持正则）..." oninput="filterLogs()">
+      <label style="font-size:13px;display:flex;align-items:center;gap:4px"><input type="checkbox" id="regexMode" onchange="filterLogs()"> 正则</label>
+    </div>
+
+    <div class="log-container" id="logContainer" style="display:none"></div>
   </div>
-
-  <div class="log-container" id="logContainer" style="display:none"></div>
-</div>
 
 <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">❓ 如何过滤只看错误日志？</div><div class="faq-a"><p>使用日志级别筛选功能，点击顶部的级别按钮（ERROR、WARN、INFO、DEBUG、TRACE）即可快速过滤。也可以使用搜索框输入关键字进行精确搜索，支持正则表达式模式。</p></div></div>
 <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">❓ 支持多大的日志文件？</div><div class="faq-a"><p>工具纯前端运行，性能取决于浏览器内存。一般可以流畅处理10MB以内的日志文件（约10万行）。超大文件建议先分割再查看。所有处理在本地完成，不上传服务器。</p></div></div>
@@ -151,6 +175,167 @@ footer a{color:#4a6cf7;text-decoration:none}
 <p>日志查看器 | 无需注册 · 数据绝不上传服务器</p>
 <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
 <div class="toast" id="toast"></div>
+
+<script>
+function toggleFaq(el){el.classList.toggle("active");var a=el.nextElementSibling;if(a){a.classList.toggle("show")}}
+function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},2000)}
+
+var logLines=[];
+var activeLevels=new Set(['all']);
+var searchTerm='';
+
+var zone=document.getElementById("uploadZone");
+if(zone){
+  zone.addEventListener("click",function(){document.getElementById("fileInput").click()});
+  zone.addEventListener("dragover",function(e){e.preventDefault();zone.classList.add("dragover")});
+  zone.addEventListener("dragleave",function(){zone.classList.remove("dragover")});
+  zone.addEventListener("drop",function(e){e.preventDefault();zone.classList.remove("dragover");handleFile(e.dataTransfer.files[0])});
+}
+var fi=document.getElementById("fileInput");
+if(fi){fi.addEventListener("change",function(e){handleFile(e.target.files[0])})}
+
+function handleFile(file){
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    document.getElementById("logInput").value=e.target.result;
+    parseLog();
+  };
+  reader.readAsText(file);
+}
+
+function detectLevel(line){
+  var upper=line.toUpperCase();
+  if(/\b(ERROR|FATAL|CRITICAL|SEVERE|EXCEPTION)\b/.test(upper))return'error';
+  if(/\b(WARN|WARNING)\b/.test(upper))return'warn';
+  if(/\b(INFO)\b/.test(upper))return'info';
+  if(/\b(DEBUG)\b/.test(upper))return'debug';
+  if(/\b(TRACE)\b/.test(upper))return'trace';
+  return'info';
+}
+
+function escapeHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function highlightLine(line,level){
+  var html=line;
+  html=html.replace(/(\d{4}[-\/]\d{2}[-\/]\d{2}[\sT]\d{2}:\d{2}:\d{2}[.,]?\d*)/g,'<span class="hl-timestamp">$1</span>');
+  var levelReplacements={
+    'error':[[/\b(ERROR|FATAL|CRITICAL|SEVERE|EXCEPTION)\b/gi,'hl-error']],
+    'warn':[[/\b(WARN|WARNING)\b/gi,'hl-warn']],
+    'info':[[/\b(INFO)\b/gi,'hl-info']],
+    'debug':[[/\b(DEBUG)\b/gi,'hl-debug']],
+    'trace':[[/\b(TRACE)\b/gi,'hl-trace']]
+  };
+  if(levelReplacements[level]){
+    levelReplacements[level].forEach(function(pair){
+      html=html.replace(pair[0],'<span class="'+pair[1]+'">$1</span>');
+    });
+  }
+  if(searchTerm){
+    try{
+      var isRegex=document.getElementById("regexMode").checked;
+      var re=isRegex?new RegExp('('+searchTerm+')','gi'):new RegExp('('+searchTerm.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+      html=html.replace(re,'<span class="hl-search">$1</span>');
+    }catch(e){}
+  }
+  return html;
+}
+
+function parseLog(){
+  var text=document.getElementById("logInput").value;
+  if(!text.trim()){showToast('请输入日志内容');return;}
+  var lines=text.split(/\r?\n/).filter(function(l){return l.trim()});
+  logLines=[];
+  var counts={error:0,warn:0,info:0,debug:0,trace:0};
+  for(var i=0;i<lines.length;i++){
+    var level=detectLevel(lines[i]);
+    counts[level]++;
+    logLines.push({num:i+1,text:lines[i],level:level});
+  }
+  document.getElementById("totalLines").textContent=lines.length;
+  document.getElementById("errorCount").textContent=counts.error;
+  document.getElementById("warnCount").textContent=counts.warn;
+  document.getElementById("infoCount").textContent=counts.info;
+  document.getElementById("debugCount").textContent=counts.debug;
+  document.getElementById("traceCount").textContent=counts.trace;
+  document.getElementById("statsBar").style.display='flex';
+  document.getElementById("filterBar").style.display='flex';
+  document.getElementById("logContainer").style.display='block';
+  filterLogs();
+}
+
+function toggleLevel(btn){
+  var level=btn.dataset.level;
+  if(level==='all'){
+    activeLevels=new Set(['all']);
+    document.querySelectorAll('.level-btn').forEach(function(b){b.classList.remove('active')});
+    btn.classList.add('active');
+  }else{
+    document.querySelector('.level-btn[data-level="all"]').classList.remove('active');
+    activeLevels.delete('all');
+    if(activeLevels.has(level)){
+      activeLevels.delete(level);
+      btn.classList.remove('active');
+    }else{
+      activeLevels.add(level);
+      btn.classList.add('active');
+    }
+    if(activeLevels.size===0){
+      activeLevels.add('all');
+      document.querySelector('.level-btn[data-level="all"]').classList.add('active');
+    }
+  }
+  filterLogs();
+}
+
+function filterLogs(){
+  searchTerm=document.getElementById("searchInput")?document.getElementById("searchInput").value:'';
+  var showAll=activeLevels.has('all');
+  var container=document.getElementById("logContainer");
+  var html='';
+  var shown=0;
+  var maxShow=5000;
+  for(var i=0;i<logLines.length&&shown<maxShow;i++){
+    var line=logLines[i];
+    if(!showAll&&!activeLevels.has(line.level))continue;
+    if(searchTerm){
+      try{
+        var isRegex=document.getElementById("regexMode").checked;
+        var re=isRegex?new RegExp(searchTerm,'i'):new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');
+        if(!re.test(line.text))continue;
+      }catch(e){continue;}
+    }
+    html+='<div class="log-line level-'+line.level+'"><span class="line-num">'+line.num+'</span>'+highlightLine(escapeHtml(line.text),line.level)+'</div>';
+    shown++;
+  }
+  if(shown>=maxShow){
+    html+='<div style="padding:8px 12px;color:#94a3b8;text-align:center">已显示前'+maxShow+'行匹配结果...</div>';
+  }
+  if(shown===0){
+    html='<div style="padding:20px;color:#94a3b8;text-align:center">没有匹配的日志行</div>';
+  }
+  container.innerHTML=html;
+}
+
+function loadExample(){
+  document.getElementById("logInput").value='2026-07-13 08:00:01.234 INFO  [main] 应用程序启动中...\n2026-07-13 08:00:01.567 INFO  [main] 从 /etc/app/config.yml 加载配置\n2026-07-13 08:00:02.123 DEBUG [db] 连接池初始化: max=10, min=2\n2026-07-13 08:00:02.456 INFO  [main] 服务器在端口 8080 启动\n2026-07-13 08:00:05.789 WARN  [auth] 来自 192.168.1.100 的登录失败尝试\n2026-07-13 08:00:10.012 INFO  [api] GET /api/users - 200 OK (45ms)\n2026-07-13 08:00:15.345 ERROR [db] 连接超时 30000ms\n2026-07-13 08:00:15.346 ERROR [db] java.sql.SQLException: Connection refused\n2026-07-13 08:00:16.789 WARN  [cache] 缓存未命中: user_profile_1234\n2026-07-13 08:00:20.123 INFO  [api] POST /api/orders - 201 Created (120ms)\n2026-07-13 08:00:25.456 DEBUG [scheduler] 运行清理任务...\n2026-07-13 08:00:30.789 TRACE [http] 请求头: {Content-Type=application/json}\n2026-07-13 08:00:35.012 ERROR [payment] 支付处理失败: 无效卡号\n2026-07-13 08:00:40.345 INFO  [api] GET /api/products - 200 OK (23ms)\n2026-07-13 08:00:45.678 WARN  [rate-limit] IP 10.0.0.5 接近速率限制 (95/100)\n2026-07-13 08:00:50.901 FATAL [system] 内存不足: Java heap space\n2026-07-13 08:00:51.234 INFO  [main] 尝试优雅关闭...';
+  parseLog();
+}
+
+function clearAll(){
+  document.getElementById("logInput").value='';
+  document.getElementById("logContainer").innerHTML='';
+  document.getElementById("logContainer").style.display='none';
+  document.getElementById("statsBar").style.display='none';
+  document.getElementById("filterBar").style.display='none';
+  if(document.getElementById("searchInput"))document.getElementById("searchInput").value='';
+  if(document.getElementById("fileInput"))document.getElementById("fileInput").value='';
+  logLines=[];
+  searchTerm='';
+}
+</script>
 
 </body>
 </html>

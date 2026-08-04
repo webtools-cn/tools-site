@@ -155,6 +155,350 @@ a{color:#06b6d4;text-decoration:none}
 </div>
 <div class="toast" id="toast"></div>
 
+<script>
+function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},2000)}
+
+var presets={
+  flowchart:'flowchart TD\n    A[开始] --> B{判断条件}\n    B -->|是| C[执行操作]\n    B -->|否| D[跳过]\n    C --> E[处理结果]\n    D --> E\n    E --> F[结束]',
+  sequence:'sequenceDiagram\n    participant 用户\n    participant 前端\n    participant 后端\n    用户->>前端: 点击按钮\n    前端->>后端: 发送请求\n    后端-->>前端: 返回数据\n    前端-->>用户: 显示结果\n    用户->>前端: 确认操作',
+  gantt:'gantt\n    title 项目开发计划\n    dateFormat YYYY-MM-DD\n    section 设计阶段\n    需求分析 :a1, 2026-01-01, 7d\n    系统设计 :a2, after a1, 5d\n    section 开发阶段\n    前端开发 :a3, after a2, 14d\n    后端开发 :a4, after a2, 14d\n    section 测试阶段\n    集成测试 :a5, after a3, 7d\n    上线部署 :a6, after a5, 3d',
+  class:'classDiagram\n    class 动物 {\n      +String 名称\n      +Int 年龄\n      +吃()\n      +睡()\n    }\n    class 狗 {\n      +叫()\n    }\n    class 猫 {\n      +抓老鼠()\n    }\n    动物 <|-- 狗\n    动物 <|-- 猫',
+  pie:'pie title 浏览器市场份额\n    "Chrome" : 65\n    "Safari" : 18\n    "Edge" : 5\n    "Firefox" : 4\n    "其他" : 8'
+};
+
+var codeInput=document.getElementById("codeInput");
+var preview=document.getElementById("preview");
+
+if(codeInput){
+  codeInput.addEventListener("input",function(){renderMermaid()});
+}
+
+function loadPreset(type){
+  if(presets[type]){
+    codeInput.value=presets[type];
+    renderMermaid();
+  }
+}
+
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function renderMermaid(){
+  var code=codeInput.value.trim();
+  if(!code){
+    preview.innerHTML='<span style="color:#64748b">输入Mermaid代码，实时预览...</span>';
+    return;
+  }
+  var lines=code.split(/\r?\n/);
+  var firstLine=lines[0].trim().toLowerCase();
+  try{
+    var svg='';
+    if(firstLine.startsWith('flowchart')||firstLine.startsWith('graph')){
+      svg=renderFlowchart(lines);
+    }else if(firstLine.startsWith('sequencediagram')){
+      svg=renderSequence(lines);
+    }else if(firstLine.startsWith('pie')){
+      svg=renderPie(lines);
+    }else if(firstLine.startsWith('gantt')){
+      svg=renderGantt(lines);
+    }else if(firstLine.startsWith('classdiagram')){
+      svg=renderClass(lines);
+    }else{
+      svg='<svg xmlns="http://www.w3.org/2000/svg" width="500" height="60"><text x="20" y="30" fill="#f87171" font-size="14">不支持的图表类型。支持: flowchart, sequenceDiagram, pie, gantt, classDiagram</text></svg>';
+    }
+    preview.innerHTML=svg;
+  }catch(e){
+    preview.innerHTML='<div class="error-msg">⚠️ 渲染错误: '+escapeHtml(e.message)+'</div>';
+  }
+}
+
+function renderFlowchart(lines){
+  var nodes={};
+  var edges=[];
+  var nodeId=0;
+  var direction='TD';
+  var firstParts=lines[0].trim().split(/\s+/);
+  if(firstParts.length>1)direction=firstParts[1]||'TD';
+
+  for(var i=1;i<lines.length;i++){
+    var line=lines[i].trim();
+    if(!line)continue;
+    var arrowMatch=line.match(/^([A-Za-z0-9]+)\s*(\[[^\]]*\]|\([^)]*\)|\{[^}]*\}|\(\([^)]*\)\)|>[^<]*<)?\s*(-->|---|\-\->|==>|\.->|\.-\|)?\s*(\|[^|]*\|)?\s*([A-Za-z0-9]+)?\s*(\[[^\]]*\]|\([^)]*\)|\{[^}]*\}|\(\([^)]*\)\))?/);
+    if(arrowMatch){
+      var fromId=arrowMatch[1];
+      var fromLabel=arrowMatch[2]||fromId;
+      var arrow=arrowMatch[3];
+      var label=arrowMatch[4]||'';
+      var toId=arrowMatch[5];
+      var toLabel=arrowMatch[6]||toId||'';
+      if(!nodes[fromId])nodes[fromId]={id:fromId,label:cleanLabel(fromLabel),shape:detShape(fromLabel)};
+      if(toId){
+        if(!nodes[toId])nodes[toId]={id:toId,label:cleanLabel(toLabel),shape:detShape(toLabel)};
+        edges.push({from:fromId,to:toId,label:cleanLabel(label)});
+      }
+    }else{
+      var nodeMatch=line.match(/^([A-Za-z0-9]+)\s*(\[[^\]]*\]|\([^)]*\)|\{[^}]*\})/);
+      if(nodeMatch&&!nodes[nodeMatch[1]]){
+        nodes[nodeMatch[1]]={id:nodeMatch[1],label:cleanLabel(nodeMatch[2]),shape:detShape(nodeMatch[2])};
+      }
+    }
+  }
+
+  var ids=Object.keys(nodes);
+  if(ids.length===0)return'<text x="20" y="30" fill="#94a3b8" font-size="14">无有效节点</text>';
+  var isLR=direction==='LR'||direction==='RL';
+  var colW=160,rowH=70;
+  var cols={},rows={};
+  var maxCol=0,maxRow=0;
+  edges.forEach(function(e,idx){
+    if(!cols[e.from])cols[e.from]=0;
+    if(cols[e.to]===undefined)cols[e.to]=(cols[e.from]||0)+1;
+    maxCol=Math.max(maxCol,cols[e.to]);
+  });
+  ids.forEach(function(id,idx){
+    if(cols[id]===undefined)cols[id]=0;
+    var c=cols[id];
+    if(rows[c]===undefined)rows[c]=0;
+    var r=rows[c]++;
+    maxRow=Math.max(maxRow,r);
+  });
+
+  var width=(maxCol+1)*colW+40;
+  var height=(maxRow+2)*rowH+40;
+  var positions={};
+  var rowTrackers={};
+  ids.forEach(function(id){
+    var c=cols[id];
+    if(rowTrackers[c]===undefined)rowTrackers[c]=0;
+    var r=rowTrackers[c]++;
+    positions[id]={x:c*colW+80,y:r*rowH+40};
+  });
+
+  var svg='';
+  edges.forEach(function(e){
+    var from=positions[e.from],to=positions[e.to];
+    if(!from||!to)return;
+    var midX=(from.x+to.x)/2;
+    var midY=(from.y+to.y)/2;
+    svg+='<path d="M'+from.x+' '+from.y+' L'+to.x+' '+to.y+'" stroke="#6b7280" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>';
+    if(e.label){
+      svg+='<rect x="'+(midX-25)+'" y="'+(midY-10)+'" width="50" height="20" rx="4" fill="#0f172a" stroke="#475569"/>';
+      svg+='<text x="'+midX+'" y="'+(midY+4)+'" text-anchor="middle" fill="#22d3ee" font-size="11">'+escapeHtml(e.label)+'</text>';
+    }
+  });
+  svg+='<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#6b7280"/></marker></defs>';
+  ids.forEach(function(id){
+    var n=nodes[id],p=positions[id];
+    var w=Math.max(80,n.label.length*12+20),h=36;
+    if(n.shape==='diamond'){
+      svg+='<polygon points="'+(p.x-w/2)+','+p.y+' '+p.x+','+(p.y-h/2)+' '+(p.x+w/2)+','+p.y+' '+p.x+','+(p.y+h/2)+'" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1.5"/>';
+    }else if(n.shape==='round'){
+      svg+='<rect x="'+(p.x-w/2)+'" y="'+(p.y-h/2)+'" width="'+w+'" height="'+h+'" rx="18" fill="#1e293b" stroke="#22d3ee" stroke-width="1.5"/>';
+    }else{
+      svg+='<rect x="'+(p.x-w/2)+'" y="'+(p.y-h/2)+'" width="'+w+'" height="'+h+'" rx="4" fill="#1e293b" stroke="#22d3ee" stroke-width="1.5"/>';
+    }
+    svg+='<text x="'+p.x+'" y="'+(p.y+5)+'" text-anchor="middle" fill="#e2e8f0" font-size="12">'+escapeHtml(n.label)+'</text>';
+  });
+  return'<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+height+'">'+svg+'</svg>';
+}
+
+function cleanLabel(s){if(!s)return'';return s.replace(/^[\[\(\{>|]+/,'').replace(/[\]\)\}<|]+$/,'').trim()}
+function detShape(s){if(!s)return'rect';if(s.startsWith('{'))return'diamond';if(s.startsWith('(')&&!s.startsWith('(('))return'round';if(s.startsWith('(('))return'round';return'rect'}
+
+function renderSequence(lines){
+  var participants={};
+  var messages=[];
+  var partOrder=[];
+  for(var i=1;i<lines.length;i++){
+    var line=lines[i].trim();
+    if(!line)continue;
+    var pm=line.match(/^participant\s+(\S+)(?:\s+(.*))?$/i);
+    if(pm){participants[pm[1]]=pm[2]||pm[1];if(partOrder.indexOf(pm[1])===-1)partOrder.push(pm[1]);continue;}
+    var mm=line.match(/^(\S+)\s*(->>|-->>|->|-->)\s*(\S+):\s*(.*)$/);
+    if(mm){
+      if(partOrder.indexOf(mm[1])===-1)partOrder.push(mm[1]);
+      if(partOrder.indexOf(mm[3])===-1)partOrder.push(mm[3]);
+      messages.push({from:mm[1],to:mm[3],type:mm[2],text:mm[4]});
+    }
+  }
+  if(partOrder.length===0)return'<text x="20" y="30" fill="#94a3b8" font-size="14">无参与者</text>';
+  var w=partOrder.length*140+40;
+  var h=messages.length*40+80;
+  var svg='';
+  partOrder.forEach(function(p,idx){
+    var x=idx*140+70;
+    svg+='<rect x="'+(x-50)+'" y="10" width="100" height="28" rx="4" fill="#1e3a5f" stroke="#3b82f6"/>';
+    svg+='<text x="'+x+'" y="28" text-anchor="middle" fill="#e2e8f0" font-size="12">'+escapeHtml(participants[p]||p)+'</text>';
+    svg+='<line x1="'+x+'" y1="38" x2="'+x+'" y2="'+(h-10)+'" stroke="#475569" stroke-width="1" stroke-dasharray="4"/>';
+  });
+  messages.forEach(function(m,idx){
+    var fromIdx=partOrder.indexOf(m.from),toIdx=partOrder.indexOf(m.to);
+    var x1=fromIdx*140+70,x2=toIdx*140+70;
+    var y=idx*40+55;
+    var isReply=m.type==='-->>';
+    svg+='<line x1="'+x1+'" y1="'+y+'" x2="'+x2+'" y2="'+y+'" stroke="'+(isReply?'#f59e0b':'#22d3ee')+'" stroke-width="1.5"'+(isReply?' stroke-dasharray="5"':'')+' marker-end="url(#arrowseq)"/>';
+    var midX=(x1+x2)/2;
+    svg+='<text x="'+midX+'" y="'+(y-5)+'" text-anchor="middle" fill="#94a3b8" font-size="11">'+escapeHtml(m.text)+'</text>';
+  });
+  svg+='<defs><marker id="arrowseq" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#22d3ee"/></marker></defs>';
+  return'<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'+svg+'</svg>';
+}
+
+function renderPie(lines){
+  var title='';
+  var data=[];
+  for(var i=1;i<lines.length;i++){
+    var line=lines[i].trim();
+    if(!line)continue;
+    if(line.toLowerCase().startsWith('title')){title=line.replace(/^title\s*/i,'');continue;}
+    var dm=line.match(/"([^"]*)"\s*:\s*(\d+)/);
+    if(dm)data.push({label:dm[1],value:parseInt(dm[2])});
+  }
+  if(data.length===0)return'<text x="20" y="30" fill="#94a3b8" font-size="14">无数据</text>';
+  var total=data.reduce(function(s,d){return s+d.value},0);
+  var cx=150,cy=150,r=100;
+  var svg='';
+  if(title)svg+='<text x="'+cx+'" y="20" text-anchor="middle" fill="#f1f5f9" font-size="14" font-weight="bold">'+escapeHtml(title)+'</text>';
+  var colors=['#3b82f6','#22d3ee','#f59e0b','#8b5cf6','#ef4444','#10b981','#ec4899','#6366f1'];
+  var angle=-90;
+  data.forEach(function(d,idx){
+    var pct=d.value/total;
+    var sweep=pct*360;
+    var rad=(angle*Math.PI)/180;
+    var endRad=((angle+sweep)*Math.PI)/180;
+    var x1=cx+r*Math.cos(rad),y1=cy+r*Math.sin(rad);
+    var x2=cx+r*Math.cos(endRad),y2=cy+r*Math.sin(endRad);
+    var largeArc=sweep>180?1:0;
+    svg+='<path d="M'+cx+' '+cy+' L'+x1+' '+y1+' A'+r+' '+r+' 0 '+largeArc+' 1 '+x2+' '+y2+' Z" fill="'+colors[idx%colors.length]+'" stroke="#0f172a" stroke-width="1"/>';
+    var midAngle=angle+sweep/2;
+    var midRad=(midAngle*Math.PI)/180;
+    var lx=cx+(r*0.6)*Math.cos(midRad),ly=cy+(r*0.6)*Math.sin(midRad);
+    svg+='<text x="'+lx+'" y="'+ly+'" text-anchor="middle" fill="#fff" font-size="11">'+escapeHtml(d.label)+' '+Math.round(pct*100)+'%</text>';
+    angle+=sweep;
+  });
+  return'<svg xmlns="http://www.w3.org/2000/svg" width="300" height="320">'+svg+'</svg>';
+}
+
+function renderGantt(lines){
+  var tasks=[];
+  var title='';
+  for(var i=1;i<lines.length;i++){
+    var line=lines[i].trim();
+    if(!line)continue;
+    if(line.toLowerCase().startsWith('title')){title=line.replace(/^title\s*/i,'');continue;}
+    if(line.toLowerCase().startsWith('dateformat')||line.toLowerCase().startsWith('section'))continue;
+    var tm=line.match(/^(\S+)\s+(?::)?\s*([^,]+),\s*(\d+d)/);
+    if(!tm)tm=line.match(/^(.+?)\s+(?::)?\s*([^,]+),\s*(\d+d)/);
+    if(tm){
+      var deps=tm[2].trim();
+      if(deps==='after'||deps.startsWith('after ')){
+        var afterMatch=deps.match(/after\s+(\S+)/);
+        var afterTask=afterMatch?afterMatch[1]:'';
+        var prevStart=tasks.find(function(t){return t.id===afterTask});
+        tasks.push({id:tm[1],start:prevStart?(prevStart.start+prevStart.days):0,days:parseInt(tm[3])});
+      }else{
+        tasks.push({id:tm[1],start:0,days:parseInt(tm[3])});
+      }
+    }
+  }
+  if(tasks.length===0)return'<text x="20" y="30" fill="#94a3b8" font-size="14">无任务</text>';
+  var maxDay=tasks.reduce(function(m,t){return Math.max(m,t.start+t.days)},0);
+  var dayW=20,rowH=30;
+  var w=maxDay*dayW+200;
+  var h=tasks.length*rowH+50;
+  var svg='';
+  if(title)svg+='<text x="10" y="18" fill="#f1f5f9" font-size="14" font-weight="bold">'+escapeHtml(title)+'</text>';
+  tasks.forEach(function(t,idx){
+    var y=idx*rowH+30;
+    svg+='<text x="10" y="'+(y+15)+'" fill="#94a3b8" font-size="11">'+escapeHtml(t.id)+'</text>';
+    svg+='<rect x="'+(180+t.start*dayW)+'" y="'+y+'" width="'+(t.days*dayW)+'" height="20" rx="3" fill="#3b82f6" opacity="0.8"/>';
+    svg+='<text x="'+(180+t.start*dayW+5)+'" y="'+(y+14)+'" fill="#fff" font-size="10">'+t.days+'d</text>';
+  });
+  return'<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'">'+svg+'</svg>';
+}
+
+function renderClass(lines){
+  var classes={};
+  var relations=[];
+  for(var i=1;i<lines.length;i++){
+    var line=lines[i].trim();
+    if(!line)continue;
+    var cm=line.match(/^class\s+(\S+)\s*\{/);
+    if(cm){
+      var className=cm[1];
+      var members=[];
+      i++;
+      while(i<lines.length&&lines[i].trim()!=='}'){
+        var m=lines[i].trim();
+        if(m)members.push(m);
+        i++;
+      }
+      classes[className]=members;
+      continue;
+    }
+    var rm=line.match(/^(\S+)\s*(<|--|..\s|<\.\.)\s*(\S+)/);
+    if(rm)relations.push({from:rm[1],to:rm[3],type:rm[2]});
+  }
+  var classNames=Object.keys(classes);
+  if(classNames.length===0)return'<text x="20" y="30" fill="#94a3b8" font-size="14">无类定义</text>';
+  var svg='';
+  var colW=200,rowHPerMember=20;
+  classNames.forEach(function(cn,idx){
+    var x=idx*220+10;
+    var members=classes[cn];
+    var boxH=40+members.length*rowHPerMember;
+    svg+='<rect x="'+x+'" y="10" width="'+colW+'" height="'+boxH+'" fill="#1e293b" stroke="#22d3ee" stroke-width="1.5" rx="4"/>';
+    svg+='<rect x="'+x+'" y="10" width="'+colW+'" height="28" fill="#1e3a5f" stroke="#22d3ee" stroke-width="1" rx="4"/>';
+    svg+='<text x="'+(x+colW/2)+'" y="28" text-anchor="middle" fill="#f1f5f9" font-size="13" font-weight="bold">'+escapeHtml(cn)+'</text>';
+    svg+='<line x1="'+x+'" y1="38" x2="'+(x+colW)+'" y2="38" stroke="#475569"/>';
+    members.forEach(function(mem,mi){
+      svg+='<text x="'+(x+8)+'" y="'+(54+mi*rowHPerMember)+'" fill="#94a3b8" font-size="11">'+escapeHtml(mem)+'</text>';
+    });
+  });
+  relations.forEach(function(r){
+    var fromIdx=classNames.indexOf(r.from),toIdx=classNames.indexOf(r.to);
+    if(fromIdx<0||toIdx<0)return;
+    var x1=fromIdx*220+10+200;
+    var x2=toIdx*220+10;
+    svg+='<line x1="'+x1+'" y1="50" x2="'+x2+'" y2="50" stroke="#f59e0b" stroke-width="1.5"/>';
+    svg+='<polygon points="'+x2+',46 '+(x2-8)+',50 '+x2+',54" fill="#f59e0b"/>';
+  });
+  var w=classNames.length*220+20;
+  return'<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="200">'+svg+'</svg>';
+}
+
+function exportSVG(){
+  var svgEl=preview.querySelector("svg");
+  if(!svgEl){showToast("没有可导出的图表");return;}
+  var svgData=new XMLSerializer().serializeToString(svgEl);
+  var blob=new Blob([svgData],{type:"image/svg+xml"});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement("a");
+  a.href=url;a.download="mermaid-chart.svg";
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast("SVG已导出");
+}
+
+function copyCode(){
+  var code=codeInput.value;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(code).then(function(){showToast("代码已复制")}).catch(function(){fallbackCopyCode(code)});
+  }else{fallbackCopyCode(code)}
+}
+function fallbackCopyCode(code){
+  var ta=document.createElement("textarea");
+  ta.value=code;document.body.appendChild(ta);ta.select();
+  try{document.execCommand("copy");showToast("代码已复制")}catch(e){showToast("复制失败")}
+  document.body.removeChild(ta);
+}
+
+window.addEventListener("DOMContentLoaded",function(){
+  if(codeInput.value)renderMermaid();
+  else loadPreset("flowchart");
+});
+</script>
+
 
 </main>
 </body>

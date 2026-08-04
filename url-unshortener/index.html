@@ -171,6 +171,87 @@ select{padding:8px 12px}
 </div>
 <div class="toast" id="toast"></div>
 
+<script>
+function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function escapeHtml(str){return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+var knownSafeDomains=['github.com','gitlab.com','google.com','youtube.com','stackoverflow.com','wikipedia.org','mozilla.org','apple.com','microsoft.com','amazon.com'];
+
+async function unshorten(){
+  var input=document.getElementById("shortUrl").value.trim();
+  var resultBox=document.getElementById("result");
+  var expandResult=document.getElementById("expandResult");
+  if(!input){showToast("请输入短链接");return;}
+  var url=input;
+  if(!/^https?:\/\//i.test(url)){url="https://"+url;}
+  expandResult.innerHTML='<div class="loading">⏳ 正在展开链接，请稍候...</div>';
+  resultBox.style.display="none";
+  try{
+    var redirectChain=[];
+    var currentUrl=url;
+    var maxRedirects=10;
+    var finalUrl=url;
+    var finalStatus=0;
+
+    for(var i=0;i<maxRedirects;i++){
+      var apiUrl="https://api.allorigins.win/raw?url="+encodeURIComponent(currentUrl);
+      var resp=await fetch(apiUrl,{method:"GET",redirect:"follow"});
+      finalStatus=resp.status;
+      redirectChain.push({step:i+1,url:currentUrl,status:resp.status});
+      if(resp.redirected){
+        finalUrl=resp.url;
+        currentUrl=resp.url;
+      }else{
+        finalUrl=currentUrl;
+        break;
+      }
+    }
+
+    var isSafe=false;
+    try{
+      var finalDomain=new URL(finalUrl).hostname.replace(/^www\./,'');
+      isSafe=knownSafeDomains.some(function(d){return finalDomain===d||finalDomain.endsWith('.'+d)});
+    }catch(e){}
+
+    var html='<table>';
+    html+='<tr><td>原始短链接</td><td>'+escapeHtml(url)+'</td></tr>';
+    html+='<tr><td>最终URL</td><td><span class="'+(finalStatus>=200&&finalStatus<400?'status-ok':'status-err')+'">'+escapeHtml(finalUrl)+'</span></td></tr>';
+    html+='<tr><td>最终状态码</td><td>'+finalStatus+'</td></tr>';
+    html+='<tr><td>重定向次数</td><td>'+(redirectChain.length-1)+'</td></tr>';
+    html+='<tr><td>安全评估</td><td>'+(isSafe?'<span class="status-ok">✅ 已知安全域名</span>':'<span class="status-warn">⚠️ 未知域名，请谨慎访问</span>')+'</td></tr>';
+    if(redirectChain.length>1){
+      html+='<tr><td>重定向路径</td><td>';
+      redirectChain.forEach(function(r){
+        html+='<div style="margin:2px 0;font-size:.8rem"><span style="color:#64748b">'+r.step+'.</span> '+r.status+' → '+escapeHtml(r.url)+'</div>';
+      });
+      html+='</td></tr>';
+    }
+    html+='</table>';
+    html+='<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">';
+    html+='<button class="btn btn-primary" onclick="copyResult(\''+finalUrl.replace(/'/g,"\\'")+'\')">📋 复制URL</button>';
+    html+='<button class="btn btn-secondary" onclick="window.open(\''+finalUrl.replace(/'/g,"\\'")+'\')">🌐 打开链接</button>';
+    html+='</div>';
+
+    expandResult.innerHTML='';
+    resultBox.innerHTML=html;
+    resultBox.style.display="block";
+  }catch(err){
+    expandResult.innerHTML='<div style="color:#f87171;padding:16px">❌ 展开失败：'+escapeHtml(err.message)+'<br><br>可能原因：<br>1. 短链接无效或已失效<br>2. 目标网站不支持跨域请求<br>3. 网络连接问题<br><br>您可以尝试手动访问该链接。</div>';
+  }
+}
+
+function copyResult(url){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(url).then(function(){showToast("已复制到剪贴板")}).catch(function(){fallbackCopy(url)});
+  }else{fallbackCopy(url)}
+}
+function fallbackCopy(url){
+  var ta=document.createElement("textarea");
+  ta.value=url;document.body.appendChild(ta);ta.select();
+  try{document.execCommand("copy");showToast("已复制到剪贴板")}catch(e){showToast("复制失败")}
+  document.body.removeChild(ta);
+}
+</script>
 
 </body>
 </html>
