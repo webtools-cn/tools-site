@@ -58,3 +58,26 @@
 - base64-to-image
 - css-text-effects-generator
 - 更多EN页面随机抽
+
+## 2026-08-04 轮次 (静态深度检测)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|------|-------|------|------|------|---------|------|------|
+| pwa-manifest-generator | CN | ✅深色 | ✅JS OK | ✅ | N/A(无浏览器) | #374151/#475569深色文字→已修 | passed |
+| pwa-manifest-generator | EN | ✅深色 | ✅JS OK | ✅ | N/A | 无问题 | passed |
+| text-case | CN | ✅深色 | ✅重定向页 | ✅ | N/A | 迁移页(meta refresh→text-case-converter) | passed |
+| text-case | EN | ✅深色 | ✅重定向页 | ✅ | N/A | 迁移页 | passed |
+| annuity-payout-calculator | CN | ✅深色 | ✅JS OK | ✅ | N/A | #475569深色文字→已修 | passed |
+| annuity-payout-calculator | EN | ✅深色 | ✅JS OK | ✅ | N/A | #374151/#475569深色文字→已修 | passed |
+| pdf-compressor | CN | ✅深色 | ✅JS OK | ✅ | N/A | #374151/#475569深色文字→已修 | passed |
+| pdf-compressor | EN | ✅深色 | ✅JS OK | ✅ | N/A | #475569深色文字→已修 | passed |
+| ai-prompt-variable-extractor | CN | ✅深色 | ✅JS OK | ✅ | N/A | 无问题 | passed |
+| ai-prompt-variable-extractor | EN | ✅深色 | ✅JS OK | ✅ | N/A | 无问题 | passed |
+| audio-echo-effect | CN | ✅深色 | ✅JS OK | ✅ | N/A | #475569深色文字→已修 | passed |
+| audio-echo-effect | EN | ✅深色 | ✅JS OK | ✅ | N/A | 无问题 | passed |
+| email-verifier | CN | ✅深色 | ✅JS OK | ✅ | N/A | #f1f5f9浅色bg, #EEF2FF浅hover, #475569/#6b7280深色文字, 紫色渐变→全部已修 | passed |
+| email-verifier | EN | ✅深色 | ✅JS OK | ✅ | N/A | 同CN+#374151深色文字→已修 | passed |
+
+**注意**: 本轮因浏览器扩展未连接，采用静态深度检测代替浏览器实测。检测内容包括：JS语法验证、DOM引用完整性、深色主题合规(背景/文字/hover色)、Schema完整性、Footer完整性、meta描述长度、空壳检测、aggregateRating检测。
+
+**修复总结**: 6个工具共修复 15处深色文字问题 + 3处浅色背景问题 + 1处紫色渐变 → 全部改为标准深色主题配色。
