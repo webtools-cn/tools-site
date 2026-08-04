@@ -55,8 +55,14 @@
 - P0: 49个Failing URLs — 内容质量优化进行中
   - 已优化8个页面（gpa-calculator, checksum-calculator, compound-interest-calculator, reaction-test, speed-test, vin-decoder, running-pace-calculator, metronome-online）
   - 修复内容：替换通用HowTo schema模板为工具特定步骤 + 添加深度内容（对照表、计算详解、使用场景）
-  - 剩余约41个URL待处理（下批优先处理：tax-calculator, business-days-calculator, mac-address-lookup, unicode-lookup, sql-explainer, wifi-password-generator, en/backwards-text, en/website-status-checker）
+  - 本次新增优化4个页面（2026-08-04）:
+    - index.html (首页): 修复meta description(去除重复内容, 优化至~114中文字符), 添加Organization schema, 添加SEO内容区域(关于工具集合介绍+选择理由)
+    - token-estimator: 填充空FAQ section, 增加3个深度问答(Token估算vs精确计算区别/中文Token数参考/优化Prompt技巧)
+    - en/website-status-checker: 添加Use Cases和Understanding Results内容段落
+    - en/backwards-text: 添加Use Cases和How Text Reversal Works内容段落
+  - 剩余约37个URL待处理（下批优先处理：tax-calculator, business-days-calculator, mac-address-lookup, unicode-lookup, wifi-password-generator, en/其他failing URLs）
   - 根因分析：所有URL返回HTTP 200，技术层面正常（canonical/robots/sitemap均正确）。GSC failing最可能是"已发现-未编入索引"，需提升内容质量
-- P1: 浅色背景页面 (CN 52页 + EN 53页) — 需批量改为#0f172a
+  - 浅色背景排查结果: 实际只有5个页面的`background:#fff`是iframe预览/toast通知/HTML模板内容，非页面body背景，不需修复
+- P1: 浅色背景页面 — 已排查, 实际无需修复（`#fff`均为预览区域样式，非body背景）
 - P1: 62个空壳工具 — 需实现实际功能或加noindex
 - 100个页面desc在160-200区间 — 优先级低，后续可优化
