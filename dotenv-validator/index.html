@@ -81,12 +81,36 @@ footer{text-align:center;padding:30px;color: #64748b;font-size:13px;}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 免费在线.env文件验证器</p>
 <div class="hero"><p>免费在线.env文件验证器，检查环境变量格式、检测重复键、缺失值、安全风险，支持多种框架模板验证，无需注册。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
+<div class="main-grid">
 <div><div class="section">
-    
+    <div class="tool-panel">
+      <textarea id="envInput" placeholder="在此粘贴你的 .env 文件内容...&#10;&#10;示例:&#10;DATABASE_URL=postgresql://localhost:5432/mydb&#10;PORT=3000&#10;SECRET_KEY=your-secret-key"></textarea>
+      <div class="controls">
+        <label>框架模板：
+          <select id="templateSelect">
+            <option value="">不使用模板</option>
+            <option value="node">Node.js (Express)</option>
+            <option value="django">Django</option>
+            <option value="laravel">Laravel</option>
+            <option value="rails">Rails</option>
+            <option value="nextjs">Next.js</option>
+          </select>
+        </label>
+        <button class="btn-secondary" onclick="loadSampleEnv()">加载示例</button>
+        <button class="btn-secondary" onclick="clearInput()">清空</button>
+      </div>
+      <button class="btn-validate" onclick="validateEnv()">🔍 验证 .env 文件</button>
 
-      <div class="result-card">
-        <h3>📊 解析的变量</h3>
-        <div id="parsedVars" style="overflow-x:auto;"></div>
+      <div class="result-section" id="resultSection">
+        <div class="summary" id="summaryGrid"></div>
+        <div class="result-card">
+          <h3>📋 验证结果</h3>
+          <div id="issuesList"></div>
+        </div>
+        <div class="result-card">
+          <h3>📊 解析的变量</h3>
+          <div id="parsedVars" style="overflow-x:auto;"></div>
+        </div>
       </div>
     </div>
   </div></div></main>
@@ -117,6 +141,191 @@ footer{text-align:center;padding:30px;color: #64748b;font-size:13px;}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
+// ========== .env 验证器核心逻辑 ==========
+var TEMPLATES = {
+  node: { name: 'Node.js (Express)', required: ['PORT','NODE_ENV','DATABASE_URL'], recommended: ['SECRET_KEY','LOG_LEVEL'] },
+  django: { name: 'Django', required: ['SECRET_KEY','DEBUG','ALLOWED_HOSTS'], recommended: ['DATABASE_URL'] },
+  laravel: { name: 'Laravel', required: ['APP_KEY','APP_ENV','APP_DEBUG'], recommended: ['DB_CONNECTION','DB_HOST'] },
+  rails: { name: 'Rails', required: ['RAILS_ENV','SECRET_KEY_BASE'], recommended: ['DATABASE_URL'] },
+  nextjs: { name: 'Next.js', required: ['NEXT_PUBLIC_API_URL'], recommended: ['NEXTAUTH_SECRET','NEXTAUTH_URL'] }
+};
+
+function loadSampleEnv(){
+  var sample = [
+    '# 应用配置',
+    'APP_NAME=MyApp',
+    'PORT=3000',
+    'NODE_ENV=development',
+    '',
+    '# 数据库',
+    'DATABASE_URL=postgresql://user:pass@localhost:5432/mydb',
+    '',
+    '# 安全配置',
+    'SECRET_KEY=super-secret-key-change-me',
+    'JWT_EXPIRES=3600',
+    '',
+    '# 缺少值的变量',
+    'REDIS_URL=',
+    '',
+    '# 重复的键',
+    'PORT=8080',
+    '',
+    '# 安全风险：硬编码密码',
+    'DB_PASSWORD=password123'
+  ].join('\\n');
+  document.getElementById('envInput').value = sample;
+  showToast('已加载示例.env内容');
+}
+
+function clearInput(){
+  document.getElementById('envInput').value = '';
+  document.getElementById('resultSection').style.display = 'none';
+  showToast('已清空');
+}
+
+function validateEnv(){
+  var input = document.getElementById('envInput').value.trim();
+  if(!input){
+    showToast('请先输入.env文件内容');
+    return;
+  }
+
+  var lines = input.split('\\n');
+  var vars = {};
+  var varOrder = [];
+  var issues = [];
+  var dupKeys = {};
+
+  for(var i = 0; i < lines.length; i++){
+    var line = lines[i].trim();
+
+    // 空行
+    if(line === '') continue;
+
+    // 注释
+    if(line.charAt(0) === '#'){
+      continue;
+    }
+
+    // 检查是否有=号
+    var eqIdx = line.indexOf('=');
+    if(eqIdx === -1){
+      issues.push({ type: 'error', msg: '第' + (i+1) + '行: 缺少等号(=)，无法解析 "' + line.substring(0, 30) + '"' });
+      continue;
+    }
+
+    var key = line.substring(0, eqIdx).trim();
+    var value = line.substring(eqIdx + 1).trim();
+
+    // 检查键名格式
+    if(!/^[A-Z_][A-Z0-9_]*$/.test(key) && !/^[a-z_][a-z0-9_]*$/i.test(key)){
+      issues.push({ type: 'warning', msg: '第' + (i+1) + '行: 键名 "' + key + '" 不符合规范（建议全大写+下划线）' });
+    }
+
+    // 检查重复键
+    if(vars.hasOwnProperty(key)){
+      if(!dupKeys[key]) dupKeys[key] = 1;
+      dupKeys[key]++;
+      issues.push({ type: 'warning', msg: '第' + (i+1) + '行: 重复的键 "' + key + '" (出现' + dupKeys[key] + '次)' });
+    }
+
+    // 检查空值
+    if(value === ''){
+      issues.push({ type: 'warning', msg: '第' + (i+1) + '行: 键 "' + key + '" 的值为空' });
+    }
+
+    // 安全风险检测
+    var lowerVal = value.toLowerCase();
+    if(lowerVal.indexOf('password') !== -1 && value.length < 16){
+      issues.push({ type: 'info', msg: '第' + (i+1) + '行: "' + key + '" 包含密码但长度过短，建议使用更强密码' });
+    }
+    if(lowerVal === 'true' || lowerVal === 'false'){
+      // 布尔值没问题
+    } else if(/^\d+$/.test(value)){
+      // 数字没问题
+    } else if(key.indexOf('SECRET') !== -1 || key.indexOf('KEY') !== -1 || key.indexOf('PASSWORD') !== -1 || key.indexOf('TOKEN') !== -1){
+      if(value.length < 12){
+        issues.push({ type: 'info', msg: '第' + (i+1) + '行: 敏感键 "' + key + '" 的值过短，建议至少12个字符' });
+      }
+    }
+
+    // 检查危险值
+    if(lowerVal.indexOf('localhost') !== -1 && key.indexOf('URL') !== -1){
+      issues.push({ type: 'info', msg: '第' + (i+1) + '行: "' + key + '" 使用了localhost，生产环境需要更改' });
+    }
+
+    if(!vars.hasOwnProperty(key)){
+      vars[key] = value;
+      varOrder.push({ key: key, value: value, line: i + 1 });
+    }
+  }
+
+  // 模板检查
+  var tmplKey = document.getElementById('templateSelect').value;
+  if(tmplKey && TEMPLATES[tmplKey]){
+    var tmpl = TEMPLATES[tmplKey];
+    for(var r = 0; r < tmpl.required.length; r++){
+      if(!vars.hasOwnProperty(tmpl.required[r])){
+        issues.push({ type: 'error', msg: '模板' + tmpl.name + '要求键 "' + tmpl.required[r] + '" 但未找到' });
+      }
+    }
+    for(var rec = 0; rec < tmpl.recommended.length; rec++){
+      if(!vars.hasOwnProperty(tmpl.recommended[rec])){
+        issues.push({ type: 'info', msg: '建议添加键 "' + tmpl.recommended[rec] + '" (' + tmpl.name + '推荐)' });
+      }
+    }
+  }
+
+  // 统计
+  var errorCount = issues.filter(function(x){ return x.type === 'error'; }).length;
+  var warningCount = issues.filter(function(x){ return x.type === 'warning'; }).length;
+  var infoCount = issues.filter(function(x){ return x.type === 'info'; }).length;
+  var okCount = varOrder.length - errorCount - warningCount;
+  if(okCount < 0) okCount = 0;
+
+  // 渲染摘要
+  var summaryHtml = '';
+  summaryHtml += '<div class="summary-item"><div class="count count-error">' + errorCount + '</div><div class="label">错误</div></div>';
+  summaryHtml += '<div class="summary-item"><div class="count count-warning">' + warningCount + '</div><div class="label">警告</div></div>';
+  summaryHtml += '<div class="summary-item"><div class="count count-info">' + infoCount + '</div><div class="label">提示</div></div>';
+  summaryHtml += '<div class="summary-item"><div class="count count-ok">' + varOrder.length + '</div><div class="label">变量总数</div></div>';
+  document.getElementById('summaryGrid').innerHTML = summaryHtml;
+
+  // 渲染问题列表
+  var issuesHtml = '';
+  if(issues.length === 0){
+    issuesHtml = '<div class="issue issue-ok">✅ 所有检查通过！未发现问题。</div>';
+  } else {
+    for(var j = 0; j < issues.length; j++){
+      var icon = issues[j].type === 'error' ? '❌' : issues[j].type === 'warning' ? '⚠️' : '💡';
+      issuesHtml += '<div class="issue issue-' + issues[j].type + '">' + icon + ' ' + issues[j].msg + '</div>';
+    }
+  }
+  document.getElementById('issuesList').innerHTML = issuesHtml;
+
+  // 渲染解析的变量
+  var varsHtml = '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+  varsHtml += '<thead><tr style="border-bottom:1px solid rgba(148,163,184,.2);"><th style="text-align:left;padding:6px 10px;color:#94a3b8;">键</th><th style="text-align:left;padding:6px 10px;color:#94a3b8;">值</th><th style="text-align:left;padding:6px 10px;color:#94a3b8;">行号</th></tr></thead><tbody>';
+  for(var v = 0; v < varOrder.length; v++){
+    var displayVal = varOrder[v].value;
+    if(displayVal.length > 50) displayVal = displayVal.substring(0, 50) + '...';
+    varsHtml += '<tr style="border-bottom:1px solid rgba(148,163,184,.08);"><td style="padding:6px 10px;color:#22d3ee;font-family:monospace;">' + escapeHtml(varOrder[v].key) + '</td><td style="padding:6px 10px;color:#e2e8f0;font-family:monospace;">' + escapeHtml(displayVal) + '</td><td style="padding:6px 10px;color:#64748b;">' + varOrder[v].line + '</td></tr>';
+  }
+  varsHtml += '</tbody></table>';
+  document.getElementById('parsedVars').innerHTML = varsHtml;
+
+  // 显示结果
+  document.getElementById('resultSection').style.display = 'block';
+  document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+
+  showToast('验证完成：' + errorCount + '错误, ' + warningCount + '警告');
+}
+
+function escapeHtml(str){
+  var d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
 </script>
 
 <div class="tool-faq" style="margin-top:24px;padding:20px;background:rgba(99,102,241,.05);border-radius:12px;border:1px solid rgba(99,102,241,.1)">
