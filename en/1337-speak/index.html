@@ -233,13 +233,29 @@
 <p>1337 Speak Translator | No Signup, Client-Side · No Server Uploads</p>
 <p style="margin-top:8px;color:#475569;font-size:.8rem">Feedback: dexshuang@google.com</p>
 </div>
-`).join('')}
-function copyResult(){const text=document.getElementById('result-text').textContent;if(!text)return;navigator.clipboard.writeText(text).then(()=>showToast())}
-function downloadResult(){const text=document.getElementById('result-text').textContent;if(!text)return;const blob=new Blob([text],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='leet-text.txt';a.click()}
+<script>
+function showToast(){var t=document.getElementById('copy-toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
+var LEET_MAPS={
+basic:{a:'4',e:'3',i:'1',o:'0',s:'5',t:'7'},
+intermediate:{a:'4',b:'8',e:'3',g:'9',i:'1',l:'1',o:'0',s:'5',t:'7',z:'2'},
+advanced:{a:'@',b:'8',c:'(',d:'|)',e:'3',f:'ph',g:'9',h:'#',i:'!',j:'_|',k:'|<',l:'1',m:'|\\/|',n:'/\\/',o:'0',p:'|>',q:'0,',r:'|2',s:'5',t:'7',u:'|_|',v:'\\/',w:'\\/\\/',x:'><',y:'`/',z:'2'}
+};
+var DECODE_MAPS={};
+Object.keys(LEET_MAPS).forEach(function(style){DECODE_MAPS[style]={};Object.entries(LEET_MAPS[style]).forEach(function(entry){DECODE_MAPS[style][entry[1].toLowerCase()]=entry[0].toUpperCase()})});
+var currentStyle='basic',currentDir='encode';
+
+function setStyle(s){currentStyle=s;document.querySelectorAll('.style-btn').forEach(function(b){b.classList.remove('active')});var btn=document.querySelector('.style-btn[onclick*="'+s+'"]');if(btn)btn.classList.add('active');renderCharMap();convert()}
+function setDirection(d){currentDir=d;document.querySelectorAll('.direction-btn').forEach(function(b){b.classList.remove('active')});var btn=document.querySelector('.direction-btn[onclick*="'+d+'"]');if(btn)btn.classList.add('active');convert()}
+function encodeLeet(text,style){var map=LEET_MAPS[style];var result='';for(var i=0;i<text.length;i++){var ch=text[i];var lower=ch.toLowerCase();if(map[lower])result+=map[lower];else result+=ch}return result}
+function decodeLeet(text,style){var map=DECODE_MAPS[style];var sorted=Object.keys(map).sort(function(a,b){return b.length-a.length});var result='';var i=0;while(i<text.length){var found=false;for(var j=0;j<sorted.length;j++){var key=sorted[j];if(text.substring(i,i+key.length).toLowerCase()===key){result+=map[key];i+=key.length;found=true;break}}if(!found){result+=text[i];i++}}return result}
+function convert(){var input=document.getElementById('input-text').value;var result=document.getElementById('result-text');if(!input.trim()){result.textContent='';return}if(currentDir==='encode'){result.textContent=encodeLeet(input,currentStyle)}else{result.textContent=decodeLeet(input,currentStyle)}}
+function renderCharMap(){var map=LEET_MAPS[currentStyle];var container=document.getElementById('char-map');container.innerHTML=Object.entries(map).map(function(entry){return '<div class="char-map-item"><div class="from">'+entry[0].toUpperCase()+'</div><div class="to">'+entry[1]+'</div></div>'}).join('')}
+function copyResult(){var text=document.getElementById('result-text').textContent;if(!text)return;navigator.clipboard.writeText(text).then(function(){showToast()})}
+function downloadResult(){var text=document.getElementById('result-text').textContent;if(!text)return;var blob=new Blob([text],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='leet-text.txt';a.click()}
 function loadExample(){document.getElementById('input-text').value='Hello World! This is Leet Speak.';convert()}
 function clearAll(){document.getElementById('input-text').value='';document.getElementById('result-text').textContent=''}
 document.addEventListener('keydown',function(e){if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();convert()}if(e.ctrlKey&&e.shiftKey&&e.key==='C'){e.preventDefault();copyResult()}if(e.ctrlKey&&e.shiftKey&&e.key==='X'){e.preventDefault();clearAll()}});
-function showToast(){const t=document.getElementById('copy-toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 window.addEventListener('load',function(){renderCharMap();loadExample()});
 </script>
 

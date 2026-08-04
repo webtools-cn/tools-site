@@ -87,6 +87,37 @@
 - en/mind-map: "Scroll to zoom (coming soon)" → "Scroll to zoom"
 - en/css-animation-builder: "Custom keyframes coming soon" → "Custom keyframes in development"
 
+### P2: 语义化`<main>`标签修复 (2026-08-04 第三轮) ✅
+
+#### 缺main标签修复 (151个页面)
+为151个缺少`<main>`语义化标签的页面添加了`<main>`/`</main>`包裹：
+- **5个有`<header>`但缺`<main>`的页面**：在`</header>`后插入`<main>`，在`<footer>`前插入`</main>`
+  - flooring-calculator, en/flooring-calculator, en/wireframe-generator, en/zip-extractor, en/chart-maker
+- **146个无`<header>`也无`<main>`的页面**：在`<body>`后插入`<main>`，在`<footer>`前插入`</main>`
+  - 涵盖css-gradient-text-generator, statistics-calculator, drawing-tool, en/number-base, en/text-case等
+
+#### en/zip-extractor HTML结构修复
+- 补充缺失的`</header>`标签
+- 补充FAQ section缺失的`</div>`
+- 补充footer内缺失的`</div>`
+- 添加`<main>`/`</main>`语义包裹
+
+#### snow-load-calculator Meta Description扩写
+| 页面 | 旧长度 | 新长度 |
+|:-----|:------:|:------:|
+| snow-load-calculator | 91 | 131 |
+
+### 扫描结果对比
+| 指标 | 修复前 | 修复后 |
+|:-----|:------:|:------:|
+| 缺main标签 | 151 | 0 ✅ |
+| meta过短(<100) | 1 | 0 ✅ |
+| EN缺robots | 0 | 0 ✅ |
+| placeholder | 0 | 0 ✅ |
+| div不匹配(>=2) | 14 | 15* |
+
+> *div不匹配15个均为**误报**：`</div>`出现在JS字符串(innerHTML)中，HTML层面结构正确（已验证排除script块后全部平衡）。en/zip-extractor的div不匹配已修复。
+
 ### 待处理问题
 - P0: 49个Failing URLs — 内容质量优化进行中
   - 已优化8个页面（gpa-calculator, checksum-calculator, compound-interest-calculator, reaction-test, speed-test, vin-decoder, running-pace-calculator, metronome-online）
