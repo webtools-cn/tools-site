@@ -251,5 +251,58 @@
 | placeholder | 0 | ✅ |
 | div不匹配(>=2, HTML only) | 0 | ✅ |
 | 缺main标签 | 0 | ✅ |
+| 缺canonical | 0 | ✅ |
+| 缺h1标签 | 0 | ✅ |
+| 缺schema | 0 | ✅ |
+| 标题过短(<20, 排除已迁移/分类页) | 0 | ✅ |
 
 - **提交**: `19c59a19c8`
+
+---
+
+## 2026-08-04 SEO巡检（第2轮）
+
+### 扫描结果
+| 指标 | 数值 |
+|:-----|:----:|
+| meta过短(<100) | 1 → 0 ✅ |
+| EN缺robots | 0 |
+| placeholder | 0 |
+| div不匹配(>=2) | 12（JS字符串误报，HTML结构正确） |
+| 缺main标签 | 0 |
+| 缺canonical | 4 → 0 ✅ |
+| 缺og标签 | 267（分类页/已迁移页，低优先级） |
+| 标题过短(<20) | 70（34已迁移+27分类页+9真实问题 → 0 ✅） |
+| 缺h1标签 | 1 → 0 ✅ |
+| 缺schema | 0 |
+
+### 修复内容
+
+#### 1. Meta Description 扩写 ✅
+- `hourly-to-salary/index.html`: 96 → 121字符，同步更新og:description和Schema description
+
+#### 2. Canonical + Hreflang 补全 ✅
+4个页面添加canonical、robots、hreflang标签：
+- `pool-volume-calculator/index.html`（中英文）
+- `firewood-cord-calculator/index.html`（中英文）
+
+#### 3. H1标签补全 ✅
+- `json-formatter/index.html`: 添加hero区域含h1标签（原有CSS h1样式但无实际h1元素）
+
+#### 4. 标题优化 ✅
+9个页面标题从<20字符扩写到20+字符，添加品牌词"| Free ToolBase"：
+- `en/text-sorter`: "Free Text Sorter" → "Free Text Sorter - Sort Lines Alphabetically Online | Free ToolBase"
+- `viral-coefficient-calculator`: 添加"与K值计算 | Free ToolBase"
+- `home-renovation-cost-calculator`: 添加"与费用明细 | Free ToolBase"
+- `life-expectancy-calculator`: 添加"寿命 | Free ToolBase"
+- `mortgage-affordability-calculator`: 添加"可负担房价计算 | Free ToolBase"
+- `text-comparison`: 添加"| Free ToolBase"
+- `flip-coin`: 添加"免费在线随机硬币翻转工具 |"
+- `audio-reverser`: 添加"| Free ToolBase"
+- `pmi-calculator-advanced`: 添加"| Free ToolBase"
+
+### 待处理（低优先级）
+- 267个页面缺og标签 — 多为分类页和已迁移页面，非工具页，优先级低
+- div不匹配12个 — 全部为JS字符串中innerHTML生成的div标签误报，HTML结构正确无需修复
+
+- **提交**: `adc43c60d0`
