@@ -164,16 +164,45 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 (function(){var s=document.getElementById('related-tools-section');if(!s)return;var p=window.location.pathname;var en=p.indexOf('/en/')!==-1;p=p.replace(/\/en\//g,'/');var slug=p.split('/').filter(Boolean).pop()||'';if(!slug){s.innerHTML='';return;}var depth=en?'../../':'../';fetch(depth+'related-tools.json').then(function(r){if(!r.ok)throw new Error('');return r.json();}).then(function(d){var data=en?d.en:d.cn;var t=data[slug];if(!t||!t.related||!t.related.length){s.innerHTML='';return;}var h='\x3Cdiv class="related-tools-inner">\x3Ch3 class="related-tools-title">'+(en?'🔗 You May Also Like':'🔗 相关工具推荐')+'\x3C/h3>\x3Cdiv class="related-tools-grid">';t.related.forEach(function(r){var link=en?'../../en/'+r.slug+'/':'../'+r.slug+'/';h+='\x3Ca href="'+link+'" class="related-tool-card">\x3Cspan class="related-tool-icon">'+(r.icon||'🔧')+'\x3C/span>\x3Cspan class="related-tool-name">'+r.name+'\x3C/span>\x3C/a>';});h+='\x3C/div>\x3C/div>';s.innerHTML=h;}).catch(function(){s.innerHTML='';});})();
 
 // === 重写的函数实现 ===
+var currentMode='permutation';
+function setMode(mode){
+  currentMode=mode;
+  document.querySelectorAll('.mode-tab').forEach(function(t){t.classList.remove('active')});
+  var sel=document.querySelector('.mode-tab[data-mode="'+mode+'"]');
+  if(sel)sel.classList.add('active');
+  var rGroup=document.getElementById('rGroup');
+  if(mode==='factorial'){if(rGroup)rGroup.style.display='none';}
+  else{if(rGroup)rGroup.style.display='block';}
+  var labels={'permutation':'排列 P(n,r)','combination':'组合 C(n,r)','perm-repeat':'重复排列 n^r','comb-repeat':'重复组合 C(n+r-1,r)','factorial':'阶乘 n!'};
+  var rl=document.getElementById('resultLabel');
+  if(rl)rl.textContent=labels[mode]||mode;
+}
+function factorial(n){if(n<0||n>170)return Infinity;var r=1;for(var i=2;i<=n;i++)r*=i;return r;}
+function combination(n,r){if(r>n)return 0;return factorial(n)/(factorial(r)*factorial(n-r));}
+function permutation(n,r){return factorial(n)/factorial(n-r);}
 function calculate() {
-  var nInput = parseFloat(document.getElementById('nInput').value);
-  var rInput = parseFloat(document.getElementById('rInput').value);
-  if (nInput === undefined || isNaN(nInput)) {
-    showToast('请输入有效数值');
-    return;
+  var nInput = parseInt(document.getElementById('nInput').value);
+  var rInput = parseInt(document.getElementById('rInput').value);
+  if (isNaN(nInput)||nInput<0) {showToast('请输入有效的n值');return;}
+  var result,formula;
+  if(currentMode==='factorial'){
+    result=factorial(nInput);
+    formula=nInput+'! = '+result;
+  }else{
+    if(isNaN(rInput)||rInput<0){showToast('请输入有效的r值');return;}
+    if(rInput>nInput&&currentMode!=='perm-repeat'&&currentMode!=='comb-repeat'){showToast('r不能大于n');return;}
+    if(currentMode==='permutation'){result=permutation(nInput,rInput);formula='P('+nInput+','+rInput+') = '+nInput+'! / ('+nInput+'-'+rInput+')! = '+result;}
+    else if(currentMode==='combination'){result=combination(nInput,rInput);formula='C('+nInput+','+rInput+') = '+nInput+'! / ('+rInput+'! × ('+nInput+'-'+rInput+')!) = '+result;}
+    else if(currentMode==='perm-repeat'){result=Math.pow(nInput,rInput);formula=nInput+'^'+rInput+' = '+result;}
+    else if(currentMode==='comb-repeat'){result=combination(nInput+rInput-1,rInput);formula='C('+nInput+'+'+rInput+'-1,'+rInput+') = C('+(nInput+rInput-1)+','+rInput+') = '+result;}
   }
-  var result = nInput * rInput;
-  document.getElementById('resultArea').innerHTML = '<div class="result-item"><span class="result-label">结果</span><span class="result-value">' + result + '</span></div>';
-  document.getElementById('resultArea').style.display = 'block';
+  document.getElementById('resultArea').style.display='block';
+  document.getElementById('resultValue').textContent=result.toExponential(10).replace(/\.?0+e/,'e').replace('e+','×10^');
+  if(Math.abs(result)<1e15)document.getElementById('resultValue').textContent=String(result);
+  document.getElementById('formulaText').textContent=formula;
+  var nf=document.getElementById('nFactorial');if(nf)nf.textContent=factorial(nInput);
+  var rf=document.getElementById('rFactorial');if(rf)rf.textContent=rInput>=0?factorial(rInput):'-';
+  var nrf=document.getElementById('nrFactorial');if(nrf)nrf.textContent=(nInput-rInput)>=0?factorial(nInput-rInput):'-';
   showToast('计算完成');
 }
 </script>
