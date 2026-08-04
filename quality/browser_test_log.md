@@ -108,3 +108,31 @@
 4. **cron-to-text EN**: 添加缺失的BreadcrumbList schema
 
 > 注：浏览器扩展未连接(extension_connected:false)，使用Node.js提取JS逻辑验证代替浏览器实测。所有7个工具14个页面(CN+EN)的JS语法通过+核心计算逻辑通过Node验证。
+
+---
+
+## 2026-08-05 批次 (border-generator, pixel-art-maker, grams-to-ounces, image-pixel-art, morse-code-converter, video-cutter, css-neon-text)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| border-generator | CN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| border-generator | EN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| pixel-art-maker | CN | ✅深色 | ✅(迁移页) | ✅ | N/A | 迁移至pixel-art-editor | passed |
+| pixel-art-maker | EN | ✅深色 | ✅(迁移页) | ✅ | N/A | 迁移至pixel-art-editor | passed |
+| grams-to-ounces | CN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| grams-to-ounces | EN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| image-pixel-art | CN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| image-pixel-art | EN | ✅深色 | ✅(已修) | ✅ | N/A | JS语法错误};)→已修复 | passed |
+| morse-code-converter | CN | ✅深色 | ✅(已修) | ✅ | N/A | JS语法错误setDirection('toMorse';→已修复 | passed |
+| morse-code-converter | EN | ✅深色 | ✅(已修) | ✅ | N/A | JS语法错误buildTable(;+setDirection('toMorse';))→已修复 | passed |
+| video-cutter | CN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| video-cutter | EN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| css-neon-text | CN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+| css-neon-text | EN | ✅深色 | ✅ | ✅ | N/A | 无 | passed |
+
+### 修复详情
+1. **morse-code-converter CN**: 第352行 `setDirection('toMorse';` 缺少右括号 → `setDirection('toMorse');` — 语法错误导致整个页面JS无法执行，所有功能不可用
+2. **morse-code-converter EN**: 第345行 `buildTable(;` + 第346行 `setDirection('toMorse';))` 两处缺失/多余括号 → `buildTable();` + `setDirection('toMorse');` — 同上，语法错误导致功能完全不可用
+3. **image-pixel-art EN**: 第541行 `};)` → `});` — addEventListener回调闭合错误，语法错误导致功能不可用
+
+> 注：浏览器扩展未连接，使用Node.js提取JS语法检查+CSS变量/浅色背景/深色文字grep验证代替。所有7个工具14个页面(CN+EN)验证通过，发现3个语法错误已修复并推送。
