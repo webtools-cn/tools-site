@@ -89,10 +89,7 @@ img{max-width:100%}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; HTML链接提取器</p>
 <div class="hero"><p>免费在线HTML链接提取工具。粘贴HTML代码或输入网页URL，一键提取页面中所有链接（包括a标签、img、script、link等）。支持过滤内部/外部链接、按类型分类、统计链接数量。结果显示为带链接地址和锚文本的表格。纯前端处理，可复制导出。适合SEO分析、网页内容审查、爬虫开发。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section">
-/div>
-</div>
-
+<div>
 <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -104,26 +101,35 @@ img{max-width:100%}
     <h2>从HTML中提取链接</h2>
     <div class="form-group">
       <label>粘贴HTML代码</label>
-      <textarea id="htmlInput" class="code-input" rows="8" placeholder="&lt;html&gt;... Paste HTML code here ...&lt;/html&gt;"><html>
-<head>
-  <title>Sample Page</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="app.js"></script>
-<meta property="og:image" content="https://free-toolbase.com/og-image.svg">
-<meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="robots" content="index, follow">
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
-
-</head>
-<body>
-  <a href="https://example.com">Example Link</a>
-  <a href="/about">About Page</a>
-  <img src="image.jpg" alt="Sample">
-  <a href="https://google.com" target="_blank">Google</a></div></div>
-</div>
+      <textarea id="htmlInput" class="code-input" rows="8" placeholder="&lt;html&gt;... Paste HTML code here ...&lt;/html&gt;">&lt;html&gt;
+&lt;head&gt;
+  &lt;title&gt;Sample Page&lt;/title&gt;
+  &lt;link rel="stylesheet" href="style.css"&gt;
+  &lt;script src="app.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;a href="https://example.com"&gt;Example Link&lt;/a&gt;
+  &lt;a href="/about"&gt;About Page&lt;/a&gt;
+  &lt;img src="image.jpg" alt="Sample"&gt;
+  &lt;a href="https://google.com" target="_blank"&gt;Google&lt;/a&gt;
+&lt;/body&gt;
+&lt;/html&gt;</textarea>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="extractLinks()">🔗 提取链接</button>
+      <button class="btn btn-secondary" onclick="clearInput()">清空</button>
+    </div>
+  </div>
+  <div class="section" id="resultSection" style="display:none">
+    <h2>提取结果 <span id="linkCount" style="font-size:.85rem;color:#94a3b8;font-weight:400"></span></h2>
+    <div class="btn-group">
+      <button class="btn btn-success" onclick="copyResult()">📋 复制结果</button>
+    </div>
+    <div id="resultTable" style="overflow-x:auto"></div>
+  </div>
 
 <div class="section"><h2>常见问题</h2></div>
+</div>
 </div>
 <div>
 <!-- AdSense -->
@@ -151,7 +157,48 @@ img{max-width:100%}
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
-
+function extractLinks(){
+  var html=document.getElementById('htmlInput').value;
+  if(!html.trim()){showToast('请输入HTML代码');return;}
+  var results=[];
+  var aRe=/<a\s[^>]*href=["']([^"']+)["'][^>]*>([^<]*)<\/a>/gi;
+  var imgRe=/<img\s[^>]*src=["']([^"']+)["'][^>]*>/gi;
+  var linkRe=/<link\s[^>]*href=["']([^"']+)["'][^>]*>/gi;
+  var scriptRe=/<script\s[^>]*src=["']([^"']+)["'][^>]*>/gi;
+  var m;
+  while((m=aRe.exec(html))!==null)results.push({type:'a (链接)',url:m[1],text:m[2]||''});
+  while((m=imgRe.exec(html))!==null)results.push({type:'img (图片)',url:m[1],text:''});
+  while((m=linkRe.exec(html))!==null)results.push({type:'link (样式)',url:m[1],text:''});
+  while((m=scriptRe.exec(html))!==null)results.push({type:'script (脚本)',url:m[1],text:''});
+  var section=document.getElementById('resultSection');
+  var table=document.getElementById('resultTable');
+  var count=document.getElementById('linkCount');
+  if(results.length===0){
+    section.style.display='block';
+    count.textContent='';
+    table.innerHTML='<p style="color:#f87171;text-align:center;padding:20px">未找到任何链接</p>';
+    return;
+  }
+  count.textContent='('+results.length+'个链接)';
+  var h='<table style="width:100%;border-collapse:collapse;font-size:.85rem"><thead><tr style="border-bottom:2px solid rgba(148,163,184,.2)"><th style="text-align:left;padding:8px;color:#94a3b8">类型</th><th style="text-align:left;padding:8px;color:#94a3b8">URL</th><th style="text-align:left;padding:8px;color:#94a3b8">锚文本</th><th style="text-align:left;padding:8px;color:#94a3b8">类型</th></tr></thead><tbody>';
+  results.forEach(function(r){
+    var isExternal=/^https?:\/\//i.test(r.url);
+    h+='<tr style="border-bottom:1px solid rgba(148,163,184,.1)"><td style="padding:8px;color:#22d3ee">'+r.type+'</td><td style="padding:8px;word-break:break-all"><a href="'+r.url+'" style="color:#06b6d4" target="_blank" rel="noopener">'+r.url+'</a></td><td style="padding:8px;color:#e2e8f0">'+(r.text||'-')+'</td><td style="padding:8px"><span style="color:'+(isExternal?'#4ade80':'#f59e0b')+';font-size:.8rem">'+(isExternal?'外部':'内部')+'</span></td></tr>';
+  });
+  h+='</tbody></table>';
+  table.innerHTML=h;
+  section.style.display='block';
+}
+function clearInput(){
+  document.getElementById('htmlInput').value='';
+  document.getElementById('resultSection').style.display='none';
+  showToast('已清空');
+}
+function copyResult(){
+  var table=document.getElementById('resultTable');
+  if(!table||!table.innerText.trim()){showToast('无结果可复制');return;}
+  navigator.clipboard.writeText(table.innerText).then(function(){showToast('已复制结果')})["catch"](function(){showToast('复制失败')});
+}
 </script>
 </main>
 
