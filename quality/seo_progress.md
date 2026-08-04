@@ -168,3 +168,24 @@
 - **修复**: 从中文版同步完整函数实现，翻译UI文案为英文
 - **附带修复**: submitFeedback中 `pageside` → `Page`；末尾多余 `}` 移除
 - **提交**: `ada1c5b76a`
+
+### 2026-08-04 第五轮 SEO 修复
+
+#### Div标签不匹配修复 (3个页面)
+修复了实际HTML结构中div开闭标签不匹配的问题（精确检查排除script块后发现）：
+| 页面 | 问题 | 修复 |
+|:-----|:-----|:-----|
+| en/readability-score | star-rating/trust-signals div未闭合 + 3个section div未闭合 + footer后多余</div> | 添加缺失</div>闭合, 移除多余</div> |
+| en/ip-range-calculator | star-rating/trust-signals div未闭合 + input/form-group/section div未闭合 + 2个FAQ item缺</div> | 添加缺失</div>闭合 |
+| en/unicode-lookup | star-rating/trust-signals div未闭合 + search section/row div未闭合 + detail-card section未闭合 + footer后多余</div> | 添加缺失</div>闭合, 移除多余</div> |
+
+> 根因：这三个页面使用了批量模板生成，star-rating和trust-signals的div嵌套在`<h1>`内但从未闭合，各section的div也缺少闭合标签。
+
+#### 当前扫描结果（全量）
+| 指标 | 数值 | 状态 |
+|:-----|:----:|:----:|
+| meta过短(<100) | 0 | ✅ |
+| EN缺robots | 0 | ✅ |
+| placeholder | 0 | ✅ |
+| div不匹配(>=2, HTML only) | 0 | ✅ |
+| 缺main标签 | 0 | ✅ |
