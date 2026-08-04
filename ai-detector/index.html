@@ -213,13 +213,133 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-function detectAI(){}
-window.detectAI=detectAI;
+function updateCharCount(){var t=document.getElementById("inputText");var c=document.getElementById("charCount");if(t&&c){var len=t.value.length;c.textContent=len+" 字"}}window.updateCharCount=updateCharCount;
+
+function loadExample(){var examples=["人工智能（Artificial Intelligence，简称AI）是计算机科学的一个分支，它致力于研究、开发用于模拟、延伸和扩展人类智能的理论、方法、技术及应用系统。人工智能的研究范畴包括机器人、语言识别、图像识别、自然语言处理和专家系统等。随着计算能力的提升和大数据的发展，深度学习技术取得了突破性进展，使得人工智能在各个领域得到了广泛应用。","The quick brown fox jumps over the lazy dog. This sentence contains every letter of the English alphabet. It is commonly used for typing practice and font display. However, in the context of AI detection, this type of pangram may appear unusual because it is highly structured and lacks the natural variation found in everyday writing."];var t=document.getElementById("inputText");if(t){t.value=examples[Math.floor(Math.random()*examples.length)];updateCharCount();showToast("已加载示例文本")}}window.loadExample=loadExample;
+
+function detectAI(){
+var textEl=document.getElementById("inputText");
+if(!textEl||!textEl.value.trim()){showToast("请输入需要检测的文本");return}
+var text=textEl.value.trim();
+if(text.length<20){showToast("文本太短，建议输入至少100字");return}
+
+// --- Statistical analysis ---
+var isChinese=/[\u4e00-\u9fff]/.test(text);
+var sentences,words;
+
+if(isChinese){
+sentences=text.split(/[。！？!?\.\n]+/).filter(function(s){return s.trim().length>0});
+words=text.replace(/[\s。！？!?,，、；;：:""''""''（）()\[\]【】]/g,"").split("");
+}else{
+sentences=text.split(/[.!?]+/).filter(function(s){return s.trim().length>0});
+words=text.toLowerCase().match(/\b\w+\b/g)||[];
+}
+
+if(sentences.length===0)sentences=[text];
+if(words.length===0)words=text.split("");
+
+// 1. Type-Token Ratio (TTR) - vocabulary diversity
+var uniqueWords={};words.forEach(function(w){uniqueWords[w]=true});
+var ttr=Object.keys(uniqueWords).length/Math.max(words.length,1);
+
+// 2. Sentence length variance (lower = more uniform = more AI-like)
+var sentLens=sentences.map(function(s){return isChinese?s.replace(/\s/g,"").length:s.split(/\s+/).filter(Boolean).length});
+var avgSentLen=sentLens.reduce(function(a,b){return a+b},0)/Math.max(sentLens.length,1);
+var variance=sentLens.reduce(function(a,b){return a+Math.pow(b-avgSentLen,2)},0)/Math.max(sentLens.length,1);
+var cv=avgSentLen>0?Math.sqrt(variance)/avgSentLen:0;
+
+// 3. Average word length
+var avgWordLen=words.reduce(function(a,w){return a+w.length},0)/Math.max(words.length,1);
+
+// 4. Repetition score (bigram repetition)
+var bigrams={};for(var i=0;i<words.length-1;i++){var bg=words[i]+" "+words[i+1];bigrams[bg]=(bigrams[bg]||0)+1}
+var repeatedBigrams=Object.values(bigrams).filter(function(v){return v>1}).length;
+var repetitionRate=repeatedBigrams/Math.max(Object.keys(bigrams).length,1);
+
+// 5. Punctuation density
+var punctCount=(text.match(/[，。！？、；：,.!?;:]/g)||[]).length;
+var punctDensity=punctCount/Math.max(text.length,1);
+
+// --- Scoring (0-100, higher = more likely AI) ---
+var score=0;
+
+// TTR: AI text tends to have lower TTR (less diverse vocabulary)
+// Chinese TTR ~0.6-0.8 normal, English TTR ~0.4-0.7 normal
+var ttrNorm=isChinese?Math.max(0,(0.75-ttr)/0.35):Math.max(0,(0.6-ttr)/0.3);
+score+=ttrNorm*25;
+
+// Sentence length CV: AI text tends to have lower CV (more uniform)
+var cvScore=Math.max(0,(0.5-cv)/0.5);
+score+=cvScore*25;
+
+// Repetition: AI text tends to repeat bigrams more
+var repScore=Math.min(1,repetitionRate*3);
+score+=repScore*20;
+
+// Average sentence length: AI tends to write longer, more uniform sentences
+var lenScore=Math.min(1,avgSentLen/30);
+score+=lenScore*15;
+
+// Punctuation density: AI tends to use more standardized punctuation
+var punctScore=Math.min(1,punctDensity*15);
+score+=punctScore*15;
+
+score=Math.round(Math.min(100,Math.max(0,score)));
+
+// --- Display results ---
+var resultArea=document.getElementById("resultArea");
+if(resultArea)resultArea.style.display="block";
+
+var scoreValue=document.getElementById("scoreValue");
+var scoreCircle=document.getElementById("scoreCircle");
+var scoreVerdict=document.getElementById("scoreVerdict");
+var scoreNote=document.getElementById("scoreNote");
+
+if(scoreValue)scoreValue.textContent=score+"%";
+
+var category,label,noteText,colorClass;
+if(score<33){category="human";label="可能为人类写作";noteText="文本具有较高的自然变化性和词汇多样性，符合人类写作特征";colorClass="score-human"}
+else if(score<66){category="mixed";label="混合特征";noteText="文本部分特征类似AI生成，建议结合上下文综合判断";colorClass="score-mixed"}
+else{category="ai";label="可能为AI生成";noteText="文本表现出较低的词汇多样性和句子长度变化，符合AI生成特征";colorClass="score-ai"}
+
+if(scoreCircle){scoreCircle.className="score-circle "+colorClass}
+if(scoreVerdict)scoreVerdict.textContent=label;
+if(scoreNote)scoreNote.textContent=noteText;
+
+// Metrics grid
+var metricsGrid=document.getElementById("metricsGrid");
+if(metricsGrid){
+var metrics=[
+{name:"词汇多样性 (TTR)",value:ttr.toFixed(3),percent:Math.round(ttr*100),barClass:ttr>0.5?"bar-green":"bar-red",desc:ttr>0.5?"高多样性":"低多样性"},
+{name:"句子长度变化系数",value:cv.toFixed(3),percent:Math.round(cv*100),barClass:cv>0.3?"bar-green":"bar-red",desc:cv>0.3?"变化丰富":"较为均匀"},
+{name:"重复二元组率",value:(repetitionRate*100).toFixed(1)+"%",percent:Math.round(repetitionRate*100),barClass:repetitionRate<0.1?"bar-green":"bar-red",desc:repetitionRate<0.1?"低重复":"高重复"},
+{name:"平均句长",value:avgSentLen.toFixed(1),percent:Math.min(100,Math.round(avgSentLen/40*100)),barClass:avgSentLen<20?"bar-green":"bar-yellow",desc:avgSentLen<20?"较短":"较长"},
+{name:"标点密度",value:(punctDensity*100).toFixed(2)+"%",percent:Math.round(punctDensity*100*5),barClass:"bar-cyan",desc:"标点使用频率"},
+{name:"分析字数",value:text.length.toString(),percent:Math.min(100,Math.round(text.length/500*100)),barClass:"bar-cyan",desc:text.length>=100?"样本充足":"样本偏少"}
+];
+metricsGrid.innerHTML=metrics.map(function(m){
+return '<div class="metric-card"><div class="metric-name">'+m.name+'</div><div class="metric-value">'+m.value+'</div><div class="metric-bar"><div class="metric-bar-fill '+m.barClass+'" style="width:'+m.percent+'%"></div></div><div style="font-size:.75rem;color:#64748b;margin-top:4px">'+m.desc+'</div></div>';
+}).join("");
+}
+
+// Detailed analysis
+var detailAnalysis=document.getElementById("detailAnalysis");
+if(detailAnalysis){
+var details="";
+details+='<div style="margin-bottom:16px"><h3 style="color:#f1f5f9;margin-bottom:8px">📊 综合评估</h3><p style="color:#94a3b8;font-size:.9rem">AI生成概率: <strong style="color:'+(score<33?'#10b981':score<66?'#f59e0b':'#ef4444')+'">'+score+'%</strong> — '+label+'</p></div>';
+details+='<div style="margin-bottom:16px"><h3 style="color:#f1f5f9;margin-bottom:8px">📝 词汇分析</h3><p style="color:#94a3b8;font-size:.9rem">TTR (Type-Token Ratio) = '+ttr.toFixed(3)+'，'+(ttr>0.5?'词汇多样性较高，符合人类写作特征':'词汇多样性偏低，AI生成文本通常具有此特征')+'。共分析 '+words.length+' 个'+(isChinese?'字符':'单词')+'，其中 '+Object.keys(uniqueWords).length+' 个不重复。</p></div>';
+details+='<div style="margin-bottom:16px"><h3 style="color:#f1f5f9;margin-bottom:8px">📏 句子结构</h3><p style="color:#94a3b8;font-size:.9rem">共 '+sentences.length+' 个句子，平均长度 '+avgSentLen.toFixed(1)+' '+(isChinese?'字':'词')+'，长度变化系数 '+cv.toFixed(3)+'。'+(cv>0.3?'句子长度变化丰富，符合人类写作特征':'句子长度较为均匀，AI生成文本通常具有此特征')+'。</p></div>';
+details+='<div style="margin-bottom:16px"><h3 style="color:#f1f5f9;margin-bottom:8px">🔄 重复模式</h3><p style="color:#94a3b8;font-size:.9rem">二元组重复率 '+(repetitionRate*100).toFixed(1)+'%。'+(repetitionRate<0.1?'重复率较低':'重复率较高，AI生成文本倾向于使用重复的短语结构')+'。</p></div>';
+details+='<div><h3 style="color:#f1f5f9;margin-bottom:8px">⚠️ 免责声明</h3><p style="color:#94a3b8;font-size:.85rem">本工具基于统计分析方法，检测结果仅供参考。经过人工润色的AI文本、高度结构化的学术写作、以及模仿AI风格的人类写作都可能导致误判。请结合其他因素综合判断。</p></div>';
+detailAnalysis.innerHTML=details;
+}
+
+showToast("分析完成，AI生成概率: "+score+"%");
+}window.detectAI=detectAI;
 
 function clearAll(){var inputs=document.querySelectorAll("input,textarea");inputs.forEach(function(el){el.value=""});var o=document.getElementById("result")||document.getElementById("output");if(o)o.textContent=""}window.clearAll=clearAll;
 function copyResult(id){var el=document.getElementById(id||"result");if(!el)return;var t=el.textContent||el.innerText||el.value||"";navigator.clipboard.writeText(t).then(function(){}).catch(function(){})}window.copyResult=copyResult;
-function loadExample(arg){}window.loadExample=loadExample;
-function updateCharCount(){}window.updateCharCount=updateCharCount;
+
 </script>
 
 </div>

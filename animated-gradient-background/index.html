@@ -217,11 +217,93 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-function addColor(){var r=document.getElementById('result')||document.getElementById('output');if(r)r.textContent+='已添加\n'}
+var gradientColors=["#4F46E5","#06B6D4","#10B981"];
+var colorPickerCounter=0;
+
+function getColorInputs(){
+var list=document.getElementById("colorList");
+if(!list)return[];
+var inputs=list.querySelectorAll("input[type=color]");
+return Array.from(inputs).map(function(i){return i.value});
+}
+
+function addColor(){
+if(gradientColors.length>=8){showToast("最多8种颜色");return}
+gradientColors.push("#"+Math.floor(Math.random()*16777215).toString(16).padStart(6,"0"));
+renderColors();
+updatePreview();
+}
 window.addColor=addColor;
 
-function copyCss(id){var el=document.getElementById(id||"result");if(!el)return;var t=el.textContent||el.innerText||el.value||"";navigator.clipboard.writeText(t).then(function(){}).catch(function(){})}window.copyCss=copyCss;
-function updatePreview(){}window.updatePreview=updatePreview;
+function removeColor(idx){
+if(gradientColors.length<=2){showToast("至少需要2种颜色");return}
+gradientColors.splice(idx,1);
+renderColors();
+updatePreview();
+}
+window.removeColor=removeColor;
+
+function changeColor(idx,val){
+gradientColors[idx]=val;
+updatePreview();
+}
+window.changeColor=changeColor;
+
+function renderColors(){
+var list=document.getElementById("colorList");
+if(!list)return;
+list.innerHTML=gradientColors.map(function(c,i){
+return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+'<input type="color" value="'+c+'" oninput="changeColor('+i+',this.value)" style="width:40px;height:36px;border:none;border-radius:6px;background:transparent;cursor:pointer">'+
+'<span style="font-family:monospace;font-size:.85rem;color:#94a3b8;min-width:80px">'+c.toUpperCase()+'</span>'+
+(gradientColors.length>2?'<button class="btn-sm btn-danger" onclick="removeColor('+i+')" style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2);border-radius:4px;padding:4px 10px;font-size:.8rem;cursor:pointer">✕</button>':'')+
+'</div>';
+}).join("");
+}
+
+function updatePreview(){
+var speedEl=document.getElementById("speedSlider");
+var angleEl=document.getElementById("angleSlider");
+var speedVal=document.getElementById("speedVal");
+var angleVal=document.getElementById("angleVal");
+var preview=document.getElementById("previewArea");
+var cssOutput=document.getElementById("cssOutput");
+
+var speed=speedEl?parseInt(speedEl.value):5;
+var angle=angleEl?parseInt(angleEl.value):135;
+if(speedVal)speedVal.textContent=speed;
+if(angleVal)angleVal.textContent=angle;
+
+var colors=getColorInputs();
+if(colors.length<2)colors=gradientColors;
+
+var gradientStr="linear-gradient("+angle+"deg, "+colors.join(", ")+")";
+var bgSize="300% 300%";
+var animation="gradientShift "+speed+"s ease infinite";
+
+if(preview){
+preview.style.background=gradientStr;
+preview.style.backgroundSize=bgSize;
+preview.style.animation=animation;
+}
+
+// Inject keyframes if not present
+if(!document.getElementById("gradientKeyframes")){
+var styleEl=document.createElement("style");
+styleEl.id="gradientKeyframes";
+styleEl.textContent="@keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}";
+document.head.appendChild(styleEl);
+}
+
+if(cssOutput){
+var css=".animated-gradient {\n  background: "+gradientStr+";\n  background-size: "+bgSize+";\n  animation: "+animation+";\n}\n\n@keyframes gradientShift {\n  0% { background-position: 0% 50%; }\n  50% { background-position: 100% 50%; }\n  100% { background-position: 0% 50%; }\n}";
+cssOutput.textContent=css;
+}
+}window.updatePreview=updatePreview;
+
+// Initialize on load
+renderColors();
+updatePreview();
 </script>
 
 </main>

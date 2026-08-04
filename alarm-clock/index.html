@@ -203,11 +203,121 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-function startAlarmClock(){document.getElementById('statusText').textContent='⏰ 闹钟已启动！';var r=document.getElementById('result');if(r)r.textContent='alarm started'}
-window.startAlarmClock=startAlarmClock;
+var alarmAudioCtx=null;
+var alarmOscillator=null;
+var alarmGain=null;
+var alarmInterval=null;
+var alarmTriggered=false;
 
-function previewRingtone(){}window.previewRingtone=previewRingtone;
-function stopAlarm(){}window.stopAlarm=stopAlarm;
+function getAudioCtx(){
+if(!alarmAudioCtx){
+try{alarmAudioCtx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return null}
+}
+return alarmAudioCtx;
+}
+
+function playRingtone(type,volume){
+var ctx=getAudioCtx();
+if(!ctx){showToast("浏览器不支持音频");return}
+stopRingtone();
+
+var vol=(volume||70)/100*0.3;
+alarmGain=ctx.createGain();
+alarmGain.gain.value=vol;
+alarmGain.connect(ctx.destination);
+
+alarmOscillator=ctx.createOscillator();
+alarmOscillator.connect(alarmGain);
+
+var now=ctx.currentTime;
+var freqs={classic:[800,1000],bird:[1200,1600],ocean:[200,300],beep:[1000,1000],gentle:[500,600]};
+var f=freqs[type]||freqs.classic;
+
+alarmOscillator.frequency.setValueAtTime(f[0],now);
+alarmOscillator.frequency.setValueAtTime(f[1],now+0.3);
+alarmOscillator.type=type==="ocean"?"sine":"square";
+
+// Beep pattern
+alarmGain.gain.setValueAtTime(0,now);
+for(var i=0;i<10;i++){
+alarmGain.gain.setValueAtTime(vol,now+i*0.5);
+alarmGain.gain.setValueAtTime(0,now+i*0.5+0.3);
+}
+
+alarmOscillator.start(now);
+alarmOscillator.stop(now+5);
+}
+
+function stopRingtone(){
+if(alarmOscillator){try{alarmOscillator.stop()}catch(e){}alarmOscillator=null}
+if(alarmGain){try{alarmGain.disconnect()}catch(e){}alarmGain=null}
+}
+
+function startAlarmClock(){
+var timeEl=document.getElementById("alarmTime");
+var statusText=document.getElementById("statusText");
+var countdownText=document.getElementById("countdownText");
+if(!timeEl||!timeEl.value){showToast("请设置闹钟时间");return}
+
+if(alarmInterval){clearInterval(alarmInterval);alarmInterval=null}
+alarmTriggered=false;
+
+var parts=timeEl.value.split(":");
+var targetHour=parseInt(parts[0]);
+var targetMin=parseInt(parts[1]);
+
+function updateCountdown(){
+var now=new Date();
+var target=new Date();
+target.setHours(targetHour,targetMin,0,0);
+if(target<=now)target.setDate(target.getDate()+1);
+
+var diff=target-now;
+if(diff<=0&&!alarmTriggered){
+alarmTriggered=true;
+var ringtoneEl=document.getElementById("ringtone");
+var volEl=document.getElementById("volume");
+playRingtone(ringtoneEl?ringtoneEl.value:"classic",volEl?parseInt(volEl.value):70);
+if(statusText)statusText.textContent="⏰ 闹钟响了！";
+if(countdownText)countdownText.textContent="点击\"停止闹钟\"关闭";
+showToast("⏰ 闹钟时间到了！");
+return;
+}
+
+if(diff>0){
+var hours=Math.floor(diff/3600000);
+var mins=Math.floor((diff%3600000)/60000);
+var secs=Math.floor((diff%60000)/1000);
+var timeStr=(hours>0?hours+"小时 ":"")+mins+"分 "+secs+"秒";
+if(statusText)statusText.textContent="⏰ 闹钟已启动";
+if(countdownText)countdownText.textContent="距离响铃还有: "+timeStr;
+}
+}
+
+updateCountdown();
+alarmInterval=setInterval(updateCountdown,1000);
+showToast("闹钟已启动，将在 "+timeEl.value+" 响铃");
+}window.startAlarmClock=startAlarmClock;
+
+function previewRingtone(){
+var ringtoneEl=document.getElementById("ringtone");
+var volEl=document.getElementById("volume");
+var type=ringtoneEl?ringtoneEl.value:"classic";
+var vol=volEl?parseInt(volEl.value):70;
+playRingtone(type,vol);
+showToast("正在试听: "+(ringtoneEl?ringtoneEl.options[ringtoneEl.selectedIndex].text:"铃声"));
+}window.previewRingtone=previewRingtone;
+
+function stopAlarm(){
+stopRingtone();
+if(alarmInterval){clearInterval(alarmInterval);alarmInterval=null}
+alarmTriggered=false;
+var statusText=document.getElementById("statusText");
+var countdownText=document.getElementById("countdownText");
+if(statusText)statusText.textContent="闹钟已停止";
+if(countdownText)countdownText.textContent="";
+showToast("闹钟已停止");
+}window.stopAlarm=stopAlarm;
 </script>
 
 </div>

@@ -255,11 +255,113 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-function switchTab(name){document.querySelectorAll('.tab-pane,.tab-content>div').forEach(e=>{e.style.display=e.dataset.tab===name?'block':'none'});document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.textContent.includes(name)||b.dataset.tab===name))}
+function switchTab(name){
+var encPanel=document.getElementById("encryptPanel");
+var decPanel=document.getElementById("decryptPanel");
+var tabEnc=document.getElementById("tabEncrypt");
+var tabDec=document.getElementById("tabDecrypt");
+if(name==="encrypt"){
+if(encPanel)encPanel.style.display="block";
+if(decPanel)decPanel.style.display="none";
+if(tabEnc)tabEnc.classList.add("active");
+if(tabDec)tabDec.classList.remove("active");
+}else{
+if(encPanel)encPanel.style.display="none";
+if(decPanel)decPanel.style.display="block";
+if(tabEnc)tabEnc.classList.remove("active");
+if(tabDec)tabDec.classList.add("active");
+}
+}
 window.switchTab=switchTab;
 
-function decryptText(){}window.decryptText=decryptText;
-function encryptText(){}window.encryptText=encryptText;
+async function deriveKey(password,salt){
+var enc=new TextEncoder();
+var keyMaterial=await crypto.subtle.importKey("raw",enc.encode(password),"PBKDF2",false,["deriveKey"]);
+return crypto.subtle.deriveKey({name:"PBKDF2",salt:salt,iterations:100000,hash:"SHA-256"},keyMaterial,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+
+function bufToBase64(buf){
+var bytes=new Uint8Array(buf);
+var binary="";
+for(var i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);
+return btoa(binary);
+}
+
+function base64ToBuf(b64){
+var binary=atob(b64);
+var bytes=new Uint8Array(binary.length);
+for(var i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+return bytes.buffer;
+}
+
+async function encryptText(){
+var plainEl=document.getElementById("plainText");
+var passEl=document.getElementById("encPassword");
+var confirmEl=document.getElementById("encConfirm");
+var statusEl=document.getElementById("encStatus");
+var resultGroup=document.getElementById("encResultGroup");
+var resultEl=document.getElementById("encResult");
+
+if(!plainEl||!plainEl.value.trim()){if(statusEl)statusEl.innerHTML='<span style="color:#f87171">请输入要加密的文本</span>';return}
+if(!passEl||!passEl.value){if(statusEl)statusEl.innerHTML='<span style="color:#f87171">请输入加密密码</span>';return}
+if(passEl.value!==confirmEl.value){if(statusEl)statusEl.innerHTML='<span style="color:#f87171">两次密码不一致</span>';return}
+
+try{
+if(statusEl)statusEl.innerHTML='<span style="color:#94a3b8">正在加密...</span>';
+var enc=new TextEncoder();
+var salt=crypto.getRandomValues(new Uint8Array(16));
+var iv=crypto.getRandomValues(new Uint8Array(12));
+var key=await deriveKey(passEl.value,salt);
+var ciphertext=await crypto.subtle.encrypt({name:"AES-GCM",iv:iv},key,enc.encode(plainEl.value));
+
+// Combine salt + iv + ciphertext
+var combined=new Uint8Array(salt.length+iv.length+ciphertext.byteLength);
+combined.set(salt,0);
+combined.set(iv,salt.length);
+combined.set(new Uint8Array(ciphertext),salt.length+iv.length);
+
+var base64=bufToBase64(combined.buffer);
+if(resultEl)resultEl.value=base64;
+if(resultGroup)resultGroup.style.display="block";
+if(statusEl)statusEl.innerHTML='<span style="color:#10b981">✅ 加密成功</span>';
+showToast("加密成功");
+}catch(e){
+if(statusEl)statusEl.innerHTML='<span style="color:#f87171">加密失败: '+e.message+'</span>';
+showToast("加密失败");
+}
+}window.encryptText=encryptText;
+
+async function decryptText(){
+var cipherEl=document.getElementById("cipherText");
+var passEl=document.getElementById("decPassword");
+var statusEl=document.getElementById("decStatus");
+var resultGroup=document.getElementById("decResultGroup");
+var resultEl=document.getElementById("decResult");
+
+if(!cipherEl||!cipherEl.value.trim()){if(statusEl)statusEl.innerHTML='<span style="color:#f87171">请输入要解密的Base64文本</span>';return}
+if(!passEl||!passEl.value){if(statusEl)statusEl.innerHTML='<span style="color:#f87171">请输入解密密码</span>';return}
+
+try{
+if(statusEl)statusEl.innerHTML='<span style="color:#94a3b8">正在解密...</span>';
+var combined=new Uint8Array(base64ToBuf(cipherEl.value.trim()));
+var salt=combined.slice(0,16);
+var iv=combined.slice(16,28);
+var ciphertext=combined.slice(28);
+
+var key=await deriveKey(passEl.value,salt);
+var decrypted=await crypto.subtle.decrypt({name:"AES-GCM",iv:iv},key,ciphertext);
+var dec=new TextDecoder();
+var plaintext=dec.decode(decrypted);
+
+if(resultEl)resultEl.value=plaintext;
+if(resultGroup)resultGroup.style.display="block";
+if(statusEl)statusEl.innerHTML='<span style="color:#10b981">✅ 解密成功</span>';
+showToast("解密成功");
+}catch(e){
+if(statusEl)statusEl.innerHTML='<span style="color:#f87171">解密失败: 密码错误或数据损坏</span>';
+showToast("解密失败");
+}
+}window.decryptText=decryptText;
 </script>
 
 </div>

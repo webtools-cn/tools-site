@@ -261,12 +261,79 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-function calculateRatio(){var r=document.getElementById('calcResult')||document.getElementById('result')||document.getElementById('output');if(r)r.textContent='计算完成'}
-window.calculateRatio=calculateRatio;
+function gcd(a,b){return b===0?a:gcd(b,a%b)}
 
-function clearCalc(){var inputs=document.querySelectorAll("input,textarea");inputs.forEach(function(el){el.value=""});var o=document.getElementById("result")||document.getElementById("output");if(o)o.textContent=""}window.clearCalc=clearCalc;
-function reverseCalculate(){}window.reverseCalculate=reverseCalculate;
-function setPreset(){}window.setPreset=setPreset;
+function calculateRatio(){
+var wEl=document.getElementById("calcWidth");
+var hEl=document.getElementById("calcHeight");
+var resultBox=document.getElementById("calcResult");
+var display=document.getElementById("ratioDisplay");
+var detail=document.getElementById("ratioDetail");
+
+if(!wEl||!hEl||!wEl.value||!hEl.value){showToast("请输入宽度和高度");return}
+var w=parseInt(wEl.value),h=parseInt(hEl.value);
+if(w<=0||h<=0){showToast("请输入正整数");return}
+
+var g=gcd(w,h);
+var rw=w/g,rh=h/g;
+var decimal=(w/h).toFixed(4);
+
+if(display)display.innerHTML='<span style="font-size:2rem;font-weight:700;color:#22d3ee">'+rw+' : '+rh+'</span><span style="margin-left:16px;color:#94a3b8;font-size:1.2rem">= '+decimal+'</span>';
+if(detail)detail.innerHTML='<p style="color:#94a3b8;font-size:.9rem;margin-top:8px">'+w+' × '+h+' → GCD('+w+','+h+')='+g+' → '+rw+':'+rh+' (小数: '+decimal+')</p>';
+if(resultBox)resultBox.style.display="block";
+showToast("比例: "+rw+":"+rh);
+}window.calculateRatio=calculateRatio;
+
+function reverseCalculate(){
+var rwEl=document.getElementById("ratioW");
+var rhEl=document.getElementById("ratioH");
+var sideEl=document.getElementById("knownSide");
+var valEl=document.getElementById("knownValue");
+var resultBox=document.getElementById("reverseResult");
+var display=document.getElementById("reverseDisplay");
+var detail=document.getElementById("reverseDetail");
+
+if(!rwEl||!rhEl||!rwEl.value||!rhEl.value){showToast("请输入比例");return}
+if(!valEl||!valEl.value){showToast("请输入已知数值");return}
+
+var rw=parseInt(rwEl.value),rh=parseInt(rhEl.value);
+var val=parseInt(valEl.value);
+var side=sideEl?sideEl.value:"width";
+
+if(rw<=0||rh<=0||val<=0){showToast("请输入正整数");return}
+
+var result,formula;
+if(side==="width"){
+result=Math.round(val*rh/rw);
+formula=val+" × ("+rh+"÷"+rw+") = "+result+"px";
+if(display)display.innerHTML='<span style="font-size:1.6rem;color:#22d3ee">高度 = '+result+'px</span>';
+}else{
+result=Math.round(val*rw/rh);
+formula=val+" × ("+rw+"÷"+rh+") = "+result+"px";
+if(display)display.innerHTML='<span style="font-size:1.6rem;color:#22d3ee">宽度 = '+result+'px</span>';
+}
+if(detail)detail.innerHTML='<p style="color:#94a3b8;font-size:.9rem;margin-top:8px">'+formula+'</p>';
+if(resultBox)resultBox.style.display="block";
+showToast("计算结果: "+result+"px");
+}window.reverseCalculate=reverseCalculate;
+
+function setPreset(w,h){
+var rwEl=document.getElementById("ratioW");
+var rhEl=document.getElementById("ratioH");
+if(rwEl)rwEl.value=w;
+if(rhEl)rhEl.value=h;
+
+var previewBox=document.getElementById("presetPreview");
+var previewInner=document.getElementById("previewInner");
+if(previewBox&&previewInner){
+var maxDim=120;
+var pw,ph;
+if(w>=h){pw=maxDim;ph=maxDim*h/w}else{ph=maxDim;pw=maxDim*w/h}
+previewInner.innerHTML='<div style="width:'+pw+'px;height:'+ph+'px;background:linear-gradient(135deg,#4F46E5,#06B6D4);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1rem">'+w+':'+h+'</div><p style="color:#94a3b8;font-size:.85rem;margin-top:8px">比例 '+w+':'+h+' 已填入反推计算区域</p>';
+previewBox.style.display="block";
+}
+showToast("已设置比例 "+w+":"+h);
+}window.setPreset=setPreset;
 </script>
 
 </main>

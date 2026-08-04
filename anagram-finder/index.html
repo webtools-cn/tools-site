@@ -170,12 +170,90 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-function findAnagrams(){}
-window.findAnagrams=findAnagrams;
+function findAnagrams(){
+var inputEl=document.getElementById("inputText");
+if(!inputEl||!inputEl.value.trim()){showToast("请输入字母或单词");return}
+var input=inputEl.value.trim().toLowerCase().replace(/\s+/g,"");
+var letters=input.split("").sort().join("");
+var n=input.length;
+
+// Built-in mini dictionary for common English words
+var dict=["act","cat","bat","tab","art","rat","tar","ear","are","era","eat","ate","tea","tan","ant","net","ten","end","den","listen","silent","tinsel","enlist","inlets","cinema","iceman","anemic","debit","bited","triangle","integral","altering","related","treadle","alerted","deter","treed","ester","reset","steer","terse","trees","meat","tame","team","mate","math","tham","time","mite","item","emit","race","care","acre","nice","icine","phase","shape","leap","pale","peal","plea","peach","cheap","pecker","crepe","recheck","kerchiefs","spear","parse","reaps","spare","pears","reins","resin","rinse","siren","sined","denim","mined","coins","icon","scion","sonic","niche","chien","chine","align","algin","lain","nail","lair","liar","rail","airts","stair","stria","tarsi","stare","aster","tares","tears","rates","aster","earth","hater","heart","rathe","trash","hants","snath","than","ants","tans","naps","pans","span","snap","laps","pals","slap","alps","laps","sale","seal","ales","leas","lase","earl","lear","real","lira","lair","liar","rail","rial","tail","lati","alit","laity","daily","lady","layd","yald","diet","dite","edit","tide","tied","idle","lied","side","ides","site","ties","emit","item","mite","time","dime","idem","dim","mid","dip","pid","lip","pil","oil","lio","slop","lops","pols","spoke","pokes","scope","copse","opes","pose","post","opts","tops","spot","stop","pots","spit","pits","tips","slit","silt","list","tils","islet","istle","stile","tiles","file","lief","life","foul","foal","loaf","foam","flab","balf","bleat","table","blate","bagel","gable","beard","bread","debar","bared","bears","saber","baser","brakes","breaks","basker","brakes","beast","bates","abets","baste","beats","beta","beat","mead","dame","made","amid","maid","aims","amis","sima","iamb","maim","amid","dome","mode","demo","mold","cold","clod","cloud","could","clour","crook","clock","flock","block","amok","mako","makos","smoke","mokes","poems","compel","mopeds","demos","modes","domes","some","mope","poem","pome","hope","pole","lope","plea","peal","leap","pale","heal","hale","leha","pech","cheap","peach","caphe","space","paces","scape","capes","pecs","spec","epic","pice","cope","poco","pock","crop","rock","cork","core","crep","crepe","creeps","crepes","steel","stele","sleet","elect","teles","tense","sente","nest","nets","tens","sent","nets","rest","erst","sert","stir","ribs","birs","brisk","brics","kris","birk","work","kors","corps","crop","crops","proctor","crop","torc","rock","cork","rock","jerk","jock","choke","joke","josh","shoe","hoes","hose","sheol","helo","hole","hero","hoer","reho","herl","lehr","help","pehl","yelp","pley","ploy","poly","ylop","typo","topi","tops","opts","post","spot","stop","pots","pets","pest","sept","step","pets","spit","pits","tips","trip","ript","pint","pith","hips","ship","phis","pish","shri","sigh","higs","dish","sidh","this","hits","shit","this","thin","hint","lint","line","lino","lion","loin","noil","nail","lain","liar","lair","rail","rial","sail","ails","slai","lais","sali","soil","oils","silo","lois","soli","soul","ours","sour","lour","lory","rosy","rosy","soy","syo","yos","joy","jyo","oy","yo","by","my","thy","they","yet","yep","yes","pey","prey","pyre","tyre","tryp","pyet","type","poet","tope","tope","pet","let","tel","set","est","tes","ten","net","nit","tin","tin","tip","pi","it","ti","is","si","or","ro","so","os","to","ot","no","on","an","na","am","ma","al","la","at","ta","as","sa","be","eb","do","od","go","og","he","eh","if","fi","in","ni","is","si","it","ti","of","fo","on","no","or","ro","so","os","to","ot","up","pu","us","su","we","ew","my","ym","by","yb","he","eh","me","em","be","eb","ye","ey","ex","xe"];
+
+// Filter dictionary: words that are anagrams of subsets of the input
+var results=[];
+var seen={};
+for(var i=0;i<dict.length;i++){
+var w=dict[i];
+if(w.length>n||w.length<2)continue;
+if(seen[w])continue;
+var sorted=w.split("").sort().join("");
+// Check if w can be formed from input letters
+var inputCopy=input.split("");
+var valid=true;
+for(var j=0;j<w.length;j++){
+var idx=inputCopy.indexOf(w[j]);
+if(idx===-1){valid=false;break}
+inputCopy.splice(idx,1)
+}
+if(valid){
+seen[w]=true;
+results.push(w)
+}
+}
+
+// Also generate all permutations for short inputs (<=7 chars)
+var perms=[];
+if(n<=7){
+function permute(arr,l,r){
+if(l===r){
+var p=arr.join("");
+if(p!==input&&!seen[p]){seen[p]=true;perms.push(p)}
+}else{
+for(var i=l;i<=r;i++){
+var tmp=arr[l];arr[l]=arr[i];arr[i]=tmp;
+permute(arr,l+1,r);
+tmp=arr[l];arr[l]=arr[i];arr[i]=tmp
+}
+}
+}
+permute(input.split(""),0,n-1);
+perms.sort();
+}
+
+// Display results
+var statsArea=document.getElementById("statsArea");
+var resultArea=document.getElementById("resultArea");
+var resultText=document.getElementById("resultText");
+
+var allResults=results.concat(perms);
+allResults.sort();
+allResults=Array.from(new Set(allResults));
+
+if(statsArea){
+statsArea.style.display="block";
+statsArea.innerHTML="<p style=\"color:#94a3b8;font-size:.9rem\">输入: <strong style=\"color:#e2e8f0\">"+input+"</strong> ("+n+"个字符) | 找到 <strong style=\"color:#22d3ee\">"+results.length+"</strong>个词典变位词 + <strong style=\"color:#22d3ee\">"+perms.length+"</strong>个排列组合</p>";
+}
+
+if(resultArea){
+resultArea.style.display="block";
+var html="";
+if(results.length>0){
+html+="<strong style=\"color:#10b981\">📖 词典中的变位词:</strong>\n"+results.join("  ")+"\n\n";
+}
+if(perms.length>0){
+html+="<strong style=\"color:#22d3ee\">🔄 所有排列组合 ("+perms.length+"个):</strong>\n"+perms.join("  ");
+}
+if(!html)html="未找到变位词";
+if(resultText)resultText.textContent=html;
+}
+
+showToast("找到 "+allResults.length+" 个结果");
+}window.findAnagrams=findAnagrams;
 
 function clearResult(){var inputs=document.querySelectorAll("input,textarea");inputs.forEach(function(el){el.value=""});var o=document.getElementById("result")||document.getElementById("output");if(o)o.textContent=""}window.clearResult=clearResult;
 function copyResult(id){var el=document.getElementById(id||"result");if(!el)return;var t=el.textContent||el.innerText||el.value||"";navigator.clipboard.writeText(t).then(function(){}).catch(function(){})}window.copyResult=copyResult;
-function randomShuffle(){var items=["A","B","C","1","2","3"];return items.sort(function(){return Math.random()-0.5})}window.randomShuffle=randomShuffle;
+function randomShuffle(){var inputEl=document.getElementById("inputText");if(!inputEl||!inputEl.value.trim()){showToast("请先输入字母或单词");return}var input=inputEl.value.trim();var arr=input.split("");for(var i=arr.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=arr[i];arr[i]=arr[j];arr[j]=tmp}var shuffled=arr.join("");inputEl.value=shuffled;showToast("已打乱: "+shuffled)}window.randomShuffle=randomShuffle;
 </script>
 
 </div>
