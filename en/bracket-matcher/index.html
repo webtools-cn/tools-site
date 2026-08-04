@@ -286,24 +286,96 @@ function downloadFile(content, filename, mime='text/plain') {
 }
 
 function initTool() {
-  const ui = document.getElementById('tool-ui''input-text').value='function example() {\n  const arr = [1, 2, 3];\n  if (arr.length > 0) {\n
-\n  }\n}'""${expectedClose}" butfindto "${ch}""${item.char}""${item.type.close}"`});
+  const ui = document.getElementById('tool-ui');
+  ui.innerHTML = `
+    \x3Ctextarea id="input-text" class="input-textarea" placeholder="Paste code to check bracket matching..." style="min-height:200px;font-family:monospace">\x3C/textarea>
+    \x3Cdiv class="input-row" style="margin-top:12px">
+      \x3Cdiv class="input-group">
+        \x3Clabel>Check Types\x3C/label>
+        \x3Cdiv style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+          \x3Clabel style="font-size:.85rem;color:#94a3b8;display:flex;align-items:center;gap:4px">\x3Cinput type="checkbox" id="ck-paren" checked> ( )\x3C/label>
+          \x3Clabel style="font-size:.85rem;color:#94a3b8;display:flex;align-items:center;gap:4px">\x3Cinput type="checkbox" id="ck-bracket" checked> [ ]\x3C/label>
+          \x3Clabel style="font-size:.85rem;color:#94a3b8;display:flex;align-items:center;gap:4px">\x3Cinput type="checkbox" id="ck-brace" checked> { }\x3C/label>
+          \x3Clabel style="font-size:.85rem;color:#94a3b8;display:flex;align-items:center;gap:4px">\x3Cinput type="checkbox" id="ck-angle"> < >\x3C/label>
+        \x3C/div>
+      \x3C/div>
+    \x3C/div>
+    \x3Cdiv class="btn-row">
+      \x3Cbutton class="btn btn-primary btn-large" onclick="check()">🔍 Check\x3C/button>
+      \x3Cbutton class="btn btn-secondary" onclick="clearAll()">Clear\x3C/button>
+      \x3Cbutton class="btn btn-secondary" onclick="document.getElementById('input-text').value='function example() {\\n  const arr = [1, 2, 3];\\n  if (arr.length > 0) {\\n\\n  }\\n}'">🔍 Sample\x3C/button>
+    \x3C/div>
+  `;
+}
+initTool();
+
+function check() {
+  const input = document.getElementById('input-text').value;
+  if (!input) { showToast('Please enter code to check'); return; }
+
+  const types = [];
+  if (document.getElementById('ck-paren').checked) types.push({open:'(', close:')', name:'Parentheses'});
+  if (document.getElementById('ck-bracket').checked) types.push({open:'[', close:']', name:'Square brackets'});
+  if (document.getElementById('ck-brace').checked) types.push({open:'{', close:'}', name:'Curly braces'});
+  if (document.getElementById('ck-angle').checked) types.push({open:'<', close:'>', name:'Angle brackets'});
+
+  if (types.length === 0) { showToast('Select at least one bracket type'); return; }
+
+  const stack = [];
+  const errors = [];
+  let openers = '';
+  let closers = '';
+  const typeMap = {};
+
+  types.forEach(t => {
+    openers += t.open;
+    closers += t.close;
+    typeMap[t.open] = t;
+    typeMap[t.close] = t;
+  });
+
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+    if (openers.includes(ch)) {
+      stack.push({char: ch, pos: i, type: typeMap[ch]});
+    } else if (closers.includes(ch)) {
+      if (stack.length === 0) {
+        errors.push({pos: i, char: ch, msg: `Extra closing bracket "${ch}" at position ${i+1}`});
+      } else {
+        const last = stack.pop();
+        const expectedClose = last.type.close;
+        if (ch !== expectedClose) {
+          errors.push({pos: i, char: ch, expected: expectedClose, msg: `Mismatched bracket: expected "${expectedClose}" but found "${ch}" at position ${i+1}`});
+        }
+      }
+    }
   }
-  
+
+  while (stack.length > 0) {
+    const item = stack.pop();
+    errors.push({pos: item.pos, char: item.char, msg: `Unclosed bracket "${item.char}" at position ${item.pos+1}, expected "${item.type.close}"`});
+  }
+
   displayResult(errors, input);
 }
 
 function displayResult(errors, input) {
   document.getElementById('result-section').classList.add('show');
-  
+
   if (errors.length === 0) {
-    document.getElementById('result-content').innerHTML = '';
-    document.getElementById('char-count''</div>';
-    
-    // Show code with markers
-    html += `<textarea class="output-textarea" readonly style="min-height:150px">${input}</textarea>`;
-    document.getElementById('result-content').innerHTML = html + `<div class="btn-row"><button class="btn btn-primary" onclick="copyToClipboard(document.querySelector('.output-textarea').value)">📋 Copy Code</button></div>`;
-    document.getElementById('char-count').textContent = `totalcharacter: ${input.length} | error: ${errors.length}`;
+    document.getElementById('result-content').innerHTML = '\x3Cdiv style="text-align:center;padding:20px;background:rgba(34,197,94,.1);border-radius:8px">\x3Cdiv style="font-size:3rem;margin-bottom:12px">✅\x3C/div>\x3Cdiv style="color:#22c55e;font-size:1.2rem;font-weight:600">All brackets match correctly!\x3C/div>\x3C/div>';
+    document.getElementById('char-count').textContent = `Total chars: ${input.length} | No errors`;
+  } else {
+    let html = `\x3Cdiv style="margin-bottom:12px;padding:12px;background:rgba(239,68,68,.1);border-radius:8px;border:1px solid rgba(239,68,68,.3)">`;
+    html += `\x3Cdiv style="color:#f87171;font-weight:600;margin-bottom:8px">Found ${errors.length} bracket issue(s):\x3C/div>`;
+    errors.forEach((e, idx) => {
+      html += `\x3Cdiv style="padding:6px 0;border-bottom:1px solid rgba(148,163,184,.1);font-size:.85rem;color:#e2e8f0">${idx+1}. ${e.msg}\x3C/div>`;
+    });
+    html += '\x3C/div>';
+
+    html += `\x3Ctextarea class="output-textarea" readonly style="min-height:150px">${input}\x3C/textarea>`;
+    document.getElementById('result-content').innerHTML = html + `\x3Cdiv class="btn-row">\x3Cbutton class="btn btn-primary" onclick="copyToClipboard(document.querySelector('.output-textarea').value)">📋 Copy Code\x3C/button>\x3C/div>`;
+    document.getElementById('char-count').textContent = `Total chars: ${input.length} | Errors: ${errors.length}`;
   }
 }
 
