@@ -189,3 +189,36 @@
 | placeholder | 0 | ✅ |
 | div不匹配(>=2, HTML only) | 0 | ✅ |
 | 缺main标签 | 0 | ✅ |
+
+---
+
+### 2026-08-04 第六轮 SEO 修复
+
+#### `<main>` 语义标签添加 (4个页面)
+4个页面缺少 `<main>` 语义化标签，已添加：
+| 页面 | 修复 |
+|:-----|:-----|
+| solar-panel-calculator (CN) | `<div class="container">` 内添加 `<main>` 包裹 |
+| en/solar-panel-calculator (EN) | 同上 |
+| mpg-calculator (CN) | 同上 |
+| en/mpg-calculator (EN) | 同上 |
+
+#### Meta Description 扩写 (1个页面)
+| 工具 | 旧长度 | 新长度 |
+|:-----|:------:|:------:|
+| solar-panel-calculator (CN) | 99 | 115 |
+
+#### Div不匹配误报确认
+12个页面的"div不匹配"经核实均为 **JS字符串字面量中的 `</div>` 文本**（如 innerHTML 模板），非实际HTML结构问题。排除 script 块后所有页面 div 开闭标签完全匹配。
+
+- **提交**: `a5c3a69993`
+
+#### 当前扫描结果（全量）
+| 指标 | 数值 | 状态 |
+|:-----|:----:|:----:|
+| meta过短(<100) | 0 | ✅ |
+| EN缺robots | 0 | ✅ |
+| placeholder | 0 | ✅ |
+| div不匹配(>=2) | 12 (误报) | ⚠️ JS字面量 |
+| div不匹配(>=2, HTML only) | 0 | ✅ |
+| 缺main标签 | 0 | ✅ |
