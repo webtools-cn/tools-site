@@ -321,8 +321,261 @@ a{color:#06b6d4;text-decoration:none}
 </div>
 <div class="toast" id="toast"></div>
 <script>
-function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+var el = {
+  previewTarget: document.getElementById('previewTarget'),
+  insetCheck: document.getElementById('insetCheck'),
+  offsetX: document.getElementById('offsetX'),
+  offsetY: document.getElementById('offsetY'),
+  blurRadius: document.getElementById('blurRadius'),
+  spreadRadius: document.getElementById('spreadRadius'),
+  opacity: document.getElementById('opacity'),
+  shadowColor: document.getElementById('shadowColor'),
+  colorText: document.getElementById('colorText'),
+  valX: document.getElementById('valX'),
+  valY: document.getElementById('valY'),
+  valBlur: document.getElementById('valBlur'),
+  valSpread: document.getElementById('valSpread'),
+  valOpacity: document.getElementById('valOpacity'),
+  codeBox: document.getElementById('codeBox'),
+  shadowList: document.getElementById('shadowList'),
+  toast: document.getElementById('toast')
+};
+
+var shadowLayers = [];
+var currentShadow = '';
+
+function hexToRgb(hex) {
+  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : {r: 0, g: 0, b: 0};
+}
+
+function buildShadowStr(inset, x, y, blur, spread, rgb, alpha) {
+  var prefix = inset ? 'inset ' : '';
+  return prefix + x + 'px ' + y + 'px ' + blur + 'px ' + spread + 'px rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + (alpha / 100).toFixed(2) + ')';
+}
+
+function updatePreview() {
+  var rgb = hexToRgb(el.shadowColor.value);
+  var alpha = parseInt(el.opacity.value, 10);
+  currentShadow = buildShadowStr(
+    el.insetCheck.checked,
+    el.offsetX.value,
+    el.offsetY.value,
+    el.blurRadius.value,
+    el.spreadRadius.value,
+    rgb,
+    alpha
+  );
+
+  var fullShadow = shadowLayers.length > 0
+    ? shadowLayers.map(function(l) { return l.css; }).concat([currentShadow]).join(', ')
+    : currentShadow;
+
+  el.previewTarget.style.boxShadow = fullShadow;
+  el.codeBox.textContent = 'box-shadow: ' + fullShadow + ';';
+
+  el.colorText.value = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + (alpha / 100).toFixed(2) + ')';
+}
+
+function updateLabels() {
+  el.valX.textContent = el.offsetX.value + 'px';
+  el.valY.textContent = el.offsetY.value + 'px';
+  el.valBlur.textContent = el.blurRadius.value + 'px';
+  el.valSpread.textContent = el.spreadRadius.value + 'px';
+  el.valOpacity.textContent = el.opacity.value + '%';
+}
+
+function renderShadowList() {
+  if (shadowLayers.length === 0) {
+    el.shadowList.innerHTML = '';
+    return;
+  }
+  var html = '<div style="font-size:.9rem;color:#f1f5f9;margin-bottom:8px">多重阴影层 (' + shadowLayers.length + ' 层)</div>';
+  for (var i = 0; i < shadowLayers.length; i++) {
+    var layer = shadowLayers[i];
+    html += '<div class="shadow-item">' +
+      '<div class="shadow-info"><strong>#' + (i + 1) + '</strong>' + layer.css + '</div>' +
+      '<div class="shadow-actions">' +
+      '<button class="btn btn-secondary" data-idx="' + i + '" data-action="apply">应用</button>' +
+      '<button class="btn btn-danger" data-idx="' + i + '" data-action="remove">删除</button>' +
+      '</div></div>';
+  }
+  el.shadowList.innerHTML = html;
+
+  var btns = el.shadowList.querySelectorAll('button');
+  for (var j = 0; j < btns.length; j++) {
+    btns[j].addEventListener('click', function(e) {
+      var idx = parseInt(this.getAttribute('data-idx'), 10);
+      var action = this.getAttribute('data-action');
+      if (action === 'apply') {
+        applyLayer(shadowLayers[idx]);
+      } else if (action === 'remove') {
+        shadowLayers.splice(idx, 1);
+        renderShadowList();
+        updatePreview();
+      }
+    });
+  }
+}
+
+function applyLayer(layer) {
+  el.insetCheck.checked = layer.inset;
+  el.offsetX.value = layer.x;
+  el.offsetY.value = layer.y;
+  el.blurRadius.value = layer.blur;
+  el.spreadRadius.value = layer.spread;
+  el.opacity.value = Math.round(layer.alpha * 100);
+  var hex = '#' + ('0' + layer.rgb.r.toString(16)).slice(-2) + ('0' + layer.rgb.g.toString(16)).slice(-2) + ('0' + layer.rgb.b.toString(16)).slice(-2);
+  el.shadowColor.value = hex;
+  updateLabels();
+  updatePreview();
+  showToast('已应用第 ' + (shadowLayers.indexOf(layer) + 1) + ' 层');
+}
+
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},2000)}
+function copyText(text, successMsg) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function() { showToast(successMsg); });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast(successMsg);
+  }
+}
+
+// Event listeners
+var sliders = [el.offsetX, el.offsetY, el.blurRadius, el.spreadRadius, el.opacity];
+for (var s = 0; s < sliders.length; s++) {
+  sliders[s].addEventListener('input', function() { updateLabels(); updatePreview(); });
+}
+el.insetCheck.addEventListener('change', updatePreview);
+el.shadowColor.addEventListener('input', updatePreview);
+
+document.getElementById('addShadowBtn').addEventListener('click', function() {
+  var rgb = hexToRgb(el.shadowColor.value);
+  shadowLayers.push({
+    inset: el.insetCheck.checked,
+    x: parseInt(el.offsetX.value, 10),
+    y: parseInt(el.offsetY.value, 10),
+    blur: parseInt(el.blurRadius.value, 10),
+    spread: parseInt(el.spreadRadius.value, 10),
+    rgb: rgb,
+    alpha: parseInt(el.opacity.value, 10) / 100,
+    css: currentShadow
+  });
+  renderShadowList();
+  updatePreview();
+  showToast('已添加为第 ' + shadowLayers.length + ' 层');
+});
+
+document.getElementById('resetBtn').addEventListener('click', function() {
+  el.insetCheck.checked = false;
+  el.offsetX.value = 0;
+  el.offsetY.value = 10;
+  el.blurRadius.value = 20;
+  el.spreadRadius.value = 0;
+  el.opacity.value = 30;
+  el.shadowColor.value = '#000000';
+  shadowLayers = [];
+  renderShadowList();
+  updateLabels();
+  updatePreview();
+  showToast('已重置');
+});
+
+document.getElementById('copyBtn').addEventListener('click', function() {
+  copyText('box-shadow: ' + (shadowLayers.length > 0
+    ? shadowLayers.map(function(l) { return l.css; }).concat([currentShadow]).join(', ')
+    : currentShadow) + ';',
+    'CSS代码已复制');
+});
+
+document.getElementById('copyWithPrefixBtn').addEventListener('click', function() {
+  var shadow = shadowLayers.length > 0
+    ? shadowLayers.map(function(l) { return l.css; }).concat([currentShadow]).join(', ')
+    : currentShadow;
+  var code = '-webkit-box-shadow: ' + shadow + ';\nbox-shadow: ' + shadow + ';';
+  copyText(code, '带前缀代码已复制');
+});
+
+document.getElementById('copyFullBtn').addEventListener('click', function() {
+  var shadow = shadowLayers.length > 0
+    ? shadowLayers.map(function(l) { return l.css; }).concat([currentShadow]).join(', ')
+    : currentShadow;
+  var code = '.my-element {\n  -webkit-box-shadow: ' + shadow + ';\n  box-shadow: ' + shadow + ';\n}';
+  copyText(code, '完整CSS类已复制');
+});
+
+// Presets
+var presetCards = document.querySelectorAll('.preset-card');
+for (var p = 0; p < presetCards.length; p++) {
+  presetCards[p].addEventListener('click', function() {
+    var shadow = this.querySelector('.preset-box') ? this.querySelector('.preset-box').style.boxShadow : '';
+    if (shadow) {
+      el.previewTarget.style.boxShadow = shadow;
+      el.codeBox.textContent = 'box-shadow: ' + shadow + ';';
+    }
+    showToast('已应用: ' + this.querySelector('.preset-name').textContent);
+  });
+}
+
+// Load from localStorage
+try {
+  var saved = localStorage.getItem('cssShadowLayers');
+  if (saved) {
+    var parsed = JSON.parse(saved);
+    if (parsed.layers) shadowLayers = parsed.layers;
+    if (parsed.current) {
+      var c = parsed.current;
+      el.insetCheck.checked = c.inset || false;
+      el.offsetX.value = c.x || 0;
+      el.offsetY.value = c.y || 10;
+      el.blurRadius.value = c.blur || 20;
+      el.spreadRadius.value = c.spread || 0;
+      el.opacity.value = c.opacity || 30;
+      if (c.color) el.shadowColor.value = c.color;
+    }
+  }
+} catch(e) {}
+
+updateLabels();
+updatePreview();
+renderShadowList();
+
+// Save to localStorage on change
+function saveState() {
+  try {
+    var state = {
+      layers: shadowLayers,
+      current: {
+        inset: el.insetCheck.checked,
+        x: el.offsetX.value,
+        y: el.offsetY.value,
+        blur: el.blurRadius.value,
+        spread: el.spreadRadius.value,
+        opacity: el.opacity.value,
+        color: el.shadowColor.value
+      }
+    };
+    localStorage.setItem('cssShadowLayers', JSON.stringify(state));
+  } catch(e) {}
+}
+
+for (var sv = 0; sv < sliders.length; sv++) {
+  sliders[sv].addEventListener('change', saveState);
+}
+el.insetCheck.addEventListener('change', function() { updatePreview(); saveState(); });
+el.shadowColor.addEventListener('change', saveState);
+document.getElementById('addShadowBtn').addEventListener('click', saveState);
+document.getElementById('resetBtn').addEventListener('click', saveState);
 
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function submitFeedback(){
@@ -333,7 +586,6 @@ const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**:
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
 document.getElementById('feedback-success').style.display='block';
 }
-
 </script>
 
 </div>
