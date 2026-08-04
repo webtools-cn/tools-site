@@ -156,5 +156,15 @@
 | meta过短(<100) | 0 | ✅ |
 | EN缺robots | 0 | ✅ |
 | placeholder | 0 | ✅ |
-| div不匹配(>=2) | 10 (假阳性) | ✅ |
+| div不匹配(>=2) | 0 | ✅ |
 | 缺main标签 | 0 | ✅ |
+
+### P2: JS语法错误修复 ✅
+
+#### en/ai-context-window-comparator — calcCapacity函数截断修复
+- **问题**: `calcCapacity()` 函数体被截断，缺少 `models.map()` 回调，template literal未闭合
+- **根因**: 英文版翻译时函数体不完整，`return` 语句中 template literal 在 `'#ef4444''');` 处断裂
+- **影响**: 页面容量计算功能完全失效，JS语法错误导致整页脚本不执行
+- **修复**: 从中文版同步完整函数实现，翻译UI文案为英文
+- **附带修复**: submitFeedback中 `pageside` → `Page`；末尾多余 `}` 移除
+- **提交**: `ada1c5b76a`
