@@ -165,3 +165,29 @@
 - 功能逻辑: Node.js mock DOM环境执行JS + 手动测试核心计算函数
 - 静态检查: grep验证CSS变量/浅色背景/深色文字/假评分/GA/meta
 - EN中文检查: 正则匹配中文字符(排除ld+json和语言切换链接)
+
+## 2026-08-05 质检轮次
+
+| 工具 | CN/EN | JS语法 | 主题 | 功能 | 语言 | Footer | 问题 | 状态 |
+|:-----|:------|:------:|:----:|:----:|:----:|:------:|:-----|:----:|
+| video-compress | CN | ❌→✅ | ✅ | ✅ | ✅ | ❌→✅ | showToast JS语法错误(setTimeout括号未闭合+多余})) + footer缺链接 | 已修 |
+| video-compress | EN | ❌→✅ | ✅ | ✅ | ✅ | ❌→✅ | 同CN | 已修 |
+| css-selector-tester | CN | ✅ | ✅ | ✅ | ✅ | ❌→✅ | footer用/contact/而非mailto | 已修 |
+| css-selector-tester | EN | ✅ | ✅ | ✅ | ✅ | ❌→✅ | 同CN | 已修 |
+| file-diff | CN | ✅ | ✅ | ✅ | ✅ | ❌→✅ | footer用/contact/而非mailto | 已修 |
+| file-diff | EN | ✅ | ✅ | ✅ | ✅ | ❌→✅ | 同CN | 已修 |
+| bricks-calculator | CN | ✅ | ✅ | ✅ | ✅ | ✅ | 无 | 通过 |
+| bricks-calculator | EN | ❌→✅ | ✅ | ✅ | ✅ | ✅ | calculateBricks(;) 语法错误 | 已修 |
+| grid-generator | CN | ✅ | ✅ | ✅ | ✅ | ✅ | 无 | 通过 |
+| grid-generator | EN | ✅ | ✅ | ✅ | ✅ | ✅ | 无 | 通过 |
+| alcohol-cost-calculator | CN | ✅ | ✅ | ✅ | ✅ | ✅ | 无 | 通过 |
+| alcohol-cost-calculator | EN | ✅ | ✅ | ✅ | ✅ | ✅ | 无 | 通过 |
+| correlation-calculator | CN | ✅ | ✅ | ✅ | ✅ | ❌→✅ | footer缺关于/联系/邮箱 | 已修 |
+| correlation-calculator | EN | ✅ | ✅ | ✅ | ✅ | ❌→✅ | footer缺链接+privacy-policy/terms-of-service URL错误 | 已修 |
+
+### 本轮汇总
+- 测试工具数：7个（CN+EN = 14页）
+- 通过：8页
+- 修复：6页（3个JS语法错误 + 6个footer问题）
+- P0红线问题修复：3个JS语法错误（video-compress CN/EN, bricks-calculator EN）
+- commit: 0227792f3a
