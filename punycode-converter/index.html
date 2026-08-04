@@ -206,25 +206,78 @@ window.copyText = copyText; function copyText(id){var el=document.getElementById
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
-function clearAll() {
-  document.getElementById('pInput').value = '';
-  showToast('已重置');
-}
-
-function doConvert() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;if(typeof mainConvert==='function')mainConvert();else{{out.textContent=inp.value;showToast('Converted!')}};
-}
-
-function usePreset() {
-  var presets = ['\u4e2d\u56fd.cn', 'm\u00fcnchen.de', '\u65e5\u672c.jp', 'r\u00e9sum\u00e9.com', '\u4e16\u754c.com'];
-  var input = document.getElementById('pInput');
-  if (input) {
-    input.value = presets[Math.floor(Math.random() * presets.length)];
-    if (typeof convert === 'function') convert();
+// === Punycode 编解码实现 (RFC 3492) ===
+var PC_TMIN=1,PC_TMAX=26,PC_BASE=36,PC_SKEW=38,PC_DAMP=700,PC_BIAS=72,PC_N=128,PC_DELIM='-';
+function pcAdapt(delta,np,ft){delta=ft?Math.floor(delta/PC_DAMP):Math.floor(delta/2);delta+=Math.floor(delta/np);var k=0;while(delta>Math.floor((PC_BASE-PC_TMIN)*PC_TMAX/2)){delta=Math.floor(delta/(PC_BASE-PC_TMIN));k+=PC_BASE;}return k+Math.floor((PC_BASE-PC_TMIN+1)*delta/(delta+PC_SKEW));}
+function pcD2C(d){return d<26?String.fromCharCode(97+d):String.fromCharCode(22+d);}
+function pcC2D(c){var cc=c.charCodeAt(0);if(cc>=97&&cc<=122)return cc-97;if(cc>=48&&cc<=57)return cc-22;return-1;}
+function pcToCP(str){var pts=[];for(var i=0;i<str.length;i++){var cp=str.codePointAt(i);pts.push(cp);if(cp>0xFFFF)i++;}return pts;}
+function pcEncode(input){
+  var cps=pcToCP(input),n=PC_N,delta=0,bias=PC_BIAS,out=[],basic=[];
+  for(var i=0;i<cps.length;i++){if(cps[i]<128)basic.push(i);}
+  var b=basic.length;for(var i=0;i<b;i++)out.push(String.fromCharCode(cps[basic[i]]));
+  if(b>0)out.push(PC_DELIM);var h=b;
+  while(h<cps.length){
+    var m=0x7FFFFFFF;for(var i=0;i<cps.length;i++){if(cps[i]>=n&&cps[i]<m)m=cps[i];}
+    delta+=(m-n)*(h+1);n=m;
+    for(var i=0;i<cps.length;i++){
+      if(cps[i]<n)delta++;
+      if(cps[i]===n){
+        var q=delta;for(var k=PC_BASE;;k+=PC_BASE){var t=k<=bias?PC_TMIN:(k>=bias+PC_TMAX?PC_TMAX:k-bias);if(q<t)break;out.push(pcD2C(t+(q-t)%(PC_BASE-t)));q=Math.floor((q-t)/(PC_BASE-t));}
+        out.push(pcD2C(q));bias=pcAdapt(delta,h+1,h===b);delta=0;h++;
+      }
+    }
+    delta++;n++;
   }
-  showToast('已加载预设');
+  return out.join('');
 }
+function pcDecode(input){
+  var n=PC_N,i=0,bias=PC_BIAS,out=[];var d=input.lastIndexOf(PC_DELIM);var basic=d>0?input.substring(0,d):'';
+  for(var j=0;j<basic.length;j++){var c=basic.charCodeAt(j);if(c<0x80)out.push(c);}
+  var idx=d>0?d+1:0;
+  while(idx<input.length){
+    var oldi=i,w=1;
+    for(var k=PC_BASE;;k+=PC_BASE){
+      if(idx>=input.length)throw new Error('输入无效');var digit=pcC2D(input[idx++]);
+      if(digit<0)throw new Error('输入无效');i+=digit*w;
+      var t=k<=bias?PC_TMIN:(k>=bias+PC_TMAX?PC_TMAX:k-bias);if(digit<t)break;w*=(PC_BASE-t);
+    }
+    bias=pcAdapt(i-oldi,out.length+1,oldi===0);n+=Math.floor(i/(out.length+1));i%=(out.length+1);
+    out.splice(i,0,n);i++;
+  }
+  var r='';for(var j=0;j<out.length;j++)r+=String.fromCodePoint(out[j]);return r;
+}
+function encodeDomain(input){
+  var labels=input.split('.'),result=[];
+  for(var i=0;i<labels.length;i++){
+    var label=labels[i],hasNA=false;
+    for(var j=0;j<label.length;j++){if(label.codePointAt(j)>=128){hasNA=true;break;}}
+    result.push(hasNA?'xn--'+pcEncode(label):label);
+  }
+  return result.join('.');
+}
+function decodeDomain(input){
+  var labels=input.split('.'),result=[];
+  for(var i=0;i<labels.length;i++){
+    var label=labels[i];
+    result.push(label.toLowerCase().indexOf('xn--')===0?pcDecode(label.substring(4)):label);
+  }
+  return result.join('.');
+}
+function doConvert(){
+  var inp=document.getElementById('pInput'),out=document.getElementById('pOutput');
+  if(!inp||!out)return;var text=inp.value.trim();
+  if(!text){showToast('请输入内容');return;}
+  var mode=document.querySelector('input[name="mode"]:checked');mode=mode?mode.value:'encode';
+  try{
+    if(mode==='encode'){out.textContent=encodeDomain(text);showToast('编码完成');}
+    else{out.textContent=decodeDomain(text);showToast('解码完成');}
+  }catch(e){out.textContent='错误：'+e.message;showToast('转换失败');}
+}
+function usePreset(text){
+  var inp=document.getElementById('pInput');if(inp){inp.value=text;doConvert();}
+}
+function clearAll(){document.getElementById('pInput').value='';document.getElementById('pOutput').textContent='等待转换...';showToast('已重置');}
 </script>
 
 </div>

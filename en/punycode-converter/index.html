@@ -195,8 +195,8 @@ textarea{width:100%;min-height:120px;resize:vertical;font-family:ui-monospace,SF
  </div>
  <div class="presets">
  <span style="color:#64748b;font-size:.8rem;line-height:28px">Examples:</span>
- <button class="preset-btn" onclick="usePreset('zhongwen.cn')">IDN Example (zhongwen.cn)</button>
- <button class="preset-btn" onclick="usePreset('daylocal .jp')">daylocal .jp</button>
+ <button class="preset-btn" onclick="usePreset('中国.cn')">中国.cn</button>
+ <button class="preset-btn" onclick="usePreset('日本語.jp')">日本語.jp</button>
  <button class="preset-btn" onclick="usePreset('παράδειγμα.gr')">παράδειγμα.gr</button>
  <button class="preset-btn" onclick="usePreset('xn--fiq228c.cn')" style="color:#22d3ee">xn--fiq228c.cn</button>
  </div>
@@ -266,7 +266,9 @@ textarea{width:100%;min-height:120px;resize:vertical;font-family:ui-monospace,SF
 </footer>
 </div>
 <div id="related-tools"></div>
+<div class="toast" id="toast"></div>
 <script>
+(function() {
   'use strict';
   var s = document.getElementById('related-tools-section');
   if (!s) return;
@@ -296,26 +298,86 @@ textarea{width:100%;min-height:120px;resize:vertical;font-family:ui-monospace,SF
     h += '</div></div>';
     s.innerHTML = h;
   }).catch(function() { s.innerHTML = ''; });
+})();
 
-// === Implementation ===
-function clearAll() {
-  document.getElementById('pInput').value = '';
-  showToast('Reset');
+// === Punycode Encoder/Decoder (RFC 3492) ===
+var PC_TMIN=1,PC_TMAX=26,PC_BASE=36,PC_SKEW=38,PC_DAMP=700,PC_BIAS=72,PC_N=128,PC_DELIM='-';
+function showToast(m){var t=document.getElementById('toast');if(!t)return;t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},3000);}
+function pcAdapt(delta,np,ft){delta=ft?Math.floor(delta/PC_DAMP):Math.floor(delta/2);delta+=Math.floor(delta/np);var k=0;while(delta>Math.floor((PC_BASE-PC_TMIN)*PC_TMAX/2)){delta=Math.floor(delta/(PC_BASE-PC_TMIN));k+=PC_BASE;}return k+Math.floor((PC_BASE-PC_TMIN+1)*delta/(delta+PC_SKEW));}
+function pcD2C(d){return d<26?String.fromCharCode(97+d):String.fromCharCode(22+d);}
+function pcC2D(c){var cc=c.charCodeAt(0);if(cc>=97&&cc<=122)return cc-97;if(cc>=48&&cc<=57)return cc-22;return-1;}
+function pcToCP(str){var pts=[];for(var i=0;i<str.length;i++){var cp=str.codePointAt(i);pts.push(cp);if(cp>0xFFFF)i++;}return pts;}
+function pcEncode(input){
+  var cps=pcToCP(input),n=PC_N,delta=0,bias=PC_BIAS,out=[],basic=[];
+  for(var i=0;i<cps.length;i++){if(cps[i]<128)basic.push(i);}
+  var b=basic.length;for(var i=0;i<b;i++)out.push(String.fromCharCode(cps[basic[i]]));
+  if(b>0)out.push(PC_DELIM);var h=b;
+  while(h<cps.length){
+    var m=0x7FFFFFFF;for(var i=0;i<cps.length;i++){if(cps[i]>=n&&cps[i]<m)m=cps[i];}
+    delta+=(m-n)*(h+1);n=m;
+    for(var i=0;i<cps.length;i++){
+      if(cps[i]<n)delta++;
+      if(cps[i]===n){
+        var q=delta;for(var k=PC_BASE;;k+=PC_BASE){var t=k<=bias?PC_TMIN:(k>=bias+PC_TMAX?PC_TMAX:k-bias);if(q<t)break;out.push(pcD2C(t+(q-t)%(PC_BASE-t)));q=Math.floor((q-t)/(PC_BASE-t));}
+        out.push(pcD2C(q));bias=pcAdapt(delta,h+1,h===b);delta=0;h++;
+      }
+    }
+    delta++;n++;
+  }
+  return out.join('');
 }
-
-function copyText() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
-  if (!text) { showToast('Nothing to copy'); return; }
-  navigator.clipboard.writeText(text).then(function() { showToast('Copied'); }).catch(function() { showToast('Copy failed'); });
+function pcDecode(input){
+  var n=PC_N,i=0,bias=PC_BIAS,out=[];var d=input.lastIndexOf(PC_DELIM);var basic=d>0?input.substring(0,d):'';
+  for(var j=0;j<basic.length;j++){var c=basic.charCodeAt(j);if(c<0x80)out.push(c);}
+  var idx=d>0?d+1:0;
+  while(idx<input.length){
+    var oldi=i,w=1;
+    for(var k=PC_BASE;;k+=PC_BASE){
+      if(idx>=input.length)throw new Error('Invalid input');var digit=pcC2D(input[idx++]);
+      if(digit<0)throw new Error('Invalid input');i+=digit*w;
+      var t=k<=bias?PC_TMIN:(k>=bias+PC_TMAX?PC_TMAX:k-bias);if(digit<t)break;w*=(PC_BASE-t);
+    }
+    bias=pcAdapt(i-oldi,out.length+1,oldi===0);n+=Math.floor(i/(out.length+1));i%=(out.length+1);
+    out.splice(i,0,n);i++;
+  }
+  var r='';for(var j=0;j<out.length;j++)r+=String.fromCodePoint(out[j]);return r;
 }
-
-function doConvert() {
-  showToast('Done');
+function encodeDomain(input){
+  var labels=input.split('.'),result=[];
+  for(var i=0;i<labels.length;i++){
+    var label=labels[i],hasNA=false;
+    for(var j=0;j<label.length;j++){if(label.codePointAt(j)>=128){hasNA=true;break;}}
+    result.push(hasNA?'xn--'+pcEncode(label):label);
+  }
+  return result.join('.');
 }
-
-function usePreset() {
-  showToast('Done');
+function decodeDomain(input){
+  var labels=input.split('.'),result=[];
+  for(var i=0;i<labels.length;i++){
+    var label=labels[i];
+    result.push(label.toLowerCase().indexOf('xn--')===0?pcDecode(label.substring(4)):label);
+  }
+  return result.join('.');
 }
+function doConvert(){
+  var inp=document.getElementById('pInput'),out=document.getElementById('pOutput');
+  if(!inp||!out)return;var text=inp.value.trim();
+  if(!text){showToast('Please enter text');return;}
+  var mode=document.querySelector('input[name="mode"]:checked');mode=mode?mode.value:'encode';
+  try{
+    if(mode==='encode'){out.textContent=encodeDomain(text);showToast('Encoded');}
+    else{out.textContent=decodeDomain(text);showToast('Decoded');}
+  }catch(e){out.textContent='Error: '+e.message;showToast('Conversion failed');}
+}
+function usePreset(text){
+  var inp=document.getElementById('pInput');if(inp){inp.value=text;doConvert();}
+}
+function copyText(id){
+  var el=document.getElementById(id);if(!el)return;
+  var t=el.textContent||el.innerText;if(!t){showToast('Nothing to copy');return;}
+  navigator.clipboard.writeText(t).then(function(){showToast('Copied');}).catch(function(){showToast('Copy failed');});
+}
+function clearAll(){document.getElementById('pInput').value='';document.getElementById('pOutput').textContent='Waiting for conversion...';showToast('Reset');}
 </script>
 
 </main>
