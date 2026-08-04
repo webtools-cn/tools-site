@@ -1,6 +1,6 @@
 # 质量修复进度追踪
 
-> 最后更新: 2026-08-04 (cron自动更新 - 第四十八批 - 修复3个CN+3个EN空壳)
+> 最后更新: 2026-08-04 (cron自动更新 - 第四十九批 - 修复3个CN+1个EN空壳)
 
 ## 当前真实问题
 
@@ -13,14 +13,16 @@
 | toolInput误报(7个有功能) | 7 | 7 | 0 | ✅ 误报 | 有addEventListener绑定的真实功能 |
 | 回显型process空壳(output=input) | 30 | 30 | 0 | ✅ 完成 | 全站扫描 var output = input + 无业务逻辑 |
 | Punycode空壳(doConvert=showToast) | 1 | 1 | 0 | ✅ 完成 | 深度扫描函数体<150字符+无业务关键字 |
-| **onclick无函数空壳(新发现)** | **35** | **11** | **24** | 🔴 高 | 有onclick=xxx()但JS中无xxx定义(只有342b GA脚本) |
+| **onclick无函数空壳(新发现)** | **35** | **14** | **21** | 🔴 高 | 有onclick=xxx()但JS中无xxx定义(只有342b GA脚本) |
+
+> 注：待修复清单中EN版实际列出23个(原数据计数偏差)，其中url-unshortener EN已在本批修复但原本不在清单中。实际剩余待修：2个CN + 21个EN = 23个。
 
 ## 回显型空壳清单(全部清零)
 
 > 特征：函数体含`var output = input`直接回显输入，无业务逻辑(Math/split/replace/for等关键字均无)
 > 注：第三十五批修复3个(hex-to-hsl/html-escape-unescape/string-case-converter)，第三十六批修复3个(caddyfile-generator/env-to-json/haproxy-config-generator)，第三十七批修复3个(html-email-template/html-table-to-markdown/htpasswd-generator)，第三十八批修复3个(http-cache-header-generator/js-destructuring-generator/json-key-renamer)，第三十九批修复3个(json-schema-generator/json-to-avro/json-to-csv-converter)，第四十批修复6个(json-to-go-struct/json-to-kotlin-class/json-to-php-object/json-to-rust-struct/json-to-schema/json-to-swift-struct)，第四十一批修复3个(mock-data-generator/svg-pattern-generator/tailwind-spacing-generator)，第四十二批修复3个(typescript-utility-types/unicode-range-generator/yaml-to-dotenv)+4个EN版遗漏(cidr-to-ip-range/decimal-to-roman/htaccess-generator/kubernetes-yaml-generator)。全部清零！
 
-## onclick无函数空壳清单 (35个，已修8个，剩余27个)
+## onclick无函数空壳清单 (35个，已修14个，剩余21个)
 
 > 特征：HTML有onclick="xxx()"绑定但JS中完全没有xxx函数定义（JS只有342字节GA脚本+错误处理）
 > 检测方法：提取<script>到</script>或</body>的JS内容，检查onclick绑定的函数名是否有定义
@@ -38,16 +40,16 @@
 - ico-converter (CN+EN) ✅ 第四十八批
 - image-resize (CN+EN) ✅ 第四十八批
 - excel-to-pdf (CN+EN) ✅ 第四十八批
+- log-viewer (CN) ✅ 第四十九批
+- url-unshortener (CN+EN) ✅ 第四十九批
+- mermaid-editor (CN) ✅ 第四十九批
 
-### 待修复 (24个)
-**CN版完全空壳 (5个，JS只有GA脚本):**
-1. log-viewer - missing: toggleFaq, toggleLevel (可能只缺辅助函数)
-2. mermaid-editor - missing: exportSVG, copyCode, loadPreset
-3. url-unshortener - missing: unshorten
-4. wav-to-mp3 - missing: toggleFaq (可能只缺辅助函数)
-5. webp-converter - missing: clearAll, downloadAll
+### 待修复 (21个)
+**CN版完全空壳 (2个，JS只有GA脚本):**
+1. wav-to-mp3 - missing: toggleFaq (可能只缺辅助函数)
+2. webp-converter - missing: clearAll, downloadAll
 
-**EN版完全空壳 (17个，JS只有GA脚本):**
+**EN版完全空壳 (23个，JS只有GA脚本):**
 1. en/1337-speak - missing: convert, copyResult, clearAll, downloadResult, loadExample, setDirection, setStyle
 2. en/accessible-color-palette - missing: generatePalette, setLevel, setCVD, randomBase, copyCSS, toggleFaq
 3. en/ai-function-call-generator - missing: addParam, copyJson, loadExample, toggleFaq
@@ -74,7 +76,9 @@
 
 ## 已修复的空壳工具
 
-### 2026-08-04 (第四十八批 - 修复3个CN+3个EN空壳)
+### 2026-08-04 (第四十九批 - 修复3个CN空壳+1个EN空壳)
+log-viewer, url-unshortener, mermaid-editor
+注: 三个工具CN版+url-unshortener EN版修复。log-viewer CN实现日志查看器(文件上传FileReader+拖拽uploadZone click/dragover/dragleave/drop事件+粘贴日志textarea输入+detectLevel正则识别ERROR/FATAL/CRITICAL/SEVERE/EXCEPTION/WARN/WARNING/INFO/DEBUG/TRACE 6级+highlightLine时间戳\d{4}-\d{2}-\d{2}高亮+级别关键字高亮hl-error/hl-warn/hl-info/hl-debug/hl-trace CSS类+搜索词高亮hl-search正则/普通模式+escapeHtml XSS防护&<>转义+parseLog统计面板总行数/各级别计数+toggleLevel多选级别筛选activeLevels Set+filterLogs搜索支持正则/普通模式+5000行上限+加载中文示例17行日志+clearAll清空)，替换原空壳(HTML有onclick=toggleFaq/toggleLevel但JS只有GA脚本)。url-unshortener CN+EN实现短链接展开器(allorigins.win CORS代理fetch api.allorigins.win/raw?url=+最多10次重定向跟随循环+redirectChain数组记录每步URL和状态码+resp.redirected检测+最终URL提取+knownSafeDomains 10个安全域名白名单github/gitlab/google/youtube/stackoverflow/wikipedia/mozilla/apple/microsoft/amazon检测+安全评估✅已知安全域名/⚠️未知域名请谨慎+重定向路径表格展示step/status/url+复制URL clipboard API+execCommand fallback+打开链接window.open+错误处理3种可能原因提示无效/不支持CORS/网络问题)，替换原空壳(CN版HTML有onclick=unshorten但JS只有GA脚本/EN版unshorten只showToast('Done'))。mermaid-editor CN实现Mermaid图表编辑器(纯JS SVG渲染器无外部依赖符合AGENTS.md+5种图表类型: flowchart流程图节点/边正则解析arrowMatch+自动布局cols/rows列行分配+菱形diamond polygon/圆角round rx=18/矩形rect三种形状+sequenceDiagram时序图参与者生命线dashed line+消息箭头实线->>/虚线-->>+pie饼图扇形path A弧线+百分比标签+8色循环+gantt甘特图任务条rect+after依赖链计算start+classDiagram类图UML框+成员列表+继承关系<|--箭头+5种预设中文示例flowchart/sequence/gantt/class/pie+实时输入渲染input事件+exportSVG XMLSerializer.serializeToString+Blob下载image/svg+xml+copyCode clipboard API+DOMContentLoaded自动加载流程图预设)，替换原空壳(HTML有onclick=loadPreset/exportSVG/copyCode但JS只有GA脚本)。4个文件JS语法验证通过，node逻辑测试全部通过(detectLevel 8组PASS/cleanLabel 5组PASS/detShape 4组PASS/safeDomain 3组PASS/escapeHtml PASS)。剩余21个待修(2个CN+19个EN，注EN清单原有计数偏差)。
 ico-converter, image-resize, excel-to-pdf
 注: 三个工具CN+EN版均修复。ico-converter CN+EN实现图片转ICO格式转换器(FileReader读取图片→Canvas渲染目标尺寸16/32/48/64/128/256→toBlob输出PNG→createICO构建ICO二进制文件: ICONDIR 6字节头reserved=0+type=1 icon+count=1, ICONDIRENTRY 16字节目录width/height+colorPlanes=1+bitsPerPixel=32+imageDataSize+offset=22, 末尾PNG数据; size>=256时width/height字节=0表示256; 透明/白色/黑色背景选项; contain模式缩放Math.min; 批量上传+拖拽+单个下载+批量下载+清空), 替换原空壳(HTML有onclick=downloadAll/clearResults但JS只有GA脚本)。image-resize CN+EN实现图片尺寸调整工具(Canvas高质量双线性插值缩放imageSmoothingQuality=high; 两种模式: 按像素宽高输入+保持比例联动targetW/targetH事件监听/ 按百分比1-200%滑块; 输出格式保持原格式/PNG/JPG/WebP+质量滑块10-100%; 批量上传+拖拽+原始/转换后文件大小对比+压缩率显示), 替换原空壳。excel-to-pdf CN+EN实现CSV/TSV转PDF工具(纯前端CSV解析器引号感知+自动分隔符检测逗号/Tab/分号/竖线+转义双引号""→"; 表格预览渲染escapeHtml; 纸张A4/Letter/Legal+方向纵向/横向+字号选择; printPDF: window.open新窗口+@page CSS size+margin+print-color-adjust:exact+斑马纹表格th背景色+tr:nth-child(even)→浏览器打印对话框保存为PDF; 支持上传CSV/TSV文件或粘贴文本+CSV导出BOM UTF-8; 无需引入SheetJS/jsPDF等外部库, 符合AGENTS.md禁止外部JS库要求), 替换原空壳。6个文件JS语法验证通过, node逻辑测试全部通过(ICO createICO 10组字段验证全PASS reserved=0/type=1/count=1/width=32/bpp=32/offset=22/total=32/width@256=0; CSV parseCSV 6组用例全PASS 基础3x3/引号内逗号/转义双引号/分号检测/Tab检测/空行过滤; escapeHtml 4组PASS, formatSize 3组PASS)。剩余24个待修(5个CN+17个EN)。
 
