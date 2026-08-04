@@ -218,25 +218,42 @@ function loadSample() {
 function parseCSSRules(cssText) {
   var rules = [];
   var mediaRules = [];
-  var mediaRe = /@media\s+([^{]+)\s*\{([\s\S]*?)\}\s*\}/g;
-  var m;
-  while ((m = mediaRe.exec(cssText)) !== null) {
-    var mediaCond = m[1].trim();
-    var innerRules = parseCSSRules(m[2]);
-    innerRules.forEach(function(r) { r.media = mediaCond; mediaRules.push(r); });
+  var mediaSections = [];
+  var searchFrom = 0;
+  while (true) {
+    var idx = cssText.indexOf('@media', searchFrom);
+    if (idx === -1) break;
+    var braceStart = cssText.indexOf('{', idx);
+    if (braceStart === -1) break;
+    var depth = 1;
+    var pos = braceStart + 1;
+    while (depth > 0 && pos < cssText.length) {
+      if (cssText[pos] === '{') depth++;
+      else if (cssText[pos] === '}') depth--;
+      pos++;
+    }
+    var mediaCond = cssText.substring(idx + 6, braceStart).trim();
+    var innerContent = cssText.substring(braceStart + 1, pos - 1);
+    mediaSections.push({ cond: mediaCond, inner: innerContent });
+    cssText = cssText.substring(0, idx) + cssText.substring(pos);
+    searchFrom = idx;
   }
-  cssText = cssText.replace(/@media\s+[^{]+\s*\{[\s\S]*?\}\s*\}/g, '');
+  mediaSections.forEach(function(ms) {
+    var innerRules = parseCSSRules(ms.inner);
+    innerRules.forEach(function(r) { r.media = ms.cond; mediaRules.push(r); });
+  });
   var ruleRe = /([^{]+)\{([^}]*)\}/g;
+  var m;
   while ((m = ruleRe.exec(cssText)) !== null) {
     var selector = m[1].trim();
     var props = m[2].trim();
     if (!selector || selector.charAt(0) === '@') continue;
     var declarations = {};
     props.split(';').forEach(function(decl) {
-      var idx = decl.indexOf(':');
-      if (idx > 0) {
-        var prop = decl.substring(0, idx).trim();
-        var val = decl.substring(idx + 1).trim();
+      var idx2 = decl.indexOf(':');
+      if (idx2 > 0) {
+        var prop = decl.substring(0, idx2).trim();
+        var val = decl.substring(idx2 + 1).trim();
         if (prop && val) declarations[prop] = val;
       }
     });
