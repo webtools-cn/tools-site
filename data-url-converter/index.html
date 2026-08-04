@@ -162,7 +162,70 @@ textarea{width:100%;min-height:80px;resize:vertical;font-family:ui-monospace,SFM
 <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
 </div>
 <div class="toast" id="toast"></div>
-
+<script>
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+function handleFile(file){
+  if(!file){return}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var dataUrl=e.target.result;
+    var mime=file.type||'application/octet-stream';
+    document.getElementById('previewArea').style.display='block';
+    document.getElementById('fileInfo').style.display='flex';
+    document.getElementById('resultSection').style.display='block';
+    if(mime.indexOf('image/')===0){
+      document.getElementById('preview').src=dataUrl;
+    }else{
+      document.getElementById('preview').src='';
+      document.getElementById('previewArea').querySelector('h3').textContent='📄 文件类型: '+mime;
+    }
+    document.getElementById('fileInfo').innerHTML='<span>📎 文件名: '+file.name+'</span><span>📦 大小: '+formatSize(file.size)+'</span><span>🏷️ 类型: '+mime+'</span><span>📊 Data URL长度: '+dataUrl.length+'</span>';
+    document.getElementById('dataUrlOutput').value=dataUrl;
+    var openBtn=document.getElementById('openInNewTab');
+    if(mime.indexOf('image/')===0||mime.indexOf('text/')===0||mime.indexOf('application/pdf')===0){
+      openBtn.style.display='inline-flex';
+    }else{
+      openBtn.style.display='none';
+    }
+    showToast('✅ 转换成功！');
+  };
+  reader.readAsDataURL(file);
+}
+function formatSize(bytes){
+  if(bytes<1024){return bytes+' B'}
+  if(bytes<1048576){return(bytes/1024).toFixed(2)+' KB'}
+  return(bytes/1048576).toFixed(2)+' MB'
+}
+function copyDataUrl(){
+  var txt=document.getElementById('dataUrlOutput');
+  txt.select();
+  navigator.clipboard.writeText(txt.value).then(function(){showToast('📋 已复制到剪贴板')}).catch(function(){
+    document.execCommand('copy');showToast('📋 已复制到剪贴板')
+  })
+}
+function downloadAsDataUrl(){
+  var txt=document.getElementById('dataUrlOutput').value;
+  if(!txt){showToast('⚠️ 没有内容可下载');return}
+  var blob=new Blob([txt],{type:'text/plain'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='data-url.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('💾 下载成功')
+}
+function openDataUrl(){
+  var txt=document.getElementById('dataUrlOutput').value;
+  if(!txt){return}
+  window.open(txt,'_blank')
+}
+var uz=document.getElementById('uploadZone');
+if(uz){
+  uz.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('dragover')});
+  uz.addEventListener('dragleave',function(e){this.classList.remove('dragover')});
+  uz.addEventListener('drop',function(e){e.preventDefault();this.classList.remove('dragover');if(e.dataTransfer.files.length>0){handleFile(e.dataTransfer.files[0])}})
+}
+</script>
 
 </div>
 </main>

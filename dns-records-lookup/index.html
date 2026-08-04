@@ -178,6 +178,65 @@ select{padding:8px 12px}
 <p style="margin-top:8px;color:#475569;font-size:.8rem">问题反馈: dexshuang@google.com</p>
 </div>
 <div class="toast" id="toast"></div>
+<script>
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+function lookupDNS(){
+  var domain=document.getElementById('domain').value.trim();
+  var type=document.getElementById('recordType').value;
+  if(!domain){showToast('⚠️ 请输入域名');return}
+  domain=domain.replace(/^https?:\/\//,'').replace(/\/.*$/,'').replace(/^www\./,'');
+  var resultEl=document.getElementById('result');
+  var dnsResultEl=document.getElementById('dnsResult');
+  dnsResultEl.innerHTML='<div class="loading">⏳ 正在查询 '+domain+' 的DNS记录...</div>';
+  resultEl.style.display='none';
+  var types=type==='ALL'?['A','AAAA','MX','CNAME','TXT','NS','SOA']:[type];
+  var allRecords=[];
+  var completed=0;
+  types.forEach(function(rt){
+    fetch('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type='+rt)
+      .then(function(r){return r.json()})
+      .then(function(data){
+        if(data.Answer&&data.Answer.length>0){
+          data.Answer.forEach(function(ans){
+            allRecords.push({type:ans.type,name:ans.name,data:ans.data,ttl:ans.TTL});
+          })
+        }
+        completed++;
+        if(completed===types.length){renderResults(allRecords)}
+      })
+      .catch(function(err){
+        completed++;
+        if(completed===types.length){
+          if(allRecords.length===0){
+            dnsResultEl.innerHTML='<div class="status-err" style="text-align:center;padding:20px">❌ 查询失败：'+err.message+'。可能是网络问题或CORS限制，请稍后重试。</div>';
+          }else{renderResults(allRecords)}
+        }
+      })
+  });
+}
+function typeName(t){
+  var m={1:'A',2:'NS',5:'CNAME',6:'SOA',15:'MX',16:'TXT',28:'AAAA',257:'CAA',33:'SRV'};
+  return m[t]||('TYPE'+t)
+}
+function renderResults(records){
+  var dnsResultEl=document.getElementById('dnsResult');
+  var resultEl=document.getElementById('result');
+  if(records.length===0){
+    dnsResultEl.innerHTML='<div class="status-warn" style="text-align:center;padding:20px">⚠️ 未找到匹配的DNS记录。可能该域名未配置此类型记录，或DNS尚未生效。</div>';
+    return
+  }
+  dnsResultEl.innerHTML='';
+  resultEl.style.display='block';
+  var html='<table>';
+  html+='<tr style="font-weight:bold;color:#22d3ee"><td>类型</td><td>名称</td><td>值</td><td>TTL</td></tr>';
+  records.forEach(function(r){
+    html+='<tr><td>'+typeName(r.type)+'</td><td>'+r.name+'</td><td>'+r.data+'</td><td>'+r.ttl+'s</td></tr>'
+  });
+  html+='</table>';
+  resultEl.innerHTML=html;
+  showToast('✅ 查询完成，共 '+records.length+' 条记录');
+}
+</script>
 
 
 </div>

@@ -298,6 +298,67 @@ select{padding:8px 12px}
   }).catch(function() { s.innerHTML = ''; });
 })();</script>
 
+<div class="toast" id="toast"></div>
+<script>
+function showToast(msg){var t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+function lookupDNS(){
+  var domain=document.getElementById('domain').value.trim();
+  var type=document.getElementById('recordType').value;
+  if(!domain){showToast('⚠️ Please enter a domain');return}
+  domain=domain.replace(/^https?:\/\//,'').replace(/\/.*$/,'').replace(/^www\./,'');
+  var resultEl=document.getElementById('result');
+  var dnsResultEl=document.getElementById('dnsResult');
+  dnsResultEl.innerHTML='<div class="loading">⏳ Querying DNS records for '+domain+'...</div>';
+  resultEl.style.display='none';
+  var types=type==='ALL'?['A','AAAA','MX','CNAME','TXT','NS','SOA']:[type];
+  var allRecords=[];
+  var completed=0;
+  types.forEach(function(rt){
+    fetch('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type='+rt)
+      .then(function(r){return r.json()})
+      .then(function(data){
+        if(data.Answer&&data.Answer.length>0){
+          data.Answer.forEach(function(ans){
+            allRecords.push({type:ans.type,name:ans.name,data:ans.data,ttl:ans.TTL});
+          })
+        }
+        completed++;
+        if(completed===types.length){renderResults(allRecords)}
+      })
+      .catch(function(err){
+        completed++;
+        if(completed===types.length){
+          if(allRecords.length===0){
+            dnsResultEl.innerHTML='<div class="status-err" style="text-align:center;padding:20px">❌ Query failed: '+err.message+'. This may be a network or CORS issue. Please try again later.</div>';
+          }else{renderResults(allRecords)}
+        }
+      })
+  });
+}
+function typeName(t){
+  var m={1:'A',2:'NS',5:'CNAME',6:'SOA',15:'MX',16:'TXT',28:'AAAA',257:'CAA',33:'SRV'};
+  return m[t]||('TYPE'+t)
+}
+function renderResults(records){
+  var dnsResultEl=document.getElementById('dnsResult');
+  var resultEl=document.getElementById('result');
+  if(records.length===0){
+    dnsResultEl.innerHTML='<div class="status-warn" style="text-align:center;padding:20px">⚠️ No DNS records found. The domain may not have this record type, or DNS has not propagated yet.</div>';
+    return
+  }
+  dnsResultEl.innerHTML='';
+  resultEl.style.display='block';
+  var html='<table>';
+  html+='<tr style="font-weight:bold;color:#22d3ee"><td>Type</td><td>Name</td><td>Value</td><td>TTL</td></tr>';
+  records.forEach(function(r){
+    html+='<tr><td>'+typeName(r.type)+'</td><td>'+r.name+'</td><td>'+r.data+'</td><td>'+r.ttl+'s</td></tr>'
+  });
+  html+='</table>';
+  resultEl.innerHTML=html;
+  showToast('✅ Query complete, '+records.length+' records found');
+}
+</script>
+
 </main>
 </body>
 </html>

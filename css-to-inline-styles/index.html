@@ -211,40 +211,168 @@ function updateStats() {
 }
 
 function loadSample() {
-  document.getElementById('inputCode').value = `<!DOCTYPE html>
-\x3Chtml>
-\x3Chead>
-\x3Cstyle>
-  .email-container { max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; }
-  .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; }
-  .header h1 { color: #ffffff; font-size: 28px; margin: 0; }
-  .content { padding: 30px; background: #f8f9fa; }
-  .content p { font-size: 16px; line-height: 1.6; color: #e2e8f0; margin-bottom: 20px; }
-  .btn { display: inline-block; background: #667eea; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; }
-  .footer { background: #333333; padding: 20px; text-align: center; color: #999999; font-size: 12px; }
-  .highlight { background: #0f172a; padding: 15px; border-left: 4px solid #ffc107; margin-bottom: 20px; border-radius: 4px; }
-\x3C/style>
-\x3C/head>
-\x3Cbody>
-  \x3Cdiv class="email-container">
-    \x3Cdiv class="header">
-      \x3Ch1>🎉 欢迎加入我们！\x3C/h1>
-    \x3C/div>
-    \x3Cdiv class="content">
-      \x3Cp>亲爱的用户，感谢您的注册！\x3C/p>
-      \x3Cdiv class="highlight">
-        \x3Cp>\x3Cstrong>💡 温馨提示：\x3C/strong>为了获得最佳体验，请完善您的个人资料。\x3C/p>
-      \x3C/div>
-      \x3Cp style="text-align:center">\x3Ca class="btn" href="#">开始使用 →\x3C/a>\x3C/p>
-    \x3C/div>
-    \x3Cdiv 
+  document.getElementById('inputCode').value = '<!DOCTYPE html>\n<html>\n<head>\n<style>\n  .email-container { max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; }\n  .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; }\n  .header h1 { color: #ffffff; font-size: 28px; margin: 0; }\n  .content { padding: 30px; background: #f8f9fa; }\n  .content p { font-size: 16px; line-height: 1.6; color: #333; margin-bottom: 20px; }\n  .btn { display: inline-block; background: #667eea; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; }\n  .footer { background: #333333; padding: 20px; text-align: center; color: #999999; font-size: 12px; }\n  .highlight { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin-bottom: 20px; border-radius: 4px; }\n</style>\n</head>\n<body>\n  <div class="email-container">\n    <div class="header">\n      <h1>🎉 欢迎加入我们！</h1>\n    </div>\n    <div class="content">\n      <p>亲爱的用户，感谢您的注册！</p>\n      <div class="highlight">\n        <p><strong>💡 温馨提示：</strong>为了获得最佳体验，请完善您的个人资料。</p>\n      </div>\n      <p style="text-align:center"><a class="btn" href="#">开始使用 →</a></p>\n    </div>\n    <div class="footer">\n      <p>© 2024 示例公司. 保留所有权利.</p>\n    </div>\n  </div>\n</body>\n</html>';
+  updateStats();
+}
+
+function parseCSSRules(cssText) {
+  var rules = [];
+  var mediaRules = [];
+  var mediaRe = /@media\s+([^{]+)\s*\{([\s\S]*?)\}\s*\}/g;
+  var m;
+  while ((m = mediaRe.exec(cssText)) !== null) {
+    var mediaCond = m[1].trim();
+    var innerRules = parseCSSRules(m[2]);
+    innerRules.forEach(function(r) { r.media = mediaCond; mediaRules.push(r); });
+  }
+  cssText = cssText.replace(/@media\s+[^{]+\s*\{[\s\S]*?\}\s*\}/g, '');
+  var ruleRe = /([^{]+)\{([^}]*)\}/g;
+  while ((m = ruleRe.exec(cssText)) !== null) {
+    var selector = m[1].trim();
+    var props = m[2].trim();
+    if (!selector || selector.charAt(0) === '@') continue;
+    var declarations = {};
+    props.split(';').forEach(function(decl) {
+      var idx = decl.indexOf(':');
+      if (idx > 0) {
+        var prop = decl.substring(0, idx).trim();
+        var val = decl.substring(idx + 1).trim();
+        if (prop && val) declarations[prop] = val;
+      }
+    });
+    if (Object.keys(declarations).length > 0) {
+      selector.split(',').forEach(function(sel) {
+        sel = sel.trim();
+        if (sel) rules.push({ selector: sel, declarations: declarations });
+      });
+    }
+  }
+  return rules.concat(mediaRules);
+}
+
+function getSpecificity(selector) {
+  var a = 0, b = 0, c = 0;
+  var ids = selector.match(/#[\w-]+/g); if (ids) a += ids.length;
+  var classes = selector.match(/\.[\w-]+/g); if (classes) b += classes.length;
+  var attrs = selector.match(/\[[^\]]+\]/g); if (attrs) b += attrs.length;
+  var pseudos = selector.match(/:[\w-]+/g); if (pseudos) b += pseudos.length;
+  var tags = selector.match(/(^|[\s>~+])[\w-]+/g);
+  if (tags) { tags.forEach(function(t) { if (!t.match(/[#.:\[]/)) c++; }); }
+  return a * 100 + b * 10 + c;
+}
+
+function matchesSelector(el, selector) {
+  try { return el.matches(selector); } catch(e) { return false; }
+}
+
+function convertToInline() {
+  var input = document.getElementById('inputCode').value;
+  if (!input.trim()) { showToast('⚠️ 请输入HTML代码'); return; }
+  var styleMatches = input.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+  var allCSS = '';
+  if (styleMatches) {
+    styleMatches.forEach(function(block) {
+      allCSS += block.replace(/<style[^>]*>/i, '').replace(/<\/style>/i, '') + '\n';
+    });
+  }
+  var cssRules = parseCSSRules(allCSS);
+  var parser = new DOMParser();
+  var doc = parser.parseFromString(input, 'text/html');
+  var mediaRules = [];
+  cssRules.forEach(function(rule) {
+    if (rule.media) { mediaRules.push(rule); return; }
+    var els = doc.querySelectorAll(rule.selector);
+    els.forEach(function(el) {
+      var existing = el.getAttribute('style') || '';
+      var style = {};
+      existing.split(';').forEach(function(d) {
+        var i = d.indexOf(':');
+        if (i > 0) style[d.substring(0, i).trim()] = d.substring(i + 1).trim();
+      });
+      Object.keys(rule.declarations).forEach(function(prop) {
+        style[prop] = rule.declarations[prop];
+      });
+      var styleStr = Object.keys(style).map(function(p) { return p + ': ' + style[p]; }).join('; ');
+      if (styleStr) el.setAttribute('style', styleStr);
+    });
+  });
+  var styleTags = doc.querySelectorAll('style');
+  styleTags.forEach(function(s) {
+    if (mediaRules.length > 0) {
+      var mediaCSS = mediaRules.map(function(r) {
+        return '@media ' + r.media + ' { ' + r.selector + ' { ' +
+          Object.keys(r.declarations).map(function(p) { return p + ': ' + r.declarations[p]; }).join('; ') +
+          ' } }';
+      }).join('\n');
+      s.textContent = mediaCSS;
+    } else {
+      s.remove();
+    }
+  });
+  var result = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+  document.getElementById('outputArea').innerHTML = '<pre style="white-space:pre-wrap;word-break:break-all;margin:0;font-family:inherit;font-size:inherit;color:inherit">' + escapeHtml(result) + '</pre>';
+  document.getElementById('outputArea').dataset.result = result;
+  updateStats();
+  showToast('✅ 转换完成！');
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function copyResult() {
+  var result = document.getElementById('outputArea').dataset.result || '';
+  if (!result) { showToast('⚠️ 请先执行转换'); return; }
+  navigator.clipboard.writeText(result).then(function() { showToast('📋 已复制到剪贴板'); }).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = result; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('📋 已复制到剪贴板');
+  });
+}
+
+function clearResult() {
+  document.getElementById('outputArea').innerHTML = '<div class="placeholder">转换后的HTML代码将在此显示...</div>';
+  delete document.getElementById('outputArea').dataset.result;
+  updateStats();
+}
+
+function previewResult() {
+  var result = document.getElementById('outputArea').dataset.result || '';
+  if (!result) { showToast('⚠️ 请先执行转换'); return; }
+  var w = window.open('', '_blank');
+  w.document.write(result);
+  w.document.close();
+}
+
+function downloadResult() {
+  var result = document.getElementById('outputArea').dataset.result || '';
+  if (!result) { showToast('⚠️ 请先执行转换'); return; }
+  var blob = new Blob([result], { type: 'text/html' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'inline-styles.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('💾 下载成功');
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2000);
+}
+</script>
+
 <!-- AdSense -->
 
+</main>
 <section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="color:#e2e8f0;font-size:18px;margin-bottom:12px">🔗 相关工具推荐</h2>
   <a href="../user-agent-parser/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">User-Agent 解析器</a>
   <a href="../sql-formatter/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">SQL格式化工具</a>
   <a href="../html-form-generator/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">HTML表单生成器</a>
-</main></section>
+</section>
 <footer style="background:#0f172a;border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:40px">
   <div style="max-width:1200px;margin:0 auto;padding:0 20px;display:flex;flex-wrap:wrap;justify-content:center;gap:16px">
     <a href="../index.html" style="color:#94a3b8;text-decoration:none;font-size:14px">首页</a>
