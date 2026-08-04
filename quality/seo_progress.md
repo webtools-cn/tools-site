@@ -51,6 +51,42 @@
 - en/backwards-text: `index, follow` ✅
 - en/website-status-checker: `index, follow` ✅
 
+### P1.5: 结构性HTML修复 (2026-08-04 第二轮) ✅
+
+#### Div标签不匹配修复 (5个页面)
+修复了实际HTML结构中div开闭标签不匹配的问题：
+| 页面 | 问题 | 修复 |
+|:-----|:-----|:-----|
+| en/markdown-to-react | footer的div在</footer>后才关闭 | 调整div闭合顺序 |
+| en/carbon-footprint-calculator | </main>前多余2个</div> + 孤立<div> + FAQ缺</div> | 移除多余标签, 补充缺失标签 |
+| en/reading-speed-test | 同carbon-footprint-calculator模板问题 | 同上修复 |
+| en/html-stripper | resultSection/card未关闭 + related-tools未关闭 | 补充2个</div>, 移除多余</div>, 补充</div> |
+| matrix-calculator | main-grid及子div未关闭 + footer div顺序错误 | 补充2个</div>, 调整footer结构 |
+
+> 注: 扫描脚本检测到的其他11个div不匹配均为**误报** — `</div>`出现在JS字符串(innerHTML)中, 实际HTML结构正确。
+
+#### EN页面缺失robots标签 (12个页面)
+为以下EN页面添加 `<meta name="robots" content="index, follow">`:
+- en/insulation-calculator, en/prorated-rent-calculator, en/meat-temperature-guide
+- en/asphalt-calculator, en/flooring-calculator, en/decibel-calculator
+- en/retaining-wall-calculator, en/pool-volume-calculator, en/board-foot-calculator
+- en/firewood-cord-calculator, en/blog/json-formatter-guide, en/blog/css-tools-productivity
+
+#### Meta Description过短扩写 (3个页面)
+| 页面 | 旧长度 | 新长度 |
+|:-----|:------:|:------:|
+| flooring-calculator | 96 | 115 |
+| pros-and-cons-list | 79 | 116 |
+| siding-calculator | 95 | 118 |
+
+#### "Coming Soon"占位文本清理 (5个页面)
+将"coming soon"替换为更专业的表述:
+- en/paye-calculator: "More regions coming soon" → "More regions supported with updates"
+- en/online-pdf-editor: "coming soon" → "in development" (2处)
+- en/pdf-editor: "More features coming soon" → "Additional features available with updates"
+- en/mind-map: "Scroll to zoom (coming soon)" → "Scroll to zoom"
+- en/css-animation-builder: "Custom keyframes coming soon" → "Custom keyframes in development"
+
 ### 待处理问题
 - P0: 49个Failing URLs — 内容质量优化进行中
   - 已优化8个页面（gpa-calculator, checksum-calculator, compound-interest-calculator, reaction-test, speed-test, vin-decoder, running-pace-calculator, metronome-online）
