@@ -191,3 +191,22 @@
 - 修复：6页（3个JS语法错误 + 6个footer问题）
 - P0红线问题修复：3个JS语法错误（video-compress CN/EN, bricks-calculator EN）
 - commit: 0227792f3a
+
+## 2026-08-05 质检轮次
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| image-dominant-color | CN | ✅ | ✅ | ✅ | ✅ | related-tools标题#374151不可见 | ✅已修 |
+| image-dominant-color | EN | ✅ | ✅ | ✅ | ✅ | 无 | ✅ |
+| ai-prompt-template-library | CN | ✅ | ✅ | ✅ | ✅ | 无 | ✅ |
+| ai-prompt-template-library | EN | ✅ | ❌→✅ | ✅ | ❌→✅ | Regex模板单引号未转义+showToast括号不匹配 | ✅已修 |
+| pdf-redact | CN | ✅ | ✅ | ✅ | ✅ | 无 | ✅ |
+| pdf-redact | EN | ✅ | ✅ | ✅ | ✅ | 无 | ✅ |
+| checklist-generator | CN | ✅ | ✅ | ✅ | ✅ | related-tools标题#374151不可见 | ✅已修 |
+| checklist-generator | EN | ✅ | ✅ | ✅ | ✅ | 无 | ✅ |
+| quiz-generator | CN | ✅ | ❌→✅ | ❌→✅ | ❌→✅ | escapeHtml括号错误+多行字符串+JSON损坏+英文toast | ✅已修 |
+| quiz-generator | EN | ✅ | ❌→✅ | ✅ | ❌→✅ | exportQuizHtml多行字符串+</script>破坏页面JS | ✅已修 |
+| smoking-cost-calculator | CN | ✅ | ✅ | ✅ | ✅ | related-tools标题#374151不可见 | ✅已修 |
+| smoking-cost-calculator | EN | ✅ | ✅ | ✅ | ✅ | related-tools标题#374151不可见 | ✅已修 |
+| battery-capacity-tester | CN | ✅ | ✅ | ✅ | ✅ | 无 | ✅ |
+| battery-capacity-tester | EN | ✅ | ✅ | ✅ | ✅ | related-tools链接//en/双斜杠+#374151 | ✅已修 |
