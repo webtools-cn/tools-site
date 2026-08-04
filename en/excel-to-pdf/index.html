@@ -366,6 +366,196 @@ a{color:#06b6d4;text-decoration:none}
   }
 })();</script>
 
+<div class="toast" id="toast"></div>
+<script>
+// === Excel/CSV to PDF Tool ===
+var parsedData = null;
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+document.getElementById('uploadZone').addEventListener('click', function() {
+  document.getElementById('fileInput').click();
+});
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  handleFiles(e.target.files);
+});
+var uz = document.getElementById('uploadZone');
+uz.addEventListener('dragover', function(e) { e.preventDefault(); uz.classList.add('dragover'); });
+uz.addEventListener('dragleave', function(e) { uz.classList.remove('dragover'); });
+uz.addEventListener('drop', function(e) {
+  e.preventDefault(); uz.classList.remove('dragover');
+  handleFiles(e.dataTransfer.files);
+});
+
+function handleFiles(fileList) {
+  var valid = [];
+  for (var i = 0; i < fileList.length; i++) {
+    var f = fileList[i];
+    var name = f.name.toLowerCase();
+    if (name.endsWith('.csv') || name.endsWith('.tsv') || name.endsWith('.txt') || f.type === 'text/csv') {
+      valid.push(f);
+    }
+  }
+  if (valid.length === 0) { showToast('Please upload CSV/TSV files'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('csvInput').value = e.target.result;
+    parseAndPreview();
+  };
+  reader.readAsText(valid[0]);
+}
+
+function showSettings() {
+  var settings = document.getElementById('settings');
+  settings.style.display = 'block';
+  settings.innerHTML =
+    '<div class="form-row"><label>Paper</label>' +
+    '<select id="paperSize"><option value="a4" selected>A4</option><option value="letter">Letter</option><option value="legal">Legal</option></select>' +
+    '<label>Orientation</label>' +
+    '<select id="orientation"><option value="portrait" selected>Portrait</option><option value="landscape">Landscape</option></select></div>' +
+    '<div class="form-row"><label>Delimiter</label>' +
+    '<select id="delimiter"><option value="auto" selected>Auto</option><option value=",">Comma</option><option value="\t">Tab</option><option value=";">Semicolon</option><option value="|">Pipe</option></select>' +
+    '<label>Font</label>' +
+    '<select id="fontSize"><option value="10">10px</option><option value="12" selected>12px</option><option value="14">14px</option><option value="16">16px</option></select>' +
+    '<button class="btn btn-primary" onclick="printPDF()" style="margin-left:auto">🖨️ Convert to PDF</button></div>';
+}
+
+function parseCSV(text, delimiter) {
+  if (delimiter === 'auto') {
+    var firstLine = text.split('\n')[0] || '';
+    if (firstLine.indexOf('\t') >= 0) delimiter = '\t';
+    else if (firstLine.indexOf(';') >= 0) delimiter = ';';
+    else if (firstLine.indexOf('|') >= 0) delimiter = '|';
+    else delimiter = ',';
+  }
+  var rows = [], current = '', inQuotes = false, row = [];
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { current += '"'; i++; }
+        else { inQuotes = false; }
+      } else { current += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === delimiter) { row.push(current); current = ''; }
+      else if (ch === '\n') { row.push(current); rows.push(row); row = []; current = ''; }
+      else if (ch === '\r') {}
+      else { current += ch; }
+    }
+  }
+  if (current !== '' || row.length > 0) { row.push(current); rows.push(row); }
+  rows = rows.filter(function(r) { return r.some(function(c) { return c.trim() !== ''; }); });
+  return rows;
+}
+
+function parseAndPreview() {
+  var text = document.getElementById('csvInput').value.trim();
+  if (!text) { showToast('Please enter or upload CSV data'); return; }
+  var delimiter = 'auto';
+  var sel = document.getElementById('delimiter');
+  if (sel) delimiter = sel.value;
+  var rows = parseCSV(text, delimiter);
+  if (rows.length === 0) { showToast('No data parsed'); return; }
+  parsedData = { headers: rows[0], rows: rows.slice(1) };
+  renderPreview();
+  showToast('Parsed: ' + rows.length + ' rows × ' + rows[0].length + ' cols');
+}
+
+function renderPreview() {
+  if (!parsedData) return;
+  var fontSize = '12';
+  var fs = document.getElementById('fontSize');
+  if (fs) fontSize = fs.value;
+  var html = '<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:' + fontSize + 'px">';
+  html += '<thead><tr>';
+  for (var h = 0; h < parsedData.headers.length; h++) {
+    html += '<th style="border:1px solid #475569;padding:4px 8px;background:#1e293b;color:#22d3ee;text-align:left">' + escapeHtml(parsedData.headers[h]) + '</th>';
+  }
+  html += '</tr></thead><tbody>';
+  for (var r = 0; r < parsedData.rows.length; r++) {
+    html += '<tr>';
+    for (var c = 0; c < parsedData.rows[r].length; c++) {
+      html += '<td style="border:1px solid #334155;padding:4px 8px;color:#e2e8f0">' + escapeHtml(parsedData.rows[r][c]) + '</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table></div>';
+  html += '<p style="color:#64748b;font-size:.8rem;margin-top:8px">' + parsedData.rows.length + ' data rows · ' + parsedData.headers.length + ' columns</p>';
+  document.getElementById('results').innerHTML = html;
+  document.getElementById('batchActions').style.display = 'block';
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function printPDF() {
+  if (!parsedData) { showToast('Please parse data first'); return; }
+  var paper = document.getElementById('paperSize').value;
+  var fontSize = document.getElementById('fontSize').value;
+  var paperSize = paper === 'a4' ? '210mm 297mm' : paper === 'letter' ? '8.5in 11in' : '8.5in 14in';
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Table PDF</title><style>';
+  html += '@page { size: ' + paperSize + '; margin: 10mm; }';
+  html += '@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }';
+  html += 'body { font-family: -apple-system, "Segoe UI", sans-serif; font-size: ' + fontSize + 'px; color: #1a1a1a; }';
+  html += 'table { border-collapse: collapse; width: 100%; }';
+  html += 'th, td { border: 1px solid #999; padding: 4px 8px; text-align: left; }';
+  html += 'th { background: #e0e7ff; font-weight: 600; }';
+  html += 'tr:nth-child(even) { background: #f8fafc; }';
+  html += '</style></head><body><table><thead><tr>';
+  for (var h = 0; h < parsedData.headers.length; h++) html += '<th>' + escapeHtml(parsedData.headers[h]) + '</th>';
+  html += '</tr></thead><tbody>';
+  for (var r = 0; r < parsedData.rows.length; r++) {
+    html += '<tr>';
+    for (var c = 0; c < parsedData.rows[r].length; c++) html += '<td>' + escapeHtml(parsedData.rows[r][c]) + '</td>';
+    html += '</tr>';
+  }
+  html += '</tbody></table></body></html>';
+  var w = window.open('', '_blank');
+  w.document.write(html); w.document.close();
+  setTimeout(function() { w.focus(); w.print(); }, 300);
+}
+
+function clearResults() {
+  parsedData = null;
+  document.getElementById('csvInput').value = '';
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('batchActions').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+  showToast('Cleared');
+}
+
+function downloadAll() {
+  if (!parsedData) { showToast('Parse data first'); return; }
+  var csv = parsedData.headers.map(function(c) { return '"' + c.replace(/"/g, '""') + '"'; }).join(',') + '\n';
+  for (var i = 0; i < parsedData.rows.length; i++) {
+    csv += parsedData.rows[i].map(function(c) { return '"' + c.replace(/"/g, '""') + '"'; }).join(',') + '\n';
+  }
+  var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href = url; a.download = 'table-export.csv'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV exported');
+}
+
+(function() {
+  if (!document.getElementById('csvInput')) {
+    var div = document.createElement('div');
+    div.style.cssText = 'margin-bottom:16px';
+    div.innerHTML = '<div class="form-row" style="margin-bottom:8px"><label style="min-width:auto">Or paste CSV data:</label></div>' +
+      '<textarea id="csvInput" placeholder="Name,Age,City&#10;John,25,NYC&#10;Jane,30,London" style="width:100%;min-height:120px;padding:10px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;color:#e2e8f0;font-size:.85rem;font-family:monospace;resize:vertical"></textarea>' +
+      '<div style="margin-top:8px"><button class="btn btn-primary" onclick="parseAndPreview()">📋 Parse & Preview</button> ' +
+      '<button class="btn btn-secondary" onclick="showSettings()">⚙️ Show Settings</button></div>';
+    var uploadZone = document.getElementById('uploadZone');
+    uploadZone.parentNode.insertBefore(div, uploadZone.nextSibling);
+  }
+})();
+</script>
 
 </main>
 </body>

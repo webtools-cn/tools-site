@@ -157,6 +157,245 @@ a{color:#06b6d4;text-decoration:none}
 </div>
 <div class="toast" id="toast"></div>
 
+<script>
+// === ICO图标转换器 ===
+var files = [];
+var results = [];
+
+// showToast
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+// formatSize
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(2) + ' MB';
+}
+
+// upload zone click
+document.getElementById('uploadZone').addEventListener('click', function() {
+  document.getElementById('fileInput').click();
+});
+
+// file input change
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  handleFiles(e.target.files);
+});
+
+// drag events
+var uz = document.getElementById('uploadZone');
+uz.addEventListener('dragover', function(e) { e.preventDefault(); uz.classList.add('dragover'); });
+uz.addEventListener('dragleave', function(e) { uz.classList.remove('dragover'); });
+uz.addEventListener('drop', function(e) {
+  e.preventDefault();
+  uz.classList.remove('dragover');
+  handleFiles(e.dataTransfer.files);
+});
+
+function handleFiles(fileList) {
+  var imgFiles = [];
+  for (var i = 0; i < fileList.length; i++) {
+    if (fileList[i].type.startsWith('image/')) {
+      imgFiles.push(fileList[i]);
+    }
+  }
+  if (imgFiles.length === 0) {
+    showToast('请上传图片文件');
+    return;
+  }
+  for (var i = 0; i < imgFiles.length; i++) {
+    files.push(imgFiles[i]);
+  }
+  renderFileList();
+}
+
+function renderFileList() {
+  var container = document.getElementById('results');
+  container.innerHTML = '';
+  results = [];
+
+  if (files.length === 0) {
+    document.getElementById('settings').style.display = 'none';
+    document.getElementById('batchActions').style.display = 'none';
+    return;
+  }
+
+  // settings
+  var settings = document.getElementById('settings');
+  settings.style.display = 'block';
+  settings.innerHTML = '<div class="form-row"><label>尺寸</label>' +
+    '<select id="icoSize">' +
+    '<option value="16">16 × 16</option>' +
+    '<option value="32" selected>32 × 32</option>' +
+    '<option value="48">48 × 48</option>' +
+    '<option value="64">64 × 64</option>' +
+    '<option value="128">128 × 128</option>' +
+    '<option value="256">256 × 256</option>' +
+    '</select></div>' +
+    '<div class="form-row"><label>背景</label>' +
+    '<select id="bgColor"><option value="transparent" selected>透明</option><option value="#ffffff">白色</option><option value="#000000">黑色</option></select>' +
+    '<button class="btn btn-primary" onclick="convertAll()" style="margin-left:auto">🔄 生成ICO</button></div>';
+
+  for (var i = 0; i < files.length; i++) {
+    (function(idx) {
+      var f = files[idx];
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var div = document.createElement('div');
+        div.className = 'result-item';
+        div.innerHTML = '<img src="' + e.target.result + '" alt="预览">' +
+          '<div class="info"><div class="name">' + f.name + '</div>' +
+          '<div class="size">' + formatSize(f.size) + ' → 等待转换</div></div>' +
+          '<button class="btn btn-secondary" onclick="removeFile(' + idx + ')">✕</button>';
+        container.appendChild(div);
+      };
+      reader.readAsDataURL(f);
+    })(i);
+  }
+
+  document.getElementById('batchActions').style.display = 'block';
+}
+
+function removeFile(idx) {
+  files.splice(idx, 1);
+  renderFileList();
+}
+
+// convert image to ICO
+function convertAll() {
+  if (files.length === 0) {
+    showToast('请先上传图片');
+    return;
+  }
+  var size = parseInt(document.getElementById('icoSize').value);
+  var bg = document.getElementById('bgColor').value;
+  var container = document.getElementById('results');
+
+  var processed = 0;
+  container.innerHTML = '';
+
+  for (var i = 0; i < files.length; i++) {
+    (function(idx, file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          // draw to canvas at target size
+          var canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          var ctx = canvas.getContext('2d');
+
+          if (bg !== 'transparent') {
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, size, size);
+          }
+
+          // fit image (contain mode)
+          var scale = Math.min(size / img.width, size / img.height);
+          var w = img.width * scale;
+          var h = img.height * scale;
+          var x = (size - w) / 2;
+          var y = (size - h) / 2;
+          ctx.drawImage(img, x, y, w, h);
+
+          // get PNG blob from canvas
+          canvas.toBlob(function(pngBlob) {
+            var pngReader = new FileReader();
+            pngReader.onload = function(ev) {
+              var pngData = new Uint8Array(ev.target.result);
+              var icoData = createICO(pngData, size);
+              var icoBlob = new Blob([icoData], { type: 'image/x-icon' });
+              var icoUrl = URL.createObjectURL(icoBlob);
+
+              var div = document.createElement('div');
+              div.className = 'result-item';
+              div.innerHTML = '<img src="' + icoUrl + '" alt="ICO">' +
+                '<div class="info"><div class="name">' + file.name.replace(/\.[^.]+$/, '') + '.ico</div>' +
+                '<div class="size">' + size + '×' + size + ' · ' + formatSize(icoBlob.size) + '</div></div>' +
+                '<a class="btn btn-primary" href="' + icoUrl + '" download="' + file.name.replace(/\.[^.]+$/, '') + '.ico">⬇ 下载</a>';
+              container.appendChild(div);
+              results.push({ name: file.name.replace(/\.[^.]+$/, '') + '.ico', url: icoUrl });
+
+              processed++;
+              if (processed === files.length) {
+                showToast('全部转换完成！');
+              }
+            };
+            pngReader.readAsArrayBuffer(pngBlob);
+          }, 'image/png');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    })(i, files[i]);
+  }
+}
+
+// create ICO file from PNG data
+// ICO format: 6-byte header + 16-byte directory entry + image data
+function createICO(pngData, size) {
+  var headerSize = 6;
+  var dirSize = 16;
+  var totalSize = headerSize + dirSize + pngData.length;
+  var buf = new ArrayBuffer(totalSize);
+  var view = new DataView(buf);
+
+  // ICONDIR header
+  view.setUint16(0, 0, true);     // reserved
+  view.setUint16(2, 1, true);     // type: 1 = icon
+  view.setUint16(4, 1, true);     // count: 1 image
+
+  // ICONDIRENTRY
+  view.setUint8(6, size >= 256 ? 0 : size);   // width (0 = 256)
+  view.setUint8(7, size >= 256 ? 0 : size);   // height
+  view.setUint8(8, 0);            // color palette
+  view.setUint8(9, 0);            // reserved
+  view.setUint16(10, 1, true);    // color planes
+  view.setUint16(12, 32, true);   // bits per pixel
+  view.setUint32(14, pngData.length, true);  // image data size
+  view.setUint32(18, headerSize + dirSize, true); // offset to image data
+
+  // copy PNG data
+  var u8 = new Uint8Array(buf);
+  u8.set(pngData, headerSize + dirSize);
+
+  return u8;
+}
+
+// download all
+function downloadAll() {
+  if (results.length === 0) {
+    showToast('请先转换图片');
+    return;
+  }
+  for (var i = 0; i < results.length; i++) {
+    (function(r, delay) {
+      setTimeout(function() {
+        var a = document.createElement('a');
+        a.href = r.url;
+        a.download = r.name;
+        a.click();
+      }, delay);
+    })(results[i], i * 300);
+  }
+  showToast('开始下载 ' + results.length + ' 个文件');
+}
+
+// clear results
+function clearResults() {
+  files = [];
+  results = [];
+  document.getElementById('fileInput').value = '';
+  renderFileList();
+  showToast('已清空');
+}
+</script>
 
 </div>
 </main>

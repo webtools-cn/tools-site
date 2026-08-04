@@ -353,6 +353,158 @@ a{color:#06b6d4;text-decoration:none}
   }
 })();</script>
 
+<div class="toast" id="toast"></div>
+<script>
+// === ICO Icon Converter ===
+var files = [];
+var results = [];
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(2) + ' MB';
+}
+
+document.getElementById('uploadZone').addEventListener('click', function() {
+  document.getElementById('fileInput').click();
+});
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  handleFiles(e.target.files);
+});
+var uz = document.getElementById('uploadZone');
+uz.addEventListener('dragover', function(e) { e.preventDefault(); uz.classList.add('dragover'); });
+uz.addEventListener('dragleave', function(e) { uz.classList.remove('dragover'); });
+uz.addEventListener('drop', function(e) {
+  e.preventDefault(); uz.classList.remove('dragover');
+  handleFiles(e.dataTransfer.files);
+});
+
+function handleFiles(fileList) {
+  var imgs = [];
+  for (var i = 0; i < fileList.length; i++) {
+    if (fileList[i].type.startsWith('image/')) imgs.push(fileList[i]);
+  }
+  if (imgs.length === 0) { showToast('Please upload image files'); return; }
+  for (var i = 0; i < imgs.length; i++) files.push(imgs[i]);
+  renderFileList();
+}
+
+function renderFileList() {
+  var container = document.getElementById('results');
+  container.innerHTML = ''; results = [];
+  if (files.length === 0) {
+    document.getElementById('settings').style.display = 'none';
+    document.getElementById('batchActions').style.display = 'none';
+    return;
+  }
+  var settings = document.getElementById('settings');
+  settings.style.display = 'block';
+  settings.innerHTML = '<div class="form-row"><label>Size</label>' +
+    '<select id="icoSize"><option value="16">16 × 16</option><option value="32" selected>32 × 32</option><option value="48">48 × 48</option><option value="64">64 × 64</option><option value="128">128 × 128</option><option value="256">256 × 256</option></select></div>' +
+    '<div class="form-row"><label>Background</label>' +
+    '<select id="bgColor"><option value="transparent" selected>Transparent</option><option value="#ffffff">White</option><option value="#000000">Black</option></select>' +
+    '<button class="btn btn-primary" onclick="convertAll()" style="margin-left:auto">🔄 Generate ICO</button></div>';
+
+  for (var i = 0; i < files.length; i++) {
+    (function(idx) {
+      var f = files[idx];
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var div = document.createElement('div');
+        div.className = 'result-item';
+        div.innerHTML = '<img src="' + e.target.result + '" alt="preview">' +
+          '<div class="info"><div class="name">' + f.name + '</div>' +
+          '<div class="size">' + formatSize(f.size) + ' → waiting</div></div>' +
+          '<button class="btn btn-secondary" onclick="removeFile(' + idx + ')">✕</button>';
+        container.appendChild(div);
+      };
+      reader.readAsDataURL(f);
+    })(i);
+  }
+  document.getElementById('batchActions').style.display = 'block';
+}
+
+function removeFile(idx) { files.splice(idx, 1); renderFileList(); }
+
+function convertAll() {
+  if (files.length === 0) { showToast('Please upload images first'); return; }
+  var size = parseInt(document.getElementById('icoSize').value);
+  var bg = document.getElementById('bgColor').value;
+  var container = document.getElementById('results');
+  container.innerHTML = ''; results = []; var processed = 0;
+
+  for (var i = 0; i < files.length; i++) {
+    (function(idx, file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          canvas.width = size; canvas.height = size;
+          var ctx = canvas.getContext('2d');
+          if (bg !== 'transparent') { ctx.fillStyle = bg; ctx.fillRect(0, 0, size, size); }
+          var scale = Math.min(size / img.width, size / img.height);
+          var w = img.width * scale, h = img.height * scale;
+          ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+          canvas.toBlob(function(pngBlob) {
+            var pngReader = new FileReader();
+            pngReader.onload = function(ev) {
+              var pngData = new Uint8Array(ev.target.result);
+              var icoData = createICO(pngData, size);
+              var icoBlob = new Blob([icoData], { type: 'image/x-icon' });
+              var icoUrl = URL.createObjectURL(icoBlob);
+              var div = document.createElement('div');
+              div.className = 'result-item';
+              div.innerHTML = '<img src="' + icoUrl + '" alt="ICO">' +
+                '<div class="info"><div class="name">' + file.name.replace(/\.[^.]+$/, '') + '.ico</div>' +
+                '<div class="size">' + size + '×' + size + ' · ' + formatSize(icoBlob.size) + '</div></div>' +
+                '<a class="btn btn-primary" href="' + icoUrl + '" download="' + file.name.replace(/\.[^.]+$/, '') + '.ico">⬇ Download</a>';
+              container.appendChild(div);
+              results.push({ name: file.name.replace(/\.[^.]+$/, '') + '.ico', url: icoUrl });
+              processed++;
+              if (processed === files.length) showToast('All converted!');
+            };
+            pngReader.readAsArrayBuffer(pngBlob);
+          }, 'image/png');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    })(i, files[i]);
+  }
+}
+
+function createICO(pngData, size) {
+  var hs = 6, ds = 16;
+  var buf = new ArrayBuffer(hs + ds + pngData.length);
+  var view = new DataView(buf);
+  view.setUint16(0, 0, true); view.setUint16(2, 1, true); view.setUint16(4, 1, true);
+  view.setUint8(6, size >= 256 ? 0 : size); view.setUint8(7, size >= 256 ? 0 : size);
+  view.setUint8(8, 0); view.setUint8(9, 0);
+  view.setUint16(10, 1, true); view.setUint16(12, 32, true);
+  view.setUint32(14, pngData.length, true); view.setUint32(18, hs + ds, true);
+  var u8 = new Uint8Array(buf); u8.set(pngData, hs + ds);
+  return u8;
+}
+
+function downloadAll() {
+  if (results.length === 0) { showToast('Convert images first'); return; }
+  for (var i = 0; i < results.length; i++) {
+    (function(r, d) { setTimeout(function() { var a = document.createElement('a'); a.href = r.url; a.download = r.name; a.click(); }, d); })(results[i], i * 300);
+  }
+  showToast('Downloading ' + results.length + ' files');
+}
+
+function clearResults() {
+  files = []; results = []; document.getElementById('fileInput').value = '';
+  renderFileList(); showToast('Cleared');
+}
+</script>
 
 </main>
 </body>

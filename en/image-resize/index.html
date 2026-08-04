@@ -362,6 +362,183 @@ a{color:#06b6d4;text-decoration:none}
   }
 })();</script>
 
+<div class="toast" id="toast"></div>
+<script>
+// === Image Resize Tool ===
+var files = [];
+var results = [];
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(2) + ' MB';
+}
+
+document.getElementById('uploadZone').addEventListener('click', function() {
+  document.getElementById('fileInput').click();
+});
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  handleFiles(e.target.files);
+});
+var uz = document.getElementById('uploadZone');
+uz.addEventListener('dragover', function(e) { e.preventDefault(); uz.classList.add('dragover'); });
+uz.addEventListener('dragleave', function(e) { uz.classList.remove('dragover'); });
+uz.addEventListener('drop', function(e) {
+  e.preventDefault(); uz.classList.remove('dragover');
+  handleFiles(e.dataTransfer.files);
+});
+
+function handleFiles(fileList) {
+  var imgs = [];
+  for (var i = 0; i < fileList.length; i++) {
+    if (fileList[i].type.startsWith('image/')) imgs.push(fileList[i]);
+  }
+  if (imgs.length === 0) { showToast('Please upload image files'); return; }
+  for (var i = 0; i < imgs.length; i++) files.push(imgs[i]);
+  renderFileList();
+}
+
+function renderFileList() {
+  var container = document.getElementById('results');
+  container.innerHTML = ''; results = [];
+  if (files.length === 0) {
+    document.getElementById('settings').style.display = 'none';
+    document.getElementById('batchActions').style.display = 'none';
+    return;
+  }
+  var settings = document.getElementById('settings');
+  settings.style.display = 'block';
+  settings.innerHTML =
+    '<div class="form-row"><label>Mode</label>' +
+    '<select id="resizeMode"><option value="pixel" selected>By Pixels</option><option value="percent">By Percentage</option></select></div>' +
+    '<div class="form-row" id="pixelRow"><label>Width</label>' +
+    '<input type="number" id="targetW" value="800" min="1" max="8192" style="width:100px">' +
+    '<label>Height</label>' +
+    '<input type="number" id="targetH" value="600" min="1" max="8192" style="width:100px">' +
+    '<label style="min-width:auto"><input type="checkbox" id="keepRatio" checked> Keep Ratio</label></div>' +
+    '<div class="form-row" id="percentRow" style="display:none"><label>Scale</label>' +
+    '<input type="range" id="percentSlider" min="1" max="200" value="50" style="flex:1;min-width:200px">' +
+    '<span id="percentVal">50%</span></div>' +
+    '<div class="form-row"><label>Format</label>' +
+    '<select id="outFormat"><option value="original" selected>Original</option><option value="image/png">PNG</option><option value="image/jpeg">JPG</option><option value="image/webp">WebP</option></select>' +
+    '<label>Quality</label><input type="range" id="quality" min="10" max="100" value="90" style="width:120px"><span id="qualityVal">90%</span>' +
+    '<button class="btn btn-primary" onclick="resizeAll()" style="margin-left:auto">🔄 Resize</button></div>';
+
+  document.getElementById('resizeMode').addEventListener('change', function() {
+    var m = this.value;
+    document.getElementById('pixelRow').style.display = m === 'pixel' ? 'flex' : 'none';
+    document.getElementById('percentRow').style.display = m === 'percent' ? 'flex' : 'none';
+  });
+  document.getElementById('percentSlider').addEventListener('input', function() {
+    document.getElementById('percentVal').textContent = this.value + '%';
+  });
+  document.getElementById('quality').addEventListener('input', function() {
+    document.getElementById('qualityVal').textContent = this.value + '%';
+  });
+  document.getElementById('targetW').addEventListener('input', function() {
+    if (document.getElementById('keepRatio').checked && files.length > 0 && files[0]._img) {
+      var img = files[0]._img;
+      document.getElementById('targetH').value = Math.round(this.value * img.height / img.width);
+    }
+  });
+  document.getElementById('targetH').addEventListener('input', function() {
+    if (document.getElementById('keepRatio').checked && files.length > 0 && files[0]._img) {
+      var img = files[0]._img;
+      document.getElementById('targetW').value = Math.round(this.value * img.width / img.height);
+    }
+  });
+
+  for (var i = 0; i < files.length; i++) {
+    (function(idx) {
+      var f = files[idx];
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          files[idx]._img = img;
+          var div = document.createElement('div');
+          div.className = 'result-item';
+          div.innerHTML = '<img src="' + e.target.result + '" alt="preview">' +
+            '<div class="info"><div class="name">' + f.name + '</div>' +
+            '<div class="size">' + img.width + '×' + img.height + ' · ' + formatSize(f.size) + '</div></div>' +
+            '<button class="btn btn-secondary" onclick="removeFile(' + idx + ')">✕</button>';
+          container.appendChild(div);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(f);
+    })(i);
+  }
+  document.getElementById('batchActions').style.display = 'block';
+}
+
+function removeFile(idx) { files.splice(idx, 1); renderFileList(); }
+
+function resizeAll() {
+  if (files.length === 0) { showToast('Please upload images first'); return; }
+  var mode = document.getElementById('resizeMode').value;
+  var format = document.getElementById('outFormat').value;
+  var quality = parseInt(document.getElementById('quality').value) / 100;
+  var container = document.getElementById('results');
+  container.innerHTML = ''; results = []; var processed = 0;
+
+  for (var i = 0; i < files.length; i++) {
+    (function(idx, file) {
+      var img = file._img;
+      if (!img) { processed++; return; }
+      var targetW, targetH;
+      if (mode === 'pixel') {
+        targetW = parseInt(document.getElementById('targetW').value) || img.width;
+        targetH = parseInt(document.getElementById('targetH').value) || img.height;
+      } else {
+        var pct = parseInt(document.getElementById('percentSlider').value) / 100;
+        targetW = Math.round(img.width * pct);
+        targetH = Math.round(img.height * pct);
+      }
+      var outType = format === 'original' ? (file.type || 'image/png') : format;
+      var canvas = document.createElement('canvas');
+      canvas.width = targetW; canvas.height = targetH;
+      var ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, targetW, targetH);
+      canvas.toBlob(function(blob) {
+        var url = URL.createObjectURL(blob);
+        var ext = outType === 'image/png' ? '.png' : outType === 'image/jpeg' ? '.jpg' : '.webp';
+        var baseName = file.name.replace(/\.[^.]+$/, '');
+        var div = document.createElement('div');
+        div.className = 'result-item';
+        div.innerHTML = '<img src="' + url + '" alt="result">' +
+          '<div class="info"><div class="name">' + baseName + ext + '</div>' +
+          '<div class="size">' + targetW + '×' + targetH + ' · ' + formatSize(blob.size) +
+          ' (was ' + formatSize(file.size) + ')</div></div>' +
+          '<a class="btn btn-primary" href="' + url + '" download="' + baseName + ext + '">⬇ Download</a>';
+        container.appendChild(div);
+        results.push({ name: baseName + ext, url: url });
+        processed++;
+        if (processed === files.length) showToast('All resized!');
+      }, outType, quality);
+    })(i, files[i]);
+  }
+}
+
+function downloadAll() {
+  if (results.length === 0) { showToast('Resize images first'); return; }
+  for (var i = 0; i < results.length; i++) {
+    (function(r, d) { setTimeout(function() { var a = document.createElement('a'); a.href = r.url; a.download = r.name; a.click(); }, d); })(results[i], i * 300);
+  }
+  showToast('Downloading ' + results.length + ' files');
+}
+
+function clearResults() {
+  files = []; results = []; document.getElementById('fileInput').value = '';
+  renderFileList(); showToast('Cleared');
+}
+</script>
 
 </main>
 </body>
