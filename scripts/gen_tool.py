@@ -26,6 +26,9 @@ def gen_tool(slug, cn_name, en_name, cn_desc, en_desc, inputs_cn, inputs_en, cal
     
     # CN版
     cn_html = tpl.replace('SLUG', slug)
+    cn_html = cn_html.replace('TOOL_NAME_CN', cn_name)
+    cn_html = cn_html.replace('TOOL_DESC_CN_SEO', cn_desc[:160])
+    cn_html = cn_html.replace('TOOL_DESC_CN_SHORT', cn_desc[:80])
     cn_html = cn_html.replace('PERCENTAGE_CALC', cn_name)
     cn_html = cn_html.replace('PERCENTAGE_DESC_CN', cn_desc)
     cn_html = cn_html.replace('PERCENTAGE_LABEL2', '')
