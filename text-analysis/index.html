@@ -168,6 +168,63 @@ The quick brown fox jumps over the lazy dog. This pangram contains every letter 
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+function analyze(){
+  var text=document.getElementById("textInput").value;
+  var charsTotal=text.length;
+  var charsNoSpace=text.replace(/\s/g,"").length;
+  var lines=text.split("\n").filter(function(l){return l.trim()}).length;
+  var paragraphs=text.split(/\n\s*\n/).filter(function(p){return p.trim()}).length;
+  var sentences=text.split(/[.!?。！？]+/).filter(function(s){return s.trim()}).length;
+  var cnChars=(text.match(/[\u4e00-\u9fa5]/g)||[]).length;
+  var enWords=text.replace(/[\u4e00-\u9fa5]/g," ").trim().split(/\s+/).filter(function(w){return w}).length;
+  var words=cnChars+enWords;
+  var readMinEn=Math.ceil(enWords/238);
+  var readMinCn=Math.ceil(cnChars/500);
+  var readMin=readMinEn+readMinCn;
+  var speakMinEn=Math.ceil(enWords/183);
+  var speakMinCn=Math.ceil(cnChars/350);
+  var speakMin=speakMinEn+speakMinCn;
+  var avgWordLen=words>0?(charsNoSpace/words).toFixed(1):0;
+  var avgSentLen=sentences>0?(words/sentences).toFixed(1):0;
+  var statsGrid=document.getElementById("statsGrid");
+  var stats=[
+    ["📝 总字符数",charsTotal],["📝 不含空格",charsNoSpace],["🔤 单词数",words],
+    ["📊 行数",lines],["📄 段落数",paragraphs],["💬 句子数",sentences],
+    ["⏱️ 阅读时间",readMin+" 分钟"],["🎙️ 朗读时间",speakMin+" 分钟"],
+    ["📏 平均词长",avgWordLen],["📏 平均句长",avgSentLen]
+  ];
+  statsGrid.innerHTML=stats.map(function(s){
+    return '<div class="stat-card"><div class="stat-label">'+s[0]+'</div><div class="stat-value">'+s[1]+'</div></div>';
+  }).join("");
+  var freq={};
+  var enWordList=text.replace(/[\u4e00-\u9fa5]/g," ").trim().toLowerCase().split(/[^a-z0-9']+/).filter(function(w){return w.length>1});
+  enWordList.forEach(function(w){freq[w]=(freq[w]||0)+1});
+  for(var i=0;i<text.length-1;i++){
+    var c1=text[i],c2=text[i+1];
+    if(/[\u4e00-\u9fa5]/.test(c1)&&/[\u4e00-\u9fa5]/.test(c2)){
+      var bigram=c1+c2;freq[bigram]=(freq[bigram]||0)+1;
+    }
+  }
+  var sorted=Object.entries(freq).sort(function(a,b){return b[1]-a[1]}).slice(0,20);
+  var totalWords=sorted.reduce(function(s,i){return s+i[1]},0);
+  var maxFreq=sorted.length>0?sorted[0][1]:1;
+  var tbody=document.getElementById("freqBody");
+  if(sorted.length===0){
+    tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:#64748b;padding:20px">请输入要分析的文本</td></tr>';
+  }else{
+    tbody.innerHTML=sorted.map(function(item,i){
+      var pct=(item[1]/totalWords*100).toFixed(1);
+      var barW=(item[1]/maxFreq*100).toFixed(0);
+      return '<tr><td class="rank">'+(i+1)+'</td><td class="word">'+item[0]+'</td><td class="count">'+item[1]+' ('+pct+'%)</td><td><div class="bar-wrap"><div class="bar-fill" style="width:'+barW+'%"></div></div></td></tr>';
+    }).join("");
+  }
+}
+analyze();
+var timer;
+document.getElementById("textInput").addEventListener("input",function(){
+  clearTimeout(timer);
+  timer=setTimeout(analyze,300);
+});
 (function() {
   'use strict';
   var s = document.getElementById('related-tools-section');

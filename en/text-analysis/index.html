@@ -288,9 +288,47 @@ Data science combines statistics, computer science, and domain expertise to extr
 </div>
 <div id="related-tools"></div>
 <script>
-';
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function analyze(){
+  var text=document.getElementById("textInput").value;
+  var charsTotal=text.length;
+  var charsNoSpace=text.replace(/\s/g,"").length;
+  var lines=text.split("\n").filter(function(l){return l.trim()}).length;
+  var paragraphs=text.split(/\n\s*\n/).filter(function(p){return p.trim()}).length;
+  var sentences=text.split(/[.!?。！？]+/).filter(function(s){return s.trim()}).length;
+  var cnChars=(text.match(/[\u4e00-\u9fa5]/g)||[]).length;
+  var enWords=text.replace(/[\u4e00-\u9fa5]/g," ").trim().split(/\s+/).filter(function(w){return w}).length;
+  var words=cnChars+enWords;
+  var readMinEn=Math.ceil(enWords/238);
+  var readMinCn=Math.ceil(cnChars/500);
+  var readMin=readMinEn+readMinCn;
+  var speakMinEn=Math.ceil(enWords/183);
+  var speakMinCn=Math.ceil(cnChars/350);
+  var speakMin=speakMinEn+speakMinCn;
+  var avgWordLen=words>0?(charsNoSpace/words).toFixed(1):0;
+  var avgSentLen=sentences>0?(words/sentences).toFixed(1):0;
+  var statsGrid=document.getElementById("statsGrid");
+  var stats=[
+    ["📝 Characters",charsTotal],["📝 No Spaces",charsNoSpace],["🔤 Words",words],
+   ["📊 Lines",lines],["📄 Paragraphs",paragraphs],["💬 Sentences",sentences],
+    ["⏱️ Read Time",readMin+" min"],["🎙️ Speak Time",speakMin+" min"],
+    ["📏 Avg Word Length",avgWordLen],["📏 Avg Sentence Length",avgSentLen]
+  ];
+  statsGrid.innerHTML=stats.map(function(s){
+    return '<div class="stat-card"><div class="stat-label">'+s[0]+'</div><div class="stat-value">'+s[1]+'</div></div>';
   }).join("");
-  
+  var freq={};
+  var enWordList=text.replace(/[\u4e00-\u9fa5]/g," ").trim().toLowerCase().split(/[^a-z0-9']+/).filter(function(w){return w.length>1});
+  enWordList.forEach(function(w){freq[w]=(freq[w]||0)+1});
+  for(var i=0;i<text.length-1;i++){
+    var c1=text[i],c2=text[i+1];
+    if(/[\u4e00-\u9fa5]/.test(c1)&&/[\u4e00-\u9fa5]/.test(c2)){
+      var bigram=c1+c2;freq[bigram]=(freq[bigram]||0)+1;
+    }
+  }
+  var sorted=Object.entries(freq).sort(function(a,b){return b[1]-a[1]}).slice(0,20);
+  var totalWords=sorted.reduce(function(s,i){return s+i[1]},0);
+  var maxFreq=sorted.length>0?sorted[0][1]:1;
   var tbody=document.getElementById("freqBody");
   if(sorted.length===0){
     tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:#64748b;padding:20px">Please enter text to analyze</td></tr>';
@@ -302,7 +340,6 @@ Data science combines statistics, computer science, and domain expertise to extr
     }).join("");
   }
 }
-
 analyze();
 var timer;
 document.getElementById("textInput").addEventListener("input",function(){
