@@ -345,3 +345,17 @@
 | json-validator | EN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
 | internal-rate-of-return | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
 | internal-rate-of-return | EN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| keyboard-shortcut-visualizer | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| keyboard-shortcut-visualizer | EN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| flexbox-playground | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| flexbox-playground | EN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| land-transfer-tax-calculator | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| land-transfer-tax-calculator | EN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| decimal-to-octal | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| decimal-to-octal | EN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| emergency-fund-calculator | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| emergency-fund-calculator | EN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| css-shape-generator | CN | ✅dark | ❌→✅ | ✅ | ✅ | drawShape()引用错误ID导致功能不可用，已修复 | fixed |
+| css-shape-generator | EN | ✅dark | ✅ | ✅ | ✅ | submitFeedback未定义text变量+外部CSS/JS引用，已修复 | fixed |
+| vacation-budget | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| vacation-budget | EN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
