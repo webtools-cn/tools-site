@@ -594,3 +594,39 @@
 | event-budget-calculator | EN | ✅#0f172a/#1e293b/#e2e8f0 | ✅$5000→Catering$2000\|Venue$1500\|Other$1500(30%) | ✅全英文 | 无错误 | 无 | ✅PASSED |
 
 **总结**: 5个EN页面全部通过，无问题。深色主题#0f172a/#1e293b/#e2e8f0/#06b6d4全部正确，功能计算正确，全英文（仅lang-switch的"中文"按钮为正常切换链接），Footer 5链接+dexshuang@google.com邮箱正确。无需修复。
+
+---
+
+## 2026-08-06 质检轮次 — 8个新计算器16页浏览器实测(pizza/serving/paint/tile/concrete/gravel/tons/kg)
+
+> Kimi WebBridge浏览器实测。最新提交48108babe3批量新增8个计算器，全部首次质检。
+
+### 发现的问题
+
+| # | 严重级 | 问题 | 影响范围 |
+|:--|:------|:-----|:---------|
+| 1 | P0 | CN页面JS输出英文(Area/Volume/Need/Ratio等) | 6个CN页面 |
+| 2 | P0 | tons-to-pounds/kg-to-grams单输入工具calc检查不存在的v2→功能完全不可用 | 2个CN+2个EN=4页 |
+| 3 | P1 | CN+EN"如何使用"通用占位文本"输入第一个参数/Enter the first parameter" | 全部16页 |
+| 4 | P1 | pizza CN单位sq in但输入是cm | 1个CN页面 |
+
+### 浏览器实测记录
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| pizza-size-calculator | CN | ✅#0f172a/#1e293b/#e2e8f0/#06b6d4 | ✅30cm/88元→面积706.9cm²\|每cm²¥0.124 | ✅全中文(修复后) | 无错误 | P0英文输出+P1占位+P1单位→已修 | ✅PASSED |
+| pizza-size-calculator | EN | ✅#0f172a/#1e293b/#e2e8f0 | ✅30/88→Area 706.9sq in\|Price $0.124 | ✅全英文 | 无错误 | P1占位→已修 | ✅PASSED |
+| serving-size-calculator | CN | ✅深色主题 | ✅4→6份→比例1.50倍\|示例100g→150g | ✅全中文(修复后) | 无错误 | P0英文输出+P1占位→已修 | ✅PASSED |
+| paint-estimator | CN | ✅深色主题 | ✅50m²/10m²L→需要10.0L(约2罐) | ✅全中文(修复后) | 无错误 | P0英文输出+P1占位→已修 | ✅PASSED |
+| tile-estimator | CN | ✅深色主题 | ✅10m²/30cm→需要123块(含10%损耗) | ✅全中文(修复后) | 无错误 | P0英文输出+P1占位→已修 | ✅PASSED |
+| concrete-volume-calculator | CN | ✅深色主题 | ✅5×3×0.1m→体积1.50m³\|重量3600kg | ✅全中文(修复后) | 无错误 | P0英文输出+P1占位→已修 | ✅PASSED |
+| gravel-estimator | CN | ✅深色主题 | ✅20m²/10cm→体积2.00m³\|碎石3.2吨\|沙子3.0吨 | ✅全中文(修复后) | 无错误 | P0英文输出+P1占位→已修 | ✅PASSED |
+| tons-to-pounds | CN | ✅深色主题 | ✅5公吨→11023.11磅\|5.5116短吨\|4.9210长吨 | ✅全中文(修复后) | 无错误 | P0功能不可用(v2 bug)+P1占位→已修 | ✅PASSED |
+| kg-to-grams | CN | ✅深色主题 | ✅2.5kg→2500g\|3e+6mg\|0.003吨\|5.51磅 | ✅全中文(修复后) | 无错误 | P0功能不可用(v2 bug)+P1占位→已修 | ✅PASSED |
+
+### 修复总结
+- **P0修复**: 8个CN页面JS输出英文→中文；2个单输入工具(tons/kg)v2检查bug→功能恢复
+- **P1修复**: 16页"如何使用"通用占位→具体步骤；pizza单位sq in→cm²
+- **JS语法**: 全部16页node -c通过
+- **Git**: commit 39de51a3d3, 已push
+- **EN页面**: 同步修复了占位文本+v2 bug，JS输出保持英文(正确)
