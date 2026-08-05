@@ -276,21 +276,35 @@ const el=id=>document.getElementById(id);
 function showToast(m){const t=el('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
 
 const categories=[
- {id:'hate',name:'',icon:'🚫',risk:'danger''Deleteorstandardhate speechcontent，forreleaseuserenterrowwarning'},
- {id:'violence',name:'',icon:'⚠️',risk:'danger''immediatelyi.e.Deleteviolent threatscontent，musttowhenreport to lawpartialenforcement'},
- {id:'sexual',name:'',icon:'🔞',risk:'danger''Deleteorstandardsexual contentcontent，limitNotintoyearpersonaccess'},
- {id:'harassment',name:'',icon:'😤',risk:'warning''standardharassmentcontent，forreleaseuserenterrowwarningorlimit'},
- {id:'selfharm',name:'',icon:'💔',risk:'danger''immediatelyi.e.provides source，standard content notification person '},
- {id:'illegal',name:'',icon:'⚖️',risk:'danger''Delete content，musttowhenreport to lawpartialenforcement'},
- {id:'misinfo',name:'virtualfalseinfo',icon:'📰',risk:'warning''Add physical querylabel，reducecontent heavy'},
- {id:'privacy',name:'',icon:'🔒',risk:'warning',
- patterns:[/(?:\d{3}[-.\s]?\d{3}[-.\s]?\d{4})/,/(?:\d{6}(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx])/,/(?:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/,/(?:\d{16,19})/],
- action:''}
+ {id:'hate',name:'Hate Speech',icon:'🚫',risk:'danger',
+  patterns:[/(?:hate|racist|sexist|homophob|xenophob|nazi|white supremacist)/i],
+  action:'Delete or flag hate speech content, warn the user'},
+ {id:'violence',name:'Violent Threats',icon:'⚠️',risk:'danger',
+  patterns:[/(?:kill|murder|bomb|explode|attack|threat|hurt|beat|stab|shoot)/i],
+  action:'Immediately delete violent threat content, report to law enforcement if necessary'},
+ {id:'sexual',name:'Sexual Content',icon:'🔞',risk:'danger',
+  patterns:[/(?:porn|nude|xxx|adult|sex|erotic|explicit)/i],
+  action:'Delete or flag sexual content, restrict access for minors'},
+ {id:'harassment',name:'Harassment',icon:'😤',risk:'warning',
+  patterns:[/(?:bully|harass|stupid|idiot|loser|ugly|fat|trash)/i],
+  action:'Flag harassment content, warn or restrict the user'},
+ {id:'selfharm',name:'Self-Harm',icon:'💔',risk:'danger',
+  patterns:[/(?:suicide|self.?harm|cut myself|end my life|kill myself|dont want to live)/i],
+  action:'Immediately provide mental health resources, flag content and notify professionals'},
+ {id:'illegal',name:'Illegal Activity',icon:'⚖️',risk:'danger',
+  patterns:[/(?:drug|cocaine|heroin|hack|steal|fraud|counterfeit|smuggl)/i],
+  action:'Delete illegal content, report to law enforcement if necessary'},
+ {id:'misinfo',name:'Misinformation',icon:'📰',risk:'warning',
+  patterns:[/(?:fake news|conspiracy|misinformation|miracle cure|cured.*cancer)/i],
+  action:'Add fact-check label, reduce content visibility'},
+ {id:'privacy',name:'Privacy Leak',icon:'🔒',risk:'warning',
+  patterns:[/(?:\d{3}[-.\s]?\d{3}[-.\s]?\d{4})/,/(?:\d{6}(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx])/,/(?:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/,/(?:\d{16,19})/],
+  action:'Redact or delete private information, remind user about privacy protection'}
 ];
 
 function moderateContent(){
  const text=el('inputText').value.trim();
- if(!text){showToast('');return}
+ if(!text){showToast('Please enter content to moderate');return}
  const findings=[];
  const dimResults=[];
 
@@ -307,8 +321,8 @@ function moderateContent(){
  const dangerCount=findings.filter(f=>f.risk==='danger').length;
  const warningCount=findings.filter(f=>f.risk==='warning').length;
  const overallRisk=dangerCount>0?'danger':warningCount>0?'warning':'safe';
- const overallLabels={safe:'✅ contentSecure',warning:'⚠️ existsrisk',danger:''};
- const overallDescs={safe:'',warning:``,danger:``};
+ const overallLabels={safe:'✅ Content Safe',warning:'⚠️ Risk Detected',danger:'🚫 High Risk'};
+ const overallDescs={safe:'No problematic content detected.',warning:'Some content may need review.',danger:'Dangerous content detected, immediate action required.'};
 
  el('resultArea').style.display='block';
  const ob=el('overallBadge');ob.textContent=overallLabels[overallRisk];
@@ -318,7 +332,7 @@ function moderateContent(){
  const dg=el('dimGrid');dg.innerHTML='';
  for(const d of dimResults){
  const status=d.found?(d.risk==='danger'?'danger':'warning'):'safe';
- const statusLabels={safe:'✅ Secure',warning:'⚠️ risk',danger:''};
+ const statusLabels={safe:'✅ Safe',warning:'⚠️ Risk',danger:'🚫 Danger'};
  const div=document.createElement('div');div.className='dim-card';
  div.innerHTML=`<div class="dim-icon">${d.icon}</div><div class="dim-name">${d.name}</div><div class="dim-score status-${status}">${statusLabels[status]}</div>`;
  dg.appendChild(div);
@@ -328,7 +342,7 @@ function moderateContent(){
  el('safeMsg').style.display=findings.length===0?'block':'none';
  for(const f of findings){
  const div=document.createElement('div');div.className='finding finding-'+f.risk;
- div.innerHTML=`<div class="f-cat">${f.risk==='danger'?'':'risk'}</div><div class="f-msg">detectto: <code>${f.match.replace(/</g,'\u003c').replace(/>/g,'\u003e')}</code></div><div class="f-action">📋 processsuggestion: ${f.action}</div>`;
+ div.innerHTML=`<div class="f-cat">${f.risk==='danger'?'Danger':'Warning'}</div><div class="f-msg">Detected: <code>${f.match.replace(/</g,'\u003c').replace(/>/g,'\u003e')}</code></div><div class="f-action">📋 Suggested action: ${f.action}</div>`;
  fl.appendChild(div);
  }
 
@@ -337,9 +351,9 @@ function moderateContent(){
 
 function loadExample(){
  el('inputText').value=`This is a test message containing various content types for moderation testing. Some user posted: "I hate people from that country, they should all be deported." Another comment: "Call me at 555-123-4567, my SSN is 123456789, and my credit card is 4111111111111111." A third post mentions: "This miracle cure can heal any disease in 24 hours!"`;
- showToast('showexampleAlreadyload');
+ showToast('Example loaded');
 }
-function clearAll(){el('inputText').value='';el('resultArea').style.display='none';showToast('AlreadyClear')}
+function clearAll(){el('inputText').value='';el('resultArea').style.display='none';showToast('Cleared')}
 document.addEventListener('keydown',function(e){
  if(e.ctrlKey&&e.key==='Enter'){moderateContent();e.preventDefault()}
  if(e.ctrlKey&&e.shiftKey&&e.key==='X'){clearAll();e.preventDefault()}
