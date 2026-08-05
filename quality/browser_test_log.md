@@ -698,3 +698,19 @@
 - **P1修复**: 5个EN页footer链接全中文→英文; 5个EN页footer版权行含中文→英文; 4个CN页占位步骤→实际说明; 5个CN页双句号→单句号; en/loan-payment JS输出中文→英文
 - **Git**: commit 39e8fb2b69, 已push
 - **根因**: 批量生成脚本模板对双向转换工具(2输入框)使用了3输入框的calc()模板，导致isNaN(b)检查阻止了正常的单值输入; loan-payment的result div初始display:none但calc()未设置display:block; EN页footer和JS输出未翻译
+
+### 2026-08-06 质检cron补充
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:-----:|:----:|:----:|:----:|:-------:|:-----|:----:|
+| grams-to-pounds | EN | ✅#0f172a/#1e293b/#e2e8f0 | ✅1000g→2.2046lb | ✅全英文(仅"中文"语言切换) | 无错误 | P0 TOOL_NAME_CN/TOOL_DESC_CN/TOOL_SEO_INTRO/TOOL_STEP/FAQ_CN_JSON占位符未替换→已修; hreflang zh指向EN URL→修为CN URL; lang-switch指向自己→修为CN版; priceCurrency CNY→USD; "关于"→"About"; "如何使用"→"How to Use" | ✅PASSED |
+| liters-to-gallons | EN | ✅深色主题 | ✅10L→2.6417gal(同CN) | ✅全英文 | 无错误 | P0 同上占位符问题→已修 | ✅PASSED |
+| mph-to-kph | EN | ✅深色主题 | ✅60mph→96.56km/h(同CN) | ✅全英文 | 无错误 | P0 同上占位符问题→已修 | ✅PASSED |
+| watts-to-horsepower | EN | ✅深色主题 | ✅1000W→1.3410hp(同CN) | ✅全英文 | 无错误 | P0 同上占位符问题→已修 | ✅PASSED |
+| loan-payment | EN | ✅深色主题 | ✅$100000/5%/30y→$536.82/mo | ✅全英文(仅"中文"切换) | 无错误 | P0 同上占位符问题→已修 | ✅PASSED |
+
+### 修复总结
+- **P0修复**: 5个EN页面全部占位符未替换(TOOL_NAME_CN/TOOL_DESC_CN_SEO/TOOL_DESC_CN_SHORT/TOOL_SEO_INTRO_CN/TOOL_STEP1-3_CN/FAQ_PLACEHOLDER_CN/FAQ_CN_JSON)→填入正确英文内容; hreflang zh错误指向EN URL→修为CN URL; lang-switch链接指向自己→修为CN版; priceCurrency CNY→USD; 中文标题"关于"→"About"/"如何使用"→"How to Use"
+- **Git**: commit 365229968d, 已push
+- **根因**: 前一轮(39e8fb2b69)只修了footer和JS输出的中文，没有检查页面主体内容的占位符。批量生成脚本对EN页面只替换了部分模板变量，title/meta/h1/SEO/FAQ的占位符全部遗漏
+- **注意**: 另有13个其他EN页面也存在TOOL_NAME_CN占位符(非本轮新上线工具)，需要后续修复
