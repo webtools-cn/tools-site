@@ -359,3 +359,13 @@
 | css-shape-generator | EN | ✅dark | ✅ | ✅ | ✅ | submitFeedback未定义text变量+外部CSS/JS引用，已修复 | fixed |
 | vacation-budget | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
 | vacation-budget | EN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| tailwind-alert-generator | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| css-word-spacing-generator | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| whiteboard | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| whiteboard | EN | ✅dark | ❌→✅ | ✅ | ✅ | rate函数损坏+重复FAQ块+HowTo schema URL损坏，已修复 | fixed |
+| ai-content-moderation-checker | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| ai-content-moderation-checker | EN | ✅dark | ❌→✅ | ✅ | ✅ | categories数组翻译损坏导致JS语法错误，已重建 | fixed |
+| image-frame | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| webhook-tester | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| og-checker | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| og-checker | EN | ✅dark | ❌→✅ | ✅ | ✅ | 残留截断script块导致JS语法错误，已删除 | fixed |
