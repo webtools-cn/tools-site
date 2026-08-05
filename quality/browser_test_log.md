@@ -326,3 +326,22 @@
 | css-to-scss | EN | ✅深色 | ✅ | ✅英文 | 无 | 无 | ✅通过 |
 | html-entity-encode | CN | ✅深色 | ✅ | ✅中文 | 无 | 无 | ✅通过 |
 | html-entity-encode | EN | ✅深色 | ✅ | ✅英文 | 无 | 无 | ✅通过 |
+
+## 2026-08-05 质检批次
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|------|-------|------|------|------|---------|------|------|
+| file-hash | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| file-hash | EN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| chart-maker | CN | ✅dark | ✅(已修复) | ✅ | ✅ | 空壳工具→已修复 | fixed |
+| chart-maker | EN | ✅dark | ✅(已修复) | ✅ | ✅ | 空壳+不可见文字→已修复 | fixed |
+| smart-goal-generator | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| smart-goal-generator | EN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| json-schema-to-typescript | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| json-schema-to-typescript | EN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| yt-thumbnail-downloader | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| yt-thumbnail-downloader | EN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| json-validator | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| json-validator | EN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| internal-rate-of-return | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
+| internal-rate-of-return | EN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
