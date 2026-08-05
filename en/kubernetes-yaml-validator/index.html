@@ -176,7 +176,7 @@
 
     function validate() {
       const text = yamlInput.value.trim();
-      if (!text) { showResult('PleaseInputYAMLcontent', true); return; }
+      if (!text) { showResult('Please enter YAML content', true); return; }
       
       const issues = [];
       const warnings = [];
@@ -185,17 +185,23 @@
         const obj = parseYAML(text);
         
         // Check required fields
-        if (!obj.apiVersion) issues.push('');
-        if (!obj.kind) issues.push('');
-        if (!obj.metadata) issues.push('');
+        if (!obj.apiVersion) issues.push('Missing apiVersion field');
+        if (!obj.kind) issues.push('Missing kind field');
+        if (!obj.metadata) issues.push('Missing metadata field');
         
         // Kind-specific checks
         const kind = obj.kind;
-        const validKinds = ['Deployment','Service','Pod','ConfigMap','Secret','Ingress','StatefulSet','DaemonSet','Job','CronJob','PersistentVolumeClaim','Namespace','ServiceAccount','Role','RoleBinding''Deployment') {
-          if (!obj.spec) issues.push('');
+        const validKinds = ['Deployment','Service','Pod','ConfigMap','Secret','Ingress','StatefulSet','DaemonSet','Job','CronJob','PersistentVolumeClaim','Namespace','ServiceAccount','Role','RoleBinding'];
+        
+        if (kind && !validKinds.includes(kind)) {
+          warnings.push(`kind "${kind}" is not a common K8s resource type`);
+        }
+        
+        if (kind === 'Deployment') {
+          if (!obj.spec) issues.push('Deployment missing spec');
           else {
-            if (!obj.spec.template) issues.push('');
-            if (!obj.spec.selector) issues.push('');
+            if (!obj.spec.template) issues.push('Deployment spec missing template');
+            if (!obj.spec.selector) issues.push('Deployment spec missing selector');
           }
         }
         
@@ -203,24 +209,30 @@
           if (obj.spec && !obj.spec.ports) warnings.push('Service undefined ports');
         }
         
-        if (obj.metadata && !obj.metadata.name) issues.push('');
+        if (obj.metadata && !obj.metadata.name) issues.push('metadata missing name');
         
         // Check for common mistakes
-        if (text.includes('\t')) warnings.push('');
+        if (text.includes('\t')) warnings.push('Tab indentation detected, consider using spaces');
         
         let out = '';
         if (issues.length === 0 && warnings.length === 0) {
-          out = '✅ YAMLFormatValidatethrough！\n''❌ error:\n';
+          out = '✅ YAML format validation passed!\n';
+          if (kind) out += `Resource type: ${kind}\n`;
+          if (obj.metadata && obj.metadata.name) out += `Name: ${obj.metadata.name}\n`;
+          if (obj.apiVersion) out += `API version: ${obj.apiVersion}\n`;
+        } else {
+          if (issues.length > 0) {
+            out += '❌ Errors:\n';
             issues.forEach((e,i) => out += `  [${i+1}] ${e}\n`);
           }
           if (warnings.length > 0) {
-            out += '\n⚠️ warning:\n';
+            out += '\n⚠️ Warnings:\n';
             warnings.forEach((w,i) => out += `  [${i+1}] ${w}\n`);
           }
         }
         showResult(out, issues.length > 0);
       } catch(e) {
-        showResult('YAMLparseerror：' + e.message, true);
+        showResult('YAML parse error: ' + e.message, true);
       }
     }
 
@@ -229,7 +241,7 @@
       result.className = 'result show' + (isError ? ' error' : '');
     }
 
-    validateBtn.addEventListener('click', validate;</script>
+    validateBtn.addEventListener('click', validate);</script>
 
 <script>(function(){ var processed = new Set(); function addCopyBtns(){ var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]'); results.forEach(function(el){ if(processed.has(el)) return; if(el.querySelector('.copy-btn')) return; if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return; if(el.children.length===0 && el.textContent.trim().length<5) return;
       var btn = document.createElement('button');
