@@ -677,3 +677,24 @@
 - **P1修复**: 16页"如何使用"通用占位→具体步骤；electricity/employee CN $→¥
 - **Git**: commit d2b04863c1, 已push
 - **根因**: 批量生成脚本batch_gen_0807.py有严重bug——1)calc()函数引用未声明的resultEl变量 2)用parseFloat(v1)误用DOM元素id 3)EN页面模板占位符TOOL_NAME_CN等未渲染 4)EN页面输出中文未翻译 5)"如何使用"步骤未填充
+
+### 2026-08-06
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:-----:|:----:|:----:|:----:|:-------:|:-----|:----:|
+| grams-to-pounds | CN | ✅深色主题 | ✅500g→1.1023lb / 100lb→45359.24g | ✅全中文 | 无错误 | P0 calc()双向转换要求两字段都填→只填一个即可; P1占位步骤; P1双句号→已修 | ✅PASSED |
+| grams-to-pounds | EN | ✅深色主题 | ✅(功能验证同CN) | ✅全英文 | 无错误 | P0 calc()同CN; P0 JS输出含中文'请输入数值'→英文; P1 footer链接中文→英文; P1 footer版权中文→英文→已修 | ✅PASSED |
+| liters-to-gallons | CN | ✅深色主题 | ✅10L→2.6417gal | ✅全中文 | 无错误 | P0 calc()双向转换bug同上; P1占位步骤; P1双句号→已修 | ✅PASSED |
+| liters-to-gallons | EN | ✅深色主题 | ✅(功能验证同CN) | ✅全英文 | 无错误 | P0 calc()同CN; P0 JS中文残留; P1 footer中文→英文→已修 | ✅PASSED |
+| mph-to-kph | CN | ✅深色主题 | ✅60mph→96.56km/h | ✅全中文 | 无错误 | P0 calc()双向转换bug; P1占位步骤; P1双句号→已修 | ✅PASSED |
+| mph-to-kph | EN | ✅深色主题 | ✅(功能验证同CN) | ✅全英文 | 无错误 | P0 calc()同CN; P0 JS中文; P1 footer中文→英文→已修 | ✅PASSED |
+| watts-to-horsepower | CN | ✅深色主题 | ✅1000W→1.3410hp | ✅全中文 | 无错误 | P0 calc()双向转换bug; P1占位步骤; P1双句号→已修 | ✅PASSED |
+| watts-to-horsepower | EN | ✅深色主题 | ✅(功能验证同CN) | ✅全英文 | 无错误 | P0 calc()同CN; P0 JS中文; P1 footer中文→英文→已修 | ✅PASSED |
+| loan-payment | CN | ✅深色主题 | ✅50万/4.2%/30年→月供¥2445.09/总利息¥380230.91 | ✅全中文 | 无错误 | P0 result display:none→改display:block+结构化输出; P1占位步骤; P1双句号→已修 | ✅PASSED |
+| loan-payment | EN | ✅深色主题 | ✅(功能验证同CN) | ✅全英文 | 无错误 | P0 result display:none同CN; P0 JS输出中文(月供/总利息)→英文; P1 footer链接+版权中文→英文→已修 | ✅PASSED |
+
+### 修复总结
+- **P0修复**: 4个双向转换工具calc()要求两字段都填值→改为只填一个即可触发换算; loan-payment calc()设置result.textContent但result是display:none→改display:block+结构化输出
+- **P1修复**: 5个EN页footer链接全中文→英文; 5个EN页footer版权行含中文→英文; 4个CN页占位步骤→实际说明; 5个CN页双句号→单句号; en/loan-payment JS输出中文→英文
+- **Git**: commit 39e8fb2b69, 已push
+- **根因**: 批量生成脚本模板对双向转换工具(2输入框)使用了3输入框的calc()模板，导致isNaN(b)检查阻止了正常的单值输入; loan-payment的result div初始display:none但calc()未设置display:block; EN页footer和JS输出未翻译
