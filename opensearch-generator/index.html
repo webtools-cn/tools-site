@@ -168,6 +168,53 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 
+function escapeXml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function generate(){
+  var shortName=document.getElementById('shortName').value.trim();
+  var desc=document.getElementById('description').value.trim();
+  var searchUrl=document.getElementById('searchUrl').value.trim();
+  var homeUrl=document.getElementById('homeUrl').value.trim();
+  var suggestUrl=document.getElementById('suggestUrl').value.trim();
+  var iconUrl=document.getElementById('iconUrl').value.trim();
+  var contact=document.getElementById('contact').value.trim();
+  var encoding=document.getElementById('encoding').value;
+  if(!shortName||!searchUrl){showToast('请填写网站名称和搜索URL');return;}
+  var xml='<?xml version="1.0" encoding="'+encoding+'"?>\n';
+  xml+='<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">\n';
+  xml+='  <ShortName>'+escapeXml(shortName)+'</ShortName>\n';
+  xml+='  <Description>'+escapeXml(desc||shortName+' 搜索')+'</Description>\n';
+  if(iconUrl)xml+='  <Image height="16" width="16" type="image/x-icon">'+escapeXml(iconUrl)+'</Image>\n';
+  xml+='  <Url type="text/html" method="get" template="'+escapeXml(searchUrl)+'"/>\n';
+  if(suggestUrl)xml+='  <Url type="application/x-suggestions+json" method="get" template="'+escapeXml(suggestUrl)+'"/>\n';
+  if(contact)xml+='  <Contact>'+escapeXml(contact)+'</Contact>\n';
+  if(homeUrl)xml+='  <Url type="application/opensearchdescription+xml" rel="self" template="'+escapeXml(homeUrl)+'opensearch.xml"/>\n';
+  xml+='  <InputEncoding>'+encoding+'</InputEncoding>\n';
+  xml+='  <OutputEncoding>'+encoding+'</OutputEncoding>\n';
+  xml+='</OpenSearchDescription>';
+  document.getElementById('output').textContent=xml;
+  document.getElementById('outputPanel').style.display='block';
+}
+document.getElementById('btnGenerate').onclick=generate;
+document.getElementById('btnCopy').onclick=async function(){
+  var text=document.getElementById('output').textContent;if(!text)return;
+  var ok=false;try{await navigator.clipboard.writeText(text);ok=true;}catch(e){}
+  if(!ok){var ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();try{ok=document.execCommand('copy');}catch(e){}document.body.removeChild(ta);}
+  var btn=this;var orig=btn.textContent;btn.textContent=ok?'✅ 已复制':'❌ 复制失败';setTimeout(function(){btn.textContent=orig;},2000);
+};
+document.getElementById('btnDownload').onclick=function(){
+  var text=document.getElementById('output').textContent;if(!text)return;
+  var blob=new Blob([text],{type:'application/opensearchdescription+xml'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='opensearch.xml';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);
+};
+document.getElementById('btnLinkTag').onclick=function(){
+  var homeUrl=document.getElementById('homeUrl').value.trim();
+  var shortName=document.getElementById('shortName').value.trim();
+  var tag='<link rel="search" type="application/opensearchdescription+xml" href="'+(homeUrl||'/')+'opensearch.xml" title="'+shortName+'">';
+  document.getElementById('output').textContent=tag;
+  document.getElementById('outputPanel').style.display='block';
+};
+document.addEventListener('keydown',function(e){if(e.ctrlKey&&e.key==='Enter'){generate();e.preventDefault();}});
+setTimeout(generate,100);
 </script>
 
 </div>
