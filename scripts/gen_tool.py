@@ -58,7 +58,7 @@ def gen_tool(slug, cn_name, en_name, cn_desc, en_desc, inputs_cn, inputs_en, cal
     cn_html = cn_html.replace('PERCENTAGE_PH2', '')
     cn_html = cn_html.replace('PERCENTAGE_LABEL', inputs_cn[0][0])
     cn_html = cn_html.replace('PERCENTAGE_PH', inputs_cn[0][1])
-    cn_html = cn_html.replace('<!-- PERCENTAGE_LOGIC -->', calc_js)
+    cn_html = cn_html.replace('<!-- PERCENTAGE_LOGIC -->', 'var v1=a,v2=b,v3=c,v4=d;' + calc_js)
     # 动态替换inputs — 使用INPUTS_PLACEHOLDER
     cn_html = cn_html.replace('<!-- INPUTS_PLACEHOLDER -->', cn_inputs.rstrip())
     # 替换SEO占位符
@@ -106,7 +106,7 @@ def gen_tool(slug, cn_name, en_name, cn_desc, en_desc, inputs_cn, inputs_en, cal
         'href="https://free-toolbase.com/SLUG/" />',
         'href="https://free-toolbase.com/SLUG/" />',
     )
-    en_html = en_html.replace('<!-- PERCENTAGE_LOGIC -->', calc_js)
+    en_html = en_html.replace('<!-- PERCENTAGE_LOGIC -->', 'var v1=a,v2=b,v3=c,v4=d;' + calc_js)
     
     with open(f'en/{slug}/index.html', 'w', encoding='utf-8') as f:
         f.write(en_html)
