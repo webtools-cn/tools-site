@@ -307,3 +307,22 @@
 | oklch-color-picker | EN | ✅深色 | ✅ | ✅英文 | 网络资源 | EN输出元素0个 | ⚠️关注 |
 | ambient-sound-generator | CN | ✅深色(已修) | ✅ | ✅中文 | 网络资源+AudioContext warning | 缺失23个CSS类→已修 | ✅已修 |
 | ambient-sound-generator | EN | ✅深色(已修) | ✅ | ✅英文 | 网络资源+AudioContext warning | 缺失全部CSS→已修 | ✅已修 |
+
+## 2026-08-05 轮次2 - CDP自动化测试
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| favicon-generator | CN | ✅深色 | ✅ | ✅中文 | 无 | 无 | ✅通过 |
+| favicon-generator | EN | ✅深色 | ✅ | ✅英文 | 无 | 4个中文字符(标题截断) | ✅通过 |
+| data-unit-converter | CN | ✅深色 | N/A(已合并) | ✅中文 | 无 | 已合并至data-storage-converter | ✅通过 |
+| data-unit-converter | EN | ✅深色 | N/A(已合并) | ✅英文 | 无 | 已合并至data-storage-converter | ✅通过 |
+| medication-dosage-calculator | CN | ✅深色 | ✅ | ✅中文 | 无 | 无 | ✅通过 |
+| medication-dosage-calculator | EN | ✅深色 | ✅ | ✅英文 | 无 | 无 | ✅通过 |
+| regex-extractor | CN | ✅深色(已修) | ✅ | ✅中文 | 无 | input/textarea/outputArea白色背景+模板按钮浅色+match-item浅色+文字色→已修 | ✅已修 |
+| regex-extractor | EN | ✅深色(已修) | ✅ | ✅英文 | 无 | 同CN→已修 | ✅已修 |
+| aes-encryptor | CN | ✅深色 | ✅ | ✅中文 | 无 | 无 | ✅通过 |
+| aes-encryptor | EN | ✅深色 | ✅ | ✅英文 | 无 | 无 | ✅通过 |
+| css-to-scss | CN | ✅深色 | ✅ | ✅中文 | 无 | 无 | ✅通过 |
+| css-to-scss | EN | ✅深色 | ✅ | ✅英文 | 无 | 无 | ✅通过 |
+| html-entity-encode | CN | ✅深色 | ✅ | ✅中文 | 无 | 无 | ✅通过 |
+| html-entity-encode | EN | ✅深色 | ✅ | ✅英文 | 无 | 无 | ✅通过 |
