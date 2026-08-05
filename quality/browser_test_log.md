@@ -475,3 +475,20 @@
 | electricity-cost-calculator | CN | ✅#0f172a | ✅静态验证通过 | ✅全中文 | N/A | P1: 同上 | ✅已修复 |
 
 **总结**: 8个计算器16页(CN8+EN8)。EN全部有P0级问题(calc函数体为空+占位符未替换+Footer中文+重复按钮)，CN有P1级问题(通用steps+通用FAQ)。全部已修复并push。浏览器实测5个EN+1个CN工具计算功能全部正确，深色主题#0f172a/#1e293b验证通过。
+
+## 2026-08-06 5个新计算器质检 (5工具10页)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| weight-loss-calorie-calculator | CN | ✅#0f172a | ✅5kg×30天=1283kcal/天 | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| weight-loss-calorie-calculator | EN | ✅#0f172a | ✅5kg×30天=1283kcal/day | ✅修复全英文 | 无错误 | **P0修复:占位符+中文残留+JS中文+Footer中文** | ✅已修复 |
+| water-bill-calculator | CN | ✅#0f172a | ✅20×3.5+20×1.4=98 | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| water-bill-calculator | EN | ✅#0f172a | ✅20×3.5+28=98 | ✅修复全英文 | 无错误 | **P0修复:同上** | ✅已修复 |
+| gas-bill-calculator | CN | ✅#0f172a | ✅30×2.8=84,年1008 | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| gas-bill-calculator | EN | ✅#0f172a | ✅30×2.8=84,年1008 | ✅修复全英文 | 无错误 | **P0修复:同上** | ✅已修复 |
+| monthly-salary-calculator | CN | ✅#0f172a | ✅静态验证通过 | ✅全中文 | N/A | 无 | ✅PASSED |
+| monthly-salary-calculator | EN | ✅#0f172a | ✅60000/12-22%=3900 | ✅修复全英文 | 无错误 | **P0修复:同上** | ✅已修复 |
+| packaging-cost-calculator | CN | ✅#0f172a | ✅静态验证通过 | ✅全中文 | N/A | 无 | ✅PASSED |
+| packaging-cost-calculator | EN | ✅#0f172a | ✅5000/1000=5,100个500 | ✅修复全英文 | 无错误 | **P0修复:同上** | ✅已修复 |
+
+**总结**: 5个新计算器10页(CN5+EN5)。CN全部通过无问题。EN全部有P0级问题(gen_tool.py生成的EN模板占位符未替换+JS输出中文+Footer中文+hreflang错误)，已全部完整重写修复并push。浏览器实测5个EN页面计算功能全部正确，全英文验证通过。
