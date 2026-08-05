@@ -71,6 +71,24 @@ footer{text-align:center;padding:24px;color:#999;font-size:0.85em}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 免费在线图表生成器</p>
 <div class="hero"><p>免费在线图表生成器，支持柱状图、折线图、饼图、环形图、雷达图。纯前端Canvas绘制，无需第三方库，支持导出PNG图片，数据不上传服务器。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 
+<div class="tool-card" style="background:#1e293b;border-radius:16px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,0.3);margin-bottom:24px">
+<label style="color:#e2e8f0">图表类型</label>
+<select id="chartType" style="background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2)">
+<option value="bar">柱状图</option>
+<option value="line">折线图</option>
+<option value="pie">饼图</option>
+<option value="doughnut">环形图</option>
+<option value="radar">雷达图</option>
+</select>
+<label style="color:#e2e8f0">数据 (JSON格式: [{"label":"A","value":10}])</label>
+<textarea id="chartData" style="background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);min-height:100px;font-family:monospace">[{"label":"一月","value":30},{"label":"二月","value":50},{"label":"三月","value":45},{"label":"四月","value":70},{"label":"五月","value":60}]</textarea>
+<div class="btn-row">
+<button class="btn btn-primary" onclick="drawChart()" style="background:#06b6d4;color:#fff">📊 生成图表</button>
+<button class="btn btn-secondary" onclick="downloadChart()" style="background:#334155;color:#e2e8f0">💾 下载PNG</button>
+</div>
+<canvas id="chartCanvas" width="800" height="400" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;margin-top:12px;display:block"></canvas>
+</div>
+
 <div class="section"><h2>常见问题</h2></div>
 </main>
 <div>
@@ -94,6 +112,75 @@ footer{text-align:center;padding:24px;color:#999;font-size:0.85em}
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+const canvas=document.getElementById('chartCanvas'),ctx=canvas.getContext('2d');
+function drawChart(){
+  let data;try{data=JSON.parse(document.getElementById('chartData').value)}catch(e){showToast('数据格式错误，请使用JSON格式');return}
+  if(!data.length){showToast('请添加数据');return}
+  const type=document.getElementById('chartType').value,w=canvas.width,h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#0f172a';ctx.fillRect(0,0,w,h);
+  const colors=['#ff6384','#36a2eb','#ffce56','#4bc0c0','#9966ff','#ff9f40'];
+  if(type==='pie'||type==='doughnut'){
+    const total=data.reduce((s,d)=>s+d.value,0),cx=w/2,cy=h/2,r=Math.min(w,h)/2-40;
+    let angle=-Math.PI/2;
+    data.forEach((d,i)=>{
+      const slice=(d.value/total)*Math.PI*2;
+      ctx.beginPath();ctx.fillStyle=colors[i%colors.length];
+      ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,angle,angle+slice);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#0f172a';ctx.lineWidth=2;ctx.stroke();
+      const mid=angle+slice/2,tx=cx+Math.cos(mid)*(r*0.7),ty=cy+Math.sin(mid)*(r*0.7);
+      ctx.fillStyle='#e2e8f0';ctx.font='bold 13px sans-serif';ctx.textAlign='center';
+      ctx.fillText(d.label+' ('+d.value+')',tx,ty);
+      angle+=slice;
+    });
+    if(type==='doughnut'){ctx.fillStyle='#0f172a';ctx.beginPath();ctx.arc(cx,cy,r*0.5,0,Math.PI*2);ctx.fill()}
+  }else if(type==='radar'){
+    const cx=w/2,cy=h/2,r=Math.min(w,h)/2-60,n=data.length;
+    const maxVal=Math.max(...data.map(d=>d.value));
+    for(let j=1;j<=5;j++){ctx.strokeStyle='rgba(148,163,184,.2)';ctx.beginPath();
+      for(let i=0;i<n;i++){const ang=Math.PI*2*i/n-Math.PI/2;const x=cx+r*j/5*Math.cos(ang),y=cy+r*j/5*Math.sin(ang);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}
+      ctx.closePath();ctx.stroke()}
+    ctx.strokeStyle=colors[0];ctx.lineWidth=2;ctx.fillStyle=colors[0]+'33';ctx.beginPath();
+    data.forEach((d,i)=>{
+      const ang=Math.PI*2*i/n-Math.PI/2;
+      const x=cx+r*(d.value/maxVal)*Math.cos(ang),y=cy+r*(d.value/maxVal)*Math.sin(ang);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      ctx.fillStyle='#94a3b8';ctx.font='12px sans-serif';ctx.textAlign='center';
+      ctx.fillText(d.label,cx+(r+20)*Math.cos(ang),cy+(r+20)*Math.sin(ang)+4);
+    });
+    ctx.closePath();ctx.fill();ctx.stroke();
+    data.forEach((d,i)=>{
+      const ang=Math.PI*2*i/n-Math.PI/2;
+      const x=cx+r*(d.value/maxVal)*Math.cos(ang),y=cy+r*(d.value/maxVal)*Math.sin(ang);
+      ctx.fillStyle=colors[0];ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill();
+    });
+  }else{
+    const pad={top:30,right:30,bottom:50,left:60},pw=w-pad.left-pad.right,ph=h-pad.top-pad.bottom;
+    const maxVal=Math.max(...data.map(d=>d.value));
+    const barW=pw/data.length*0.6, gap=pw/data.length*0.4;
+    ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';ctx.textAlign='right';
+    for(let i=0;i<=5;i++){const y=pad.top+ph*(1-i/5);ctx.fillText(Math.round(maxVal*i/5),pad.left-8,y+4);ctx.strokeStyle='rgba(148,163,184,.1)';ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(w-pad.right,y);ctx.stroke()}
+    ctx.textAlign='center';
+    data.forEach((d,i)=>{
+      const x=pad.left+i*(pw/data.length)+gap/2;
+      const barH=(d.value/maxVal)*ph;
+      ctx.fillStyle=colors[i%colors.length];
+      if(type==='bar'){
+        ctx.fillRect(x,pad.top+ph-barH,barW,barH);
+      }else if(type==='line'){
+        ctx.beginPath();ctx.arc(x+barW/2,pad.top+ph-barH,5,0,Math.PI*2);ctx.fill();
+        if(i>0){
+          const prev=data[i-1],px=pad.left+(i-1)*(pw/data.length)+gap/2+barW/2,py=pad.top+ph-(prev.value/maxVal)*ph;
+          ctx.strokeStyle=colors[i%colors.length];ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(x+barW/2,pad.top+ph-barH);ctx.stroke();
+        }
+      }
+      ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';ctx.fillText(d.label,x+barW/2,pad.top+ph+15);
+      if(type==='bar'){ctx.fillStyle='#e2e8f0';ctx.font='bold 10px sans-serif';ctx.fillText(d.value,x+barW/2,pad.top+ph-barH-5)}
+    });
+  }
+}
+function downloadChart(){const a=document.createElement('a');a.download='chart.png';a.href=canvas.toDataURL();a.click()}
+drawChart();
 (function() {
 
   'use strict';

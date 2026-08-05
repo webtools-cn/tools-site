@@ -154,6 +154,28 @@ footer{text-align:center;padding:24px;color:#999;font-size:0.85em}
 </h1>
 </header>
 <main>
+    <div class="tool-card" style="background:#1e293b;border-radius:16px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,0.3);margin-bottom:24px">
+    <label style="color:#e2e8f0">Chart Type</label>
+    <select id="chartType" style="width:100%;padding:12px;border:1px solid rgba(148,163,184,.2);border-radius:8px;font-size:1em;margin-bottom:12px;background:#0f172a;color:#e2e8f0">
+      <option value="bar">Bar Chart</option>
+      <option value="line">Line Chart</option>
+      <option value="pie">Pie Chart</option>
+      <option value="doughnut">Doughnut Chart</option>
+      <option value="radar">Radar Chart</option>
+    </select>
+    <label style="color:#e2e8f0">Data (JSON format: [{"label":"A","value":10}])</label>
+    <textarea id="chartData" style="width:100%;padding:12px;border:1px solid rgba(148,163,184,.2);border-radius:8px;font-size:1em;margin-bottom:12px;background:#0f172a;color:#e2e8f0;min-height:100px;font-family:monospace">[{"label":"Jan","value":30},{"label":"Feb","value":50},{"label":"Mar","value":45},{"label":"Apr","value":70},{"label":"May","value":60}]</textarea>
+    <div class="btn-row" style="display:flex;gap:12px;margin:16px 0;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="drawChart()" style="background:#06b6d4;color:#fff;padding:12px 28px;border:none;border-radius:8px;font-size:1em;cursor:pointer;font-weight:600">📊 Draw Chart</button>
+      <button class="btn btn-secondary" onclick="downloadChart()" style="background:#334155;color:#e2e8f0;padding:12px 28px;border:none;border-radius:8px;font-size:1em;cursor:pointer;font-weight:600">💾 Download PNG</button>
+    </div>
+    <canvas id="chartCanvas" width="800" height="400" style="width:100%;max-width:800px;border:1px solid rgba(148,163,184,.2);border-radius:8px;margin-top:12px;display:block;background:#0f172a"></canvas>
+    </div>
+
+    <div class="toast" id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999"></div>
+    <script>
+    function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+    </script>
     <div class="info-section faq-section">
     <h2>❓ Frequently Asked Questions</h2>
     <div class="faq-item">
@@ -196,6 +218,7 @@ function drawChart(){
   if(!data.length){showToast('Please add data');return}
   const type=document.getElementById('chartType').value,w=canvas.width,h=canvas.height;
   ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#0f172a';ctx.fillRect(0,0,w,h);
   const colors=['#ff6384','#36a2eb','#ffce56','#4bc0c0','#9966ff','#ff9f40'];
   if(type==='pie'||type==='doughnut'){
     const total=data.reduce((s,d)=>s+d.value,0),cx=w/2,cy=h/2,r=Math.min(w,h)/2-40;
@@ -204,31 +227,28 @@ function drawChart(){
       const slice=(d.value/total)*Math.PI*2;
       ctx.beginPath();ctx.fillStyle=colors[i%colors.length];
       ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,angle,angle+slice);ctx.closePath();ctx.fill();
-      ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+      ctx.strokeStyle='#0f172a';ctx.lineWidth=2;ctx.stroke();
       const mid=angle+slice/2,tx=cx+Math.cos(mid)*(r*0.7),ty=cy+Math.sin(mid)*(r*0.7);
-      ctx.fillStyle='#fff';ctx.font='bold 13px sans-serif';ctx.textAlign='center';
+      ctx.fillStyle='#e2e8f0';ctx.font='bold 13px sans-serif';ctx.textAlign='center';
       ctx.fillText(d.label+' ('+d.value+')',tx,ty);
       angle+=slice;
     });
-    if(type==='doughnut'){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,r*0.5,0,Math.PI*2);ctx.fill()}
+    if(type==='doughnut'){ctx.fillStyle='#0f172a';ctx.beginPath();ctx.arc(cx,cy,r*0.5,0,Math.PI*2);ctx.fill()}
   }else if(type==='radar'){
     const cx=w/2,cy=h/2,r=Math.min(w,h)/2-60,n=data.length;
     const maxVal=Math.max(...data.map(d=>d.value));
-    // grid
-    for(let j=1;j<=5;j++){ctx.strokeStyle='#ddd';ctx.beginPath();
+    for(let j=1;j<=5;j++){ctx.strokeStyle='rgba(148,163,184,.2)';ctx.beginPath();
       for(let i=0;i<n;i++){const ang=Math.PI*2*i/n-Math.PI/2;const x=cx+r*j/5*Math.cos(ang),y=cy+r*j/5*Math.sin(ang);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}
       ctx.closePath();ctx.stroke()}
-    // data
     ctx.strokeStyle=colors[0];ctx.lineWidth=2;ctx.fillStyle=colors[0]+'33';ctx.beginPath();
     data.forEach((d,i)=>{
       const ang=Math.PI*2*i/n-Math.PI/2;
       const x=cx+r*(d.value/maxVal)*Math.cos(ang),y=cy+r*(d.value/maxVal)*Math.sin(ang);
       i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
-      ctx.fillStyle='#333';ctx.font='12px sans-serif';ctx.textAlign='center';
+      ctx.fillStyle='#94a3b8';ctx.font='12px sans-serif';ctx.textAlign='center';
       ctx.fillText(d.label,cx+(r+20)*Math.cos(ang),cy+(r+20)*Math.sin(ang)+4);
     });
     ctx.closePath();ctx.fill();ctx.stroke();
-    // dots
     data.forEach((d,i)=>{
       const ang=Math.PI*2*i/n-Math.PI/2;
       const x=cx+r*(d.value/maxVal)*Math.cos(ang),y=cy+r*(d.value/maxVal)*Math.sin(ang);
@@ -238,10 +258,8 @@ function drawChart(){
     const pad={top:30,right:30,bottom:50,left:60},pw=w-pad.left-pad.right,ph=h-pad.top-pad.bottom;
     const maxVal=Math.max(...data.map(d=>d.value));
     const barW=pw/data.length*0.6, gap=pw/data.length*0.4;
-    // grid lines
-    ctx.fillStyle='#666';ctx.font='11px sans-serif';ctx.textAlign='right';
-    for(let i=0;i<=5;i++){const y=pad.top+ph*(1-i/5);ctx.fillText(Math.round(maxVal*i/5),pad.left-8,y+4);ctx.strokeStyle='#eee';ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(w-pad.right,y);ctx.stroke()}
-    // bars/lines
+    ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';ctx.textAlign='right';
+    for(let i=0;i<=5;i++){const y=pad.top+ph*(1-i/5);ctx.fillText(Math.round(maxVal*i/5),pad.left-8,y+4);ctx.strokeStyle='rgba(148,163,184,.1)';ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(w-pad.right,y);ctx.stroke()}
     ctx.textAlign='center';
     data.forEach((d,i)=>{
       const x=pad.left+i*(pw/data.length)+gap/2;
@@ -256,8 +274,8 @@ function drawChart(){
           ctx.strokeStyle=colors[i%colors.length];ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(x+barW/2,pad.top+ph-barH);ctx.stroke();
         }
       }
-      ctx.fillStyle='#333';ctx.font='11px sans-serif';ctx.fillText(d.label,x+barW/2,pad.top+ph+15);
-      if(type==='bar'){ctx.fillStyle='#333';ctx.font='bold 10px sans-serif';ctx.fillText(d.value,x+barW/2,pad.top+ph-barH-5)}
+      ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';ctx.fillText(d.label,x+barW/2,pad.top+ph+15);
+      if(type==='bar'){ctx.fillStyle='#e2e8f0';ctx.font='bold 10px sans-serif';ctx.fillText(d.value,x+barW/2,pad.top+ph-barH-5)}
     });
   }
 }
