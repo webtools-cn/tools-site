@@ -402,3 +402,22 @@
 
 **本轮**: 测试7个工具(14页面), 4个通过, 3个修复(共4个bug), 全部已push。
 **浏览器实测**: Kimi WebBridge在线, 实际打开页面点击按钮验证功能。
+
+## 2026-08-05 Batch (Static Analysis + Code Review)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|------|-------|------|------|------|---------|------|------|
+| hls-player | CN | ✅修复浅色背景→深色 | JS语法OK | ✅ | N/A | 修复#f5f7fa浅色背景×2,#e0e0e0浅色边框,#999文字 | ✅PASSED |
+| hls-player | EN | ✅修复浅色背景→深色 | JS语法OK | ✅ | N/A | 同CN,已同步修复 | ✅PASSED |
+| css-text-effects-generator | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| css-text-effects-generator | EN | ✅深色 | JS语法OK | ✅ | N/A | 修复footer缺链接+重复</footer> | ✅PASSED |
+| calorie-burn-calculator | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| calorie-burn-calculator | EN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| http-status-codes | CN | ✅重定向页 | N/A(重定向) | ✅ | N/A | 重定向到http-status-lookup,正常 | ✅PASSED |
+| http-status-codes | EN | ✅修复补深色背景 | N/A(重定向) | ✅ | N/A | 修复body缺深色背景+footer链接 | ✅PASSED |
+| npm-package-json | CN | ✅深色 | JS语法OK | ✅ | N/A | 修复#e8f0fe浅色hover背景 | ✅PASSED |
+| npm-package-json | EN | ✅深色 | JS语法OK | ✅ | N/A | 同CN,已同步修复 | ✅PASSED |
+| favicon-from-text | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| favicon-from-text | EN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| team-generator | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| team-generator | EN | ✅深色 | ✅修复JS语法错误 | ✅ | N/A | **P0修复:copyResult函数缺失+generateTeams代码损坏+DOMContentLoaded语法错误** | ✅PASSED |
