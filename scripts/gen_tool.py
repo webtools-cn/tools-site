@@ -17,13 +17,31 @@ def gen_tool(slug, cn_name, en_name, cn_desc, en_desc, inputs_cn, inputs_en, cal
     os.makedirs(slug, exist_ok=True)
     os.makedirs(f'en/{slug}', exist_ok=True)
     
-    # 生成input HTML
+    # 生成input HTML - 支持select类型: tuple可带第三个元素 'select:选项1,选项2,...'
     cn_inputs = ''
     en_inputs = ''
-    for i, ((cnl, cnp), (enl, enp)) in enumerate(zip(inputs_cn, inputs_en)):
+    for i, (cn_tuple, en_tuple) in enumerate(zip(inputs_cn, inputs_en)):
         vid = f'v{i+1}'
-        cn_inputs += f'<div class="form-group"><label>{cnl}</label><input type="number" id="{vid}" placeholder="{cnp}" step="any"></div>\n'
-        en_inputs += f'<div class="form-group"><label>{enl}</label><input type="number" id="{vid}" placeholder="{enp}" step="any"></div>\n'
+        cn_extra = cn_tuple[2] if len(cn_tuple) > 2 else ''
+        en_extra = en_tuple[2] if len(en_tuple) > 2 else ''
+        
+        if cn_extra.startswith('select:'):
+            opts = cn_extra[7:].split(',')
+            cn_inputs += f'<div class="form-group"><label>{cn_tuple[0]}</label><select id="{vid}">'
+            for o in opts:
+                cn_inputs += f'<option value="{o.strip()}">{o.strip()}</option>'
+            cn_inputs += '</select></div>\n'
+        else:
+            cn_inputs += f'<div class="form-group"><label>{cn_tuple[0]}</label><input type="number" id="{vid}" placeholder="{cn_tuple[1]}" step="any"></div>\n'
+        
+        if en_extra.startswith('select:'):
+            opts = en_extra[7:].split(',')
+            en_inputs += f'<div class="form-group"><label>{en_tuple[0]}</label><select id="{vid}">'
+            for o in opts:
+                en_inputs += f'<option value="{o.strip()}">{o.strip()}</option>'
+            en_inputs += '</select></div>\n'
+        else:
+            en_inputs += f'<div class="form-group"><label>{en_tuple[0]}</label><input type="number" id="{vid}" placeholder="{en_tuple[1]}" step="any"></div>\n'
     
     # 读取模板
     with open('scripts/template.html', encoding='utf-8') as f:
