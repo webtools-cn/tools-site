@@ -369,3 +369,36 @@
 | webhook-tester | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
 | og-checker | CN | ✅dark | ✅ | ✅ | ✅ | 无 | passed |
 | og-checker | EN | ✅dark | ❌→✅ | ✅ | ✅ | 残留截断script块导致JS语法错误，已删除 | fixed |
+
+## 2026-08-05 轮次
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| css-3d-text-generator | CN+EN | ✅深色 | JS语法✅ | ✅ | N/A(扩展离线) | 无 | ✅通过 |
+| online-equalizer | CN+EN | ✅深色 | JS语法✅ | ✅ | N/A | 无 | ✅通过 |
+| fifo-lifo-calculator | CN+EN | ✅深色 | JS语法✅ | ✅ | N/A | 无 | ✅通过 |
+| pizza-dough-calculator | CN+EN | ✅深色 | JS语法✅ | ✅ | N/A | 无 | ✅通过 |
+| 401k-match-calculator | CN+EN | ✅深色 | EN JS语法错误→已修 | ✅ | N/A | EN: matchPattern.value缺引号+copyResult数组字面\n | ✅已修复 |
+| sketch-pad | CN+EN | CN/EN浅色surface→已修 | JS语法✅ | ✅ | N/A | --surface:#f5f0e8浅色背景 | ✅已修复 |
+| http-status-lookup | CN+EN | ✅深色 | EN JS语法错误→已修 | ✅ | N/A | EN: 415数据截断+数组未闭合+缺失422-504+多余} | ✅已修复 |
+
+**注**: Kimi WebBridge浏览器扩展离线(extension_connected:false)，本轮使用L1(JS语法)+L2(静态分析)检测。发现3个工具共5个bug，全部已修复并push。
+
+## 2026-08-05 轮次2 (14:00)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| consulting-rate-calculator | EN | ✅深色 | ✅计算正确($160/hr) | ✅ | ✅ | 无 | ✅通过 |
+| pig-latin | CN | ✅深色 | ✅ | ✅ | ✅ | 无 | ✅通过 |
+| pig-latin | EN | ✅深色 | ✅Hello→Ellohay | ✅ | ❌→✅ | rate()函数损坏+related-tools脚本未包裹IIFE | ✅已修复 |
+| subscription-auditor | CN+EN | ✅深色 | ✅ | ✅ | ✅ | 无 | ✅通过 |
+| fat-fire-calculator | CN+EN | ✅深色 | ✅ | ✅ | ✅ | 无 | ✅通过 |
+| user-agent-parser | CN | ✅深色 | ✅UA解析正确 | ✅ | ✅ | 无 | ✅通过 |
+| user-agent-parser | EN | ✅深色 | ✅ | ✅ | ✅ | 无 | ✅通过 |
+| editorconfig-generator | CN | ✅深色 | ✅ | ✅ | ✅ | 无 | ✅通过 |
+| editorconfig-generator | EN | ✅深色 | ✅addLangRule+generateConfig | ✅ | ❌→✅ | innerHTML缺少+拼接导致JS语法错误 | ✅已修复 |
+| spin-the-wheel | CN | ✅深色 | ✅ | ✅ | ✅ | 无 | ✅通过 |
+| spin-the-wheel | EN | ✅深色 | ✅Spin+Canvas绘制 | ✅ | ❌→✅ | 整页内容损坏:convert占位符+空预设+坏schema | ✅已修复 |
+
+**本轮**: 测试7个工具(14页面), 4个通过, 3个修复(共4个bug), 全部已push。
+**浏览器实测**: Kimi WebBridge在线, 实际打开页面点击按钮验证功能。
