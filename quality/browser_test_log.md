@@ -578,3 +578,19 @@
    - "输入第一个参数"/"输入第二个参数" → 具体到每个工具的步骤描述
 
 **总结**: 5个新几何体积计算器10页(CN5+EN5)。发现3类P0+3类P1问题，全部修复。浏览器实测10页功能全部正确，深色主题正确，语言正确。已push。
+
+---
+
+## 2026-08-06 质检轮次 — 5个EN页面补测(paper-size/ramp-slope/carpet/soil/event-budget)
+
+> Kimi WebBridge浏览器实测。这5个EN页面在上一批8个计算器质检中只测了CN，EN未测。本轮补测。
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| paper-size-calculator | EN | ✅#0f172a/#1e293b/#e2e8f0/#06b6d4 | ✅A4→210×297mm\|8.3×11.7in\|2480×3508px@300dpi | ✅全英文(仅lang-switch"中文") | 无错误 | 无 | ✅PASSED |
+| ramp-slope-calculator | EN | ✅#0f172a/#1e293b/#e2e8f0 | ✅30/250→Slope 12.0%\|Angle 6.8°\|Ratio 1:8.3 | ✅全英文 | 无错误 | 无 | ✅PASSED |
+| carpet-cost-calculator | EN | ✅#0f172a/#1e293b/#e2e8f0 | ✅25m²×$20+10%waste→27.5m²×$20=$550 | ✅全英文 | 无错误 | 无 | ✅PASSED |
+| soil-volume-calculator | EN | ✅#0f172a/#1e293b/#e2e8f0 | ✅d10×h5×density0.3→393cm³=0.4L≈0.2kg | ✅全英文 | 无错误 | 无 | ✅PASSED |
+| event-budget-calculator | EN | ✅#0f172a/#1e293b/#e2e8f0 | ✅$5000→Catering$2000\|Venue$1500\|Other$1500(30%) | ✅全英文 | 无错误 | 无 | ✅PASSED |
+
+**总结**: 5个EN页面全部通过，无问题。深色主题#0f172a/#1e293b/#e2e8f0/#06b6d4全部正确，功能计算正确，全英文（仅lang-switch的"中文"按钮为正常切换链接），Footer 5链接+dexshuang@google.com邮箱正确。无需修复。
