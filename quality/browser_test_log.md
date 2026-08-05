@@ -421,3 +421,34 @@
 | favicon-from-text | EN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
 | team-generator | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
 | team-generator | EN | ✅深色 | ✅修复JS语法错误 | ✅ | N/A | **P0修复:copyResult函数缺失+generateTeams代码损坏+DOMContentLoaded语法错误** | ✅PASSED |
+
+## 2026-08-06 Batch (Static Analysis - 11 tools EN pages)
+
+> ⚠️ Kimi WebBridge extension未连接, 无法浏览器实测。降级为静态分析+JS语法检查。
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|------|-------|------|------|------|---------|------|------|
+| roi-calculator | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| roi-calculator | EN | ✅深色 | JS语法OK | ✅修复 | N/A | **P0修复:TOOL_NAME_CN占位符×6+中文残留×7处(关于/联系我们/隐私政策等)+JS中文输出** | ✅PASSED |
+| break-even-calculator | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| break-even-calculator | EN | ✅深色 | JS语法OK | ✅修复 | N/A | **P0修复:同上,占位符+中文残留+JS中文输出** | ✅PASSED |
+| gpa-calculator | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| gpa-calculator | EN | ✅深色 | JS语法OK | ✅修复 | N/A | **P0修复:同上+GPA计算逻辑增强(支持Course B学分)** | ✅PASSED |
+| pace-calculator | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| pace-calculator | EN | ✅深色 | ✅修复JS引号转义 | ✅修复 | N/A | **P0修复:占位符+中文残留+JS引号转义错误导致语法报错** | ✅PASSED |
+| markup-calculator | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| markup-calculator | EN | ✅深色 | JS语法OK | ✅修复 | N/A | **P0修复:同上,占位符+中文残留+JS中文输出** | ✅PASSED |
+| amortization-calculator | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| amortization-calculator | EN | ✅深色 | JS语法OK | ✅修复 | N/A | **P0修复:同上,占位符+中文残留+JS中文输出** | ✅PASSED |
+| calorie-burn-calculator | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| calorie-burn-calculator | EN | ✅深色 | JS语法OK | ✅修复 | N/A | **P0修复:同上,占位符+中文残留+JS中文输出** | ✅PASSED |
+| commission-calculator | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| commission-calculator | EN | ✅深色 | JS语法OK | ✅修复 | N/A | **P0修复:同上,占位符+中文残留+JS中文输出** | ✅PASSED |
+| final-grade-calculator | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| final-grade-calculator | EN | ✅深色 | JS语法OK | ✅修复 | N/A | **P0修复:同上,占位符+中文残留+JS中文输出** | ✅PASSED |
+| paint-coverage-calculator | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| paint-coverage-calculator | EN | ✅深色 | JS语法OK | ✅修复 | N/A | **P0修复:同上,占位符+中文残留+JS中文输出** | ✅PASSED |
+| percentage-change-calculator | CN | ✅深色 | JS语法OK | ✅ | N/A | 无问题 | ✅PASSED |
+| percentage-change-calculator | EN | ✅深色 | JS语法OK | ✅修复 | N/A | **P0修复:同上,占位符+中文残留+JS中文输出** | ✅PASSED |
+
+**总结**: 11个工具22页(CN11+EN11), EN全部有P0级问题(占位符未替换+中文残留), 已全部重写修复。22/22 L1通过。
