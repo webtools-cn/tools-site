@@ -57,8 +57,8 @@ def scan_tool(dirname):
         if 'aggregateRating' in html:
             issues.append(f'{label}: aggregateRating')
         
-        # 2. alert()检测（在JS代码中）
-        scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, re.S)
+        # 2. alert()检测（在JS代码中，排除JSON-LD）
+        scripts = re.findall(r'<script(?![^>]*type="application/[^"]*")[^>]*>(.*?)</script>', html, re.S)
         for s in scripts:
             if 'alert(' in s and 'showToast' not in s:
                 issues.append(f'{label}: alert()')
@@ -90,13 +90,14 @@ def scan_tool(dirname):
     return issues
 
 def verify_js(dirname):
-    """验证JS语法"""
+    """验证JS语法，排除JSON-LD"""
     path = os.path.join(dirname, 'index.html')
     if not os.path.exists(path):
         return False, ''
     with open(path) as f:
         html = f.read()
-    scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, re.S)
+    # 排除 type="application/ld+json" 和 type="application/json"
+    scripts = re.findall(r'<script(?![^>]*type="application/(?:ld\+)?json")[^>]*>(.*?)</script>', html, re.S)
     js = '\n'.join(s for s in scripts if s.strip())
     if not js.strip():
         return True, ''
