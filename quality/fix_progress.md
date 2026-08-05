@@ -255,3 +255,13 @@ ai-detector, anagram-finder, animated-gradient-background, alarm-clock, aes-encr
 - aes-encrypt: encryptText()/decryptText()/switchTab() 3个空函数 → 实现AES-256-GCM加密(PBKDF2密钥派生100K迭代+随机salt/IV+Base64输出+加密/解密双面板切换)
 - aspect-ratio-calculator: calculateRatio()/reverseCalculate()/setPreset() 3个空函数 → 实现宽高比计算器(GCD最简比+反推尺寸+9种预设+可视化预览)
 所有JS语法验证通过。剩余19个空函数页面待修(多数为示例代码中的函数如js-beautify的hello/code-compare的farewell，非真实空壳)。
+
+### 2026-08-05 (第三十四批 - CDP浏览器实测+深色主题修复)
+indent-formatter, octal-calculator, fibonacci-generator, ambient-sound-generator
+注: 本轮使用CDP(Chrome DevTools Protocol)自动化测试7个工具14个页面(CN+EN)。发现并修复4类问题：
+- ambient-sound-generator CN/EN: 严重——完全缺失body/container/panel/sound-grid等23个CSS类定义，body无背景色(#0f172a)无文字色(#e2e8f0)，页面在浏览器中渲染为白底黑字。已补全全部CSS样式。
+- indent-formatter CN/EN: textarea/input/select缺少background属性，浏览器默认渲染为白色背景。已添加background:#0f172a和color:#e2e8f0。
+- octal-calculator CN/EN: .input-group input缺少background属性。已添加background:#0f172a。
+- fibonacci-generator CN/EN: CSS选择器中使用了转义引号input[type=\"number\"]导致选择器不匹配，input渲染为白色背景黑色文字。已修复为input[type="number"]。
+另外3个工具(random-name-picker, sessionstorage-viewer, oklch-color-picker)测试通过无问题。
+所有修复已验证：CDP重新测试确认深色主题=True，无Light bg issues。Console errors仅为AdSense/GA在file://协议下无法加载（线上正常）。

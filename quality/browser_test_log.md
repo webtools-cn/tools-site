@@ -288,3 +288,22 @@
 **本轮修复总结：2个EN版JS语法错误修复**
 1. openapi-to-typescript EN: handleFileDrop函数损坏(`eDrop(e){`多余代码插入) + 末尾多余`}`闭合括号
 2. openapi-viewer EN: parseDoc函数`allEndpoints.push({...})`括号不匹配(缺少push调用的闭合`)`)
+
+## 2026-08-05 轮次 - CDP自动化测试
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| indent-formatter | CN | ✅深色 | ✅ | ✅中文 | 网络资源(AdSense/GA) | 输入框白色背景→已修 | ✅已修 |
+| indent-formatter | EN | ✅深色 | ✅ | ✅英文 | 网络资源 | 输入框白色背景→已修 | ✅已修 |
+| octal-calculator | CN | ✅深色 | ✅ | ✅中文 | 网络资源 | 输入框白色背景→已修 | ✅已修 |
+| octal-calculator | EN | ✅深色 | ✅ | ✅英文 | 网络资源 | 输入框白色背景→已修 | ✅已修 |
+| fibonacci-generator | CN | ✅深色 | ✅ | ✅中文 | 网络资源+warning | CSS转义引号→已修 | ✅已修 |
+| fibonacci-generator | EN | ✅深色 | ✅ | ✅英文 | 网络资源+warning | CSS转义引号→已修 | ✅已修 |
+| random-name-picker | CN | ✅深色 | ✅ | ✅中文 | 网络资源 | 无 | ✅通过 |
+| random-name-picker | EN | ✅深色 | ✅ | ✅英文 | 网络资源 | 无 | ✅通过 |
+| sessionstorage-viewer | CN | ✅深色 | ✅ | ✅中文 | 网络资源 | 无 | ✅通过 |
+| sessionstorage-viewer | EN | ✅深色 | ✅ | ✅英文 | 网络资源 | 无 | ✅通过 |
+| oklch-color-picker | CN | ✅深色 | ✅ | ✅中文 | 网络资源 | 无 | ✅通过 |
+| oklch-color-picker | EN | ✅深色 | ✅ | ✅英文 | 网络资源 | EN输出元素0个 | ⚠️关注 |
+| ambient-sound-generator | CN | ✅深色(已修) | ✅ | ✅中文 | 网络资源+AudioContext warning | 缺失23个CSS类→已修 | ✅已修 |
+| ambient-sound-generator | EN | ✅深色(已修) | ✅ | ✅英文 | 网络资源+AudioContext warning | 缺失全部CSS→已修 | ✅已修 |
