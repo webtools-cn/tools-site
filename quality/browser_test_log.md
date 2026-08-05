@@ -529,3 +529,52 @@
    - 修复: 全面英文化
 
 **总结**: 8个新计算器16页(CN8+EN8)。发现3类问题(P0×1+P1×2)，全部修复。浏览器实测8页(CN5+EN3)功能全部正确，深色主题正确，语言正确。已push。
+
+---
+
+## 2026-08-06 04:30 质检轮次 — 5个几何体积计算器(cone/cube/prism/pyramid/toroid)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| cone-volume | CN | ✅#0f172a | ✅r=3,h=10→V=94.25,SA=98.40 | ✅全中文 | 无错误 | **P0:out1/out2未定义** | ✅FIXED |
+| cone-volume | EN | ✅#0f172a | ✅r=3,h=10→V=94.25,SA=98.40 | ✅全英文 | 无错误 | **P0+P1:占位符+中文残留+out1/out2** | ✅FIXED |
+| cube-volume | CN | ✅#0f172a | ✅s=5→V=125,SA=150 | ✅全中文 | 无错误 | **P0:out1/out2+v2不存在报错** | ✅FIXED |
+| cube-volume | EN | ✅#0f172a | ✅s=5→V=125,SA=150 | ✅全英文 | 无错误 | **P0+P1:同上+占位符+中文** | ✅FIXED |
+| prism-volume | CN | ✅#0f172a | ✅A=10,h=5→V=50 | ✅全中文 | 无错误 | **P0:out1/out2未定义** | ✅FIXED |
+| prism-volume | EN | ✅#0f172a | ✅A=10,h=5→V=50 | ✅全英文 | 无错误 | **P0+P1:同上** | ✅FIXED |
+| pyramid-volume | CN | ✅#0f172a | ✅A=12,h=9→V=36 | ✅全中文 | 无错误 | **P0:out1/out2未定义** | ✅FIXED |
+| pyramid-volume | EN | ✅#0f172a | ✅A=12,h=9→V=36 | ✅全英文 | 无错误 | **P0+P1:同上** | ✅FIXED |
+| toroid-volume | CN | ✅#0f172a | ✅R=10,r=3→V=1776.53,SA=1184.35 | ✅全中文 | 无错误 | **P0:out1/out2未定义** | ✅FIXED |
+| toroid-volume | EN | ✅#0f172a | ✅R=10,r=3→V=1776.53,SA=1184.35 | ✅全英文 | 无错误 | **P0+P1:同上** | ✅FIXED |
+
+**发现的问题及修复**:
+
+1. **P0-致命: 10个文件全部ReferenceError: out1 is not defined**
+   - 原因: calc()函数内使用 out1.textContent/out2.textContent，但out1/out2从未定义
+   - 影响: 5个新工具上线后**全部功能不可用**
+   - 修复: out1→document.getElementById('rv'), out2→document.getElementById('rd')
+
+2. **P0-致命: cube-volume单输入框导致null.value报错**
+   - 原因: gen_tool.py模板默认有v2输入框，但cube只有v1，document.getElementById('v2')返回null
+   - 修复: 添加v2el安全检查，v2不存在时b=0，跳过isNaN(b)检查
+
+3. **P0: Number(v1)引用DOM元素而非值**
+   - 原因: const r=Number(v1)中v1是DOM元素不是值，Number()返回NaN
+   - 修复: 删除无用行，使用已解析的a/b变量
+
+4. **P1: EN版全部占位符未替换** (5个文件×8+处)
+   - TOOL_NAME_CN, TOOL_DESC_CN_SEO, TOOL_DESC_CN_SHORT, TOOL_SEO_INTRO_CN, TOOL_STEP1-3_CN, FAQ_PLACEHOLDER_CN, FAQ_CN_JSON
+   - 修复: 逐个工具填入完整英文内容
+
+5. **P1: EN版中文残留** (5个文件)
+   - JS输出: 体积/表面积/侧面积/请输入有效数值 → Volume/Surface Area/Lateral Surface Area/Please enter valid numbers
+   - Footer: 联系我们/隐私政策/服务条款/关于我们 → Contact Us/Privacy Policy/Terms of Service/About Us
+   - SEO: 关于/如何使用 → About/How to Use
+   - Copyright中英文混杂 → 全英文
+   - hreflang zh指向EN URL → 修正指向CN URL
+   - lang-switch链接错误 → 修正
+
+6. **P1: CN版"如何使用"通用占位文本**
+   - "输入第一个参数"/"输入第二个参数" → 具体到每个工具的步骤描述
+
+**总结**: 5个新几何体积计算器10页(CN5+EN5)。发现3类P0+3类P1问题，全部修复。浏览器实测10页功能全部正确，深色主题正确，语言正确。已push。
