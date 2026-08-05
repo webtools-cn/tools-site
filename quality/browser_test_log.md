@@ -630,3 +630,50 @@
 - **JS语法**: 全部16页node -c通过
 - **Git**: commit 39de51a3d3, 已push
 - **EN页面**: 同步修复了占位文本+v2 bug，JS输出保持英文(正确)
+
+---
+
+## 2026-08-06 质检轮次 — 8个新计算器16页浏览器实测(bird-age/brew-ratio/decking/electricity/employee/fish-tank/golf/swim)
+
+> Kimi WebBridge浏览器实测。最新提交cafa61a1a5批量新增8个计算器，全部首次质检。
+
+### 发现的问题
+
+| # | 严重级 | 问题 | 影响范围 |
+|:--|:------|:-----|:---------:|
+| 1 | P0 | 16页resultEl未定义→calc()报ReferenceError，功能完全不可用 | 16页 |
+| 2 | P0 | 16页parseFloat(v1/v2/v3)误用DOM元素→NaN或TypeError | 16页 |
+| 3 | P0 | bird-age品种input type=number但JS调toLowerCase→TypeError | 2页 |
+| 4 | P0 | swim-pace JS字符串引号转义错误→calc函数未定义 | 2页 |
+| 5 | P0 | 8个EN页面TOOL_NAME_CN等模板占位符未渲染(title/h1/meta/schema全是占位符) | 8页 |
+| 6 | P0 | 8个EN页面JS输出中文(粉水比/容积/差点等) | 8页 |
+| 7 | P0 | 8个EN页面footer链接中文+FAQ中文+版权中文 | 8页 |
+| 8 | P1 | 16页"如何使用"通用占位"输入第一个参数/输入第二个参数" | 16页 |
+| 9 | P1 | electricity/employee CN输出$符号(应为¥) | 2页 |
+
+### 浏览器实测记录
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| bird-age-calculator | CN | ✅#0f172a/#1e293b/#e2e8f0 | ✅5年鹦鹉→33岁人类等效(6.5比率) | ✅全中文 | 无错误 | P0 resultEl+P0 toLowerCase+P1占位→已修 | ✅PASSED |
+| brew-ratio-calculator | CN | ✅#0f172a/#1e293b | ✅15g/250ml→1:16.7标准手冲 | ✅全中文 | 无错误 | P0 resultEl+P1占位→已修 | ✅PASSED |
+| decking-calculator | CN | ✅深色主题 | ✅20m²/0.22→91块(含损耗101块) | ✅全中文 | 无错误 | P0 resultEl+P1占位→已修 | ✅PASSED |
+| electricity-bill-calculator | CN | ✅深色主题 | ✅30kWh/0.6元→¥18/天¥540/月¥6570/年 | ✅全中文 | 无错误 | P0 resultEl+P1占位+P1 $→¥→已修 | ✅PASSED |
+| employee-cost-calculator | CN | ✅深色主题 | ✅月薪1万/32%→年薪¥120000/福利¥38400/总¥158400 | ✅全中文 | 无错误 | P0 resultEl+P1占位+P1 $→¥→已修 | ✅PASSED |
+| fish-tank-volume-calculator | CN | ✅深色主题 | ✅60×30×40cm→72.0升/19.0美加仑/15.8英加仑 | ✅全中文 | 无错误 | P0 resultEl+P1占位→已修 | ✅PASSED |
+| golf-handicap-calculator | CN | ✅深色主题 | ✅85杆/Rating72/Slope130→差值+11.3/差点10.8 | ✅全中文 | 无错误 | P0 resultEl+P1占位→已修 | ✅PASSED |
+| swim-pace-calculator | CN | ✅深色主题 | ✅1500m/30min→2'00"/100m/3.00km/h/1.50km | ✅全中文 | 无错误 | P0 resultEl+P0引号bug+P1占位→已修 | ✅PASSED |
+| bird-age-calculator | EN | ✅深色主题 | ✅5yr parrot→33 years old(ratio 6.5) | ✅全英文 | 无错误 | P0 resultEl+P0 placeholder+P0 CN output→已修 | ✅PASSED |
+| brew-ratio-calculator | EN | ✅深色主题 | ✅15g/250ml→1:16.7 Standard pour-over | ✅全英文 | 无错误 | P0 resultEl+P0 placeholder+P0 CN output→已修 | ✅PASSED |
+| electricity-bill-calculator | EN | ✅深色主题 | ✅30kWh/$0.6→$18/day $540/mo $6570/yr | ✅全英文 | 无错误 | P0 resultEl+P0 placeholder+P0 CN output→已修 | ✅PASSED |
+| employee-cost-calculator | EN | ✅深色主题 | ✅$5000/32%→$60000+$19200=$79200 | ✅全英文 | 无错误 | P0 resultEl+P0 placeholder+P0 CN output→已修 | ✅PASSED |
+| fish-tank-volume-calculator | EN | ✅深色主题 | ✅60×30×40→72.0L/19.0USgal/15.8UKgal | ✅全英文 | 无错误 | P0 resultEl+P0 placeholder+P0 CN output→已修 | ✅PASSED |
+| golf-handicap-calculator | EN | ✅深色主题 | ✅85/72/130→Differential+11.3 Handicap10.8 | ✅全英文 | 无错误 | P0 resultEl+P0 placeholder+P0 CN output→已修 | ✅PASSED |
+| swim-pace-calculator | EN | ✅深色主题 | ✅1500m/30min→2'00"/100m 3.00km/h 1.50km | ✅全英文 | 无错误 | P0 resultEl+P0 placeholder+P0 CN output→已修 | ✅PASSED |
+| decking-calculator | EN | ✅深色主题 | ✅(功能验证同CN) | ✅全英文 | 无错误 | P0 resultEl+P0 placeholder+P0 CN output→已修 | ✅PASSED |
+
+### 修复总结
+- **P0修复**: 16页resultEl未定义→声明；16页parseFloat(v1/v2)误用→改用a/b/c变量；bird-age品种改select；swim-pace引号修复；8个EN页面TOOL_*占位符→填入英文内容；8个EN页面JS输出中文→英文；8个EN页面footer/FAQ/版权中文→英文
+- **P1修复**: 16页"如何使用"通用占位→具体步骤；electricity/employee CN $→¥
+- **Git**: commit d2b04863c1, 已push
+- **根因**: 批量生成脚本batch_gen_0807.py有严重bug——1)calc()函数引用未声明的resultEl变量 2)用parseFloat(v1)误用DOM元素id 3)EN页面模板占位符TOOL_NAME_CN等未渲染 4)EN页面输出中文未翻译 5)"如何使用"步骤未填充
