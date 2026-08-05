@@ -243,3 +243,25 @@
 | depreciation-calculator | EN | OK | JS OK | OK | 无 | 无 | ✅passed |
 
 **本轮修复总结：14个问题修复，涉及9个文件**
+
+## 2026-08-05 质检轮次
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| prompt-template-builder | CN | ✅#0f172a | ✅0 error | ✅ | 无 | 无 | ✅passed |
+| prompt-template-builder | EN | ✅#0f172a | ✅0 error | ✅(中文链接正常) | 无 | 无 | ✅passed |
+| json-sorter | CN | ✅#0f172a | ✅排序正确 | ✅ | 无 | 无 | ✅passed |
+| json-sorter | EN | ✅#0f172a | ✅排序正确 | ✅ | 无 | 无 | ✅passed |
+| ebitda-calculator | CN | ✅#0f172a | ✅计算正确 | ✅ | 无 | 无 | ✅passed |
+| ebitda-calculator | EN | ✅#0f172a | ✅修复后正确 | ✅修复翻译 | 无→修复 | 重复copyBtn+breakdown未关闭+翻译错误 | ✅修复passed |
+| envelope-budget | CN | ✅#0f172a | ✅(localStorage) | ✅ | 无 | 无 | ✅passed |
+| envelope-budget | EN | ✅#0f172a | ✅(localStorage) | ✅ | 无 | 无 | ✅passed |
+| json-path-tester | CN | 重定向页 | N/A | ✅ | 无 | 已迁移至json-path-extractor | ✅passed |
+| robots-txt-generator | CN | ✅#0f172a | ✅生成正确 | ✅ | 无 | 无 | ✅passed |
+| robots-txt-generator | EN | ✅#0f172a | ✅修复后正确 | ✅ | 无→修复 | JS语法错误({{...}}+孤立IIFE结尾) | ✅修复passed |
+| personal-loan-calculator | CN | ✅#0f172a | ✅计算正确 | ✅ | 无 | 无 | ✅passed |
+| personal-loan-calculator | EN | ✅#0f172a | ✅计算正确 | ✅ | 无 | 无 | ✅passed |
+
+**本轮修复总结：2个工具3个bug修复**
+1. ebitda-calculator EN: 重复copyBtn按钮（导致null.addEventListener）+ breakdown div未关闭 + 翻译错误（中文标点、缺词）
+2. robots-txt-generator EN: 损坏的feedback script块（语法错误{{...}}）+ 多余IIFE结尾})();
