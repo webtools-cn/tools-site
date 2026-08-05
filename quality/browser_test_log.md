@@ -452,3 +452,26 @@
 | percentage-change-calculator | EN | ✅深色 | JS语法OK | ✅修复 | N/A | **P0修复:同上,占位符+中文残留+JS中文输出** | ✅PASSED |
 
 **总结**: 11个工具22页(CN11+EN11), EN全部有P0级问题(占位符未替换+中文残留), 已全部重写修复。22/22 L1通过。
+
+## 2026-08-06 批量计算器质检 (8工具16页)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| tip-calculator | EN | ✅#0f172a | ✅85×18%÷3=33.43 | ✅全英文 | 无错误 | **P0: calc空函数+占位符+中文Footer+重复按钮** | ✅已修复 |
+| apr-calculator | EN | ✅#0f172a | ✅100000×5%×1%fee | ✅全英文 | 无错误 | **P0: 同上** | ✅已修复 |
+| discount-calculator | EN | ✅#0f172a | ✅100-25%-10=65 | ✅全英文 | 无错误 | **P0: 同上** | ✅已修复 |
+| calorie-calculator | EN | ✅#0f172a | ✅BMR=1618 Mifflin-St Jeor | ✅全英文 | 无错误 | **P0: 同上** | ✅已修复 |
+| body-fat-calculator | EN | ✅#0f172a | ✅23.2% Navy method | ✅全英文 | 无错误 | **P0: 同上** | ✅已修复 |
+| commission-calculator | EN | ✅#0f172a | ✅静态验证通过 | ✅全英文 | N/A | **P0: 同上** | ✅已修复 |
+| fuel-cost-calculator | EN | ✅#0f172a | ✅静态验证通过 | ✅全英文 | N/A | **P0: 同上** | ✅已修复 |
+| electricity-cost-calculator | EN | ✅#0f172a | ✅静态验证通过 | ✅全英文 | N/A | **P0: 同上** | ✅已修复 |
+| tip-calculator | CN | ✅#0f172a | ✅200×15%÷4=57.50 | ✅全中文 | 无错误 | P1: 通用steps+通用FAQ | ✅已修复 |
+| apr-calculator | CN | ✅#0f172a | ✅静态验证通过 | ✅全中文 | N/A | P1: 同上 | ✅已修复 |
+| discount-calculator | CN | ✅#0f172a | ✅静态验证通过 | ✅全中文 | N/A | P1: 同上 | ✅已修复 |
+| calorie-calculator | CN | ✅#0f172a | ✅静态验证通过 | ✅全中文 | N/A | P1: 同上 | ✅已修复 |
+| body-fat-calculator | CN | ✅#0f172a | ✅静态验证通过 | ✅全中文 | N/A | P1: 同上 | ✅已修复 |
+| commission-calculator | CN | ✅#0f172a | ✅静态验证通过 | ✅全中文 | N/A | P1: 同上 | ✅已修复 |
+| fuel-cost-calculator | CN | ✅#0f172a | ✅静态验证通过 | ✅全中文 | N/A | P1: 同上 | ✅已修复 |
+| electricity-cost-calculator | CN | ✅#0f172a | ✅静态验证通过 | ✅全中文 | N/A | P1: 同上 | ✅已修复 |
+
+**总结**: 8个计算器16页(CN8+EN8)。EN全部有P0级问题(calc函数体为空+占位符未替换+Footer中文+重复按钮)，CN有P1级问题(通用steps+通用FAQ)。全部已修复并push。浏览器实测5个EN+1个CN工具计算功能全部正确，深色主题#0f172a/#1e293b验证通过。
