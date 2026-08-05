@@ -75,6 +75,9 @@ def gen_tool(slug, cn_name, en_name, cn_desc, en_desc, inputs_cn, inputs_en, cal
     # EN版
     en_html = tpl.replace('SLUG', slug)
     en_html = en_html.replace('lang="zh-CN"', 'lang="en"')
+    en_html = en_html.replace('TOOL_NAME_CN', en_name)
+    en_html = en_html.replace('TOOL_DESC_CN_SEO', en_desc[:160])
+    en_html = en_html.replace('TOOL_DESC_CN_SHORT', en_desc[:80])
     en_html = en_html.replace('PERCENTAGE_CALC', en_name)
     en_html = en_html.replace('PERCENTAGE_DESC_CN', en_desc)
     en_html = en_html.replace('🧮 计算', '🧮 Calculate')
@@ -107,6 +110,14 @@ def gen_tool(slug, cn_name, en_name, cn_desc, en_desc, inputs_cn, inputs_en, cal
         'href="https://free-toolbase.com/SLUG/" />',
     )
     en_html = en_html.replace('<!-- PERCENTAGE_LOGIC -->', 'var v1=a,v2=b,v3=c,v4=d;' + calc_js)
+    en_html = en_html.replace('TOOL_SEO_INTRO_CN', f'{en_name} is a free online tool. {en_desc} Works on mobile and desktop, all calculations run locally in your browser for privacy.')
+    en_html = en_html.replace('TOOL_STEP1_CN', 'Enter the first parameter')
+    en_html = en_html.replace('TOOL_STEP2_CN', 'Enter the second parameter')
+    en_html = en_html.replace('TOOL_STEP3_CN', 'Click "Calculate" to see the result')
+    en_html = en_html.replace('FAQ_PLACEHOLDER_CN', '<h3>Is this tool accurate?</h3><p>Calculations use standard formulas for reliable results.</p><h3>Do I need to download anything?</h3><p>No, it runs entirely in your browser. No downloads needed.</p>')
+    en_html = en_html.replace('FAQ_CN_JSON', '[{"@type":"Question","name":"Is this tool accurate?","acceptedAnswer":{"@type":"Answer","text":"Calculations use standard formulas for reliable results."}},{"@type":"Question","name":"Do I need to download anything?","acceptedAnswer":{"@type":"Answer","text":"No, it runs entirely in your browser. No downloads needed."}}]')
+    en_html = en_html.replace('关于 ', 'About ')
+    en_html = en_html.replace('如何使用', 'How to Use')
     
     with open(f'en/{slug}/index.html', 'w', encoding='utf-8') as f:
         f.write(en_html)
