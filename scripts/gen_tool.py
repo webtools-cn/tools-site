@@ -36,13 +36,15 @@ def gen_tool(slug, cn_name, en_name, cn_desc, en_desc, inputs_cn, inputs_en, cal
     cn_html = cn_html.replace('PERCENTAGE_LABEL', inputs_cn[0][0])
     cn_html = cn_html.replace('PERCENTAGE_PH', inputs_cn[0][1])
     cn_html = cn_html.replace('<!-- PERCENTAGE_LOGIC -->', calc_js)
-    # 动态替换inputs
-    cn_html = cn_html.replace(
-        '<div class="form-group"><label>PERCENTAGE_LABEL</label><input type="number" id="v1" placeholder="PERCENTAGE_PH" step="any"></div>\n<div class="form-group"><label>PERCENTAGE_LABEL2</label><input type="number" id="v2" placeholder="PERCENTAGE_PH2" step="any"></div>',
-        cn_inputs.rstrip()
-    )
-    # 替换lang和lang-switch
-    cn_html = cn_html.replace('lang="zh-CN"', 'lang="zh-CN"', 1)  # already in tpl
+    # 动态替换inputs — 使用INPUTS_PLACEHOLDER
+    cn_html = cn_html.replace('<!-- INPUTS_PLACEHOLDER -->', cn_inputs.rstrip())
+    # 替换SEO占位符
+    cn_html = cn_html.replace('TOOL_SEO_INTRO_CN', f'{cn_name}是一款免费在线工具，{cn_desc}。支持手机和电脑，所有计算在浏览器本地完成，数据安全不上传。')
+    cn_html = cn_html.replace('TOOL_STEP1_CN', f'输入第一个参数')
+    cn_html = cn_html.replace('TOOL_STEP2_CN', f'输入第二个参数')
+    cn_html = cn_html.replace('TOOL_STEP3_CN', f'点击"计算"按钮查看结果')
+    cn_html = cn_html.replace('FAQ_PLACEHOLDER_CN', f'<h3>这个工具准确吗？</h3><p>计算公式基于标准数学公式，结果精确可靠。</p><h3>需要下载吗？</h3><p>完全不需要，打开网页即可使用，纯前端计算。</p>')
+    cn_html = cn_html.replace('FAQ_CN_JSON', f'[{{"@type":"Question","name":"这个工具准确吗？","acceptedAnswer":{{"@type":"Answer","text":"计算公式基于标准数学公式，结果精确可靠。"}}}},{{"@type":"Question","name":"需要下载吗？","acceptedAnswer":{{"@type":"Answer","text":"完全不需要，打开网页即可使用，纯前端计算。"}}}}]')
     
     with open(f'{slug}/index.html', 'w', encoding='utf-8') as f:
         f.write(cn_html)
@@ -66,10 +68,7 @@ def gen_tool(slug, cn_name, en_name, cn_desc, en_desc, inputs_cn, inputs_en, cal
         'href="/en/SLUG/">English',
         'href="/SLUG/">中文'
     )
-    en_html = en_html.replace(
-        '<div class="form-group"><label>PERCENTAGE_LABEL</label><input type="number" id="v1" placeholder="PERCENTAGE_PH" step="any"></div>\n<div class="form-group"><label>PERCENTAGE_LABEL2</label><input type="number" id="v2" placeholder="PERCENTAGE_PH2" step="any"></div>',
-        en_inputs.rstrip()
-    )
+    en_html = en_html.replace('<!-- INPUTS_PLACEHOLDER -->', en_inputs.rstrip())
     # 修复canonical
     en_html = en_html.replace(
         'href="https://free-toolbase.com/SLUG/"',
