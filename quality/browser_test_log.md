@@ -265,3 +265,26 @@
 **本轮修复总结：2个工具3个bug修复**
 1. ebitda-calculator EN: 重复copyBtn按钮（导致null.addEventListener）+ breakdown div未关闭 + 翻译错误（中文标点、缺词）
 2. robots-txt-generator EN: 损坏的feedback script块（语法错误{{...}}）+ 多余IIFE结尾})();
+
+## 2026-08-05 质检轮次 (静态分析+node逻辑测试)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| openapi-to-typescript | CN | ✅#0f172a | ✅generateTypes正确生成interface | ✅ | 无 | 无 | ✅passed |
+| openapi-to-typescript | EN | ✅#0f172a | ✅修复后JS语法通过 | ✅ | 无→修复 | handleFileDrop函数损坏(eDrop(e){)+末尾多余} | ✅修复passed |
+| jest-config-generator | CN | ✅#0f172a | ✅generateConfig生成module.exports | ✅ | 无 | 无 | ✅passed |
+| jest-config-generator | EN | ✅#0f172a | ✅JS语法通过 | ✅ | 无 | 无 | ✅passed |
+| algorithm-visualizer | CN | ✅#0f172a | ✅5种排序函数定义正确 | ✅ | 无 | 无 | ✅passed |
+| algorithm-visualizer | EN | ✅#0f172a | ✅JS语法通过 | ✅ | 无 | 无 | ✅passed |
+| css-scroll-driven-animation-generator | CN | ✅#0f172a | ✅generateCode/setTimeline函数正确 | ✅ | 无 | 无 | ✅passed |
+| css-scroll-driven-animation-generator | EN | ✅#0f172a | ✅JS语法通过 | ✅ | 无 | 无 | ✅passed |
+| openapi-viewer | CN | ✅#0f172a | ✅parseDoc解析正确 | ✅ | 无 | 无 | ✅passed |
+| openapi-viewer | EN | ✅#0f172a | ✅修复后JS语法通过 | ✅ | 无→修复 | parseDoc括号不匹配(allEndpoints.push缺闭合) | ✅修复passed |
+| vector-calculator | CN | ✅#0f172a | ✅dot/magnitude/cross/round全部PASS | ✅ | 无 | 无 | ✅passed |
+| vector-calculator | EN | ✅#0f172a | ✅JS语法通过 | ✅ | 无 | 无 | ✅passed |
+| webgpu-info | CN | ✅#0f172a | ✅detectWebGPU/displayWebGPUInfo函数正确 | ✅ | 无 | 无 | ✅passed |
+| webgpu-info | EN | ✅#0f172a | ✅JS语法通过 | ✅ | 无 | 无 | ✅passed |
+
+**本轮修复总结：2个EN版JS语法错误修复**
+1. openapi-to-typescript EN: handleFileDrop函数损坏(`eDrop(e){`多余代码插入) + 末尾多余`}`闭合括号
+2. openapi-viewer EN: parseDoc函数`allEndpoints.push({...})`括号不匹配(缺少push调用的闭合`)`)
