@@ -90,7 +90,7 @@ def scan_tool(dirname):
     return issues
 
 def verify_js(dirname):
-    """验证JS语法，排除JSON-LD"""
+    """验证JS语法，排除JSON-LD，用node --check"""
     path = os.path.join(dirname, 'index.html')
     if not os.path.exists(path):
         return False, ''
@@ -101,8 +101,10 @@ def verify_js(dirname):
     js = '\n'.join(s for s in scripts if s.strip())
     if not js.strip():
         return True, ''
+    # 用 node --check 只检查语法，不执行
     try:
-        result = subprocess.run(['node', '-e', js], capture_output=True, text=True, timeout=5)
+        result = subprocess.run(['node', '--check'],
+                                input=js, capture_output=True, text=True, timeout=5)
         return result.returncode == 0, result.stderr[:200] if result.returncode != 0 else ''
     except:
         return True, ''
