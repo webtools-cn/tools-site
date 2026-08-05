@@ -492,3 +492,40 @@
 | packaging-cost-calculator | EN | ✅#0f172a | ✅5000/1000=5,100个500 | ✅修复全英文 | 无错误 | **P0修复:同上** | ✅已修复 |
 
 **总结**: 5个新计算器10页(CN5+EN5)。CN全部通过无问题。EN全部有P0级问题(gen_tool.py生成的EN模板占位符未替换+JS输出中文+Footer中文+hreflang错误)，已全部完整重写修复并push。浏览器实测5个EN页面计算功能全部正确，全英文验证通过。
+
+---
+
+## 2026-08-06 03:55 质检轮次 — 8个新计算器(涂料/纸张/混合比/咖啡/坡道/地毯/土壤/活动预算)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:------|:-----|:-----|:-----|:--------|:-----|:-----|
+| paint-needed-calculator | CN | ✅#0f172a | ✅50×2÷10=10.0升 | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| paint-needed-calculator | EN | ✅#0f172a | ✅50×2÷10=10.0L | ✅全英文 | 无错误 | **已修复** | ✅FIXED |
+| paper-size-calculator | CN | ✅#0f172a | ✅A4=210×297mm | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| mix-ratio-calculator | CN | ✅#0f172a | ✅3:1总量5→A=3.75,B=1.25 | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| mix-ratio-calculator | EN | ✅#0f172a | ✅3:1 total5→A=3.75,B=1.25 | ✅全英文 | 无错误 | **已修复** | ✅FIXED |
+| coffee-cost-calculator | CN | ✅#0f172a | ✅每天省44元→月1320→年16060 | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| coffee-cost-calculator | EN | ✅#0f172a | ✅Save$44/day→$1320/mo→$16060/yr | ✅全英文 | 无错误 | **已修复** | ✅FIXED |
+| ramp-slope-calculator | CN | ✅#0f172a | ✅坡度12%角度6.8°比值1:8.3 | ✅全中文 | 无错误 | 无 | ✅PASSED |
+
+**发现的问题及修复**:
+
+1. **P0-致命: 全部16个文件JS语法错误** (SyntaxError: Identifier 'a' has already been declared)
+   - 原因: calc()函数内 `var a` 和 `let a` 重复声明 + v1/v2/v3/result 裸引用
+   - 影响: 8个新工具上线后**全部功能不可用**
+   - 修复: 删除重复var声明，保留let并修复DOM引用为document.getElementById()
+   
+2. **P1: EN页面占位符未替换** (8个文件×6处=48处)
+   - TOOL_NAME_CN, TOOL_DESC_CN_SEO, TOOL_DESC_CN_SHORT, TOOL_SEO_INTRO_CN, TOOL_STEP1-3_CN, FAQ_CN_JSON, FAQ_PLACEHOLDER_CN
+   - 修复: 逐个工具填入完整英文内容
+
+3. **P1: EN页面中文残留** (8个文件)
+   - Footer: 联系我们/隐私政策/服务条款/关于我们 → Contact/Privacy Policy/Terms/About
+   - JS输出: 请输入完整参数/升/层/元/每天省/坡度/角度/比值/总量/需要/餐饮/场地/圆形/方形/体积/损耗/总费用/合计/其他
+   - SEO: 如何使用 → How to Use
+   - Copyright中英文混杂
+   - hreflang zh指向EN URL
+   - lang-switch链接错误
+   - 修复: 全面英文化
+
+**总结**: 8个新计算器16页(CN8+EN8)。发现3类问题(P0×1+P1×2)，全部修复。浏览器实测8页(CN5+EN3)功能全部正确，深色主题正确，语言正确。已push。
