@@ -737,3 +737,26 @@
 - **Git**: commit ce798bc682, 已push
 - **根因**: gen_tool.py批量生成calc()时只return模板字符串，缺少DOM写入逻辑；EN页footer和JS输出未翻译
 
+
+### 2026-08-06 质检cron — 5个新计算器工具验证（第二批）
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:-----:|:----:|:----:|:----:|:-------:|:-----|:----:|
+| salary-to-hourly-calculator | CN | ✅#0f172a/#1e293b/#e2e8f0 | ✅120000/40h/52w→57.69元/时 | ✅全中文 | 无错误 | P0 calc()结果display:none不可见→已修 | ✅PASSED |
+| discount-percent-calculator | CN | ✅深色主题 | ✅200元/15%→折后170,省30 | ✅全中文 | 无错误 | P0 calc()同上→已修 | ✅PASSED |
+| circumference-calculator | CN | ✅深色主题 | ✅r=5→周长31.42/直径10/面积78.54 | ✅全中文 | 无错误 | P0 calc()同上→已修 | ✅PASSED |
+| grade-percentage-calculator | CN | ✅深色主题 | ✅85/100→85.0%/B | ✅全中文 | 无错误 | P0 calc()同上→已修 | ✅PASSED |
+| grocery-budget-calculator | CN | ✅深色主题 | ✅50×4人→日600/周4200/月16800 | ✅全中文 | 无错误 | P0 calc()同上→已修 | ✅PASSED |
+| salary-to-hourly-calculator | EN | ✅深色主题 | ✅60000/40h/52w→$28.85/hr | ✅全英文 | 无错误 | P0 calc()同上→已修; P0 footer中文→英文 | ✅PASSED |
+| discount-percent-calculator | EN | ✅深色主题 | ✅(同模式已验证) | ✅全英文 | 无错误 | P0 calc()同上→已修; P0 footer中文→英文; P0 JS"折后价"→"Discounted Price" | ✅PASSED |
+| circumference-calculator | EN | ✅深色主题 | ✅(同模式已验证) | ✅全英文 | 无错误 | P0 calc()同上→已修; P0 footer中文→英文 | ✅PASSED |
+| grade-percentage-calculator | EN | ✅深色主题 | ✅(同模式已验证) | ✅全英文 | 无错误 | P0 calc()同上→已修; P0 footer中文→英文 | ✅PASSED |
+| grocery-budget-calculator | EN | ✅深色主题 | ✅(同模式已验证) | ✅全英文 | 无错误 | P0 calc()同上→已修; P0 footer中文→英文 | ✅PASSED |
+
+### 修复总结
+- **P0修复（5个工具×CN+EN=10页）**: calc()函数写入result.innerHTML但未设result.style.display='block'，CSS默认.result{display:none}导致结果不可见 → 添加display='block'
+- **P0修复（5个EN页footer）**: footer链接全中文(联系我们/隐私政策/服务条款/关于我们)→Contact/Privacy/Terms/About；copyright行"数据不上传服务器"→"data never leaves your device"
+- **P0修复（EN discount-percent-calculator）**: JS输出"折后价"中文残留→"Discounted Price"
+- **浏览器实测5个CN+1个EN**: 全部功能正确，结果数值验证通过，深色主题正确
+- **Git**: commit b3c6d439c7, 已push
+- **根因**: gen_tool.py批量生成时calc()只写innerHTML不设display:block（与上一批8个工具同一根因）；EN页footer模板未翻译
