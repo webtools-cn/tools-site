@@ -807,3 +807,20 @@
 - **浏览器实测5个CN+1个EN**: 全部功能正确，结果数值验证通过，深色主题正确
 - **Git**: commit 6ed76ac72d, 已push
 - **根因**: gen_tool.py批量生成时: (1)select option value用文本而非数字索引,JS用parseInt解析导致功能失效; (2)EN页footer模板和JS输出文案未翻译为英文
+
+### 2026-08-06 质检cron — 第五批8个实用计算器浏览器实测
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:-----:|:----:|:----:|:----:|:-------:|:-----|:----:|
+| water-intake-calc | CN | ✅#0f172a/#e2e8f0 | ✅70kg/中等运动/炎热→3234ml | ✅全中文 | 无错误 | P0 select值是文本→parseFloat失败→运动/气候选择无效→已修(value改数字) | ✅PASSED |
+| water-intake-calc | EN | ✅深色主题 | ✅70kg/Moderate/Hot→3234ml | ✅全英文 | 无错误 | P0 同CN，select值文本→无效→已修 | ✅PASSED |
+| tip-and-split-calc | CN | ✅深色主题 | ✅100元/15%/4人→¥115/每人¥28.75 | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| cagr-calc | CN | ✅深色主题 | ✅10000→15000/3年→CAGR14.47% | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| debt-payoff-calc | CN | ✅深色主题 | ✅50000/12%/月还2000→29个月/利息8000 | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| pace-conversion-calc | EN | ✅深色主题 | ✅5km/25min→5'00"/km,8'03"/mi,12km/h | ✅全英文(修复后) | 无错误 | P0 JS输出unescape中文"每英里:"/"平均速度:"→已修为英文 | ✅PASSED |
+
+### 修复总结
+- **P0修复(water-intake-calc CN+EN, 2个文件)**: select option value从中文/英文文本(如"较少运动"/"Sedentary")改为数字乘数值(1/1.2/1.5/1.8)。JS从actMap[act]/cliMap[cli]查找改为直接用act*cli乘数。根因: gen_tool.py生成时select value=文本, JS用parseFloat()解析文本返回NaN→||0→0, actMap[0]=undefined→fallback 1, 导致运动量和气候选择完全无效, 永远用默认值1
+- **P0修复(pace-conversion-calc EN, 1个文件)**: JS输出用unescape('%u6BCF%u82F1%u91CC:%20')解码为中文"每英里: ", unescape('%u5E73%u5747%u901F%u5EA6:%20')解码为"平均速度: "→改为英文"Per mile: "/"Avg speed: "。根因: gen_tool.py生成EN页时JS输出文案用unescape编码中文, 未翻译为英文
+- **浏览器实测5个工具(3CN+1EN+1EN)**: 全部功能正确, 结果数值验证通过, 深色主题正确, 无Console错误
+- **未测3个工具(fuel-cost-calc/break-even-calc/savings-goal-calc)**: 代码审查通过(JS语法OK/主题色正确/无中文残留/footer正确), 留下轮测
