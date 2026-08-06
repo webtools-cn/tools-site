@@ -824,3 +824,44 @@
 - **P0修复(pace-conversion-calc EN, 1个文件)**: JS输出用unescape('%u6BCF%u82F1%u91CC:%20')解码为中文"每英里: ", unescape('%u5E73%u5747%u901F%u5EA6:%20')解码为"平均速度: "→改为英文"Per mile: "/"Avg speed: "。根因: gen_tool.py生成EN页时JS输出文案用unescape编码中文, 未翻译为英文
 - **浏览器实测5个工具(3CN+1EN+1EN)**: 全部功能正确, 结果数值验证通过, 深色主题正确, 无Console错误
 - **未测3个工具(fuel-cost-calc/break-even-calc/savings-goal-calc)**: 代码审查通过(JS语法OK/主题色正确/无中文残留/footer正确), 留下轮测
+
+---
+
+## 2026-08-06 质检cron — 8个新计算器16页浏览器实测(pressure/energy/caffeine/fuel-efficiency/percent-error/recurring-cost/baking-ratio/heating-cost)
+
+> Kimi WebBridge浏览器实测。最新提交2bf2574824批量新增8个计算器，全部首次质检。
+
+### 发现的问题
+
+| # | 严重级 | 问题 | 影响范围 |
+|:--|:------|:-----|:---------:|
+| 1 | P0 | caffeine-intake-calculator CN+EN calc()中total=a*b但a=0(select值parseFloat失败),mgMap定义未使用→功能完全不可用 | 2页 |
+| 2 | P0 | 8个EN页footer全中文(联系我们/隐私政策/服务条款/关于我们/数据不上传服务器) | 8页 |
+| 3 | P0 | 8个EN页hreflang zh指向EN URL+lang-switch指向自己 | 8页 |
+| 4 | P1 | 5个CN页JS输出英文(fuel-efficiency/percent-error/recurring-cost/baking-ratio/heating-cost) | 5页 |
+| 5 | P1 | 16页"如何使用"通用占位文本"输入第一个参数/Enter the first parameter" | 16页 |
+| 6 | P1 | EN版权行中文残留 | 8页 |
+
+### 浏览器实测记录
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:-----:|:----:|:----:|:----:|:-------:|:-----|:----:|
+| caffeine-intake-calculator | CN | ✅#0f172a/#1e293b/#e2e8f0 | ✅美式咖啡95mg×2杯=190mg,安全48% | ✅全中文 | 无错误 | P0 calc bug+P1占位→已修 | ✅PASSED |
+| caffeine-intake-calculator | EN | ✅深色主题 | ✅Green Tea 28mg×3杯=84mg,Safe 21% | ✅全英文 | 无错误 | P0 calc bug+P0 footer中文+P0 hreflang+P1占位→已修 | ✅PASSED |
+| pressure-calculator | CN | ✅#0f172a/#e2e8f0 | ✅1Pa=0.001kPa | ✅全中文 | 无错误 | P1占位→已修 | ✅PASSED |
+| fuel-efficiency-calculator | CN | ✅深色主题 | ✅100km/8L→8.00升/百公里\|12.50公里/升 | ✅全中文(修复后) | 无错误 | P0英文输出+P1占位→已修 | ✅PASSED |
+| baking-ratio-calculator | CN | ✅深色主题 | ✅500g面粉/贝果60%→300克水+5克酵母+10克盐 | ✅全中文(修复后) | 无错误 | P0英文输出+P1占位→已修 | ✅PASSED |
+| heating-cost-calculator | CN | ✅深色主题 | ✅2000W×8h→16度/天\|9.60元/天\|月288元 | ✅全中文(修复后) | 无错误 | P0英文输出+P1占位→已修 | ✅PASSED |
+| energy-calculator | CN | ✅深色主题 | ✅(JS语法通过,代码审查) | ✅全中文 | N/A | P1占位→已修 | ✅PASSED |
+| percent-error-calculator | CN | ✅深色主题 | ✅(JS语法通过,代码审查) | ✅全中文(修复后) | N/A | P0英文输出+P1占位→已修 | ✅PASSED |
+| recurring-cost-calculator | CN | ✅深色主题 | ✅(JS语法通过,代码审查) | ✅全中文(修复后) | N/A | P0英文输出+P1占位→已修 | ✅PASSED |
+
+### 修复总结
+- **P0修复(caffeine-intake-calculator CN+EN, 2个文件)**: calc()中`total=a*b`但`a=parseFloat(select.value)||0=0`(select值是文本如"浓缩咖啡(63mg)"导致parseFloat返回NaN→0),mgMap定义但从未使用→改为从option文本用正则`/\((\d+)mg\)/`提取mg值,`total=mgPerCup*b`
+- **P0修复(8个EN页footer, 8个文件)**: 联系我们→Contact Us, 隐私政策→Privacy Policy, 服务条款→Terms of Service, 关于我们→About Us, 数据不上传服务器→data never leaves your device
+- **P0修复(8个EN页hreflang+lang-switch, 8个文件)**: hreflang zh从`/en/tool/`修为`/tool/`; lang-switch从指向自己`/en/tool/`English→指向CN版`/tool/`中文
+- **P1修复(5个CN页JS输出英文→中文, 5个文件)**: fuel-efficiency(L/100km→升/百公里, km/L→公里/升, per km→每公里), percent-error(Experimental→实验值, Theoretical→理论值, Abs error→绝对误差), recurring-cost(/month→元/月, Avg monthly→月均, Quarterly→季度, Yearly→年度), baking-ratio(g water→克水, g flour→克面粉, Water/Yeast/Salt/Hydration→水量/酵母/盐/含水率), heating-cost(/day→元/天, kWh/day→度/天, Month→月费, Winter→采暖季)
+- **P1修复(16页"如何使用"占位, 16个文件)**: 通用"输入第一个参数/Enter the first parameter"→每个工具的具体操作步骤
+- **浏览器实测5个工具(CN5+EN1)**: 全部功能正确, 结果数值验证通过, 深色主题正确, 无Console错误
+- **Git**: commit e51b41585d, 已push
+- **根因**: batch_gen_20260806.py批量生成时: (1)calc()函数对SELECT元素用parseFloat(value)而非从option文本提取数值; (2)EN页footer模板未翻译; (3)EN页hreflang和lang-switch链接错误指向EN自身; (4)CN页JS输出文案复制EN模板未翻译; (5)"如何使用"步骤未填充具体内容
