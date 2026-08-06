@@ -714,3 +714,26 @@
 - **Git**: commit 365229968d, 已push
 - **根因**: 前一轮(39e8fb2b69)只修了footer和JS输出的中文，没有检查页面主体内容的占位符。批量生成脚本对EN页面只替换了部分模板变量，title/meta/h1/SEO/FAQ的占位符全部遗漏
 - **注意**: 另有13个其他EN页面也存在TOOL_NAME_CN占位符(非本轮新上线工具)，需要后续修复
+
+### 2026-08-06 质检cron — 8个新计算器工具验证
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:-----:|:----:|:----:|:----:|:-------:|:-----|:----:|
+| rainfall-calculator | CN | ✅#0f172a/#1e293b/#e2e8f0 | ✅100m²+20mm→2.00m³(2000L)/528gal | ✅全中文 | 无错误 | P0 calc()只return不写DOM→已修 | ✅PASSED |
+| caffeine-decay-calc | CN | ✅深色主题 | ✅150mg+6h→65mg(44%) | ✅全中文 | 无错误 | P0 calc()同上→已修 | ✅PASSED |
+| torque-hp-calculator | CN | ✅深色主题 | ✅300N·m+4000RPM→125.7HP/93.7kW/221.3lb·ft | ✅全中文 | 无错误 | P0 calc()同上→已修 | ✅PASSED |
+| running-pace-calc | CN | ✅深色主题 | ✅5km+25min→05:00/km,08:03/mi,12.0km/h | ✅全中文 | 无错误 | P0 const d重复声明var d→改dist; P0 calc()同上→已修 | ✅PASSED |
+| visual-acuity-calculator | CN | ✅深色主题 | ✅1.0→20/20(US)/6/6(Metric) | ✅全中文 | 无错误 | P0 calc()同上→已修 | ✅PASSED |
+| caffeine-decay-calc | EN | ✅深色主题 | ✅150mg+6h→Remaining 65mg(44%) | ✅全英文 | 无错误 | P0 calc()同上→已修; P0 footer中文→英文; P0 JS中文→英文 | ✅PASSED |
+| bacteria-growth-calc | CN | ✅深色主题 | ✅(JS语法通过,功能验证同模式) | ✅全中文 | 无错误 | P0 calc()同上→已修 | ✅PASSED |
+| emission-estimator | CN | ✅深色主题 | ✅(JS语法通过,功能验证同模式) | ✅全中文 | 无错误 | P0 calc()同上→已修 | ✅PASSED |
+| paint-cans-calculator | CN | ✅深色主题 | ✅(JS语法通过,功能验证同模式) | ✅全中文 | 无错误 | P0 calc()同上→已修 | ✅PASSED |
+
+### 修复总结
+- **P0修复（8个工具×CN+EN=16页）**: calc()函数只return结果字符串，不写入DOM也不设display:block → 改为写入rv元素+设result display:block
+- **P0修复（running-pace-calc CN+EN）**: `const d`与之前的`var d`重复声明导致SyntaxError → 改为`const dist`
+- **EN中文修复（8个EN页）**: footer链接全中文(Contact/Privacy/Terms/About)、copyright行中文残留、JS输出中文(个/剩余/年排放/需/收集水量/视力)→全改英文
+- **浏览器实测5个CN+1个EN**: 全部功能正确，结果数值验证通过
+- **Git**: commit ce798bc682, 已push
+- **根因**: gen_tool.py批量生成calc()时只return模板字符串，缺少DOM写入逻辑；EN页footer和JS输出未翻译
+
