@@ -888,3 +888,29 @@
 - **浏览器实测5个工具(CN4+EN2)**: 全部功能正确, 结果数值验证通过, 深色主题正确, 无Console错误
 - **Git**: commit 06ef60cd75, 已push
 - **根因**: batch_gen批量生成时calc()用return返回字符串但不更新DOM(模板代码混入实际计算逻辑), EN页footer/calc输出未翻译, CN页占位步骤未填充
+
+### 2026-08-06 (第三批: 8个新计算器工具 — equity-loan/freight-cost/pet-calorie/event-capacity/tree-age/voice-over-cost/lawn-seed/candle-burn-time)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:-----:|:----:|:----:|:----:|:-------:|:-----|:----:|
+| equity-loan-calculator | CN | ✅#0f172a/#1e293b/#e2e8f0 | ✅10万×4.5%×10年等额本息→月供¥1036.38,总利¥24366,总还¥124366 | ✅全中文 | 无错误 | P0:result display:none+SELECT parseFloat→已修 | ✅PASSED |
+| equity-loan-calculator | EN | ✅深色主题 | ✅同上→Monthly $1036.38, Interest $24366.09, Total $124366.09 | ✅全英文(修复后) | 无错误 | P0:result display:none+SELECT parseFloat+footer中文+calc中文输出+hreflang+lang-switch→已修 | ✅PASSED |
+| freight-cost-calculator | CN | ✅深色主题 | ✅500kg×200km×3.5元×1.0/100→¥3500.00 | ✅全中文 | 无错误 | P0:result display:none+SELECT parseFloat→已修 | ✅PASSED |
+| pet-calorie-calculator | EN | ✅深色主题 | ✅Dog 10kg Low activity→RER 394 kcal,Daily 472 kcal | ✅全英文(修复后) | 无错误 | P0:result display:none+SELECT parseFloat(NaN→0)+weight=a→weight=v2+footer中文+calc中文输出→已修 | ✅PASSED |
+| pet-calorie-calculator | CN | ✅深色主题 | ✅狗10kg低活动→RER 394千卡,每日需472千卡 | ✅全中文 | 无错误 | P0:result display:none+SELECT parseFloat(NaN→0)+weight=a→weight=v2→已修 | ✅PASSED |
+| event-capacity-calculator | CN | ✅深色主题 | ✅200m²剧场式→166人,人均1.2m² | ✅全中文 | 无错误 | P0:result display:none+SELECT parseFloat→已修 | ✅PASSED |
+| candle-burn-time-calculator | EN | ✅深色主题 | ✅200g Soy Wax→28.6h,7g/h | ✅全英文(修复后) | 无错误 | P0:result display:none+SELECT parseFloat+footer中文+calc中文输出→已修 | ✅PASSED |
+
+### 修复总结(第三批)
+- **P0修复(16个文件result display:none, 16个文件)**: calc()设置innerHTML但未设置style.display='block'→CSS的display:none覆盖→用户看不到结果→全部添加`document.getElementById("result").style.display="block"`
+- **P0修复(16个文件SELECT元素parseFloat取NaN, 16个文件)**: 模板代码对SELECT元素用parseFloat(value)解析,但SELECT的value是文本(如"Dog"/"等额本息")→parseFloat返回NaN→计算全0→改为SELECT用el.value(字符串)直接取值
+- **P0修复(pet-calorie-calculator weight=a→weight=v2, 2个文件)**: v1是SELECT(宠物类型),a=v1.value="Dog",但代码weight=a→weight="Dog"→计算错误→改为weight=v2(从INPUT取体重)
+- **P0修复(8个EN页calc中文输出, 8个文件)**: calc()输出文案是中文(如"月供¥"/"总运费¥")→翻译为英文("Monthly Payment $"/"Total Freight $")
+- **P1修复(8个EN页footer中文, 8个文件)**: 联系我们→Contact Us, 隐私政策→Privacy Policy, 服务条款→Terms of Service, 关于我们→About Us
+- **P1修复(8个EN页版权中文, 8个文件)**: "数据不上传服务器"→"data never leaves your device"
+- **P1修复(8个EN页hreflang+lang-switch, 8个文件)**: hreflang zh从`/en/tool/`修为`/tool/`; lang-switch从指向自己`/en/tool/`English→指向CN版`/tool/`中文
+- **P1修复(16个文件占位步骤, 16个文件)**: 通用"输入第一个参数"/"Enter the first parameter"→每个工具的具体操作步骤
+- **P1修复(8个EN页subtitle截断, 8个文件)**: subtitle被截断不完整→补全完整描述
+- **P1修复(8个CN页双句号, 8个文件)**: "。。"→"。"
+- **浏览器实测5个工具(CN3+EN2)**: 全部功能正确, 结果数值验证通过, 深色主题正确, result区域可见, 无Console错误
+- **根因**: batch_gen_20260806.py批量生成时: (1)calc()设置innerHTML但未设置style.display='block'覆盖CSS的display:none; (2)SELECT元素用parseFloat(value)解析文本值得到NaN; (3)pet-calorie的weight变量绑定到SELECT(v1)而非INPUT(v2); (4)EN页footer/calc输出/版权未翻译; (5)EN页hreflang和lang-switch链接错误; (6)EN页subtitle被截断; (7)CN页SEO段落双句号; (8)占位步骤未填充
