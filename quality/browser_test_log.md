@@ -967,3 +967,28 @@
 - **JS语法验证(18个文件)**: 全部node -c通过
 - **Git**: commit bcab20d179, 已push
 - **根因**: batch_gen_20260806.py第五批批量生成时calc()只return字符串不写DOM(与前四批相同根因); v[]数组引用不存在; EN页calc输出/footer/版权未翻译; 占位步骤未填充
+
+### 2026-08-06 (第六批: 5个新计算器工具 — roi-rental/blend-ratio/pipe-volume/concrete-weight/gold-value)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:-----:|:----:|:----:|:----:|:-------:|:-----|:----:|
+| roi-rental-calculator | CN | ✅#0f172a/#1e293b/#e2e8f0/#06b6d4 | ✅200万/月租5000/物业3000→年化2.85%/回本35.1年 | ✅全中文 | 无错误 | P1:占位步骤→已修 | ✅PASSED |
+| roi-rental-calculator | EN | ✅深色主题 | ✅同上→Annual ROI 2.85%/Payback 35.1 years | ✅全英文(修复后) | 无错误 | P1:calc中文+footer中文+版权中文+占位步骤→已修 | ✅PASSED |
+| blend-ratio-calculator | CN | ✅深色主题 | ✅总量10/比例3:1→成分A 7.5L(75%)/成分B 2.5L(25%) | ✅全中文 | 无错误 | P1:占位步骤→已修 | ✅PASSED |
+| blend-ratio-calculator | EN | ✅深色主题 | ✅同上→Component A 7.5L/Component B 2.5L | ✅全英文(修复后) | 无错误 | P1:calc中文+footer中文+版权中文+占位步骤→已修 | ✅PASSED |
+| pipe-volume-calculator | CN | ✅深色主题 | ✅直径50mm/长10m→19.63升/0.020m³ | ✅全中文 | 无错误 | P1:占位步骤→已修 | ✅PASSED |
+| pipe-volume-calculator | EN | ✅深色主题 | ✅同上→Pipe Volume 19.63L/0.020m³ | ✅全英文(修复后) | 无错误 | P1:calc中文+footer中文+版权中文+占位步骤→已修 | ✅PASSED |
+| concrete-weight-calculator | CN | ✅深色主题 | ✅2.5m³/密度2400→6000kg/6吨 | ✅全中文 | 无错误 | P1:占位步骤→已修 | ✅PASSED |
+| concrete-weight-calculator | EN | ✅深色主题 | ✅同上→Total Weight 6000kg/6 tons | ✅全英文(修复后) | 无错误 | P1:calc中文+footer中文+版权中文+占位步骤→已修 | ✅PASSED |
+| gold-value-calculator | CN | ✅深色主题 | ✅10g/24K/500元→纯金10g/100%/5000元 | ✅全中文 | 无错误 | P1:占位步骤→已修 | ✅PASSED |
+| gold-value-calculator | EN | ✅深色主题 | ✅同上→Pure Gold 10g/100%/¥5000 | ✅全英文(修复后) | 无错误 | P1:calc中文+footer中文+版权中文+占位步骤→已修 | ✅PASSED |
+
+### 修复总结(第六批)
+- **P1修复(10个文件占位步骤, 10个文件)**: CN+EN"输入第一个参数/Enter the first parameter"→每个工具的具体操作步骤
+- **P1修复(5个EN文件calc中文输出, 5个文件)**: 输出文案是中文('管道容积'/'总重量'/'纯金重量'等)→翻译为英文('Pipe Volume'/'Total Weight'/'Pure Gold Weight'等)
+- **P1修复(5个EN文件footer中文, 5个文件)**: 联系我们→Contact Us等4个链接
+- **P1修复(5个EN文件版权中文, 5个文件)**: '数据不上传服务器'→'your data never leaves your device'
+- **浏览器实测5个工具(CN5+EN验证1)**: 全部功能正确, 结果数值验证通过, 深色主题正确, 无Console错误, EN无中文残留
+- **JS语法验证(10个文件)**: 全部node -c通过
+- **Git**: commit d452c18849, 已push
+- **根因**: batch_gen批量生成时占位步骤未填充(与前五批相同根因); EN页calc输出/footer/版权未翻译
