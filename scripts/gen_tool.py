@@ -31,6 +31,8 @@ def gen_tool(slug, cn_name, en_name, cn_desc, en_desc, inputs_cn, inputs_en, cal
             for o in opts:
                 cn_inputs += f'<option value="{o.strip()}">{o.strip()}</option>'
             cn_inputs += '</select></div>\n'
+        elif cn_extra.startswith('text:'):
+            cn_inputs += f'<div class="form-group"><label>{cn_tuple[0]}</label><input type="text" id="{vid}" placeholder="{cn_tuple[1]}"></div>\n'
         else:
             cn_inputs += f'<div class="form-group"><label>{cn_tuple[0]}</label><input type="number" id="{vid}" placeholder="{cn_tuple[1]}" step="any"></div>\n'
         
@@ -40,6 +42,8 @@ def gen_tool(slug, cn_name, en_name, cn_desc, en_desc, inputs_cn, inputs_en, cal
             for o in opts:
                 en_inputs += f'<option value="{o.strip()}">{o.strip()}</option>'
             en_inputs += '</select></div>\n'
+        elif en_extra.startswith('text:'):
+            en_inputs += f'<div class="form-group"><label>{en_tuple[0]}</label><input type="text" id="{vid}" placeholder="{en_tuple[1]}"></div>\n'
         else:
             en_inputs += f'<div class="form-group"><label>{en_tuple[0]}</label><input type="number" id="{vid}" placeholder="{en_tuple[1]}" step="any"></div>\n'
     
