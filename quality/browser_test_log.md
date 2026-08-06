@@ -914,3 +914,32 @@
 - **P1修复(8个CN页双句号, 8个文件)**: "。。"→"。"
 - **浏览器实测5个工具(CN3+EN2)**: 全部功能正确, 结果数值验证通过, 深色主题正确, result区域可见, 无Console错误
 - **根因**: batch_gen_20260806.py批量生成时: (1)calc()设置innerHTML但未设置style.display='block'覆盖CSS的display:none; (2)SELECT元素用parseFloat(value)解析文本值得到NaN; (3)pet-calorie的weight变量绑定到SELECT(v1)而非INPUT(v2); (4)EN页footer/calc输出/版权未翻译; (5)EN页hreflang和lang-switch链接错误; (6)EN页subtitle被截断; (7)CN页SEO段落双句号; (8)占位步骤未填充
+
+### 2026-08-06 (第四批: 8个新计算器工具 — calorie-burn/time-duration/oz-ml/lbs-kg/celsius-fahrenheit/gpa/acre-sqm/gallon-liter)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:-----:|:----:|:----:|:----:|:-------:|:-----|:----:|
+| celsius-to-fahrenheit | CN | ✅#0f172a/#1e293b/#e2e8f0 | ✅100°C→212°F | ✅全中文 | 无错误 | P0:result display:none+SELECT parseFloat→已修 | ✅PASSED |
+| celsius-to-fahrenheit | EN | ✅深色主题 | ✅100°C→212°F | ✅全英文(修复后) | 无错误 | P0:result不显示+SELECT NaN+calc中文输出→已修 | ✅PASSED |
+| oz-to-ml-calc | CN | ✅深色主题 | ✅10oz→295.74ml | ✅全中文 | 无错误 | P0:result不显示+SELECT parseFloat→已修 | ✅PASSED |
+| oz-to-ml-calc | EN | ✅深色主题 | ✅10oz→295.74ml | ✅全英文(修复后) | 无错误 | P0:result不显示+SELECT NaN+calc中文输出→已修 | ✅PASSED |
+| lbs-to-kg-calc | CN | ✅深色主题 | ✅150lbs→68.04kg | ✅全中文 | 无错误 | P0:result不显示+SELECT parseFloat→已修 | ✅PASSED |
+| time-duration-calc | CN | ✅深色主题 | ✅09:00→17:30=8小时30分钟 | ✅全中文 | 无错误 | P0:result不显示+text被parseFloat→已修 | ✅PASSED |
+| time-duration-calc | EN | ✅深色主题 | ✅09:00→17:30=8h30m | ✅全英文(修复后) | 无错误 | P0:result不显示+text parseFloat+calc中文→已修 | ✅PASSED |
+| gpa-calculator-4 | CN | ✅深色主题 | ✅3cr85+4cr90+2cr78→GPA3.68 | ✅全中文 | 无错误 | P0:result不显示→已修 | ✅PASSED |
+| gpa-calculator-4 | EN | ✅深色主题 | ✅同上→GPA 3.68 weighted | ✅全英文(修复后) | 无错误 | P0:result不显示+calc中文输出→已修 | ✅PASSED |
+| acre-to-sqm-calc | CN | ✅深色主题 | ✅5英亩→20234.3m² | ✅全中文 | 无错误 | P0:result不显示+SELECT parseFloat→已修 | ✅PASSED |
+| gallon-to-liter-calc | CN | ✅深色主题 | ✅10gal→37.85L | ✅全中文 | 无错误 | P0:result不显示+SELECT parseFloat→已修 | ✅PASSED |
+| calorie-burn-calc | CN | ✅深色主题 | ✅70kg跑步30min→280kcal | ✅全中文 | 无错误 | P0:result不显示+SELECT(v3)parseFloat→已修 | ✅PASSED |
+| calorie-burn-calc | EN | ✅深色主题 | ✅70kg Running 30min→280kcal | ✅全英文(修复后) | 无错误 | P0:result不显示+SELECT parseFloat+calc中文→已修 | ✅PASSED |
+
+### 修复总结(第四批)
+- **P0修复(16个文件result不可见, 16个文件)**: calc()计算结果但末尾只有表达式语句`r;`，未写入DOM→添加`document.getElementById('rv').textContent=r;document.getElementById('result').style.display='block';`
+- **P0修复(10个文件SELECT parseFloat取NaN, 10个文件)**: celsius/oz/lbs/acre/gallon的v2是SELECT(方向选择器)和calorie的v3是SELECT(运动类型)，parseFloat('摄氏→华氏')→NaN→字符串比较失败→SELECT改用el.value取字符串
+- **P0修复(time-duration-calc 2个文件text被parseFloat)**: v1/v2是text类型('HH:MM')被parseFloat→split(':')失败→改用el.value取字符串
+- **P0修复(8个EN页calc中文输出, 8个文件)**: 输出文案是中文('小时'/'千卡'/'加权平均')→翻译为英文
+- **P1修复(8个EN页footer中文, 8个文件)**: 联系我们→Contact Us等
+- **P1修复(16个文件占位步骤, 16个文件)**: '输入第一个参数'→每个工具的具体操作步骤
+- **浏览器实测13个工具(CN8+EN5)**: 全部功能正确, 结果数值验证通过, 深色主题正确, result区域可见, 无Console错误
+- **Git**: commit 2ce340f9d6, 已push
+- **根因**: batch_gen批量生成时calc()末尾只有表达式语句`r;`不更新DOM(与第三批相同根因); SELECT元素用parseFloat解析文本值得到NaN; text类型input被parseFloat; EN页calc输出未翻译
