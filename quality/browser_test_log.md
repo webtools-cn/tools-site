@@ -992,3 +992,20 @@
 - **JS语法验证(10个文件)**: 全部node -c通过
 - **Git**: commit d452c18849, 已push
 - **根因**: batch_gen批量生成时占位步骤未填充(与前五批相同根因); EN页calc输出/footer/版权未翻译
+
+### 2026-08-06 (新计算器浏览器实测)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:-----:|:----:|:----:|:----:|:-------:|:-----|:----:|
+| percentage-increase | CN | ✅深色 | ✅100→150=50%增长 | ✅全中文 | 无 | P2:占位步骤("输入第一个参数"); footer缺GitHub链接 | ✅PASSED |
+| weighted-average | CN | ✅深色 | ✅80(3)+90(2)+100(1)=86.67 | ✅全中文 | 无 | P2:占位步骤; footer缺GitHub链接 | ✅PASSED |
+| payback-period | CN | ✅深色 | ✅10000÷2500=4年 | ✅全中文 | 无 | P2:占位步骤; footer缺GitHub链接 | ✅PASSED |
+| en/percentage-increase | EN | ✅深色 | ✅100→150=50% Increase | ✅全英文 | 无 | P2:占位步骤("Enter the first parameter") | ✅PASSED |
+| en/speed-distance-time | EN | ✅深色 | ✅120km÷2h=60km/h | ✅全英文(0中文) | 无 | P2:占位步骤 | ✅PASSED |
+
+### 本轮总结
+- **实测5个工具(CN3+EN2)**: 全部功能正确，数值验证通过，深色主题正确，无Console错误，EN无中文残留
+- **CSS变量验证**: --bg:#0f172a, --card-bg:#1e293b, --text:#e2e8f0, --primary:#06b6d4, --border:rgba(148,163,184,.1) 全部符合标准
+- **共性问题(P2)**: "如何使用"步骤为占位文字("输入第一个参数"/"输入第二个参数")，非阻塞性问题
+- **共性问题(P2)**: Footer缺GitHub链接（当前5个：首页/联系我们/隐私/条款/关于），标准要求6个
+- **无需修复的P0/P1问题**: 本批新计算器功能正常，主题正确，语言正确
