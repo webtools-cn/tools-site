@@ -943,3 +943,27 @@
 - **浏览器实测13个工具(CN8+EN5)**: 全部功能正确, 结果数值验证通过, 深色主题正确, result区域可见, 无Console错误
 - **Git**: commit 2ce340f9d6, 已push
 - **根因**: batch_gen批量生成时calc()末尾只有表达式语句`r;`不更新DOM(与第三批相同根因); SELECT元素用parseFloat解析文本值得到NaN; text类型input被parseFloat; EN页calc输出未翻译
+
+### 2026-08-06 (第五批: 9个新计算器工具 — composting/food-cost/language-difficulty/octave/pomodoro/retirement-score/spring-rate/subnet-v6/water-footprint)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:-----:|:----:|:----:|:----:|:-------:|:-----|:----:|
+| composting-calculator | CN | ✅#0f172a/#1e293b/#e2e8f0 | ✅10kg brown+5kg green→25:1 | ✅全中文 | 无错误 | P0:calc不写DOM+v[0]引用+占位步骤→已修 | ✅PASSED |
+| composting-calculator | EN | ✅深色主题 | ✅同上→C:N Ratio 25:1 | ✅全英文(修复后) | 无错误 | P0:calc中文输出+footer中文+占位步骤+版权中文→已修 | ✅PASSED |
+| food-cost-calculator | CN | ✅深色主题 | ✅$100/4份→$25/份 | ✅全中文 | 无错误 | P0:calc不写DOM+v[0]引用+占位步骤→已修 | ✅PASSED |
+| octave-calculator | CN | ✅深色主题 | ✅440Hz×2^1→880Hz | ✅全中文 | 无错误 | P0:calc不写DOM+v[0]引用+占位步骤→已修 | ✅PASSED |
+| spring-rate-calculator | CN | ✅深色主题 | ✅100N/10mm→10N/mm | ✅全中文 | 无错误 | P0:calc不写DOM+v[0]引用+占位步骤→已修 | ✅PASSED |
+| subnet-calculator-v6 | CN | ✅深色主题 | ✅/64→/72→256子网 | ✅全中文 | 无错误 | P0:calc不写DOM+v[0]引用+占位步骤→已修 | ✅PASSED |
+
+### 修复总结(第五批)
+- **P0修复(18个文件calc不写DOM, 18个文件)**: calc()返回字符串但不设置result.style.display和rv.textContent→添加`document.getElementById('rv').textContent=r; document.getElementById('result').style.display='block';`
+- **P0修复(18个文件v[]引用错, 18个文件)**: calc函数引用v[0]/v[1]/v[2]/v[3]/v[4]但只有v1=a,v2=b等标量变量→替换为v1/v2/v3/v4/v5
+- **P0修复(9个EN文件calc中文输出, 9个文件)**: 输出文案是中文('总碳氮比'/'每份成本'等)→翻译为英文('C:N Ratio'/'Cost/Serving'等)
+- **P1修复(9个CN文件占位步骤, 9个文件)**: '输入第一个参数'→每个工具的具体操作步骤
+- **P1修复(9个EN文件占位步骤, 9个文件)**: 'Enter the first parameter'→具体英文步骤
+- **P1修复(9个EN文件footer中文, 9个文件)**: 联系我们→Contact Us等
+- **P1修复(9个EN文件版权中文, 9个文件)**: '数据不上传服务器'→'data never leaves your device'
+- **浏览器实测6个工具(CN5+EN1)**: 全部功能正确, 结果数值验证通过, 深色主题正确, result区域可见, EN无中文残留
+- **JS语法验证(18个文件)**: 全部node -c通过
+- **Git**: commit bcab20d179, 已push
+- **根因**: batch_gen_20260806.py第五批批量生成时calc()只return字符串不写DOM(与前四批相同根因); v[]数组引用不存在; EN页calc输出/footer/版权未翻译; 占位步骤未填充
