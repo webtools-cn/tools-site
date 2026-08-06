@@ -787,3 +787,23 @@
 - **浏览器实测5个CN+5个EN**: 全部功能正确，结果数值验证通过，深色主题正确，无中文残留
 - **Git**: commit 123f08ac2b, 已push
 - **根因**: gen_tool.py批量生成EN页时，footer模板和JS输出文案未翻译为英文；circle-area-calculator的单位判断逻辑直接复制CN版（判断中文option值），未适配EN版英文option值
+
+### 2026-08-06 质检cron — 第四批8个电工电子计算器浏览器实测
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:-----:|:----:|:----:|:----:|:-------:|:-----|:----:|
+| watts-to-lumens | CN | ✅#0f172a/#e2e8f0 | ✅10W LED→1000流明 | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| watts-to-lumens | EN | ✅深色主题 | ✅10W LED→1000 lumens | ✅全英文(修复后) | 无错误 | P0 footer中文+JS输出中文→已修 | ✅PASSED |
+| voltage-drop-calc | CN | ✅深色主题 | ✅20A/50m/2.5mm²→14V drop | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| decibel-converter | CN | ✅深色主题 | ✅20dB功率→100倍/20dB电压→10倍 | ✅全中文 | 无错误 | P0 select值非数字→已修(选第二选项失效) | ✅PASSED |
+| ohms-law-wheel | CN | ✅深色主题 | ✅V=12/I=2→R=6Ω/P=24W | ✅全中文 | 无错误 | P0 select值非数字→已修 | ✅PASSED |
+| capacitor-series | CN | ✅深色主题 | ✅10μF+20μF→串6.67/并30μF | ✅全中文 | 无错误 | P0 select值非数字→已修 | ✅PASSED |
+| resistor-led-calc | CN | ✅深色主题 | ✅5V/2V/20mA→150Ω/60mW | ✅全中文 | 无错误 | 无 | ✅PASSED |
+
+### 修复总结
+- **P0修复(select值非数字,5个工具CN+EN共10个文件)**: option value从文本改为数字索引(0,1,2,3)。根因: gen_tool.py生成时option value=文本, JS用parseInt()/parseFloat()解析导致NaN→0, 选择第二个选项时实际执行第一个选项的逻辑。影响工具: watts-to-lumens/ohms-law-wheel/capacitor-series/inductor-series/decibel-converter
+- **P0修复(8个EN页footer中文)**: 联系我们→Contact, 隐私政策→Privacy, 服务条款→Terms, 关于我们→About, copyright中文→英文
+- **P0修复(7个EN页JS输出中文)**: 亮度→Brightness, 流明→lumens, 等效LED功率→Equivalent LED Power, 能效→Efficiency, 等效电阻→Equivalent Resistance, 电压降→Voltage Drop, 导线电阻→Wire Resistance, 末端电压→End Voltage, 电阻→Resistance, 功率→Power, 建议选型→Recommended, 串联→Series, 并联→Parallel, 倍→x
+- **浏览器实测5个CN+1个EN**: 全部功能正确，结果数值验证通过，深色主题正确
+- **Git**: commit 6ed76ac72d, 已push
+- **根因**: gen_tool.py批量生成时: (1)select option value用文本而非数字索引,JS用parseInt解析导致功能失效; (2)EN页footer模板和JS输出文案未翻译为英文
