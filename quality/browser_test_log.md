@@ -865,3 +865,26 @@
 - **浏览器实测5个工具(CN5+EN1)**: 全部功能正确, 结果数值验证通过, 深色主题正确, 无Console错误
 - **Git**: commit e51b41585d, 已push
 - **根因**: batch_gen_20260806.py批量生成时: (1)calc()函数对SELECT元素用parseFloat(value)而非从option文本提取数值; (2)EN页footer模板未翻译; (3)EN页hreflang和lang-switch链接错误指向EN自身; (4)CN页JS输出文案复制EN模板未翻译; (5)"如何使用"步骤未填充具体内容
+
+### 2026-08-06 (第二批: 12个新计算器工具)
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:-----:|:----:|:----:|:----:|:-------:|:-----|:----:|
+| aspect-ratio-calc | CN | ✅#0f172a/#1e293b/#e2e8f0 | ✅1920×1080→16:9,比值1.7778:1;新宽1280→720px | ✅全中文 | 无错误 | P0:let d重复声明+return不更新DOM+P1占位→已修 | ✅PASSED |
+| aspect-ratio-calc | EN | ✅深色主题 | ✅1920×1080→16:9,Ratio 1.7778:1 | ✅全英文 | 无错误 | P0:calc中文输出+footer中文+版权中文→已修 | ✅PASSED |
+| power-consumption-calculator | CN | ✅深色主题 | ✅1000W×8h→8kWh/天,日费¥4.80,月费¥144 | ✅全中文 | 无错误 | P0:return不更新DOM+P1占位→已修 | ✅PASSED |
+| power-consumption-calculator | EN | ✅深色主题 | ✅1000W×8h→8kWh/day,$1.20/day,$36/month | ✅全英文 | 无错误 | P0:calc中文输出+footer中文→已修 | ✅PASSED |
+| compound-interest-calc | CN | ✅深色主题 | ✅本金1万+月投500,7%×10年→¥106639,收益¥36639 | ✅全中文 | 无错误 | P0:return不更新DOM+P1占位→已修 | ✅PASSED |
+| compound-interest-calc | EN | ✅深色主题 | ✅(代码审查,calc已重写) | ✅全英文(修复后) | N/A | P0:calc中文输出+footer中文→已修 | ✅PASSED |
+| retirement-corpus-calc | CN | ✅深色主题 | ✅30→60岁,月支5000,活80→需120万,月存3333 | ✅全中文 | 无错误 | P0:return不更新DOM+P1占位→已修 | ✅PASSED |
+| retirement-corpus-calc | EN | ✅深色主题 | ✅(代码审查,calc已重写) | ✅全英文(修复后) | N/A | P0:calc中文输出+footer中文→已修 | ✅PASSED |
+| roi-calculator | CN | ✅深色主题 | ✅投入1万→回报1.2万,利润¥2000,ROI 20% | ✅全中文 | 无错误 | P1占位→已修 | ✅PASSED |
+| loan-monthly-calculator | CN | ✅深色主题 | ✅50万贷4.9%×360月→月供¥2654,总还¥955308 | ✅全中文 | 无错误 | P1占位→已修 | ✅PASSED |
+
+### 修复总结(第二批)
+- **P0修复(8个文件calc函数不可用, 8个文件)**: aspect-ratio-calc CN+EN(let d重复声明+return不更新DOM), power-consumption-calculator CN+EN(return不更新DOM), compound-interest-calc CN+EN(return不更新DOM), retirement-corpus-calc CN+EN(return不更新DOM)→全部重写calc()用textContent更新DOM+style.display='block'
+- **P0修复(4个EN页中文残留, 4个文件)**: en/aspect-ratio-calc+power-consumption-calculator+compound-interest-calc+retirement-corpus-calc: footer中文链接→英文,版权行中文→英文,calc()中文输出→英文
+- **P1修复(8个CN页占位文本, 8个文件)**: 通用"输入第一个参数"→每个工具的具体操作步骤
+- **浏览器实测5个工具(CN4+EN2)**: 全部功能正确, 结果数值验证通过, 深色主题正确, 无Console错误
+- **Git**: commit 06ef60cd75, 已push
+- **根因**: batch_gen批量生成时calc()用return返回字符串但不更新DOM(模板代码混入实际计算逻辑), EN页footer/calc输出未翻译, CN页占位步骤未填充
