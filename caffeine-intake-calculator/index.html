@@ -82,9 +82,9 @@ footer a:hover { text-decoration: underline; }
 <p>咖啡因摄入计算器是一款免费在线工具，在线咖啡因摄入计算器，根据饮品类型和杯数计算每日咖啡因摄入总量，对比安全上限(400mg/天)，帮助管理咖啡因摄入。。支持手机和电脑，所有计算在浏览器本地完成，数据安全不上传。</p>
 <h3>如何使用</h3>
 <ol>
-  <li>输入第一个参数</li>
-  <li>输入第二个参数</li>
-  <li>点击"计算"按钮查看结果</li>
+  <li>选择饮品类型（如浓缩咖啡、美式咖啡、绿茶等）</li>
+  <li>输入饮用的杯数，可选填写体重以计算每公斤摄入量</li>
+  <li>点击"计算"按钮查看咖啡因总摄入量和安全评估</li>
 </ol>
 </div>
 <div class="faq"><h3>这个工具准确吗？</h3><p>计算公式基于标准数学公式，结果精确可靠。</p><h3>需要下载吗？</h3><p>完全不需要，打开网页即可使用，纯前端计算。</p></div>
@@ -102,24 +102,22 @@ footer a:hover { text-decoration: underline; }
 <div class="toast" id="toast"></div>
 <script>
 function calc(){
-  var v1el=document.getElementById('v1'),a=v1el.tagName==='SELECT'?parseFloat(v1el.value)||0:parseFloat(v1el.value);
-  var v2el=document.getElementById('v2'),b=v2el?v2el.tagName==='SELECT'?parseFloat(v2el.value)||0:parseFloat(v2el.value):0;
+  var v1el=document.getElementById('v1');
+  var v2el=document.getElementById('v2'),b=v2el?parseFloat(v2el.value):0;
   var v3el=document.getElementById('v3'),c=v3el?parseFloat(v3el.value):0;
-  var v4el=document.getElementById('v4'),d=v4el?parseFloat(v4el.value):0;
-  if(v2el&&(isNaN(a)||isNaN(b))){show('请输入有效数值');return}
-  if(!v2el&&isNaN(a)){show('请输入有效数值');return}
-  var v1=a,v2=b,v3=c,v4=d;var mgMap={espresso:63,brewed:95,latte:75,instant:63,greentea:28,blacktea:47,cola:34,energydrink:80,redbull:80,matcha:70,oolong:37,hotchocolate:5};
-var v2el=document.getElementById('v1');
-var opts=v2el.options[v2el.selectedIndex].text.toLowerCase().replace(/[^a-z]/g,'');
-var total=a*b;
-var limit=400;
-var safe=total<=limit?'Safe (<=400mg/day)':'Exceeds daily limit (400mg)';
-var pct=((total/limit)*100).toFixed(0);
-var perKg=c>0?(total/c).toFixed(2):null;
-document.getElementById('rv').textContent=total.toFixed(0)+' mg';
-var detail=safe+' | '+pct+'% of limit';
-if(perKg)detail+=' | '+perKg+' mg/kg';
-document.getElementById('rd').textContent=detail;
+  if(isNaN(b)||b<=0){show('请输入有效杯数');return}
+  var drinkText=v1el.options[v1el.selectedIndex].text;
+  var mgMatch=drinkText.match(/\((\d+)mg\)/);
+  var mgPerCup=mgMatch?parseFloat(mgMatch[1]):63;
+  var total=mgPerCup*b;
+  var limit=400;
+  var safe=total<=limit?'安全 (≤400mg/天)':'超过每日上限 (400mg)';
+  var pct=((total/limit)*100).toFixed(0);
+  var perKg=c>0?(total/c).toFixed(2):null;
+  document.getElementById('rv').textContent=total.toFixed(0)+' mg';
+  var detail=safe+' | 占上限 '+pct+'%';
+  if(perKg)detail+=' | '+perKg+' mg/kg';
+  document.getElementById('rd').textContent=detail;
 document.getElementById('result').style.display='block'
 }
 function show(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2500)}
