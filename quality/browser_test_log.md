@@ -760,3 +760,30 @@
 - **浏览器实测5个CN+1个EN**: 全部功能正确，结果数值验证通过，深色主题正确
 - **Git**: commit b3c6d439c7, 已push
 - **根因**: gen_tool.py批量生成时calc()只写innerHTML不设display:block（与上一批8个工具同一根因）；EN页footer模板未翻译
+
+### 2026-08-06 质检cron — 第三批5个计算器工具浏览器实测（circle-area/horsepower-to-kw/cube-root/heat-index/sinking-fund）
+
+| 工具 | CN/EN | 主题 | 功能 | 语言 | Console | 问题 | 状态 |
+|:-----|:-----:|:----:|:----:|:----:|:-------:|:-----|:----:|
+| circle-area-calculator | CN | ✅#0f172a/#e2e8f0 | ✅r=5cm→78.54cm²/31.42cm | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| horsepower-to-kw | CN | ✅深色主题 | ✅100hp→74.57kW | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| cube-root-calculator | CN | ✅深色主题 | ✅∛27=3.0 | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| heat-index-calc | CN | ✅深色主题 | ✅35°C/70%→50.3°C危险 | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| sinking-fund-calculator | CN | ✅深色主题 | ✅10000/5y/5%→¥147.05/mo | ✅全中文 | 无错误 | 无 | ✅PASSED |
+| circle-area-calculator | EN | ✅深色主题 | ✅r=5cm→78.54cm²/31.42cm | ✅全英文 | 无错误 | P0 footer全中文+JS"周长"中文+单位判断逻辑错(判中文option值导致永远fallback到ft)→已修 | ✅PASSED |
+| horsepower-to-kw | EN | ✅深色主题 | ✅100hp→74.57kW | ✅全英文 | 无错误 | P0 footer全中文+JS indexOf('机械'/'公制')中文残留→已移除 | ✅PASSED |
+| cube-root-calculator | EN | ✅深色主题 | ✅∛27=3.0 | ✅全英文 | 无错误 | P0 footer全中文+JS"验证"中文→"Verify" | ✅PASSED |
+| heat-index-calc | EN | ✅深色主题 | ✅35°C/70%→50.3°C Danger | ✅全英文 | 无错误 | P0 footer全中文+JS 4条中文危险等级提示→英文 | ✅PASSED |
+| sinking-fund-calculator | EN | ✅深色主题 | ✅10000/5y/5%→¥147.05/mo | ✅全英文 | 无错误 | P0 footer全中文+JS"月共存入/利息/月"中文→英文 | ✅PASSED |
+
+### 修复总结
+- **P0修复（5个EN页footer）**: footer链接全中文(联系我们/隐私政策/服务条款/关于我们)→Contact/Privacy/Terms/About；copyright行"数据不上传服务器"→"Data never leaves your device"
+- **P0修复（circle-area-calculator EN单位逻辑）**: JS判断option值用中文('厘米'/'米'/'英寸')，但EN页option值是英文(cm/m/inches/feet)，导致所有选择fallback到'ft'→改为直接使用v2el.value
+- **P0修复（circle-area-calculator EN JS输出）**: "周长:"→"Circumference:"
+- **P0修复（cube-root-calculator EN JS输出）**: "验证:"→"Verify:"
+- **P0修复（heat-index-calc EN JS输出）**: 4条中文危险等级提示→英文(Comfortable/Caution/Extreme heat/Danger)
+- **P0修复（sinking-fund-calculator EN JS输出）**: "个月共存入/利息/月"→"months total deposited/interest/mo"
+- **P0修复（horsepower-to-kw EN JS逻辑）**: 移除indexOf('机械'/'公制')中文匹配分支（EN页option值是英文，中文分支永远不匹配，属于残留代码）
+- **浏览器实测5个CN+5个EN**: 全部功能正确，结果数值验证通过，深色主题正确，无中文残留
+- **Git**: commit 123f08ac2b, 已push
+- **根因**: gen_tool.py批量生成EN页时，footer模板和JS输出文案未翻译为英文；circle-area-calculator的单位判断逻辑直接复制CN版（判断中文option值），未适配EN版英文option值
