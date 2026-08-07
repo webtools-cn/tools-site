@@ -359,15 +359,18 @@ QR.getBlocks = function(ver, eccIdx){
 QR.makeMatrix = function(data, ver){
   var size = QR.versionSizes[ver-1];
   var matrix = [];
+  var funcPattern = [];
   for(var i = 0; i < size; i++){
     matrix[i] = [];
-    for(var j = 0; j < size; j++) matrix[i][j] = null;
+    funcPattern[i] = [];
+    for(var j = 0; j < size; j++){ matrix[i][j] = null; funcPattern[i][j] = false; }
   }
 
   function addFinder(row, col){
     for(var r = -1; r <= 7; r++){
       for(var c = -1; c <= 7; c++){
         if(row+r < 0 || col+c < 0 || row+r >= size || col+c >= size) continue;
+        funcPattern[row+r][col+c] = true;
         if((r >= 0 && r <= 6 && (c === 0 || c === 6)) || (c >= 0 && c <= 6 && (r === 0 || r === 6)) || (r >= 2 && r <= 4 && c >= 2 && c <= 4)){
           matrix[row+r][col+c] = true;
         } else {
@@ -382,6 +385,7 @@ QR.makeMatrix = function(data, ver){
 
   for(var i = 8; i < size - 8; i++){
     matrix[6][i] = matrix[i][6] = (i % 2 === 0);
+    funcPattern[6][i] = funcPattern[i][6] = true;
   }
 
   var alignPos = QR.getAlignPos(ver);
@@ -392,6 +396,7 @@ QR.makeMatrix = function(data, ver){
       for(var r = -2; r <= 2; r++){
         for(var c = -2; c <= 2; c++){
           if(row+r < 0 || col+c < 0 || row+r >= size || col+c >= size) continue;
+          funcPattern[row+r][col+c] = true;
           matrix[row+r][col+c] = (r === -2 || r === 2 || c === -2 || c === 2 || (r === 0 && c === 0));
         }
       }
@@ -410,11 +415,13 @@ QR.makeMatrix = function(data, ver){
   for(var i = 0; i < 15; i++){
     var r1 = fp[0][i], c1 = fp[1][i];
     var r2 = fc[0][i], c2 = fc[1][i];
+    funcPattern[r1][c1] = funcPattern[r2][c2] = true;
     if(matrix[r1][c1] === null) matrix[r1][c1] = formatBits[i];
     if(matrix[r2][c2] === null) matrix[r2][c2] = formatBits[i];
   }
 
   matrix[size-8][8] = true;
+  funcPattern[size-8][8] = true;
 
   var byteIdx = 0;
   var bitIdx = 7;
@@ -442,7 +449,7 @@ QR.makeMatrix = function(data, ver){
     for(var c = 0; c < size; c++){
       if(matrix[r][c] === null) matrix[r][c] = false;
       var masked = ((r + c) % 2 === 0);
-      if(matrix[r][c] === true || matrix[r][c] === false){
+      if(!funcPattern[r][c] && (matrix[r][c] === true || matrix[r][c] === false)){
         if(masked) matrix[r][c] = !matrix[r][c];
       }
     }
