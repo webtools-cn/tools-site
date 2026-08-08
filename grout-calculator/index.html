@@ -146,6 +146,11 @@ footer{text-align:center;padding:24px 0;color:var(--muted);font-size:.8rem}
 <code>W = gw × gd × L_total × ρ</code>
 </div>
 </div>
+<div class="chart-wrap" style="margin-top:16px">
+<canvas id="ftChart" width="640" height="220" style="width:100%;height:220px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px"></canvas>
+<p style="text-align:center;color:#64748b;font-size:12px;margin-top:6px">📊 结果可视化</p>
+</div>
+
 </div>
 
 <div class="related">
@@ -208,6 +213,52 @@ function calculate(){
 }
 
 calculate();
+
+function ftDrawChart(){
+  var cv = document.getElementById('ftChart');
+  if(!cv) return;
+  var ctx = cv.getContext('2d');
+  var nums = [];
+  function pushNum(t){
+    if(!t) return;
+    var m = String(t).match(/[\d,]+(?:\.\d+)?/g);
+    if(m){for(var i=0;i<m.length;i++){var v=parseFloat(m[i].replace(/,/g,''));if(v>0&&v<1e14)nums.push(v)}}
+  }
+  var scope = document.getElementById('result') || document;
+  pushNum(scope.textContent);
+  if(nums.length < 2) return;
+  nums = Array.from(new Set(nums)).sort(function(a,b){return b-a}).slice(0,6);
+  var W=cv.width,H=cv.height,padL=70,padR=10,padT=14,padB=26;
+  ctx.clearRect(0,0,W,H);
+  var maxV=Math.max.apply(null,nums);
+  ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4, val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    var lab=val>=1e8?(val/1e8).toFixed(1)+'亿':val>=1e4?(val/1e4).toFixed(1)+'万':val.toFixed(0);
+    ctx.fillText(lab,padL-6,y+3);
+  }
+  var bw=(W-padL-padR)/nums.length*0.55;
+  var colors=['#06b6d4','#10b981','#8b5cf6','#f59e0b','#ef4444','#64748b'];
+  ctx.textAlign='center';
+  for(var i=0;i<nums.length;i++){
+    var bh=(H-padT-padB)*nums[i]/maxV;
+    var x=padL+(W-padL-padR)*(i+0.5)/nums.length;
+    var y=padT+(H-padT-padB)-bh;
+    ctx.fillStyle=colors[i%colors.length];
+    ctx.fillRect(x-bw/2,y,bw,bh);
+    ctx.fillStyle='#e2e8f0';ctx.fillText(ftFmt(nums[i]),x,y-4);
+  }
+}
+function ftFmt(n){
+  if(n>=1e8)return (n/1e8).toFixed(1)+'亿';
+  if(n>=1e4)return (n/1e4).toFixed(1)+'万';
+  return n.toFixed(0);
+}
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){setTimeout(ftDrawChart,180)}
+});
+
 </script>
 <h2>什么是🧱 瓷砖填缝剂计算器</h2><p>🧱 瓷砖填缝剂计算器是一款快速计算美缝剂 / 填缝剂用量，告别浪费。无需安装或注册，输入瓷砖长度、瓷砖宽度即可在浏览器中直接使用。瓷砖长度、瓷砖宽度等输入仅在本地处理，不会上传到任何服务器。</p><h2>使用场景</h2><ul><li>日常工作中需要快速计算相关数值时</li><li>学习或教学中验证计算结果是否正确</li><li>移动设备上临时需要计算，不想安装专用软件</li><li>需要快速对比不同参数下的计算结果</li></ul><h2>工具特点</h2><ul><li><strong>完全免费</strong>：无需注册、无使用次数限制、无隐藏费用</li><li><strong>隐私安全</strong>：所有计算在浏览器本地完成，数据不上传服务器</li><li><strong>跨平台</strong>：支持Windows、Mac、Linux、iOS、Android</li><li><strong>零依赖</strong>：无需安装插件或软件，打开网页即用</li></ul><h3>🧱 瓷砖填缝剂计算器准确吗？</h3><p>本工具的计算逻辑基于标准数学公式和行业规范，结果准确可靠。</p><h3>使用🧱 瓷砖填缝剂计算器需要联网吗？</h3><p>首次打开页面需要联网加载，页面加载完成后即可离线使用。</p><h3>我的数据会被记录吗？</h3><p>不会。本工具没有任何后端服务器，您输入的所有数据仅存在于浏览器内存中。</p>
 </body>

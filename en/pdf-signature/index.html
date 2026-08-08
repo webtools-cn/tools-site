@@ -218,7 +218,12 @@ document.getElementById('feedback-success').style.display='block';
 </script>
 <script>
 var app=document.getElementById('app');
-app.innerHTML='<div class="input-section"><h2>✍️ Draw Your Signature</h2><div style="text-align:center"><canvas id="sigCanvas" width="400" height="150" style="background:#0f172a;border-radius:8px;cursor:crosshair;touch-action:none;max-width:100%"></canvas></div><div class="btn-row" style="justify-content:center"><button class="btn btn-secondary" id="clearSigBtn">🗑️ Clear</button><button class="btn btn-secondary" id="undoBtn">↩️ Undo</button></div></div><div class="input-section"><h2>📄 Upload PDF</h2><div class="field"><input type="file" id="pdfInput" accept=".pdf" style="color:#e2e8f0;font-size:.85rem;padding:8px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;width:100%"></div><div id="fileInfo" style="color:#64748b;font-size:.85rem;margin-top:4px"></div></div><div id="placementSection" style="display:none"><div class="input-section"><h2>🎯 Signature Placement</h2><div class="options"><label>Position: <select id="posSelect"><option value="bottom-right">Bottom Right</option><option value="bottom-left">Bottom Left</option><option value="top-right">Top Right</option><option value="top-left">Top Left</option><option value="center">Center</option></select></label><label>Size: <input type="range" id="sizeSlider" min="0.1" max="0.8" step="0.05" value="0.3" style="width:100px;vertical-align:middle"> <span id="sizeLabel" style="color:#94a3b8">30%</span></label></div></div></div><div class="btn-row" style="justify-content:center;margin-bottom:16px"><button class="btn btn-primary" id="signBtn" disabled style="font-size:1rem;padding:12px 32px">✍️ Sign & Download PDF</button></div><div class="result-section" id="result"><h2>✅ Signed PDF Ready</h2><div id="sigResult" style="text-align:center;padding:12px"></div></div><div id="errorMsg" style="display:none;margin-top:12px;padding:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#ef4444;font-size:.85rem"></div>';
+app.innerHTML='<div class="input-section"><h2>✍️ Draw Your Signature</h2><div style="text-align:center"><canvas id="sigCanvas" width="400" height="150" style="background:#0f172a;border-radius:8px;cursor:crosshair;touch-action:none;max-width:100%"></canvas></div><div class="btn-row" style="justify-content:center"><button class="btn btn-secondary" id="clearSigBtn">🗑️ Clear</button><button class="btn btn-secondary" id="undoBtn">↩️ Undo</button></div></div><div class="input-section"><h2>📄 Upload PDF</h2><div class="field"><input type="file" id="pdfInput" accept=".pdf" style="color:#e2e8f0;font-size:.85rem;padding:8px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;width:100%"></div><div id="fileInfo" style="color:#64748b;font-size:.85rem;margin-top:4px"></div></div><div id="placementSection" style="display:none"><div class="input-section"><h2>🎯 Signature Placement</h2><div class="options"><label>Position: <select id="posSelect"><option value="bottom-right">Bottom Right</option><option value="bottom-left">Bottom Left</option><option value="top-right">Top Right</option><option value="top-left">Top Left</option><option value="center">Center</option></select></label><label>Size: <input type="range" id="sizeSlider" min="0.1" max="0.8" step="0.05" value="0.3" style="width:100px;vertical-align:middle"> <span id="sizeLabel" style="color:#94a3b8">30%</span></label></div></div></div><div class="btn-row" style="justify-content:center;margin-bottom:16px"><button class="btn btn-primary" id="signBtn" disabled style="font-size:1rem;padding:12px 32px">✍️ Sign & Download PDF</button></div><div class="result-section" id="result"><h2>✅ Signed PDF Ready</h2><div id="sigResult" style="text-align:center;padding:12px"></div></div>
+<div class="chart-wrap" style="margin-top:16px">
+<canvas id="ftChart" width="640" height="220" style="width:100%;height:220px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px"></canvas>
+<p style="text-align:center;color:#64748b;font-size:12px;margin-top:6px">📊 Result Chart</p>
+</div>
+<div id="errorMsg" style="display:none;margin-top:12px;padding:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#ef4444;font-size:.85rem"></div>';
 var canvas=document.getElementById('sigCanvas');
 var ctx=canvas.getContext('2d');
 ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.lineCap='round';ctx.lineJoin='round';
@@ -350,7 +355,53 @@ reader.readAsArrayBuffer(pdfFile);
     var obs = new MutationObserver(function(){addCopyBtns();});
     obs.observe(document.body,{childList:true,subtree:true});
   }
-})();</script>
+})();
+function ftDrawChart(){
+  var cv = document.getElementById('ftChart');
+  if(!cv) return;
+  var ctx = cv.getContext('2d');
+  var nums = [];
+  function pushNum(t){
+    if(!t) return;
+    var m = String(t).match(/[\d,]+(?:\.\d+)?/g);
+    if(m){for(var i=0;i<m.length;i++){var v=parseFloat(m[i].replace(/,/g,''));if(v>0&&v<1e14)nums.push(v)}}
+  }
+  var scope = document.getElementById('result') || document;
+  pushNum(scope.textContent);
+  if(nums.length < 2) return;
+  nums = Array.from(new Set(nums)).sort(function(a,b){return b-a}).slice(0,6);
+  var W=cv.width,H=cv.height,padL=70,padR=10,padT=14,padB=26;
+  ctx.clearRect(0,0,W,H);
+  var maxV=Math.max.apply(null,nums);
+  ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4, val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    var lab=val>=1e8?(val/1e8).toFixed(1)+'亿':val>=1e4?(val/1e4).toFixed(1)+'万':val.toFixed(0);
+    ctx.fillText(lab,padL-6,y+3);
+  }
+  var bw=(W-padL-padR)/nums.length*0.55;
+  var colors=['#06b6d4','#10b981','#8b5cf6','#f59e0b','#ef4444','#64748b'];
+  ctx.textAlign='center';
+  for(var i=0;i<nums.length;i++){
+    var bh=(H-padT-padB)*nums[i]/maxV;
+    var x=padL+(W-padL-padR)*(i+0.5)/nums.length;
+    var y=padT+(H-padT-padB)-bh;
+    ctx.fillStyle=colors[i%colors.length];
+    ctx.fillRect(x-bw/2,y,bw,bh);
+    ctx.fillStyle='#e2e8f0';ctx.fillText(ftFmt(nums[i]),x,y-4);
+  }
+}
+function ftFmt(n){
+  if(n>=1e8)return (n/1e8).toFixed(1)+'亿';
+  if(n>=1e4)return (n/1e4).toFixed(1)+'万';
+  return n.toFixed(0);
+}
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){setTimeout(ftDrawChart,180)}
+});
+
+</script>
 
 </body>
 </html>

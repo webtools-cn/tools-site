@@ -243,7 +243,12 @@ var emojis=['😀','😂','🥰','😎','🤔','😱','🥳','😴','🤯','👍
 var emojiHtml='<div class="emoji-grid">';
 emojis.forEach(function(e){emojiHtml+='<button type="button" class="emoji-btn" data-emoji="'+e+'">'+e+'</button>'});
 emojiHtml+='<button type="button" class="emoji-btn" style="font-size:1rem;color:#94a3b8" data-emoji="more">More...</button></div>';
-app.innerHTML='<div class="input-section"><h2>🔤 Enter Emoji</h2><input type="text" id="emojiInput" value="😀" placeholder="Type or paste emoji..." style="font-size:2rem;text-align:center">'+emojiHtml+'<div class="row"><div class="field"><label>Output Size</label><select id="emojiSize"><option value="32">32px</option><option value="64">64px</option><option value="128" selected>128px</option><option value="256">256px</option><option value="512">512px</option></select></div><div class="field"><label>Background</label><select id="bgType"><option value="transparent">Transparent</option><option value="white">White</option><option value="custom">Custom Color</option></select></div><div class="field" id="customColorField" style="display:none"><label>Custom BG Color</label><input type="color" id="bgColor" value="#ffffff"></div></div><div class="btn-row"><button class="btn btn-primary" id="genBtn">✨ Generate PNG</button><button class="btn btn-success" id="dlBtn">⬇️ Download PNG</button></div></div><div class="result-section show" id="result"><h2>👁️ Preview</h2><div class="emoji-preview" id="preview" style="background:repeating-conic-gradient(#808080 0% 25%,transparent 0% 50%) 50%/16px 16px"><canvas id="emojiCanvas"></canvas></div></div>';
+app.innerHTML='<div class="input-section"><h2>🔤 Enter Emoji</h2><input type="text" id="emojiInput" value="😀" placeholder="Type or paste emoji..." style="font-size:2rem;text-align:center">'+emojiHtml+'<div class="row"><div class="field"><label>Output Size</label><select id="emojiSize"><option value="32">32px</option><option value="64">64px</option><option value="128" selected>128px</option><option value="256">256px</option><option value="512">512px</option></select></div><div class="field"><label>Background</label><select id="bgType"><option value="transparent">Transparent</option><option value="white">White</option><option value="custom">Custom Color</option></select></div><div class="field" id="customColorField" style="display:none"><label>Custom BG Color</label><input type="color" id="bgColor" value="#ffffff"></div></div><div class="btn-row"><button class="btn btn-primary" id="genBtn">✨ Generate PNG</button><button class="btn btn-success" id="dlBtn">⬇️ Download PNG</button></div></div><div class="result-section show" id="result"><h2>👁️ Preview</h2><div class="emoji-preview" id="preview" style="background:repeating-conic-gradient(#808080 0% 25%,transparent 0% 50%) 50%/16px 16px"><canvas id="emojiCanvas"></canvas></div></div>
+<div class="chart-wrap" style="margin-top:16px">
+<canvas id="ftChart" width="640" height="220" style="width:100%;height:220px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px"></canvas>
+<p style="text-align:center;color:#64748b;font-size:12px;margin-top:6px">📊 Result Chart</p>
+</div>
+';
 document.querySelectorAll('.emoji-btn').forEach(function(btn){btn.addEventListener('click',function(){if(this.dataset.emoji==='more'){document.getElementById('emojiInput').focus();return}document.getElementById('emojiInput').value=this.dataset.emoji;generateEmoji()})});
 document.getElementById('bgType').addEventListener('change',function(){document.getElementById('customColorField').style.display=this.value==='custom'?'block':'none'});
 function generateEmoji(){var emoji=document.getElementById('emojiInput').value.trim();if(!emoji){showToast('Please enter an emoji');return}var size=parseInt(document.getElementById('emojiSize').value)||128;var canvas=document.getElementById('emojiCanvas');canvas')||document.getElementById('emojiCanvas');canvas.width=size;canvas.height=size;var ctx=canvas.getContext('2d');ctx.clearRect(0,0,size,size);var bgType=document.getElementById('bgType').value;if(bgType==='white'){ctx.fillStyle='#ffffff';ctx.fillRect(0,0,size,size)}else if(bgType==='custom'){ctx.fillStyle=document.getElementById('bgColor').value;ctx.fillRect(0,0,size,size)}ctx.font=size*0.8+'px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(emoji,size/2,size/2);document.getElementById('result').classList.add('show')}
@@ -257,7 +262,53 @@ generateEmoji(;
 <div id="related-tools-section" class="related-tools-section">
   <div class="related-tools-loading">Loading related tools...</div>
 </div>
-<script src="https://free-toolbase.com/related-tools.js"></script>
+<script src="https://free-toolbase.com/related-tools.js">
+function ftDrawChart(){
+  var cv = document.getElementById('ftChart');
+  if(!cv) return;
+  var ctx = cv.getContext('2d');
+  var nums = [];
+  function pushNum(t){
+    if(!t) return;
+    var m = String(t).match(/[\d,]+(?:\.\d+)?/g);
+    if(m){for(var i=0;i<m.length;i++){var v=parseFloat(m[i].replace(/,/g,''));if(v>0&&v<1e14)nums.push(v)}}
+  }
+  var scope = document.getElementById('result') || document;
+  pushNum(scope.textContent);
+  if(nums.length < 2) return;
+  nums = Array.from(new Set(nums)).sort(function(a,b){return b-a}).slice(0,6);
+  var W=cv.width,H=cv.height,padL=70,padR=10,padT=14,padB=26;
+  ctx.clearRect(0,0,W,H);
+  var maxV=Math.max.apply(null,nums);
+  ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4, val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    var lab=val>=1e8?(val/1e8).toFixed(1)+'亿':val>=1e4?(val/1e4).toFixed(1)+'万':val.toFixed(0);
+    ctx.fillText(lab,padL-6,y+3);
+  }
+  var bw=(W-padL-padR)/nums.length*0.55;
+  var colors=['#06b6d4','#10b981','#8b5cf6','#f59e0b','#ef4444','#64748b'];
+  ctx.textAlign='center';
+  for(var i=0;i<nums.length;i++){
+    var bh=(H-padT-padB)*nums[i]/maxV;
+    var x=padL+(W-padL-padR)*(i+0.5)/nums.length;
+    var y=padT+(H-padT-padB)-bh;
+    ctx.fillStyle=colors[i%colors.length];
+    ctx.fillRect(x-bw/2,y,bw,bh);
+    ctx.fillStyle='#e2e8f0';ctx.fillText(ftFmt(nums[i]),x,y-4);
+  }
+}
+function ftFmt(n){
+  if(n>=1e8)return (n/1e8).toFixed(1)+'亿';
+  if(n>=1e4)return (n/1e4).toFixed(1)+'万';
+  return n.toFixed(0);
+}
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){setTimeout(ftDrawChart,180)}
+});
+
+</script>
 <div class="toast" id="toast">
 
 </div>

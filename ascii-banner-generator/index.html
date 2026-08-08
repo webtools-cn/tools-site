@@ -45,7 +45,12 @@
     <div class="row"><div class="field"><label>输入文字（建议英文大写）</label><input type="text" id="inputText" value="HELLO" maxlength="20" placeholder="输入英文文字..."></div><div class="field"><label>填充字符</label><select id="fillChar"><option value="#"># 井号</option><option value="@">@ 符号</option><option value="*">* 星号</option><option value="█">█ 方块</option><option value="▓">▓ 填充</option></select></div></div>
     <div class="btn-row"><button class="btn btn-primary" id="genBtn">🎨 生成横幅</button><button class="btn btn-success" id="copyBtn">📋 复制结果</button></div>
   </div>
-  <div class="result-section"><h2>📝 ASCII横幅</h2><div class="result-box" id="result"></div></div>
+  <div class="result-section"><h2>📝 ASCII横幅</h2><div class="result-box" id="result"></div>
+<div class="chart-wrap" style="margin-top:16px">
+<canvas id="ftChart" width="640" height="220" style="width:100%;height:220px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px"></canvas>
+<p style="text-align:center;color:#64748b;font-size:12px;margin-top:6px">📊 结果可视化</p>
+</div>
+</div>
   <div class="info-section"><h2>使用说明</h2><p>ASCII横幅生成器将普通文字转换为ASCII艺术大字横幅。支持A-Z大写字母、0-9数字和常见标点符号。生成的ASCII艺术可以直接复制到终端、代码注释、README文件等场景使用。</p></div>
   <div class="info-section"><h2>常见问题</h2>
     <div class="faq-item"><h3 onclick="this.parentElement.classList.toggle('open')">支持中文吗？</h3><p>目前仅支持ASCII字符（英文大写字母、数字、标点）。中文ASCII艺术需要更大的字体数据，暂不支持。</p></div>
@@ -101,6 +106,52 @@ document.getElementById('fillChar').addEventListener('change',generate);
 generate();
 
 /* toggle implemented below */
+
+function ftDrawChart(){
+  var cv = document.getElementById('ftChart');
+  if(!cv) return;
+  var ctx = cv.getContext('2d');
+  var nums = [];
+  function pushNum(t){
+    if(!t) return;
+    var m = String(t).match(/[\d,]+(?:\.\d+)?/g);
+    if(m){for(var i=0;i<m.length;i++){var v=parseFloat(m[i].replace(/,/g,''));if(v>0&&v<1e14)nums.push(v)}}
+  }
+  var scope = document.getElementById('result') || document;
+  pushNum(scope.textContent);
+  if(nums.length < 2) return;
+  nums = Array.from(new Set(nums)).sort(function(a,b){return b-a}).slice(0,6);
+  var W=cv.width,H=cv.height,padL=70,padR=10,padT=14,padB=26;
+  ctx.clearRect(0,0,W,H);
+  var maxV=Math.max.apply(null,nums);
+  ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4, val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    var lab=val>=1e8?(val/1e8).toFixed(1)+'亿':val>=1e4?(val/1e4).toFixed(1)+'万':val.toFixed(0);
+    ctx.fillText(lab,padL-6,y+3);
+  }
+  var bw=(W-padL-padR)/nums.length*0.55;
+  var colors=['#06b6d4','#10b981','#8b5cf6','#f59e0b','#ef4444','#64748b'];
+  ctx.textAlign='center';
+  for(var i=0;i<nums.length;i++){
+    var bh=(H-padT-padB)*nums[i]/maxV;
+    var x=padL+(W-padL-padR)*(i+0.5)/nums.length;
+    var y=padT+(H-padT-padB)-bh;
+    ctx.fillStyle=colors[i%colors.length];
+    ctx.fillRect(x-bw/2,y,bw,bh);
+    ctx.fillStyle='#e2e8f0';ctx.fillText(ftFmt(nums[i]),x,y-4);
+  }
+}
+function ftFmt(n){
+  if(n>=1e8)return (n/1e8).toFixed(1)+'亿';
+  if(n>=1e4)return (n/1e4).toFixed(1)+'万';
+  return n.toFixed(0);
+}
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){setTimeout(ftDrawChart,180)}
+});
+
 </script>
 
 

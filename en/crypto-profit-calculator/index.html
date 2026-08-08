@@ -230,7 +230,12 @@ table.data td{color:#cbd5e1}
 </footer>
 <script>
 var app=document.getElementById('app');
-app.innerHTML='<div class="input-section"><h2>📊 Investment Details</h2><div class="row"><div class="field"><label>Buy Price (per coin)</label><input type="number" id="buyPrice" value="30000" step="any" min="0"></div><div class="field"><label>Sell Price (per coin)</label><input type="number" id="sellPrice" value="45000" step="any" min="0"></div></div><div class="row"><div class="field"><label>Quantity (coins)</label><input type="number" id="quantity" value="1" step="any" min="0"></div><div class="field"><label>Fee (%)</label><input type="number" id="feePct" value="0.1" step="any" min="0"></div></div><div class="btn-row"><button class="btn btn-primary" id="calcBtn">Calculate Profit</button><button class="btn btn-secondary" id="clearBtn">Reset</button></div></div><div class="result-section" id="result"><h2>✅ Results</h2><div id="resultsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px"></div></div>';
+app.innerHTML='<div class="input-section"><h2>📊 Investment Details</h2><div class="row"><div class="field"><label>Buy Price (per coin)</label><input type="number" id="buyPrice" value="30000" step="any" min="0"></div><div class="field"><label>Sell Price (per coin)</label><input type="number" id="sellPrice" value="45000" step="any" min="0"></div></div><div class="row"><div class="field"><label>Quantity (coins)</label><input type="number" id="quantity" value="1" step="any" min="0"></div><div class="field"><label>Fee (%)</label><input type="number" id="feePct" value="0.1" step="any" min="0"></div></div><div class="btn-row"><button class="btn btn-primary" id="calcBtn">Calculate Profit</button><button class="btn btn-secondary" id="clearBtn">Reset</button></div></div><div class="result-section" id="result"><h2>✅ Results</h2><div id="resultsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px"></div></div>
+<div class="chart-wrap" style="margin-top:16px">
+<canvas id="ftChart" width="640" height="220" style="width:100%;height:220px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px"></canvas>
+<p style="text-align:center;color:#64748b;font-size:12px;margin-top:6px">📊 Result Chart</p>
+</div>
+';
 function calc(){var bp=parseFloat(document.getElementById('buyPrice').value)||0;var sp=parseFloat(document.getElementById('sellPrice').value)||0;var qty=parseFloat(document.getElementById('quantity').value)||0;var fee=parseFloat(document.getElementById('feePct').value)||0;if(bp<=0||sp<=0||qty<=0)return;
 var totalBuy=bp*qty;var totalSell=sp*qty;var buyFee=totalBuy*fee/100;var sellFee=totalSell*fee/100;var totalFees=buyFee+sellFee;var profit=totalSell-totalBuy-totalFees;var roi=(profit/totalBuy*100);
 var grid=document.getElementById('resultsGrid');
@@ -295,7 +300,53 @@ document.getElementById('clearBtn').addEventListener('click',function(){document
     var obs = new MutationObserver(function(){addCopyBtns();});
     obs.observe(document.body,{childList:true,subtree:true});
   }
-})();</script>
+})();
+function ftDrawChart(){
+  var cv = document.getElementById('ftChart');
+  if(!cv) return;
+  var ctx = cv.getContext('2d');
+  var nums = [];
+  function pushNum(t){
+    if(!t) return;
+    var m = String(t).match(/[\d,]+(?:\.\d+)?/g);
+    if(m){for(var i=0;i<m.length;i++){var v=parseFloat(m[i].replace(/,/g,''));if(v>0&&v<1e14)nums.push(v)}}
+  }
+  var scope = document.getElementById('result') || document;
+  pushNum(scope.textContent);
+  if(nums.length < 2) return;
+  nums = Array.from(new Set(nums)).sort(function(a,b){return b-a}).slice(0,6);
+  var W=cv.width,H=cv.height,padL=70,padR=10,padT=14,padB=26;
+  ctx.clearRect(0,0,W,H);
+  var maxV=Math.max.apply(null,nums);
+  ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4, val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    var lab=val>=1e8?(val/1e8).toFixed(1)+'亿':val>=1e4?(val/1e4).toFixed(1)+'万':val.toFixed(0);
+    ctx.fillText(lab,padL-6,y+3);
+  }
+  var bw=(W-padL-padR)/nums.length*0.55;
+  var colors=['#06b6d4','#10b981','#8b5cf6','#f59e0b','#ef4444','#64748b'];
+  ctx.textAlign='center';
+  for(var i=0;i<nums.length;i++){
+    var bh=(H-padT-padB)*nums[i]/maxV;
+    var x=padL+(W-padL-padR)*(i+0.5)/nums.length;
+    var y=padT+(H-padT-padB)-bh;
+    ctx.fillStyle=colors[i%colors.length];
+    ctx.fillRect(x-bw/2,y,bw,bh);
+    ctx.fillStyle='#e2e8f0';ctx.fillText(ftFmt(nums[i]),x,y-4);
+  }
+}
+function ftFmt(n){
+  if(n>=1e8)return (n/1e8).toFixed(1)+'亿';
+  if(n>=1e4)return (n/1e4).toFixed(1)+'万';
+  return n.toFixed(0);
+}
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){setTimeout(ftDrawChart,180)}
+});
+
+</script>
 
 
 </div>

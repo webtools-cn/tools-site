@@ -46,6 +46,11 @@
     <button class="btn" onclick="generate()">🎲 生成</button>
     <button class="btn btn-copy" onclick="copyAll()">📋 一键复制</button>
     <div class="result-text" id="result" style="margin-top:12px;"></div>
+<div class="chart-wrap" style="margin-top:16px">
+<canvas id="ftChart" width="640" height="220" style="width:100%;height:220px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px"></canvas>
+<p style="text-align:center;color:#64748b;font-size:12px;margin-top:6px">📊 结果可视化</p>
+</div>
+
   </div>
   <div class="footer">Free ToolBase © 2024 | 纯前端生成</div>
 </main>
@@ -55,6 +60,52 @@ document.getElementById('end').valueAsDate=new Date();
 function formatDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function generate(){const s=document.getElementById('start').valueAsDate,e=document.getElementById('end').valueAsDate;if(!s||!e||s>=e){document.getElementById('result').innerHTML='<span class="item">请确保起始日期早于结束日期</span>';return}const n=parseInt(document.getElementById('cnt').value),range=e.getTime()-s.getTime();let html='';for(let i=0;i<n;i++){const d=new Date(s.getTime()+Math.random()*range);html+=`<span class="item">${i+1}. ${formatDate(d)}</span>`}document.getElementById('result').innerHTML=html}
 function copyAll(){const items=document.querySelectorAll('.item');let txt='';items.forEach(it=>{txt+=it.textContent.replace(/^\d+\.\s/,'')+'\n'});navigator.clipboard.writeText(txt.trim());document.getElementById('toast').textContent='已复制!';document.getElementById('toast').style.display='block';setTimeout(()=>document.getElementById('toast').style.display='none',2000)}
+
+function ftDrawChart(){
+  var cv = document.getElementById('ftChart');
+  if(!cv) return;
+  var ctx = cv.getContext('2d');
+  var nums = [];
+  function pushNum(t){
+    if(!t) return;
+    var m = String(t).match(/[\d,]+(?:\.\d+)?/g);
+    if(m){for(var i=0;i<m.length;i++){var v=parseFloat(m[i].replace(/,/g,''));if(v>0&&v<1e14)nums.push(v)}}
+  }
+  var scope = document.getElementById('result') || document;
+  pushNum(scope.textContent);
+  if(nums.length < 2) return;
+  nums = Array.from(new Set(nums)).sort(function(a,b){return b-a}).slice(0,6);
+  var W=cv.width,H=cv.height,padL=70,padR=10,padT=14,padB=26;
+  ctx.clearRect(0,0,W,H);
+  var maxV=Math.max.apply(null,nums);
+  ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4, val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    var lab=val>=1e8?(val/1e8).toFixed(1)+'亿':val>=1e4?(val/1e4).toFixed(1)+'万':val.toFixed(0);
+    ctx.fillText(lab,padL-6,y+3);
+  }
+  var bw=(W-padL-padR)/nums.length*0.55;
+  var colors=['#06b6d4','#10b981','#8b5cf6','#f59e0b','#ef4444','#64748b'];
+  ctx.textAlign='center';
+  for(var i=0;i<nums.length;i++){
+    var bh=(H-padT-padB)*nums[i]/maxV;
+    var x=padL+(W-padL-padR)*(i+0.5)/nums.length;
+    var y=padT+(H-padT-padB)-bh;
+    ctx.fillStyle=colors[i%colors.length];
+    ctx.fillRect(x-bw/2,y,bw,bh);
+    ctx.fillStyle='#e2e8f0';ctx.fillText(ftFmt(nums[i]),x,y-4);
+  }
+}
+function ftFmt(n){
+  if(n>=1e8)return (n/1e8).toFixed(1)+'亿';
+  if(n>=1e4)return (n/1e4).toFixed(1)+'万';
+  return n.toFixed(0);
+}
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){setTimeout(ftDrawChart,180)}
+});
+
 </script>
 
 <div class="seo-content" style="margin:1.5rem 0;padding:1rem;background:#0f172a;border-radius:8px;font-size:.95rem;color:#475569;line-height:1.8"><p>随机日期生成器是一款免费的在线工具，无需安装任何软件即可直接在浏览器中使用。计算全程在您的设备本地完成，起始日期、结束日期等数据不会上传至服务器。支持所有主流浏览器和移动设备，随时随地可用。使用随机日期生成器可以帮助您快速完成相关任务，提高工作效率。本工具采用纯前端技术实现，打开即用，无需注册账号或下载插件。操作简单直观，结果即时呈现。随机日期生成器提供精准的计算和转换功能，满足日常工作和学习需求。所有处理均在浏览器本地完成，响应速度快且安全可靠。无论您使用电脑还是手机，都能获得流畅的操作体验。</p>

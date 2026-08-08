@@ -44,6 +44,11 @@
 <div class="result-grid" id="resultGrid"></div>
 <div style="background:#0f172a;border-radius:10px;padding:20px;margin-top:16px;border:1px solid rgba(148,163,184,.1);color:#94a3b8;font-size:.85rem" id="breakdown"></div>
 </div>
+<div class="chart-wrap" style="margin-top:16px">
+<canvas id="ftChart" width="640" height="220" style="width:100%;height:220px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px"></canvas>
+<p style="text-align:center;color:#64748b;font-size:12px;margin-top:6px">📊 Result Chart</p>
+</div>
+
 </div></div>
 <div><div class="ad-slot ad-sidebar"></div><div class="ad-slot ad-sidebar" style="margin-top:16px"></div></div>
 </div>
@@ -90,6 +95,52 @@ var matName={"pressure-treated":"Pressure-Treated","cedar":"Cedar/Redwood","comp
 document.getElementById("resultGrid").innerHTML='<div class="result-item"><div class="value">$'+usdTotal.toLocaleString()+'</div><div class="label">Estimated Total Cost</div></div>'+'<div class="result-item"><div class="value">$'+grandTotal.toLocaleString()+'</div><div class="label">≈ RMB Equivalent</div></div>'+'<div class="result-item"><div class="value">$'+Math.round(usdTotal/area).toLocaleString()+'/m²</div><div class="label">Cost per m²</div></div>'+'<div class="result-item"><div class="value">'+area+' m²</div><div class="label">Total Area</div></div>';
 document.getElementById("breakdown").innerHTML='<strong>Cost Breakdown:</strong><br>Material ('+matName[mat]+'): $'+Math.round(matTotal/7.2).toLocaleString()+'<br>Labor: $'+Math.round(laborTotal/7.2).toLocaleString()+'<br>Framing: $'+Math.round(frameTotal/7.2).toLocaleString()+''+(stairs==="yes"?'<br>Stairs: $347':'')+'<br>Permits & Other (5%): $'+Math.round(permitFee/7.2).toLocaleString()+'<br><small>Note: This is an estimate. Actual costs vary by region and complexity. We recommend getting 3+ quotes.</small>';
 document.getElementById("result").style.display="block";}
+
+
+function ftDrawChart(){
+  var cv = document.getElementById('ftChart');
+  if(!cv) return;
+  var ctx = cv.getContext('2d');
+  var nums = [];
+  function pushNum(t){
+    if(!t) return;
+    var m = String(t).match(/[\d,]+(?:\.\d+)?/g);
+    if(m){for(var i=0;i<m.length;i++){var v=parseFloat(m[i].replace(/,/g,''));if(v>0&&v<1e14)nums.push(v)}}
+  }
+  var scope = document.getElementById('result') || document;
+  pushNum(scope.textContent);
+  if(nums.length < 2) return;
+  nums = Array.from(new Set(nums)).sort(function(a,b){return b-a}).slice(0,6);
+  var W=cv.width,H=cv.height,padL=70,padR=10,padT=14,padB=26;
+  ctx.clearRect(0,0,W,H);
+  var maxV=Math.max.apply(null,nums);
+  ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4, val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    var lab=val>=1e8?(val/1e8).toFixed(1)+'亿':val>=1e4?(val/1e4).toFixed(1)+'万':val.toFixed(0);
+    ctx.fillText(lab,padL-6,y+3);
+  }
+  var bw=(W-padL-padR)/nums.length*0.55;
+  var colors=['#06b6d4','#10b981','#8b5cf6','#f59e0b','#ef4444','#64748b'];
+  ctx.textAlign='center';
+  for(var i=0;i<nums.length;i++){
+    var bh=(H-padT-padB)*nums[i]/maxV;
+    var x=padL+(W-padL-padR)*(i+0.5)/nums.length;
+    var y=padT+(H-padT-padB)-bh;
+    ctx.fillStyle=colors[i%colors.length];
+    ctx.fillRect(x-bw/2,y,bw,bh);
+    ctx.fillStyle='#e2e8f0';ctx.fillText(ftFmt(nums[i]),x,y-4);
+  }
+}
+function ftFmt(n){
+  if(n>=1e8)return (n/1e8).toFixed(1)+'亿';
+  if(n>=1e4)return (n/1e4).toFixed(1)+'万';
+  return n.toFixed(0);
+}
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){setTimeout(ftDrawChart,180)}
+});
 
 </script>
 <footer style="background:#0f172a;border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:40px">
