@@ -81,6 +81,8 @@ footer a:hover { text-decoration: underline; }
 <div class="chart-wrap" style="margin-top:16px">
 <canvas id="ftChart" width="640" height="220" style="width:100%;height:220px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px"></canvas>
 <p style="text-align:center;color:#64748b;font-size:12px;margin-top:6px">📊 结果可视化</p>
+<canvas id="ftGrowthChart" width="640" height="220" style="width:100%;height:220px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px;margin-top:12px"></canvas>
+<p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:6px"><span style="color:#64748b">■</span> 累计投入 <span style="color:#10b981;margin-left:12px">■</span> 账户价值</p>
 </div>
 
 
@@ -142,6 +144,42 @@ function calc(){
   if(v2el&&(isNaN(a)||isNaN(b))){show('请输入有效数值');return}
   if(!v2el&&isNaN(a)){show('请输入有效数值');return}
   var v1=a,v2=b,v3=c,v4=d;var r=v2/100; var future=v1*Math.pow(1+r,v3); if(v4>0){future+=v4*((Math.pow(1+r,v3)-1)/r);} var interest=future-v1-v4*v3; var annual=(Math.pow(future/v1,12/v3)-1)*100; document.getElementById("result").innerHTML="<p><strong>到期总额:</strong> "+future.toFixed(2)+"</p><p><strong>总利息:</strong> "+interest.toFixed(2)+"</p><p><strong>有效年化:</strong> "+annual.toFixed(2)+"%</p>";
+  ftGrowth(v1,r,v3,v4,future);
+}
+function ftGrowth(P,r,years,monthlyAdd,future){
+  var cv=document.getElementById('ftGrowthChart');
+  if(!cv)return;
+  var series=[],yearlyAdd=(monthlyAdd||0)*12;
+  for(var i=0;i<=years;i++){
+    var fv=P*Math.pow(1+r,i);
+    if(yearlyAdd>0&&r>0){fv+=yearlyAdd*((Math.pow(1+r,i)-1)/r);}
+    series.push({y:i,value:fv,invested:P+yearlyAdd*i});
+  }
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,padL=64,padR=14,padT=18,padB=26;
+  ctx.clearRect(0,0,W,H);
+  var maxV=Math.max.apply(null,series.map(function(s){return Math.max(s.value,s.invested)}));
+  if(maxV<=0)return;
+  function fmtY(v){return v>=1e8?(v/1e8).toFixed(1)+'亿':v>=1e4?(v/1e4).toFixed(1)+'万':v.toFixed(0)}
+  ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4,val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.fillText(fmtY(val),padL-6,y+3);
+  }
+  function plot(getVal,color){
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+    for(var i=0;i<series.length;i++){
+      var x=padL+(W-padL-padR)*series[i].y/years;
+      var y=padT+(H-padT-padB)*(1-series[i][getVal]/maxV);
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  plot('invested','#64748b');
+  plot('value','#10b981');
+  ctx.fillStyle='#94a3b8';ctx.textAlign='center';
+  ctx.fillText('0',padL,H-8);ctx.fillText(years+'年',W-padR,H-8);
 }
 function show(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2500)}
 
