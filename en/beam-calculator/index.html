@@ -208,7 +208,42 @@ function calc(){
   }
   document.getElementById('resultBox').style.display='block';
 }
-calc();</script>
+calc();
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){
+    setTimeout(ftEnsureCopy,250);
+  }
+});
+function ftEnsureCopy(){
+  var res=document.getElementById('result');
+  if(!res||res.offsetParent===null)return;
+  if(res.querySelector('.ft-copy-btn'))return;
+  var langEN=/^en/i.test((document.documentElement.getAttribute('lang')||'zh'));
+  var btn=document.createElement('button');
+  btn.className='btn btn-secondary ft-copy-btn';
+  btn.textContent=langEN?'📋 Copy Result':'📋 复制结果';
+  btn.style.cssText='margin-top:12px;display:block';
+  btn.onclick=function(){
+    var txt=(res.innerText||res.textContent||'').replace(/\s+/g,' ').trim();
+    function toast(m){
+      var t=document.getElementById('toast');
+      if(t){t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){toast(langEN?'Copied!':'已复制')}).catch(function(){ftFallbackCopy(txt);toast(langEN?'Copied!':'已复制')});
+    }else{ftFallbackCopy(txt);toast(langEN?'Copied!':'已复制')}
+  };
+  res.appendChild(btn);
+}
+function ftFallbackCopy(txt){
+  var ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(err){}
+  document.body.removeChild(ta);
+}
+
+</script>
     <div class="seo-section">
 <h2>FAQ</h2>
       <div class="faq-item" onclick="this.classList.toggle('open')"><h3>How do I determine the right beam size?</h3><p>Beam sizing is governed by three checks: bending strength (S &ge; S_required), live load deflection (&le; L/360), and total load deflection (&le; L/240). This calculator automatically checks all standard sizes and recommends the smallest one that passes all criteria.</p></div>

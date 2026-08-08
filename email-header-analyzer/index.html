@@ -108,6 +108,41 @@ window.analyzeHeaders = analyzeHeaders; function analyzeHeaders(){const raw=docu
 function loadExample(){document.getElementById('header-input').value=`Delivered-To: user@example.com\nReceived: by 2002:a05:6512 with SMTP id 12; Fri, 17 Jul 2026 10:00:00 -0700 (PDT)\nX-Google-Smtp-Source: ABC123\nX-Received: by 2002:a05:6512:b2:: with SMTP id m12mr123456vkb.10.1721230800; Fri, 17 Jul 2026 10:00:00 -0700 (PDT)\nARC-Seal: i=1; a=rsa-sha256; t=1721230800; cv=none;\nARC-Message-Signature: i=1; a=rsa-sha256;\nARC-Authentication-Results: i=1; mx.google.com;\n       dkim=pass header.i=@sender.com header.s=google header.b=XXXX;\n       spf=pass (google.com: domain of info@sender.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=info@sender.com;\n       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=sender.com\nReturn-Path: \x3Cinfo@sender.com>\nReceived: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])\n        by mx.google.com with SMTPS id v12-20020a056512000000b20012345678\n        for \x3Cuser@example.com>; Fri, 17 Jul 2026 10:00:00 -0700 (PDT)\nReceived-SPF: pass (google.com: domain of info@sender.com designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;\nAuthentication-Results: mx.google.com;\n       dkim=pass header.i=@sender.com header.s=google header.b=XXXX;\n       spf=pass (google.com: domain of info@sender.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=info@sender.com;\n       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=sender.com\nFrom: Sender Name \x3Cinfo@sender.com>\nDate: Fri, 17 Jul 2026 10:00:00 -0700\nMessage-ID: \x3CCA123456@mail.gmail.com>\nSubject: Test Email\nTo: user@example.com\nContent-Type: text/plain; charset="UTF-8"`;analyzeHeaders();}
 function clearAll(){document.getElementById('header-input').value='';document.getElementById('results').style.display='none';}
 
+
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){
+    setTimeout(ftEnsureCopy,250);
+  }
+});
+function ftEnsureCopy(){
+  var res=document.getElementById('result');
+  if(!res||res.offsetParent===null)return;
+  if(res.querySelector('.ft-copy-btn'))return;
+  var langEN=/^en/i.test((document.documentElement.getAttribute('lang')||'zh'));
+  var btn=document.createElement('button');
+  btn.className='btn btn-secondary ft-copy-btn';
+  btn.textContent=langEN?'📋 Copy Result':'📋 复制结果';
+  btn.style.cssText='margin-top:12px;display:block';
+  btn.onclick=function(){
+    var txt=(res.innerText||res.textContent||'').replace(/\s+/g,' ').trim();
+    function toast(m){
+      var t=document.getElementById('toast');
+      if(t){t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){toast(langEN?'Copied!':'已复制')}).catch(function(){ftFallbackCopy(txt);toast(langEN?'Copied!':'已复制')});
+    }else{ftFallbackCopy(txt);toast(langEN?'Copied!':'已复制')}
+  };
+  res.appendChild(btn);
+}
+function ftFallbackCopy(txt){
+  var ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(err){}
+  document.body.removeChild(ta);
+}
+
 </script>
 
 

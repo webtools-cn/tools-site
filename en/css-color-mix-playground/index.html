@@ -276,6 +276,41 @@ const ci=document.getElementById('compatInfo');ci.innerHTML=supported?'<span cla
 function syncColor(n,v){const elcolor=document.getElementById('color'+n);const eltext=document.getElementById('color'+n+'Text');if(/^#[0-9a-f]{6}$/i.test(v)){elcolor.value=v;eltext.value=v;update()}else if(/^#[0-9a-f]{3}$/i.test(v)){const full='#'+v[1]+v[1]+v[2]+v[2]+v[3]+v[3];elcolor.value=full;eltext.value=v;update()}}
 function copyCss(){const code=document.getElementById('resultCode').textContent;navigator.clipboard.writeText(code).then(()=>showToast('CSS code copied to clipboard!'))}
 function toggleFaq(el){el.classList.toggle('open');el.nextElementSibling.classList.toggle('open')}
-update();</script>
+update();
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){
+    setTimeout(ftEnsureCopy,250);
+  }
+});
+function ftEnsureCopy(){
+  var res=document.getElementById('result');
+  if(!res||res.offsetParent===null)return;
+  if(res.querySelector('.ft-copy-btn'))return;
+  var langEN=/^en/i.test((document.documentElement.getAttribute('lang')||'zh'));
+  var btn=document.createElement('button');
+  btn.className='btn btn-secondary ft-copy-btn';
+  btn.textContent=langEN?'📋 Copy Result':'📋 复制结果';
+  btn.style.cssText='margin-top:12px;display:block';
+  btn.onclick=function(){
+    var txt=(res.innerText||res.textContent||'').replace(/\s+/g,' ').trim();
+    function toast(m){
+      var t=document.getElementById('toast');
+      if(t){t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){toast(langEN?'Copied!':'已复制')}).catch(function(){ftFallbackCopy(txt);toast(langEN?'Copied!':'已复制')});
+    }else{ftFallbackCopy(txt);toast(langEN?'Copied!':'已复制')}
+  };
+  res.appendChild(btn);
+}
+function ftFallbackCopy(txt){
+  var ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(err){}
+  document.body.removeChild(ta);
+}
+
+</script>
 </body>
 </html>

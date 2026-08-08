@@ -166,6 +166,41 @@ function addDeduction(){var div=document.createElement('div');div.className='ded
 function removeDeduction(btn){var item=btn.parentElement;if(document.querySelectorAll('.deduction-item').length>1){item.remove();calculate()}else{showToast('At least one deduction required')}}
 function calculate(){var gross=parseFloat(document.getElementById('grossIncome').value);if(isNaN(gross)||gross<0){document.getElementById('resultBox').style.display='none';return}var period=document.getElementById('payPeriod').value;var amounts=document.querySelectorAll('.deduction-amount');var totalDeduction=0;for(var i=0;i<amounts.length;i++){var v=parseFloat(amounts[i].value);if(!isNaN(v)&&v>=0)totalDeduction+=v}var net=gross-totalDeduction;if(net<0)net=0;var periodLabel='';switch(period){case'monthly':periodLabel='/mo';break;case'yearly':periodLabel='/yr';break;case'weekly':periodLabel='/wk';break;case'daily':periodLabel='/day';break}document.getElementById('resultBox').style.display='block';document.getElementById('netPay').textContent='$'+net.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+periodLabel;document.getElementById('grossDisplay').textContent='$'+gross.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+periodLabel;document.getElementById('totalDeduction').textContent='-$'+totalDeduction.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+periodLabel;document.getElementById('netPay2').textContent='$'+net.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+periodLabel}
 calculate();
+
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){
+    setTimeout(ftEnsureCopy,250);
+  }
+});
+function ftEnsureCopy(){
+  var res=document.getElementById('result');
+  if(!res||res.offsetParent===null)return;
+  if(res.querySelector('.ft-copy-btn'))return;
+  var langEN=/^en/i.test((document.documentElement.getAttribute('lang')||'zh'));
+  var btn=document.createElement('button');
+  btn.className='btn btn-secondary ft-copy-btn';
+  btn.textContent=langEN?'📋 Copy Result':'📋 复制结果';
+  btn.style.cssText='margin-top:12px;display:block';
+  btn.onclick=function(){
+    var txt=(res.innerText||res.textContent||'').replace(/\s+/g,' ').trim();
+    function toast(m){
+      var t=document.getElementById('toast');
+      if(t){t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){toast(langEN?'Copied!':'已复制')}).catch(function(){ftFallbackCopy(txt);toast(langEN?'Copied!':'已复制')});
+    }else{ftFallbackCopy(txt);toast(langEN?'Copied!':'已复制')}
+  };
+  res.appendChild(btn);
+}
+function ftFallbackCopy(txt){
+  var ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(err){}
+  document.body.removeChild(ta);
+}
+
 </script>
 </body>
 </html>
