@@ -107,7 +107,8 @@
   <div class="section" id="result-card" style="display:none">
     <h3 style="margin-bottom:12px;font-size:.95rem;color:#94a3b8">计算结果</h3>
     <div class="results" id="results"></div>
-    <div class="schedule-scroll" style="margin-top:16px">
+    <canvas id="ftAmortChart" width="640" height="220" style="width:100%;height:220px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px;margin-top:12px"></canvas>
+<div class="schedule-scroll" style="margin-top:16px">
       <table class="schedule-table" id="schedule"><thead><tr><th>期数</th><th>月供</th><th>本金</th><th>利息</th><th>剩余本金</th></tr></thead><tbody></tbody></table>
     </div>
   </div>
@@ -145,6 +146,93 @@
 function showToast(m){var t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";t.style.cssText="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f172a;color:#f1f5f9;padding:10px 20px;border-radius:8px;z-index:9999;opacity:0;transition:opacity .3s";document.body.appendChild(t);}t.textContent=m;t.style.opacity="1";setTimeout(function(){t.style.opacity="0"},2500);}
 </script>
 <script>
+function ftAmortIsCn(){var l=(document.documentElement.getAttribute('lang')||'').toLowerCase();return l.indexOf('zh')===0||l.indexOf('cn')===0}
+function ftAmortFmtY(v,isCn){
+  if(isCn)return v>=1e8?(v/1e8).toFixed(1)+'亿':v>=1e4?(v/1e4).toFixed(1)+'万':v.toFixed(0);
+  return v>=1e9?(v/1e9).toFixed(1)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':v.toFixed(0);
+}
+function ftDrawAmortSched(schedule,balKey){
+  var cv=document.getElementById('ftAmortChart');
+  if(!cv||!schedule||!schedule.length)return;
+  var isCn=ftAmortIsCn();
+  var series=[],cumInt=0;
+  for(var i=0;i<schedule.length;i++){
+    var s=schedule[i];
+    cumInt+=(s.interest||0);
+    if((i+1)%12===0||i===schedule.length-1){
+      series.push({y:(i+1)/12,rem:Math.max(0,s[balKey]!==undefined?s[balKey]:s.remaining||s.balance||0),paidInt:cumInt});
+    }
+  }
+  if(!series.length)return;
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,padL=64,padR=14,padT=18,padB=26;
+  ctx.clearRect(0,0,W,H);
+  var maxV=0;
+  for(var k=0;k<series.length;k++){maxV=Math.max(maxV,series[k].rem,series[k].paidInt)}
+  if(maxV<=0)return;
+  ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4,val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.fillText(ftAmortFmtY(val,isCn),padL-6,y+3);
+  }
+  function plotLine(getVal,color){
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+    for(var i=0;i<series.length;i++){
+      var x=padL+(W-padL-padR)*series[i].y/series[series.length-1].y;
+      var y=padT+(H-padT-padB)*(1-series[i][getVal]/maxV);
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  plotLine('rem','#06b6d4');
+  plotLine('paidInt','#10b981');
+  ctx.fillStyle='#94a3b8';ctx.textAlign='center';
+  ctx.fillText('0',padL,H-8);
+  ctx.fillText(series[series.length-1].y.toFixed(0)+' '+(isCn?'年':'yr'),W-padR,H-8);
+}
+function ftDrawAmort(principal,mr,n,monthly){
+  var cv=document.getElementById('ftAmortChart');
+  if(!cv)return;
+  var isCn=ftAmortIsCn();
+  var rem=principal,paidInt=0,series=[];
+  for(var i=1;i<=n;i++){
+    var intPart=rem*mr,prinPart=monthly-intPart;
+    rem-=prinPart;paidInt+=intPart;
+    if(i%12===0||i===n){
+      series.push({y:i/12,rem:Math.max(0,rem),paidInt:paidInt});
+    }
+  }
+  if(!series.length)return;
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,padL=64,padR=14,padT=18,padB=26;
+  ctx.clearRect(0,0,W,H);
+  var maxV=0;
+  for(var k=0;k<series.length;k++){maxV=Math.max(maxV,series[k].rem,series[k].paidInt)}
+  if(maxV<=0)return;
+  ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4,val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.fillText(ftAmortFmtY(val,isCn),padL-6,y+3);
+  }
+  function plotLine(getVal,color){
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+    for(var i=0;i<series.length;i++){
+      var x=padL+(W-padL-padR)*series[i].y/series[series.length-1].y;
+      var y=padT+(H-padT-padB)*(1-series[i][getVal]/maxV);
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  plotLine('rem','#06b6d4');
+  plotLine('paidInt','#10b981');
+  ctx.fillStyle='#94a3b8';ctx.textAlign='center';
+  ctx.fillText('0',padL,H-8);
+  ctx.fillText(series[series.length-1].y.toFixed(0)+' '+(isCn?'年':'yr'),W-padR,H-8);
+}
+
+
 function formatMoney(n){return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
 window.calculate = calculate; function calculate(){
   const price=parseFloat(document.getElementById('car-price').value)||0;
@@ -184,6 +272,7 @@ window.calculate = calculate; function calculate(){
   const show=schedule.length>48?schedule.slice(0,48):schedule;
   tbody.innerHTML=show.map(s=>`<tr><td>${s.period}</td><td>¥${formatMoney(s.payment)}</td><td>¥${formatMoney(s.principal)}</td><td>¥${formatMoney(s.interest)}</td><td>¥${formatMoney(s.remaining)}</td></tr>`).join('');
   if(schedule.length>48){tbody.innerHTML+='<tr><td colspan="5" style="text-align:center;color:#94a3b8">... 仅显示前48期，共'+schedule.length+'期</td></tr>'}
+  ftDrawAmortSched(schedule,'remaining');
 }
 function clearForm(){document.getElementById('car-price').value='200000';document.getElementById('down-payment-percent').value='30';
   document.getElementById('loan-years').value='3';document.getElementById('annual-rate').value='4.5';

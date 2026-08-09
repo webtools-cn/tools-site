@@ -75,8 +75,97 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:rgba(6,182,212
 <p class="tool-description" style="color:#6b7280;font-size:0.95rem;line-height:1.6;margin:0.5rem 0 1rem;">免费在线贷款还款计算器，计算等额本息和等额本金还款计划。支持月供计算、总利息、还款明细表，适合房贷、车贷、消费贷规划。</p><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/loan-amortization/">EN</a></div></div>
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 贷款还款计算器</p>
 <div class="hero"><p>免费在线贷款还款计算器，计算等额本息和等额本金还款计划。支持月供计算、总利息、还款明细表，适合房贷、车贷、消费贷规划。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
-<div class="card"><h2>📊 贷款参数</h2><div class="row"><div class="field"><label>贷款金额 (元)</label><input type="number" id="principal" value="1000000" min="0" step="10000"></div><div class="field"><label>年利率 (%)</label><input type="number" id="rate" value="4.9" min="0" step="0.01"></div><div class="field"><label>贷款期限 (年)</label><input type="number" id="years" value="30" min="1" max="50" step="1"></div></div><div class="row"><div class="field"><label>还款方式</label><select id="method"><option value="equal">等额本息</option><option value="principal">等额本金</option></select></div></div><div class="btn-row"><button class="btn btn-primary" onclick="calculate()">📊 计算</button></div></div><div class="card" id="resultCard" style="display:none"><h2>📋 计算结果</h2><div id="summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px"></div><div style="max-height:400px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:.8rem"><thead><tr style="color:#94a3b8;text-align:left"><th>期数</th><th>月供</th><th>本金</th><th>利息</th><th>剩余本金</th></tr></thead><tbody id="scheduleBody"></tbody></table></div></div>
-<script>function formatNum(n){return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}function calculate(){const P=parseFloat(document.getElementById('principal').value)||0;const r=parseFloat(document.getElementById('rate').value)/100/12;const n=parseInt(document.getElementById('years').value)*12;const method=document.getElementById('method').value;if(P<=0||r<=0||n<=0){toast('请输入有效参数');return;}let monthly,totalPayment,totalInterest;let schedule=[];if(method==='equal'){monthly=P*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);totalPayment=monthly*n;totalInterest=totalPayment-P;let balance=P;for(let i=1;i<=Math.min(n,360);i++){const interest=balance*r;const principal=monthly-interest;balance-=principal;schedule.push({i,payment:monthly,principal,interest,balance:Math.max(0,balance)});}}else{const monthlyPrincipal=P/n;totalPayment=0;totalInterest=0;let balance=P;for(let i=1;i<=Math.min(n,360);i++){const interest=balance*r;const payment=monthlyPrincipal+interest;balance-=monthlyPrincipal;totalPayment+=payment;totalInterest+=interest;schedule.push({i,payment,principal:monthlyPrincipal,interest,balance:Math.max(0,balance)});}monthly=schedule[0].payment;}document.getElementById('summary').innerHTML=`<div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center"><div style="color:#64748b;font-size:.8rem">月供</div><div style="color:#22d3ee;font-size:1.3rem;font-weight:bold">¥${formatNum(monthly)}</div></div><div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center"><div style="color:#64748b;font-size:.8rem">总还款</div><div style="color:#f59e0b;font-size:1.3rem;font-weight:bold">¥${formatNum(totalPayment)}</div></div><div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center"><div style="color:#64748b;font-size:.8rem">总利息</div><div style="color:#ef4444;font-size:1.3rem;font-weight:bold">¥${formatNum(totalInterest)}</div></div>`;document.getElementById('scheduleBody').innerHTML=schedule.slice(0,120).map(s=>`<tr style="border-bottom:1px solid rgba(148,163,184,.05)"><td style="padding:4px 8px;color:#94a3b8">${s.i}</td><td style="padding:4px 8px;color:#e2e8f0">¥${formatNum(s.payment)}</td><td style="padding:4px 8px;color:#4ade80">¥${formatNum(s.principal)}</td><td style="padding:4px 8px;color:#f87171">¥${formatNum(s.interest)}</td><td style="padding:4px 8px;color:#64748b">¥${formatNum(s.balance)}</td></tr>`).join('');document.getElementById('resultCard').style.display='block';toast('计算完成');}</script>
+<div class="card"><h2>📊 贷款参数</h2><div class="row"><div class="field"><label>贷款金额 (元)</label><input type="number" id="principal" value="1000000" min="0" step="10000"></div><div class="field"><label>年利率 (%)</label><input type="number" id="rate" value="4.9" min="0" step="0.01"></div><div class="field"><label>贷款期限 (年)</label><input type="number" id="years" value="30" min="1" max="50" step="1"></div></div><div class="row"><div class="field"><label>还款方式</label><select id="method"><option value="equal">等额本息</option><option value="principal">等额本金</option></select></div></div><div class="btn-row"><button class="btn btn-primary" onclick="calculate()">📊 计算</button></div></div><div class="card" id="resultCard" style="display:none"><h2>📋 计算结果</h2><div id="summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px"></div><canvas id="ftAmortChart" width="640" height="220" style="width:100%;height:220px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px;margin-top:12px"></canvas>
+<div style="max-height:400px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:.8rem"><thead><tr style="color:#94a3b8;text-align:left"><th>期数</th><th>月供</th><th>本金</th><th>利息</th><th>剩余本金</th></tr></thead><tbody id="scheduleBody"></tbody></table></div></div>
+<script>
+function ftAmortIsCn(){var l=(document.documentElement.getAttribute('lang')||'').toLowerCase();return l.indexOf('zh')===0||l.indexOf('cn')===0}
+function ftAmortFmtY(v,isCn){
+  if(isCn)return v>=1e8?(v/1e8).toFixed(1)+'亿':v>=1e4?(v/1e4).toFixed(1)+'万':v.toFixed(0);
+  return v>=1e9?(v/1e9).toFixed(1)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':v.toFixed(0);
+}
+function ftDrawAmortSched(schedule,balKey){
+  var cv=document.getElementById('ftAmortChart');
+  if(!cv||!schedule||!schedule.length)return;
+  var isCn=ftAmortIsCn();
+  var series=[],cumInt=0;
+  for(var i=0;i<schedule.length;i++){
+    var s=schedule[i];
+    cumInt+=(s.interest||0);
+    if((i+1)%12===0||i===schedule.length-1){
+      series.push({y:(i+1)/12,rem:Math.max(0,s[balKey]!==undefined?s[balKey]:s.remaining||s.balance||0),paidInt:cumInt});
+    }
+  }
+  if(!series.length)return;
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,padL=64,padR=14,padT=18,padB=26;
+  ctx.clearRect(0,0,W,H);
+  var maxV=0;
+  for(var k=0;k<series.length;k++){maxV=Math.max(maxV,series[k].rem,series[k].paidInt)}
+  if(maxV<=0)return;
+  ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4,val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.fillText(ftAmortFmtY(val,isCn),padL-6,y+3);
+  }
+  function plotLine(getVal,color){
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+    for(var i=0;i<series.length;i++){
+      var x=padL+(W-padL-padR)*series[i].y/series[series.length-1].y;
+      var y=padT+(H-padT-padB)*(1-series[i][getVal]/maxV);
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  plotLine('rem','#06b6d4');
+  plotLine('paidInt','#10b981');
+  ctx.fillStyle='#94a3b8';ctx.textAlign='center';
+  ctx.fillText('0',padL,H-8);
+  ctx.fillText(series[series.length-1].y.toFixed(0)+' '+(isCn?'年':'yr'),W-padR,H-8);
+}
+function ftDrawAmort(principal,mr,n,monthly){
+  var cv=document.getElementById('ftAmortChart');
+  if(!cv)return;
+  var isCn=ftAmortIsCn();
+  var rem=principal,paidInt=0,series=[];
+  for(var i=1;i<=n;i++){
+    var intPart=rem*mr,prinPart=monthly-intPart;
+    rem-=prinPart;paidInt+=intPart;
+    if(i%12===0||i===n){
+      series.push({y:i/12,rem:Math.max(0,rem),paidInt:paidInt});
+    }
+  }
+  if(!series.length)return;
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,padL=64,padR=14,padT=18,padB=26;
+  ctx.clearRect(0,0,W,H);
+  var maxV=0;
+  for(var k=0;k<series.length;k++){maxV=Math.max(maxV,series[k].rem,series[k].paidInt)}
+  if(maxV<=0)return;
+  ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4,val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.fillText(ftAmortFmtY(val,isCn),padL-6,y+3);
+  }
+  function plotLine(getVal,color){
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+    for(var i=0;i<series.length;i++){
+      var x=padL+(W-padL-padR)*series[i].y/series[series.length-1].y;
+      var y=padT+(H-padT-padB)*(1-series[i][getVal]/maxV);
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  plotLine('rem','#06b6d4');
+  plotLine('paidInt','#10b981');
+  ctx.fillStyle='#94a3b8';ctx.textAlign='center';
+  ctx.fillText('0',padL,H-8);
+  ctx.fillText(series[series.length-1].y.toFixed(0)+' '+(isCn?'年':'yr'),W-padR,H-8);
+}
+
+function formatNum(n){return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}function calculate(){const P=parseFloat(document.getElementById('principal').value)||0;const r=parseFloat(document.getElementById('rate').value)/100/12;const n=parseInt(document.getElementById('years').value)*12;const method=document.getElementById('method').value;if(P<=0||r<=0||n<=0){toast('请输入有效参数');return;}let monthly,totalPayment,totalInterest;let schedule=[];if(method==='equal'){monthly=P*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);totalPayment=monthly*n;totalInterest=totalPayment-P;let balance=P;for(let i=1;i<=Math.min(n,360);i++){const interest=balance*r;const principal=monthly-interest;balance-=principal;schedule.push({i,payment:monthly,principal,interest,balance:Math.max(0,balance)});}}else{const monthlyPrincipal=P/n;totalPayment=0;totalInterest=0;let balance=P;for(let i=1;i<=Math.min(n,360);i++){const interest=balance*r;const payment=monthlyPrincipal+interest;balance-=monthlyPrincipal;totalPayment+=payment;totalInterest+=interest;schedule.push({i,payment,principal:monthlyPrincipal,interest,balance:Math.max(0,balance)});}monthly=schedule[0].payment;}document.getElementById('summary').innerHTML=`<div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center"><div style="color:#64748b;font-size:.8rem">月供</div><div style="color:#22d3ee;font-size:1.3rem;font-weight:bold">¥${formatNum(monthly)}</div></div><div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center"><div style="color:#64748b;font-size:.8rem">总还款</div><div style="color:#f59e0b;font-size:1.3rem;font-weight:bold">¥${formatNum(totalPayment)}</div></div><div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center"><div style="color:#64748b;font-size:.8rem">总利息</div><div style="color:#ef4444;font-size:1.3rem;font-weight:bold">¥${formatNum(totalInterest)}</div></div>`;document.getElementById('scheduleBody').innerHTML=schedule.slice(0,120).map(s=>`<tr style="border-bottom:1px solid rgba(148,163,184,.05)"><td style="padding:4px 8px;color:#94a3b8">${s.i}</td><td style="padding:4px 8px;color:#e2e8f0">¥${formatNum(s.payment)}</td><td style="padding:4px 8px;color:#4ade80">¥${formatNum(s.principal)}</td><td style="padding:4px 8px;color:#f87171">¥${formatNum(s.interest)}</td><td style="padding:4px 8px;color:#64748b">¥${formatNum(s.balance)}</td></tr>`).join('');document.getElementById('resultCard').style.display='block';
+  ftDrawAmortSched(schedule,'balance');toast('计算完成');}</script>
 <div class="info-section"><h2>关于贷款还款计算器</h2><p>免费在线贷款还款计算器，计算等额本息和等额本金还款计划。支持月供计算、总利息、还款明细表，适合房贷、车贷、消费贷规划。</p></div>
 <div>
 <!-- AdSense -->

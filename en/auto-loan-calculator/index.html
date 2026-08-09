@@ -237,14 +237,102 @@ table.data td{color:#cbd5e1}
 <a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener">GitHub</a>
 </footer>
 <script>
+function ftAmortIsCn(){var l=(document.documentElement.getAttribute('lang')||'').toLowerCase();return l.indexOf('zh')===0||l.indexOf('cn')===0}
+function ftAmortFmtY(v,isCn){
+  if(isCn)return v>=1e8?(v/1e8).toFixed(1)+'亿':v>=1e4?(v/1e4).toFixed(1)+'万':v.toFixed(0);
+  return v>=1e9?(v/1e9).toFixed(1)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':v.toFixed(0);
+}
+function ftDrawAmortSched(schedule,balKey){
+  var cv=document.getElementById('ftAmortChart');
+  if(!cv||!schedule||!schedule.length)return;
+  var isCn=ftAmortIsCn();
+  var series=[],cumInt=0;
+  for(var i=0;i<schedule.length;i++){
+    var s=schedule[i];
+    cumInt+=(s.interest||0);
+    if((i+1)%12===0||i===schedule.length-1){
+      series.push({y:(i+1)/12,rem:Math.max(0,s[balKey]!==undefined?s[balKey]:s.remaining||s.balance||0),paidInt:cumInt});
+    }
+  }
+  if(!series.length)return;
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,padL=64,padR=14,padT=18,padB=26;
+  ctx.clearRect(0,0,W,H);
+  var maxV=0;
+  for(var k=0;k<series.length;k++){maxV=Math.max(maxV,series[k].rem,series[k].paidInt)}
+  if(maxV<=0)return;
+  ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4,val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.fillText(ftAmortFmtY(val,isCn),padL-6,y+3);
+  }
+  function plotLine(getVal,color){
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+    for(var i=0;i<series.length;i++){
+      var x=padL+(W-padL-padR)*series[i].y/series[series.length-1].y;
+      var y=padT+(H-padT-padB)*(1-series[i][getVal]/maxV);
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  plotLine('rem','#06b6d4');
+  plotLine('paidInt','#10b981');
+  ctx.fillStyle='#94a3b8';ctx.textAlign='center';
+  ctx.fillText('0',padL,H-8);
+  ctx.fillText(series[series.length-1].y.toFixed(0)+' '+(isCn?'年':'yr'),W-padR,H-8);
+}
+function ftDrawAmort(principal,mr,n,monthly){
+  var cv=document.getElementById('ftAmortChart');
+  if(!cv)return;
+  var isCn=ftAmortIsCn();
+  var rem=principal,paidInt=0,series=[];
+  for(var i=1;i<=n;i++){
+    var intPart=rem*mr,prinPart=monthly-intPart;
+    rem-=prinPart;paidInt+=intPart;
+    if(i%12===0||i===n){
+      series.push({y:i/12,rem:Math.max(0,rem),paidInt:paidInt});
+    }
+  }
+  if(!series.length)return;
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,padL=64,padR=14,padT=18,padB=26;
+  ctx.clearRect(0,0,W,H);
+  var maxV=0;
+  for(var k=0;k<series.length;k++){maxV=Math.max(maxV,series[k].rem,series[k].paidInt)}
+  if(maxV<=0)return;
+  ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4,val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.fillText(ftAmortFmtY(val,isCn),padL-6,y+3);
+  }
+  function plotLine(getVal,color){
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+    for(var i=0;i<series.length;i++){
+      var x=padL+(W-padL-padR)*series[i].y/series[series.length-1].y;
+      var y=padT+(H-padT-padB)*(1-series[i][getVal]/maxV);
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  plotLine('rem','#06b6d4');
+  plotLine('paidInt','#10b981');
+  ctx.fillStyle='#94a3b8';ctx.textAlign='center';
+  ctx.fillText('0',padL,H-8);
+  ctx.fillText(series[series.length-1].y.toFixed(0)+' '+(isCn?'年':'yr'),W-padR,H-8);
+}
+
+
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 (function(){var app=document.getElementById('app');
-app.innerHTML='<div class="input-section"><h2>🚗 Auto Loan Details</h2><div class="row"><div class="field"><label>Car Price ($)</label><input type="number" id="carPrice" value="35000"></div><div class="field"><label>Down Payment ($)</label><input type="number" id="downPay" value="5000"></div></div><div class="row"><div class="field"><label>Annual Interest Rate (%)</label><input type="number" id="apr" value="6.5" step="0.1"></div><div class="field"><label>Loan Term (months)</label><select id="loanTerm"><option value="36">36 months (3 yr)</option><option value="48">48 months (4 yr)</option><option value="60" selected>60 months (5 yr)</option><option value="72">72 months (6 yr)</option><option value="84">84 months (7 yr)</option></select></div></div><div class="btn-row"><button class="btn btn-primary" id="calcBtn">Calculate</button></div></div><div class="result-section" id="resultSection"><h2>📊 Payment Summary</h2><div class="grid grid-cols-3" id="summaryCards"></div><h2 style="margin-top:16px">📅 Amortization Schedule</h2><div class="table-wrap"><table class="data"><thead><tr><th>Month</th><th>Payment</th><th>Principal</th><th>Interest</th><th>Balance</th></tr></thead><tbody id="amortTable"></tbody></table></div></div>';
+app.innerHTML='<div class="input-section"><h2>🚗 Auto Loan Details</h2><div class="row"><div class="field"><label>Car Price ($)</label><input type="number" id="carPrice" value="35000"></div><div class="field"><label>Down Payment ($)</label><input type="number" id="downPay" value="5000"></div></div><div class="row"><div class="field"><label>Annual Interest Rate (%)</label><input type="number" id="apr" value="6.5" step="0.1"></div><div class="field"><label>Loan Term (months)</label><select id="loanTerm"><option value="36">36 months (3 yr)</option><option value="48">48 months (4 yr)</option><option value="60" selected>60 months (5 yr)</option><option value="72">72 months (6 yr)</option><option value="84">84 months (7 yr)</option></select></div></div><div class="btn-row"><button class="btn btn-primary" id="calcBtn">Calculate</button></div></div><div class="result-section" id="resultSection"><h2>📊 Payment Summary</h2><div class="grid grid-cols-3" id="summaryCards"></div><h2 style="margin-top:16px">📅 Amortization Schedule</h2><div class="table-wrap"><table class="data"><thead><tr><th>Month</th><th>Payment</th><th>Principal</th><th>Interest</th><th>Balance</th></tr></thead><tbody id="amortTable"></tbody></table><canvas id="ftAmortChart" width="640" height="220" style="width:100%;height:220px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px;margin-top:12px"></canvas></div></div>';
 function calc(){var price=parseFloat(document.getElementById('carPrice').value)||0;var down=parseFloat(document.getElementById('downPay').value)||0;var apr=parseFloat(document.getElementById('apr').value)||0;var term=parseInt(document.getElementById('loanTerm').value)||60;var loan=price-down;if(loan<=0||apr<0){showToast('Enter valid values');return;}var mr=apr/100/12;var pmt=loan*mr*Math.pow(1+mr,term)/(Math.pow(1+mr,term)-1);var totalPay=pmt*term;var totalInt=totalPay-loan;
 document.getElementById('summaryCards').innerHTML='<div style="background:#0f172a;border-radius:8px;padding:16px;text-align:center"><div style="color:#64748b;font-size:.8rem">Loan Amount</div><div style="color:#f1f5f9;font-size:1.4rem;font-weight:700;margin-top:4px">$'+loan.toFixed(2)+'</div></div><div style="background:#0f172a;border-radius:8px;padding:16px;text-align:center"><div style="color:#64748b;font-size:.8rem">Monthly Payment</div><div style="color:#22d3ee;font-size:1.4rem;font-weight:700;margin-top:4px">$'+pmt.toFixed(2)+'</div></div><div style="background:#0f172a;border-radius:8px;padding:16px;text-align:center"><div style="color:#64748b;font-size:.8rem">Total Interest</div><div style="color:#f87171;font-size:1.4rem;font-weight:700;margin-top:4px">$'+totalInt.toFixed(2)+'</div></div>';
 var bal=loan;var rows='';for(var m=1;m<=term;m++){var intPart=bal*mr;var prinPart=pmt-intPart;bal-=prinPart;if(bal<0)bal=0;rows+='<tr><td>'+m+'</td><td>$'+pmt.toFixed(2)+'</td><td>$'+prinPart.toFixed(2)+'</td><td>$'+intPart.toFixed(2)+'</td><td>$'+bal.toFixed(2)+'</td></tr>';if(m>=120){rows+='<tr><td colspan="5" style="color:#64748b;text-align:center">... showing first 120 months</td></tr>';break;}}
 document.getElementById('amortTable').innerHTML=rows;
-document.getElementById('resultSection').classList.add('show');}
+document.getElementById('resultSection').classList.add('show');
+  ftDrawAmort(loan,mr,term,pmt);}
 document.getElementById('calcBtn').addEventListener('click',calc);calc();})();</script>
 <!-- Related Tools (cross-recommendation) -->
 <link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">

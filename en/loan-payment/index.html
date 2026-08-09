@@ -78,6 +78,7 @@ footer a:hover { text-decoration: underline; }
 <div class="result" id="result"><div class="val" id="rv">—</div><div class="detail" id="rd"></div></div>
 <div class="chart-wrap" style="margin-top:16px">
 <canvas id="ftChart" width="640" height="220" style="width:100%;height:220px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px"></canvas>
+<canvas id="ftAmortChart" width="640" height="220" style="width:100%;height:220px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px;margin-top:12px"></canvas>
 <p style="text-align:center;color:#64748b;font-size:12px;margin-top:6px">📊 Result Chart</p>
 </div>
 
@@ -137,9 +138,49 @@ function calc(){
   const result = document.getElementById('result');
   result.style.display='block';result.innerHTML = '<div class="val">$' + monthly.toFixed(2) + '/mo</div><div class="detail">Total: $' + total.toFixed(2) + ' | Interest: $' + interest.toFixed(2) + '</div>';
   result.style.display = 'block';
+  ftDrawAmort(v1, mr, n, monthly);
   show('Monthly $' + monthly.toFixed(2));
 }
 function show(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2500)}
+
+function ftDrawAmort(principal, mr, n, monthly){
+  var cv=document.getElementById('ftAmortChart');
+  if(!cv)return;
+  var rem=principal, paidInt=0, paidPrin=0, years=[], series=[];
+  for(var i=1;i<=n;i++){
+    var intPart=rem*mr, prinPart=monthly-intPart;
+    rem-=prinPart; paidInt+=intPart; paidPrin+=prinPart;
+    if(i%12===0||i===n){
+      series.push({y:i/12, rem:Math.max(0,rem), paidInt:paidInt, paidPrin:paidPrin});
+    }
+  }
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,padL=64,padR=14,padT=18,padB=26;
+  ctx.clearRect(0,0,W,H);
+  var maxV=Math.max.apply(null,series.map(function(s){return Math.max(s.rem,s.paidInt)}));
+  if(maxV<=0)return;
+  function fmtY(v){return v>=1e9?(v/1e9).toFixed(1)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':v.toFixed(0)}
+  ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4, val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.fillText(fmtY(val),padL-6,y+3);
+  }
+  function plotLine(getVal,color){
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+    for(var i=0;i<series.length;i++){
+      var x=padL+(W-padL-padR)*series[i].y/series[series.length-1].y;
+      var y=padT+(H-padT-padB)*(1-series[i][getVal]/maxV);
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  plotLine('rem','#06b6d4');
+  plotLine('paidInt','#10b981');
+  ctx.fillStyle='#94a3b8';ctx.textAlign='center';
+  ctx.fillText('0',padL,H-8);
+  ctx.fillText(series[series.length-1].y.toFixed(0)+' yr',W-padR,H-8);
+}
 
 function ftDrawChart(){
   var cv = document.getElementById('ftChart');
@@ -162,7 +203,7 @@ function ftDrawChart(){
   for(var g=0;g<=4;g++){
     var y=padT+(H-padT-padB)*g/4, val=maxV*(4-g)/4;
     ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
-    var lab=val>=1e8?(val/1e8).toFixed(1)+'亿':val>=1e4?(val/1e4).toFixed(1)+'万':val.toFixed(0);
+    var lab=val>=1e9?(val/1e9).toFixed(1)+'B':val>=1e6?(val/1e6).toFixed(1)+'M':val>=1e3?(val/1e3).toFixed(1)+'K':val.toFixed(0);
     ctx.fillText(lab,padL-6,y+3);
   }
   var bw=(W-padL-padR)/nums.length*0.55;
@@ -178,8 +219,9 @@ function ftDrawChart(){
   }
 }
 function ftFmt(n){
-  if(n>=1e8)return (n/1e8).toFixed(1)+'亿';
-  if(n>=1e4)return (n/1e4).toFixed(1)+'万';
+  if(n>=1e9)return (n/1e9).toFixed(1)+'B';
+  if(n>=1e6)return (n/1e6).toFixed(1)+'M';
+  if(n>=1e3)return (n/1e3).toFixed(1)+'K';
   return n.toFixed(0);
 }
 document.addEventListener('click',function(e){
