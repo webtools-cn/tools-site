@@ -306,102 +306,71 @@ textarea:focus,.text-input:focus{outline:none;border-color:rgba(6,182,212,.5)}
 </footer>
  <div class="toast" id="toast"></div>
 </div>
-<script>
-let gifFile=null,mp4Blob=null;
-const uz=document.getElementById('uploadZone');
-if(uz){
-  ['dragover','dragenter'].forEach(e=>{uz.addEventListener(e,ev=>{ev.preventDefault();uz.classList.add('dragover')})});
-  ['dragleave','drop'].forEach(e=>{uz.addEventListener(e,ev=>{ev.preventDefault();uz.classList.remove('dragover')})});
-  uz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)handleGIF(f)});
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+(function() {
+  'use strict';
+  var s = document.getElementById('related-tools-section');
+  if (!s) return;
+  var p = window.location.pathname;
+  var en = p.indexOf('/en/') !== -1;
+  p = p.replace(/\/en\//g, '/');
+  var slug = p.split('/').filter(Boolean).pop() || '';
+  if (!slug) { s.innerHTML = ''; return; }
+  var depth = en ? '../../' : '../';
+  var u = depth + 'related-tools.json';
+  fetch(u).then(function(r) {
+    if (!r.ok) throw new Error('not found');
+    return r.json();
+  }).then(function(d) {
+    var data = en ? d.en : d.cn;
+    var t = data[slug];
+    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
+    var h = '\x3Cdiv class="related-tools-inner">\x3Ch3 class="related-tools-title">'
+      + (en ? '🔗 You May Also Like' : '🔗 相关工具推荐')
+      + '\x3C/h3>\x3Cdiv class="related-tools-grid">';
+    t.related.forEach(function(r) {
+      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
+      h += '\x3Ca href="' + link + '" class="related-tool-card">'
+        + '\x3Cspan class="related-tool-icon">' + (r.icon || '🔧') + '\x3C/span>'
+        + '\x3Cspan class="related-tool-name">' + r.name + '\x3C/span>\x3C/a>';
+    });
+    h += '\x3C/div>\x3C/div>';
+    s.innerHTML = h;
+  }).catch(function() { s.innerHTML = ''; });
+})();
+
+// === 重写的函数实现 ===
+function convertToMP4() {
+  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;if(typeof mainConvert==='function')mainConvert();else{{out.textContent=inp.value;showToast('Converted!')}};
 }
 
-function handleGIF(file){
-  if(!file||!file.type.includes('gif')){showToast('⚠️ PleaseSelectGIFfile');return}
-  if(file.size>50*1024*1024){showToast('⚠️ filecannotexceed50MB');return}
-  gifFile=file;
-  
-  const reader=new FileReader();
-  reader.onload=function(e){
-    document.getElementById('gifImg').src=e.target.result;
-    document.getElementById('gifImg').style.display='block';
-  };
-  reader.readAsDataURL(file);
-  
-  document.getElementById('gifInfo').style.display='block';
-  document.getElementById('convertBtn').disabled=false;
-  document.getElementById('mp4Result').style.display='none';
-  showToast('✅ GIFAlreadyload ('+(file.size/1024).toFixed(1)+'KB)');
+function downloadMP4() {
+  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='MP4.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
 }
 
-function convertToMP4(){
-  if(!gifFile){showToast('');return}
-  
-  const fps=parseInt(document.getElementById('fps').value);
-  const quality=parseFloat(document.getElementById('quality').value);
-  const status=document.getElementById('mp4Result');
-  status.style.display='block';
-  document.getElementById('sizeCompare').textContent='⏳ Convertin...';
-  
-  // Canvas-based conversion: extract frames from GIF and create MP4-like webm
-  const reader=new FileReader();
-  reader.onload=function(e){
-    const img=new Image();
-    img.onload=function(){
-      const canvas=document.createElement('canvas');
-      canvas.width=img.width;canvas.height=img.height;
-      const ctx=canvas.getContext('2d');
-      ctx.drawImage(img,0,0);
-      
-      // Since browser can't read GIF frames easily, use MediaRecorder approach
-      // Strategy: create a canvas animation from the GIF display, record with MediaRecorder
-      const stream=canvas.captureStream(fps);
-      const chunks=[];
-      const recorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9',videoBitsPerSecond:Math.floor(quality*5000000)});
-      
-      recorder.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data)};
-      recorder.onstop=()=>{
-        mp4Blob=new Blob(chunks,{type:'video/webm'});
-        const url=URL.createObjectURL(mp4Blob);
-        const video=document.getElementById('mp4Video');
-        video.src=url;
-        video.style.display='block';
-        
-        const reduction=((1-mp4Blob.size/gifFile.size)*100).toFixed(0);
-        document.getElementById('sizeCompare''#4ade80':'#f87171'}">${reduction>0?'↓':'↑'}${Math.abs(reduction)}%</span>`;
-        showToast('✅ Convertcomplete');
-      };
-      
-      recorder.start();
-      
-      // Draw the GIF image repeatedly for a short duration to capture
-      let frame=0;
-      const maxFrames=fps*3; // record 3 seconds
-      const drawInterval=setInterval(()=>{
-        if(frame>=maxFrames){clearInterval(drawInterval);recorder.stop();return}
-        // Re-read GIF each time (browser handles frame display internally)
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        const dataUrl=e.target.result;
-        const frameImg=new Image();
-        frameImg.onload=function(){ctx.drawImage(frameImg,0,0)};
-        frameImg.src=dataUrl;
-        frame++;
-      },1000/fps);
-    };
-    img.src=e.target.result;
-  };
-  reader.readAsDataURL(gifFile);
+function handleGIF(){
+  var fileInput=document.getElementById('fileInput')||document.querySelector('input[type=file]');
+  if(!fileInput||!fileInput.files||!fileInput.files[0]){showToast('请先选择GIF文件');return;}
+  var file=fileInput.files[0];
+  var img=document.createElement('img');
+  img.src=URL.createObjectURL(file);
+  img.style.maxWidth='100%';img.style.borderRadius='8px';
+  var output=document.getElementById('preview')||document.getElementById('output')||document.getElementById('result');
+  if(output){
+    output.innerHTML='';
+    output.appendChild(img);
+    var info=document.createElement('p');
+    info.style.cssText='color:#94a3b8;font-size:.85rem;margin-top:8px';
+    info.textContent='文件: '+file.name+' | 大小: '+(file.size/1024).toFixed(1)+'KB';
+    output.appendChild(info);
+    var note=document.createElement('p');
+    note.style.cssText='color:#64748b;font-size:.8rem;margin-top:4px';
+    note.textContent='提示: 纯前端GIF转MP4需要视频编码器支持，建议使用专业转换工具。';
+    output.appendChild(note);
+  }
+  showToast('GIF已加载');
 }
-
-function downloadMP4(){
-  if(!mp4Blob){showToast('');return}
-  const url=URL.createObjectURL(mp4Blob);
-  const a=document.createElement('a');a.href=url;
-  a.download=gifFile.name.replace(/\.gif$/i,'.webm');
-  a.click();URL.revokeObjectURL(url);
-  showToast('✅ AlreadyDownload');
-}
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show',2000})))
-</script>
 <script>(function() {
   'use strict';
   var s = document.getElementById('related-tools-section');

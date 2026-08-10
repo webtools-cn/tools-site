@@ -225,31 +225,35 @@ textarea.svg-input:focus{border-color:#3b82f6}
   </div>
 </div>
 
-<script>
 let currentSVG = '';
-let colorMap = {};
+let colorMap = {}; // { '#ff0000': count, ... }
+let pickerCallback = null;
 
 function parseSVGColors() {
   const input = document.getElementById('svgInput').value;
   if (!input.trim()) {
-    document.getElementById('previewArea').innerHTML = '<div class="placeholder">Preview will appear here</div>';
-    document.getElementById('colorGrid').innerHTML = '<div class="empty-colors">Colors detected in your SVG will appear here. Click to change.</div>';
+    document.getElementById('previewArea').innerHTML = '\x3Cdiv class="placeholder">输入SVG代码后自动预览\x3C/div>';
+    document.getElementById('colorGrid').innerHTML = '\x3Cdiv class="empty-colors">加载SVG后自动显示颜色列表\x3C/div>';
     document.getElementById('colorCount').textContent = '';
     return;
   }
 
+  // Try to parse SVG
   const parser = new DOMParser();
   const doc = parser.parseFromString(input, 'image/svg+xml');
   const svgEl = doc.querySelector('svg');
   if (!svgEl) {
-    document.getElementById('previewArea').innerHTML = '<div class="placeholder">⚠️ Invalid SVG format</div>';
+    document.getElementById('previewArea').innerHTML = '\x3Cdiv class="placeholder">⚠️ 无效的SVG格式\x3C/div>';
     return;
   }
 
   currentSVG = input;
+
+  // Render preview
   const preview = document.getElementById('previewArea');
   preview.innerHTML = svgEl.outerHTML;
 
+  // Extract colors
   colorMap = {};
   const colorAttrs = ['fill', 'stroke', 'stop-color', 'flood-color', 'lighting-color'];
   const allElements = doc.querySelectorAll('*');
@@ -262,6 +266,7 @@ function parseSVGColors() {
         if (hex) colorMap[hex] = (colorMap[hex] || 0) + 1;
       }
     });
+    // Also check inline style
     const style = el.getAttribute('style');
     if (style) {
       colorAttrs.forEach(attr => {
@@ -285,6 +290,7 @@ function normalizeColor(color) {
   if (!color) return null;
   color = color.trim();
   
+  // Named colors (simplified)
   const namedColors = {
     'red': '#ff0000', 'blue': '#0000ff', 'green': '#008000', 'yellow': '#ffff00',
     'white': '#ffffff', 'black': '#000000', 'gray': '#808080', 'grey': '#808080',
@@ -297,11 +303,13 @@ function normalizeColor(color) {
     return namedColors[color.toLowerCase()];
   }
 
+  // Already hex
   if (/^#[0-9a-f]{6}$/i.test(color)) return color.toLowerCase();
   if (/^#[0-9a-f]{3}$/i.test(color)) {
     return '#' + color[1]+color[1]+color[2]+color[2]+color[3]+color[3];
   }
 
+  // rgb/rgba
   const rgbMatch = color.match(/rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*[\d.]+\s*)?\)/i);
   if (rgbMatch) {
     return '#' + 
@@ -310,6 +318,7 @@ function normalizeColor(color) {
       parseInt(rgbMatch[3]).toString(16).padStart(2,'0');
   }
 
+  // hsl (simplified - just return a placeholder)
   const hslMatch = color.match(/hsl\s*\(/i);
   if (hslMatch) return null;
 
@@ -320,26 +329,26 @@ function renderColorList() {
   const keys = Object.keys(colorMap);
   const container = document.getElementById('colorGrid');
   const count = document.getElementById('colorCount');
-  count.textContent = `(${keys.length} colors)`;
+  count.textContent = `(${keys.length} 种颜色)`;
   
   if (keys.length === 0) {
-    container.innerHTML = '<div class="empty-colors">No colors detected, or all colors are none/currentColor</div>';
+    container.innerHTML = '\x3Cdiv class="empty-colors">未检测到颜色，或所有颜色已为none/currentColor\x3C/div>';
     return;
   }
 
   let html = '';
   keys.forEach(color => {
-    html += `<div class="color-item" onclick="openPicker('${color}')">
-      <div class="color-swatch" style="background:${color}"></div>
-      <span class="color-label">${color}</span>
-      <span class="color-count">×${colorMap[color]}</span>
-    </div>`;
+    html += `\x3Cdiv class="color-item" onclick="openPicker('${color}')">
+      \x3Cdiv class="color-swatch" style="background:${color}">\x3C/div>
+      \x3Cspan class="color-label">${color}\x3C/span>
+      \x3Cspan class="color-count">×${colorMap[color]}\x3C/span>
+    \x3C/div>`;
   });
   container.innerHTML = html;
 }
 
 function openPicker(oldColor) {
-  document.getElementById('pickerTitle').textContent = `Replace color ${oldColor}`;
+  document.getElementById('pickerTitle').textContent = `替换颜色 ${oldColor}`;
   document.getElementById('pickerInput').value = oldColor;
   document.getElementById('colorPickerPopup').style.display = 'flex';
   
@@ -364,6 +373,7 @@ function replaceColor(oldColor, newColor) {
   if (oldColor === newColor) return;
   let svg = currentSVG;
   
+  // Replace in fill/stroke/stop-color attributes
   const colorAttrs = ['fill', 'stroke', 'stop-color', 'flood-color', 'lighting-color'];
   colorAttrs.forEach(attr => {
     const regex = new RegExp(`(${attr}=")([^"]*)(")`, 'gi');
@@ -376,6 +386,7 @@ function replaceColor(oldColor, newColor) {
     });
   });
 
+  // Replace in style attributes
   colorAttrs.forEach(attr => {
     const regex = new RegExp(`(${attr}\\s*:\\s*)([^;]+)`, 'gi');
     svg = svg.replace(regex, (match, prefix, val) => {
@@ -389,23 +400,26 @@ function replaceColor(oldColor, newColor) {
 
   document.getElementById('svgInput').value = svg;
   parseSVGColors();
-  showToast(`✅ Replaced ${oldColor} → ${newColor}`);
+  showToast(`✅ 已将 ${oldColor} 替换为 ${newColor}`);
 }
 
 function loadSampleSVG() {
-  document.getElementById('svgInput').value = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#667eea"/>
-      <stop offset="100%" stop-color="#764ba2"/>
-    </linearGradient>
-  </defs>
-  <circle cx="100" cy="100" r="90" fill="#f0f4ff" stroke="#d0d8e8" stroke-width="2"/>
-  <polygon points="100,30 110,75 160,75 120,105 135,155 100,125 65,155 80,105 40,75 90,75" fill="#ffd700" stroke="#e6b800" stroke-width="1.5"/>
-  <circle cx="70" cy="140" r="12" fill="#667eea" opacity="0.6"/>
-  <circle cx="130" cy="140" r="12" fill="#764ba2" opacity="0.6"/>
-  <circle cx="100" cy="160" r="8" fill="#ff6b6b" opacity="0.5"/>
-</svg>`;
+  document.getElementById('svgInput').value = `\x3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  \x3Cdefs>
+    \x3ClinearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      \x3Cstop offset="0%" stop-color="#667eea"/>
+      \x3Cstop offset="100%" stop-color="#764ba2"/>
+    \x3C/linearGradient>
+  \x3C/defs>
+  <!-- 圆形背景 -->
+  \x3Ccircle cx="100" cy="100" r="90" fill="#f0f4ff" stroke="#d0d8e8" stroke-width="2"/>
+  <!-- 星星 -->
+  \x3Cpolygon points="100,30 110,75 160,75 120,105 135,155 100,125 65,155 80,105 40,75 90,75" fill="#ffd700" stroke="#e6b800" stroke-width="1.5"/>
+  <!-- 装饰圆 -->
+  \x3Ccircle cx="70" cy="140" r="12" fill="#667eea" opacity="0.6"/>
+  \x3Ccircle cx="130" cy="140" r="12" fill="#764ba2" opacity="0.6"/>
+  \x3Ccircle cx="100" cy="160" r="8" fill="#ff6b6b" opacity="0.5"/>
+\x3C/svg>`;
   parseSVGColors();
 }
 
@@ -420,7 +434,7 @@ function handleFileUpload(event) {
   reader.onload = (e) => {
     document.getElementById('svgInput').value = e.target.result;
     parseSVGColors();
-    showToast('✅ SVG file loaded');
+    showToast('✅ SVG文件已加载');
   };
   reader.readAsText(file);
   event.target.value = '';
@@ -428,13 +442,13 @@ function handleFileUpload(event) {
 
 function copySVGCode() {
   const code = document.getElementById('svgInput').value;
-  if (!code.trim()) { showToast('⚠️ No SVG code to copy'); return; }
-  navigator.clipboard.writeText(code).then(() => showToast('✅ SVG code copied'));
+  if (!code.trim()) { showToast('⚠️ 没有SVG代码可复制'); return; }
+  navigator.clipboard.writeText(code).then(() => showToast('✅ SVG代码已复制'));
 }
 
 function downloadSVG() {
   const code = document.getElementById('svgInput').value;
-  if (!code.trim()) { showToast('⚠️ No SVG code to download'); return; }
+  if (!code.trim()) { showToast('⚠️ 没有SVG代码可下载'); return; }
   const blob = new Blob([code], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -442,7 +456,7 @@ function downloadSVG() {
   a.download = 'modified.svg';
   a.click();
   URL.revokeObjectURL(url);
-  showToast('✅ SVG downloaded');
+  showToast('✅ SVG已下载');
 }
 
 function showToast(msg) {
@@ -452,11 +466,12 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove('show'), 2000);
 }
 
+// Handle Enter key for picker
 document.getElementById('pickerInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && pickerCallback) {
     pickerCallback(document.getElementById('pickerInput').value);
   }
-});)))</script>
+});
 
 <!-- AdSense -->
 

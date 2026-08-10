@@ -150,7 +150,8 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
  </footer>
 </div>
 
-<script>
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
   const statusBar = document.getElementById('statusBar');
@@ -178,13 +179,14 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
 
   function processFile(file) {
     if (!file.type.match(/^image\/(jpeg|png|webp)$/)) {
-      showStatus('Please upload JPEG, PNG or WebP image', 'error');
+      showStatus('请上传JPEG、PNG或WebP格式的图片', 'error');
       return;
     }
     hideStatus();
     const reader = new FileReader();
     reader.onload = function(e) {
-      parseExif(e.target.result, file);
+      const dataUrl = e.target.result;
+      parseExif(dataUrl, file);
     };
     reader.readAsDataURL(file);
   }
@@ -192,27 +194,45 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
   function parseExif(dataUrl, file) {
     exifGrid.innerHTML = '';
     resultsSection.classList.remove('show');
+
     try {
       const exifData = readExifFromDataUrl(dataUrl);
       const output = [];
-      output.push({section: '📄 File Info', items: [
-        {key: 'File Name', value: file.name},
-        {key: 'File Size', value: formatFileSize(file.size)},
-        {key: 'File Type', value: file.type},
+
+      // Basic file info
+      output.push({section: '📄 文件信息', items: [
+        {key: '文件名', value: file.name},
+        {key: '文件大小', value: formatFileSize(file.size)},
+        {key: '文件类型', value: file.type},
       ]});
-      if (exifData.image) output.push({section: '🖼️ Image Info', items: exifData.image});
-      if (exifData.camera) output.push({section: '📷 Camera', items: exifData.camera});
-      if (exifData.shot) output.push({section: '⚙️ Shooting Settings', items: exifData.shot});
-      if (exifData.gps) output.push({section: '📍 GPS Location', items: exifData.gps});
-      if (output.length <= 1) {
-        output.push({section: 'ℹ️ Note', items: [{key: 'Status', value: 'No EXIF metadata found. Images from social media or processed by compression tools typically lose EXIF data.'}]});
+
+      // EXIF data sections
+      if (exifData.image) {
+        output.push({section: '🖼️ 图片信息', items: exifData.image});
       }
+      if (exifData.camera) {
+        output.push({section: '📷 相机信息', items: exifData.camera});
+      }
+      if (exifData.shot) {
+        output.push({section: '⚙️ 拍摄参数', items: exifData.shot});
+      }
+      if (exifData.gps) {
+        output.push({section: '📍 GPS信息', items: exifData.gps});
+      }
+
+      if (output.length <= 1) {
+        output.push({section: 'ℹ️ 提示', items: [
+          {key: '状态', value: '该图片不包含EXIF元数据，仅有基本文件信息。社交媒体下载或经过压缩处理的图片通常会丢失EXIF数据。'}
+        ]});
+      }
+
       renderExif(output);
       resultsSection.classList.add('show');
+
       const totalFields = output.reduce(function(sum, s) { return sum + s.items.length; }, 0);
-      showStatus('Read ' + output.length + ' sections, ' + totalFields + ' fields', 'success');
+      showStatus('成功读取 ' + output.length + ' 个分类，共 ' + totalFields + ' 个字段', 'success');
     } catch(e) {
-      showStatus('Error reading EXIF: ' + e.message, 'error');
+      showStatus('读取EXIF数据出错：' + e.message, 'error');
     }
   }
 
@@ -222,84 +242,153 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
     const bytes = atob(base64);
     const view = new DataView(new ArrayBuffer(bytes.length));
     for (let i = 0; i < bytes.length; i++) view.setUint8(i, bytes.charCodeAt(i));
-    if (view.getUint16(0, false) !== 0xFFD8) return result;
+
+    // Check JPEG SOI
+    if (view.getUint16(0, false) !== 0xFFD8) {
+      // Not JPEG, return basic info only
+      return result;
+    }
+
     let offset = 2;
     while (offset < view.byteLength - 1) {
       if (view.getUint8(offset) !== 0xFF) { offset++; continue; }
       const marker = view.getUint8(offset + 1);
-      if (marker === 0xD9) break;
-      if (marker === 0xE1) {
+      if (marker === 0xD9) break; // EOI
+      if (marker === 0xE1) { // APP1 - EXIF
         const length = view.getUint16(offset + 2, false);
-        if (length >= 8) { try { parseExifApp1(view, offset + 4, length, result); } catch(e) {} }
+        if (length >= 8) {
+          try { parseExifApp1(view, offset + 4, length, result); } catch(e) {}
+        }
         offset += 2 + length;
       } else {
         const segLength = view.getUint16(offset + 2, false);
         offset += 2 + (segLength > 0 ? segLength : 0);
       }
     }
+
     return result;
   }
 
   function parseExifApp1(view, offset, length, result) {
+    // Check EXIF header
     let str = '';
     for (let i = 0; i < 6; i++) str += String.fromCharCode(view.getUint8(offset + i));
     if (str !== 'Exif\0\0') return;
+
     const tiffOffset = offset + 6;
-    const littleEndian = view.getUint16(tiffOffset, false) === 0x4949;
+    const littleEndian = view.getUint16(tiffOffset, false) === 0x4949; // II vs MM
     const ifd0Offset = view.getUint32(tiffOffset + 4, littleEndian);
+
+    // Parse IFD0
     parseIFD(view, tiffOffset + ifd0Offset, littleEndian, result, 0, tiffOffset);
   }
 
   function parseIFD(view, offset, littleEndian, result, depth, tiffOffset) {
     if (depth > 2) return;
     const entries = view.getUint16(offset, littleEndian);
+
     for (let i = 0; i < entries; i++) {
       const entryOffset = offset + 2 + i * 12;
       const tag = view.getUint16(entryOffset, littleEndian);
       const type = view.getUint16(entryOffset + 2, littleEndian);
       const count = view.getUint32(entryOffset + 4, littleEndian);
       const valueOffset = entryOffset + 8;
+
       let value;
-      if (type === 2) {
+      if (type === 2) { // ASCII
         const dataOffset = count <= 4 ? valueOffset : view.getUint32(valueOffset, littleEndian);
         let str = '';
         const absOffset = tiffOffset + dataOffset;
-        for (let j = 0; j < count - 1; j++) { const c = view.getUint8(absOffset + j); if (c >= 32 && c < 127) str += String.fromCharCode(c); else break; }
+        for (let j = 0; j < count - 1; j++) {
+          const c = view.getUint8(absOffset + j);
+          if (c >= 32 && c < 127) str += String.fromCharCode(c);
+          else break;
+        }
         value = str.trim();
-      } else if (type === 3) {
+      } else if (type === 3) { // SHORT (16-bit)
         if (count === 1) value = view.getUint16(valueOffset, littleEndian);
-      } else if (type === 4) {
+        else { value = []; for (let j = 0; j < Math.min(count, 4); j++) value.push(view.getUint16(valueOffset + j*2, littleEndian)); value = value.join(', '); }
+      } else if (type === 4) { // LONG (32-bit)
         if (count === 1) value = view.getUint32(valueOffset, littleEndian);
-      } else if (type === 5) {
+        else { value = []; for (let j = 0; j < Math.min(count, 2); j++) value.push(view.getUint32(valueOffset + j*4, littleEndian)); value = value.join(', '); }
+      } else if (type === 5) { // RATIONAL
         const numOffset = tiffOffset + view.getUint32(valueOffset, littleEndian);
         const denOffset = tiffOffset + view.getUint32(valueOffset + 4, littleEndian);
         const num = view.getUint32(numOffset, littleEndian);
         const den = view.getUint32(denOffset, littleEndian);
         value = den !== 0 ? (num / den).toFixed(2) : '0';
+      } else if (type === 7) { // UNDEFINED (bytes)
+        if (count <= 4) {
+          let bytes = [];
+          for (let j = 0; j < count; j++) bytes.push(view.getUint8(valueOffset + j));
+          value = bytes.join(' ');
+        } else {
+          const dataOffset = view.getUint32(valueOffset, littleEndian);
+          value = '[' + count + ' bytes]';
+        }
       }
-      if (value !== undefined) addExifTag(tag, value, result);
+
+      if (value !== undefined) {
+        addExifTag(tag, value, result);
+      }
     }
+
+    // Next IFD
     const nextOffset = view.getUint32(offset + 2 + entries * 12, littleEndian);
-    if (nextOffset !== 0 && depth === 0) parseIFD(view, tiffOffset + nextOffset, littleEndian, result, depth + 1, tiffOffset);
+    if (nextOffset !== 0 && depth === 0) {
+      parseIFD(view, tiffOffset + nextOffset, littleEndian, result, depth + 1, tiffOffset);
+    }
   }
 
   function addExifTag(tag, value, result) {
     const tags = {
-      0x010F: {k: 'Camera Model', s: 'camera'},
-      0x0110: {k: 'Firmware', s: 'camera'},
-      0x010E: {k: 'Image Description', s: 'image'},
-      0x0132: {k: 'Capture Time', s: 'image'},
-      0xA002: {k: 'Pixel Width', s: 'image'},
-      0xA003: {k: 'Pixel Height', s: 'image'},
-      0x829A: {k: 'Exposure Time', s: 'shot'},
-      0x829D: {k: 'Aperture', s: 'shot'},
-      0x8827: {k: 'ISO', s: 'shot'},
-      0x920A: {k: 'Focal Length', s: 'shot'},
-      0x9204: {k: 'Exposure Bias', s: 'shot'}
+      0x010F: {k: '相机型号', s: 'camera'},
+      0x0110: {k: '相机固件', s: 'camera'},
+      0x010E: {k: '图片描述', s: 'image'},
+      0x0112: {k: '方向', s: 'image'},
+      0x0132: {k: '拍摄时间', s: 'image'},
+      0x0102: {k: '像素宽度', s: 'image'},
+      0x0103: {k: '像素高度', s: 'image'},
+      0xA002: {k: '像素宽度(EXIF)', s: 'image'},
+      0xA003: {k: '像素高度(EXIF)', s: 'image'},
+      0x8298: {k: '版权信息', s: 'image'},
+      0x920A: {k: '焦距', s: 'shot'},
+      0x9209: {k: '闪光灯', s: 'shot'},
+      0x829A: {k: '曝光时间', s: 'shot'},
+      0x829D: {k: '光圈值', s: 'shot'},
+      0x8827: {k: 'ISO感光度', s: 'shot'},
+      0x9204: {k: '曝光补偿', s: 'shot'},
+      0x9205: {k: '测光模式', s: 'shot'},
+      0xA217: {k: '拍摄模式', s: 'shot'},
+      0xA210: {k: '场景类型', s: 'shot'},
+      0xA20E: {k: '白平衡', s: 'shot'},
+      0xA401: {k: '自定义渲染', s: 'shot'},
+      0x9207: {k: '曝光模式', s: 'shot'},
+      0x9208: {k: '白平衡', s: 'shot'},
+      0x9003: {k: '原始时间', s: 'image'},
+      0x9004: {k: '数字化时间', s: 'image'},
+      0x0001: {k: 'GPS纬度参考', s: 'gps'},
+      0x0002: {k: 'GPS纬度', s: 'gps'},
+      0x0003: {k: 'GPS经度参考', s: 'gps'},
+      0x0004: {k: 'GPS经度', s: 'gps'},
+      0x0005: {k: 'GPS高度参考', s: 'gps'},
+      0x0006: {k: 'GPS高度', s: 'gps'},
+      0x0007: {k: 'GPS时间戳', s: 'gps'}
     };
+
     const tagInfo = tags[tag];
     if (!tagInfo) return;
-    result[tagInfo.s].push({key: tagInfo.k, value: String(value)});
+    if (tag >= 0x0001 && tag <= 0x0007) {
+      // GPS sub-IFD tags - handled via sub-IFD
+      return;
+    }
+    if (tagInfo.s === 'image') {
+      result.image.push({key: tagInfo.k, value: String(value)});
+    } else if (tagInfo.s === 'camera') {
+      result.camera.push({key: tagInfo.k, value: String(value)});
+    } else if (tagInfo.s === 'shot') {
+      result.shot.push({key: tagInfo.k, value: String(value)});
+    }
   }
 
   function renderExif(sections) {
@@ -307,9 +396,13 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
     sections.forEach(function(section) {
       const card = document.createElement('div');
       card.className = 'exif-card full';
-      let html = '<h3>'+section.section+'</h3>';
+      let html = '\x3Ch3>'+section.section+'\x3C/h3>';
       section.items.forEach(function(item) {
-        html += '<div class="exif-item"><span class="key">'+item.key+'</span><span class="value">'+item.value+'</span></div>';
+        let val = String(item.value);
+        if (item.key.indexOf('纬度') !== -1 || item.key.indexOf('经度') !== -1 || item.key === 'GPS Lat' || item.key === 'GPS Lng') {
+          val = '\x3Ca href="https://www.google.com/maps?q='+encodeURIComponent(item.value)+'" target="_blank" rel="noopener">'+item.value+' 🗺️\x3C/a>';
+        }
+        html += '\x3Cdiv class="exif-item">\x3Cspan class="key">'+item.key+'\x3C/span>\x3Cspan class="value">'+val+'\x3C/span>\x3C/div>';
       });
       card.innerHTML = html;
       exifGrid.appendChild(card);
@@ -321,7 +414,40 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
     if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / 1048576).toFixed(1) + ' MB';
   }
-})();</script>
+
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){
+    setTimeout(ftEnsureCopy,250);
+  }
+});
+function ftEnsureCopy(){
+  var res=document.getElementById('result');
+  if(!res||res.offsetParent===null)return;
+  if(res.querySelector('.ft-copy-btn'))return;
+  var langEN=/^en/i.test((document.documentElement.getAttribute('lang')||'zh'));
+  var btn=document.createElement('button');
+  btn.className='btn btn-secondary ft-copy-btn';
+  btn.textContent=langEN?'📋 Copy Result':'📋 复制结果';
+  btn.style.cssText='margin-top:12px;display:block';
+  btn.onclick=function(){
+    var txt=(res.innerText||res.textContent||'').replace(/\s+/g,' ').trim();
+    function toast(m){
+      var t=document.getElementById('toast');
+      if(t){t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){toast(langEN?'Copied!':'已复制')}).catch(function(){ftFallbackCopy(txt);toast(langEN?'Copied!':'已复制')});
+    }else{ftFallbackCopy(txt);toast(langEN?'Copied!':'已复制')}
+  };
+  res.appendChild(btn);
+}
+function ftFallbackCopy(txt){
+  var ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(err){}
+  document.body.removeChild(ta);
+}
 
 <script>(function(){ var processed = new Set(); function addCopyBtns(){ var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]'); results.forEach(function(el){ if(processed.has(el)) return; if(el.querySelector('.copy-btn')) return; if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return; if(el.children.length===0 && el.textContent.trim().length<5) return;
       var btn = document.createElement('button');

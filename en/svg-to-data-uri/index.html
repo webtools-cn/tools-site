@@ -212,30 +212,301 @@ a{color:#06b6d4;text-decoration:none}
 </div>
 
 <div id="errorMsg" style="display:none;margin-top:12px;padding:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#ef4444;font-size:.85rem"></div>
-<script>
+
 var inp=document.getElementById("svgInput"),btn=document.getElementById("convertBtn"),clr=document.getElementById("clearBtn"),smp=document.getElementById("sampleBtn"),res=document.getElementById("result"),out=document.getElementById("output"),cpy=document.getElementById("copyBtn"),err=document.getElementById("errorMsg"),len=document.getElementById("uriLength"),mime=document.getElementById("mimeType"),preview=document.getElementById("previewArea"),enc=document.getElementById("encodingMode");
 var TXT_COPIED="✅ Copied";
 var TXT_COPY="📋 Copy";
 function convert(){
-var svg=inp.value.trim();
-if(!svg){showToast("Please enter SVG code");return}
-if(!svg.includes("<svg")){err.style.display="block";err.textContent="Error: Please enter valid SVG code";res.style.display="none";return}
-err.style.display="none";
-var mode=enc.value;
-var encoded;
-if(mode==="base64"){encoded="data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)))}
-else{encoded="data:image/svg+xml,"+encodeURIComponent(svg)}
-out.textContent=encoded;
-len.textContent=encoded.length;
-mime.textContent="image/svg+xml";
-preview.innerHTML=svg;
-res.style.display="block";
+  var input = document.getElementById('inputText').value.trim();
+  var output = document.getElementById('outputText');
+  var src = sourceFormat.value;
+  var tgt = targetFormat.value;
+  var inputEl = document.getElementById('inputText');
+  inputEl.classList.remove('error');
+
+  if(!input){
+    showToast('请输入数据', 'error');
+    return;
+  }
+
+  try{
+    var result = '';
+    if(src === 'json' && tgt === 'csv'){
+      result = jsonToCSV(input);
+    }else if(src === 'json' && tgt === 'xml'){
+      result = jsonToXML(input);
+    }else if(src === 'csv' && tgt === 'json'){
+      result = csvToJSON(input);
+    }else if(src === 'csv' && tgt === 'xml'){
+      result = csvToXML(input);
+    }else if(src === 'xml' && tgt === 'json'){
+      result = xmlToJSON(input);
+    }else if(src === 'xml' && tgt === 'csv'){
+      result = xmlToCSV(input);
+    }
+    output.value = result;
+    showToast('转换成功！', 'success');
+  }catch(e){
+    inputEl.classList.add('error');
+    showToast('转换失败: ' + e.message, 'error');
+  }
 }
-btn.addEventListener("click",convert);
-clr.addEventListener("click",function(){inp.value="";res.style.display="none";err.style.display="none"});
-smp.addEventListener("click",function(){inp.value="<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48"><circle cx="12" cy="12" r="10" fill="#22d3ee"/><path d="M12 6v6l4 2" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>"});
-cpy.addEventListener("click",function(){navigator.clipboard.writeText(out.textContent).then(function(){cpy.textContent=TXT_COPIED;setTimeout(function(){cpy.textContent=TXT_COPY},2000)})});
-})();</script>
+
+// --- JSON -> CSV ---
+function jsonToCSV(jsonStr){
+  var data = JSON.parse(jsonStr);
+  if(!Array.isArray(data)){
+    if(typeof data === 'object' && data !== null){
+      data = [data];
+    }else{
+      throw new Error('JSON必须是数组或对象');
+    }
+  }
+  if(data.length === 0) return '';
+  var keys = Object.keys(data[0]);
+  var csv = keys.join(',') + '\n';
+  for(var i=0;i<data.length;i++){
+    var row = [];
+    for(var j=0;j<keys.length;j++){
+      var val = data[i][keys[j]];
+      if(val === null || val === undefined) val = '';
+      val = String(val);
+      if(val.indexOf(',') !== -1 || val.indexOf('"') !== -1 || val.indexOf('\n') !== -1){
+        val = '"' + val.replace(/"/g,'""') + '"';
+      }
+      row.push(val);
+    }
+    csv += row.join(',') + '\n';
+  }
+  return csv;
+}
+
+// --- JSON -> XML ---
+function jsonToXML(jsonStr){
+  var data = JSON.parse(jsonStr);
+  function toXML(obj, rootName){
+    rootName = rootName || 'root';
+    var xml = '';
+    if(Array.isArray(obj)){
+      for(var i=0;i<obj.length;i++){
+        xml += toXML(obj[i], 'item');
+      }
+    }else if(typeof obj === 'object' && obj !== null){
+      xml += '<' + rootName;
+      var hasAttrs = false;
+      var attrs = '';
+      var children = '';
+      for(var key in obj){
+        if(obj.hasOwnProperty(key)){
+          var val = obj[key];
+          if(key.indexOf('@') === 0){
+            attrs += ' ' + key.substring(1) + '="' + escapeXML(String(val)) + '"';
+            hasAttrs = true;
+          }else if(Array.isArray(val)){
+            for(var i=0;i<val.length;i++){
+              children += toXML(val[i], key);
+            }
+          }else if(typeof val === 'object' && val !== null){
+            children += toXML(val, key);
+          }else{
+            children += '<' + key + '>' + escapeXML(String(val)) + '</' + key + '>';
+          }
+        }
+      }
+      xml += attrs;
+      if(children){
+        xml += '>' + children + '</' + rootName + '>';
+      }else{
+        xml += ' />';
+      }
+    }else{
+      xml += '<' + rootName + '>' + escapeXML(String(obj)) + '</' + rootName + '>';
+    }
+    return xml;
+  }
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + toXML(data);
+}
+
+function escapeXML(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+}
+
+// --- CSV -> JSON ---
+function csvToJSON(csvStr){
+  var lines = csvStr.trim().split(/\r?\n/);
+  if(lines.length < 2) throw new Error('CSV至少需要标题行+一行数据');
+  var headers = parseCSVLine(lines[0]);
+  var result = [];
+  for(var i=1;i<lines.length;i++){
+    var vals = parseCSVLine(lines[i]);
+    var obj = {};
+    for(var j=0;j<headers.length;j++){
+      var val = vals[j] || '';
+      // Try parse numbers/booleans
+      if(val === 'true') val = true;
+      else if(val === 'false') val = false;
+      else if(val === 'null' || val === '') val = null;
+      else if(!isNaN(val) && val !== '') val = Number(val);
+      obj[headers[j]] = val;
+    }
+    result.push(obj);
+  }
+  return JSON.stringify(result, null, 2);
+}
+
+function parseCSVLine(line){
+  var result = [];
+  var current = '';
+  var inQuotes = false;
+  for(var i=0;i<line.length;i++){
+    var ch = line[i];
+    if(inQuotes){
+      if(ch === '"'){
+        if(i+1 < line.length && line[i+1] === '"'){
+          current += '"';
+          i++;
+        }else{
+          inQuotes = false;
+        }
+      }else{
+        current += ch;
+      }
+    }else{
+      if(ch === '"'){
+        inQuotes = true;
+      }else if(ch === ','){
+        result.push(current);
+        current = '';
+      }else{
+        current += ch;
+      }
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+// --- CSV -> XML ---
+function csvToXML(csvStr){
+  var json = csvToJSON(csvStr);
+  return jsonToXML(json);
+}
+
+// --- XML -> JSON ---
+function xmlToJSON(xmlStr){
+  var parser = new DOMParser();
+  var doc = parser.parseFromString(xmlStr, 'text/xml');
+  var errorNode = doc.querySelector('parsererror');
+  if(errorNode) throw new Error('XML解析错误: ' + errorNode.textContent);
+  function parseNode(node){
+    if(node.nodeType === 3){ // Text
+      var txt = node.textContent.trim();
+      if(txt === '') return null;
+      if(!isNaN(txt) && txt !== '') return Number(txt);
+      if(txt === 'true') return true;
+      if(txt === 'false') return false;
+      if(txt === 'null') return null;
+      return txt;
+    }
+    if(node.nodeType !== 1) return null; // Element
+    var obj = {};
+    var hasChildren = false;
+    // Attributes
+    if(node.attributes){
+      for(var i=0;i<node.attributes.length;i++){
+        var attr = node.attributes[i];
+        obj['@'+attr.name] = attr.value;
+      }
+    }
+    // Children
+    var childGroups = {};
+    for(var i=0;i<node.childNodes.length;i++){
+      var child = node.childNodes[i];
+      var parsed = parseNode(child);
+      if(parsed === null) continue;
+      var tagName = child.nodeName;
+      if(childGroups[tagName] === undefined){
+        childGroups[tagName] = [];
+      }
+      childGroups[tagName].push(parsed);
+    }
+    var keys = Object.keys(childGroups);
+    if(keys.length === 0){
+      // No children: if no attributes, return text content
+      var textContent = node.textContent.trim();
+      if(Object.keys(obj).length === 0){
+        if(!isNaN(textContent) && textContent !== '') return Number(textContent);
+        if(textContent === 'true') return true;
+        if(textContent === 'false') return false;
+        if(textContent === 'null' || textContent === '') return null;
+        return textContent;
+      }
+      if(textContent && Object.keys(obj).length > 0){
+        obj['#text'] = textContent;
+      }
+      return obj;
+    }
+    for(var key in childGroups){
+      if(childGroups[key].length === 1){
+        obj[key] = childGroups[key][0];
+      }else{
+        obj[key] = childGroups[key];
+      }
+    }
+    return obj;
+  }
+  var root = doc.documentElement;
+  var result = parseNode(root);
+  return JSON.stringify(result, null, 2);
+}
+
+// --- XML -> CSV ---
+function xmlToCSV(xmlStr){
+  var jsonStr = xmlToJSON(xmlStr);
+  return jsonToCSV(jsonStr);
+}
+
+// --- Copy ---
+function copyOutput(){
+  var output = document.getElementById('outputText');
+  if(!output.value){ showToast('没有可复制的内容', 'error'); return; }
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(output.value).then(function(){
+      showToast('已复制到剪贴板！', 'success');
+    }).catch(function(){
+      fallbackCopy(output);
+    });
+  }else{
+    fallbackCopy(output);
+  }
+}
+
+function fallbackCopy(el){
+  el.removeAttribute('readonly');
+  el.select();
+  try{ document.execCommand('copy'); showToast('已复制到剪贴板！', 'success'); }catch(e){ showToast('复制失败，请手动选择', 'error'); }
+  el.setAttribute('readonly','');
+}
+
+// --- Download ---
+function downloadOutput(){
+  var output = document.getElementById('outputText');
+  if(!output.value){ showToast('没有可下载的内容', 'error'); return; }
+  var tgt = targetFormat.value;
+  var extMap = {json:'json',csv:'csv',xml:'xml'};
+  var mimeMap = {json:'application/json',csv:'text/csv',xml:'application/xml'};
+  var ext = extMap[tgt] || 'txt';
+  var mime = mimeMap[tgt] || 'text/plain';
+  var blob = new Blob([output.value], {type:mime});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'converted.' + ext;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('下载成功！', 'success');
+}
+
 </div>
 
 <div class="content-section" id="options">

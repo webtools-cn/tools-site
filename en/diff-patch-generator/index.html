@@ -434,12 +434,178 @@ document.addEventListener("keydown",function(e){
 window.addEventListener("load",function(){loadExample()});}
 </script>
 
-<script>
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none?'block':'none';}
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function submitFeedback(){
 document.getElementById('feedback-success').style.display='block';
-})
-</script>
+}
+
+// === 重写的函数实现 ===
+function clearAll() {
+  document.getElementById('fileName').value = '';
+  document.getElementById('originalText').value = '';
+  document.getElementById('modifiedText').value = '';
+  document.getElementById('contextLines').selectedIndex = 0;
+  document.getElementById('output').innerHTML = '';
+  document.getElementById('output').style.display = 'none';
+  showToast('已重置');
+}
+
+function copyDiff() {
+  var el=document.getElementById('unifiedDiff');if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});
+}
+
+function downloadPatch() {
+  var el=document.getElementById('unifiedDiff');if(!el)return;var t=el.textContent||el.innerText;var fname=document.getElementById('fileName').value||'file.patch';var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname.replace(/\.[^.]+$/,'.patch');a.click();URL.revokeObjectURL(a.href);showToast('已下载');
+}
+
+// LCS-based diff algorithm
+function computeLCS(a, b) {
+  var m = a.length, n = b.length;
+  var dp = new Array(m+1);
+  for (var i = 0; i <= m; i++) { dp[i] = new Array(n+1).fill(0); }
+  for (var i = 1; i <= m; i++) {
+    for (var j = 1; j <= n; j++) {
+      if (a[i-1] === b[j-1]) dp[i][j] = dp[i-1][j-1] + 1;
+      else dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+    }
+  }
+  // Backtrack
+  var result = [];
+  var i = m, j = n;
+  while (i > 0 && j > 0) {
+    if (a[i-1] === b[j-1]) { result.unshift({type:'same',val:a[i-1]}); i--; j--; }
+    else if (dp[i-1][j] >= dp[i][j-1]) { result.unshift({type:'del',val:a[i-1]}); i--; }
+    else { result.unshift({type:'add',val:b[j-1]}); j--; }
+  }
+  while (i > 0) { result.unshift({type:'del',val:a[i-1]}); i--; }
+  while (j > 0) { result.unshift({type:'add',val:b[j-1]}); j--; }
+  return result;
+}
+
+function generateDiff() {
+  var orig = document.getElementById('originalText').value;
+  var mod = document.getElementById('modifiedText').value;
+  var fname = document.getElementById('fileName').value || 'file.txt';
+  var ctx = parseInt(document.getElementById('contextLines').value) || 3;
+
+  if (!orig && !mod) { showToast('请先输入文本'); return; }
+
+  var oLines = orig.split('\n');
+  var mLines = mod.split('\n');
+  var lcs = computeLCS(oLines, mLines);
+
+  // Build hunks
+  var hunks = [];
+  var curHunk = null;
+  var oLineNum = 1, mLineNum = 1;
+  var lastType = null;
+
+  for (var k = 0; k < lcs.length; k++) {
+    var item = lcs[k];
+    if (item.type === 'same') {
+      // Collect context lines
+      if (!curHunk) {
+        // Look ahead for changes
+        var hasChange = false;
+        for (var t = k+1; t < lcs.length && t < k+1+ctx; t++) {
+          if (lcs[t].type !== 'same') { hasChange = true; break; }
+        }
+        if (!hasChange && lastType === 'same') {
+          oLineNum++; mLineNum++; continue;
+        }
+        curHunk = {oStart: oLineNum, mLines: [], ctxBefore: 0};
+      }
+      curHunk.mLines.push({type:'ctx', val:item.val, o:oLineNum, m:mLineNum});
+      curHunk.ctxBefore++;
+      lastType = 'same';
+      oLineNum++; mLineNum++;
+    } else if (item.type === 'del') {
+      if (!curHunk) curHunk = {oStart: oLineNum, mLines: [], ctxBefore: 0};
+      curHunk.mLines.push({type:'del', val:item.val, o:oLineNum});
+      lastType = 'del';
+      oLineNum++;
+    } else if (item.type === 'add') {
+      if (!curHunk) curHunk = {oStart: oLineNum, mLines: [], ctxBefore: 0};
+      curHunk.mLines.push({type:'add', val:item.val, m:mLineNum});
+      lastType = 'add';
+      mLineNum++;
+    }
+    // Check if hunk should end
+    if (curHunk && lastType === 'same' && curHunk.ctxBefore > ctx) {
+      // Trim excess context from end
+      var excess = curHunk.ctxBefore - ctx;
+      while (excess > 0 && curHunk.mLines.length > 0 && curHunk.mLines[curHunk.mLines.length-1].type === 'ctx') {
+        curHunk.mLines.pop();
+        curHunk.ctxBefore--;
+        excess--;
+      }
+      if (curHunk.mLines.length > 0 && curHunk.mLines.some(function(l){return l.type!=='ctx'})) {
+        hunks.push(curHunk);
+      }
+      curHunk = null;
+      lastType = null;
+    }
+  }
+  // Push last hunk
+  if (curHunk && curHunk.mLines.length > 0 && curHunk.mLines.some(function(l){return l.type!=='ctx'})) {
+    // Trim trailing context
+    while (curHunk.mLines.length > 0 && curHunk.mLines[curHunk.mLines.length-1].type === 'ctx' && curHunk.ctxBefore > ctx) {
+      curHunk.mLines.pop();
+      curHunk.ctxBefore--;
+    }
+    hunks.push(curHunk);
+  }
+
+  // Build unified diff output
+  var out = '--- ' + fname + '\n+++ ' + fname + '\n';
+  var totalAdd = 0, totalDel = 0;
+
+  if (hunks.length === 0) {
+    out += '(无差异)\n';
+  } else {
+    for (var h = 0; h < hunks.length; h++) {
+      var hunk = hunks[h];
+      var oStart = hunk.oStart;
+      var oCount = 0, nCount = 0;
+      for (var i = 0; i < hunk.mLines.length; i++) {
+        if (hunk.mLines[i].type === 'del' || hunk.mLines[i].type === 'ctx') oCount++;
+        if (hunk.mLines[i].type === 'add' || hunk.mLines[i].type === 'ctx') nCount++;
+      }
+      var nStart = hunk.mLines[0].m || hunk.mLines[0].o || 1;
+      // Find correct nStart
+      for (var i = 0; i < hunk.mLines.length; i++) {
+        if (hunk.mLines[i].type === 'ctx' || hunk.mLines[i].type === 'add') {
+          nStart = hunk.mLines[i].m || nStart; break;
+        }
+      }
+      out += '@@ -' + oStart + ',' + oCount + ' +' + nStart + ',' + nCount + ' @@\n';
+      for (var i = 0; i < hunk.mLines.length; i++) {
+        var ln = hunk.mLines[i];
+        if (ln.type === 'del') { out += '-' + ln.val + '\n'; totalDel++; }
+        else if (ln.type === 'add') { out += '+' + ln.val + '\n'; totalAdd++; }
+        else { out += ' ' + ln.val + '\n'; }
+      }
+    }
+  }
+
+  document.getElementById('unifiedDiff').textContent = out;
+  document.getElementById('statsArea').style.display = 'block';
+  document.getElementById('statTotal').textContent = oLines.length;
+  document.getElementById('statAdd').textContent = totalAdd;
+  document.getElementById('statRemove').textContent = totalDel;
+  document.getElementById('statModify').textContent = '-';
+  showToast('补丁已生成');
+}
+
+function loadExample() {
+  document.getElementById('fileName').value = 'example.py';
+  document.getElementById('originalText').value = 'def hello():\n    print("Hello World")\n    return True\n\ndef goodbye():\n    print("Goodbye")\n    return False';
+  document.getElementById('modifiedText').value = 'def hello():\n    print("Hello, World!")\n    return True\n\ndef farewell():\n    print("Farewell!")\n    return True';
+  showToast('已加载示例');
+}
 
 <!-- AdSense -->
 

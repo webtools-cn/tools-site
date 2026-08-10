@@ -381,87 +381,106 @@ function generateCode() {
     privacyHtml = `<a href="${privacyUrl}" style="color:${btnColor};text-decoration:underline;font-size:.85rem">${t.privacy}</a>`;
   }
 
-  currentCode = `<script>
-  if (localStorage.getItem('cookie_consent_${modeText}')) return;
-  var div = document.createElement('div');
-  div.id = 'cookie-consent-banner';
-  div.innerHTML = '<div style="${barStyle}background:${bgColor};color:${textColor};padding:16px 20px;font-family:-apple-system,BlinkMacSystemFont,\\"Segoe UI\\",Roboto,sans-serif;font-size:.9rem;line-height:1.5;border-top:1px solid rgba(255,255,255,.1)">' +
-    '<div style="${containerStyle}">' +
-    '<span><strong>🍪 ${t.title}</strong> ${t.msg}</span>' +
-    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
-    '<button onclick="document.body.removeChild(document.getElementById(\'cookie-consent-banner\'));localStorage.setItem(\'' + mode + '_accepted\',\'true\');localStorage.setItem(\'cookie_consent_${modeText}\',\'accepted\');" style="padding:8px 18px;background:${btnColor};color:${btnTextColor};border:none;border-radius:6px;cursor:pointer;font-size:.85rem;font-weight:500">${t.accept}</button>' +
-    '<button onclick="document.body.removeChild(document.getElementById(\'cookie-consent-banner\'));localStorage.setItem(\'cookie_consent_${modeText}\',\'rejected\');" style="padding:8px 18px;background:transparent;color:${textColor};border:1px solid rgba(255,255,255,.2);border-radius:6px;cursor:pointer;font-size:.85rem">${t.reject}</button>' +
-    (privacyHtml ? privacyHtml : '') +
-    '</div></div></div>';
-  document.body.appendChild(div);
-})();
-<\\/script>`;
+  currentCode = `function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-  resultOutput.textContent = currentCode;
-  showToast('Code generated');
-  previewArea.innerHTML = '<span style="color:#94a3b8;font-size:.9rem">✅ Code generated. Click Preview to see the banner.</span>';
-}
-
-function copyCode() {
-  if (!currentCode) { showToast('Please generate code first'); return; }
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(currentCode).then(() => showToast('Code copied to clipboard'));
-  } else {
-    const ta = document.createElement('textarea');
-    ta.value = currentCode;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    showToast('Code copied to clipboard');
-  }
-}
-
-function showPreview() {
-  if (!currentCode) { showToast('Please generate code first'); return; }
-  const bgColor = document.getElementById('bgColor').value;
-  const textColor = document.getElementById('textColor').value;
-  const btnColor = document.getElementById('btnColor').value;
-  const btnTextColor = document.getElementById('btnTextColor').value;
-  const position = document.getElementById('bannerPosition').value;
-  const siteName = document.getElementById('siteName').value.trim() || 'This website';
-  const privacyUrl = document.getElementById('privacyUrl').value.trim();
-  const mode = document.getElementById('complianceMode').value;
-
-  let posStyle = position === 'top' ? 'top:0;left:0;right:0' : (position === 'center' ? 'top:50%;left:50%;transform:translate(-50%,-50%);max-width:450px;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.5)' : 'bottom:0;left:0;right:0');
-  const modeLabel = mode === 'ccpa' ? 'CCPA (Opt-out)' : 'GDPR (Opt-in)';
-
-  let privacyLink = '';
-  if (privacyUrl) {
-    privacyLink = '<a href="' + privacyUrl + '" style="color:' + btnColor + ';text-decoration:underline;font-size:.85rem" target="_blank">Privacy Policy</a>';
-  }
-
-  previewArea.innerHTML = '<div style="position:relative;' + posStyle + ';background:' + bgColor + ';color:' + textColor + ';padding:16px 20px;font-family:sans-serif;font-size:.9rem;border:1px solid rgba(255,255,255,.1);border-radius:' + (position === 'center' ? '12px' : '0') + '">' +
-    '<div style="text-align:' + (position === 'center' ? 'center' : 'left') + '">' +
-    '<div style="margin-bottom:8px"><strong>🍪 ' + siteName + '</strong> uses cookies to enhance your browsing experience, analyze site traffic, and deliver personalized content.</div>' +
-    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:' + (position === 'center' ? 'center' : 'flex-start') + '">' +
-    '<button style="padding:8px 18px;background:' + btnColor + ';color:' + btnTextColor + ';border:none;border-radius:6px;cursor:pointer;font-size:.85rem">Accept All Cookies</button>' +
-    '<button style="padding:8px 18px;background:transparent;color:' + textColor + ';border:1px solid rgba(255,255,255,.2);border-radius:6px;cursor:pointer;font-size:.85rem">Reject Non-Essential</button>' +
-    privacyLink +
-    '</div>' +
-    '<div style="margin-top:6px;font-size:.75rem;color:' + textColor + ';opacity:.7">Mode: ' + modeLabel + ' | Position: ' + position.charAt(0).toUpperCase() + position.slice(1) + '</div>' +
-    '</div></div>';
-  showToast('Preview updated');
-}
-
-<!-- Feedback Widget -->
-</div>
-<script>
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function submitFeedback(){
 const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 Feature Request',bug:'🐛 Bug Report',other:'💬 Other'}[type];
+const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
 const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**Page**: '+window.location.href+'\n**Type**: '+typeLabel+'\n\n'+text);
+const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
 document.getElementById('feedback-success').style.display='block';
 }
-</script>
+
+// === 重写的函数实现 ===
+function copyCode() {
+  var text = document.getElementById('resultOutput').innerText || document.getElementById('resultOutput').textContent;
+  if (!text || text.indexOf('点击') === 0) { showToast('请先生成代码'); return; }
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制到剪贴板'); }).catch(function() { showToast('复制失败'); });
+}
+
+function generateCode() {
+  var pos = document.getElementById('bannerPosition').value;
+  var mode = document.getElementById('complianceMode').value;
+  var lang = document.getElementById('bannerLang').value;
+  var bg = document.getElementById('bgColor').value;
+  var txt = document.getElementById('textColor').value;
+  var btn = document.getElementById('btnColor').value;
+  var btnTxt = document.getElementById('btnTextColor').value;
+  var site = (document.getElementById('siteName').value || '本网站').trim();
+  var privUrl = (document.getElementById('privacyUrl').value || '').trim();
+
+  var msgZh = mode === 'gdpr' ? '我们使用Cookie来改善您的浏览体验。请选择是否允许我们使用Cookie。' : '我们使用Cookie来改善您的浏览体验。您可以随时选择退出。';
+  var msgEn = mode === 'gdpr' ? 'We use cookies to improve your browsing experience. Please choose whether to allow us to use cookies.' : 'We use cookies to improve your browsing experience. You can opt out at any time.';
+  var acceptZh = '全部接受';
+  var acceptEn = 'Accept All';
+  var rejectZh = '仅必要Cookie';
+  var rejectEn = 'Necessary Only';
+  var privLabelZh = '隐私政策';
+  var privLabelEn = 'Privacy Policy';
+
+  var isZh = lang === 'zh' || (lang === 'auto' && navigator.language.indexOf('zh') === 0);
+  var msg = isZh ? msgZh : msgEn;
+  var accept = isZh ? acceptZh : acceptEn;
+  var reject = isZh ? rejectZh : rejectEn;
+  var privLabel = isZh ? privLabelZh : privLabelEn;
+
+  var posCss = pos === 'top' ? 'top:0' : pos === 'center' ? 'top:50%;left:50%;transform:translate(-50%,-50%)' : 'bottom:0';
+  var code = '<!-- ' + site + ' Cookie同意横幅 (Generated by Free ToolBase) -->\n';
+  code += '<style>\n';
+  code += '#cookie-consent-banner{position:fixed;' + posCss + ';left:' + (pos === 'center' ? '50%' : '0') + ';right:' + (pos === 'center' ? 'auto' : '0') + ';background:' + bg + ';color:' + txt + ';padding:16px 24px;z-index:99999;display:flex;flex-wrap:wrap;align-items:center;gap:12px;box-shadow:0 -2px 10px rgba(0,0,0,.15);font-family:sans-serif;font-size:14px}\n';
+  code += '#cookie-consent-banner .cc-text{flex:1;min-width:200px}\n';
+  code += '#cookie-consent-banner .cc-btns{display:flex;gap:8px;flex-wrap:wrap}\n';
+  code += '#cookie-consent-banner .cc-btn{padding:8px 20px;border:none;border-radius:6px;cursor:pointer;font-size:13px}\n';
+  code += '#cookie-consent-banner .cc-accept{background:' + btn + ';color:' + btnTxt + '}\n';
+  code += '#cookie-consent-banner .cc-reject{background:transparent;color:' + txt + ';border:1px solid ' + txt + '}\n';
+  code += '#cookie-consent-banner .cc-link{color:' + btn + ';text-decoration:underline}\n';
+  code += '#cookie-consent-banner.hidden{display:none}\n';
+  code += '@media(max-width:600px){#cookie-consent-banner{flex-direction:column;text-align:center}}\n';
+  code += '</style>\n';
+  code += '<div id="cookie-consent-banner">\n';
+  code += '  <div class="cc-text">' + msg + (privUrl ? ' <a class="cc-link" href="' + privUrl + '">' + privLabel + '</a>' : '') + '</div>\n';
+  code += '  <div class="cc-btns">\n';
+  code += '    <button class="cc-btn cc-accept" onclick="cookieConsent(\'accept\')">' + accept + '</button>\n';
+  code += '    <button class="cc-btn cc-reject" onclick="cookieConsent(\'reject\')">' + reject + '</button>\n';
+  code += '  </div>\n';
+  code += '</div>\n';
+  code += '<script>\n';
+  code += 'function cookieConsent(choice){\n';
+  code += '  localStorage.setItem("cookie_consent",choice);\n';
+  code += '  localStorage.setItem("cookie_consent_date",new Date().toISOString());\n';
+  code += '  document.getElementById("cookie-consent-banner").classList.add("hidden");\n';
+  code += '}\n';
+  code += '(function(){\n';
+  code += '  var c=localStorage.getItem("cookie_consent");\n';
+  code += '  var d=localStorage.getItem("cookie_consent_date");\n';
+  code += '  if(c&&d){\n';
+  code += '    var age=(Date.now()-new Date(d).getTime())/86400000;\n';
+  code += '    if(age<365){document.getElementById("cookie-consent-banner").classList.add("hidden");}\n';
+  code += '  }\n';
+  code += '})();\n';
+  code += '<\/script>\n';
+
+  document.getElementById('resultOutput').textContent = code;
+  showToast('代码已生成！点击「复制代码」复制到剪贴板');
+}
+
+function showPreview() {
+  generateCode();
+  var code = document.getElementById('resultOutput').textContent;
+  var previewArea = document.getElementById('previewArea');
+  if (!previewArea) return;
+  var iframe = document.createElement('iframe');
+  iframe.style.cssText = 'width:100%;height:200px;border:1px solid rgba(148,163,184,.2);border-radius:8px;background:#fff';
+  iframe.onload = function() {
+    try { iframe.contentDocument.write(code + '<div style="padding:40px;color:#333">网站内容预览区域</div>'); } catch(e) {}
+  };
+  previewArea.innerHTML = '';
+  previewArea.appendChild(iframe);
+  showToast('预览已加载');
+}
 <!-- Related Tools (cross-recommendation) -->
 <link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
 <div id="related-tools-section" class="related-tools-section">

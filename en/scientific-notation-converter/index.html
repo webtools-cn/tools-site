@@ -281,80 +281,38 @@ a{color:#06b6d4;text-decoration:none}
  <div class="toast" id="toast"></div>
 </div>
 
-<script>
-function convert() {
-  const input = document.getElementById('inputNumber').value.trim();
-  const errorBox = document.getElementById('errorBox');
-  const resultsDiv = document.getElementById('results');
-  errorBox.style.display = 'none';
-  
-  if (!input) {
-    resultsDiv.innerHTML = '<div class="empty-state">Enter a number to see results</div>';
-    return;
-  }
-  
-  const direction = document.querySelector('input[name="direction"]:checked').value;
-  const precision = parseInt(document.getElementById('precision').value);
-  
-  if (direction === 'toScientific') {
-    // Parse as number
-    let num;
-    try {
-      num = parseFloat(input.replace(/[×xX]/g, 'e').replace(/\s+/g, ''));
-      if (isNaN(num)) throw new Error('invalidnumber');
-    } catch(e) {
-      errorBox.style.display = 'block';
-      errorBox.textContent = '❌ invalid numberFormat';
-      resultsDiv.innerHTML = '<div class="empty-state">Waiting for valid input</div>';
-      return;
-    }
-    
-    if (!isFinite(num)) {
-      errorBox.style.display = 'block';
-      errorBox.textContent = '❌ numberthroughbigorthroughsmall（superexitrange）';
-      resultsDiv.innerHTML = '<div class="empty-state">Waiting for valid input</div>';
-      return;
-    }
-    
-    // Format to scientific
-    const sci = num.toExponential(precision);
-    const [mantissa, exp] = sci.split('e');
-    const expNum = parseInt(exp);
-    const formatted = `${mantissa} × 10<sup>${expNum}</sup>`;
-    const eFormat = sci;
-    const engineering = toEngineering(num, precision);
-    const fullNumber = num.toLocaleString('fullwide''${mantissa} × 10^${expNum}''${eFormat}''${engineering.replace(/<[^>]*>/g,\"\")}')">📋 Copy</button></main>
-      <div class="result-item"><span class="label">completenumber</span><span class="value" style="font-size:.8rem">${fullNumber}</span><button class="copy-btn" onclick="copyText('${fullNumber}')">📋 Copy</button></div>
-    `;
-  } else {
-    // From scientific to number
-    let num;
-    try {
-      const cleaned = input.replace(/[×xX]/g, 'e').replace(/\^/g, '').replace(/\s+/g, '').replace('10', 'e');
-      num = parseFloat(cleaned);
-      if (isNaN(num)) throw new Error('invalid');
-    } catch(e) {
-      errorBox.style.display = 'block';
-      errorBox.textContent = '';
-      resultsDiv.innerHTML = '<div class="empty-state">Waiting for valid input</div>';
-      return;
-    }
-    
-    if (!isFinite(num)) {
-      errorBox.style.display = 'block';
-      errorBox.textContent = '❌ numbersuperexitrange';
-      resultsDiv.innerHTML = '<div class="empty-state">Waiting for valid input</div>';
-      return;
-    }
-    
-    const fullNumber = num.toLocaleString('fullwide', {useGrouping: false, maximumFractionDigits: 20});
-    const grouped = num.toLocaleString('zh-CN', {maximumFractionDigits: 20});
-    
-    resultsDiv.innerHTML = `
-      <div class="result-item"><span class="label">completenumber</span><span class="value" style="font-size:.85rem">${fullNumber}</span><button class="copy-btn" onclick="copyText('${fullNumber}''${grouped}')">📋 Copy</button></div>
-    `;
-  }
+function convert(){
+var input=document.getElementById('inputNumber').value.trim();
+var prec=parseInt(document.getElementById('precision').value)||6;
+var err=document.getElementById('errorBox');var res=document.getElementById('results');
+err.style.display='none';res.innerHTML='';
+if(!input){err.textContent='请输入数字';err.style.display='block';return;}
+var n=parseFloat(input);if(isNaN(n)){err.textContent='无效的数字';err.style.display='block';return;}
+var abs=Math.abs(n);
+var exp=abs===0?0:Math.floor(Math.log10(abs));
+var mant=n/Math.pow(10,exp);
+var sci=mant.toFixed(prec)+' × 10^'+exp;
+var eForm=n.toExponential(prec);
+var normal=n.toLocaleString('en-US',{maximumFractionDigits:20});
+var items=[
+['科学计数法',sci],
+['E表示法',eForm],
+['普通数字',normal],
+['指数',exp.toString()],
+['有效数字',mant.toFixed(prec)]
+];
+var html='';
+items.forEach(function(item){html+='<div style="margin-bottom:12px"><div style="color:#94a3b8;font-size:12px;text-transform:uppercase;margin-bottom:4px">'+item[0]+'</div><div style="color:#e2e8f0;font-size:16px;font-family:monospace;word-break:break-all">'+item[1]+'</div></div>';});
+res.innerHTML=html;
 }
+function loadExample(type){
+document.getElementById('inputNumber').value=type==='large'?'299792458':'0.0000000000667430';
+convert();
+}
+function clearAll(){document.getElementById('inputNumber').value='';document.getElementById('results').innerHTML='';}
+function showToast(m){var t=document.getElementById('toast');if(t){t.textContent=m;t.style.display='block';setTimeout(function(){t.style.display='none';},2000);}}
+document.getElementById('inputNumber').addEventListener('input',convert);
+document.getElementById('precision').addEventListener('change',convert);
 
 function toEngineering(num, precision) {
   if (num === 0) return '0';
@@ -394,7 +352,19 @@ function showToast(msg) {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2000);
 }
-</script>
+
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => showToast('✅ Copied'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
 <script>

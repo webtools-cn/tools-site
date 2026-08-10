@@ -304,17 +304,19 @@ canvas{max-width:100%;max-height:500px}
 </footer>
 </div>
 <div class="toast" id="toast"></div>
-<script>
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
 var lang=document.documentElement.lang;
 function toast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},2000)}
 
-function calculatePeriod(){
+window.calculatePeriod = calculatePeriod; function calculatePeriod(){
   var lastDate=document.getElementById("lastPeriod").value;
   var cycle=parseInt(document.getElementById("cycleLength").value)||28;
   var period=parseInt(document.getElementById("periodDuration").value)||5;
-  if(!lastDate){toast(lang==="en"?"Please select a date":"PleaseSelectDate");return;}
+  if(!lastDate){toast(lang==="en"?"Please select a date":"请选择日期");return;}
   var last=new Date(lastDate);
-  if(isNaN(last.getTime())){toast(lang==="en"?"Invalid date":"invalidDate");return;}
+  if(isNaN(last.getTime())){toast(lang==="en"?"Invalid date":"无效日期");return;}
   var results=document.getElementById("periodResults");
   var table=document.getElementById("periodTable");
   var next=new Date(last);
@@ -334,25 +336,34 @@ function calculatePeriod(){
   var l=lang==="en";
   results.innerHTML='<div style="margin-top:12px">'+
     '<div style="background:rgba(6,182,212,.1);border-radius:8px;padding:16px;margin-bottom:8px">'+
-      '<div style="color:#22d3ee;font-size:1.2rem;font-weight:600">''</div>'+
+      '<div style="color:#22d3ee;font-size:1.2rem;font-weight:600">'+(l?"Next Period: ":"下次月经: ")+fmt(next)+'</div>'+
     '</div>'+
     '<div style="background:rgba(234,179,8,.1);border-radius:8px;padding:16px;margin-bottom:8px">'+
-      '<div style="color:#fbbf24;font-size:1.2rem;font-weight:600">''</div>'+
+      '<div style="color:#fbbf24;font-size:1.2rem;font-weight:600">'+(l?"Ovulation Day: ":"排卵日: ")+fmt(ovulation)+'</div>'+
     '</div>'+
     '<div style="background:rgba(34,197,94,.1);border-radius:8px;padding:16px;margin-bottom:8px">'+
-      '<div style="color:#4ade80;font-size:1.1rem;font-weight:600">'' ~ '+fmt(fertileEnd)+'</div>'+
+      '<div style="color:#4ade80;font-size:1.1rem;font-weight:600">'+(l?"Fertile Window: ":"易孕期: ")+fmt(fertileStart)+' ~ '+fmt(fertileEnd)+'</div>'+
     '</div>'+
     '<div style="background:rgba(148,163,184,.1);border-radius:8px;padding:16px">'+
-      '<div style="color:#94a3b8;font-size:1rem">'' ~ '+fmt(safeEnd)+'</div>'+
+      '<div style="color:#94a3b8;font-size:1rem">'+(l?"Safe Period: ":"安全期: ")+fmt(safeStart)+' ~ '+fmt(safeEnd)+'</div>'+
     '</div></div>';
   var html='<table style="width:100%;border-collapse:collapse;font-size:.9rem">'+
-    '<tr style="background:#0f172a"><th style="padding:8px;text-align:left;border-bottom:1px solid rgba(148,163,184,.2)">'+(l?"Date":"Date")+'</th><th style="padding:8px;text-align:left;border-bottom:1px solid rgba(148,163,184,.2)">'+(l?"Day of Cycle":"perioddaynumber")+'</th><th style="padding:8px;text-align:left;border-bottom:1px solid rgba(148,163,184,.2)">'+(l?"Phase":"phase")+'</th></tr>''<tr><td style="padding:6px 8px;border-bottom:1px solid rgba(148,163,184,.08)">'+fmt(d)+'</td><td style="padding:6px 8px;border-bottom:1px solid rgba(148,163,184,.08)">'+(i+1)+'</td><td style="padding:6px 8px;border-bottom:1px solid rgba(148,163,184,.08)">'+phase+'</td></tr>';
+    '<tr style="background:#0f172a"><th style="padding:8px;text-align:left;border-bottom:1px solid rgba(148,163,184,.2)">'+(l?"Date":"日期")+'</th><th style="padding:8px;text-align:left;border-bottom:1px solid rgba(148,163,184,.2)">'+(l?"Day of Cycle":"周期天数")+'</th><th style="padding:8px;text-align:left;border-bottom:1px solid rgba(148,163,184,.2)">'+(l?"Phase":"阶段")+'</th></tr>';
+  for(var i=-7;i<=cycle+7;i++){
+    var d=new Date(last);
+    d.setDate(d.getDate()+i);
+    var phase="";
+    if(i>=0&&i<period)phase=l?"Period":"经期";
+    else if(i>=period&&i<period+3)phase=l?"Post-period":"经后期";
+    else if(d>=fertileStart&&d<=fertileEnd)phase=l?"Fertile":"易孕期";
+    else if(fmt(d)==fmt(ovulation))phase=l?"Ovulation":"排卵日";
+    else phase=l?"Safe":"安全期";
+    if(i>=0&&i<=cycle+period)html+='<tr><td style="padding:6px 8px;border-bottom:1px solid rgba(148,163,184,.08)">'+fmt(d)+'</td><td style="padding:6px 8px;border-bottom:1px solid rgba(148,163,184,.08)">'+(i+1)+'</td><td style="padding:6px 8px;border-bottom:1px solid rgba(148,163,184,.08)">'+phase+'</td></tr>';
   }
   html+='</table>';
   table.innerHTML=html;
-  toast(lang==="en"?"Calculation complete":"Calculatecomplete");
+  toast(lang==="en"?"Calculation complete":"计算完成");
 }
-</script>
 <!-- Related Tools (cross-recommendation) -->
 <link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
 <div id="related-tools-section" class="related-tools-section">
