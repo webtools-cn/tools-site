@@ -570,7 +570,8 @@ showToast('PDF conversion complete!','success');
 showToast('Conversion failed: '+e.message,'error');
 
 <!-- Feedback Widget -->
-<script type="application/ld+json">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 (function(){
 const uploadZone=document.getElementById('uploadZone');
 const fileInput=document.getElementById('fileInput');
@@ -764,6 +765,217 @@ item.classList.toggle('open');
 });
 });
 })();
+
+showToast('Please upload a .docx file','error');
+showToast('File too large. Please select a file under 50MB','error');
+if(style)html+='<span style="'+style+'">'+escapeHtml(text)+'</span>';
+docxContent.push({html:'<p style="text-align:'+align+';margin:4px 0">'+html+'</p>',text:html.replace(/<[^>]+>/g,'')});
+docxContent.push({html:'<br>',text:''});
+showToast('Document loaded successfully','success');
+showToast('Failed to parse document: '+e.message,'error');
+return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+showToast('PDF conversion complete!','success');
+showToast('Conversion failed: '+e.message,'error');
+
+<!-- Feedback Widget -->
+<script type="application/ld+json">
+
+(function(){
+const uploadZone=document.getElementById('uploadZone');
+const fileInput=document.getElementById('fileInput');
+const fileInfo=document.getElementById('fileInfo');
+const fileName=document.getElementById('fileName');
+const fileSize=document.getElementById('fileSize');
+const previewSection=document.getElementById('previewSection');
+const previewContent=document.getElementById('previewContent');
+const convertBtn=document.getElementById('convertBtn');
+const clearBtn=document.getElementById('clearBtn');
+const progressBar=document.getElementById('progressBar');
+const progressFill=document.getElementById('progressFill');
+const toast=document.getElementById('toast');
+
+let currentFile=null;
+let docxContent=[];
+
+function showToast(msg,type=''){
+toast.textContent=msg;
+toast.className='toast '+type+' show';
+setTimeout(()=>toast.classList.remove('show'),3000);
+}
+
+uploadZone.addEventListener('click',()=>fileInput.click());
+uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.classList.add('drag-over')});
+uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop',e=>{
+e.preventDefault();
+uploadZone.classList.remove('drag-over');
+if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change',()=>{if(fileInput.files.length)handleFile(fileInput.files[0])});
+
+function handleFile(file){
+if(!file.name.endsWith('.docx')){
+showToast('请上传 .docx 格式文件','error');
+return;
+}
+if(file.size>50*1024*1024){
+showToast('文件过大，请选择小于50MB的文件','error');
+return;
+}
+currentFile=file;
+fileName.textContent=file.name;
+fileSize.textContent=formatSize(file.size);
+fileInfo.style.display='block';
+convertBtn.disabled=false;
+clearBtn.style.display='inline-block';
+uploadZone.style.display='none';
+parseDocx(file);
+}
+
+function formatSize(bytes){
+if(bytes<1024)return bytes+' B';
+if(bytes<1048576)return (bytes/1024).toFixed(1)+' KB';
+return (bytes/1048576).toFixed(2)+' MB';
+}
+
+async function parseDocx(file){
+try{
+progressBar.style.display='block';
+progressFill.style.width='30%';
+const zip=await JSZip.loadAsync(file);
+progressFill.style.width='60%';
+const docXml=await zip.file('word/document.xml').async('text');
+progressFill.style.width='80%';
+const parser=new DOMParser();
+const xmlDoc=parser.parseFromString(docXml,'text/xml');
+const paragraphs=xmlDoc.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','p');
+docxContent=[];
+for(let p of paragraphs){
+const runs=p.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','r');
+let html='';
+for(let r of runs){
+const t=r.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','t');
+if(!t.length)continue;
+let text='';
+for(let tn of t)text+=tn.textContent||'';
+const rPr=r.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','rPr');
+let style='';
+if(rPr.length){
+const bold=rPr[0].getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','b');
+const italic=rPr[0].getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','i');
+const sz=rPr[0].getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','sz');
+const color=rPr[0].getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','color');
+if(bold.length)style+='font-weight:bold;';
+if(italic.length)style+='font-style:italic;';
+if(sz.length){
+const pts=parseInt(sz[0].getAttribute('w:val'))/2;
+style+='font-size:'+pts+'pt;';
+}
+if(color.length){
+const clr=color[0].getAttribute('w:val')||'000000';
+style+='color:#'+clr+';';
+}
+}
+if(style)html+='\x3Cspan style="'+style+'">'+escapeHtml(text)+'\x3C/span>';
+else html+=escapeHtml(text);
+}
+if(html.trim()){
+const pPr=p.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','pPr');
+let align='left';
+if(pPr.length){
+const jc=pPr[0].getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','jc');
+if(jc.length){
+const val=jc[0].getAttribute('w:val');
+if(val==='center')align='center';
+else if(val==='right')align='right';
+}
+}
+docxContent.push({html:'\x3Cp style="text-align:'+align+';margin:4px 0">'+html+'\x3C/p>',text:html.replace(/<[^>]+>/g,'')});
+}else{
+docxContent.push({html:'\x3Cbr>',text:''});
+}
+}
+progressFill.style.width='100%';
+previewContent.innerHTML=docxContent.map(p=>p.html).join('');
+previewSection.style.display='block';
+showToast('文档加载成功','success');
+}catch(e){
+showToast('文档解析失败：'+e.message,'error');
+}finally{
+setTimeout(()=>progressBar.style.display='none',500);
+}
+}
+
+function escapeHtml(s){
+return s.replace(/&/g,'&amp;').replace(/\x3C/g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+convertBtn.addEventListener('click',async()=>{
+if(!currentFile)return;
+try{
+progressBar.style.display='block';
+progressFill.style.width='20%';
+const {jsPDF}=window.jspdf;
+const pdf=new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
+const pageWidth=pdf.internal.pageSize.getWidth();
+const margin=50;
+const contentWidth=pageWidth-2*margin;
+let y=margin;
+const lineHeight=18;
+
+progressFill.style.width='50%';
+for(let item of docxContent){
+const text=item.text;
+if(!text.trim()){
+y+=lineHeight/2;
+if(y>pdf.internal.pageSize.getHeight()-margin){pdf.addPage();y=margin;}
+continue;
+}
+const lines=pdf.splitTextToSize(text,contentWidth);
+for(let line of lines){
+if(y+lineHeight>pdf.internal.pageSize.getHeight()-margin){
+pdf.addPage();
+y=margin;
+}
+pdf.setFontSize(11);
+pdf.setTextColor(51,51,51);
+pdf.text(line,margin,y);
+y+=lineHeight;
+}
+}
+
+progressFill.style.width='90%';
+pdf.save(currentFile.name.replace('.docx','.pdf'));
+progressFill.style.width='100%';
+showToast('PDF转换完成！','success');
+}catch(e){
+showToast('转换失败：'+e.message,'error');
+}finally{
+setTimeout(()=>progressBar.style.display='none',500);
+}
+});
+
+clearBtn.addEventListener('click',()=>{
+currentFile=null;
+docxContent=[];
+fileInfo.style.display='none';
+previewSection.style.display='none';
+convertBtn.disabled=true;
+clearBtn.style.display='none';
+uploadZone.style.display='block';
+fileInput.value='';
+});
+
+document.querySelectorAll('.faq-q').forEach(q=>{
+q.addEventListener('click',()=>{
+const item=q.parentElement;
+item.classList.toggle('open');
+});
+});
+})();
+
+
+function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');
 </script>
 <script type="application/ld+json">
 <script type="application/ld+json">{
@@ -785,9 +997,7 @@ item.classList.toggle('open');
   ],
   "name": "Word to PDF Converter"
 }</script>
-<script>
-)();
-</script>
+
 
 </header>
 

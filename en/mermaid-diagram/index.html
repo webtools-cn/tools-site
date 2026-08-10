@@ -3,7 +3,7 @@
 <head>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
-<script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
+
 <meta charset="UTF-8">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -155,13 +155,11 @@ footer a{color:#64748b}
   <p style="text-align:center;color:#64748b;font-size:12px;margin-top:12px">Feedback: dexshuang@google.com</p>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script>
-mermaid.initialize({startOnLoad:false,theme:'default',securityLevel:'loose'});
-const codeEl = document.getElementById('mermaidCode');
-const preview = document.getElementById('preview');
-const errorDisplay = document.getElementById('errorDisplay');
-const toast = document.getElementById('toast');
-let renderTimeout;
+window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});
+
+function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');
 
 function showToast(msg) {
   toast.textContent=msg;toast.classList.add('show');
@@ -248,6 +246,89 @@ document.getElementById('copyCode').addEventListener('click', () => {
 
 // Initial render
 render();}}
+
+
+function render() {
+  const code = codeEl.value.trim();
+  if (!code) { preview.innerHTML='<span style="color:#94a3b8">Enter Mermaid code</span>'; errorDisplay.style.display='none'; return; }
+  try {
+    const id = 'mermaid-' + Date.now();
+    const {svg} = await mermaid.render(id, code);
+    preview.innerHTML = svg;
+    errorDisplay.style.display = 'none';
+  } catch(e) {
+    preview.innerHTML = '<span style="color:#f87171">Render failed</span>';
+    errorDisplay.textContent = 'error: ' + (e.message || e);
+    errorDisplay.style.display = 'block';
+  }
+}
+
+codeEl.addEventListener('input', () => {
+  clearTimeout(renderTimeout);
+  renderTimeout = setTimeout(render, 500);
+});
+
+document.querySelectorAll('.tpl-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tpls = {
+      flowchart: '',
+      sequence: '',
+      gantt: '',
+      class: 'classDiagram\n    class Animal {\n        +name: string\n        +age: int\n        +makeSound()\n    }\n    class Dog {\n        +breed: string\n        +bark()\n    }\n    Animal <|-- Dog',
+      pie: '',
+      state: '',
+      er: 'erDiagram\n    CUSTOMER ||--o{ ORDER : places\n    ORDER ||--|{ LINE-ITEM : contains\n    CUSTOMER {\n        string name\n        string email\n    }\n    ORDER {\n        int orderId\n        date orderDate\n    }\n    LINE-ITEM {\n        int quantity\n        float price\n    }'
+    };
+    codeEl.value = tpls[btn.dataset.tpl] || '';
+    render();
+  });
+});
+
+document.getElementById('exportSvg').addEventListener('click', () => {
+  const svg = preview.querySelector('svg');
+  if (!svg) { showToast('Nothing to export'); return; }
+  const clone = svg.cloneNode(true);
+  const data = new XMLSerializer().serializeToString(clone);
+  const blob = new Blob([data], {type:'image/svg+xml'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='diagram.svg'; a.click();
+  URL.revokeObjectURL(url); showToast('SVG exported ✓');
+});
+
+document.getElementById('exportPng').addEventListener('click', () => {
+  const svg = preview.querySelector('svg');
+  if (!svg) { showToast('Nothing to export'); return; }
+  const clone = svg.cloneNode(true);
+  const data = new XMLSerializer().serializeToString(clone);
+  const img = new Image();
+  const svgBlob = new Blob([data], {type:'image/svg+xml'});
+  const url = URL.createObjectURL(svgBlob);
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width * 2;
+    canvas.height = img.height * 2;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    canvas.toBlob(blob => {
+      const pngUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=pngUrl; a.download='diagram.png'; a.click();
+      URL.revokeObjectURL(pngUrl); showToast('PNG exported ✓');
+    });
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+});
+
+document.getElementById('copyCode').addEventListener('click', () => {
+  const code = codeEl.value;
+  if (!code.trim()) { showToast('nohavecanCopy content'); return; }
+  navigator.clipboard.writeText(code).then(() => showToast('Code copied ✓'));
+});
+
+// Initial render
+render();}}
+
 </script>
 </body>
 </html>
