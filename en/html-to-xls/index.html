@@ -151,87 +151,275 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 
 <div class="toast" id="toast"></div>
 
-<script>
-function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
-
-var parsedData=null;
-
-function parseHTMLTable(html){
-  var div=document.createElement('div');div.innerHTML=html;
-  var table=div.querySelector('table');if(!table)return null;
-  var headers=[],rows=[];
-  var thead=table.querySelector('thead');
-  if(thead){thead.querySelectorAll('th').forEach(function(th){headers.push(th.textContent.trim())})}
-  var tbody=table.querySelector('tbody')||table;
-  tbody.querySelectorAll('tr').forEach(function(tr){
-    var thsInRow=tr.querySelectorAll('th');
-    if(thsInRow.length>0&&headers.length===0){thsInRow.forEach(function(th){headers.push(th.textContent.trim())});return}
-    var rowData=[];tr.querySelectorAll('td,th').forEach(function(cell){rowData.push(cell.textContent.trim())});
-    if(rowData.length>0)rows.push(rowData);
-  });
-  return {headers:headers,rows:rows};
-}
-
-document.getElementById('parseBtn').addEventListener('click',function(){
-  var html=document.getElementById('htmlInput').value.trim();
-  if(!html){showToast('Please enter HTML code');return}
-  parsedData=parseHTMLTable(html);
-  if(!parsedData||parsedData.rows.length===0){showToast('No valid HTML table found');return}
-  var section=document.getElementById('previewSection');section.classList.add('show');
-  var preview=document.getElementById('tablePreview');
-  var tableHtml='<table>';
-  if(parsedData.headers.length>0){tableHtml+='<thead><tr>';parsedData.headers.forEach(function(h){tableHtml+='<th>'+h+'</th>'});tableHtml+='</tr></thead>'}
-  tableHtml+='<tbody>';parsedData.rows.forEach(function(row){tableHtml+='<tr>';row.forEach(function(cell){tableHtml+='<td>'+cell+'</td>'});tableHtml+='</tr>'});
-  tableHtml+='</tbody></table>';preview.innerHTML=tableHtml;
-  showToast('Parsed '+parsedData.rows.length+' rows');
-});
-
-function generateXLS(data){
-  var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
-  html+='<head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Sheet1</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><meta property="og:image" content="https://free-toolbase.com/og-image.svg">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://free-toolbase.com/en/"}, {"@type": "ListItem", "position": 2, "name": "Tools", "item": "https://free-toolbase.com/en/#tools"}, {"@type": "ListItem", "position": 3, "name": "HTML to Excel Converter", "item": "https://free-toolbase.com/en/html-to-xls/"}]}</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}
+.container{max-width:900px;margin:0 auto;padding:24px 16px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.header h1{font-size:1.6rem;color:#f1f5f9}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
+.nav-back a{color:#64748b}
+.hero{background:linear-gradient(135deg,rgba(6,182,212,.1),rgba(139,92,246,.1));border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid rgba(6,182,212,.15)}
+.hero p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:.75rem;background:rgba(6,182,212,.15);color:#22d3ee;border:1px solid rgba(6,182,212,.2)}
+.input-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.input-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+textarea{width:100%;padding:10px 12px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;font-size:.85rem;font-family:monospace;resize:vertical;min-height:150px;margin-bottom:12px}
+textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
+.btn-success{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.2)}
+.btn-success:hover{background:rgba(34,197,94,.25)}
+.preview-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1);overflow-x:auto;display:none}
+.preview-section.show{display:block}
+.preview-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.preview-section table{width:100%;border-collapse:collapse;font-size:.85rem}
+.preview-section th{background:rgba(6,182,212,.15);color:#22d3ee;padding:8px 12px;border:1px solid rgba(148,163,184,.15);text-align:left}
+.preview-section td{color:#e2e8f0;padding:8px 12px;border:1px solid rgba(148,163,184,.1)}
+.preview-section tr:nth-child(even) td{background:rgba(148,163,184,.03)}
+.info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.info-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
+.info-section p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
+.faq-item{margin-bottom:12px}
+.faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:4px}
+.faq-item p{color:#94a3b8;font-size:.85rem;line-height:1.6}
+.footer{border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:32px;text-align:center;color:#64748b;font-size:.85rem}
+.footer a{color:#64748b;margin:0 8px}
+.footer a:hover{color:#94a3b8}
+.ad-slot{margin:0 auto;text-align:center;max-width:960px}.ad-slot:not(:has(ins[frame])){display:none}.ad-slot:empty{display:none}.ad-slot ins{display:block}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+@media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.header{flex-direction:column;gap:8px}}
+</style>
+<meta property="og:image" content="https://free-toolbase.com/og-image.svg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
 
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
 <meta name="robots" content="index, follow">
-</head>';
- html+='<body><table border="1">';
- if(data.headers.length>0){html+='<tr>';data.headers.forEach(function(h){html+='<th>'+h+'</th>'});html+='</tr>'}
- data.rows.forEach(function(row){html+='<tr>';row.forEach(function(cell){html+='<td>'+cell+'</td>'});html+='</tr>'});
- html+='</table>
-<!-- AdSense -->
+<link rel="alternate" hreflang="zh" href="https://free-toolbase.com/html-to-xls/">
+<link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/html-to-xls/">
+<link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/html-to-xls/">
+</head>
+<body>
+<main class="container">
+<div class="header"><h1>📊 HTML to Excel Converter</h1><div class="lang-switch"><a href="../../html-to-xls/"> </a><a href="index.html" class="active">EN</a></div></div>
+<p class="nav-back"><a href="/en/">Home</a> &rsaquo; <a href="../index.html#tools">Tools</a> &rsaquo; HTML to Excel Converter</p>
 
-</body></html>';return html;
+<div class="hero">
+ <p>Free online HTML table to Excel converter. Convert HTML table code or pasted table data to downloadable Excel (.xls) files. Support extracting tables from web pages. No registration.</p>
+ <span class="badge">Zero dependency · Works offline</span>
+</div>
+
+<div class="input-section">
+ <h2>📝 Input HTML Table Code</h2>
+ <textarea id="htmlInput" placeholder="Paste HTML table code here...&#10;Example:&#10;<table>&#10; <tr><th>Name</th><th>Age</th></tr>&#10; <tr><td>John</td><td>25</td></tr>&#10;</table>"><table>
+ <thead><tr><th>Name</th><th>Age</th><th>City</th><th>Job</th></tr></thead>
+ <tbody>
+ <tr><td>John</td><td>28</td><td>New York</td><td>Engineer</td></tr>
+ <tr><td>Jane</td><td>32</td><td>London</td><td>Designer</td></tr>
+ <tr><td>Bob</td><td>25</td><td>Tokyo</td><td>Product Manager</td></tr>
+ <tr><td>Alice</td><td>30</td><td>Paris</td><td>Data Analyst</td></tr>
+ </tbody>
+</table></textarea>
+ <div class="btn-row">
+ <button class="btn btn-primary" id="parseBtn">🔍 Parse Table</button>
+ <button class="btn btn-success" id="downloadXls">📥 Download Excel</button>
+ <button class="btn btn-secondary" id="downloadCsv">Download CSV</button>
+ <button class="btn btn-secondary" id="clearBtn">Clear</button>
+ </div>
+</div>
+
+<div class="preview-section" id="previewSection">
+ <h2>👁️ Table Preview</h2>
+ <div id="tablePreview"></div>
+</div>
+
+<div class="info-section">
+ <h2>Instructions</h2>
+ <p>Paste HTML table code (containing &lt;table&gt; tag), click Parse to preview. Download as Excel (.xls) or CSV. Supports standard HTML table structures.</p>
+</div>
+
+<div class="info-section">
+ <h2>❓ FAQ</h2>
+ <div class="faq-item">
+ <h3>Is this tool free?</h3>
+ <p>Completely free, no registration required. Everything runs locally: HTML to Excel Converter and other values are processed on your device, never sent to a server.</p>
+ </div>
+ <div class="faq-item">
+ <h3>What HTML formats are supported?</h3>
+ <p>Supports standard HTML &lt;table&gt; tags including &lt;thead&gt;, &lt;tbody&gt;, &lt;th&gt;, &lt;td&gt;. Can also auto-extract tables from HTML snippets.</p>
+ </div>
+</div>
+
+</main>
+
+<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#374151;">🔗 Related Tools</h2><div style="display:flex;flex-wrap:wrap;gap:4px;"><a href="/en/character-unicode-finder/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">Character Unicode Finder</a><a href="/en/css-gradient-border-animation/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">Css Gradient Border Animation</a><a href="/en/css-specificity-calculator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">Css Specificity Calculator</a></div></section>
+<footer class="footer container">
+<div style="margin-bottom:12px">
+<a href="/en/">Home</a>
+<a href="/en/">All Tools</a>
+<a href="mailto:dexshuang@google.com">Contact</a>
+<a href="../privacy/">Privacy</a>
+<a href="../terms/">Terms</a>
+<a href="../about/">About</a>
+<a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener">GitHub</a>
+<a href="../../html-to-xls/"> </a>
+</div>
+
+<p style="text-align:center;margin-top:8px;color:#64748b;font-size:.85rem">HTML to Excel Converter | No registration · Data never leaves your device</p>
+<p style="margin-top:8px;color:#475569;font-size:.8rem;text-align:center">Feedback: dexshuang@google.com</p>
+</footer>
+
+
+<div class="toast" id="toast"></div>
+
+<script>
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+
+var parsedData=null; // {headers: [], rows: [[]]}
+
+function parseHTMLTable(html){
+  // Create a temporary element to parse HTML
+  var div=document.createElement('div');
+  div.innerHTML=html;
+  var table=div.querySelector('table');
+  if(!table)return null;
+
+  var headers=[];
+  var rows=[];
+
+  // Try to get headers from thead
+  var thead=table.querySelector('thead');
+  if(thead){
+    var ths=thead.querySelectorAll('th');
+    ths.forEach(function(th){headers.push(th.textContent.trim())});
+  }
+
+  // Get all rows from tbody or directly from table
+  var tbody=table.querySelector('tbody')||table;
+  var trs=tbody.querySelectorAll('tr');
+  trs.forEach(function(tr,rowIdx){
+    // Skip thead rows if no explicit thead
+    var thsInRow=tr.querySelectorAll('th');
+    if(thsInRow.length>0&&headers.length===0){
+      thsInRow.forEach(function(th){headers.push(th.textContent.trim())});
+      return;
+    }
+    var cells=tr.querySelectorAll('td,th');
+    var rowData=[];
+    cells.forEach(function(cell){rowData.push(cell.textContent.trim())});
+    if(rowData.length>0)rows.push(rowData);
+  });
+
+  return {headers:headers,rows:rows};
+}
+
+document.getElementById('parseBtn').addEventListener('click',function(){
+  var html=document.getElementById('htmlInput').value.trim();
+  if(!html){showToast('请输入HTML代码');return}
+  parsedData=parseHTMLTable(html);
+  if(!parsedData||parsedData.rows.length===0){showToast('未找到有效的HTML表格');return}
+
+  // Render preview
+  var section=document.getElementById('previewSection');
+  section.classList.add('show');
+  var preview=document.getElementById('tablePreview');
+
+  var tableHtml='<table>';
+  if(parsedData.headers.length>0){
+    tableHtml+='<thead><tr>';
+    parsedData.headers.forEach(function(h){tableHtml+='<th>'+h+'</th>'});
+    tableHtml+='</tr></thead>';
+  }
+  tableHtml+='<tbody>';
+  parsedData.rows.forEach(function(row){
+    tableHtml+='<tr>';
+    row.forEach(function(cell){tableHtml+='<td>'+cell+'</td>'});
+    tableHtml+='</tr>';
+  });
+  tableHtml+='</tbody></table>';
+  preview.innerHTML=tableHtml;
+
+  showToast('已解析 '+parsedData.rows.length+' 行数据');
+});
+
+function generateXLS(data){
+  // Generate an HTML-based XLS file (Excel can open HTML tables as XLS)
+  var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+  html+='<head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Sheet1</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>';
+  html+='<body><table border="1">';
+  if(data.headers.length>0){
+    html+='<tr>';
+    data.headers.forEach(function(h){html+='<th>'+h+'</th>'});
+    html+='</tr>';
+  }
+  data.rows.forEach(function(row){
+    html+='<tr>';
+    row.forEach(function(cell){html+='<td>'+cell+'</td>'});
+    html+='</tr>';
+  });
+  html+='</table></body></html>';
+  return html;
 }
 
 function generateCSV(data){
- var lines=[];if(data.headers.length>0)lines.push(data.headers.map(escapeCsv).join(','));
- data.rows.forEach(function(row){lines.push(row.map(escapeCsv).join(','))});return lines.join('\n');
+  var lines=[];
+  if(data.headers.length>0){
+    lines.push(data.headers.map(escapeCsv).join(','));
+  }
+  data.rows.forEach(function(row){
+    lines.push(row.map(escapeCsv).join(','));
+  });
+  return lines.join('\n');
 }
-function escapeCsv(val){val=String(val);if(val.includes(',')||val.includes('"')||val.includes('\n'))return'"'+val.replace(/"/g,'""')+'"';return val}
+
+function escapeCsv(val){
+  val=String(val);
+  if(val.includes(',')||val.includes('"')||val.includes('\n')){
+    return '"'+val.replace(/"/g,'""')+'"';
+  }
+  return val;
+}
 
 function downloadFile(content,filename,mime){
- var blob=new Blob(['\ufeff'+content],{type:mime+';charset=utf-8'});
- var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=filename;
- document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  var blob=new Blob(['\ufeff'+content],{type:mime+';charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 document.getElementById('downloadXls').addEventListener('click',function(){
- if(!parsedData){showToast('Please parse the HTML table first');return}
- var content=generateXLS(parsedData);downloadFile(content,'table_export.xls','application/vnd.ms-excel');
- showToast('Excel file downloading...');
+  if(!parsedData){showToast('请先解析HTML表格');return}
+  var content=generateXLS(parsedData);
+  downloadFile(content,'table_export.xls','application/vnd.ms-excel');
+  showToast('Excel文件下载中...');
 });
 
 document.getElementById('downloadCsv').addEventListener('click',function(){
- if(!parsedData){showToast('Please parse the HTML table first');return}
- var content=generateCSV(parsedData);downloadFile(content,'table_export.csv','text/csv');
- showToast('CSV file downloading...');
+  if(!parsedData){showToast('请先解析HTML表格');return}
+  var content=generateCSV(parsedData);
+  downloadFile(content,'table_export.csv','text/csv');
+  showToast('CSV文件下载中...');
 });
 
 document.getElementById('clearBtn').addEventListener('click',function(){
- document.getElementById('htmlInput').value='';
- document.getElementById('previewSection').classList.remove('show');
- document.getElementById('tablePreview').innerHTML='';parsedData=null;
+  document.getElementById('htmlInput').value='';
+  document.getElementById('previewSection').classList.remove('show');
+  document.getElementById('tablePreview').innerHTML='';
+  parsedData=null;
 });
 </script>
 

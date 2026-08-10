@@ -262,6 +262,29 @@ document.getElementById("feedback-success").style.display="block";
 }
 </script>
 <script>
+function toggleFeedback(){const p=document.getElementById("feedback-panel");p.style.display=p.style.display==="none"?"block":"none";}
+function submitFeedback(){
+const type=document.getElementById("feedback-type").value;
+if(!text){showToast("Please enter your feedback");return;}
+const typeLabel={feedback:"💡 Suggestion",bug:"🐛 Bug Report",other:"💬 Other"}[type];
+const title=encodeURIComponent(typeLabel+" - "+window.location.pathname);
+const body=encodeURIComponent("**Page**: "+window.location.href+"\n**Type**: "+typeLabel+"\n\n"+text);
+window.open("https://github.com/webtools-cn/tools-site/issues/new?title="+title+"&body="+body,"_blank");
+document.getElementById("feedback-success").style.display="block";
+}
+</script>
+<script>
+function toggleFeedback(){const p=document.getElementById("feedback-panel");p.style.display=p.style.display==="none"?"block":"none";}
+function submitFeedback(){
+const type=document.getElementById("feedback-type").value;
+if(!text){showToast("请输入反馈内容");return;}
+const typeLabel={feedback:"💡 功能建议",bug:"🐛 问题反馈",other:"💬 其他"}[type];
+const title=encodeURIComponent(typeLabel+" - "+window.location.pathname);
+const body=encodeURIComponent("**页面**: "+window.location.href+"\n**类型**: "+typeLabel+"\n\n"+text);
+window.open("https://github.com/webtools-cn/tools-site/issues/new?title="+title+"&body="+body,"_blank");
+document.getElementById("feedback-success").style.display="block";
+}
+
 // Tool-specific JavaScript
 const TOOL_SLUG = 'decimal-to-hex';
 function showToast(msg) {
@@ -271,7 +294,7 @@ function showToast(msg) {
 }
 
 function copyToClipboard(text) {
-  navigator.clipboard.writeText(text).then(()=>showToast('Copied')).catch(()=>showToast('Copy failed'));
+  navigator.clipboard.writeText(text).then(()=>showToast('已复制')).catch(()=>showToast('复制失败'));
 }
 
 function downloadFile(content, filename, mime='text/plain') {
@@ -286,21 +309,54 @@ function downloadFile(content, filename, mime='text/plain') {
 function initTool() {
   const ui = document.getElementById('tool-ui');
   ui.innerHTML = `
-    <div class="tab-bar" id="convert-mode-tabs">
-      <button class="tab-btn active" onclick="switchMode('dec2hex')">Dec → Hex</button>
-      <button class="tab-btn" onclick="switchMode('hex2dec''dec2hex';
+    \x3Cdiv class="tab-bar" id="convert-mode-tabs">
+      \x3Cbutton class="tab-btn active" onclick="switchMode('dec2hex')">Dec → Hex\x3C/button>
+      \x3Cbutton class="tab-btn" onclick="switchMode('hex2dec')">Hex → Dec\x3C/button>
+    \x3C/div>
+    \x3Cdiv id="input-area">
+      \x3Ctextarea id="input-text" class="input-textarea" placeholder="输入十进制数字..." style="min-height:80px">\x3C/textarea>
+    \x3C/div>
+    \x3Cdiv class="input-row" style="margin-top:12px">
+      \x3Cdiv class="input-group">
+        \x3Clabel>位宽\x3C/label>
+        \x3Cselect id="bit-width">
+          \x3Coption value="0">自动（无补码）\x3C/option>
+          \x3Coption value="8">8位\x3C/option>
+          \x3Coption value="16">16位\x3C/option>
+          \x3Coption value="32">32位\x3C/option>
+          \x3Coption value="64">64位\x3C/option>
+        \x3C/select>
+      \x3C/div>
+      \x3Cdiv class="input-group">
+        \x3Clabel>前缀\x3C/label>
+        \x3Cselect id="prefix">
+          \x3Coption value="0x">0x（标准）\x3C/option>
+          \x3Coption value="#">#（颜色）\x3C/option>
+          \x3Coption value="none">无\x3C/option>
+        \x3C/select>
+      \x3C/div>
+    \x3C/div>
+    \x3Cdiv class="btn-row">
+      \x3Cbutton class="btn btn-primary btn-large" onclick="convert()">转换\x3C/button>
+      \x3Cbutton class="btn btn-secondary" onclick="clearAll()">清空\x3C/button>
+    \x3C/div>
+  `;
+}
+initTool();
+
+let currentMode = 'dec2hex';
 
 function switchMode(mode) {
   currentMode = mode;
   document.querySelectorAll('#convert-mode-tabs .tab-btn').forEach(b => b.classList.remove('active'));
   event.target.classList.add('active');
-  document.getElementById('input-text').placeholder = mode === 'dec2hex' ? '' : '';
+  document.getElementById('input-text').placeholder = mode === 'dec2hex' ? '输入十进制数字...' : '输入十六进制数字...';
   clearAll();
 }
 
 function convert() {
   const input = document.getElementById('input-text').value.trim();
-  if (!input) { showToast('PleaseInputnumbervalue'); return; }
+  if (!input) { showToast('请输入数值'); return; }
   
   const bitWidth = parseInt(document.getElementById('bit-width').value);
   const prefix = document.getElementById('prefix').value;
@@ -331,26 +387,26 @@ function convert() {
       displayResult(results.join('\n'), input);
     }
   } catch(e) {
-    showToast('Convertfailed: PleaseInputvalid number');
+    showToast('转换失败: 请输入有效的数字');
   }
 }
 
 function displayResult(text, original) {
   document.getElementById('result-section').classList.add('show');
   document.getElementById('result-content').innerHTML = `
-    <textarea class="output-textarea" readonly>${text}</textarea>
-    <div class="btn-row">
-      <button class="btn btn-primary" onclick="copyToClipboard(document.querySelector('.output-textarea').value)">📋 Copy</button>
-      <button class="btn btn-secondary" onclick="downloadFile(document.querySelector('.output-textarea').value,'converted.txt')">💾 Download</button>
-    </div>
+    \x3Ctextarea class="output-textarea" readonly>${text}\x3C/textarea>
+    \x3Cdiv class="btn-row">
+      \x3Cbutton class="btn btn-primary" onclick="copyToClipboard(document.querySelector('.output-textarea').value)">📋 复制\x3C/button>
+      \x3Cbutton class="btn btn-secondary" onclick="downloadFile(document.querySelector('.output-textarea').value,'converted.txt')">💾 下载\x3C/button>
+    \x3C/div>
   `;
-  document.getElementById('char-count').textContent = `ResultLength: ${text.length} character`;
+  document.getElementById('char-count').textContent = `结果长度: ${text.length} 字符`;
 }
 
 function clearAll() {
   document.getElementById('input-text').value = '';
   document.getElementById('result-section').classList.remove('show');
-})}
+}
 </script>
 <!-- Related Tools -->
 <link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">

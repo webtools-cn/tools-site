@@ -167,11 +167,16 @@
         <script>
         </script>
         <script>
-        var svgIcons = [], currentOutput = 'sprite';
+        </script>
+        <script>
+var svgIcons = [];
+        var currentOutput = 'sprite';
         var dz = document.getElementById('dropZone');
+if (dz) {
         dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('dragover'); });
         dz.addEventListener('dragleave', function() { dz.classList.remove('dragover'); });
         dz.addEventListener('drop', function(e) { e.preventDefault(); dz.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+        }
 
         function handleFiles(files) {
             Array.from(files).forEach(function(file) {
@@ -187,10 +192,14 @@
         }
 
         function renderIconList() {
-            var list = document.getElementById('iconList'); list.innerHTML = '';
+            var list = document.getElementById('iconList');
+            list.innerHTML = '';
             svgIcons.forEach(function(icon, idx) {
-                var div = document.createElement('div'); div.className = 'icon-item';
-                div.innerHTML = '<button class="remove-btn" onclick="removeIcon(' + idx + ')">×</button><div>' + icon.content.replace(/<\?xml[^?]*\?>/g, '').replace(/<svg/, '<svg width="32" height="32"') + '</div><div class="icon-name">' + icon.name + '</div>';
+                var div = document.createElement('div');
+                div.className = 'icon-item';
+                div.innerHTML = '\x3Cbutton class="remove-btn" onclick="removeIcon(' + idx + ')">×\x3C/button>' +
+                    '\x3Cdiv>' + icon.content.replace(/<\?xml[^?]*\?>/g, '').replace(/\x3Csvg/, '\x3Csvg width="32" height="32"') + '\x3C/div>' +
+                    '\x3Cdiv class="icon-name">' + icon.name + '\x3C/div>';
                 list.appendChild(div);
             });
             document.getElementById('iconCount').textContent = svgIcons.length;
@@ -198,32 +207,45 @@
         }
 
         function removeIcon(idx) { svgIcons.splice(idx, 1); renderIconList(); }
-        function clearAll() { svgIcons = []; renderIconList(); document.getElementById('fileInput').value = ''; document.getElementById('outputCard').style.display = 'none'; }
+        function clearAll() { svgIcons = []; renderIconList(); document.getElementById('fileInput').value = ''; renderIconList(); document.getElementById('outputCard').style.display = 'none'; }
 
         function generateSprite() {
-            if (!svgIcons.length) { showToast('Please upload SVG files first'); return; }
+            if (!svgIcons.length) { showToast('请先上传SVG文件'); return; }
             var symbols = '';
             svgIcons.forEach(function(icon) {
-                var viewBoxMatch = icon.content.match(/viewBox="([^"]+)"/);
+                var svg = icon.content;
+                var viewBoxMatch = svg.match(/viewBox="([^"]+)"/);
                 var viewBox = viewBoxMatch ? viewBoxMatch[1] : '0 0 24 24';
-                var innerContent = icon.content.replace(/<\?xml[^?]*\?>/g, '').replace(/<svg[^>]*>/, '').replace(/<\/svg>/, '');
-                symbols += '  <symbol id="' + icon.name + '" viewBox="' + viewBox + '">\n    ' + innerContent.trim() + '\n  </symbol>\n';
+                var innerContent = svg.replace(/<\?xml[^?]*\?>/g, '').replace(/\x3Csvg[^>]*>/, '').replace(/<\/svg>/, '');
+                symbols += '  \x3Csymbol id="' + icon.name + '" viewBox="' + viewBox + '">\n    ' + innerContent.trim() + '\n  \x3C/symbol>\n';
             });
-            window._spriteCode = '<svg xmlns="http://www.w3.org/2000/svg" style="display:none">\n' + symbols + '</svg>';
-            window._cssCode = svgIcons.map(function(i) { return '.icon-' + i.name + ' { display: inline-block; width: 1em; height: 1em; }'; }).join('\n');
-            window._htmlCode = svgIcons.map(function(i) { return '<svg class="icon icon-' + i.name + '"><use href="#' + i.name + '"/></svg>'; }).join('\n');
+            var sprite = '\x3Csvg xmlns="http://www.w3.org/2000/svg" style="display:none">\n' + symbols + '\x3C/svg>';
             document.getElementById('outputCard').style.display = '';
             showOutput('sprite');
+            window._spriteCode = sprite;
+            window._cssCode = svgIcons.map(function(i) { return '.icon-' + i.name + ' { display: inline-block; width: 1em; height: 1em; }'; }).join('\n');
+            window._htmlCode = svgIcons.map(function(i) { return '\x3Csvg class="icon icon-' + i.name + '">\x3Cuse href="#' + i.name + '"/>\x3C/svg>'; }).join('\n');
+            document.getElementById('codeOutput').textContent = sprite;
         }
 
         function showOutput(type) {
             currentOutput = type;
             document.querySelectorAll('.output-tab').forEach(function(t) { t.classList.toggle('active', t.textContent.toLowerCase().indexOf(type) > -1); });
-            document.getElementById('codeOutput').textContent = ({ sprite: window._spriteCode, css: window._cssCode, html: window._htmlCode })[type] || '';
+            var codes = { sprite: window._spriteCode, css: window._cssCode, html: window._htmlCode };
+            document.getElementById('codeOutput').textContent = codes[type] || '';
         }
 
-        function copyOutput() { navigator.clipboard.writeText(document.getElementById('codeOutput').textContent).then(function() { showToast('Copied to clipboard'); }); }
-        function downloadSprite() { var blob = new Blob([window._spriteCode], { type: 'image/svg+xml' }); var url = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = 'sprite.svg'; a.click(); URL.revokeObjectURL(url; })
+        function copyOutput() {
+            var text = document.getElementById('codeOutput').textContent;
+            navigator.clipboard.writeText(text).then(function() { showToast('已复制'); });
+        }
+
+        window.downloadSprite = downloadSprite; function downloadSprite() {
+            var blob = new Blob([window._spriteCode], { type: 'image/svg+xml' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a'); a.href = url; a.download = 'sprite.svg'; a.click();
+            URL.revokeObjectURL(url);
+            }
 </script>
           <div class="info-section faq-section">
     <h2>❓ Frequently Asked Questions</h2>

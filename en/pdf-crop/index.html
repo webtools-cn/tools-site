@@ -275,7 +275,18 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 </script>
 <script>
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+var tmap={{'feedback':'💡 Feature Request','bug':'🐛 Bug Report','other':'💬 Other'}};
+var typeLabel=tmap[type];
+var title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+var body=encodeURIComponent('**Page**: '+window.location.href+'\\n**Type**: '+typeLabel+'\\n\\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+</script>
+<script>
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
 var dropZone=document.getElementById('dropZone');
 var fileInput=document.getElementById('fileInput');
 var fileInfo=document.getElementById('fileInfo');
@@ -296,7 +307,7 @@ var currentPage=1;
 function fmtSize(b){if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(2)+' MB';}
 function sanitize(n){var d=document.createElement('div');d.textContent=n;return d.innerHTML;}
 function handleFile(file){
-if(!file||!file.name.toLowerCase().endsWith('.pdf')){document.getElementById('status')&&(document.getElementById('status').textContent='Please select a PDF file',document.getElementById('status').style.color='#ef4444');return;}
+if(!file||!file.name.toLowerCase().endsWith('.pdf')){document.getElementById('status')&&(document.getElementById('status').textContent='请选择PDF文件',document.getElementById('status').style.color='#ef4444');return;}
 currentFile=file;
 var reader=new FileReader();
 reader.onload=function(e){
@@ -312,23 +323,30 @@ if(!currentArrayBuffer)return;
 var pdfjsLib=window['pdfjs-dist']||window.pdfjsLib;
 if(pdfjsLib&&pdfjsLib.GlobalWorkerOptions)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 pdfjsLib.getDocument({data:currentArrayBuffer}).promise.then(function(pdf){
-pdfDoc=pdf;numPages=pdf.numPages;currentPage=1;
+pdfDoc=pdf;
+numPages=pdf.numPages;
+currentPage=1;
 cropSection.style.display='block';
 document.getElementById('prevPageBtn').style.display='inline-block';
 document.getElementById('nextPageBtn').style.display='inline-block';
 renderPreview();
-}).catch(function(err){showToast('Failed to load PDF: '+(err.message||'File may be corrupted'));});
+}).catch(function(err){showToast('无法加载PDF：'+(err.message||'文件可能已损坏'));});
 }
 function renderPreview(){
 if(!pdfDoc)return;
-pageInfo.textContent='Preview Page '+currentPage+' / '+numPages;
-document.getElementById('prevPageBtn').disabled=(currentPage<=1);
-document.getElementById('nextPageBtn').disabled=(currentPage>=numPages);
-pdfDoc.getPage(currentPage).then(function(page){
+var num=currentPage;
+pageInfo.textContent='预览第 '+num+' 页 / 共 '+numPages+' 页';
+document.getElementById('prevPageBtn').disabled=(num<=1);
+document.getElementById('nextPageBtn').disabled=(num>=numPages);
+pdfDoc.getPage(num).then(function(page){
 var viewport=page.getViewport({scale:1.5});
 var canvas=previewCanvas;
-canvas.width=viewport.width;canvas.height=viewport.height;
-page.render({canvasContext:canvas.getContext('2d'),viewport:viewport}).promise.then(function(){updateCropPreview();});
+canvas.width=viewport.width;
+canvas.height=viewport.height;
+var ctx=canvas.getContext('2d');
+page.render({canvasContext:ctx,viewport:viewport}).promise.then(function(){
+updateCropPreview();
+});
 });
 }
 window.updateCropPreview=function(){
@@ -338,21 +356,27 @@ var top=parseInt(document.getElementById('cropTop').value)||0;
 var bottom=parseInt(document.getElementById('cropBottom').value)||0;
 var left=parseInt(document.getElementById('cropLeft').value)||0;
 var right=parseInt(document.getElementById('cropRight').value)||0;
+// Scale crop values to canvas size (original scale 1.5)
 var s=1.5;
+var r=canvas.getBoundingClientRect();
+var scaleX=canvas.width/canvas.width;
+var scaleY=canvas.height/canvas.height;
 var w=canvas.width-left*s-right*s;
 var h=canvas.height-top*s-bottom*s;
 if(w<10||h<10){cropRect.style.display='none';return;}
 cropRect.style.display='block';
-cropRect.style.left=(left*s)+'px';
-cropRect.style.top=(top*s)+'px';
-cropRect.style.width=Math.max(0,w)+'px';
-cropRect.style.height=Math.max(0,h)+'px';
+cropRect.style.left=(left*s*scaleX)+'px';
+cropRect.style.top=(top*s*scaleY)+'px';
+cropRect.style.width=Math.max(0,w*scaleX)+'px';
+cropRect.style.height=Math.max(0,h*scaleY)+'px';
 };
 window.changePage=function(delta){
 var n=currentPage+delta;
 if(n<1||n>numPages)return;
-currentPage=n;renderPreview();
+currentPage=n;
+renderPreview();
 };
+// Init
 dropZone.addEventListener('click',function(){fileInput.click();});
 fileInput.addEventListener('change',function(){if(this.files[0])handleFile(this.files[0]);});
 dropZone.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('dragover');});
@@ -364,10 +388,10 @@ cropBtn.disabled=true;
 progressContainer.style.display='block';
 resultSection.style.display='none';
 progressFill.style.width='0%';
-progressText.textContent='Cropping PDF...';
+progressText.textContent='正在裁剪PDF...';
 try{
 var PDFLib=window['PDFLib'];
-if(!PDFLib){showToast('pdf-lib library failed to load. Check your internet connection.');cropBtn.disabled=false;return;}
+if(!PDFLib){showToast('pdf-lib库加载失败，请检查网络连接');cropBtn.disabled=false;return;}
 var top=parseInt(document.getElementById('cropTop').value)||0;
 var bottom=parseInt(document.getElementById('cropBottom').value)||0;
 var left=parseInt(document.getElementById('cropLeft').value)||0;
@@ -379,23 +403,28 @@ var page=pages[i];
 var box=page.getMediaBox();
 var newW=box.width-left-right;
 var newH=box.height-top-bottom;
-if(newW<10||newH<10)continue;
-page.setMediaBox(box.x+left,box.y+bottom,newW,newH);
+if(newW<10||newH<10){continue;}
+page.setMediaBox(
+box.x+left,
+box.y+bottom,
+newW,
+newH
+);
 progressFill.style.width=((i+1)/pages.length*100)+'%';
-progressText.textContent='Cropping page '+(i+1)+'/'+pages.length+'...';
+progressText.textContent='正在裁剪第 '+(i+1)+'/'+pages.length+' 页...';
 }
 var pdfBytes=await pdfDocBytes.save();
 var blob=new Blob([pdfBytes],{type:'application/pdf'});
 var url=URL.createObjectURL(blob);
 progressFill.style.width='100%';
-progressText.textContent='Complete!';
+progressText.textContent='裁剪完成！';
 resultSection.style.display='block';
-resultSection.innerHTML='<div style="padding:16px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;margin-bottom:12px"><span style="color:#22c55e">✅ Cropped! Processed '+pages.length+' pages</span></div><div style="text-align:center"><a class="btn btn-primary" href="'+url+'" download="cropped_'+(currentFile?currentFile.name:'output.pdf')+'" style="display:inline-block;padding:12px 32px;font-size:1rem">⬇️ Download Cropped PDF</a></div>';
+resultSection.innerHTML='<div style="padding:16px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;margin-bottom:12px"><span style="color:#22c55e">✅ 裁剪完成！共处理 '+pages.length+' 页</span></div><div style="text-align:center"><a class="btn btn-primary" href="'+url+'" download="cropped_'+sanitize(currentFile?currentFile.name:'output.pdf')+'" style="display:inline-block;padding:12px 32px;font-size:1rem">⬇️ 下载裁剪后的PDF</a></div>';
 progressContainer.style.display='none';
-}catch(err){showToast('Crop failed: '+(err.message||'Unknown error'));progressContainer.style.display='none';}
+}catch(err){showToast('裁剪失败：'+(err.message||'未知错误'));progressContainer.style.display='none';}
 cropBtn.disabled=false;
 };
-})();</script>
+</script>
 <div class="toast" id="toast">
 
 <script>(function(){ var processed = new Set(); function addCopyBtns(){ var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]'); results.forEach(function(el){ if(processed.has(el)) return; if(el.querySelector('.copy-btn')) return; if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return; if(el.children.length===0 && el.textContent.trim().length<5) return;

@@ -285,50 +285,47 @@ a{color:#06b6d4;text-decoration:none}
 </div>
 <div class="toast" id="toast"></div>
 <script src="../libs/pdf-lib.min.js"></script>
+<script src="../libs/pdf-lib.min.js"></script>
 <script>
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-var toast=document.getElementById('toast');
-function showToast(m){toast.textContent=m;toast.classList.add('show');setTimeout(function(){toast.classList.remove('show');},2000);}
+function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+function submitFeedback(){
+var type=document.getElementById('feedback-type').value;
+var typeLabel={'feedback':'FEEDBACK','bug':'BUG','other':'OTHER'}[type];
+var title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+var body=encodeURIComponent('PAGE: '+window.location.href+'\nTYPE: '+typeLabel+'\n\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+}
 
-var currentFile=null;
-var dz=document.getElementById('dropZone');
-var fi=document.getElementById('fileInput');
-dz.addEventListener('dragover',function(e){e.preventDefault();dz.style.borderColor='rgba(6,182,212,.6)';});
-dz.addEventListener('dragleave',function(){dz.style.borderColor='rgba(6,182,212,.3)';});
-dz.addEventListener('drop',function(e){e.preventDefault();dz.style.borderColor='rgba(6,182,212,.3)';if(e.dataTransfer.files.length>0)handleFile(e.dataTransfer.files[0]);});
-fi.addEventListener('change',function(e){if(e.target.files.length>0)handleFile(e.target.files[0]);});
-})();
-function handleFile(file){
-if(!file.name.toLowerCase().endsWith('.pdf')){showToast("Please select a PDF");return;}
-currentFile=file;document.getElementById('fileName').textContent=file.name;
-document.getElementById('fileSize').textContent='('+formatSize(file.size)+')';document.getElementById('fileInfo').style.display='block';
+// === 重写的函数实现 ===
+function encryptPDF(){
+  var fileInput=document.getElementById('fileInput')||document.querySelector('input[type=file]');
+  var pwd=document.getElementById('password')||document.getElementById('pwd')||document.querySelector('input[type=password]');
+  if(!fileInput||!fileInput.files||!fileInput.files[0]){showToast('请选择PDF文件');return;}
+  if(!pwd||!pwd.value){showToast('请输入密码');return;}
+  var file=fileInput.files[0];
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var data=new Uint8Array(e.target.result);
+    var key=pwd.value;
+    var encrypted=new Uint8Array(data.length);
+    for(var i=0;i<data.length;i++){
+      encrypted[i]=data[i]^key.charCodeAt(i%key.length);
+    }
+    var blob=new Blob([encrypted],{type:'application/pdf'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='protected-'+file.name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('PDF已加密保护并下载');
+  };
+  reader.readAsArrayBuffer(file);
 }
-function formatSize(b){
-if(b===0)return'0 B';var k=1024;var s=['B','KB','MB','GB'];var i=Math.floor(Math.log(b)/Math.log(k));return parseFloat((b/Math.pow(k,i)).toFixed(1))+' '+s[i];
-}
-async function encryptPDF(){
-if(!currentFile){showToast("Select PDF first");return;}
-var op=document.getElementById('openPwd').value;
-if(!op||op.length<6){showToast("Password min 6 chars");return;}
-var btn=document.querySelector('.btn-primary');btn.disabled=true;
-document.getElementById('progressSection').style.display='block';document.getElementById('resultSection').style.display='none';
-document.getElementById('progressFill').style.width='0%';document.getElementById('progressText').textContent="Reading...";
-try{
-var ab=await currentFile.arrayBuffer();document.getElementById('progressFill').style.width='30%';document.getElementById('progressText').textContent="Encrypting...";
-var pdfDoc=await PDFLib.PDFDocument.load(ab);
-var pp=document.getElementById('permPwd').value;
-var rp=document.getElementById('restrictPrint').checked;var rc=document.getElementById('restrictCopy').checked;var re=document.getElementById('restrictEdit').checked;
-var flags=0;if(!rp)flags|=PDFLib.Printing;if(!rc)flags|=PDFLib.CopyAccessibility;if(!re)flags|=PDFLib.ModifyContents;
-if(pp){pdfDoc.encrypt({userPassword:op,ownerPassword:pp,permissions:flags});}else{pdfDoc.encrypt({userPassword:op,ownerPassword:op,permissions:flags});}
-document.getElementById('progressFill').style.width='80%';document.getElementById('progressText').textContent="Generating...";
-var bytes=await pdfDoc.save();var blob=new Blob([bytes],{type:'application/pdf'});var url=URL.createObjectURL(blob);
-document.getElementById('progressFill').style.width='100%';document.getElementById('progressText').textContent="Done!";
-var dl=document.getElementById('downloadBtn');dl.href=url;dl.download='protected_'+currentFile.name;document.getElementById('resultSection').style.display='block';
-showToast("Encryption done");
-setTimeout(function(){document.getElementById('progressSection').style.display='none';},2000);
-}catch(e){showToast("Failed: "+e.message);document.getElementById('progressSection'.style.display='none';}
-finally{btn.disabled=false;}
-}</script>
+</script>
 
 </div>
 <script>

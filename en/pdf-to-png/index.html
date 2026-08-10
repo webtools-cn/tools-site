@@ -263,7 +263,18 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 </script>
 <script>
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+var tmap={{'feedback':'💡 Feature Request','bug':'🐛 Bug Report','other':'💬 Other'}};
+var typeLabel=tmap[type];
+var title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+var body=encodeURIComponent('**Page**: '+window.location.href+'\\n**Type**: '+typeLabel+'\\n\\n'+text);
+window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+</script>
+<script>
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
 var dropZone=document.getElementById('dropZone');
 var fileInput=document.getElementById('fileInput');
 var fileInfo=document.getElementById('fileInfo');
@@ -278,7 +289,7 @@ var currentArrayBuffer=null;
 function fmtSize(b){if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(2)+' MB';}
 function sanitize(n){var d=document.createElement('div');d.textContent=n;return d.innerHTML;}
 function handleFile(file){
-if(!file||!file.name.toLowerCase().endsWith('.pdf')){document.getElementById('status')&&(document.getElementById('status').textContent='Please select a PDF file',document.getElementById('status').style.color='#ef4444');return;}
+if(!file||!file.name.toLowerCase().endsWith('.pdf')){document.getElementById('status')&&(document.getElementById('status').textContent='请选择PDF文件',document.getElementById('status').style.color='#ef4444');return;}
 currentFile=file;
 var reader=new FileReader();
 reader.onload=function(e){currentArrayBuffer=e.target.result;};
@@ -307,7 +318,7 @@ progressContainer.style.display='block';
 resultSection.style.display='none';
 resultSection.innerHTML='';
 progressFill.style.width='0%';
-progressText.textContent='Loading PDF...';
+progressText.textContent='正在加载PDF...';
 try{
 var pdfjsLib=window['pdfjs-dist']||window.pdfjsLib;
 if(pdfjsLib&&pdfjsLib.GlobalWorkerOptions)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -322,7 +333,7 @@ var total=pagesToConvert.length;
 var images=[];
 for(var idx=0;idx<total;idx++){
 var pageNum=pagesToConvert[idx];
-progressText.textContent='Processing page '+pageNum+'/'+numPages+'...';
+progressText.textContent='正在处理第 '+pageNum+'/'+numPages+' 页...';
 progressFill.style.width=((idx)/total*100).toFixed(1)+'%';
 var page=await pdf.getPage(pageNum);
 var viewport=page.getViewport({scale:scale});
@@ -330,28 +341,65 @@ var canvas=document.createElement('canvas');
 canvas.width=viewport.width;canvas.height=viewport.height;
 var ctx=canvas.getContext('2d');
 await page.render({canvasContext:ctx,viewport:viewport}).promise;
-var dataUrl=canvas.toDataURL('image/png');
-images.push({page:pageNum,dataUrl:dataUrl});
+// Convert to PNG blob
+var blob=await new Promise(function(resolve){canvas.toBlob(function(b){resolve(b);},'image/png');});
+var dataUrl=await new Promise(function(resolve){canvas.toDataURL('image/png');});
+images.push({page:pageNum,dataUrl:dataUrl,size:blob.size});
 }
 progressFill.style.width='100%';
-progressText.textContent='Complete!';
-var html='<div style="padding:16px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;margin-bottom:12px"><span style="color:#22c55e">✅ Converted '+images.length+' pages</span></div>';
+progressText.textContent='已完成！';
+var html='<div style="padding:16px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;margin-bottom:12px"><span style="color:#22c55e">✅ 成功转换 '+images.length+' 页</span></div>';
 html+='<div class="image-grid">';
 for(var i=0;i<images.length;i++){
+var img=images[i];
 html+='<div class="image-card">';
-html+='<img src="'+images[i].dataUrl+'" alt="Page '+images[i].page+'">';
-html+='<div class="label">Page '+images[i].page+'</div>';
-html+='<a class="download-link" href="'+images[i].dataUrl+'" download="page_'+images[i].page+'.png">⬇️ Download</a>';
+html+='<img src="'+img.dataUrl+'" alt="第'+img.page+'页">';
+html+='<div class="label">第 '+img.page+' 页 '+(img.size>0?'('+fmtSize(img.size)+')':'')+'</div>';
+html+='<a class="download-link" href="'+img.dataUrl+'" download="page_'+img.page+'.png">⬇️ 下载</a>';
 html+='</div>';
 }
 html+='</div>';
 resultSection.innerHTML=html;
 resultSection.style.display='block';
 progressContainer.style.display='none';
-}catch(err){showToast('Conversion failed: '+(err.message||'Unknown error'));progressContainer.style.display='none';}
+}catch(err){showToast('转换失败：'+(err.message||'未知错误'));progressContainer.style.display='none';}
 convertBtn.disabled=false;
 });
-})();</script>
+
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){
+    setTimeout(ftEnsureCopy,250);
+  }
+});
+function ftEnsureCopy(){
+  var res=document.getElementById('result');
+  if(!res||res.offsetParent===null)return;
+  if(res.querySelector('.ft-copy-btn'))return;
+  var langEN=/^en/i.test((document.documentElement.getAttribute('lang')||'zh'));
+  var btn=document.createElement('button');
+  btn.className='btn btn-secondary ft-copy-btn';
+  btn.textContent=langEN?'📋 Copy Result':'📋 复制结果';
+  btn.style.cssText='margin-top:12px;display:block';
+  btn.onclick=function(){
+    var txt=(res.innerText||res.textContent||'').replace(/\s+/g,' ').trim();
+    function toast(m){
+      var t=document.getElementById('toast');
+      if(t){t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){toast(langEN?'Copied!':'已复制')}).catch(function(){ftFallbackCopy(txt);toast(langEN?'Copied!':'已复制')});
+    }else{ftFallbackCopy(txt);toast(langEN?'Copied!':'已复制')}
+  };
+  res.appendChild(btn);
+}
+function ftFallbackCopy(txt){
+  var ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(err){}
+  document.body.removeChild(ta);
+}
+</script>
 <div class="toast" id="toast">
 
 <script>(function(){ var processed = new Set(); function addCopyBtns(){ var results = document.querySelectorAll('[id*="result"],[id*="Result"],[id*="output"],[id*="Output"],[class*="result"],[class*="output"]'); results.forEach(function(el){ if(processed.has(el)) return; if(el.querySelector('.copy-btn')) return; if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.tagName==='SELECT') return; if(el.children.length===0 && el.textContent.trim().length<5) return;
