@@ -222,18 +222,7 @@ a{color:#06b6d4;text-decoration:none}
 <div>
 <!-- AdSense -->
 
-<footer style="background:#0f172a;border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:40px">
-  <div style="max-width:1200px;margin:0 auto;padding:0 20px;display:flex;flex-wrap:wrap;justify-content:center;gap:16px">
-    <a href="../index.html" style="color:#94a3b8;text-decoration:none;font-size:14px">Home</a>
-    <a href="mailto:dexshuang@google.com" style="color:#94a3b8;text-decoration:none;font-size:14px">Contact</a>
-    <a href="../privacy/" style="color:#94a3b8;text-decoration:none;font-size:14px">Privacy</a>
-    <a href="../terms/" style="color:#94a3b8;text-decoration:none;font-size:14px">Terms</a>
-    <a href="../about/" style="color:#94a3b8;text-decoration:none;font-size:14px">About</a>
-    <a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener" style="color:#94a3b8;text-decoration:none;font-size:14px">GitHub</a>
-    <a href="../../story-generator/" style="color:#94a3b8;text-decoration:none;font-size:14px">中文</a>
-  </div>
-  <p style="text-align:center;color:#64748b;font-size:12px;margin-top:12px">Feedback: dexshuang@google.com</p>
-</footer>
+
 </div>
 <div class="toast" id="toast"></div>
 <script>
@@ -280,13 +269,58 @@ generateStory();
 <div style="background:#1e293b;border-radius:12px;padding:16px;border:1px solid rgba(148,163,184,.1)">
 <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleFeedback()"><span style="color:#94a3b8;font-size:.85rem">💬 Feedback</span><span style="color:#64748b;font-size:.75rem" id="feedback-toggle">Expand</span></div>
 <script>
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';document.getElementById('feedback-toggle').textContent=p.style.display==='block'?'Collapse':'Expand';}
+const STORIES = {
+  'Sci-Fi': [
+    {title:'The Last Signal',content:'In 2147, the Earth United Space Station received a repeating signal from 36 light-years away. Signal analyst Lin Wei discovered it wasn\'t alien communication — it was a warning from the future, sent by humans themselves. It described the "Quantum Collapse Event," a catastrophe 50 years away. More unsettling was the final line: "They are lying. The moon is the key." Lin Wei looked out the window. The moon was unusually bright tonight — and seemed closer than she remembered.'},
+    {title:'The Uploaded Mind',content:'Chen Yuan was among the first volunteers for full brain-upload. His consciousness was copied to a quantum computer while his body remained in stasis. Seven years later, the government declared the project a success. But Chen discovered a secret: time in the digital world moved 1000x faster. He had lived 7,000 years in there, witnessing digital civilizations rise and fall. When he tried to warn the administrators, they said: "You\'ve been in there too long. You no longer belong here."'},
+  ],
+  'Fantasy': [
+    {title:'The Memory Weaver',content:'In the Hall of Time Weavers, apprentice Xiao Ran was tasked with weaving dreams. Each dream was a branch of a fate line, and her job was ensuring people had the "right" dreams. But she discovered a glitch — some people saw their parallel-universe selves in dreams and began imitating that better version. The Council of Weavers deemed this "fate pollution" that must be eliminated. Xiao Ran had to choose between maintaining order and protecting those who became better through their dreams.'},
+  ],
+  'Mystery': [
+    {title:'The Seventh Photograph',content:'Photographer Zhou Yuan noticed a pattern while organizing his archives. In every portrait photo, there was a blurry white figure in the background. He searched through six years of work — the figure appeared in every single shot, whether taken in Shanghai, Tokyo, or Paris. He zoomed in on his most recent photo. The figure\'s face was clearer now, and it seemed to be smiling at him. More disturbingly, it was his own face.'},
+  ],
+  'Romance': [
+    {title:'Rainy Day Promise',content:'Gu Yuqing met a stranger while taking shelter from rain in a cafe. He handed her a napkin with a drawn umbrella. She said: "What good is a drawing when you don\'t have a real umbrella?" He replied: "This umbrella was real — in Edo-period Japan, 307 years ago." His family had been making paper umbrellas for generations, and he was the last craftsman. After that day, every rainy day she received a napkin with a different umbrella drawing. On the 100th day, he gave her a real oil-paper umbrella.'},
+  ],
+  'Horror': [
+    {title:'The Mirror Guest',content:'Su Qing bought an antique mirror from the late Qing dynasty. The next day, she noticed her reflection was half a second behind. She ignored it. On day three, it was a full second behind. Today, her reflection stopped moving entirely. It stared at her with a smile that had never appeared on her face, then raised its hand — holding scissors that didn\'t exist in the real world. Su Qing tried to run, but found she could no longer move.'},
+  ]
+};
+const ALL_CATS = Object.keys(STORIES);
+let currentStory = '';
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+(function(){const c=document.getElementById('catTags');let h='<span class="cat-tag active" data-c="all" onclick="selectC(this,\'all\')">Random</span>';ALL_CATS.forEach(cat=>{h+=`<span class="cat-tag" data-c="${cat}" onclick="selectC(this,'${cat}')">${cat}</span>`});c.innerHTML=h;})();
+let selCat='all';
+function selectC(el,cat){document.querySelectorAll('.cat-tag').forEach(t=>t.classList.remove('active'));el.classList.add('active');selCat=cat}
+function generateStory(){
+  let pool=[];if(selCat==='all'){for(const c in STORIES) pool=pool.concat(STORIES[c])}else if(STORIES[selCat]) pool=STORIES[selCat];
+  if(!pool.length){showToast('No stories in this genre');return}
+  const s=pool[Math.floor(Math.random()*pool.length)];currentStory=s;
+  document.getElementById('storyTitle').textContent=s.title;
+  document.getElementById('storyGenre').textContent='📖 '+(selCat==='all'?'Random':selCat);
+  document.getElementById('storyContent').textContent=s.content;
+}
+function copyStory(){if(!currentStory){showToast('Generate a story first');return}
+  const t=`[${currentStory.title}]\n${currentStory.content}`;
+  navigator.clipboard.writeText(t).then(()=>showToast('✅ Story copied')).catch(()=>showToast('📋 Copy failed'));
+}
+generateStory();
+</script>
+<!-- Feedback -->
+<div id="feedback-container" style="max-width:800px;margin:0 auto;padding:0 16px 24px">
+<div style="background:#1e293b;border-radius:12px;padding:16px;border:1px solid rgba(148,163,184,.1)">
+<div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleFeedback()"><span style="color:#94a3b8;font-size:.85rem">💬 Feedback</span><span style="color:#64748b;font-size:.75rem" id="feedback-toggle">Expand</span></div>
+<script>
+function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function submitFeedback(){
-if(!text){showToast('Please enter your feedback');return;}
-const typeLabel={feedback:'💡 Feature Request',bug:'🐛 Bug Report',other:'💬 Other'}[type];
+const type=document.getElementById('feedback-type').value;
+const typeLabel={"feedback":"Feature Request","bug":"Bug Report","other":"Other"}[type];
 const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
 const body=encodeURIComponent('**Page**: '+window.location.href+'\n**Type**: '+typeLabel+'\n\n'+text);
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
+document.getElementById('feedback-success').style.display='block';
+}
 </script>
 <link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
 <div id="related-tools-section" class="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
@@ -295,6 +329,19 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 
 
 </div>
+
+<footer style="background:#0f172a;border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:40px">
+  <div style="max-width:1200px;margin:0 auto;padding:0 20px;display:flex;flex-wrap:wrap;justify-content:center;gap:16px">
+    <a href="../index.html" style="color:#94a3b8;text-decoration:none;font-size:14px">Home</a>
+    <a href="mailto:dexshuang@google.com" style="color:#94a3b8;text-decoration:none;font-size:14px">Contact</a>
+    <a href="../privacy/" style="color:#94a3b8;text-decoration:none;font-size:14px">Privacy</a>
+    <a href="../terms/" style="color:#94a3b8;text-decoration:none;font-size:14px">Terms</a>
+    <a href="../about/" style="color:#94a3b8;text-decoration:none;font-size:14px">About</a>
+    <a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener" style="color:#94a3b8;text-decoration:none;font-size:14px">GitHub</a>
+    <a href="../../story-generator/" style="color:#94a3b8;text-decoration:none;font-size:14px">中文</a>
+  </div>
+  <p style="text-align:center;color:#64748b;font-size:12px;margin-top:12px">Feedback: dexshuang@google.com</p>
+</footer>
 </main>
 </body>
 </html>
