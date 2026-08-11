@@ -90,7 +90,85 @@
   </div>
 </div>
 
-</main>
+ext: 'RAR', type: 'RAR压缩包', mime: 'application/vnd.rar', icon: '📦', offset: 0},
+  {sig: '377ABCAF271C', ext: '7Z', type: '7-Zip压缩包', mime: 'application/x-7z-compressed', icon: '📦', offset: 0},
+  {sig: '1F8B08', ext: 'GZ', type: 'GZip压缩文件', mime: 'application/gzip', icon: '📦', offset: 0},
+  {sig: '4D5A', ext: 'EXE/DLL', type: 'Windows可执行文件', mime: 'application/vnd.microsoft.portable-executable', icon: '⚙️', offset: 0},
+  {sig: '7F454C46', ext: 'ELF', type: 'Linux可执行文件', mime: 'application/x-executable', icon: '⚙️', offset: 0},
+  {sig: '494433', ext: 'MP3', type: 'MP3音频', mime: 'audio/mpeg', icon: '🎵', offset: 0},
+  {sig: '000001BA', ext: 'MPG', type: 'MPEG视频', mime: 'video/mpeg', icon: '🎬', offset: 0},
+  {sig: '000001B3', ext: 'MPG', type: 'MPEG视频', mime: 'video/mpeg', icon: '🎬', offset: 0},
+  {sig: '52494646', ext: 'WAV', type: 'WAV音频', mime: 'audio/wav', icon: '🎵', offset: 8},
+  {sig: '464C5601', ext: 'FLV', type: 'FLV视频', mime: 'video/x-flv', icon: '🎬', offset: 0},
+  {sig: '53514C69', ext: 'SQLite', type: 'SQLite数据库', mime: 'application/x-sqlite3', icon: '🗄️', offset: 0},
+  {sig: 'CAFEBABE', ext: 'CLASS', type: 'Java Class文件', mime: 'application/java-vm', icon: '☕', offset: 0},
+  {sig: '00000020', ext: 'ISO', type: 'ISO光盘镜像', mime: 'application/x-iso9660-image', icon: '💿', offset: 0},
+  {sig: 'EFBBBF', ext: 'TXT(UTF-8 BOM)', type: 'UTF-8文本(BOM)', mime: 'text/plain', icon: '📝', offset: 0},
+];
+
+function bytesToHex(bytes) {
+  return Array.from(bytes).map(function(b){return b.toString(16).toUpperCase().padStart(2,'0')}).join('');
+}
+
+function findMatch(hex) {
+  for (var i = 0; i < SIGNATURES.length; i++) {
+    var s = SIGNATURES[i];
+    if (s.offset !== undefined && s.offset > 0) {
+      // Check after offset
+      var sub = hex.substring(s.offset * 2, s.offset * 2 + s.sig.length);
+      if (sub === s.sig) return s;
+    } else {
+      if (hex.startsWith(s.sig)) return s;
+    }
+  }
+  return null;
+}
+
+var dropzone = document.getElementById('dropzone');
+var fileInput = document.getElementById('fileInput');
+
+dropzone.addEventListener('click', function(){ fileInput.click(); });
+dropzone.addEventListener('dragover', function(e){ e.preventDefault(); this.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', function(){ this.classList.remove('dragover'); });
+dropzone.addEventListener('drop', function(e){ e.preventDefault(); this.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', function(){ if (this.files[0]) handleFile(this.files[0]); });
+
+function handleFile(file) {
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var bytes = new Uint8Array(e.target.result);
+    var hex = bytesToHex(bytes.slice(0, 64));
+    var match = findMatch(hex);
+    var result = document.getElementById('result');
+
+    var html = '<div class="result-card card">';
+    html += '<div class="result-header">';
+
+    if (match) {
+      html += '<div class="icon">' + match.icon + '</div>';
+      html += '<div><h3 class="status-match">✅ 检测到: ' + match.type + '</h3>';
+      html += '<p style="color:#94a3b8">扩展名: .' + match.ext + ' | MIME: ' + match.mime + '</p></div>';
+    } else {
+      html += '<div class="icon">❓</div>';
+      html += '<div><h3 class="status-mismatch">⚠️ 未知文件类型</h3>';
+      html += '<p style="color:#94a3b8">未匹配到已知签名</p></div>';
+    }
+    html += '</div>';
+
+    html += '<div class="info-grid">';
+    html += '<div class="info-item"><div class="key">文件名</div><div class="val">' + file.name + '</div></div>';
+    html += '<div class="info-item"><div class="key">文件大小</div><div class="val">' + (file.size / 1024).toFixed(1) + ' KB</div></div>';
+    html += '<div class="info-item"><div class="key">声明类型</div><div class="val">' + (file.type || '未知') + '</div></div>';
+    html += '<div class="info-item"><div class="key">文件签名</div><div class="val" style="font-family:monospace;font-size:.85rem;">' + hex.substring(0, 16) + '...</div></div>';
+    html += '</div>';
+
+    html += '<div class="hex-view">' + hex.match(/.{1,32}/g).map(function(line){return line.match(/.{1,2}/g).join(' ')}).join('\n') + '</div>';
+    html += '</div>';
+    result.innerHTML = html;
+  };
+  reader.readAsArrayBuffer(file.slice(0, 1024));
+}
+</script></main>
 <!-- AdSense -->
 
 <div class="seo-content" style="margin:1.5rem 0;padding:1rem;background:#0f172a;border-radius:8px;font-size:.95rem;color:#475569;line-height:1.8"><p>文件签名检测器是一款免费的在线工具，无需安装任何软件即可直接在浏览器中使用。计算全程在您的设备本地完成，文件签名检测器、相关参数等数据不会上传至服务器。支持所有主流浏览器和移动设备，随时随地可用。使用文件签名检测器可以帮助您快速完成相关任务，提高工作效率。本工具采用纯前端技术实现，打开即用，无需注册账号或下载插件。操作简单直观，结果即时呈现。文件签名检测器提供精准的计算和转换功能，满足日常工作和学习需求。所有处理均在浏览器本地完成，响应速度快且安全可靠。无论您使用电脑还是手机，都能获得流畅的操作体验。</p>
@@ -179,87 +257,7 @@ var SIGNATURES = [
   {sig: '25504446', ext: 'PDF', type: 'PDF文档', mime: 'application/pdf', icon: '📄', offset: 0},
   {sig: '504B0304', ext: 'ZIP/DOCX', type: 'ZIP压缩包或Office文档', mime: 'application/zip', icon: '📦', offset: 0},
   {sig: '504B0506', ext: 'ZIP', type: 'ZIP压缩包(空)', mime: 'application/zip', icon: '📦', offset: 0},
-  {sig: '52617221', ext: 'RAR', type: 'RAR压缩包', mime: 'application/vnd.rar', icon: '📦', offset: 0},
-  {sig: '377ABCAF271C', ext: '7Z', type: '7-Zip压缩包', mime: 'application/x-7z-compressed', icon: '📦', offset: 0},
-  {sig: '1F8B08', ext: 'GZ', type: 'GZip压缩文件', mime: 'application/gzip', icon: '📦', offset: 0},
-  {sig: '4D5A', ext: 'EXE/DLL', type: 'Windows可执行文件', mime: 'application/vnd.microsoft.portable-executable', icon: '⚙️', offset: 0},
-  {sig: '7F454C46', ext: 'ELF', type: 'Linux可执行文件', mime: 'application/x-executable', icon: '⚙️', offset: 0},
-  {sig: '494433', ext: 'MP3', type: 'MP3音频', mime: 'audio/mpeg', icon: '🎵', offset: 0},
-  {sig: '000001BA', ext: 'MPG', type: 'MPEG视频', mime: 'video/mpeg', icon: '🎬', offset: 0},
-  {sig: '000001B3', ext: 'MPG', type: 'MPEG视频', mime: 'video/mpeg', icon: '🎬', offset: 0},
-  {sig: '52494646', ext: 'WAV', type: 'WAV音频', mime: 'audio/wav', icon: '🎵', offset: 8},
-  {sig: '464C5601', ext: 'FLV', type: 'FLV视频', mime: 'video/x-flv', icon: '🎬', offset: 0},
-  {sig: '53514C69', ext: 'SQLite', type: 'SQLite数据库', mime: 'application/x-sqlite3', icon: '🗄️', offset: 0},
-  {sig: 'CAFEBABE', ext: 'CLASS', type: 'Java Class文件', mime: 'application/java-vm', icon: '☕', offset: 0},
-  {sig: '00000020', ext: 'ISO', type: 'ISO光盘镜像', mime: 'application/x-iso9660-image', icon: '💿', offset: 0},
-  {sig: 'EFBBBF', ext: 'TXT(UTF-8 BOM)', type: 'UTF-8文本(BOM)', mime: 'text/plain', icon: '📝', offset: 0},
-];
-
-function bytesToHex(bytes) {
-  return Array.from(bytes).map(function(b){return b.toString(16).toUpperCase().padStart(2,'0')}).join('');
-}
-
-function findMatch(hex) {
-  for (var i = 0; i < SIGNATURES.length; i++) {
-    var s = SIGNATURES[i];
-    if (s.offset !== undefined && s.offset > 0) {
-      // Check after offset
-      var sub = hex.substring(s.offset * 2, s.offset * 2 + s.sig.length);
-      if (sub === s.sig) return s;
-    } else {
-      if (hex.startsWith(s.sig)) return s;
-    }
-  }
-  return null;
-}
-
-var dropzone = document.getElementById('dropzone');
-var fileInput = document.getElementById('fileInput');
-
-dropzone.addEventListener('click', function(){ fileInput.click(); });
-dropzone.addEventListener('dragover', function(e){ e.preventDefault(); this.classList.add('dragover'); });
-dropzone.addEventListener('dragleave', function(){ this.classList.remove('dragover'); });
-dropzone.addEventListener('drop', function(e){ e.preventDefault(); this.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
-fileInput.addEventListener('change', function(){ if (this.files[0]) handleFile(this.files[0]); });
-
-function handleFile(file) {
-  var reader = new FileReader();
-  reader.onload = function(e){
-    var bytes = new Uint8Array(e.target.result);
-    var hex = bytesToHex(bytes.slice(0, 64));
-    var match = findMatch(hex);
-    var result = document.getElementById('result');
-
-    var html = '<div class="result-card card">';
-    html += '<div class="result-header">';
-
-    if (match) {
-      html += '<div class="icon">' + match.icon + '</div>';
-      html += '<div><h3 class="status-match">✅ 检测到: ' + match.type + '</h3>';
-      html += '<p style="color:#94a3b8">扩展名: .' + match.ext + ' | MIME: ' + match.mime + '</p></div>';
-    } else {
-      html += '<div class="icon">❓</div>';
-      html += '<div><h3 class="status-mismatch">⚠️ 未知文件类型</h3>';
-      html += '<p style="color:#94a3b8">未匹配到已知签名</p></div>';
-    }
-    html += '</div>';
-
-    html += '<div class="info-grid">';
-    html += '<div class="info-item"><div class="key">文件名</div><div class="val">' + file.name + '</div></div>';
-    html += '<div class="info-item"><div class="key">文件大小</div><div class="val">' + (file.size / 1024).toFixed(1) + ' KB</div></div>';
-    html += '<div class="info-item"><div class="key">声明类型</div><div class="val">' + (file.type || '未知') + '</div></div>';
-    html += '<div class="info-item"><div class="key">文件签名</div><div class="val" style="font-family:monospace;font-size:.85rem;">' + hex.substring(0, 16) + '...</div></div>';
-    html += '</div>';
-
-    html += '<div class="hex-view">' + hex.match(/.{1,32}/g).map(function(line){return line.match(/.{1,2}/g).join(' ')}).join('\n') + '</div>';
-    html += '</div>';
-    result.innerHTML = html;
-  };
-  reader.readAsArrayBuffer(file.slice(0, 1024));
-}
-</script>
-
-<script>
+  {sig: '52617221',<script>
 (function(){
   // 为所有result区域添加复制按钮
   var processed = new Set();
