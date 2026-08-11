@@ -212,6 +212,31 @@ function gtag(){dataLayer.push(arguments);}
   gtag('config', 'G-9W1157EBQV');
 
 
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+'use strict';
+const cssInput=document.getElementById('cssInput');
+const resultPanel=document.getElementById('resultPanel');
+const varGroups=document.getElementById('varGroups');
+const exportOutput=document.getElementById('exportOutput');
+const statGrid=document.getElementById('statGrid');
+const errorBox=document.getElementById('errorBox');
+const dropZone=document.getElementById('dropZone');
+let extractedVars=[];
+let currentFormat='css';
+document.getElementById('btnExtract').addEventListener('click',extract);
+document.getElementById('btnClear').addEventListener('click',()=>{cssInput.value='';resultPanel.style.display='none';errorBox.innerHTML='';});
+document.getElementById('btnCopy').addEventListener('click',()=>{navigator.clipboard.writeText(exportOutput.value).then(()=>{const b=document.getElementById('btnCopy');b.textContent='✅ Copied';setTimeout(()=>b.textContent='📋 Copy',1500);});});
+document.getElementById('btnDownload').addEventListener('click',()=>{const ext=currentFormat==='json'?'.json':currentFormat==='tailwind'?'.js':currentFormat==='scss'?'.scss':'.css';const b=new Blob([exportOutput.value],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='css-variables'+ext;a.click();});
+document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='Enter'){extract();e.preventDefault();}if(e.ctrlKey&&e.shiftKey&&e.key==='C'){navigator.clipboard.writeText(exportOutput.value);e.preventDefault();}});
+cssInput.addEventListener('drop',e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f){const r=new FileReader();r.onload=ev=>{cssInput.value=ev.target.result;};r.readAsText(f);}});
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover');});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('dragover');const f=e.dataTransfer.files[0];if(f){const r=new FileReader();r.onload=ev=>{cssInput.value=ev.target.result;};r.readAsText(f);}});
+document.querySelectorAll('.export-tab').forEach(tab=>{tab.addEventListener('click',function(){
+  document.querySelectorAll('.export-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active');
+  currentFormat=this.dataset.format;renderExport();
+});});
 function extract(){
   const raw=cssInput.value.trim();
   if(!raw){errorBox.innerHTML='<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:16px;color:#fca5a5;font-size:.85rem">Please enter CSS code</div>';return;}
@@ -330,295 +355,6 @@ document.getElementById('btnLoadExample').addEventListener('click',()=>{
 }`;
   extract();
 });
-}
-
-function categorize(v){
-  const n=v.name.toLowerCase();const val=v.value.toLowerCase();
-  if(/color|colour|bg|background|fill|stroke|border-color|text-color|fg/.test(n)||isColorValue(val))return 'color';
-  if(/spacing|space|gap|margin|padding|inset|offset|pos/.test(n)||/^\d+(\.\d+)?(px|rem|em|vh|vw|%)$/.test(val.trim())&&/space|gap|pad|margin|inset/.test(n))return 'spacing';
-  if(/font|text|line-height|letter|word|size|weight|family/.test(n))return 'font';
-  if(/border|radius|outline|ring/.test(n))return 'border';
-  if(/shadow|glow|elevation/.test(n))return 'shadow';
-  if(/anim|transition|duration|delay|ease|timing/.test(n))return 'animation';
-  return 'other';
-}
-function isColorValue(v){return/^#([0-9a-f]{3,8})$/i.test(v.trim())||/^(rgb|hsl|oklch|lab|lch)\s*\(/i.test(v.trim())||/^(red|blue|green|white|black|gray|grey|cyan|magenta|yellow|orange|pink|purple|violet|indigo|teal|lime|emerald|amber|sky|rose|slate|zinc|neutral|stone)\b/i.test(v.trim());}
-function renderExport(){
-  if(!extractedVars.length)return;
-  const groups={};extractedVars.forEach(v=>{if(!groups[v.group])groups[v.group]=[];groups[v.group].push(v);});
-  let out='';
-  if(currentFormat==='css'){
-    out=':root {\n';extractedVars.forEach(v=>{out+=`  ${v.name}: ${v.value};\n`;});out+='}';
-  }else if(currentFormat==='scss'){
-    extractedVars.forEach(v=>{const sn=v.name.replace(/^--/,'$');out+=`${sn}: ${v.value};\n`;});
-  }else if(currentFormat==='json'){
-    const obj={};Object.entries(groups).forEach(([g,vars])=>{obj[g]={};vars.forEach(v=>{const k=v.name.replace(/^--/,'');obj[g][k]=v.value;});});
-    out=JSON.stringify(obj,null,2);
-  }else if(currentFormat==='tailwind'){
-    out="module.exports = {\n  theme: {\n    extend: {\n";
-    Object.entries(groups).forEach(([g,vars])=>{
-      out+=`      ${g}: {\n`;vars.forEach(v=>{const k=v.name.replace(/^--/,'').replace(/-/g,'.');out+=`        '${k}': '${v.value}',\n`;});out+='      },\n';
-    });
-    out+="    },\n  },\n};\n";
-  }
-  exportOutput.value=out;
-}
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-document.getElementById('btnLoadExample').addEventListener('click',()=>{
-  cssInput.value=`:root {
-  --color-primary: #06b6d4;
-  --color-primary-light: #22d3ee;
-  --color-primary-dark: #0891b2;
-  --color-secondary: #8b5cf6;
-  --color-success: #10b981;
-  --color-danger: #ef4444;
-  --color-warning: #f59e0b;
-  --color-text: #e2e8f0;
-  --color-text-muted: #94a3b8;
-  --color-bg: #0f172a;
-  --color-surface: #1e293b;
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-2xl: 48px;
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size-base: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
-  --font-family-sans: -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-family-mono: "JetBrains Mono", monospace;
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-bold: 700;
-  --border-radius-sm: 6px;
-  --border-radius-md: 10px;
-  --border-radius-lg: 16px;
-  --border-radius-full: 9999px;
-  --border-color: rgba(148, 163, 184, 0.1);
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.1);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.15);
-  --shadow-lg: 0 10px 15px rgba(0,0,0,0.2);
-  --transition-fast: 150ms ease;
-  --transition-normal: 250ms ease;
-  --unused-variable: #ff0000;
-}
-.btn {
-  background: var(--color-primary);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--border-radius-md);
-  color: var(--color-text);
-  font-size: var(--font-size-base);
-  transition: all var(--transition-fast);
-}`;
-  extract();
-});
-}
-
-function isColorValue(v){return/^#([0-9a-f]{3,8})$/i.test(v.trim())||/^(rgb|hsl|oklch|lab|lch)\s*\(/i.test(v.trim())||/^(red|blue|green|white|black|gray|grey|cyan|magenta|yellow|orange|pink|purple|violet|indigo|teal|lime|emerald|amber|sky|rose|slate|zinc|neutral|stone)\b/i.test(v.trim());}
-function renderExport(){
-  if(!extractedVars.length)return;
-  const groups={};extractedVars.forEach(v=>{if(!groups[v.group])groups[v.group]=[];groups[v.group].push(v);});
-  let out='';
-  if(currentFormat==='css'){
-    out=':root {\n';extractedVars.forEach(v=>{out+=`  ${v.name}: ${v.value};\n`;});out+='}';
-  }else if(currentFormat==='scss'){
-    extractedVars.forEach(v=>{const sn=v.name.replace(/^--/,'$');out+=`${sn}: ${v.value};\n`;});
-  }else if(currentFormat==='json'){
-    const obj={};Object.entries(groups).forEach(([g,vars])=>{obj[g]={};vars.forEach(v=>{const k=v.name.replace(/^--/,'');obj[g][k]=v.value;});});
-    out=JSON.stringify(obj,null,2);
-  }else if(currentFormat==='tailwind'){
-    out="module.exports = {\n  theme: {\n    extend: {\n";
-    Object.entries(groups).forEach(([g,vars])=>{
-      out+=`      ${g}: {\n`;vars.forEach(v=>{const k=v.name.replace(/^--/,'').replace(/-/g,'.');out+=`        '${k}': '${v.value}',\n`;});out+='      },\n';
-    });
-    out+="    },\n  },\n};\n";
-  }
-  exportOutput.value=out;
-}
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-document.getElementById('btnLoadExample').addEventListener('click',()=>{
-  cssInput.value=`:root {
-  --color-primary: #06b6d4;
-  --color-primary-light: #22d3ee;
-  --color-primary-dark: #0891b2;
-  --color-secondary: #8b5cf6;
-  --color-success: #10b981;
-  --color-danger: #ef4444;
-  --color-warning: #f59e0b;
-  --color-text: #e2e8f0;
-  --color-text-muted: #94a3b8;
-  --color-bg: #0f172a;
-  --color-surface: #1e293b;
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-2xl: 48px;
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size-base: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
-  --font-family-sans: -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-family-mono: "JetBrains Mono", monospace;
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-bold: 700;
-  --border-radius-sm: 6px;
-  --border-radius-md: 10px;
-  --border-radius-lg: 16px;
-  --border-radius-full: 9999px;
-  --border-color: rgba(148, 163, 184, 0.1);
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.1);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.15);
-  --shadow-lg: 0 10px 15px rgba(0,0,0,0.2);
-  --transition-fast: 150ms ease;
-  --transition-normal: 250ms ease;
-  --unused-variable: #ff0000;
-}
-.btn {
-  background: var(--color-primary);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--border-radius-md);
-  color: var(--color-text);
-  font-size: var(--font-size-base);
-  transition: all var(--transition-fast);
-}`;
-  extract();
-});
-}
-
-function renderExport(){
-  if(!extractedVars.length)return;
-  const groups={};extractedVars.forEach(v=>{if(!groups[v.group])groups[v.group]=[];groups[v.group].push(v);});
-  let out='';
-  if(currentFormat==='css'){
-    out=':root {\n';extractedVars.forEach(v=>{out+=`  ${v.name}: ${v.value};\n`;});out+='}';
-  }else if(currentFormat==='scss'){
-    extractedVars.forEach(v=>{const sn=v.name.replace(/^--/,'$');out+=`${sn}: ${v.value};\n`;});
-  }else if(currentFormat==='json'){
-    const obj={};Object.entries(groups).forEach(([g,vars])=>{obj[g]={};vars.forEach(v=>{const k=v.name.replace(/^--/,'');obj[g][k]=v.value;});});
-    out=JSON.stringify(obj,null,2);
-  }else if(currentFormat==='tailwind'){
-    out="module.exports = {\n  theme: {\n    extend: {\n";
-    Object.entries(groups).forEach(([g,vars])=>{
-      out+=`      ${g}: {\n`;vars.forEach(v=>{const k=v.name.replace(/^--/,'').replace(/-/g,'.');out+=`        '${k}': '${v.value}',\n`;});out+='      },\n';
-    });
-    out+="    },\n  },\n};\n";
-  }
-  exportOutput.value=out;
-}
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-document.getElementById('btnLoadExample').addEventListener('click',()=>{
-  cssInput.value=`:root {
-  --color-primary: #06b6d4;
-  --color-primary-light: #22d3ee;
-  --color-primary-dark: #0891b2;
-  --color-secondary: #8b5cf6;
-  --color-success: #10b981;
-  --color-danger: #ef4444;
-  --color-warning: #f59e0b;
-  --color-text: #e2e8f0;
-  --color-text-muted: #94a3b8;
-  --color-bg: #0f172a;
-  --color-surface: #1e293b;
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-2xl: 48px;
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size-base: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
-  --font-family-sans: -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-family-mono: "JetBrains Mono", monospace;
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-bold: 700;
-  --border-radius-sm: 6px;
-  --border-radius-md: 10px;
-  --border-radius-lg: 16px;
-  --border-radius-full: 9999px;
-  --border-color: rgba(148, 163, 184, 0.1);
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.1);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.15);
-  --shadow-lg: 0 10px 15px rgba(0,0,0,0.2);
-  --transition-fast: 150ms ease;
-  --transition-normal: 250ms ease;
-  --unused-variable: #ff0000;
-}
-.btn {
-  background: var(--color-primary);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--border-radius-md);
-  color: var(--color-text);
-  font-size: var(--font-size-base);
-  transition: all var(--transition-fast);
-}`;
-  extract();
-});
-}
-
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-document.getElementById('btnLoadExample').addEventListener('click',()=>{
-  cssInput.value=`:root {
-  --color-primary: #06b6d4;
-  --color-primary-light: #22d3ee;
-  --color-primary-dark: #0891b2;
-  --color-secondary: #8b5cf6;
-  --color-success: #10b981;
-  --color-danger: #ef4444;
-  --color-warning: #f59e0b;
-  --color-text: #e2e8f0;
-  --color-text-muted: #94a3b8;
-  --color-bg: #0f172a;
-  --color-surface: #1e293b;
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-2xl: 48px;
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size-base: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
-  --font-family-sans: -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-family-mono: "JetBrains Mono", monospace;
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-bold: 700;
-  --border-radius-sm: 6px;
-  --border-radius-md: 10px;
-  --border-radius-lg: 16px;
-  --border-radius-full: 9999px;
-  --border-color: rgba(148, 163, 184, 0.1);
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.1);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.15);
-  --shadow-lg: 0 10px 15px rgba(0,0,0,0.2);
-  --transition-fast: 150ms ease;
-  --transition-normal: 250ms ease;
-  --unused-variable: #ff0000;
-}
-.btn {
-  background: var(--color-primary);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--border-radius-md);
-  color: var(--color-text);
-  font-size: var(--font-size-base);
-  transition: all var(--transition-fast);
-}`;
-  extract();
-});
-}
 </script>
 
 <!-- AdSense -->
