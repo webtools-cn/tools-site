@@ -152,7 +152,78 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
       <li>跨平台：任何浏览器可用</li>
       <li>零依赖：打开即用</li>
     </ul>
-</main>
+<div class="seo-content"><p>'+escapeHtml(paraLines.join(' '))+'</p>\n');
+              paraLines=[];
+            }
+            // Check for blank line gap (large Y jump)
+            if(mergeBlank && Math.abs(y-lastY)>20){
+              // This is a paragraph gap, already handled
+            }
+          }
+          paraLines.push(text);
+          lastY=y;
+        }
+        if(paraLines.length>0){
+          htmlParts.push('<p>'+escapeHtml(paraLines.join(' '))+'</p>\n');
+        }
+        // Add a newline between pages
+        if(idx<pages.length-1){
+          htmlParts.push('\n');
+        }
+        processed++;
+        var pct=Math.round(processed/totalPages*100);
+        document.getElementById('progressFill').style.width=pct+'%';
+        document.getElementById('pageInfo').textContent='共 '+totalPages+' 页 | 已处理 '+processed+' 页';
+        processNext(idx+1);
+      }).catch(function(err){
+        htmlParts.push('<p style="color:red">[第 '+pageNum+' 页提取失败: '+escapeHtml(err.message)+']</p>\n');
+        processed++;
+        processNext(idx+1);
+      });
+    }).catch(function(err){
+      htmlParts.push('<p style="color:red">[第 '+pageNum+' 页加载失败: '+escapeHtml(err.message)+']</p>\n');
+      processed++;
+      processNext(idx+1);
+    });
+  }
+
+  processNext(0);
+}
+
+function escapeHtml(text){
+  var div=document.createElement('div');
+  div.appendChild(document.createTextNode(text));
+  return div.innerHTML;
+}
+
+function downloadHtml(){
+  if(!outputHtml){showToast('暂无内容可下载');return;}
+  var blob=new Blob([outputHtml],{type:'text/html;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download=fileName+'.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✅ 下载已开始');
+}
+
+function copyHtml(){
+  if(!outputHtml){showToast('暂无内容可复制');return;}
+  var textarea=document.getElementById('outputText');
+  navigator.clipboard.writeText(outputHtml).then(function(){
+    showToast('✅ HTML代码已复制');
+  }).catch(function(){
+    // Fallback
+    textarea.select();
+    document.execCommand('copy');
+    showToast('✅ HTML代码已复制');
+  });
+}
+
+})();</div></main>
 
 <div class="section"><h2>常见问题</h2></div>
 
@@ -399,77 +470,5 @@ function convertToHtml(){
           // Detect paragraph break: significant Y change
           if(lastY!==null && Math.abs(y-lastY)>2){
             if(paraLines.length>0){
-              htmlParts.push('<p>'+escapeHtml(paraLines.join(' '))+'</p>\n');
-              paraLines=[];
-            }
-            // Check for blank line gap (large Y jump)
-            if(mergeBlank && Math.abs(y-lastY)>20){
-              // This is a paragraph gap, already handled
-            }
-          }
-          paraLines.push(text);
-          lastY=y;
-        }
-        if(paraLines.length>0){
-          htmlParts.push('<p>'+escapeHtml(paraLines.join(' '))+'</p>\n');
-        }
-        // Add a newline between pages
-        if(idx<pages.length-1){
-          htmlParts.push('\n');
-        }
-        processed++;
-        var pct=Math.round(processed/totalPages*100);
-        document.getElementById('progressFill').style.width=pct+'%';
-        document.getElementById('pageInfo').textContent='共 '+totalPages+' 页 | 已处理 '+processed+' 页';
-        processNext(idx+1);
-      }).catch(function(err){
-        htmlParts.push('<p style="color:red">[第 '+pageNum+' 页提取失败: '+escapeHtml(err.message)+']</p>\n');
-        processed++;
-        processNext(idx+1);
-      });
-    }).catch(function(err){
-      htmlParts.push('<p style="color:red">[第 '+pageNum+' 页加载失败: '+escapeHtml(err.message)+']</p>\n');
-      processed++;
-      processNext(idx+1);
-    });
-  }
-
-  processNext(0);
-}
-
-function escapeHtml(text){
-  var div=document.createElement('div');
-  div.appendChild(document.createTextNode(text));
-  return div.innerHTML;
-}
-
-function downloadHtml(){
-  if(!outputHtml){showToast('暂无内容可下载');return;}
-  var blob=new Blob([outputHtml],{type:'text/html;charset=utf-8'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url;
-  a.download=fileName+'.html';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast('✅ 下载已开始');
-}
-
-function copyHtml(){
-  if(!outputHtml){showToast('暂无内容可复制');return;}
-  var textarea=document.getElementById('outputText');
-  navigator.clipboard.writeText(outputHtml).then(function(){
-    showToast('✅ HTML代码已复制');
-  }).catch(function(){
-    // Fallback
-    textarea.select();
-    document.execCommand('copy');
-    showToast('✅ HTML代码已复制');
-  });
-}
-
-})();
-</body>
+              htmlParts.push('</body>
 </html>

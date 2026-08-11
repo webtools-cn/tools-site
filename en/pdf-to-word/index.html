@@ -280,6 +280,9 @@ select{appearance:auto}
 </footer>
 </div>
 
+<div class="toast" id="toast"></div>
+<script>
+(function() {
   var pdfFile = document.getElementById('pdfFile');
   var extractBtn = document.getElementById('extractBtn');
   var downloadBtn = document.getElementById('downloadDocBtn');
@@ -297,7 +300,6 @@ select{appearance:auto}
       callback(window.pdfjsLib);
       return;
     }
-    // Try loading from CDN
     var script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
     script.onload = function() {
@@ -305,23 +307,19 @@ select{appearance:auto}
       callback(window.pdfjsLib);
     };
     script.onerror = function() {
-      // Fallback: use built-in minimal text extraction
       callback(null);
     };
     document.head.appendChild(script);
   }
 
   function extractTextFallback(file) {
-    // Simple file reader fallback - read as text
     var reader = new FileReader();
     reader.onload = function(e) {
       var text = e.target.result;
-      // Try to extract text content from PDF raw data
       var matches = text.match(/\(([^)]+)\)/g) || [];
       var result = matches.map(function(m) {
         try { return m.replace(/\\\(/g, '(').replace(/\\\)/g, ')').replace(/^./, '').replace(/.$/, ''); } catch(e) { return ''; }
       }).filter(function(t) { return t.length > 2; }).join(' ');
-      
       if (result.length > 20) {
         extractedText = result;
         showResult(result);
@@ -376,11 +374,9 @@ select{appearance:auto}
   extractBtn.addEventListener('click', function() {
     var file = pdfFile.files[0];
     if (!file) { showToast(''); return; }
-    
     loadingMsg.style.display = 'block';
     resultSection.classList.remove('show');
     downloadBtn.disabled = true;
-    
     loadPDFJS(function(lib) {
       if (lib) {
         pdfjsLib = lib;
@@ -393,81 +389,37 @@ select{appearance:auto}
 
   downloadBtn.addEventListener('click', function() {
     if (!extractedText) { showToast(''); return; }
-    
-    // Create a Word-compatible HTML document
     var fileName = pdfFile.files[0] ? pdfFile.files[0].name.replace(/\.pdf$/i, '') : 'converted';
-    var html = '<html><head><meta charset="UTF-8"><title>' + fileName + '</title>
+    var html = '<html><head><meta charset="UTF-8"><title>' + fileName + '</title></head><body>';
+    html += '<h2>' + fileName + '</h2>';
+    html += '<p style="color:#888;font-size:12px">Converted by Online Tools Matrix</p>';
+    html += '<hr>';
+    var paragraphs = extractedText.split('\n');
+    paragraphs.forEach(function(p) {
+      if (p.trim()) {
+        if (p.includes('--- Page Break ---')) {
+          html += '<hr style="page-break-before:always"><p style="color:#888">' + p + '</p>';
+        } else {
+          html += '<p>' + p.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p>';
+        }
+      }
+    });
+    html += '</body></html>';
+    var blob = new Blob([html], {type: 'application/msword'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName + '.doc';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
 
-<meta property="og:image" content="https://free-toolbase.com/og-image.svg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
-
-<link rel="icon" type="image/svg+xml" href="../favicon.svg">
-<meta name="robots" content="index, follow">
-</head><body>';
- html += '<h2>' + fileName + '</h2>';
- html += '<p style="color:#888;font-size:12px">Converted by Online Tools Matrix</p>';
- html += '<hr>';
- var paragraphs = extractedText.split('\n');
- paragraphs.forEach(function(p) {
- if (p.trim()) {
- if (p.includes('--- Page Break ---')) {
- html += '<hr style="page-break-before:always"><p style="color:#888">' + p + '</p>';
- } else {
- html += '<p>' + p.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</p>';
- }
- }
- });
- html += '
-<!-- Feedback Widget -->
-</main>
-
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 Feature Request',bug:'🐛 Bug Report',other:'💬 Other'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**Page**: '+window.location.href+'\n**Type**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-})}
-
-<!-- Related Tools (cross-recommendation) -->
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section">
- <div class="related-tools-loading">Loading related tools...</div>
-</div>
-<script src="https://free-toolbase.com/related-tools.js">
-
-<div class="toast" id="toast">
-<script>
-</main>
-</main>
-
-</main>
-</main>
-</main>
-</main>
-</main>
-</main></body></html>';
- 
- var blob = new Blob([html], {type: 'application/msword'});
- var a = document.createElement('a');
- a.href = URL.createObjectURL(blob);
- a.download = fileName + '.doc';
- a.click();
- URL.revokeObjectURL(a.href);
- });
-
- // Auto-detect PDF.js loaded
- loadPDFJS(function(lib) {
- if (lib) pdfjsLib = lib;
- });
+  loadPDFJS(function(lib) {
+    if (lib) pdfjsLib = lib;
+  });
 })();
 </script>
 
 <!-- Feedback Widget -->
-</div>
 <script>
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 
