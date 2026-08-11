@@ -311,23 +311,24 @@
 <p style="margin-top:8px;color:#475569;font-size:.8rem;text-align:center">Feedback: dexshuang@google.com</p>
 </footer>
   
-<script>
-
-function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
-/* related-tools placeholder */
-
-
-function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-9W1157EBQV');
-
-
+'use strict';
+const inputArea=document.getElementById('inputArea');
+const outputArea=document.getElementById('outputArea');
+const errorBox=document.getElementById('errorBox');
+inputArea.addEventListener('input',convert);
+document.getElementById('btnConvert').addEventListener('click',convert);
+document.getElementById('btnClear').addEventListener('click',()=>{inputArea.value='';outputArea.textContent='// Output will be generated automatically';errorBox.innerHTML='';});
+document.getElementById('btnCopy').addEventListener('click',()=>{navigator.clipboard.writeText(outputArea.textContent).then(()=>{const b=document.getElementById('btnCopy');b.textContent='✅ Copied';setTimeout(()=>b.textContent='📋 Copy Result',1500);});});
+document.getElementById('btnDownload').addEventListener('click',()=>{const b=new Blob([outputArea.textContent],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='output.txt';a.click();URL.revokeObjectURL(a.href);});
+document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='Enter'){convert();e.preventDefault();}if(e.ctrlKey&&e.shiftKey&&e.key==='C'){navigator.clipboard.writeText(outputArea.textContent);e.preventDefault();}});
+let currentLang='javascript';let currentFlags=new Set(['g']);
+document.querySelectorAll('.flag-btn').forEach(btn=>{btn.addEventListener('click',()=>{const f=btn.dataset.flag;if(currentFlags.has(f)){currentFlags.delete(f);btn.classList.remove('active');}else{currentFlags.add(f);btn.classList.add('active');}convert();});});
+document.querySelectorAll('.lang-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentLang=btn.dataset.lang;convert();});});
+document.getElementById('btnLoadExample').addEventListener('click',()=>{const ex=[{r:'(\\d{3})-(\\d{4})',t:'Call 555-1234 or 800-5678',f:['g']},{r:'[\\w.+-]+@[\\w-]+\\.[\\w.]+',t:'user@example.com and admin@test.org',f:['g','i']},{r:'https?://[\\w\\-._~:/?#\\[\\]@!$&\'()*+,;=%]+',t:'Visit https://example.com/path?q=1',f:['g']}];const e=ex[Math.floor(Math.random()*ex.length)];inputArea.value=e.r;document.getElementById('testInput').value=e.t;currentFlags=new Set(e.f);document.querySelectorAll('.flag-btn').forEach(b=>b.classList.toggle('active',currentFlags.has(b.dataset.flag)));convert();});
 function convert(){const input=inputArea.value.trim();if(!input){outputArea.textContent='// Enter regex to generate code';return;}const lines=input.split('\n').filter(l=>l.trim());const flags=Array.from(currentFlags).sort().join('');const results=lines.map((line,i)=>genCode(line.trim(),flags,currentLang,i));outputArea.textContent=results.join('\n\n');testMatch();}
 function esc(regex,lang){if(lang==='java'||lang==='kotlin')return regex.replace(/\\/g,'\\\\');return regex;}
 function genCode(regex,flags,lang,idx){const e=esc(regex,lang);const n='pattern'+(idx||'');const testStr=document.getElementById('testInput').value;
-const gens={javascript:'const '+n+' = new RegExp(\''+e+'\''+(flags?', \''+flags+'\'':'')+');\nconst testStr = \''+testStr.replace(/'/g,"\\'")+'\';\nconst matches = testStr.match('+n+');\n
-',
+const gens={javascript:'const '+n+' = new RegExp(\''+e+'\''+(flags?', \''+flags+'\'':'')+');\nconst testStr = \''+testStr.replace(/'/g,"\\'")+'\';\nconst matches = testStr.match('+n+');\nconsole.log(matches);',
 python:'import re\n'+n+' = re.compile(r\''+regex+'\''+(flags?', re.'+flags.split('').map(c=>({g:'DOTALL',i:'IGNORECASE',m:'MULTILINE',s:'DOTALL'}[c]||c.toUpperCase())).join(' | re.'):'')+ ')\nmatches = '+n+'.findall(r\''+testStr.replace(/'/g,"\\'")+'\')\nprint(matches)',
 java:'Pattern '+n+' = Pattern.compile("'+e+'"'+(flags?', '+flags.split('').map(c=>({i:'CASE_INSENSITIVE',m:'MULTILINE',s:'DOTALL'}[c])).filter(Boolean).join(' | '):'')+');\nMatcher m = '+n+'.matcher("'+testStr.replace(/"/g,'\\"')+'");\nwhile(m.find()) System.out.println(m.group());',
 go:'package main\nimport ("fmt";"regexp")\nfunc main() {\n\tre, _ := regexp.Compile(\`'+regex+'\`)\n\tfmt.Println(re.FindAllString("'+testStr.replace(/"/g,'\\"')+'", -1))\n}',
@@ -340,43 +341,6 @@ kotlin:'val '+n+' = Regex(+regex+'+(flags?', setOf('+flags.split('').map(c=>'Reg
 return '// '+lang+'\n'+(gens[lang]||'// Not supported');}
 function testMatch(){const regex=inputArea.value.trim().split('\n')[0].trim();const testStr=document.getElementById('testInput').value;const mr=document.getElementById('matchResult');if(!regex||!testStr){mr.style.display='none';return;}try{const re=new RegExp(regex,Array.from(currentFlags).sort().join(''));const matches=[];let m;if(re.global){while((m=re.exec(testStr))!==null){matches.push(m[0]);if(matches.length>50)break;}}else{m=re.exec(testStr);if(m)matches.push(m[0]);}if(matches.length){mr.className='match-result';mr.innerHTML='<strong>✅ '+matches.length+' matches:</strong> '+matches.map(s=>'"'+s+'"').join(', ');}else{mr.className='match-result no-match';mr.innerHTML='❌ No match';}mr.style.display='block';}catch(e){mr.className='match-result no-match';mr.innerHTML='❌ Regex error: '+e.message;mr.style.display='block';}}
 convert();
-
-function esc(regex,lang){if(lang==='java'||lang==='kotlin')return regex.replace(/\\/g,'\\\\');return regex;}
-function genCode(regex,flags,lang,idx){const e=esc(regex,lang);const n='pattern'+(idx||'');const testStr=document.getElementById('testInput').value;
-const gens={javascript:'const '+n+' = new RegExp(\''+e+'\''+(flags?', \''+flags+'\'':'')+');\nconst testStr = \''+testStr.replace(/'/g,"\\'")+'\';\nconst matches = testStr.match('+n+');\n
-',
-python:'import re\n'+n+' = re.compile(r\''+regex+'\''+(flags?', re.'+flags.split('').map(c=>({g:'DOTALL',i:'IGNORECASE',m:'MULTILINE',s:'DOTALL'}[c]||c.toUpperCase())).join(' | re.'):'')+ ')\nmatches = '+n+'.findall(r\''+testStr.replace(/'/g,"\\'")+'\')\nprint(matches)',
-java:'Pattern '+n+' = Pattern.compile("'+e+'"'+(flags?', '+flags.split('').map(c=>({i:'CASE_INSENSITIVE',m:'MULTILINE',s:'DOTALL'}[c])).filter(Boolean).join(' | '):'')+');\nMatcher m = '+n+'.matcher("'+testStr.replace(/"/g,'\\"')+'");\nwhile(m.find()) System.out.println(m.group());',
-go:'package main\nimport ("fmt";"regexp")\nfunc main() {\n\tre, _ := regexp.Compile(\`'+regex+'\`)\n\tfmt.Println(re.FindAllString("'+testStr.replace(/"/g,'\\"')+'", -1))\n}',
-php:'$'+n+' = \'/'+regex+'/'+flags+'\';\npreg_match_all($'+n+', \''+testStr.replace(/'/g,"\\'")+'\', $matches);\nprint_r($matches);',
-rust:'use regex::Regex;\nlet '+n+': Regex = Regex::new(r"'+regex+'").unwrap();\nfor cap in '+n+'.captures_iter("'+testStr.replace(/"/g,'\\"')+'") { println!("{}", &cap[0]); }',
-csharp:'var '+n+' = new Regex(@"'+regex.replace(/"/g,'""')+'"'+(flags?', RegexOptions.'+flags.split('').map(c=>({i:'IgnoreCase',m:'Multiline',s:'Singleline'}[c])).filter(Boolean).join(' | '):'')+');\nforeach (Match m in '+n+'.Matches("'+testStr.replace(/"/g,'""')+'")) Console.WriteLine(m.Value);',
-ruby:n+' = /'+regex+'/'+flags+'\n"'+testStr.replace(/"/g,'\\"')+'".scan('+n+') { |m| puts m[0] }',
-swift:'let '+n+' = try! NSRegularExpression(pattern: "'+e+'")\nlet str = "'+testStr.replace(/"/g,'\\"')+'"\n'+n+'.enumerateMatches(in: str, range: NSRange(str.startIndex..., in: str)) { result, _, _ in if let r = result { print((str as NSString).substring(with: r.range)) } }',
-kotlin:'val '+n+' = Regex(+regex+'+(flags?', setOf('+flags.split('').map(c=>'RegexOption.'+{i:'IGNORE_CASE',m:'MULTILINE',s:'DOT_MATCHES_ALL'}[c]).filter(Boolean).join(', ')+')':'')+')\n'+n+'.findAll("'+testStr.replace(/"/g,'\\"')+'").forEach { println(it.value) }'};
-return '// '+lang+'\n'+(gens[lang]||'// Not supported');}
-function testMatch(){const regex=inputArea.value.trim().split('\n')[0].trim();const testStr=document.getElementById('testInput').value;const mr=document.getElementById('matchResult');if(!regex||!testStr){mr.style.display='none';return;}try{const re=new RegExp(regex,Array.from(currentFlags).sort().join(''));const matches=[];let m;if(re.global){while((m=re.exec(testStr))!==null){matches.push(m[0]);if(matches.length>50)break;}}else{m=re.exec(testStr);if(m)matches.push(m[0]);}if(matches.length){mr.className='match-result';mr.innerHTML='<strong>✅ '+matches.length+' matches:</strong> '+matches.map(s=>'"'+s+'"').join(', ');}else{mr.className='match-result no-match';mr.innerHTML='❌ No match';}mr.style.display='block';}catch(e){mr.className='match-result no-match';mr.innerHTML='❌ Regex error: '+e.message;mr.style.display='block';}}
-convert();
-
-function genCode(regex,flags,lang,idx){const e=esc(regex,lang);const n='pattern'+(idx||'');const testStr=document.getElementById('testInput').value;
-const gens={javascript:'const '+n+' = new RegExp(\''+e+'\''+(flags?', \''+flags+'\'':'')+');\nconst testStr = \''+testStr.replace(/'/g,"\\'")+'\';\nconst matches = testStr.match('+n+');\n
-',
-python:'import re\n'+n+' = re.compile(r\''+regex+'\''+(flags?', re.'+flags.split('').map(c=>({g:'DOTALL',i:'IGNORECASE',m:'MULTILINE',s:'DOTALL'}[c]||c.toUpperCase())).join(' | re.'):'')+ ')\nmatches = '+n+'.findall(r\''+testStr.replace(/'/g,"\\'")+'\')\nprint(matches)',
-java:'Pattern '+n+' = Pattern.compile("'+e+'"'+(flags?', '+flags.split('').map(c=>({i:'CASE_INSENSITIVE',m:'MULTILINE',s:'DOTALL'}[c])).filter(Boolean).join(' | '):'')+');\nMatcher m = '+n+'.matcher("'+testStr.replace(/"/g,'\\"')+'");\nwhile(m.find()) System.out.println(m.group());',
-go:'package main\nimport ("fmt";"regexp")\nfunc main() {\n\tre, _ := regexp.Compile(\`'+regex+'\`)\n\tfmt.Println(re.FindAllString("'+testStr.replace(/"/g,'\\"')+'", -1))\n}',
-php:'$'+n+' = \'/'+regex+'/'+flags+'\';\npreg_match_all($'+n+', \''+testStr.replace(/'/g,"\\'")+'\', $matches);\nprint_r($matches);',
-rust:'use regex::Regex;\nlet '+n+': Regex = Regex::new(r"'+regex+'").unwrap();\nfor cap in '+n+'.captures_iter("'+testStr.replace(/"/g,'\\"')+'") { println!("{}", &cap[0]); }',
-csharp:'var '+n+' = new Regex(@"'+regex.replace(/"/g,'""')+'"'+(flags?', RegexOptions.'+flags.split('').map(c=>({i:'IgnoreCase',m:'Multiline',s:'Singleline'}[c])).filter(Boolean).join(' | '):'')+');\nforeach (Match m in '+n+'.Matches("'+testStr.replace(/"/g,'""')+'")) Console.WriteLine(m.Value);',
-ruby:n+' = /'+regex+'/'+flags+'\n"'+testStr.replace(/"/g,'\\"')+'".scan('+n+') { |m| puts m[0] }',
-swift:'let '+n+' = try! NSRegularExpression(pattern: "'+e+'")\nlet str = "'+testStr.replace(/"/g,'\\"')+'"\n'+n+'.enumerateMatches(in: str, range: NSRange(str.startIndex..., in: str)) { result, _, _ in if let r = result { print((str as NSString).substring(with: r.range)) } }',
-kotlin:'val '+n+' = Regex(+regex+'+(flags?', setOf('+flags.split('').map(c=>'RegexOption.'+{i:'IGNORE_CASE',m:'MULTILINE',s:'DOT_MATCHES_ALL'}[c]).filter(Boolean).join(', ')+')':'')+')\n'+n+'.findAll("'+testStr.replace(/"/g,'\\"')+'").forEach { println(it.value) }'};
-return '// '+lang+'\n'+(gens[lang]||'// Not supported');}
-function testMatch(){const regex=inputArea.value.trim().split('\n')[0].trim();const testStr=document.getElementById('testInput').value;const mr=document.getElementById('matchResult');if(!regex||!testStr){mr.style.display='none';return;}try{const re=new RegExp(regex,Array.from(currentFlags).sort().join(''));const matches=[];let m;if(re.global){while((m=re.exec(testStr))!==null){matches.push(m[0]);if(matches.length>50)break;}}else{m=re.exec(testStr);if(m)matches.push(m[0]);}if(matches.length){mr.className='match-result';mr.innerHTML='<strong>✅ '+matches.length+' matches:</strong> '+matches.map(s=>'"'+s+'"').join(', ');}else{mr.className='match-result no-match';mr.innerHTML='❌ No match';}mr.style.display='block';}catch(e){mr.className='match-result no-match';mr.innerHTML='❌ Regex error: '+e.message;mr.style.display='block';}}
-convert();
-
-function testMatch(){const regex=inputArea.value.trim().split('\n')[0].trim();const testStr=document.getElementById('testInput').value;const mr=document.getElementById('matchResult');if(!regex||!testStr){mr.style.display='none';return;}try{const re=new RegExp(regex,Array.from(currentFlags).sort().join(''));const matches=[];let m;if(re.global){while((m=re.exec(testStr))!==null){matches.push(m[0]);if(matches.length>50)break;}}else{m=re.exec(testStr);if(m)matches.push(m[0]);}if(matches.length){mr.className='match-result';mr.innerHTML='<strong>✅ '+matches.length+' matches:</strong> '+matches.map(s=>'"'+s+'"').join(', ');}else{mr.className='match-result no-match';mr.innerHTML='❌ No match';}mr.style.display='block';}catch(e){mr.className='match-result no-match';mr.innerHTML='❌ Regex error: '+e.message;mr.style.display='block';}}
-convert();
-</script>
 
 <!-- AdSense -->
 
