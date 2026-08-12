@@ -226,7 +226,68 @@
   <div class="faq-item"><h3>Are comments supported?</h3><p>Yes, line comments starting with # are supported. The editor preserves comment content and correctly outputs them during export.</p></div>
   <div class="faq-item"><h3>How does validation work?</h3><p>The built-in validator checks for common issues: empty values, duplicate keys, invalid key names, missing required variables, etc.</p></div>
   <div class="faq-item"><h3>Can I drag and drop .env files?</h3><p>Yes. Simply drag a .env file onto the editor area to automatically parse and load all key-value pairs.</p></div>
-  <div class="seo-content"><table class="env-table"><thead><tr><th>Key</th><th>Value</th><th>Group</th><th>Actions</th></tr></thead><tbody>';
+  </main>
+<footer class="footer container">
+  <div style="margin-bottom:12px">
+    <a href="/en/">Home</a>
+    <a href="/en/">All Tools</a>
+    <a href="mailto:dexshuang@google.com">Contact</a>
+    <a href="../privacy/">Privacy</a>
+    <a href="../terms/">Terms</a>
+    <a href="../about/">About</a>
+<a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener">GitHub</a>
+    <a href="../../dotenv-editor/">中文</a>
+</div>
+
+<p style="margin-top:8px;color:#475569;font-size:.8rem;text-align:center">Feedback: dexshuang@google.com</p>
+</footer>
+  
+<script>
+var envVars=[],envComments=[],envGroups=[],currentGroup='';
+var dropZone=document.getElementById('dropZone');
+dropZone.addEventListener('dragover',function(e){e.preventDefault();dropZone.classList.add('dragover')});
+dropZone.addEventListener('dragleave',function(){dropZone.classList.remove('dragover')});
+dropZone.addEventListener('drop',function(e){e.preventDefault();dropZone.classList.remove('dragover');var f=e.dataTransfer.files[0];if(f){var r=new FileReader();r.onload=function(ev){document.getElementById('rawInput').value=ev.target.result;parseInput()};r.readAsText(f)}});
+function parseInput(){
+  var raw=document.getElementById('rawInput').value;
+  if(!raw.trim()){showError('Please enter .env file content');return}
+  hideError();envVars=[];envComments=[];envGroups=[];currentGroup='';
+  var lines=raw.split('\n');
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i];var trimmed=line.trim();
+    if(!trimmed){envComments.push({line:i,text:'',type:'blank'});continue}
+    if(trimmed.startsWith('#')){
+      var groupMatch=trimmed.match(/^#\s*(.+)$/);
+      if(groupMatch){currentGroup=groupMatch[1].trim();envGroups.push({name:currentGroup,line:i})}
+      envComments.push({line:i,text:trimmed,type:'comment',group:currentGroup});continue
+    }
+    var match=trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+    if(match){
+      var key=match[1],val=match[2];
+      if((val.startsWith('"')&&val.endsWith('"'))||(val.startsWith("'")&&val.endsWith("'"))){val=val.slice(1,-1)}
+      envVars.push({key:key,value:val,group:currentGroup,line:i,comment:''})
+    }else{envComments.push({line:i,text:trimmed,type:'invalid'})}
+  }
+  document.getElementById('editorSection').style.display='block';
+  document.getElementById('statsRow').style.display='flex';
+  updateStats();sortAndRender();updatePreview();saveHistory(raw)
+}
+function updateStats(){
+  document.getElementById('statVars').textContent=envVars.length;
+  var gs={};envVars.forEach(function(v){if(v.group)gs[v.group]=1});
+  document.getElementById('statGroups').textContent=Object.keys(gs).length;
+  document.getElementById('statComments').textContent=envComments.filter(function(c){return c.type==='comment'}).length;
+  document.getElementById('statErrors').textContent=0
+}
+function sortAndRender(){
+  var mode=document.getElementById('sortMode').value;var sorted=envVars.slice();
+  if(mode==='alpha')sorted.sort(function(a,b){return a.key.localeCompare(b.key)});
+  else if(mode==='group')sorted.sort(function(a,b){return(a.group||'zzz').localeCompare(b.group||'zzz')||a.key.localeCompare(b.key)});
+  renderTable(sorted)
+}
+function renderTable(sorted){
+  if(!sorted)sorted=envVars;var showVals=document.getElementById('showValues').checked;
+  var html='<table class="env-table"><thead><tr><th>Key</th><th>Value</th><th>Group</th><th>Actions</th></tr></thead><tbody>';
   var lastGroup='';
   sorted.forEach(function(v,i){
     if(v.group&&v.group!==lastGroup&&document.getElementById('sortMode').value==='group'){
@@ -288,71 +349,13 @@ function renderHistory(){var h=JSON.parse(localStorage.getItem('dotenv_history')
 function loadHistory(idx){var h=JSON.parse(localStorage.getItem('dotenv_history')||'[]');if(h[idx]){document.getElementById('rawInput').value=h[idx].preview;parseInput()}}
 document.addEventListener('keydown',function(e){if(e.ctrlKey&&e.key==='Enter'){parseInput();e.preventDefault()}if(e.ctrlKey&&e.shiftKey&&e.key==='C'){copyResult();e.preventDefault()}if(e.ctrlKey&&e.shiftKey&&e.key==='X'){clearAll();e.preventDefault()}});
 var urlParams=new URLSearchParams(location.search);if(urlParams.get('data')){try{document.getElementById('rawInput').value=decodeURIComponent(escape(atob(urlParams.get('data'))));parseInput()}catch(e){}}
-window.addEventListener('load',function(){loadExample();renderHistory()});
-
+window.addEventListener('load',function(){loadExample();renderHistory()});))</script>
+<script>
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/related-tools-widget@1/dist/widget.css"><div id="related-tools" data-tool="dotenv-editor"></div><script src="https://cdn.jsdelivr.net/npm/related-tools-widget@1/dist/widget.js"></script>
 <div class="toast" id="toast"></div>
 
-<!-- AdSense --></div></main>
-<footer class="footer container">
-  <div style="margin-bottom:12px">
-    <a href="/en/">Home</a>
-    <a href="/en/">All Tools</a>
-    <a href="mailto:dexshuang@google.com">Contact</a>
-    <a href="../privacy/">Privacy</a>
-    <a href="../terms/">Terms</a>
-    <a href="../about/">About</a>
-<a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener">GitHub</a>
-    <a href="../../dotenv-editor/">中文</a>
-</div>
+<!-- AdSense -->
 
-<p style="margin-top:8px;color:#475569;font-size:.8rem;text-align:center">Feedback: dexshuang@google.com</p>
-</footer>
-  
-
-var envVars=[],envComments=[],envGroups=[],currentGroup='';
-var dropZone=document.getElementById('dropZone');
-dropZone.addEventListener('dragover',function(e){e.preventDefault();dropZone.classList.add('dragover')});
-dropZone.addEventListener('dragleave',function(){dropZone.classList.remove('dragover')});
-dropZone.addEventListener('drop',function(e){e.preventDefault();dropZone.classList.remove('dragover');var f=e.dataTransfer.files[0];if(f){var r=new FileReader();r.onload=function(ev){document.getElementById('rawInput').value=ev.target.result;parseInput()};r.readAsText(f)}});
-function parseInput(){
-  var raw=document.getElementById('rawInput').value;
-  if(!raw.trim()){showError('Please enter .env file content');return}
-  hideError();envVars=[];envComments=[];envGroups=[];currentGroup='';
-  var lines=raw.split('\n');
-  for(var i=0;i<lines.length;i++){
-    var line=lines[i];var trimmed=line.trim();
-    if(!trimmed){envComments.push({line:i,text:'',type:'blank'});continue}
-    if(trimmed.startsWith('#')){
-      var groupMatch=trimmed.match(/^#\s*(.+)$/);
-      if(groupMatch){currentGroup=groupMatch[1].trim();envGroups.push({name:currentGroup,line:i})}
-      envComments.push({line:i,text:trimmed,type:'comment',group:currentGroup});continue
-    }
-    var match=trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
-    if(match){
-      var key=match[1],val=match[2];
-      if((val.startsWith('"')&&val.endsWith('"'))||(val.startsWith("'")&&val.endsWith("'"))){val=val.slice(1,-1)}
-      envVars.push({key:key,value:val,group:currentGroup,line:i,comment:''})
-    }else{envComments.push({line:i,text:trimmed,type:'invalid'})}
-  }
-  document.getElementById('editorSection').style.display='block';
-  document.getElementById('statsRow').style.display='flex';
-  updateStats();sortAndRender();updatePreview();saveHistory(raw)
-}
-function updateStats(){
-  document.getElementById('statVars').textContent=envVars.length;
-  var gs={};envVars.forEach(function(v){if(v.group)gs[v.group]=1});
-  document.getElementById('statGroups').textContent=Object.keys(gs).length;
-  document.getElementById('statComments').textContent=envComments.filter(function(c){return c.type==='comment'}).length;
-  document.getElementById('statErrors').textContent=0
-}
-function sortAndRender(){
-  var mode=document.getElementById('sortMode').value;var sorted=envVars.slice();
-  if(mode==='alpha')sorted.sort(function(a,b){return a.key.localeCompare(b.key)});
-  else if(mode==='group')sorted.sort(function(a,b){return(a.group||'zzz').localeCompare(b.group||'zzz')||a.key.localeCompare(b.key)});
-  renderTable(sorted)
-}
-function renderTable(sorted){
-  if(!sorted)sorted=envVars;var showVals=document.getElementById('showValues').checked;
-  var html='</body>
+</body>
 </html>
