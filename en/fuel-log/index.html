@@ -220,7 +220,6 @@ el('fuelDate').value=new Date().toISOString().split('T')[0];renderLogs();
 </footer>
 <div class="toast" id="toast"></div>
 <script>
-<script>
 (function(){
 var el=function(id){return document.getElementById(id);};
 var toastTimer;var STORAGE_KEY='fuel_log_data';
@@ -229,7 +228,59 @@ function getLogs(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[];
 function saveLogs(logs){localStorage.setItem(STORAGE_KEY,JSON.stringify(logs));}
 function renderLogs(){
 var logs=getLogs();
-if(logs.length===0){el('logList').innerHTML='
+if(logs.length===0){el('logList').innerHTML='<p style="color:#64748b;text-align:center;padding:20px">No records yet</p>';}
+else{
+el('logList').innerHTML=logs.map(function(l,i){
+var consumption=l.prevOdo!==null&&l.distance>0?(l.fuelAmount/l.distance*100).toFixed(2):'-';
+return '<div class="log-item"><div class="log-info"><div class="log-date">'+l.date+'</div><div class="log-odometer">'+l.odometer+' km</div><div class="log-detail">'+l.fuelAmount+'L x $'+l.fuelPrice+' = $'+(l.fuelAmount*l.fuelPrice).toFixed(2)+' | Fuel: '+consumption+' L/100km</div></div><button class="log-delete" data-idx="'+i+'">x</button></div>';
+}).join('');
+}
+updateStats();
+}
+function updateStats(){
+var logs=getLogs();
+var fillups=logs.length;
+var totalFuel=logs.reduce(function(s,l){return s+parseFloat(l.fuelAmount||0);},0);
+var totalCost=logs.reduce(function(s,l){return s+parseFloat(l.fuelAmount||0)*parseFloat(l.fuelPrice||0);},0);
+var totalDist=0;
+for(var i=0;i<logs.length;i++){if(logs[i].distance>0){totalDist+=logs[i].distance;}}
+var avgConsumption=totalDist>0?(totalFuel/totalDist*100):0;
+var costPerKm=totalDist>0?(totalCost/totalDist):0;
+el('totalFillups').textContent=fillups;
+el('totalDistance').innerHTML=totalDist.toFixed(0)+' <span style="font-size:.8rem">km</span>';
+el('totalFuel').innerHTML=totalFuel.toFixed(2)+' <span style="font-size:.8rem">L</span>';
+el('totalCost').textContent='$'+totalCost.toFixed(2);
+el('avgConsumption').innerHTML=avgConsumption.toFixed(2)+' <span style="font-size:.8rem">L/100km</span>';
+el('costPerKm').textContent='$'+costPerKm.toFixed(2);
+}
+el('addBtn').addEventListener('click',function(){
+var date=el('fuelDate').value||new Date().toISOString().split('T')[0];
+var odo=parseFloat(el('odometer').value);
+var amount=parseFloat(el('fuelAmount').value);
+var price=parseFloat(el('fuelPrice').value);
+if(isNaN(odo)||odo<0){showToast('Please enter a valid odometer reading');return;}
+if(isNaN(amount)||amount<=0){showToast('Please enter a valid fuel amount');return;}
+if(isNaN(price)||price<=0){showToast('Please enter a valid fuel price');return;}
+var logs=getLogs();
+var prevOdo=logs.length>0?logs[logs.length-1].odometer:null;
+var distance=prevOdo!==null?odo-prevOdo:0;
+logs.push({date:date,odometer:odo,prevOdo:prevOdo,distance:distance,fuelAmount:amount,fuelPrice:price});
+saveLogs(logs);renderLogs();
+el('odometer').value='';el('fuelAmount').value='';
+showToast('Record added');
+});
+el('clearFormBtn').addEventListener('click',function(){el('odometer').value='';el('fuelAmount').value='';el('fuelPrice').value='7.5';});
+el('logList').addEventListener('click',function(e){if(e.target.classList.contains('log-delete')){var logs=getLogs();logs.splice(parseInt(e.target.dataset.idx),1);saveLogs(logs);renderLogs();showToast('Record deleted');}});
+el('copyBtn').addEventListener('click',function(){
+var logs=getLogs();if(logs.length===0){showToast('No records');return;}
+var text='Fuel Log\n'+'='.repeat(30)+'\n';logs.forEach(function(l){text+=l.date+' | '+l.odometer+'km | '+l.fuelAmount+'L | $'+l.fuelPrice+'/L\n';});
+text+='='.repeat(30)+'\nTotal fuel: '+logs.reduce(function(s,l){return s+parseFloat(l.fuelAmount);},0).toFixed(2)+'L | Total cost: $'+logs.reduce(function(s,l){return s+parseFloat(l.fuelAmount)*parseFloat(l.fuelPrice);},0).toFixed(2);
+if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){showToast('Copied');});}else{var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('Copied');}
+});
+el('clearBtn').addEventListener('click',function(){if(confirm('Clear all records?')){localStorage.removeItem(STORAGE_KEY);renderLogs();showToast('Cleared');}});
+el('fuelDate').value=new Date().toISOString().split('T')[0];renderLogs();
+})();
 </script>
+
 </body>
 </html>
