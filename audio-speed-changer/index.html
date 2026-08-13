@@ -251,6 +251,13 @@ input[type=range]{width:100%;margin:8px 0;accent-color:#22d3ee}
       <span id="totalTime">0:00</span>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div id="result" style="background:#0f172a;border:1px solid rgba(6,182,212,.25);border-radius:10px;padding:14px;margin-top:12px;font-size:.85rem;display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong style="color:#f1f5f9">⏱️ 变速结果</strong>
+        <button class="btn btn-secondary" onclick="ftCopyResult()" style="padding:4px 12px;font-size:.75rem">📋 复制结果</button>
+      </div>
+      <div style="color:#94a3b8;line-height:1.8" id="resultText"></div>
+    </div>
     <div style="margin-top:12px;color:#94a3b8;font-size:.85rem">⚠️ 提示：音频文件仅在本地浏览器中处理，不会上传到服务器。支持 MP3、WAV、OGG 格式。</div>
   </div>
   <div class="section">
@@ -325,6 +332,7 @@ fileInput.addEventListener('change', async function(e) {
     totalTimeEl.textContent = formatTime(audioBuffer.duration);
     playerSection.style.display = 'block';
     stopAudio();
+    updateResultInfo();
 });
 
 speedRange.addEventListener('input', function() {
@@ -334,7 +342,34 @@ speedRange.addEventListener('input', function() {
     if (source && isPlaying) {
         source.playbackRate.value = parseFloat(val);
     }
+    updateResultInfo();
 });
+
+function updateResultInfo() {
+    const box = document.getElementById('result');
+    if (!box || !audioBuffer) return;
+    const dur = audioBuffer.duration;
+    const speed = parseFloat(speedRange.value);
+    box.style.display = 'block';
+    document.getElementById('resultText').innerHTML =
+        '原始时长：<strong style="color:#22d3ee">' + formatTime(dur) + '</strong><br>' +
+        '播放速度：<strong style="color:#22d3ee">' + speed.toFixed(2) + 'x</strong><br>' +
+        '变速后预计时长：<strong style="color:#22d3ee">' + formatTime(dur / speed) + '</strong>';
+}
+
+function ftCopyResult() {
+    const txt = document.getElementById('resultText').innerText || document.getElementById('resultText').textContent;
+    const btn = event.target;
+    function done() {
+        btn.textContent = '✅ 已复制';
+        setTimeout(function() { btn.textContent = '📋 复制结果'; }, 2000);
+    }
+    function fallback() {
+        const ta = document.createElement('textarea');
+        ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done();
+    }
+    if (navigator.clipboard) { navigator.clipboard.writeText(txt).then(done).catch(fallback); } else { fallback(); }
+}
 
 function togglePlay() {
     if (!audioBuffer) return;

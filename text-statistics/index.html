@@ -148,6 +148,11 @@ textarea:focus, input:focus, select:focus{border-color:rgba(6,182,212,.5)}
   <label style="color:#94a3b8;font-size:.85rem">词频 TOP 10:</label>
   <div id="statFreq" style="color:#94a3b8;font-size:.85rem">输入文本后显示词频统计</div>
 </div>
+<div class="btn-row" style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0">
+  <button class="btn btn-secondary" onclick="fillExample()">🎲 填入示例</button>
+  <button class="btn btn-secondary" onclick="ftCopyStats()">📋 复制统计</button>
+</div>
+<canvas id="freqChart" width="560" height="200" style="width:100%;max-width:560px;height:200px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px"></canvas>
 
   </div>
   <div class="tool-section">
@@ -208,9 +213,53 @@ textarea:focus, input:focus, select:focus{border-color:rgba(6,182,212,.5)}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-window.statUpdate = statUpdate; function statUpdate(){var text=document.getElementById("statInput").value;var chars=text.length;var words=text.trim()?text.trim().split(/\\s+/).length:0;var lines=text?text.split("\\n").length:0;var paragraphs=text?text.split("\\n\\n").filter(function(p){return p.trim()}).length:0;var sentences=text?text.split(/[.!?。！？]+/).filter(function(s){return s.trim()}).length:0;var cjk=(text.match(/[\\u4e00-\\u9fff\\u3400-\\u4dbf\\uf900-\\ufaff]/g)||[]).length;var spaces=(text.match(/\\s/g)||[]).length;var unique=0;var freq={};var wordsArr=text.toLowerCase().match(/\\b[a-z]+(?:'[a-z]+)?\\b/g)||[];for(var i=0;i<wordsArr.length;i++){freq[wordsArr[i]]=(freq[wordsArr[i]]||0)+1}unique=Object.keys(freq).length;var avgLen=0;if(wordsArr.length>0){var total=0;for(var i=0;i<wordsArr.length;i++)total+=wordsArr[i].length;avgLen=(total/wordsArr.length).toFixed(1)}var readTime=wordsArr.length>0?Math.ceil(wordsArr.length/200):0;var readTimeStr=readTime>0?"阅读时间约"+readTime+"分钟":"阅读时间约"+Math.ceil(chars/5)+"秒";document.getElementById("statChars").textContent=chars;document.getElementById("statWords").textContent=words;document.getElementById("statLines").textContent=lines;document.getElementById("statParagraphs").textContent=paragraphs;document.getElementById("statSentences").textContent=sentences;document.getElementById("statCJK").textContent=cjk;document.getElementById("statUnique").textContent=unique;document.getElementById("statAvgLen").textContent=avgLen;document.getElementById("statReadTime").textContent=readTimeStr;document.getElementById("statSpaces").textContent=spaces;var sorted=Object.keys(freq).sort(function(a,b){return freq[b]-freq[a]}).slice(0,10);var html="";if(sorted.length>0){html="<table style='width:auto;border-collapse:collapse;font-size:.85rem'><tr><th style='padding:4px 12px;text-align:left;color:#64748b'>词</th><th style='padding:4px 12px;text-align:right;color:#64748b'>次数</th></tr>";for(var i=0;i<sorted.length;i++){html+="<tr><td style='padding:2px 12px;color:#e2e8f0'>"+sorted[i]+"</td><td style='padding:2px 12px;text-align:right;color:#22d3ee'>"+freq[sorted[i]]+"</td></tr>"}html+="</table>"}else html="暂无词频数据";document.getElementById("statFreq").innerHTML=html;})</script>
-
-
+window.statUpdate = statUpdate; function statUpdate(){var text=document.getElementById("statInput").value;var chars=text.length;var words=text.trim()?text.trim().split(/\\s+/).length:0;var lines=text?text.split("\\n").length:0;var paragraphs=text?text.split("\\n\\n").filter(function(p){return p.trim()}).length:0;var sentences=text?text.split(/[.!?。！？]+/).filter(function(s){return s.trim()}).length:0;var cjk=(text.match(/[\\u4e00-\\u9fff\\u3400-\\u4dbf\\uf900-\\ufaff]/g)||[]).length;var spaces=(text.match(/\\s/g)||[]).length;var unique=0;var freq={};var wordsArr=text.toLowerCase().match(/\\b[a-z]+(?:'[a-z]+)?\\b/g)||[];for(var i=0;i<wordsArr.length;i++){freq[wordsArr[i]]=(freq[wordsArr[i]]||0)+1}unique=Object.keys(freq).length;var avgLen=0;if(wordsArr.length>0){var total=0;for(var i=0;i<wordsArr.length;i++)total+=wordsArr[i].length;avgLen=(total/wordsArr.length).toFixed(1)}var readTime=wordsArr.length>0?Math.ceil(wordsArr.length/200):0;var readTimeStr=readTime>0?"阅读时间约"+readTime+"分钟":"阅读时间约"+Math.ceil(chars/5)+"秒";document.getElementById("statChars").textContent=chars;document.getElementById("statWords").textContent=words;document.getElementById("statLines").textContent=lines;document.getElementById("statParagraphs").textContent=paragraphs;document.getElementById("statSentences").textContent=sentences;document.getElementById("statCJK").textContent=cjk;document.getElementById("statUnique").textContent=unique;document.getElementById("statAvgLen").textContent=avgLen;document.getElementById("statReadTime").textContent=readTimeStr;document.getElementById("statSpaces").textContent=spaces;var sorted=Object.keys(freq).sort(function(a,b){return freq[b]-freq[a]}).slice(0,10);var html="";if(sorted.length>0){html="<table style='width:auto;border-collapse:collapse;font-size:.85rem'><tr><th style='padding:4px 12px;text-align:left;color:#64748b'>词</th><th style='padding:4px 12px;text-align:right;color:#64748b'>次数</th></tr>";for(var i=0;i<sorted.length;i++){html+="<tr><td style='padding:2px 12px;color:#e2e8f0'>"+sorted[i]+"</td><td style='padding:2px 12px;text-align:right;color:#22d3ee'>"+freq[sorted[i]]+"</td></tr>"}html+="</table>"}else html="暂无词频数据";document.getElementById("statFreq").innerHTML=html;}
+function fillExample(){
+  var t=document.getElementById("statInput");
+  if(!t)return;
+  t.value="这是一个文本统计的示例段落。它可以帮助你快速查看字符数、单词数、句子数和阅读时间的实时统计。每天坚持写作十分钟，记录自己的想法与灵感。文本统计工具支持中英文混合，非常适合文案写作、SEO优化和学术论文排版检查。示例文本，统计工具，词频分析，阅读时间。";
+  statUpdate();
+  drawFreqChart();
+  showToast("已填入示例文本");
+}
+function ftCopyStats(){
+  var g=function(id){var e=document.getElementById(id);return e?e.textContent:""};
+  var t="字符数: "+g("statChars")+"; 字数: "+g("statWords")+"; 行数: "+g("statLines")+"; 段落数: "+g("statParagraphs")+"; 句子数: "+g("statSentences")+"; 中文字数: "+g("statCJK")+"; 不重复词: "+g("statUnique")+"; 平均词长: "+g("statAvgLen")+"; 阅读时间: "+g("statReadTime")+"; 空格: "+g("statSpaces");
+  if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){showToast("已复制统计结果")})["catch"](function(){showToast("复制失败")})}else{var ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);showToast("已复制统计结果")}
+}
+function drawFreqChart(){
+  var inp=document.getElementById("statInput");
+  var canvas=document.getElementById("freqChart");
+  if(!canvas)return;
+  var ctx=canvas.getContext("2d");
+  var W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  var text=inp?inp.value:"";
+  var freq={};
+  var words=text.toLowerCase().match(/\b[a-z]+(?:'[a-z]+)?\b/g)||[];
+  for(var i=0;i<words.length;i++)freq[words[i]]=(freq[words[i]]||0)+1;
+  var sorted=Object.keys(freq).sort(function(a,b){return freq[b]-freq[a]}).slice(0,10);
+  if(!sorted.length){ctx.fillStyle="#64748b";ctx.font="13px sans-serif";ctx.fillText("输入文本后显示词频图表",20,30);return}
+  var max=freq[sorted[0]],pad=70,bottom=32,gap=10;
+  var bw=(W-pad-gap*sorted.length)/sorted.length;
+  var ch=H-bottom-30;
+  for(var j=0;j<sorted.length;j++){
+    var hgt=Math.max(2,(freq[sorted[j]]/max)*ch);
+    var x=pad+j*(bw+gap);
+    var y=H-bottom-hgt;
+    ctx.fillStyle="rgba(6,182,212,.85)";
+    ctx.fillRect(x,y,bw,hgt);
+    ctx.fillStyle="#94a3b8";
+    ctx.font="11px sans-serif";
+    ctx.textAlign="center";
+    var label=sorted[j].length>6?sorted[j].slice(0,6)+"…":sorted[j];
+    ctx.fillText(label,x+bw/2,H-16);
+    ctx.fillStyle="#22d3ee";
+    ctx.fillText(freq[sorted[j]],x+bw/2,y-4);
+  }
+}
+(function(){var inp=document.getElementById("statInput");if(inp)inp.addEventListener("input",drawFreqChart);drawFreqChart();})();
+</script>
 
 </main>
 </body>
