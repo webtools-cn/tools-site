@@ -118,6 +118,15 @@ input:focus,select:focus{border-color:rgba(6,182,212,.5)}
 <div style="margin-top:12px;padding:12px;background:#0f172a;border-radius:8px;border:1px solid rgba(148,163,184,.1)">
 <p style="color:#64748b;font-size:.8rem">⌨️ 快捷键: 空格/回车=+1 | 减号=-1 | R=重置 | 数字1-9=选择计数器</p>
 </div>
+
+<div id="resultCard" style="display:none;margin-top:16px;background:#0f172a;border:1px solid rgba(6,182,212,.3);border-radius:12px;padding:16px">
+<h2 style="font-size:1.05rem;color:#22d3ee;margin-bottom:12px">📊 计数统计</h2>
+<canvas id="chart" style="width:100%"></canvas>
+<div id="result" style="font-size:.85rem;color:#94a3b8;margin-top:10px;line-height:1.8"></div>
+<div class="btn-row" style="margin-top:12px">
+<button class="btn btn-secondary" onclick="copySummary()" type="button">📋 复制结果</button>
+</div>
+</div>
 </div>
 
 <div class="info-section">
@@ -236,6 +245,7 @@ function renderCounters() {
       '\x3Cinput type="number" value="' + c.step + '" min="1" max="10000" onchange="updateStep(' + i + ',this.value)" onclick="event.stopPropagation()">' +
       '\x3C/div>\x3C/div>';
   }).join('');
+  if (window.drawChart) window.drawChart();
 }
 
 document.addEventListener('keydown', function(e) {
@@ -261,8 +271,75 @@ const body=encodeURIComponent('**页面**: '+window.location.href+'\\n**类型**
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
 document.getElementById('feedback-success').style.display='block';
 }
-)();t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+</script>
 
+<script>
+function drawChart() {
+  var card = document.getElementById('resultCard');
+  if (!card) return;
+  if (!counters.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  var cv = document.getElementById('chart');
+  var dpr = window.devicePixelRatio || 1;
+  var w = cv.parentNode.clientWidth || 400;
+  var h = 180;
+  cv.width = w * dpr; cv.height = h * dpr;
+  var ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  var max = 1;
+  counters.forEach(function(c) { if (c.value > max) max = c.value; });
+  var pad = 12;
+  var slot = (w - pad * 2) / counters.length;
+  var bw = Math.max(6, slot - 8);
+  ctx.textAlign = 'center';
+  counters.forEach(function(c, i) {
+    var bh = (c.value / max) * (h - 46);
+    var x = pad + i * slot + (slot - bw) / 2;
+    var y = h - 30 - bh;
+    var grad = ctx.createLinearGradient(0, y, 0, h - 30);
+    grad.addColorStop(0, '#06b6d4');
+    grad.addColorStop(1, '#0e7490');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y, bw, bh);
+    ctx.fillStyle = '#22d3ee';
+    ctx.fillText(c.value.toLocaleString(), x + bw / 2, y - 6);
+    ctx.fillStyle = '#64748b';
+    ctx.font = '10px sans-serif';
+    var name = c.name.length > 7 ? c.name.slice(0, 6) + '…' : c.name;
+    ctx.fillText(name, x + bw / 2, h - 14);
+    ctx.font = '11px sans-serif';
+  });
+  var total = counters.reduce(function(a, c) { return a + c.value; }, 0);
+  document.getElementById('result').innerHTML =
+    '<div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center">' +
+    '<span>计数器: <b style="color:#22d3ee">' + counters.length + '</b></span>' +
+    '<span>总计: <b style="color:#22d3ee">' + total.toLocaleString() + '</b></span>' +
+    '<span>当前最高: <b style="color:#22d3ee">' + max.toLocaleString() + '</b></span></div>';
+}
+function copySummary() {
+  if (!counters.length) { showToast('没有可复制的计数'); return; }
+  var lines = counters.map(function(c, i) { return (i + 1) + '. ' + c.name + ': ' + c.value.toLocaleString(); });
+  lines.push('总计: ' + counters.reduce(function(a, c) { return a + c.value; }, 0).toLocaleString());
+  var text = lines.join('\n');
+  function done() { showToast('已复制计数结果'); }
+  function fallback() {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { showToast('复制失败'); }
+    document.body.removeChild(ta);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done)['catch'](fallback);
+  } else { fallback(); }
+}
+window.addEventListener('resize', function() { if (counters.length) drawChart(); });
+if (counters.length) drawChart();
+</script>
 
 <footer class="footer container">
 <div style="margin-bottom:12px">

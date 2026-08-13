@@ -254,7 +254,8 @@ function toggleFaq(el){
 }
 
 function showToast(msg){
-  var t = document.getElementById("copyToast");
+  var t = document.getElementById("copyToast") || document.getElementById("toast");
+  if (!t) return;
   t.textContent = msg;
   t.classList.add("show");
   setTimeout(function(){ t.classList.remove("show"); }, 2000);
@@ -358,9 +359,10 @@ app.innerHTML = `
     \x3Cbutton class="preset-btn" onclick="loadPalette('rainbow',this)">🌈 彩虹(警示)\x3C/button>
   \x3C/div>
   \x3Cdiv class="controls" style="margin-top:8px">
-    \x3Clabel>颜色数量: \x3Cinput type="number" id="colorCount" value="5" min="3" max="10" style="width:60px" onchange="generatePalette()">\x3C/label>
+    \x3Clabel>颜色数量: \x3Cinput type="number" id="colorCount" value="5" min="3" max="10" style="width:60px" oninput="generatePalette()" onchange="generatePalette()">\x3C/label>
     \x3Clabel style="display:flex;align-items:center;gap:4px">\x3Cinput type="checkbox" id="showSimulation" checked onchange="generatePalette()"> 显示色盲模拟\x3C/label>
     \x3Cbutton class="btn btn-primary" onclick="generatePalette()">🔄 重新生成\x3C/button>
+    \x3Cbutton class="btn btn-secondary" onclick="randomPalette()">🎲 随机配色\x3C/button>
     \x3Cbutton class="btn btn-secondary" onclick="copyPalette()">📋 复制色值\x3C/button>
   \x3C/div>
   \x3Cdiv id="paletteDisplay">\x3C/div>
@@ -393,12 +395,12 @@ function loadPalette(type, btn) {
   generatePalette();
 }
 
-function generatePalette() {
+function generatePalette(paletteOverride) {
   var count = parseInt(document.getElementById("colorCount").value) || 5;
-  var palette = palettes[currentType].slice(0, count);
+  var palette = paletteOverride || palettes[currentType].slice(0, count);
   
   // Ensure enough colors
-  while (palette.length < count) {
+  while (!paletteOverride && palette.length < count) {
     var h = (palette.length * 137.508) % 360; // Golden angle
     palette.push(hslToHex(h, 70, 50));
   }
@@ -464,6 +466,21 @@ function hslToHex(h, s, l) {
   var g = Math.round(f(8) * 255);
   var b = Math.round(f(4) * 255);
   return "#" + [r, g, b].map(function(c){ return c.toString(16).padStart(2, "0"); }).join("");
+}
+
+function randomPalette() {
+  var count = parseInt(document.getElementById("colorCount").value) || 5;
+  var pool = [];
+  for (var k in palettes) { pool = pool.concat(palettes[k]); }
+  var seen = [], picks = [], guard = 0;
+  while (picks.length < count && guard < 1000) {
+    guard++;
+    var c = pool[Math.floor(Math.random() * pool.length)];
+    if (seen.indexOf(c) === -1) { seen.push(c); picks.push(c); }
+  }
+  document.querySelectorAll(".preset-btn").forEach(function(b){ b.classList.remove("active"); });
+  currentType = "qualitative";
+  generatePalette(picks.slice(0, count));
 }
 
 function copyColor(hex) {

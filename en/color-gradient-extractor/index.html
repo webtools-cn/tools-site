@@ -87,8 +87,11 @@
     <h2 style="margin-top:16px">Gradient Preview</h2>
     <div class="gradient-preview" id="gradientPreview"></div>
     <div class="css-code" id="cssCode"></div>
+    <h2 style="margin-top:16px">Color Distribution</h2>
+    <canvas id="distChart" width="560" height="150" style="width:100%;height:auto;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px;margin-top:8px"></canvas>
     <div class="btn-row">
       <button class="btn btn-secondary" id="btnCopy">📋 Copy CSS</button>
+      <button class="btn btn-secondary" id="btnCopyHex">📋 Copy Hex List</button>
     </div>
   </div>
 </div>
@@ -169,10 +172,39 @@ function extractColors(img) {
     const [r, g, b] = key.split(',').map(Number);
     return { hex: `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`, r, g, b };
   });
-  displayColors(colors);
+  const counts = sorted.map(([, c]) => c);
+  displayColors(colors, counts);
 }
 
-function displayColors(colors) {
+function drawDistChart(colors, counts) {
+  const canvas = document.getElementById('distChart');
+  if (!canvas || !canvas.getContext) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const padL = 16, padR = 16, padT = 24, padB = 26;
+  const w = canvas.width - padL - padR;
+  const h = canvas.height - padT - padB;
+  const total = counts.reduce((a, b) => a + b, 0) || 1;
+  const max = Math.max.apply(null, counts) || 1;
+  const bw = w / colors.length;
+  colors.forEach((c, i) => {
+    const bh = Math.max(2, (counts[i] / max) * h);
+    const x = padL + i * bw + bw * 0.22;
+    const y = padT + h - bh;
+    ctx.fillStyle = c.hex;
+    ctx.fillRect(x, y, bw * 0.56, bh);
+    const pct = Math.round((counts[i] / total) * 100);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(pct + '%', x + bw * 0.28, y > padT + 12 ? y - 4 : padT + 12);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px sans-serif';
+    ctx.fillText(c.hex, x + bw * 0.28, canvas.height - 6);
+  });
+}
+
+function displayColors(colors, counts) {
   colorBlocks.innerHTML = colors.map(c =>
     `<div class="color-block" style="background:${c.hex}" data-hex="${c.hex}" title="Click to copy ${c.hex}">
       <span>${c.hex}</span>
@@ -182,6 +214,7 @@ function displayColors(colors) {
   gradientPreview.style.background = `linear-gradient(135deg, ${gradColors})`;
   cssCode.textContent = `background: linear-gradient(135deg, ${gradColors});`;
   resultCard.style.display = 'block';
+  if (counts && counts.length) drawDistChart(colors, counts);
   colorBlocks.querySelectorAll('.color-block').forEach(block => {
     block.addEventListener('click', () => {
       navigator.clipboard.writeText(block.dataset.hex).then(() => showToast('Copied ' + block.dataset.hex)).catch(() => showToast('Copy failed'));
@@ -189,8 +222,26 @@ function displayColors(colors) {
   });
 }
 
+function fallbackCopyText(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed'; ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  done();
+}
+
 document.getElementById('btnCopy').addEventListener('click', () => {
   navigator.clipboard.writeText(cssCode.textContent).then(() => showToast('CSS copied')).catch(() => showToast('Copy failed'));
+});
+document.getElementById('btnCopyHex').addEventListener('click', () => {
+  const hexes = Array.from(colorBlocks.querySelectorAll('.color-block')).map(b => b.dataset.hex).join(', ');
+  const done = () => showToast('Hex list copied');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(hexes).then(done).catch(() => fallbackCopyText(hexes, done));
+  } else { fallbackCopyText(hexes, done); }
 });
 </script>
 </body>

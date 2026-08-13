@@ -110,6 +110,7 @@
     <div class="section" id="results-card" style="display:none">
         <h2>📋 检查结果</h2>
         <div id="summary" style="margin-bottom:12px"></div>
+        <div style="margin-bottom:12px"><button class="btn btn-secondary" onclick="copyDNSReport()">📋 复制结果</button></div>
         <table class="dns-table">
             <thead><tr><th>DNS服务器</th><th>位置</th><th>结果</th><th>状态</th></tr></thead>
             <tbody id="results-body"></tbody>
@@ -128,8 +129,7 @@
   "@context": "https://schema.org", "@type": "HowTo", "name": "如何使用DNS传播检查器", "step": [{"@type": "HowToStep", "position": 1, "text": "输入要检查的域名", "name": "输入要检查的域名"}, {"@type": "HowToStep", "position": 2, "text": "选择DNS记录类型（A/AAAA/MX等）", "name": "选择DNS记录类型（A/AAAA/MX等）"}, {"@type": "HowToStep", "position": 3, "text": "点击检查按钮，查看全球各DNS服务器的查询结果", "name": "点击检查按钮，查看全球各DNS服务器的查询结果"}]}</script>
     <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "DNS传播检查器", "description": "免费在线DNS传播检查器，查询域名DNS记录在全球多个公共DNS服务器的传播状态，支持A/AAAA/MX/CNAME/TXT/NS/SOA记录类型。", "applicationCategory": "DeveloperApplication", "operatingSystem": "Any", "url": "https://free-toolbase.com/dns-propagation-checker/", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "CNY"}, "publisher": {"@type": "Organization", "name": "Online Tools", "email": "dexshuang@google.com"}, "author": {"@type": "Organization", "name": "Online Tools"}, "dateModified": "2026-07-16"}</script>
   <script>
-    var dnsServers = [
-        { name: 'Google', url: 'https://dns.google/resolve', location: '美国' },
+    var dnsServers = [        { name: 'Google', url: 'https://dns.google/resolve', location: '美国' },
         { name: 'Cloudflare', url: 'https://cloudflare-dns.com/dns-query', location: '全球' },
         { name: 'Quad9', url: 'https://dns.quad9.net:5053/dns-query', location: '瑞士' }
     ];
@@ -184,6 +184,32 @@
                 });
             })(dnsServers[i], i);
         }
+    }
+    function copyDNSReport(){
+        var summary=document.getElementById('summary');
+        var rows=document.querySelectorAll('#results-body tr');
+        if(!summary || rows.length===0){ showToast('请先执行检查'); return; }
+        var lines=[];
+        lines.push('DNS传播检查结果: ' + document.getElementById('domain').value);
+        lines.push('记录类型: ' + document.getElementById('record-type').value);
+        lines.push('');
+        if(summary) lines.push(summary.textContent || '');
+        lines.push('');
+        rows.forEach(function(tr){
+            var cells=tr.querySelectorAll('td');
+            var parts=[];
+            cells.forEach(function(td){ parts.push(td.textContent.trim()); });
+            if(parts.length) lines.push(parts.join(' | '));
+        });
+        var v=lines.join('\n');
+        if(navigator.clipboard && navigator.clipboard.writeText){
+            navigator.clipboard.writeText(v).then(function(){ showToast('已复制结果'); })['catch'](function(){ dnsCopyFallback(v); });
+        } else { dnsCopyFallback(v); }
+    }
+    function dnsCopyFallback(v){
+        var ta=document.createElement('textarea');ta.value=v;document.body.appendChild(ta);ta.select();
+        try{ document.execCommand('copy'); showToast('已复制结果'); }catch(e){ showToast('复制失败'); }
+        document.body.removeChild(ta);
     }
 </script></div>
 </div>

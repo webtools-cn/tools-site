@@ -238,8 +238,10 @@ a{color:#06b6d4;text-decoration:none}
 <div class="waveform" id="waveform">
 <span>点击播放预览倒放效果</span>
 </div>
+<div id="audioStats" style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0;font-size:.8rem;color:#64748b"></div>
 <div class="player-controls">
 <button class="btn btn-primary" id="playBtn" onclick="togglePlay()">▶ 播放倒放</button>
+<button class="btn btn-secondary" id="originalBtn" onclick="toggleOriginal()">🎵 播放原版对比</button>
 <button class="btn btn-secondary" id="downloadBtn" onclick="downloadReversed()">📥 下载WAV</button>
 <span class="time" id="timeDisplay">0:00 / 0:00</span>
 <div class="progress-ctn"><div class="fill" id="progressFill"></div></div>
@@ -279,7 +281,7 @@ a{color:#06b6d4;text-decoration:none}
 <script>
 (function(){
 var audioCtx=null,rawBuffer=null,reversedBuffer=null,source=null;
-var isPlaying=false,startTime=0,progressInterval=null;
+var isPlaying=false,isPlayingOriginal=false,startTime=0,progressInterval=null;
 
 var fi=document.getElementById('fileInput');
 fi.addEventListener('change',handleFile);
@@ -308,6 +310,7 @@ function handleFile(){
       var min=Math.floor(sec/60);
       var s=(sec%60).toFixed(0);
       document.getElementById('timeDisplay').textContent='0:00 / '+min+':'+(s<10?'0':'')+s;
+      document.getElementById('audioStats').innerHTML='<span>⏱ 时长: '+sec+'s</span><span>🎚 采样率: '+(buffer.sampleRate/1000).toFixed(1)+'kHz</span><span>🔉 声道: '+buffer.numberOfChannels+'</span>';
       window.scrollTo({top:document.getElementById('preview').offsetTop-20,behavior:'smooth'});
       drawWaveform();
     },function(){showToast('音频解码失败，请尝试其他格式。');});
@@ -367,17 +370,36 @@ function togglePlay(){
 }
 window.togglePlay=togglePlay;
 
+function toggleOriginal(){
+  if(!rawBuffer||!audioCtx)return;
+  if(isPlaying){stopPlayback();return;}
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  source=audioCtx.createBufferSource();
+  source.buffer=rawBuffer;
+  source.connect(audioCtx.destination);
+  source.start(0);
+  isPlaying=true;isPlayingOriginal=true;
+  startTime=audioCtx.currentTime;
+  document.getElementById('playBtn').textContent='⏹ 停止';
+  document.getElementById('originalBtn').textContent='⏹ 停止原版';
+  source.onended=function(){stopPlayback();};
+  if(progressInterval)clearInterval(progressInterval);
+  progressInterval=setInterval(updateProgress,100);
+}
+window.toggleOriginal=toggleOriginal;
+
 function stopPlayback(){
   if(source)try{source.stop();}catch(e){}
-  isPlaying=false;
+  isPlaying=false;isPlayingOriginal=false;
   document.getElementById('playBtn').textContent='▶ 播放倒放';
+  document.getElementById('originalBtn').textContent='🎵 播放原版对比';
   if(progressInterval){clearInterval(progressInterval);progressInterval=null;}
 }
 
 function updateProgress(){
   if(!isPlaying||!source||!reversedBuffer)return;
   var elapsed=audioCtx.currentTime-startTime;
-  var total=reversedBuffer.duration;
+  var total=(isPlayingOriginal?rawBuffer:reversedBuffer).duration;
   var pct=Math.min(100,(elapsed/total)*100);
   document.getElementById('progressFill').style.width=pct+'%';
   var m=Math.floor(elapsed/60);

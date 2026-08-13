@@ -74,8 +74,30 @@
 <p class="tool-description" style="color:#6b7280;font-size:0.95rem;line-height:1.6;margin:0.5rem 0 1rem;">免费在线Meta标签检查器，分析网页的SEO Meta标签。输入URL一键检测title/description/og/twitter/robots等标签，纯前端处理，无需注册。</p>
   <p class="subtitle">粘贴HTML源码，检查SEO Meta标签是否完整</p>
   <div class="section">
-</head></html>"></textarea></div>
-    <button class="btn" id="btnCheck">🔍 分析Meta标签</button>
+    <div class="form-group">
+      <label>粘贴 HTML 源码</label>
+      <textarea id="htmlInput" placeholder="粘贴网页源码，如 <title>、<meta name=&quot;description&quot;> 等">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;title&gt;示例页面标题&lt;/title&gt;
+  &lt;meta name="description" content="这是一个用于演示的示例描述，长度适中便于展示。"&gt;
+  &lt;meta name="robots" content="index, follow"&gt;
+  &lt;link rel="canonical" href="https://example.com/"&gt;
+  &lt;meta property="og:title" content="示例页面"&gt;
+  &lt;meta property="og:description" content="示例描述"&gt;
+  &lt;meta property="og:image" content="https://example.com/cover.png"&gt;
+  &lt;meta name="twitter:card" content="summary_large_image"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+  &lt;meta charset="UTF-8"&gt;
+&lt;/head&gt;
+&lt;body&gt;示例内容&lt;/body&gt;
+&lt;/html&gt;</textarea>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <button class="btn" id="btnCheck" style="width:auto;padding:10px 20px">🔍 分析Meta标签</button>
+      <button class="btn" id="btnExample" style="width:auto;padding:10px 20px;background:rgba(6,182,212,.15);color:#22d3ee;border:1px solid rgba(6,182,212,.3)">🎲 填入示例</button>
+      <button class="btn" id="btnCopyReport" style="width:auto;padding:10px 20px;background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.25)">📋 复制报告</button>
+    </div>
     <div id="results" style="display:none"></div>
     <div class="notice">💡 提示：在网页上右键 → 查看网页源代码，复制粘贴到这里分析。</div>
   </div>
@@ -104,6 +126,7 @@
     <a href="../about/" style="color:#94a3b8;text-decoration:none;font-size:14px">关于我们</a>
     <a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener" style="color:#94a3b8;text-decoration:none;font-size:14px">GitHub</a>
     <a href="../en/metatag-checker/" style="color:#94a3b8;text-decoration:none;font-size:14px">EN</a>
+  </div>
   <p style="text-align:center;color:#64748b;font-size:12px;margin-top:12px">问题反馈: dexshuang@google.com</p>
 </footer>
 <script>
@@ -125,7 +148,7 @@ var checks=[
   {name:'Charset',tag:'<meta charset',key:'charset',desc:'字符编码声明'},
   {name:'Hreflang',tag:'<link rel="alternate" hreflang',key:'hreflang',desc:'多语言版本声明'}
 ];
-document.getElementById('btnCheck').addEventListener('click',function(){
+function runAnalysis(){
   var html=document.getElementById('htmlInput').value.trim();
   if(!html){showToast('请粘贴HTML源码');return}
   var results=checks.map(function(c){
@@ -147,7 +170,27 @@ document.getElementById('btnCheck').addEventListener('click',function(){
   html+='</table>';
   document.getElementById('results').innerHTML=html;
   document.getElementById('results').style.display='block';
-});
+}
+function runExample(){
+  var sample=document.getElementById('htmlInput').getAttribute('data-sample');
+  document.getElementById('htmlInput').value=sample;
+  runAnalysis();
+  showToast('已填入示例HTML');
+}
+function copyReport(){
+  var el=document.getElementById('results');
+  if(!el||el.style.display==='none'){showToast('请先执行分析');return;}
+  var txt=el.textContent.replace(/\s{2,}/g,'\n').trim();
+  function done(){showToast('已复制分析报告')}
+  function fb(){var ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);done();}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done)['catch'](fb);}else{fb();}
+}
+var htmlInput=document.getElementById('htmlInput');
+htmlInput.setAttribute('data-sample',htmlInput.value);
+document.getElementById('btnCheck').addEventListener('click',runAnalysis);
+document.getElementById('btnExample').addEventListener('click',runExample);
+document.getElementById('btnCopyReport').addEventListener('click',copyReport);
+var _debounce;htmlInput.addEventListener('input',function(){clearTimeout(_debounce);_debounce=setTimeout(runAnalysis,600);});
 </script>
 </body>
 </html>

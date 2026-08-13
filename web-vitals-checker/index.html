@@ -68,6 +68,10 @@
       <div class="panel-title">📊 检测结果</div>
       <div class="stat-grid" id="vitalsGrid"></div>
       <div id="tipsContainer"></div>
+      <div style="margin-top:16px">
+        <div style="color:#f1f5f9;font-size:.9rem;font-weight:600;margin-bottom:8px">📈 指标对比图（相对"需改进"阈值）</div>
+        <canvas id="vitalsChart" style="width:100%;height:170px" aria-label="Web Vitals指标柱状图"></canvas>
+      </div>
     </div>
     <div class="panel" id="errorPanel" style="display:none">
       <div class="panel-title">⚠️ 检测提示</div>
@@ -234,6 +238,47 @@ function renderResults(){
   grid.innerHTML=gridHTML;
   tips.innerHTML=tipsHTML;
   document.getElementById('resultPanel').style.display='block';
+  drawVitalsChart();
+}
+function drawVitalsChart(){
+  const canvas=document.getElementById('vitalsChart');
+  if(!canvas)return;
+  const metrics=['LCP','INP','CLS','FID','TTFB'];
+  const present=metrics.filter(m=>vitalsData[m]!==undefined&&vitalsData[m]!==0);
+  if(!present.length){canvas.style.display='none';return;}
+  canvas.style.display='block';
+  const ths={LCP:{good:2500,poor:4000},FID:{good:100,poor:300},CLS:{good:0.1,poor:0.25},INP:{good:200,poor:500},TTFB:{good:800,poor:1800}};
+  const dpr=window.devicePixelRatio||1;
+  const w=canvas.clientWidth||600,h=canvas.clientHeight||170;
+  canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  const padL=8,padR=8,padT=16,padB=24;
+  const bw=(w-padL-padR)/present.length;
+  const maxH=h-padT-padB;
+  ctx.font='11px system-ui,sans-serif';
+  ctx.textAlign='center';
+  present.forEach((m,i)=>{
+    const v=vitalsData[m];
+    const th=ths[m];
+    let ratio=v/th.poor;
+    if(ratio>1)ratio=1;
+    const bh=Math.max(4,ratio*maxH);
+    const x=padL+i*bw+bw*0.15;
+    const barW=bw*0.7;
+    const y=h-padB-bh;
+    const score=getScore(m,v);
+    const color=score==='good'?'#22c55e':score==='needs-improvement'?'#f59e0b':'#ef4444';
+    ctx.fillStyle='rgba(148,163,184,.1)';
+    ctx.fillRect(x,padT,barW,maxH);
+    ctx.fillStyle=color;
+    ctx.fillRect(x,y,barW,bh);
+    ctx.fillStyle='#94a3b8';
+    ctx.fillText(m,x+barW/2,h-padB+14);
+    ctx.fillStyle='#e2e8f0';
+    ctx.fillText(formatValue(m,v),x+barW/2,y-4);
+  });
 }
 function exportReport(){
   if(!Object.keys(vitalsData).length){return;}

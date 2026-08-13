@@ -101,6 +101,14 @@ footer a{color:#475569}
 <button class="btn btn-secondary" id="clearBtn" disabled>清空列表</button>
 </div>
 <div class="file-list" id="fileList"></div>
+<div id="result" style="display:none;margin-top:12px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px;padding:14px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap">
+    <span style="color:#22d3ee;font-size:.9rem;font-weight:600">📊 压缩对比</span>
+    <button class="btn btn-secondary" onclick="copyCompressResult()">📋 复制结果</button>
+  </div>
+  <pre id="resultText" style="margin:0 0 10px;color:#94a3b8;font-size:.8rem;white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,monospace"></pre>
+  <canvas id="sizeChart" width="600" height="200" style="max-width:100%;height:auto;background:#0f172a;border:1px solid rgba(148,163,184,.08);border-radius:8px"></canvas>
+</div>
 </div>
 </main>
 <div class="toast" id="toast"></div>
@@ -156,6 +164,7 @@ compressBtn.addEventListener('click',async()=>{
   if(files.length===0)return;
   showToast('正在压缩...');
   const q=+quality.value/100;
+  const items=[];
   for(let i=0;i<files.length;i++){
     const f=files[i];
     try{
@@ -169,10 +178,67 @@ compressBtn.addEventListener('click',async()=>{
       const a=document.createElement('a');
       a.href=url;a.download='compressed_'+f.name;document.body.appendChild(a);a.click();
       document.body.removeChild(a);URL.revokeObjectURL(url);
+      items.push({name:f.name,origSize:f.size,newSize:blob.size});
     }catch(e){}
   }
+  renderCompressResult(items);
   showToast('压缩完成，文件已开始下载');
 });
+
+function fmtSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(2)+' MB'}
+function renderCompressResult(items){
+  const res=document.getElementById('result');
+  if(!res||items.length===0)return;
+  let totalO=0,totalN=0;
+  const lines=['压缩结果摘要（'+items.length+' 个文件）'];
+  items.forEach(it=>{
+    totalO+=it.origSize;totalN+=it.newSize;
+    const save=it.origSize>0?Math.max(0,Math.round((1-it.newSize/it.origSize)*100)):0;
+    lines.push('  • '+it.name+': '+fmtSize(it.origSize)+' → '+fmtSize(it.newSize)+'（节省 '+save+'%）');
+  });
+  if(totalO>0)lines.push('总计: '+fmtSize(totalO)+' → '+fmtSize(totalN)+'（节省 '+Math.max(0,Math.round((1-totalN/totalO)*100))+'%）');
+  document.getElementById('resultText').textContent=lines.join('\n');
+  drawSizeChart(items);
+  res.style.display='block';
+}
+function drawSizeChart(items){
+  const c=document.getElementById('sizeChart');
+  if(!c||!items.length)return;
+  const ctx=c.getContext('2d');
+  const w=c.width,h=c.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#0f172a';ctx.fillRect(0,0,w,h);
+  let maxV=0;
+  items.forEach(it=>maxV=Math.max(maxV,it.origSize,it.newSize));
+  const pad=30,bottom=h-30,chartH=h-55,left=pad,right=w-10;
+  const groupW=(right-left)/items.length;
+  const barW=Math.max(8,groupW*0.28);
+  items.forEach((it,i)=>{
+    const gx=left+i*groupW+groupW/2;
+    const oh=(it.origSize/maxV)*chartH;
+    const nh=(it.newSize/maxV)*chartH;
+    ctx.fillStyle='rgba(6,182,212,.7)';
+    ctx.fillRect(gx-barW,bottom-oh,barW,oh);
+    ctx.fillStyle='rgba(34,197,94,.7)';
+    ctx.fillRect(gx+2,bottom-nh,barW,nh);
+    ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';ctx.textAlign='center';
+    const name=it.name.length>8?it.name.slice(0,8)+'…':it.name;
+    ctx.fillText(name,gx,bottom+16);
+  });
+  ctx.fillStyle='#22d3ee';ctx.fillRect(left,bottom-chartH-16,10,10);
+  ctx.fillStyle='#94a3b8';ctx.textAlign='left';ctx.fillText('原始',left+14,bottom-chartH-7);
+  ctx.fillStyle='#4ade80';ctx.fillRect(left+70,bottom-chartH-16,10,10);
+  ctx.fillStyle='#94a3b8';ctx.fillText('压缩后',left+84,bottom-chartH-7);
+}
+function copyCompressResult(){
+  const el=document.getElementById('resultText');
+  if(!el||!el.textContent)return;
+  const txt=el.textContent;
+  function done(){showToast('已复制')}
+  function fail(){showToast('复制失败')}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done,fail)}
+  else{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(e){fail()}document.body.removeChild(ta)}
+}
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
 </script>

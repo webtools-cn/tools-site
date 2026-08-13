@@ -100,6 +100,7 @@
 <button class="btn btn-primary" onclick="validateCron()">✅ 验证</button>
 </div>
 <div id="validation-result" style="margin-top:12px"></div>
+<button class="btn btn-secondary" id="cronCopyBtn" style="display:none" onclick="copyCronResult()">📋 复制结果</button>
 </div>
 <div class="section">
 <h2>📋 常用预设</h2>
@@ -159,6 +160,8 @@ function validateCron() {
     var type = parseInt(document.getElementById('cron-type').value);
     var resultEl = document.getElementById('validation-result');
     var nextCard = document.getElementById('next-card');
+    var copyBtn = document.getElementById('cronCopyBtn');
+    if (copyBtn) copyBtn.style.display = 'none';
     if (!expr) { resultEl.innerHTML = '\x3Cdiv class="invalid">❌ 请输入Cron表达式\x3C/div>'; nextCard.style.display = 'none'; return; }
     var parts = expr.split(/\s+/);
     if (parts.length !== type) {
@@ -182,6 +185,7 @@ function validateCron() {
         var desc = describeCron(parts, type);
         resultEl.innerHTML = '\x3Cdiv class="valid">✅ 表达式有效\x3C/div>\x3Cdiv style="margin-top:8px;font-size:14px;color:#94a3b8">' + desc + '\x3C/div>';
         showNextTimes(parts, type);
+        if (copyBtn) copyBtn.style.display = 'inline-flex';
         gtag('event', 'validate_cron', { event_category: 'cron' });
     }
 }
@@ -218,6 +222,20 @@ function setPreset(expr) {
     document.getElementById('cron-expr').value = expr;
     document.getElementById('cron-type').value = '5';
     validateCron();
+}
+function copyCronResult() {
+    var el = document.getElementById('validation-result');
+    var t = (el.innerText || '').replace(/\s+/g, ' ').trim();
+    if (!t) { showToast('请先验证Cron表达式'); return; }
+    navigator.clipboard.writeText(t).then(function(){ showToast('✅ 结果已复制'); })["catch"](function(){ showToast('复制失败'); });
+}
+var cronInput = document.getElementById('cron-expr');
+if (cronInput) {
+    var cronTimer = null;
+    cronInput.addEventListener('input', function() {
+        clearTimeout(cronTimer);
+        cronTimer = setTimeout(validateCron, 400);
+    });
 }
 </script></div></div>
 </div>

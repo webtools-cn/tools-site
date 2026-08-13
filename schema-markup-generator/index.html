@@ -107,8 +107,42 @@ a{color:#06b6d4;text-decoration:none}
 <div class="hero"><p>免费在线结构化数据生成器，可视化生成JSON-LD Schema标记。支持文章、产品、企业、FAQ、本地商家、面包屑导航等常见Schema类型。提升SEO点击率，让网站在Google搜索中显示富媒体摘要。纯前端处理。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
-    </div>
-  </div>
+<h2>🛠️ 生成 Schema 标记</h2>
+<div class="schema-selector" id="schemaSelector">
+  <div class="schema-btn active" data-type="Article"><span class="icon">📄</span><span class="label">文章</span></div>
+  <div class="schema-btn" data-type="Product"><span class="icon">📦</span><span class="label">产品</span></div>
+  <div class="schema-btn" data-type="Organization"><span class="icon">🏢</span><span class="label">企业</span></div>
+  <div class="schema-btn" data-type="FAQ"><span class="icon">❓</span><span class="label">FAQ</span></div>
+</div>
+<div class="schema-fields" data-group="Article">
+  <div class="form-group"><label for="art-name">标题 (name)</label><input type="text" id="art-name" placeholder="文章标题"></div>
+  <div class="form-group"><label for="art-desc">摘要描述 (description)</label><textarea id="art-desc" placeholder="文章摘要描述"></textarea></div>
+  <div class="form-group"><label for="art-date">发布日期 (datePublished)</label><input type="date" id="art-date"></div>
+  <div class="form-group"><label for="art-author">作者 (author)</label><input type="text" id="art-author" placeholder="作者姓名"></div>
+</div>
+<div class="schema-fields hidden" data-group="Product">
+  <div class="form-group"><label for="prod-name">产品名称 (name)</label><input type="text" id="prod-name" placeholder="产品名称"></div>
+  <div class="form-group"><label for="prod-desc">产品描述 (description)</label><textarea id="prod-desc" placeholder="产品描述"></textarea></div>
+  <div class="form-group"><label for="prod-price">价格 (price)</label><input type="text" id="prod-price" placeholder="例如 99.00"></div>
+  <div class="form-group"><label for="prod-brand">品牌 (brand)</label><input type="text" id="prod-brand" placeholder="品牌名称"></div>
+</div>
+<div class="schema-fields hidden" data-group="Organization">
+  <div class="form-group"><label for="org-name">企业名称 (name)</label><input type="text" id="org-name" placeholder="企业名称"></div>
+  <div class="form-group"><label for="org-desc">简介 (description)</label><textarea id="org-desc" placeholder="企业简介"></textarea></div>
+  <div class="form-group"><label for="org-email">邮箱 (email)</label><input type="text" id="org-email" placeholder="contact@example.com"></div>
+  <div class="form-group"><label for="org-url">官网 (url)</label><input type="text" id="org-url" placeholder="https://example.com"></div>
+</div>
+<div class="schema-fields hidden" data-group="FAQ">
+  <div class="form-group"><label for="faq-list">问答列表（每行一条，格式：问题|答案）</label><textarea id="faq-list" rows="6" placeholder="什么是Schema标记?|结构化数据格式，帮助搜索引擎理解页面内容"></textarea></div>
+</div>
+<div class="btn-row">
+  <button class="btn btn-primary" onclick="genSchema()">⚡ 生成 JSON-LD</button>
+  <button class="btn btn-secondary" onclick="fillSchemaExample()">🎲 填入示例</button>
+  <button class="btn btn-sm btn-copy" onclick="copySchema()">📋 复制代码</button>
+</div>
+<div class="code-box"><pre id="schemaOutput" style="color:#22d3ee">选择类型、填写信息，点击"生成 JSON-LD"查看结果</pre></div>
+</div>
+</div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -199,6 +233,61 @@ a{color:#06b6d4;text-decoration:none}
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
+function setSchemaType(t){
+  document.querySelectorAll('.schema-btn').forEach(function(b){b.classList.toggle('active',b.dataset.type===t);});
+  document.querySelectorAll('.schema-fields').forEach(function(f){f.classList.toggle('hidden',f.dataset.group!==t);});
+}
+var schemaSelector=document.getElementById('schemaSelector');
+if(schemaSelector){schemaSelector.addEventListener('click',function(e){
+  var b=e.target.closest('.schema-btn');
+  if(b){setSchemaType(b.dataset.type);}
+});}
+function getSchemaVal(id){var el=document.getElementById(id);return el?el.value.trim():'';}
+function genSchema(){
+  var active=document.querySelector('.schema-btn.active');
+  var t=active?active.dataset.type:'Article';
+  var obj={'@context':'https://schema.org','@type':t};
+  if(t==='Article'){
+    obj.headline=getSchemaVal('art-name')||'示例文章标题';
+    obj.description=getSchemaVal('art-desc')||'';
+    obj.datePublished=getSchemaVal('art-date')||'';
+    obj.author={'@type':'Person','name':getSchemaVal('art-author')||'作者姓名'};
+  }else if(t==='Product'){
+    obj.name=getSchemaVal('prod-name')||'示例产品';
+    obj.description=getSchemaVal('prod-desc')||'';
+    obj.offers={'@type':'Offer','price':getSchemaVal('prod-price')||'0','priceCurrency':'USD','availability':'https://schema.org/InStock'};
+    obj.brand={'@type':'Brand','name':getSchemaVal('prod-brand')||''};
+  }else if(t==='Organization'){
+    obj.name=getSchemaVal('org-name')||'示例企业';
+    obj.description=getSchemaVal('org-desc')||'';
+    obj.email=getSchemaVal('org-email')||'';
+    obj.url=getSchemaVal('org-url')||'';
+  }else if(t==='FAQ'){
+    var rows=getSchemaVal('faq-list').split('\n').filter(function(r){return r.indexOf('|')>-1;}).map(function(r){
+      var p=r.split('|');
+      return {'@type':'Question','name':p[0].trim(),'acceptedAnswer':{'@type':'Answer','text':p[1].trim()}};
+    });
+    obj.mainEntity=rows.length?rows:[{'@type':'Question','name':'什么是Schema标记？','acceptedAnswer':{'@type':'Answer','text':'结构化数据格式，帮助搜索引擎理解页面内容。'}}];
+  }
+  var pre=document.getElementById('schemaOutput');
+  if(pre){pre.textContent=JSON.stringify(obj,null,2);}
+  showToast('已生成 '+t+' Schema');
+}
+function fillSchemaExample(){
+  setSchemaType('Article');
+  document.getElementById('art-name').value='Free ToolBase 结构化数据生成器使用指南';
+  document.getElementById('art-desc').value='教你如何快速生成 JSON-LD 结构化数据标记，提升 SEO 效果。';
+  document.getElementById('art-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('art-author').value='Free ToolBase';
+  genSchema();
+}
+function copySchema(){
+  var pre=document.getElementById('schemaOutput');
+  if(!pre||pre.textContent.indexOf('选择类型')>-1){showToast('请先生成代码');return;}
+  copyText('schemaOutput');
+}
+setSchemaType('Article');
 
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function submitFeedback(){

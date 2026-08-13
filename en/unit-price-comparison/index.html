@@ -102,12 +102,16 @@ a{color:#06b6d4;text-decoration:none}
 <span></span>
 </div>
 <div id="productList"></div>
-<button class="btn btn-add" onclick="addRow()">+ Add Product</button>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+<button class="btn btn-add" onclick="addRow()" style="margin-top:0">+ Add Product</button>
+<button class="btn btn-primary" onclick="copyResult()">📋 Copy Result</button>
+</div>
 <div class="best-banner" id="bestBanner" style="display:none">
 <div class="best-label">🏆 Best Deal</div>
 <div class="best-value" id="bestName"></div>
 <div class="best-save" id="bestSave"></div>
 </div>
+<canvas id="priceChart" style="width:100%;height:200px;margin-top:16px"></canvas>
 </div>
 
 <div class="section">
@@ -204,6 +208,7 @@ function updateBest(){
 var valid=products.filter(function(p){return calcUnitPrice(p)!==null&&p.name;});
 var banner=document.getElementById('bestBanner');
 document.querySelectorAll('.product-row').forEach(function(r){r.classList.remove('best');});
+drawChart();
 if(valid.length<2){banner.style.display='none';return;}
 var best=valid.reduce(function(min,p){var up=calcUnitPrice(p);return min===null||up<min.up?{p:p,up:up}:min;},null);
 if(best){
@@ -221,6 +226,57 @@ if(rows[idx])rows[idx].classList.add('best');
 }
 
 function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2000);}
+
+function drawChart(){
+var canvas=document.getElementById('priceChart');
+if(!canvas)return;
+var valid=products.map(function(p){var up=calcUnitPrice(p);return up===null?null:{name:p.name||'',up:up};}).filter(function(x){return x&&x.name;});
+if(valid.length<2){canvas.style.display='none';return;}
+canvas.style.display='block';
+var dpr=window.devicePixelRatio||1;
+var w=canvas.clientWidth||640;
+var h=200;
+canvas.width=w*dpr;canvas.height=h*dpr;
+var ctx=canvas.getContext('2d');
+ctx.scale(dpr,dpr);
+ctx.clearRect(0,0,w,h);
+var max=Math.max.apply(null,valid.map(function(x){return x.up;}))||1;
+var pad=40;
+var chartW=w-pad*2;
+var chartH=h-32;
+var n=valid.length;
+var gap=chartW/n;
+var bw=Math.min(gap*0.6,60);
+ctx.font='10px sans-serif';
+ctx.textAlign='center';
+valid.forEach(function(x,i){
+var barH=Math.max((x.up/max)*chartH,2);
+var x0=pad+gap*i+gap/2-bw/2;
+var y0=chartH-barH+8;
+var grad=ctx.createLinearGradient(0,y0,0,y0+barH);
+grad.addColorStop(0,'#22d3ee');grad.addColorStop(1,'#0e7490');
+ctx.fillStyle=grad;
+ctx.fillRect(x0,y0,bw,barH);
+ctx.fillStyle='#94a3b8';
+ctx.fillText((x.name.length>8?x.name.slice(0,7)+'…':x.name)||'Product',x0+bw/2,chartH+18);
+ctx.fillStyle='#e2e8f0';
+ctx.fillText('$'+x.up.toFixed(3),x0+bw/2,y0-4);
+});
+}
+
+function copyResult(){
+var valid=products.filter(function(p){return calcUnitPrice(p)!==null&&p.name;});
+if(valid.length<2){showToast('Add at least 2 products to compare');return;}
+var lines=['Unit Price Comparison'];
+valid.forEach(function(p){
+lines.push((p.name||'Product')+': $'+calcUnitPrice(p).toFixed(4)+' / '+unitLabels[p.unit]);
+});
+var best=valid.reduce(function(min,p){var up=calcUnitPrice(p);return min===null||up<min.up?{p:p,up:up}:min;},null);
+if(best)lines.push('Best deal: '+best.p.name+' — $'+best.up.toFixed(4)+'/'+unitLabels[best.p.unit]);
+var text=lines.join('\n');
+if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){showToast('Comparison copied ✅')}).catch(function(){showToast('Copy failed')});}
+else{var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('Comparison copied ✅');}
+}
 
 // Initialize with example data
 addRow('Brand A 500g',7.99,500,'g');

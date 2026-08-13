@@ -168,6 +168,8 @@
         <div class="stat-item"><div class="label">Unsupported</div><div class="value red" id="unsupported">0</div></div>
         <div class="stat-item"><div class="label">Partial</div><div class="value yellow" id="partial">0</div></div>
       </div>
+      <canvas id="apiChart" width="600" height="180" style="width:100%;max-width:600px;height:180px;margin:12px auto;display:block;background:#0f172a;border-radius:8px;border:1px solid rgba(148,163,184,.1)"></canvas>
+      <div class="btn-group"><button class="btn btn-secondary" onclick="copyResult()">📋 复制结果</button></div>
     </div>
     <div id="resultArea" style="display:none;margin-top:16px"></div>
   </div>
@@ -229,9 +231,34 @@ function runCheck(){
   var html="";var supported=0,unsupported=0,partial=0;lastResults=[];
   var catNames={storage:"Storage APIs",network:"Network APIs",media:"Media APIs",graphics:"Graphics APIs",device:"Device APIs",security:"Security APIs",performance:"Performance APIs",ui:"UI/Observer APIs",worker:"Worker APIs",emerging:"Emerging APIs"};
   for(var c=0;c<cats.length;c++){var key=cats[c];var apis=apiList[key];html+='<div class="category-header">'+catNames[key]+' ('+apis.length+')</div>';for(var i=0;i<apis.length;i++){var api=apis[i];var result;try{result=api.check();}catch(e){result=false;}var status,cls;if(result===true){status="✓ Supported";cls="yes";supported++;}else if(result==="partial"){status="◐ Partial";cls="partial";partial++;}else{status="✗ Not Supported";cls="no";unsupported++;}html+='<div class="api-item"><span class="api-name">'+api.name+'</span><span class="api-status '+cls+'">'+status+'</span></div>';lastResults.push({name:api.name,category:catNames[key],supported:result===true,partial:result==="partial"});}}
-  document.getElementById("supported").textContent=supported;document.getElementById("unsupported").textContent=unsupported;document.getElementById("partial").textContent=partial;document.getElementById("statsArea").style.display="block";document.getElementById("resultArea").innerHTML='<div class="api-grid">'+html+'</div>';document.getElementById("resultArea").style.display="block";toast("Check complete! "+supported+" supported, "+unsupported+" unsupported");
+  document.getElementById("supported").textContent=supported;document.getElementById("unsupported").textContent=unsupported;document.getElementById("partial").textContent=partial;document.getElementById("statsArea").style.display="block";document.getElementById("resultArea").innerHTML='<div class="api-grid">'+html+'</div>';document.getElementById("resultArea").style.display="block";drawChart(supported,unsupported,partial);toast("Check complete! "+supported+" supported, "+unsupported+" unsupported");
 }
 function exportReport(){if(!lastResults.length){toast("Run check first");return;}var ua=navigator.userAgent;var lines=["Web API Compatibility Report","Generated: "+new Date().toISOString(),"User Agent: "+ua,"","API,Category,Supported"];for(var i=0;i<lastResults.length;i++){var r=lastResults[i];lines.push(r.name+","+r.category+","+(r.supported?"Yes":r.partial?"Partial":"No"));}var blob=new Blob([lines.join("\n")],{type:"text/csv"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="web-api-compatibility-report.csv";a.click();toast("Report exported!");}
+function drawChart(sup,uns,par){
+  var cv=document.getElementById("apiChart");if(!cv||!cv.getContext)return;
+  var ctx=cv.getContext("2d");var w=cv.width,h=cv.height;
+  ctx.clearRect(0,0,w,h);ctx.fillStyle="#0f172a";ctx.fillRect(0,0,w,h);
+  var data=[{l:"Supported",v:sup,c:"#4ade80"},{l:"Partial",v:par,c:"#eab308"},{l:"Unsupported",v:uns,c:"#f87171"}];
+  var max=Math.max(1,sup,uns,par);var bw=Math.min(90,(w-80)/3);var gap=30;var baseY=h-30;
+  data.forEach(function(d,i){
+    var bh=(d.v/max)*(h-70);
+    var x=40+i*(bw+gap);
+    ctx.fillStyle=d.c;ctx.fillRect(x,baseY-bh,bw,bh);
+    ctx.fillStyle="#e2e8f0";ctx.font="12px sans-serif";ctx.textAlign="center";
+    ctx.fillText(d.l,x+bw/2,h-10);
+    ctx.fillStyle="#f1f5f9";ctx.font="bold 13px sans-serif";
+    ctx.fillText(d.v,x+bw/2,baseY-bh-6);
+  });
+}
+function ftEnsureCopy(text,cb){if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(function(){cb(true)}).catch(function(){ftFallbackCopy(text,cb)})}else{ftFallbackCopy(text,cb)}}
+function ftFallbackCopy(text,cb){var ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand("copy")}catch(e){ok=false}document.body.removeChild(ta);cb(ok)}
+function copyResult(){
+  if(!lastResults.length){toast("Run check first");return;}
+  var lines=["Web API Compatibility Report ("+new Date().toLocaleString()+")",""];
+  lastResults.forEach(function(r){lines.push((r.supported?"✓ ":r.partial?"◐ ":"✗ ")+r.name+" ("+r.category+")")});
+  ftEnsureCopy(lines.join("\n"),function(ok){toast(ok?"Copied report to clipboard":"Copy failed")});
+}
+document.getElementById("category").addEventListener("change",runCheck);
 </script>
 </main>
 <script>

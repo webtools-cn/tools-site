@@ -111,7 +111,14 @@ a{color:#06b6d4;text-decoration:none}
 <div style="display:flex;gap:8px;flex-wrap:wrap">
 <button class="btn btn-primary" id="btnRefresh">🔄 Refresh</button>
 <button class="btn btn-secondary" id="btnFullscreen">⛶ Fullscreen</button>
+<button class="btn btn-secondary" id="btnCopy">📋 Copy Report</button>
 </div>
+</div>
+
+<div class="tool-section">
+<h2>📊 Resolution Comparison</h2>
+<p>Bar chart comparing screen resolution, available resolution, and viewport width.</p>
+<canvas id="resChart" style="width:100%;height:200px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px;"></canvas>
 </div>
 
 <div class="tool-section">
@@ -191,6 +198,71 @@ function updateInfo(){
   var g = gcd(s.width, s.height);
   document.getElementById('aspectRatio').textContent = (s.width/g) + ':' + (s.height/g);
   document.getElementById('measureText').textContent = window.innerWidth + ' × ' + window.innerHeight;
+  drawChart();
+}
+
+function drawChart(){
+  var canvas = document.getElementById('resChart');
+  if(!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  var w = canvas.clientWidth, h = canvas.clientHeight;
+  canvas.width = w*dpr; canvas.height = h*dpr;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0,0,w,h);
+  var sw = window.screen.width;
+  var s = window.screen;
+  var data = [
+    {label:'Screen', value:s.width, color:'#22d3ee'},
+    {label:'Available', value:s.availWidth, color:'#f59e0b'},
+    {label:'Viewport', value:window.innerWidth, color:'#10b981'}
+  ];
+  var max = Math.max(1, data[0].value, data[1].value, data[2].value);
+  var barAreaH = h - 30;
+  var barW = Math.min(100, (w-40)/3);
+  var gap = 16;
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center';
+  data.forEach(function(d,i){
+    var barH = Math.max(2, (d.value/max)*barAreaH);
+    var x = 20 + i*(barW+gap) + (w-40-3*(barW+gap))/2;
+    var y = h-20-barH;
+    ctx.fillStyle = d.color;
+    ctx.fillRect(x, y, barW, barH);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText(d.label, x+barW/2, h-6);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillText(d.value+'px', x+barW/2, y-4);
+  });
+}
+
+function copyReport(){
+  var s = window.screen;
+  var lines = [
+    'Screen Resolution Test Report',
+    '------------------------------',
+    'Screen Resolution: ' + s.width + ' × ' + s.height,
+    'Available Resolution: ' + s.availWidth + ' × ' + s.availHeight,
+    'Window Size: ' + window.innerWidth + ' × ' + window.innerHeight,
+    'Device Pixel Ratio: ' + (window.devicePixelRatio || 1),
+    'Color Depth: ' + s.colorDepth,
+    'Pixel Depth: ' + s.pixelDepth,
+    'Orientation: ' + document.getElementById('orientation').textContent,
+    'Aspect Ratio: ' + document.getElementById('aspectRatio').textContent,
+    'Viewport: ' + document.getElementById('measureText').textContent
+  ];
+  var text = lines.join('\n');
+  function ok(){ showToast('Report copied!'); }
+  function fallback(){
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); ok(); }catch(e){ showToast('Copy failed'); }
+    document.body.removeChild(ta);
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(ok).catch(fallback);
+  } else { fallback(); }
 }
 
 updateInfo();
@@ -209,7 +281,9 @@ document.getElementById('btnFullscreen').addEventListener('click', function(){
   showToast('Entered fullscreen mode');
 });
 
-window.addEventListener('resize', function(){ updateInfo(); });
+document.getElementById('btnCopy').addEventListener('click', copyReport);
+
+window.addEventListener('resize', function(){ updateInfo(); drawChart(); });
 window.addEventListener('orientationchange', function(){ setTimeout(updateInfo, 200); });
 </script>
 

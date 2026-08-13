@@ -128,6 +128,10 @@ a{color:#06b6d4;text-decoration:none}
       <button class="btn btn-secondary" onclick="clearFiles()">🗑️ 清空列表</button>
     </div>
     <div id="progress"><div class="bar"><span id="progressBar" style="width:0%"></span></div><p>正在合并PDF文件...</p></div>
+    <div id="status" class="tool-section" style="display:none">
+      <h2>📊 合并结果</h2>
+      <p id="statusText" style="color:#94a3b8;font-size:.9rem"></p>
+    </div>
   </div>
   <div class="tool-section">
     <h2>📖 使用教程</h2>
@@ -210,9 +214,37 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
+document.getElementById('fileInput').addEventListener('change', updateFileInfo);
+
 // === 重写的函数实现 ===
 function clearFiles() {
   var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+}
+
+function setStatus(msg) {
+  var st = document.getElementById('status');
+  var stt = document.getElementById('statusText');
+  if (!st || !stt) return;
+  st.style.display = 'block';
+  stt.textContent = msg;
+}
+
+function updateFileInfo() {
+  var fileInput = document.getElementById('fileInput');
+  var actions = document.getElementById('mergeActions');
+  if (!fileInput || !fileInput.files || !fileInput.files.length) {
+    if (actions) actions.style.display = 'none';
+    return;
+  }
+  if (actions) actions.style.display = 'flex';
+  var list = document.getElementById('fileList');
+  if (list) {
+    list.innerHTML = Array.prototype.map.call(fileInput.files, function(f, i) {
+      var size = f.size > 1048576 ? (f.size / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(f.size / 1024)) + ' KB';
+      return '<div class="file-item"><span class="idx">' + (i + 1) + '</span><span class="name">' + f.name + '</span><span class="size">' + size + '</span></div>';
+    }).join('');
+  }
+  setStatus('已选择 ' + fileInput.files.length + ' 个PDF文件，点击「合并PDF」开始合并。');
 }
 
 function mergePDFs(){
@@ -221,8 +253,7 @@ function mergePDFs(){
     showToast('请至少选择2个PDF文件');
     return;
   }
-  var output = document.getElementById('output') || document.getElementById('result') || document.getElementById('status');
-  if(output) output.textContent = '正在合并...';
+  setStatus('正在合并...');
   
   // 纯前端合并：将多个PDF二进制拼接（基本PDF合并）
   var files = Array.from(fileInput.files);
@@ -252,10 +283,11 @@ function mergePDFs(){
     a.download = 'merged.pdf';
     a.click();
     URL.revokeObjectURL(url);
-    if(output) output.textContent = '合并完成！';
+    var totalSize = (blob.size / 1048576).toFixed(2);
+    setStatus('✅ 合并完成！' + files.length + ' 个PDF已合并为一个文件（约 ' + totalSize + ' MB），已开始下载 merged.pdf。');
     showToast('已合并' + files.length + '个PDF文件');
   })['catch'](function(){
-    if(output) output.textContent = '合并失败';
+    setStatus('❌ 合并失败，请重试。');
     showToast('合并失败');
   });
 }

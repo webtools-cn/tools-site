@@ -105,6 +105,8 @@ footer a { color: #22d3ee; text-decoration: none; }
   <div class="section">
     <textarea id="spell-input" rows="6" placeholder="在此输入英文文本..." style="width:100%;font-family:inherit;font-size:.95rem;"></textarea>
     <button class="btn" id="spell-check-btn" style="margin-top:12px;">🔍 检查拼写</button>
+    <button class="btn btn-secondary" id="spell-fill-btn" style="margin-top:12px;margin-left:8px;">🎲 填入示例</button>
+    <button class="btn btn-secondary" id="spell-copy-btn" style="margin-top:12px;margin-left:8px;">📋 复制结果</button>
     <div id="spell-result" class="output" style="margin-top:16px;font-family:inherit;min-height:40px;color:#94a3b8;">等待输入...</div>
   </div>
   <div class="how-to">
@@ -213,7 +215,20 @@ footer a { color: #22d3ee; text-decoration: none; }
     setTimeout(() => t.classList.remove('show'), 2000);
   }
 
-  document.getElementById('spell-check-btn').addEventListener('click', function() {
+  let lastCorrected = '';
+  function copyToClipboard(text, okMsg) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(()=>showToast(okMsg)).catch(()=>fallbackCopy(text, okMsg));
+    } else { fallbackCopy(text, okMsg); }
+  }
+  function fallbackCopy(text, okMsg) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showToast(okMsg); } catch(e) { showToast('复制失败'); }
+    document.body.removeChild(ta);
+  }
+  function runSpellCheck() {
     const text = document.getElementById('spell-input').value.trim();
     const resultDiv = document.getElementById('spell-result');
     
@@ -236,19 +251,38 @@ footer a { color: #22d3ee; text-decoration: none; }
     }
 
     if (issues.length === 0) {
+      lastCorrected = text;
       resultDiv.innerHTML = '<span style="color:#22c55e;font-weight:600;">✅ 未发现拼写错误</span>';
       return;
     }
 
+    lastCorrected = corrected.join('');
     // 构建结果
     let html = '<div style="margin-bottom:8px;color:#f59e0b;font-weight:600;">⚠️ 发现 ' + issues.length + ' 个拼写问题：</div>';
     for (const {original, correction} of issues) {
       html += '<div style="padding:6px 0;border-bottom:1px dotted rgba(148,163,184,.1);"><span style="color:#ef4444;text-decoration:line-through;margin-right:8px;">' + original + '</span>→ <span style="color:#22c55e;font-weight:600;">' + correction + '</span></div>';
     }
-    html += '<div style="margin-top:12px;padding-top:8px;border-top:1px solid rgba(148,163,184,.1);">修改后：<br><span style="color:#e2e8f0;">' + corrected.join('') + '</span></div>';
+    html += '<div style="margin-top:12px;padding-top:8px;border-top:1px solid rgba(148,163,184,.1);">修改后：<br><span style="color:#e2e8f0;">' + lastCorrected + '</span></div>';
     
     resultDiv.innerHTML = html;
+  }
+  document.getElementById('spell-check-btn').addEventListener('click', runSpellCheck);
+  document.getElementById('spell-fill-btn').addEventListener('click', function() {
+    document.getElementById('spell-input').value = 'This is a tihs test. Teh freind is really great and we shuold work togeher.';
+    runSpellCheck();
   });
+  document.getElementById('spell-copy-btn').addEventListener('click', function() {
+    if (!lastCorrected) { showToast('请先检查拼写'); return; }
+    copyToClipboard(lastCorrected, '已复制修正文本');
+  });
+  const inputEl = document.getElementById('spell-input');
+  if (inputEl) {
+    let t = null;
+    inputEl.addEventListener('input', function() {
+      clearTimeout(t);
+      t = setTimeout(runSpellCheck, 400);
+    });
+  }
 }());
 </script>
 </body>

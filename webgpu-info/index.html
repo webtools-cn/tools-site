@@ -127,68 +127,91 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 
-// === 重写的函数实现 ===
-function copyReport() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
-  if (!text) { showToast('没有可复制的内容'); return; }
-  copyText(text);
+// === WebGPU检测实现 ===
+function setInfo(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = (val === undefined || val === null || val === '') ? '—' : val;
 }
 
 function detectWebGPU() {
-  var resultDiv = document.getElementById('result') || document.getElementById('resultArea');
-  if (!resultDiv) return;
-  resultDiv.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8">正在检测WebGPU支持...</div>';
-  
+  var fields = ['webgpuSupport','gpuVendor','gpuArch','gpuDevice','gpuDriver','adapterType'];
+  fields.forEach(function(id) { setInfo(id, '检测中...'); });
+  document.getElementById('featuresSection').style.display = 'none';
+  document.getElementById('limitsSection').style.display = 'none';
+  var supEl = document.getElementById('webgpuSupport');
+  supEl.className = 'info-value';
+
   var info = {};
-  info.userAgent = navigator.userAgent;
-  info.platform = navigator.platform;
-  
   if (navigator.gpu) {
-    info.webgpuSupported = true;
     navigator.gpu.requestAdapter().then(function(adapter) {
       if (adapter) {
-        info.adapterInfo = adapter.info || {};
-        info.features = Array.from(adapter.features || []);
-        info.limits = adapter.limits || {};
-        displayWebGPUInfo(resultDiv, info);
+        info.webgpuSupported = true;
+        var ai = adapter.info || {};
+        setInfo('webgpuSupport', '✅ 支持');
+        setInfo('gpuVendor', ai.vendor || '-');
+        setInfo('gpuArch', ai.architecture || '-');
+        setInfo('gpuDevice', ai.description || '-');
+        setInfo('gpuDriver', ai.device || '-');
+        setInfo('adapterType', ai.adapterType || (adapter.isFallbackAdapter ? 'Fallback' : '离散/集成'));
+        var features = Array.from(adapter.features || []);
+        var fl = document.getElementById('featureList');
+        fl.innerHTML = features.length ? features.map(function(f) { return '<span class="feature-tag">' + f + '</span>'; }).join('') : '<span style="color:#64748b">无扩展特性</span>';
+        document.getElementById('featuresSection').style.display = 'block';
+        var limits = adapter.limits || {};
+        var keys = Object.keys(limits);
+        document.getElementById('limitsBody').innerHTML = keys.length ? keys.map(function(k) { return '<tr><td>' + k + '</td><td>' + limits[k] + '</td></tr>'; }).join('') : '<tr><td>—</td><td>—</td></tr>';
+        document.getElementById('limitsSection').style.display = 'block';
+        showToast('WebGPU检测完成');
       } else {
-        info.webgpuSupported = false;
-        info.error = 'No suitable GPU adapter found';
-        displayWebGPUInfo(resultDiv, info);
+        setInfo('webgpuSupport', '❌ 不支持');
+        supEl.className = 'info-value unsupported';
+        showToast('未找到可用的GPU适配器');
       }
     }).catch(function(e) {
-      info.webgpuSupported = false;
-      info.error = e.message;
-      displayWebGPUInfo(resultDiv, info);
+      setInfo('webgpuSupport', '❌ 检测失败');
+      supEl.className = 'info-value unsupported';
+      showToast('检测失败: ' + e.message);
     });
   } else {
-    info.webgpuSupported = false;
-    info.error = 'WebGPU not supported in this browser';
-    displayWebGPUInfo(resultDiv, info);
+    setInfo('webgpuSupport', '❌ 不支持');
+    supEl.className = 'info-value unsupported';
+    setInfo('gpuVendor', '-');
+    setInfo('gpuArch', '-');
+    setInfo('gpuDevice', '-');
+    setInfo('gpuDriver', '-');
+    setInfo('adapterType', '-');
+    showToast('此浏览器不支持WebGPU');
   }
 }
-function displayWebGPUInfo(container, info) {
-  var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
-  html += gpuCard('WebGPU支持', info.webgpuSupported ? '\u2705 支持' : '\u274c 不支持');
-  html += gpuCard('浏览器', info.userAgent.substring(0, 60) + '...');
-  html += gpuCard('平台', info.platform || '-');
-  if (info.error) html += gpuCard('错误', info.error);
-  if (info.adapterInfo) {
-    html += gpuCard('GPU厂商', info.adapterInfo.vendor || '-');
-    html += gpuCard('GPU架构', info.adapterInfo.architecture || '-');
-    html += gpuCard('设备描述', info.adapterInfo.description || '-');
+
+function copyReport() {
+  var pairs = [
+    ['WebGPU支持', document.getElementById('webgpuSupport').textContent],
+    ['GPU供应商', document.getElementById('gpuVendor').textContent],
+    ['GPU架构', document.getElementById('gpuArch').textContent],
+    ['设备名称', document.getElementById('gpuDevice').textContent],
+    ['驱动描述', document.getElementById('gpuDriver').textContent],
+    ['适配器类型', document.getElementById('adapterType').textContent]
+  ];
+  var feats = document.getElementById('featureList').textContent.trim();
+  if (feats) pairs.push(['支持特性', feats]);
+  var text = pairs.map(function(p) { return p[0] + ': ' + p[1]; }).join('\n');
+  if (!text) { showToast('没有可复制的内容'); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function(){ showToast('已复制报告'); }).catch(function(){ showToast('复制失败'); });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast('已复制报告'); } catch(e) { showToast('复制失败'); }
+    document.body.removeChild(ta);
   }
-  if (info.features) html += gpuCard('特性数量', info.features.length);
-  html += '</div>';
-  if (info.features && info.features.length > 0) {
-    html += '<div style="margin-top:12px;color:#94a3b8;font-size:.85rem">支持特性: ' + info.features.join(', ') + '</div>';
-  }
-  container.innerHTML = html;
-  showToast(info.webgpuSupported ? 'WebGPU已支持' : 'WebGPU不支持');
 }
-function gpuCard(label, value) {
-  return '<div style="background:#0f172a;padding:12px;border-radius:8px;border:1px solid rgba(148,163,184,.1)"><div style="color:#64748b;font-size:.8rem;margin-bottom:4px">' + label + '</div><div style="color:#e2e8f0;font-weight:500">' + value + '</div></div>';
-}
+
+detectWebGPU();
 </script>
 
 

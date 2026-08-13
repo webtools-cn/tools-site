@@ -228,8 +228,16 @@ a{color:#06b6d4;text-decoration:none}
  </div>
  <div class="btn-group">
  <button class="btn btn-primary" onclick="addHabit()">➕ Add Habit</button>
+ <button class="btn btn-secondary" onclick="fillExampleHabit()">🎲 Fill Example</button>
  </div>
  <div id="habitList"></div>
+ <div class="section" id="statsSection" style="display:none">
+ <h2>📊 Monthly Progress</h2>
+ <canvas id="habitChart" width="640" height="220" style="width:100%;background:#0f172a;border-radius:8px;border:1px solid rgba(148,163,184,.1)"></canvas>
+ <div class="btn-group">
+ <button type="button" class="btn btn-secondary" id="copyHabitBtn">📋 Copy Summary</button>
+ </div>
+ </div>
  </div>
  </div>
  <div class="seo-content">
@@ -351,6 +359,74 @@ function render(){
   list.innerHTML=html
 }
 document.addEventListener("DOMContentLoaded",render);
+</script>
+
+<script>
+function fillExampleHabit(){
+  var samples=['Read 30 mins daily','Drink 8 glasses of water','Morning exercise','Meditate 10 minutes'];
+  var input=document.getElementById('newHabitName');
+  if(!input)return;
+  var idx=0,current=input.value.trim();
+  for(var i=0;i<samples.length;i++){if(samples[i]===current){idx=(i+1)%samples.length;break;}}
+  input.value=samples[idx];input.focus();
+}
+function habitStats(){
+  var list=(typeof habits!=='undefined'&&habits)||[];
+  var now=new Date(),year=now.getFullYear(),month=now.getMonth()+1;
+  var total=new Date(year,month,0).getDate();
+  var data=[];
+  for(var i=0;i<list.length;i++){
+    var h=list[i],done=0;
+    for(var d=1;d<=total;d++){
+      var key=year+"-"+month.toString().padStart(2,"0")+"-"+d.toString().padStart(2,"0");
+      if(h.logs[key])done++;
+    }
+    data.push({name:h.name,pct:Math.round(done/total*100),color:h.color,done:done,total:total});
+  }
+  return data;
+}
+function drawHabitChart(){
+  var cv=document.getElementById('habitChart'),sec=document.getElementById('statsSection');
+  if(!cv||!sec)return;
+  var data=habitStats();
+  if(data.length<1){sec.style.display='none';return;}
+  sec.style.display='block';
+  var ctx=cv.getContext('2d'),W=cv.width,H=cv.height,padL=8,padR=8,padT=22,padB=30;
+  ctx.clearRect(0,0,W,H);
+  var bw=(W-padL-padR)/data.length*0.5;
+  ctx.font='10px sans-serif';
+  for(var i=0;i<data.length;i++){
+    var x=padL+(W-padL-padR)*(i+0.5)/data.length;
+    var trackH=H-padT-padB;
+    ctx.fillStyle='rgba(148,163,184,.12)';
+    ctx.fillRect(x-bw/2,padT,bw,trackH);
+    var barH=trackH*data[i].pct/100;
+    ctx.fillStyle=data[i].color;
+    ctx.fillRect(x-bw/2,padT+trackH-barH,bw,barH);
+    ctx.textAlign='center';
+    ctx.fillStyle='#e2e8f0';
+    ctx.fillText(data[i].pct+'%',x,padT+trackH-barH-4);
+    ctx.fillStyle='#94a3b8';
+    ctx.fillText(data[i].name.length>8?data[i].name.slice(0,7)+'..':data[i].name,x,H-padB+12);
+  }
+}
+function copyHabitSummary(){
+  var list=(typeof habits!=='undefined'&&habits)||[];
+  var lines=['Habit Tracker Summary ('+todayKey()+')'];
+  var data=habitStats();
+  for(var i=0;i<data.length;i++){
+    lines.push(data[i].name+': '+data[i].done+'/'+data[i].total+' ('+data[i].pct+'%)');
+  }
+  var txt=lines.join('\n');
+  function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+  function fb(t){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(ta);}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){toast('Copied!')})['catch'](function(){fb(txt);toast('Copied!')});
+  }else{fb(txt);toast('Copied!')}
+}
+document.getElementById('copyHabitBtn').addEventListener('click',copyHabitSummary);
+document.getElementById('habitList').addEventListener('click',function(){setTimeout(drawHabitChart,120)});
+drawHabitChart();
 </script>
 
 <!-- Feedback Widget -->

@@ -108,12 +108,15 @@ a{color:#06b6d4;text-decoration:none}
 <div class="add-player">
 <input type="text" id="newPlayerName" placeholder="Enter player name">
 <button class="btn-primary" id="addPlayerBtn">+ Add Player</button>
+<button class="btn-sm" id="fillExampleBtn">🎲 Fill Example</button>
 </div>
 </div>
 
 <div class="card">
 <h3>🏅 Rankings</h3>
+<button class="btn-sm" id="copyRankingBtn" style="margin-bottom:8px">📋 Copy Ranking</button>
 <div id="ranking"></div>
+<canvas id="scoreChart" style="max-width:100%;height:auto;margin-top:12px;border-radius:8px;border:1px solid rgba(148,163,184,.1)"></canvas>
 </div>
 
 <div class="card">
@@ -157,8 +160,8 @@ function changeScore(id,delta){var p=players.find(function(p){return p.id===id})
 function renderAll(){renderPlayers();renderRanking()}
 function renderPlayers(){var el=document.getElementById('playerList');if(players.length===0){el.innerHTML='<p style="color:#475569;text-align:center;padding:16px;font-size:.9rem">No players yet. Add one above!</p>';return}
 el.innerHTML=players.map(function(p){return'<div class="player-row"><span class="player-name">'+p.name+'</span><button class="score-btn minus" data-action="minus" data-id="'+p.id+'">-</button><span class="player-score">'+p.score+'</span><button class="score-btn plus" data-action="plus" data-id="'+p.id+'">+</button><button class="score-btn del" data-action="del" data-id="'+p.id+'">✕</button></div>'}).join('')}
-function renderRanking(){var el=document.getElementById('ranking');var sorted=players.slice().sort(function(a,b){return b.score-a.score});if(sorted.length===0){el.innerHTML='<p style="color:#475569;text-align:center;padding:16px;font-size:.9rem">No rankings yet</p>';return}
-el.innerHTML=sorted.map(function(p,i){var cls='';if(i===0)cls='gold';else if(i===1)cls='silver';else if(i===2)cls='bronze';return'<div class="ranking-item"><span class="ranking-pos '+cls+'">'+(i+1)+'</span><span class="ranking-name">'+p.name+'</span><span class="ranking-score">'+p.score+' pts</span></div>'}).join('')}
+function renderRanking(){var el=document.getElementById('ranking');var sorted=players.slice().sort(function(a,b){return b.score-a.score});if(sorted.length===0){el.innerHTML='<p style="color:#475569;text-align:center;padding:16px;font-size:.9rem">No rankings yet</p>';renderChart();return}
+el.innerHTML=sorted.map(function(p,i){var cls='';if(i===0)cls='gold';else if(i===1)cls='silver';else if(i===2)cls='bronze';return'<div class="ranking-item"><span class="ranking-pos '+cls+'">'+(i+1)+'</span><span class="ranking-name">'+p.name+'</span><span class="ranking-score">'+p.score+' pts</span></div>'}).join('');renderChart()}
 function renderHistory(){var el=document.getElementById('history');if(history.length===0){el.innerHTML='<p style="color:#475569;text-align:center;padding:16px;font-size:.85rem">No history yet</p>';return}
 el.innerHTML=history.slice().reverse().slice(0,50).map(function(h){return'<div class="history-item">'+h.msg+' <span style="color:#475569;font-size:.75rem">'+h.time+'</span></div>'}).join('')}
 loadData();renderAll();renderHistory();
@@ -166,6 +169,50 @@ document.getElementById('addPlayerBtn').addEventListener('click',function(){var 
 document.getElementById('newPlayerName').addEventListener('keydown',function(e){if(e.key==='Enter'){addPlayer(this.value);this.value=''}});
 document.getElementById('playerList').addEventListener('click',function(e){var btn=e.target.closest('.score-btn');if(!btn)return;var id=parseInt(btn.dataset.id);var action=btn.dataset.action;if(action==='plus')changeScore(id,1);else if(action==='minus')changeScore(id,-1);else if(action==='del')removePlayer(id)});
 document.getElementById('clearHistoryBtn').addEventListener('click',function(){history=[];saveData();renderHistory()});
+document.getElementById('fillExampleBtn').addEventListener('click',function(){
+  players=[];nextId=1;saveData();
+  addPlayer('Alice');changeScore(1,3);
+  addPlayer('Bob');changeScore(2,5);
+  addPlayer('Carol');changeScore(3,2);
+  showToast('Example players added');
+});
+document.getElementById('copyRankingBtn').addEventListener('click',function(){
+  if(players.length===0){showToast('No players yet');return;}
+  var sorted=players.slice().sort(function(a,b){return b.score-a.score});
+  var txt='Score Keeper Ranking\n==================\n';
+  sorted.forEach(function(p,i){txt+=(i+1)+'. '+p.name+': '+p.score+' pts\n';});
+  function done(){showToast('Ranking copied to clipboard');}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(function(){fallbackCopy(txt);done();});
+  }else{fallbackCopy(txt);done();}
+});
+function fallbackCopy(t){
+  var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');}catch(e){}
+  document.body.removeChild(ta);
+}
+function renderChart(){
+  var cv=document.getElementById('scoreChart');if(!cv)return;
+  var parent=cv.parentElement;
+  var w=Math.max(parent.clientWidth-40,280),h=180;
+  cv.width=w*2;cv.height=h*2;cv.style.width=w+'px';cv.style.height=h+'px';
+  var ctx=cv.getContext('2d');ctx.scale(2,2);
+  ctx.fillStyle='#0f172a';ctx.fillRect(0,0,w,h);
+  var sorted=players.slice().sort(function(a,b){return b.score-a.score});
+  if(sorted.length===0){ctx.fillStyle='#475569';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('Add players to see the chart',w/2,h/2);return;}
+  var max=1;sorted.forEach(function(p){if(p.score>max)max=p.score;});
+  var pad=30,bw=(w-2*pad)/sorted.length,chartH=h-40;
+  for(var i=0;i<sorted.length;i++){
+    var barH=Math.max((sorted[i].score/max)*chartH,2);
+    var x=pad+i*bw+bw*0.15,y=chartH-barH+20;
+    ctx.fillStyle=i===0?'#eab308':i===1?'#94a3b8':i===2?'#f97316':'#06b6d4';
+    ctx.fillRect(x,y,bw*0.7,barH);
+    ctx.fillStyle='#e2e8f0';ctx.font='11px sans-serif';ctx.textAlign='center';
+    var nm=sorted[i].name.length>8?sorted[i].name.slice(0,8)+'…':sorted[i].name;
+    ctx.fillText(nm,x+bw*0.35,h-2);
+    ctx.fillStyle='#22d3ee';ctx.fillText(sorted[i].score,x+bw*0.35,y-4);
+  }
+}
 })();
 </script>
 

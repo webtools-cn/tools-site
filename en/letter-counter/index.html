@@ -113,6 +113,11 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 .toast.show{opacity:1}
 @media(max-width:700px){}
 @media(max-width:400px){.stats-grid{grid-template-columns:repeat(2,1fr)}.header{flex-direction:column;gap:12px}.header h1{font-size:1.3rem}}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s;font-weight:600}
+.btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.btn-primary:hover{background:rgba(6,182,212,.3)}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
 
 /* Visual enhancement v2 */
 .btn-primary{transition:all .2s ease;box-shadow:0 2px 8px rgba(6,182,212,.15)}
@@ -157,6 +162,11 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 <div class="tool-section">
 <h2>🔤 Online Letter Counter</h2>
 <textarea id="input-text" placeholder="Enter your text here to count letters..." oninput="countLetters()" autofocus></textarea>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+<button class="btn btn-primary" onclick="fillExample()">🎲 Fill Example</button>
+<button class="btn btn-secondary" onclick="copyStats()">📋 Copy Result</button>
+</div>
+<canvas id="letterChart" style="width:100%;height:200px;margin-top:16px"></canvas>
 <div class="stats-grid" id="stats-grid">
 <div class="stat-card letters"><div class="stat-value" id="count-letters">0</div><div class="stat-label">Total Letters</div></div>
 <div class="stat-card uppercase"><div class="stat-value" id="count-uppercase">0</div><div class="stat-label">Uppercase</div></div>
@@ -206,6 +216,80 @@ function countLetters(){
   document.getElementById('count-spaces').textContent = spaces;
   document.getElementById('count-punctuation').textContent = punctuation;
   document.getElementById('count-total').textContent = text.length;
+  drawChart();
+}
+
+function fillExample(){
+  const sample = "The quick brown fox jumps over the lazy dog.\nPack my box with five dozen liquor jugs.\nHow quickly daft jumping zebras vex! 1234567890";
+  document.getElementById('input-text').value = sample;
+  countLetters();
+  showToast('Example text filled');
+}
+
+function copyStats(){
+  const pairs = [['count-letters','Total Letters'],['count-uppercase','Uppercase'],['count-lowercase','Lowercase'],['count-vowels','Vowels'],['count-consonants','Consonants'],['count-digits','Digits'],['count-spaces','Spaces'],['count-punctuation','Punctuation'],['count-total','Total Characters']];
+  const lines = ['Letter Counter Result'];
+  pairs.forEach(p => {
+    const el = document.getElementById(p[0]);
+    if (el) lines.push(p[1] + ': ' + el.textContent);
+  });
+  const text = lines.join('\n');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showToast('Stats copied ✅')).catch(() => showToast('Copy failed'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Stats copied ✅');
+  }
+}
+
+function drawChart(){
+  const canvas = document.getElementById('letterChart');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 600;
+  const h = 200;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+  const data = [
+    ['Letters', document.getElementById('count-letters').textContent, '#22d3ee'],
+    ['Uppercase', document.getElementById('count-uppercase').textContent, '#818cf8'],
+    ['Lowercase', document.getElementById('count-lowercase').textContent, '#38bdf8'],
+    ['Vowels', document.getElementById('count-vowels').textContent, '#fbbf24'],
+    ['Consonants', document.getElementById('count-consonants').textContent, '#34d399'],
+    ['Digits', document.getElementById('count-digits').textContent, '#f87171'],
+    ['Spaces', document.getElementById('count-spaces').textContent, '#a78bfa'],
+    ['Punct', document.getElementById('count-punctuation').textContent, '#f472b6']
+  ];
+  const vals = data.map(d => parseInt(d[1]) || 0);
+  const max = Math.max.apply(null, vals) || 1;
+  const pad = 32;
+  const chartW = w - pad * 2;
+  const chartH = h - 30;
+  const n = data.length;
+  const gap = chartW / n;
+  const bw = Math.min(gap * 0.6, 46);
+  ctx.font = '9px sans-serif';
+  ctx.textAlign = 'center';
+  data.forEach((d, i) => {
+    const v = vals[i];
+    const barH = Math.max((v / max) * chartH, 2);
+    const x0 = pad + gap * i + gap / 2 - bw / 2;
+    const y0 = chartH - barH + 8;
+    ctx.fillStyle = d[2];
+    ctx.fillRect(x0, y0, bw, barH);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText(d[0], x0 + bw / 2, chartH + 20);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillText(v, x0 + bw / 2, y0 - 4);
+  });
 }
 </script>
 

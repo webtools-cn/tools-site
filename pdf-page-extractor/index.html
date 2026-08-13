@@ -163,6 +163,7 @@ function showToast(m){var t=document.getElementById("toast");if(!t){t=document.c
   <div class="btn-row">
     <button class="btn btn-primary" id="extractBtn" disabled>📄 提取页面并下载</button>
     <button class="btn btn-secondary" id="selectAllBtn" disabled>全部页面</button>
+    <button class="btn btn-secondary" id="sampleRangeBtn">🎲 填入示例</button>
   </div>
   <div id="progressInfo" style="display:none;margin-top:8px;font-size:.85rem;color:#94a3b8"></div>
 </div>
@@ -223,6 +224,32 @@ async function handleFile(file) {
 
 selectAllBtn.addEventListener('click', () => {
   pageRange.value = '1-' + totalPages;
+});
+
+function updateRangeHint() {
+  const v = pageRange.value;
+  const parsed = parsePageRange(v, totalPages > 0 ? totalPages : 1000);
+  if(parsed && parsed.length) {
+    pageInfo.style.display = 'block';
+    if(totalPages > 0 && currentFile) {
+      pageInfo.textContent = '📊 ' + currentFile.name + ' 共 ' + totalPages + ' 页 · 当前选择将提取 ' + parsed.length + ' 页';
+    } else {
+      pageInfo.textContent = '🔢 当前选择共 ' + parsed.length + ' 页（请先选择PDF文件）';
+    }
+  } else if(v.trim()) {
+    pageInfo.style.display = 'block';
+    pageInfo.textContent = '⚠️ 页面范围格式无效，示例：1,3,5-8 或 1-5';
+  } else {
+    pageInfo.textContent = '';
+  }
+}
+
+pageRange.addEventListener('input', updateRangeHint);
+
+document.getElementById('sampleRangeBtn').addEventListener('click', () => {
+  pageRange.value = '1,3,5-8';
+  updateRangeHint();
+  showToast('已填入示例：1,3,5-8');
 });
 
 function parsePageRange(input, max) {

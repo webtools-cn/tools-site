@@ -93,8 +93,9 @@ a{color:#06b6d4;text-decoration:none}
 <div class="hero"><p>Free online day of year calculator. Find out which day of the year any date falls on. Date picker, remaining days display, leap year support. <span class="badge">🔒 No registration · Data never uploaded</span></p></div>
 <div class="panel">
   <div class="panel-title">🗓️ Day of Year Calculator</div>
-  <div class="input-row"><input type="date" id="dateInput" style="flex:1"><button class="btn btn-primary" id="calcBtn">Calculate</button></div>
+  <div class="input-row"><input type="date" id="dateInput" style="flex:1"><button class="btn btn-primary" id="calcBtn">Calculate</button><button class="btn btn-secondary" id="copyBtn">📋 Copy Result</button></div>
 <div class="stats-grid"><div class="stat-card"><div class="stat-value" id="dayNum">-</div><div class="stat-label">Day of Year</div></div><div class="stat-card"><div class="stat-value" id="remainDays">-</div><div class="stat-label">Days Remaining</div></div><div class="stat-card"><div class="stat-value" id="weekDay">-</div><div class="stat-label">Day of Week</div></div></div>
+<div style="margin-top:16px"><canvas id="yearChart" width="560" height="150" style="width:100%;height:auto;background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px"></canvas></div>
 </div>
 <div class="privacy-note">🔒 <span>Everything runs locally: ️ Day of Year Calculator and other values are processed on your device, never sent to a server. No data is ever uploaded.</span></div>
 <div class="panel">
@@ -113,9 +114,12 @@ a{color:#06b6d4;text-decoration:none}
 <script>
 function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
 document.getElementById('dateInput').valueAsDate=new Date();
-function calc(){var d=document.getElementById('dateInput').valueAsDate;if(!d){showToast('Please select a date');return}var start=new Date(d.getFullYear(),0,1);var diff=Math.floor((d-start)/86400000)+1;document.getElementById('dayNum').textContent=diff;var isLeap=(d.getFullYear()%4===0&&d.getFullYear()%100!==0)||(d.getFullYear()%400===0);document.getElementById('remainDays').textContent=(isLeap?366:365)-diff;var wds=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];document.getElementById('weekDay').textContent=wds[d.getDay()]}
+function calc(){var d=document.getElementById('dateInput').valueAsDate;if(!d){showToast('Please select a date');return}var start=new Date(d.getFullYear(),0,1);var diff=Math.floor((d-start)/86400000)+1;document.getElementById('dayNum').textContent=diff;var isLeap=(d.getFullYear()%4===0&&d.getFullYear()%100!==0)||(d.getFullYear()%400===0);var total=isLeap?366:365;var remain=total-diff;document.getElementById('remainDays').textContent=remain;var wds=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];document.getElementById('weekDay').textContent=wds[d.getDay()];drawChart(diff,remain);}
+function drawChart(diff,remain){var canvas=document.getElementById('yearChart');if(!canvas||!canvas.getContext)return;var ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);var padL=16,padR=16,padT=24,padB=28;var w=canvas.width-padL-padR;var h=canvas.height-padT-padB;var items=[['Elapsed',diff,'#06b6d4'],['Remaining',remain,'#475569']];var max=Math.max(diff,remain)||1;var bw=w/items.length;items.forEach(function(it,i){var bh=(it[1]/max)*h;var x=padL+i*bw+bw*0.28;var y=padT+(h-bh);ctx.fillStyle=it[2];ctx.fillRect(x,y,bw*0.44,bh);ctx.fillStyle='#e2e8f0';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText(it[1],x+bw*0.22,y>padT+14?y-4:padT+14);ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';ctx.fillText(it[0]+' ('+Math.round(it[1]/max*100)+'%)',x+bw*0.22,canvas.height-8);});}
+function fallbackCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('Result copied!')}
 document.getElementById('calcBtn').addEventListener('click',calc);
 document.getElementById('dateInput').addEventListener('change',calc);
+document.getElementById('copyBtn').addEventListener('click',function(){var txt='Day of year: '+document.getElementById('dayNum').textContent+'\nDays remaining: '+document.getElementById('remainDays').textContent+'\nWeekday: '+document.getElementById('weekDay').textContent;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){showToast('Result copied!')}).catch(function(){fallbackCopy(txt)})}else{fallbackCopy(txt)}});
 calc();
 </script>
 </main>

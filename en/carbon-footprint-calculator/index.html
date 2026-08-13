@@ -226,7 +226,49 @@ table.data td{color:#cbd5e1}
  </span>
 </div>
 
- <div id="app"></div>
+ <div id="app">
+ <div class="input-section">
+ <h2>🚗 Transport</h2>
+ <div class="row">
+ <div class="field"><label>Car mileage (km/year)</label><input type="number" id="carKm" value="12000" min="0"></div>
+ <div class="field"><label>Car type</label><select id="carType"><option value="gas">Gasoline</option><option value="diesel" selected>Diesel</option><option value="hybrid">Hybrid</option><option value="electric">Electric</option></select></div>
+ </div>
+ <div class="row">
+ <div class="field"><label>Short flights (hours/year)</label><input type="number" id="flightShort" value="0" min="0"></div>
+ <div class="field"><label>Long flights (hours/year)</label><input type="number" id="flightLong" value="0" min="0"></div>
+ </div>
+ <div class="row">
+ <div class="field"><label>Public transit (km/week)</label><input type="number" id="transit" value="50" min="0"></div>
+ </div>
+ </div>
+ <div class="input-section">
+ <h2>🏠 Home Energy</h2>
+ <div class="row">
+ <div class="field"><label>Electricity (kWh/month)</label><input type="number" id="electricity" value="300" min="0"></div>
+ <div class="field"><label>Natural gas (m³/month)</label><input type="number" id="gas" value="20" min="0"></div>
+ </div>
+ </div>
+ <div class="input-section">
+ <h2>🍽️ Diet</h2>
+ <div class="options"><label>Diet type: <select id="diet"><option value="meat-heavy">Meat-heavy</option><option value="average" selected>Average (mixed)</option><option value="vegetarian">Vegetarian</option><option value="vegan">Vegan</option></select></label></div>
+ </div>
+ <div class="input-section">
+ <h2>🛍️ Spending</h2>
+ <div class="options"><label>Spending level: <select id="spending"><option value="low">Low (essentials only)</option><option value="average" selected>Average</option><option value="high">High (frequent shopping)</option></select></label></div>
+ </div>
+ <div class="btn-row">
+ <button class="btn btn-primary" id="calcBtn">🌍 Calculate Carbon Footprint</button>
+ <button class="btn btn-secondary" id="exampleBtn">🎲 Fill Example</button>
+ </div>
+ <div class="result-section" id="resultSection">
+ <h2>📊 Results</h2>
+ <div id="resultContent"></div>
+ <div style="margin:12px 0"><canvas id="resultChart" height="220" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.08);border-radius:8px"></canvas></div>
+ <div class="btn-row">
+ <button class="btn btn-success" id="copyResultBtn">📋 Copy Result</button>
+ </div>
+ </div>
+ </div>
  <div class="info-section" id="usage">
  <h2>How to Use</h2>
  <div id="usageContent"></div>
@@ -238,8 +280,11 @@ table.data td{color:#cbd5e1}
 
 <script>
 var app=document.getElementById('app');
-app.innerHTML='';
-document.getElementById('usageContent').innerHTML='';
+document.getElementById('usageContent').innerHTML='<p>Enter your annual travel, home energy, diet and spending details, then click "Calculate Carbon Footprint". The result updates instantly as you type.</p>';
+
+var carFactors = {gas: 0.21, diesel: 0.25, hybrid: 0.12, electric: 0.05};
+var dietFactors = {'meat-heavy': 3200, 'average': 1800, 'vegetarian': 900, 'vegan': 600};
+var spendFactors = {low: 500, average: 1500, high: 3500};
 
 function calc() {
   var carKm = parseFloat(document.getElementById('carKm').value) || 0;
@@ -252,16 +297,13 @@ function calc() {
   var diet = document.getElementById('diet').value;
   var spending = document.getElementById('spending').value;
 
-  // Emission factors (kg CO2e per unit)
-  var carFactors = {gas: 0.21, diesel: 0.25, hybrid: 0.12, electric: 0.05};
+  // Emission factors (kg CO2e per unit) - business logic kept unchanged
   var carEm = carKm * (carFactors[carType] || 0.21);
   var flightEm = flightShort * 90 + flightLong * 180;
   var transitEm = transit * 52 * 0.035;
   var elecEm = electricity * 12 * 0.52;
   var gasEm = gas * 12 * 2.1;
-  var dietFactors = {'meat-heavy': 3200, 'average': 1800, 'vegetarian': 900, 'vegan': 600};
   var dietEm = dietFactors[diet] || 1800;
-  var spendFactors = {low: 500, average: 1500, high: 3500};
   var spendEm = spendFactors[spending] || 1500;
 
   var total = carEm + flightEm + transitEm + elecEm + gasEm + dietEm + spendEm;
@@ -270,10 +312,10 @@ function calc() {
   var target = 2000;
 
   var breakdown = [
-    {name: '', em: carEm + flightEm + transitEm, pct: 0},
-    {name: '', em: elecEm + gasEm, pct: 0},
-    {name: '', em: dietEm, pct: 0},
-    {name: '', em: spendEm, pct: 0},
+    {name: 'Transport', em: carEm + flightEm + transitEm},
+    {name: 'Home energy', em: elecEm + gasEm},
+    {name: 'Diet', em: dietEm},
+    {name: 'Goods & spending', em: spendEm}
   ];
   breakdown.forEach(function(b){b.pct = total > 0 ? Math.round(b.em/total*100) : 0;});
 
@@ -281,34 +323,112 @@ function calc() {
   html += '<div style="font-size:3rem;font-weight:700;color:#22d3ee">' + Math.round(total).toLocaleString() + '</div>';
   html += '<div style="color:#94a3b8;font-size:.9rem">kg CO₂e / year</div></div>';
 
-  html += '';
+  html += '<div class="table-wrap"><table class="data"><thead><tr><th>Source</th><th>kg CO₂e / year</th><th>Share</th></tr></thead><tbody>';
   breakdown.forEach(function(b){
     html += '<tr><td>' + b.name + '</td><td>' + Math.round(b.em).toLocaleString() + '</td><td>' + b.pct + '%</td></tr>';
   });
-  html += '<tr style="background:rgba(6,182,212,.08)"><td><strong>totalcount</strong></td><td><strong>' + Math.round(total).toLocaleString() + '</strong></td><td><strong>100%</strong></td></tr></table></div>';
+  html += '<tr style="background:rgba(6,182,212,.08)"><td><strong>Total</strong></td><td><strong>' + Math.round(total).toLocaleString() + '</strong></td><td><strong>100%</strong></td></tr></tbody></table></div>';
 
-  html += '';
-  html += '' + Math.round(total).toLocaleString() + '</td></tr>';
-  html += '' + globalAvg.toLocaleString() + '</td></tr>';
-  html += '' + chinaAvg.toLocaleString() + '</td></tr>';
-  html += '' + target.toLocaleString() + '</td></tr></table></div>';
+  html += '<div class="table-wrap"><table class="data"><thead><tr><th>Comparison</th><th>kg CO₂e / year</th></tr></thead><tbody>';
+  html += '<tr><td>Your footprint</td><td>' + Math.round(total).toLocaleString() + '</td></tr>';
+  html += '<tr><td>Global average</td><td>' + globalAvg.toLocaleString() + '</td></tr>';
+  html += '<tr><td>China average</td><td>' + chinaAvg.toLocaleString() + '</td></tr>';
+  html += '<tr><td>Paris Agreement target</td><td>' + target.toLocaleString() + '</td></tr></tbody></table></div>';
 
   var tips = [];
-  if (carEm > 1000) tips.push('');
-  if (flightEm > 500) tips.push('');
-  if (elecEm > 1500) tips.push('');
-  if (dietEm > 2000) tips.push('');
-  if (total > chinaAvg) tips.push('');
-  if (tips.length === 0) tips.push('');
-  html += '<h3 style="margin:12px 0 8px;color:#f1f5f9">💡 subtractsortsuggestion</h3><ul style="color:#94a3b8;font-size:.9rem;padding-left:20px">';
+  if (carEm > 1000) tips.push('🚗 Reduce car travel: carpool, bike, or use public transport more often.');
+  if (flightEm > 500) tips.push('✈️ Take fewer long-haul flights or choose trains for short trips.');
+  if (elecEm > 1500) tips.push('💡 Switch to LED bulbs and energy-efficient appliances to cut electricity use.');
+  if (dietEm > 2000) tips.push('🥗 Eating fewer meat-heavy meals can significantly lower diet emissions.');
+  if (total > chinaAvg) tips.push('🌱 Your footprint is above the China average — consider offsetting your emissions.');
+  if (tips.length === 0) tips.push('🎉 Great job! Your footprint is below typical levels. Keep it up.');
+  html += '<h3 style="margin:12px 0 8px;color:#f1f5f9">💡 Reduction Tips</h3><ul style="color:#94a3b8;font-size:.9rem;padding-left:20px">';
   tips.slice(0,5).forEach(function(t){html += '<li style="margin-bottom:6px">' + t + '</li>';});
   html += '</ul>';
 
+  window._cfSummary = 'Carbon Footprint: ' + Math.round(total).toLocaleString() + ' kg CO2e/year\n'
+    + breakdown.map(function(b){return b.name + ': ' + Math.round(b.em).toLocaleString() + ' kg (' + b.pct + '%)';}).join('\n')
+    + '\nGlobal average: ' + globalAvg.toLocaleString() + ' kg CO2e/year';
+
   document.getElementById('resultContent').innerHTML = html;
   document.getElementById('resultSection').classList.add('show');
+  drawChart(breakdown);
 }
 
+function drawChart(breakdown) {
+  var cv = document.getElementById('resultChart');
+  if (!cv) return;
+  var ctx = cv.getContext('2d');
+  var w = cv.parentElement.clientWidth || 600;
+  var h = 220;
+  cv.width = w; cv.height = h;
+  ctx.clearRect(0, 0, w, h);
+  var pad = 40, bottom = h - 50, top = 24;
+  var maxEm = 1;
+  breakdown.forEach(function(b){ if (b.em > maxEm) maxEm = b.em; });
+  var colors = ['#06b6d4', '#8b5cf6', '#22c55e', '#f59e0b'];
+  breakdown.forEach(function(b, i) {
+    var barH = (bottom - top) * b.em / maxEm;
+    var x = pad + i * ((w - pad - 20) / breakdown.length) + 10;
+    var bw = (w - pad - 20) / breakdown.length - 20;
+    ctx.fillStyle = colors[i];
+    ctx.fillRect(x, bottom - barH, bw, barH);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '11px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(Math.round(b.em).toLocaleString(), x + bw / 2, bottom - barH - 4);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText(b.name, x + bw / 2, bottom + 14);
+  });
+  ctx.strokeStyle = 'rgba(148,163,184,.3)';
+  ctx.beginPath();
+  ctx.moveTo(pad, bottom);
+  ctx.lineTo(w - 10, bottom);
+  ctx.stroke();
+}
+
+function copyText(t) {
+  if (!t) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(copied).catch(function(){ fallbackCopy(t); });
+  } else {
+    fallbackCopy(t);
+  }
+}
+function fallbackCopy(t) {
+  var ta = document.createElement('textarea');
+  ta.value = t;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); copied(); } catch (e) {}
+  document.body.removeChild(ta);
+}
+function copied() {
+  var b = document.getElementById('copyResultBtn');
+  b.textContent = '✓ Copied';
+  setTimeout(function(){ b.textContent = '📋 Copy Result'; }, 1500);
+}
+
+function fillExample() {
+  var ids = {carKm: '15000', flightShort: '10', flightLong: '2', transit: '40', electricity: '350', gas: '25'};
+  Object.keys(ids).forEach(function(id){ document.getElementById(id).value = ids[id]; });
+  document.getElementById('carType').value = 'gas';
+  document.getElementById('diet').value = 'average';
+  document.getElementById('spending').value = 'average';
+  calc();
+}
+
+['carKm','flightShort','flightLong','transit','electricity','gas'].forEach(function(id){
+  document.getElementById(id).addEventListener('input', calc);
+});
+['carType','diet','spending'].forEach(function(id){
+  document.getElementById(id).addEventListener('change', calc);
+});
 document.getElementById('calcBtn').addEventListener('click', calc);
+document.getElementById('exampleBtn').addEventListener('click', fillExample);
+document.getElementById('copyResultBtn').addEventListener('click', function(){ copyText(window._cfSummary); });
 calc();</script>
 <!-- Related Tools (cross-recommendation) -->
 <link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">

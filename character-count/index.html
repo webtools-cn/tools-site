@@ -103,10 +103,15 @@ UTF-8是中文字符编码的国际标准，每个中文字符占用3个字节�
 English characters use 1 byte per letter in UTF-8 encoding.
 
 Emoji表情如😀🎉占用4个字节。数字123和标点符号.,!各占1个字节。</textarea>
+    <div class="btn-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn btn-primary" id="exampleBtn">🎲 填入示例</button>
+      <button class="btn btn-secondary" id="copyStatsBtn">📋 复制统计结果</button>
+    </div>
   </div>
   <div class="tool-section">
     <h2>📊 统计结果</h2>
     <div class="stats-grid" id="statsGrid"></div>
+    <canvas id="charChart" height="120" style="width:100%;display:none"></canvas>
   </div>
   <div class="tool-section">
     <h2>📖 使用教程</h2>
@@ -154,10 +159,34 @@ Emoji表情如😀🎉占用4个字节。数字123和标点符号.,!各占1个�
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+function ftCopyText(t){function fb(){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');showToast('已复制')}catch(e){showToast('复制失败')}document.body.removeChild(ta)}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){showToast('已复制')}).catch(fb)}else{fb()}}
 (function(){
   var input=document.getElementById('textInput');
   var grid=document.getElementById('statsGrid');
+  var chart=document.getElementById('charChart');
   if(!input||!grid)return;
+  var lastStats=[];
+  function drawCharChart(){
+    if(!chart)return;
+    if(!input.value.trim()){chart.style.display='none';return}
+    chart.style.display='block';
+    var w=chart.clientWidth||chart.parentElement.clientWidth||300;var h=120;var dpr=window.devicePixelRatio||1;
+    chart.width=w*dpr;chart.height=h*dpr;chart.style.width=w+'px';chart.style.height=h+'px';
+    var ctx=chart.getContext('2d');ctx.scale(dpr,dpr);ctx.fillStyle='#0f172a';ctx.fillRect(0,0,w,h);
+    var cn=(input.value.match(/[\u4e00-\u9fff]/g)||[]).length;
+    var en=(input.value.match(/[a-zA-Z]/g)||[]).length;
+    var num=(input.value.match(/[0-9]/g)||[]).length;
+    var sp=(input.value.match(/\s/g)||[]).length;
+    var data=[[cn,'中文字符','#06b6d4'],[en,'英文字母','#3b82f6'],[num,'数字','#22c55e'],[sp,'空白','#f59e0b']];
+    var max=Math.max.apply(null,data.map(function(d){return d[0]}))||1;
+    var barW=Math.max(24,(w-80)/data.length);
+    ctx.font='12px sans-serif';
+    data.forEach(function(d,i){
+      var x=40+i*(barW+12);var bh=Math.max(2,(d[0]/max)*(h-46));
+      ctx.fillStyle='rgba(148,163,184,.1)';ctx.fillRect(x,h-34,bh?barW:barW,h-6);ctx.fillStyle=d[2];ctx.fillRect(x,h-34-bh,barW,bh);
+      ctx.fillStyle='#e2e8f0';ctx.textAlign='center';ctx.fillText(d[0],x+barW/2,h-40-bh);ctx.fillStyle='#94a3b8';ctx.fillText(d[1],x+barW/2,h-6);
+    });
+  }
   function update(){
     var text=input.value;
     var totalChars=text.length;
@@ -182,11 +211,24 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
       {label:'英文字母',value:enChars},
       {label:'数字',value:digits}
     ];
+    lastStats=stats;
     grid.innerHTML=stats.map(function(s){
       return '<div class="stat-card"><div class="value">'+s.value+'</div><div class="label">'+s.label+'</div></div>';
     }).join('');
+    drawCharChart();
   }
   input.addEventListener('input',update);
+  var exBtn=document.getElementById('exampleBtn');
+  if(exBtn)exBtn.addEventListener('click',function(){
+    input.value='这是一个中文字符计数示例 English mixed text 12345，包含标点符号与空格! 用于快速体验实时统计、复制与图表功能。';
+    input.focus();update();
+  });
+  var cpBtn=document.getElementById('copyStatsBtn');
+  if(cpBtn)cpBtn.addEventListener('click',function(){
+    if(!lastStats.length){showToast('暂无统计结果');return}
+    var lines=lastStats.map(function(s){return s.label+': '+s.value}).join('\n');
+    ftCopyText(lines);
+  });
   update();
 })();
 (function() {

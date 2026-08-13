@@ -249,6 +249,9 @@ canvas{max-width:100%}
   <div id="dnsResultContent" style="width:100%">
     <div style="color:#64748b;text-align:center;padding:20px">Enter a domain and click Lookup</div>
   </div>
+  <div style="width:100%;margin-top:12px">
+    <button class="btn btn-secondary" id="copyDnsBtn" style="display:none">📋 Copy Result</button>
+  </div>
 </div>
 <p class="info-text">💡 Tip: Uses public DNS over HTTPS (DoH). No query data is stored.</p>
 
@@ -304,12 +307,30 @@ canvas{max-width:100%}
 var lang=document.documentElement.lang;
 function toast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},2000)}
 
+var lastDnsText='';
+function copyDnsResult(){
+  if(!lastDnsText){toast('Nothing to copy');return;}
+  function done(){toast('Copied!');}
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(lastDnsText).then(done,function(){});
+  }else{
+    var ta=document.createElement('textarea');
+    ta.value=lastDnsText;ta.style.position='fixed';ta.style.left='-9999px';
+    document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    done();
+  }
+}
+document.getElementById('copyDnsBtn').addEventListener('click',copyDnsResult);
+
 function doDNSLookup(){
   var domain=document.getElementById('dnsDomain').value.trim();
   var type=document.getElementById('dnsType').value;
   var server=document.getElementById('dnsServer').value;
   if(!domain){toast('PleaseInputdomain');return}
   var dnsResult=document.getElementById('dnsResultContent');
+  document.getElementById('copyDnsBtn').style.display='none';
   dnsResult.innerHTML='<div style="color:#94a3b8;text-align:center;padding:20px">⏳ queryin...</div>';
   var url=server+'?name='+encodeURIComponent(domain)+'&type='+type;
   fetch(url,{headers:{'Accept':'application/dns-json'}})
@@ -327,6 +348,11 @@ function doDNSLookup(){
         html+='<div style="color:#64748b;font-size:.85rem;margin-top:8px">query: '+data.Question[0].name+' ('+data.Question[0].type+')</div>';
       }
       dnsResult.innerHTML=html;
+      lastDnsText='DNS Lookup: '+domain+' ('+type+')\n';
+      ans.forEach(function(a){
+        lastDnsText+=a.type+'  '+a.name+'  '+a.data+'  TTL '+a.TTL+'s\n';
+      });
+      document.getElementById('copyDnsBtn').style.display='inline-block';
     })
     .catch(function(err){
       dnsResult.innerHTML='<div style="color:#f87171;text-align:center;padding:20px">❌ networkerror: '+err.message+'</div>';

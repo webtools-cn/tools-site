@@ -178,17 +178,96 @@ select{width:100%;padding:10px 12px;background:#0f172a;color:#e2e8f0;border:1px 
 <div class="toast" id="toast"></div>
 
 <script>
+  var svgInput = document.getElementById('svgInput');
+  var svgFileInput = document.getElementById('svgFileInput');
+  var fileName = document.getElementById('fileName');
+  var convertBtn = document.getElementById('convertBtn');
+  var previewBtn = document.getElementById('previewBtn');
+  var exampleBtn = document.getElementById('exampleBtn');
+  var previewBox = document.getElementById('previewBox');
+  var resultSection = document.getElementById('resultSection');
+  var downloadBtn = document.getElementById('downloadBtn');
+  var pageSize = document.getElementById('pageSize');
+  var orientation = document.getElementById('orientation');
+  var errorMsg = document.getElementById('errorMsg');
+  var examples = [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">\n  <defs>\n    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">\n      <stop offset="0%" style="stop-color:#06b6d4"/>\n      <stop offset="100%" style="stop-color:#3b82f6"/>\n    </linearGradient>\n  </defs>\n  <rect width="200" height="200" rx="20" fill="url(#g)"/>\n  <circle cx="100" cy="85" r="35" fill="#fff" opacity=".9"/>\n  <path d="M85 110 L100 90 L115 110 Z" fill="#06b6d4"/>\n  <text x="100" y="155" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#fff" font-weight="bold">SVG转PDF</text>\n</svg>',
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">\n  <rect width="400" height="300" fill="#1e293b" rx="10"/>\n  <text x="200" y="80" text-anchor="middle" fill="#22d3ee" font-family="sans-serif" font-size="32" font-weight="bold">数据概览</text>\n  <rect x="40" y="120" width="80" height="120" rx="4" fill="#06b6d4" opacity=".8"/>\n  <rect x="160" y="150" width="80" height="90" rx="4" fill="#22c55e" opacity=".8"/>\n  <rect x="280" y="100" width="80" height="140" rx="4" fill="#eab308" opacity=".8"/>\n  <text x="80" y="260" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="14">Q1</text>\n  <text x="200" y="260" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="14">Q2</text>\n  <text x="320" y="260" text-anchor="middle" fill="#94a3b8" font-family="sans-serif" font-size="14">Q3</text>\n</svg>'
+  ];
+  var exampleIndex = 0;
+
+  function getPageDimensions() {
+    if (pageSize.value === 'Fit') return null;
+    var sizes = {A4: [595.28, 841.89], Letter: [612, 792], A3: [841.89, 1190.55]};
+    var dims = sizes[pageSize.value] || sizes.A4;
+    return orientation.value === 'landscape' ? [dims[1], dims[0]] : dims;
+  }
+
+  function loadScripts(callback) {
+    var loaded = {};
+    function checkLib(name, src, checkFn, onload) {
+      if (checkFn()) { loaded[name] = true; if (Object.keys(loaded).length === 2) onload(); return; }
+      var s = document.createElement('script'); s.src = src;
+      s.onload = function() { loaded[name] = true; if (Object.keys(loaded).length === 2) onload(); };
+      s.onerror = function() { errorMsg.textContent = '加载失败: ' + name; errorMsg.style.display = 'block'; };
+      document.head.appendChild(s);
+    }
+    checkLib('jspdf', 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', function(){return typeof jspdf !== 'undefined';}, callback);
+    checkLib('svg2pdf', 'https://cdn.jsdelivr.net/npm/svg2pdf.js@2/dist/svg2pdf.umd.min.js', function(){return typeof svg2pdf !== 'undefined';}, callback);
+  }
+
+  function getSvgContent() {
+    var svg = svgInput.value.trim();
+    if (!svg) { errorMsg.textContent = '请输入SVG代码或上传文件'; errorMsg.style.display = 'block'; return null; }
+    errorMsg.style.display = 'none';
+    return svg;
+  }
+
+  function previewSvg() { var svg = getSvgContent(); if (!svg) return; previewBox.innerHTML = svg; resultSection.classList.add('show'); }
+
+  function convertToPdf() {
+    var svg = getSvgContent(); if (!svg) return;
+    previewBox.innerHTML = '<div style="color:#94a3b8;padding:40px">⏳ 转换中...</div>';
+    resultSection.classList.add('show');
+    loadScripts(function() {
+      try {
+        var dims = getPageDimensions();
+        var doc;
+        if (dims) {
+          var fmt = pageSize.value;
+          doc = new jspdf.jsPDF({format: fmt, orientation: orientation.value === 'landscape' ? 'l' : 'p', unit: 'pt'});
+        } else {
+          var parser = new DOMParser();
+          var svgDoc = parser.parseFromString(svg, 'image/svg+xml');
+          var svgEl = svgDoc.documentElement;
+          var w = parseFloat(svgEl.getAttribute('width') || (svgEl.getAttribute('viewBox')||'').split(' ')[2] || 500);
+          var h = parseFloat(svgEl.getAttribute('height') || (svgEl.getAttribute('viewBox')||'').split(' ')[3] || 500);
+          doc = new jspdf.jsPDF({orientation: w > h ? 'l' : 'p', unit: 'pt', format: [w, h]});
+        }
+        svg2pdf(doc, previewBox.querySelector('svg') || previewBox.querySelector('*'), {x: 0, y: 0, width: doc.internal.pageSize.getWidth(), height: doc.internal.pageSize.getHeight()});
+        var pdfOutput = doc.output('datauristring');
+        previewBox.innerHTML = '<div style="color:#22c55e;padding:20px">✅ PDF生成成功! 大小: ' + (doc.output('blob').size / 1024).toFixed(1) + ' KB</div>';
+        downloadBtn.onclick = function() { doc.save('svgtopdf-' + Date.now() + '.pdf'); };
+      } catch(e) {
+        errorMsg.textContent = '转换失败: ' + (e.message || e); errorMsg.style.display = 'block';
+        previewBox.innerHTML = '<div style="color:#ef4444;padding:20px">❌ 转换失败</div>';
+      }
+    });
+  }
+
+  convertBtn.addEventListener('click', convertToPdf);
+  previewBtn.addEventListener('click', previewSvg);
+  exampleBtn.addEventListener('click', function() { svgInput.value = examples[exampleIndex % examples.length]; exampleIndex++; resultSection.classList.remove('show'); });
+  svgFileInput.addEventListener('change', function(e) {
+    var file = e.target.files[0]; if (!file) return;
+    fileName.textContent = file.name;
+    var reader = new FileReader(); reader.onload = function(ev) { svgInput.value = ev.target.result; }; reader.readAsText(file);
+  });
+  svgInput.value = examples[0];
+</script>
+<script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")}
-
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 报告问题',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\\n**类型**: '+typeLabel+'\\n\\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
 document.addEventListener('click',function(e){
   if(e.target&&e.target.closest&&e.target.closest('button')){
@@ -223,6 +302,7 @@ function ftFallbackCopy(txt){
   try{document.execCommand('copy')}catch(err){}
   document.body.removeChild(ta);
 }
+</script>
 
 
 

@@ -204,6 +204,9 @@ CIDRbefore Length：
 <div id="ipClass" style="font-size:1rem;color:#e2e8f0;font-family:monospace;margin-top:4px">-</div>
 </div>
 </div>
+<div style="margin-top:12px">
+<button id="copyResultBtn" style="padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.25)">📋 Copy Result</button>
+</div>
 </div>
 
 <div id="ipError" style="display:none;margin-top:12px;padding:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#ef4444;font-size:.85rem"></div>
@@ -379,6 +382,38 @@ sampleIPBtn.addEventListener('click',function(){
   ipInput.value=samples[(current+1)%samples.length];
   calculate();
 });
+
+let ipDebounce=null;
+ipInput.addEventListener('input',function(){
+  clearTimeout(ipDebounce);
+  ipDebounce=setTimeout(calculate,250);
+});
+
+document.getElementById('copyResultBtn').addEventListener('click',function(){
+  if(ipResult.style.display==='none') return;
+  const text='IP/CIDR: '+ipInput.value+'\n'
+    +'Network: '+netAddr.textContent+'\n'
+    +'Broadcast: '+bcastAddr.textContent+'\n'
+    +'Host range: '+hostRange.textContent+'\n'
+    +'Hosts: '+hostCount.textContent+'\n'
+    +'Mask: '+maskDisplay.textContent+'\n'
+    +'IP class: '+ipClass.textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(copied).catch(function(){fallbackCopy(text);});
+  }else{fallbackCopy(text);}
+});
+function fallbackCopy(t){
+  const ta=document.createElement('textarea');
+  ta.value=t;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');copied();}catch(e){}
+  document.body.removeChild(ta);
+}
+function copied(){
+  const b=document.getElementById('copyResultBtn');
+  b.textContent='✓ Copied';
+  setTimeout(function(){b.textContent='📋 Copy Result';},1500);
+}
 
 // Init with default
 calculate();</script>

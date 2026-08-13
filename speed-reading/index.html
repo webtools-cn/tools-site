@@ -79,6 +79,10 @@
 <div class="stats-row">
 <div class="stat-item">已读: <span class="stat-value" id="readCount">0</span>/<span id="totalCount">0</span> 词</div>
 <div class="stat-item">用时: <span class="stat-value" id="elapsed">0s</span></div>
+<div class="stat-item">预计用时: <span class="stat-value" id="estTime">--</span></div>
+</div>
+<div class="btn-row">
+<button class="btn btn-reset" onclick="copyStats()">📋 复制统计</button>
 </div>
 </div>
 
@@ -182,6 +186,32 @@ function resetRead(){
   document.getElementById("progressFill").style.width="0";
   document.getElementById("startBtn").textContent="▶ 开始";
 }
+
+function updateEstimate(){
+  var text=document.getElementById("inputText").value.trim();
+  var wpm=parseInt(document.getElementById("speedSlider").value);
+  var el=document.getElementById("estTime");
+  if(!text){el.textContent="--";return;}
+  var words=text.split(/\s+/).filter(function(w){return w.length>0}).length;
+  var sec=Math.round(words/wpm*60);
+  var m=Math.floor(sec/60),s=sec%60;
+  el.textContent=(m>0?(m+"分"+s+"秒"):(s+"秒"))+"（"+words+"词 @ "+wpm+"WPM）";
+}
+
+function copyStats(){
+  var text="速读训练统计\n已读: "+document.getElementById("readCount").textContent+"/"+document.getElementById("totalCount").textContent+" 词\n用时: "+document.getElementById("elapsed").textContent+"\n速度: "+document.getElementById("speedSlider").value+" WPM\n预计总用时: "+document.getElementById("estTime").textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){showToast("统计已复制")},function(){showToast("复制失败")});
+  }else{
+    var ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);ta.select();
+    try{document.execCommand("copy");showToast("统计已复制");}catch(e){showToast("复制失败");}
+    document.body.removeChild(ta);
+  }
+}
+
+document.getElementById("inputText").addEventListener("input",updateEstimate);
+document.getElementById("speedSlider").addEventListener("input",updateEstimate);
+window.addEventListener("load",updateEstimate);
 </script>
 <div class="seo-content" style="max-width:720px;margin:0 auto;padding:20px;line-height:1.8"><h3>速读训练器的计算逻辑</h3><p>本工具的核心计算逻辑：</p><ul><li><code>interval</code> = 60000/wpm</li></ul>
 <h3>输入文本（或使用上方示例）等参数详解</h3><ul><li><strong>输入文本（或使用上方示例）</strong></li><li><strong>速度</strong></li><li><strong>粘贴你想速读的文本...</strong></li></ul></div>

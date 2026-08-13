@@ -265,6 +265,7 @@ canvas{max-width:100%;max-height:500px}
  <div class="big-number" id="lovePercent">0%</div>
  <div class="label" id="loveMessage" style="font-size:1.1rem;margin-top:8px"></div>
  <div style="margin-top:16px;font-size:1rem;color:#94a3b8" id="loveAdvice"></div>
+ <div style="margin-top:16px"><button class="btn btn-success" onclick="copyLoveResult()">📋 Copy Result</button></div>
  </div>
  </div>
  <div class="section">
@@ -272,6 +273,7 @@ canvas{max-width:100%;max-height:500px}
  <div id="loveBreakdown" style="color:#64748b;font-size:.9rem">
  <p>Enter two names and click calculate!</p>
  </div>
+ <canvas id="loveChart" width="360" height="180" style="display:none;margin:12px auto 0;max-width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px"></canvas>
  </div>
 <div class="seo-content">
  <h2>How to Use the Love Compatibility Calculator</h2>
@@ -307,6 +309,7 @@ canvas{max-width:100%;max-height:500px}
 
 </div>
 <div class="toast" id="toast"></div>
+<script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("Copied")})["catch"](function(){showToast("Copy failed")})}
 
@@ -364,12 +367,44 @@ function showLoveMessages(percent,n1,n2){
     '<div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center"><div style="color:#94a3b8;font-size:.8rem">'+(l?"Compatibility":"Compatibility")+'</div><div style="color:#22d3ee;font-size:1.3rem;font-weight:700">'+pCom+'%</div></div>'+
     '<div style="background:#0f172a;border-radius:8px;padding:12px;text-align:center"><div style="color:#94a3b8;font-size:.8rem">'+(l?"Trust":"Trust")+'</div><div style="color:#22d3ee;font-size:1.3rem;font-weight:700">'+pTrust+'%</div></div>'+
     '</div>';
+  drawLoveChart(pN1,pN2,pCom,pTrust);
+}
+function copyLoveResult(){
+  var n1=document.getElementById("name1").value.trim();
+  var n2=document.getElementById("name2").value.trim();
+  var pct=document.getElementById("lovePercent").textContent;
+  var msg=document.getElementById("loveMessage").textContent;
+  var text=n1+' & '+n2+' — '+pct+' '+msg;
+  if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){toast("Copied!")})["catch"](function(){toast("Copy failed")});}
+  else{
+    var ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);toast("Copied!");
+  }
+}
+function drawLoveChart(pN1,pN2,pCom,pTrust){
+  var c=document.getElementById("loveChart");if(!c)return;
+  c.style.display="block";
+  var ctx=c.getContext("2d");var W=c.width,H=c.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle="#0f172a";ctx.fillRect(0,0,W,H);
+  var pad=42,bottom=H-30,max=100;
+  var labels=["Attraction","Communication","Compatibility","Trust"];
+  var vals=[pN1,pN2,pCom,pTrust];var colors=["#f472b6","#22d3ee","#a78bfa","#4ade80"];
+  for(var i=0;i<vals.length;i++){
+    var n=(W-pad*2)/vals.length;
+    var x=pad+i*n+n*.15;var w=n*.7;
+    var h=Math.max(8,(bottom-pad)*vals[i]/max);var y=bottom-h;
+    ctx.fillStyle=colors[i];ctx.fillRect(x,y,w,h);
+    ctx.fillStyle="#e2e8f0";ctx.font="11px sans-serif";ctx.textAlign="center";
+    ctx.fillText(labels[i].slice(0,6),x+w/2,bottom+14);
+    ctx.fillText(vals[i]+"%",x+w/2,y-6);
+  }
 }
 function randomNames(){
   var names=["Alice","Bob","Charlie","Diana","Eva","Frank","Grace","Henry","Ivy","Jack","Luna","Mia","Noah","Olivia","Leo","Sophia","Emma","Mason","Aria","Liam"];
   document.getElementById("name1").value=names[Math.floor(Math.random()*names.length)];
   document.getElementById("name2").value=names[Math.floor(Math.random()*names.length)];
 }
+</script>
+
 <!-- Related Tools (cross-recommendation) -->
 <link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
 <div id="related-tools-section" class="related-tools-section">

@@ -164,6 +164,10 @@ a{color:#06b6d4;text-decoration:none}
       <div class="stat-card"><div class="val" id="dayOfYear">0</div><div class="lbl">今年第几天</div><div class="sub" id="dayOfYearSub">/ 365</div></div>
       <div class="stat-card"><div class="val" id="weeksPassed">0</div><div class="lbl">已过周数</div><div class="sub" id="weeksPassedSub">/ 52</div></div>
     </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <div id="result" style="flex:1;min-width:200px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px;padding:10px 12px;color:#94a3b8;font-size:.85rem;white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,monospace"></div>
+      <button class="btn btn-secondary" onclick="copyYearProgress()">📋 复制结果</button>
+    </div>
   </div>
 
   <div class="section">
@@ -303,6 +307,73 @@ function queryDate() {
   document.getElementById('queryResult').style.display = 'block';
   showToast('✅ 查询完成');
 }
+
+function yearProgressInit() {
+  var now = new Date();
+  var year = now.getFullYear();
+  var start = new Date(year, 0, 1);
+  var end = new Date(year + 1, 0, 1);
+  var total = (end - start) / 86400000;
+  var passed = Math.floor((now - start) / 86400000);
+  var pct = passed / total * 100;
+  var isLeap = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+  document.getElementById('yearBar').style.width = pct.toFixed(2) + '%';
+  document.getElementById('daysPassed').textContent = passed;
+  document.getElementById('daysPassedSub').textContent = '/ ' + total + '天';
+  document.getElementById('daysRemaining').textContent = total - passed;
+  document.getElementById('daysRemainingSub').textContent = '还剩';
+  document.getElementById('dayOfYear').textContent = passed + 1;
+  document.getElementById('dayOfYearSub').textContent = '/ ' + total;
+  document.getElementById('weeksPassed').textContent = Math.floor(passed / 7);
+  document.getElementById('weeksPassedSub').textContent = '/ ' + Math.floor(total / 7) + '周';
+  var month = now.getMonth();
+  var mStart = new Date(year, month, 1);
+  var mEnd = new Date(year, month + 1, 1);
+  var mTotal = (mEnd - mStart) / 86400000;
+  var mPassed = now.getDate() - 1;
+  var mPct = mPassed / mTotal * 100;
+  document.getElementById('monthPct').textContent = mPct.toFixed(1) + '%';
+  document.getElementById('monthLabel').textContent = (month + 1) + '月已过 ' + mPassed + '/' + mTotal + ' 天';
+  document.getElementById('monthBar').style.width = mPct.toFixed(1) + '%';
+  var monthGrid = document.getElementById('monthGrid');
+  var mh = '';
+  for (var i = 0; i < 12; i++) {
+    var mp = i < month ? 'rgba(6,182,212,.3)' : (i === month ? '#22d3ee' : 'rgba(148,163,184,.1)');
+    mh += '<div class="month-bar" style="background:' + mp + '" title="' + (i + 1) + '月"></div>';
+  }
+  if (monthGrid) monthGrid.innerHTML = mh;
+  var wd = document.getElementById('weekDays');
+  var day = now.getDay();
+  var cn = day === 0 ? 6 : day - 1;
+  var wh = '';
+  for (var j = 0; j < 7; j++) {
+    var cls = j < cn ? 'past' : (j === cn ? 'today' : 'future');
+    wh += '<div class="week-day ' + cls + '"></div>';
+  }
+  if (wd) wd.innerHTML = wh;
+  var summary = '📅 ' + year + '年 进度 ' + pct.toFixed(2) + '%\n';
+  summary += '已过 ' + passed + ' 天，剩余 ' + (total - passed) + ' 天\n';
+  summary += '今天是今年第 ' + (passed + 1) + ' 天（' + (isLeap ? '闰年' : '平年') + '，全年 ' + total + ' 天）';
+  var res = document.getElementById('result');
+  if (res) res.textContent = summary;
+}
+function copyYearProgress() {
+  var el = document.getElementById('result');
+  if (!el || !el.textContent) return;
+  var txt = el.textContent;
+  function done() { showToast('已复制'); }
+  function fail() { showToast('复制失败'); }
+  if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).then(done, fail); }
+  else {
+    var ta = document.createElement('textarea'); ta.value = txt;
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { fail(); }
+    document.body.removeChild(ta);
+  }
+}
+var qd = document.getElementById('queryDate');
+if (qd) qd.addEventListener('change', queryDate);
+yearProgressInit();
 </script>
 
 </body>

@@ -153,6 +153,7 @@ tr:hover td{background:rgba(148,163,184,.03)}
     <textarea id="codeInput" placeholder="在此粘贴代码..."></textarea>
     <div class="btn-row">
       <button class="btn btn-primary" onclick="analyzeCode()">📊 统计分析</button>
+      <button class="btn btn-secondary" onclick="fillExample()">🎲 填入示例</button>
       <button class="btn btn-secondary" onclick="clearAll()">🗑 清空</button>
     </div>
   </div>
@@ -176,6 +177,14 @@ tr:hover td{background:rgba(148,163,184,.03)}
         </thead>
         <tbody id="resultsBody"></tbody>
       </table>
+    </div>
+
+    <div class="table-container">
+      <h2>行数分布</h2>
+      <canvas id="lineChart" width="480" height="220" style="width:100%;max-width:480px;display:block;margin:0 auto"></canvas>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="copyResult()">📋 复制结果</button>
+      </div>
     </div>
   </div>
 
@@ -264,17 +273,133 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === 行数统计核心逻辑 ===
+var LINE_COMMENT_MARK = {
+  javascript:['//'], typescript:['//'], python:['#'], java:['//'], c:['//'],
+  csharp:['//'], go:['//'], rust:['//'], php:['//'], ruby:['#'], swift:['//'],
+  kotlin:['//'], html:['<!--'], css:['/*'], sql:['--'], shell:['#'], markdown:['<!--'], generic:['//']
+};
+function langForCount(lang) {
+  return LINE_COMMENT_MARK[lang] ? lang : 'generic';
+}
 function analyzeCode() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;var v=inp.value;out.textContent='Length: '+v.length+' chars, '+v.split(/\s+/).filter(Boolean).length+' words, '+v.split('\n').length+' lines';showToast('Analyzed!');
+  var inp = document.getElementById('codeInput');
+  var sel = document.getElementById('languageSelect');
+  if (!inp || !sel) return;
+  var text = inp.value;
+  if (!text.trim()) { showToast('请先粘贴代码'); return; }
+  var lang = sel.value;
+  var markers = LINE_COMMENT_MARK[langForCount(lang)];
+  var inBlock = false;
+  var total = 0, code = 0, comment = 0, blank = 0;
+  text.split('\n').forEach(function(line) {
+    total++;
+    var t = line.trim();
+    if (!t) { blank++; return; }
+    if (inBlock) {
+      comment++;
+      if (t.indexOf('*/') !== -1) inBlock = false;
+      return;
+    }
+    if (t.indexOf('/*') === 0) { inBlock = true; comment++; return; }
+    var isC = false;
+    markers.forEach(function(m) {
+      if (t.indexOf(m) === 0) isC = true;
+    });
+    if (isC) comment++;
+    else code++;
+  });
+  var pct = total ? Math.round(code / total * 100) : 0;
+  var langLabel = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : lang;
+  document.getElementById('summaryStats').innerHTML =
+    '<div class="stat-card"><div class="number">' + total + '</div><div class="label">总行数</div></div>' +
+    '<div class="stat-card"><div class="number">' + code + '</div><div class="label">代码行</div></div>' +
+    '<div class="stat-card"><div class="number">' + comment + '</div><div class="label">注释行</div></div>' +
+    '<div class="stat-card"><div class="number">' + blank + '</div><div class="label">空行</div></div>';
+  document.getElementById('resultsBody').innerHTML =
+    '<tr><td>粘贴内容</td><td>' + langLabel + '</td><td>' + total + '</td><td>' + code + '</td><td>' + comment + '</td><td>' + blank + '</td><td>' + pct + '%</td></tr>';
+  drawLineChart(code, comment, blank);
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('resultsSection').style.display = 'block';
+  showToast('统计完成');
+}
+
+function drawLineChart(code, comment, blank) {
+  var canvas = document.getElementById('lineChart');
+  if (!canvas || !canvas.getContext) return;
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  var data = [
+    { label: '代码', value: code, color: '#06b6d4' },
+    { label: '注释', value: comment, color: '#f59e0b' },
+    { label: '空行', value: blank, color: '#64748b' }
+  ];
+  var max = Math.max(code, comment, blank, 1);
+  var bw = 70, gap = (w - data.length * bw) / (data.length + 1), base = h - 40;
+  ctx.fillStyle = '#94a3b8'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+  data.forEach(function(d, i) {
+    var bh = Math.round(d.value / max * (h - 80));
+    var x = gap + i * (bw + gap);
+    var y = base - bh;
+    ctx.fillStyle = d.color;
+    ctx.fillRect(x, y, bw, bh);
+    ctx.fillStyle = '#f1f5f9';
+    ctx.fillText(d.value, x + bw / 2, y - 6);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText(d.label, x + bw / 2, base + 18);
+  });
+}
+
+function fillExample() {
+  var inp = document.getElementById('codeInput');
+  if (!inp) return;
+  inp.value = '// 示例代码\n' +
+    'function greet(name) {\n' +
+    '  // 打印问候语\n' +
+    '  console.log("Hello, " + name);\n' +
+    '}\n' +
+    '\n' +
+    '/* 主入口 */\n' +
+    'const users = ["Alice", "Bob"];\n' +
+    'users.forEach(greet);\n';
+  document.getElementById('languageSelect').value = 'javascript';
+  analyzeCode();
+  showToast('已填入示例代码');
+}
+
+function copyResult() {
+  var rows = Array.prototype.map.call(document.querySelectorAll('#resultsBody tr'), function(tr) {
+    return Array.prototype.map.call(tr.cells, function(td) { return td.textContent; }).join('\t');
+  }).join('\n');
+  var stats = Array.prototype.map.call(document.querySelectorAll('#summaryStats .stat-card'), function(c) {
+    return c.querySelector('.label').textContent + ': ' + c.querySelector('.number').textContent;
+  }).join('\n');
+  var t = (stats ? stats + '\n\n' : '') + (rows || '');
+  if (!t) { showToast('没有可复制的结果'); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(function(){ showToast('已复制结果'); }).catch(function(){ fallbackCopy(t); });
+  } else { fallbackCopy(t); }
+}
+function fallbackCopy(t) {
+  var ta = document.createElement('textarea');
+  ta.value = t;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showToast('已复制结果'); } catch(e) { showToast('复制失败'); }
+  document.body.removeChild(ta);
 }
 
 function clearAll() {
   document.getElementById('fileInput').value = '';
   document.getElementById('codeInput').value = '';
   document.getElementById('languageSelect').selectedIndex = 0;
-  document.getElementById('resultsSection').innerHTML = '';
+  document.getElementById('resultsBody').innerHTML = '';
+  document.getElementById('summaryStats').innerHTML = '';
   document.getElementById('resultsSection').style.display = 'none';
+  document.getElementById('emptyState').style.display = '';
   showToast('已重置');
 }
 </script>

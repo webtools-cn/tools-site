@@ -152,7 +152,37 @@ textarea:focus { outline: none; border-color: #22d3ee; }
 <div class="main-grid">
 <div><div class="section">
 
+<div class="tool-row">
+  <label>语言</label>
+  <select id="langSelect">
+    <option value="plain">纯文本</option>
+    <option value="js" selected>JavaScript</option>
+    <option value="py">Python</option>
+    <option value="java">Java</option>
+    <option value="html">HTML</option>
+    <option value="css">CSS</option>
+    <option value="sql">SQL</option>
+    <option value="sh">Shell</option>
+    <option value="ruby">Ruby</option>
+    <option value="go">Go</option>
+    <option value="rust">Rust</option>
+  </select>
+</div>
+<textarea id="inputText" placeholder="在此粘贴代码或文本..."></textarea>
+<div class="btn-row">
+  <button class="btn btn-primary" id="btnCount">🔍 统计行数</button>
+  <button class="btn btn-outline" id="btnPaste">📋 粘贴</button>
+  <button class="btn btn-outline" id="btnExample">🎲 填入示例</button>
+  <button class="btn btn-outline" id="btnCopyResult">📋 复制结果</button>
+  <button class="btn btn-reset" id="btnClear">清空</button>
+</div>
+<canvas id="lineChart" width="560" height="200" style="max-width:100%;margin-top:16px;background:#0f172a;border-radius:8px"></canvas>
+
 <div class="stat-card">
+      <div class="stat-value" id="totalLines">0</div>
+      <div class="stat-label">📄 总行数</div>
+    </div>
+    <div class="stat-card">
       <div class="stat-value" id="nonEmptyLines">0</div>
       <div class="stat-label">✏️ 非空行</div>
     </div>
@@ -228,6 +258,7 @@ textarea:focus { outline: none; border-color: #22d3ee; }
       document.getElementById('commentLines').textContent = '0';
       document.getElementById('codeLines').textContent = '0';
       document.getElementById('commentRatio').textContent = '0%';
+      drawChart();
       return;
     }
 
@@ -325,6 +356,7 @@ textarea:focus { outline: none; border-color: #22d3ee; }
     document.getElementById('commentLines').textContent = comment;
     document.getElementById('codeLines').textContent = Math.max(0, code);
     document.getElementById('commentRatio').textContent = ratio + '%';
+    drawChart();
   };
 
   window.pasteFromClipboard = async function() {
@@ -342,11 +374,75 @@ textarea:focus { outline: none; border-color: #22d3ee; }
     countLines();
   };
 
-  // Initialize with a sample
-  document.getElementById('inputText').value = '// 这是一个示例代码文件\nfunction helloWorld() {\n
-// 打印问候语\n    return true;\n}\n\n/* 多行注释\n * 这是第二行注释\n */\n\nconst PI = 3.14159;\nlet count = 0;';
-  countLines(;
-}(;</script>
+  function drawChart(){
+    var canvas = document.getElementById('lineChart');
+    if (!canvas || !canvas.getContext) return;
+    var ctx = canvas.getContext('2d');
+    var W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    var data = [
+      { label: '总行数', value: parseInt(document.getElementById('totalLines').textContent) || 0, color: '#94a3b8' },
+      { label: '代码行', value: parseInt(document.getElementById('codeLines').textContent) || 0, color: '#22d3ee' },
+      { label: '注释行', value: parseInt(document.getElementById('commentLines').textContent) || 0, color: '#a78bfa' },
+      { label: '空行', value: parseInt(document.getElementById('emptyLines').textContent) || 0, color: '#64748b' }
+    ];
+    var max = Math.max.apply(null, data.map(function(d){ return d.value; })) || 1;
+    var bw = W / data.length;
+    data.forEach(function(d, i){
+      var bh = (d.value / max) * (H - 50);
+      var x = i * bw + bw * 0.15;
+      ctx.fillStyle = d.color;
+      ctx.fillRect(x, H - 30 - bh, bw * 0.7, bh);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(d.label, x + bw * 0.35, H - 10);
+      ctx.fillStyle = d.color;
+      ctx.fillText(d.value, x + bw * 0.35, H - 36 - bh);
+    });
+  }
+
+  function ftCopy(text, msg){
+    function done(){ if (typeof showToast === 'function') showToast(msg || '已复制'); }
+    function fallback(){
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch(e) { if (typeof showToast === 'function') showToast('复制失败'); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(done).catch(fallback); }
+    else { fallback(); }
+  }
+
+  function fillExample(){
+    document.getElementById('inputText').value = '// 这是一个示例代码文件\nfunction helloWorld() {\n// 打印问候语\n    return true;\n}\n\n/* 多行注释\n * 这是第二行注释\n */\n\nconst PI = 3.14159;\nlet count = 0;';
+    countLines();
+    if (typeof showToast === 'function') showToast('已填入示例');
+  }
+  function copyResult(){
+    var parts = [
+      '📊 行数统计结果',
+      '总行数: ' + document.getElementById('totalLines').textContent,
+      '非空行: ' + document.getElementById('nonEmptyLines').textContent,
+      '空行: ' + document.getElementById('emptyLines').textContent,
+      '注释行: ' + document.getElementById('commentLines').textContent,
+      '代码行: ' + document.getElementById('codeLines').textContent,
+      '注释率: ' + document.getElementById('commentRatio').textContent
+    ];
+    ftCopy(parts.join('\n'), '已复制统计结果');
+  }
+
+  document.getElementById('btnCount').addEventListener('click', countLines);
+  document.getElementById('btnPaste').addEventListener('click', pasteFromClipboard);
+  document.getElementById('btnExample').addEventListener('click', fillExample);
+  document.getElementById('btnClear').addEventListener('click', clearAll);
+  document.getElementById('btnCopyResult').addEventListener('click', copyResult);
+  document.getElementById('inputText').addEventListener('input', countLines);
+  document.getElementById('langSelect').addEventListener('change', countLines);
+
+  fillExample();
+})();</script>
 
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "HowTo", "name": "How to use Line Counter", "description": "免费在线行数统计工具，快速统计文本总行数、空行数、非空行数、代码行数、注释行数。支持常见编程语言注释识别，无需注册，数据安全不外泄。", "step": [{"@type": "HowToStep", "position": 1, "text": "Paste or type your text into the input area", "name": "Paste or type your text into t"}, {"@type": "HowToStep", "position": 2, "text": "The tool automatically counts lines, words, characters, and paragraphs", "name": "The tool automatically counts "}, {"@type": "HowToStep", "position": 3, "text": "View the detailed statistics displayed below", "name": "View the detailed statistics d"}, {"@type": "HowToStep", "position": 4, "text": "Clear the input to start over with new text", "name": "Clear the input to start over "}]}</script>
 <script type="application/ld+json">{

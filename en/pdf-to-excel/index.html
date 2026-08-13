@@ -167,6 +167,9 @@
 <div class="output-section">
  <h2>📋 ExtractResult</h2>
  <div id="resultArea" class="output-area">SelectPDFfile clickExtractafter，table Datawillinthisshow.</div>
+ <div class="btn-row" style="margin-top:10px">
+  <button class="btn btn-secondary" id="copyResultBtn" style="display:none">📋 Copy Result</button>
+ </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -197,6 +200,22 @@ function handleFile(file) {
   fileInfo.textContent = '📄 ' + file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
   extractBtn.disabled = false;
   resultArea.textContent = '';
+}
+
+document.getElementById('copyResultBtn').addEventListener('click', function() {
+  const txt = resultArea.textContent;
+  if (!txt || txt.indexOf('✅') === -1) return;
+  function ok() { copyResultBtn.textContent = '✅ Copied'; setTimeout(() => copyResultBtn.textContent = '📋 Copy Result', 1500); }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(ok, function() { fbCopy(txt); ok(); });
+  } else { fbCopy(txt); ok(); }
+});
+function fbCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  document.body.removeChild(ta);
 }
 
 extractBtn.addEventListener('click', async () => {
@@ -253,6 +272,7 @@ extractBtn.addEventListener('click', async () => {
     URL.revokeObjectURL(url);
 
     resultArea.textContent = '✅ Convertcomplete！AlreadyExport ' + allRows.length + ' rowDatato ' + a.download + '。\n\nPreviewData（before20row）：\n' + allRows.slice(0,20).map(r => r.join('\t')).join('\n');
+    document.getElementById('copyResultBtn').style.display = 'inline-block';
     progressInfo.textContent = '✅ Processing complete';
   } catch(e) {
     resultArea.textContent = '❌ processfailed：' + e.message;

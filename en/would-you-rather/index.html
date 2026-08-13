@@ -77,8 +77,8 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../../index.html">Home</a> &rsaquo; <a href="../../#tools">Tools</a> &rsaquo; Would You Rather</p>
 <div class="hero"><p>Free online Would You Rather game with 50+ curated dilemmas. Perfect for parties, icebreakers and social fun. Random questions, endless fun. <span class="badge">🔒 No Registration · Data Stays Local</span></p></div>
 <div class="panel"><div class="panel-title">🤔 Would You Rather</div><div class="wyr-card" id="wyrCard"><div class="option" id="optionA">Loading...</div><div class="vs-divider">VS</div><div class="option" id="optionB">Loading...</div></div>
-<div class="btn-row"><button class="btn btn-primary btn-large" id="nextBtn">🔄 Next</button><button class="btn btn-secondary" id="revealBtn">📊 Stats</button></div>
-<div id="statsPanel" class="stats-panel" style="display:none"></div></div>
+<div class="btn-row"><button class="btn btn-primary btn-large" id="nextBtn">🔄 Next</button><button class="btn btn-secondary" id="revealBtn">📊 Stats</button><button class="btn btn-secondary" id="copyBtn">📋 Copy Question</button></div>
+<div id="statsPanel" class="stats-panel" style="display:none"><canvas id="voteChart" style="width:100%;height:160px;margin-bottom:12px"></canvas></div></div>
 <div class="privacy-note">🔒 <span>All computation happens on your device — Would You Rather, other values and other inputs stay in your browser. No data is uploaded to any server.</span></div>
 <div class="panel"><div class="panel-title">❓ FAQ</div><div class="faq-item"><div class="faq-q">How to play?</div><div class="faq-a">Two random options appear. Pick the one you prefer. View stats to see your preferences. Great for parties and icebreakers.</div></div>
 <div class="faq-item"><div class="faq-q">How many questions?</div><div class="faq-a">50+ handpicked dilemmas covering lifestyle, travel, food, career, and more.</div></div>
@@ -98,7 +98,44 @@ function loadQ(){currentQ=getRandomQ();document.getElementById('optionA').textCo
 document.getElementById('optionA').addEventListener('click',function(){this.classList.add('selected');document.getElementById('optionB').classList.remove('selected');voted.push(currentQ[0])});
 document.getElementById('optionB').addEventListener('click',function(){this.classList.add('selected');document.getElementById('optionA').classList.remove('selected');voted.push(currentQ[1])});
 document.getElementById('nextBtn').addEventListener('click',loadQ);
-document.getElementById('revealBtn').addEventListener('click',function(){var p=document.getElementById('statsPanel');if(p.style.display==='none'){p.style.display='block';var s='';var counts={};voted.forEach(function(v){counts[v]=counts[v]?counts[v]+1:1});var entries=[];for(var k in counts)entries.push([k,counts[k]]);entries.sort(function(a,b){return b[1]-a[1]});entries.forEach(function(e){s+='<div class="stat-row"><span>'+e[0]+'</span><span style="color:#22d3ee">'+e[1]+' votes</span></div>'});p.innerHTML='<div style="color:#f1f5f9;margin-bottom:8px;font-weight:600">Vote Stats ('+voted.length+' total)</div>'+s}else{p.style.display='none'}});
+document.getElementById('copyBtn').addEventListener('click',function(){
+  if(!currentQ){showToast('No question loaded');return}
+  var txt='Would you rather '+currentQ[0]+' or '+currentQ[1]+'?';
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){showToast('Copied ✓')}).catch(function(){copyWYR(txt)});
+  }else{copyWYR(txt)}
+});
+function copyWYR(t){
+  try{
+    var ta=document.createElement('textarea');ta.value=t;
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');
+    document.body.removeChild(ta);showToast('Copied ✓');
+  }catch(e){showToast('Copy failed')}
+}
+function drawVoteChart(entries){
+  var cv=document.getElementById('voteChart');
+  if(!cv||!entries.length)return;
+  var W=cv.offsetWidth||600;var H=160;
+  cv.width=W*2;cv.height=H*2;
+  var ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,cv.width,cv.height);
+  var max=entries[0][1];
+  var barH=Math.floor(cv.height/(entries.length*2+1));
+  ctx.font='12px sans-serif';
+  for(var i=0;i<entries.length;i++){
+    var y=(i*2+1)*barH+8;
+    var bw=Math.max(4,(entries[i][1]/max)*(cv.width-70));
+    ctx.fillStyle='rgba(148,163,184,.2)';
+    ctx.fillRect(0,y,cv.width-30,barH-4);
+    ctx.fillStyle='#06b6d4';
+    ctx.fillRect(0,y,bw,barH-4);
+    ctx.fillStyle='#e2e8f0';
+    ctx.fillText(entries[i][0].slice(0,14),4,y+barH-10);
+    ctx.fillStyle='#22d3ee';
+    ctx.fillText(String(entries[i][1]),cv.width-30,y+barH-10);
+  }
+}
+document.getElementById('revealBtn').addEventListener('click',function(){var p=document.getElementById('statsPanel');if(p.style.display==='none'){p.style.display='block';var s='';var counts={};voted.forEach(function(v){counts[v]=counts[v]?counts[v]+1:1});var entries=[];for(var k in counts)entries.push([k,counts[k]]);entries.sort(function(a,b){return b[1]-a[1]});entries.forEach(function(e){s+='<div class="stat-row"><span>'+e[0]+'</span><span style="color:#22d3ee">'+e[1]+' votes</span></div>'});p.innerHTML='<div style="color:#f1f5f9;margin-bottom:8px;font-weight:600">Vote Stats ('+voted.length+' total)</div>'+s+'<canvas id="voteChart" style="width:100%;height:160px;margin-top:10px"></canvas>';drawVoteChart(entries)}else{p.style.display='none'}});
 loadQ();</script>
 </main>
 

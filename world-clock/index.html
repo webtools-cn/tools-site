@@ -131,6 +131,7 @@ a{color:#06b6d4;text-decoration:none}
 <div class="main-grid">
 <div><div class="section"><div class="controls">
     <button class="btn btn-primary" onclick="openModal()">+ 添加城市</button>
+    <button class="btn btn-primary" id="copyTimesBtn">📋 复制全部时间</button>
     <div class="toggle-group">
       <input type="checkbox" id="analogToggle" checked>
       <label for="analogToggle">显示模拟时钟</label>
@@ -380,6 +381,20 @@ function renderClocks() {
 // Update every second
 renderClocks();
 setInterval(renderClocks, 1000);
+
+document.getElementById('copyTimesBtn').addEventListener('click', function() {
+  if (!_cities.length) { showToast('没有可复制的城市'); return; }
+  var lines = _cities.map(function(c) {
+    var now = new Date();
+    var utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    var t = new Date(utc + c.offset * 3600000);
+    var p = function(n) { return String(n).padStart(2, '0'); };
+    return c.name + ' ' + p(t.getHours()) + ':' + p(t.getMinutes()) + ':' + p(t.getSeconds()) + ' UTC' + (c.offset >= 0 ? '+' : '') + c.offset;
+  }).join('\n');
+  var done = function() { showToast('✅ 已复制全部城市时间'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(lines).then(done).catch(done);
+  else { var ta = document.createElement('textarea'); ta.value = lines; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch(e) {} document.body.removeChild(ta); }
+});
 
 // Toggle handlers
 document.addEventListener('DOMContentLoaded', function() {

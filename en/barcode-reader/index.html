@@ -252,6 +252,9 @@ table.data-table th{background:#0f172a;color:#94a3b8;font-weight:500}
   <div id="brResult" class="preview-wrap" style="min-height:60px">
     <p style="color:#475569;padding:20px;text-align:center">Upload or capture a barcode image to start</p>
   </div>
+  <div class="btn-row" style="margin-top:8px">
+    <button class="btn btn-secondary" id="brCopyBtn" style="display:none">📋 Copy Result</button>
+  </div>
 </div>
 <div class="section">
   <h2>📋 Supported Formats</h2>
@@ -290,6 +293,28 @@ const resultDiv = document.getElementById('brResult');
 const loadingDiv = document.getElementById('brLoading');
 
 let stream = null;
+let lastDecoded = '';
+const copyBtn = document.getElementById('brCopyBtn');
+function showBrToast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;z-index:999;opacity:0;transition:opacity .3s'; document.body.appendChild(t); }
+  t.textContent = msg; t.style.opacity = '1';
+  setTimeout(() => { t.style.opacity = '0'; }, 2000);
+}
+function copyResult() {
+  if (!lastDecoded) { showBrToast('Nothing to copy'); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(lastDecoded).then(() => showBrToast('Result copied ✓')).catch(() => brFallbackCopy(lastDecoded));
+  } else { brFallbackCopy(lastDecoded); }
+}
+function brFallbackCopy(t) {
+  const ta = document.createElement('textarea');
+  ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); showBrToast('Result copied ✓'); } catch (e) { showBrToast('Copy failed'); }
+  document.body.removeChild(ta);
+}
+copyBtn.addEventListener('click', copyResult);
 
 // ZXing decoder
 let decoder = null;
@@ -308,6 +333,8 @@ async function decodeImage(img) {
     if (decoder && decoder.detect) {
       const codes = await decoder.detect(img);
       if (codes.length > 0) {
+        lastDecoded = codes.map(c => c.rawValue).join('\n');
+        copyBtn.style.display = 'inline-block';
         let html = '<h3 style="color:#4ade80;margin-bottom:12px">' + 
           '✅ Decoded ' + codes.length + ' barcode(s)' + '</h3>';
         codes.forEach((c, i) => {
@@ -318,9 +345,13 @@ async function decodeImage(img) {
         });
         resultDiv.innerHTML = html;
       } else {
+        lastDecoded = '';
+        copyBtn.style.display = 'none';
         resultDiv.innerHTML = '<p style="color:#f87171;text-align:center;padding:20px">❌ No barcode detected, try a clearer image</p>';
       }
     } else {
+      lastDecoded = '';
+      copyBtn.style.display = 'none';
       // Fallback: use ZXing-wasm or just show guidance
       resultDiv.innerHTML = '<p style="color:#fbbf24;text-align:center;padding:20px">⚠️ Your browser does not support native barcode detection. Please use Chrome or Edge.</p>';
       // Load ZXing CDN dynamically - use a simple canvas-based approach
@@ -342,6 +373,8 @@ async function loadZXingFallback(img) {
       try {
         const codeReader = new ZXing.BrowserQRCodeReader();
         codeReader.decodeFromImage(img).then(result => {
+          lastDecoded = result.text;
+          copyBtn.style.display = 'inline-block';
           let html = '<h3 style="color:#4ade80;margin-bottom:12px">✅ Decoded</h3>';
           html += '<div style="background:#0f172a;border-radius:8px;padding:12px">';
           html += '<div style="color:#94a3b8;font-size:.8rem">QR Code</div>';
@@ -350,6 +383,8 @@ async function loadZXingFallback(img) {
           resultDiv.innerHTML = html;
           resolve();
         }).catch(err => {
+          lastDecoded = '';
+          copyBtn.style.display = 'none';
           resultDiv.innerHTML = '<p style="color:#f87171;text-align:center;padding:20px">❌ Failed to decode. Make sure the image contains a clear barcode. (' + err.message + ')</p>';
           resolve();
         });
@@ -410,18 +445,6 @@ window.addEventListener('beforeunload', function() {
 <h2>Key Features</h2><ul><li>Completely Free: No registration, no limits</li><li>Privacy Safe: Data never leaves your browser</li><li>Cross-Platform: Any modern browser</li><li>Zero Dependencies: Open and use</li></ul>
 
 </main>
-<script>
-const app = document.getElementById('app');
-const isCN = false;
-
-// barcode-reader - Barcode Reader
-const slug = 'barcode-reader';
-
-function renderApp() {
-  renderbarcodeReader();
-}
-
-renderbarcodeReader();</script>
 <!-- Related Tools (cross-recommendation) -->
 <link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
 <div id="related-tools-section" class="related-tools-section">

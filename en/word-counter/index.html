@@ -82,7 +82,9 @@
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
     <button class="btn btn-primary" onclick="pasteText()">📋 Paste</button>
+    <button class="btn btn-primary" onclick="fillExample()">🎲 Fill Example</button>
     <button class="btn btn-danger" onclick="clearText()">🗑️ Clear</button>
+    <button class="btn btn-secondary" onclick="copyStats()">📋 Copy Stats</button>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">
     <div class="stat-card"><div class="num" id="wc-chars">0</div><div class="lbl">Characters</div></div>
@@ -93,6 +95,9 @@
     <div class="stat-card"><div class="num" id="wc-lines">0</div><div class="lbl">Lines</div></div>
     <div class="stat-card"><div class="num" id="wc-reading">0 min</div><div class="lbl">Reading Time</div></div>
     <div class="stat-card"><div class="num" id="wc-speaking">0 min</div><div class="lbl">Speaking Time</div></div>
+  </div>
+  <div style="margin-top:16px">
+    <canvas id="wc-chart" width="560" height="150" style="width:100%;height:auto;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px"></canvas>
   </div>
 </div>
 <style>
@@ -163,6 +168,65 @@ function updateCount() {
   document.getElementById('wc-lines').textContent = lines.toLocaleString();
   document.getElementById('wc-reading').textContent = readingTime + ' min';
   document.getElementById('wc-speaking').textContent = speakingTime + ' min';
+  drawChart(chars, charsNoSpace, words, sentences, paragraphs, lines);
+}
+function drawChart(chars, charsNoSpace, words, sentences, paragraphs, lines) {
+  var canvas = document.getElementById('wc-chart');
+  if (!canvas || !canvas.getContext) return;
+  var items = [['Chars', chars], ['NoSpace', charsNoSpace], ['Words', words], ['Sent.', sentences], ['Para.', paragraphs], ['Lines', lines]];
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  var padL = 12, padR = 8, padT = 18, padB = 22;
+  var w = canvas.width - padL - padR;
+  var h = canvas.height - padT - padB;
+  var max = 1;
+  items.forEach(function(it) { if (it[1] > max) max = it[1]; });
+  var bw = w / items.length;
+  var palette = ['#06b6d4', '#22d3ee', '#8b5cf6', '#f59e0b', '#10b981', '#f43f5e'];
+  items.forEach(function(it, i) {
+    var bh = Math.max(2, (it[1] / max) * h);
+    var x = padL + i * bw + bw * 0.18;
+    var y = padT + h - bh;
+    ctx.fillStyle = palette[i % palette.length];
+    ctx.fillRect(x, y, bw * 0.64, bh);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(it[1], x + bw * 0.32, y > padT + 12 ? y - 4 : padT + 12);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px sans-serif';
+    ctx.fillText(it[0], x + bw * 0.32, canvas.height - 6);
+  });
+}
+function fillExample() {
+  document.getElementById('wc-input').value = 'The quick brown fox jumps over the lazy dog. This sample text helps you see every statistic at a glance.\n\nA second paragraph adds more words and several sentences, so the counter has enough material to work with.\n\nWrap it up with a final paragraph that finishes the demonstration neatly.';
+  updateCount();
+  showToast('Example filled');
+}
+function fallbackCopyText(text, done) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed'; ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  done();
+}
+function copyStats() {
+  var g = function(id) { return document.getElementById(id).textContent; };
+  var text = 'Characters: ' + g('wc-chars')
+    + '\nCharacters (no spaces): ' + g('wc-chars-nospace')
+    + '\nWords: ' + g('wc-words')
+    + '\nSentences: ' + g('wc-sentences')
+    + '\nParagraphs: ' + g('wc-paragraphs')
+    + '\nLines: ' + g('wc-lines')
+    + '\nReading time: ' + g('wc-reading')
+    + '\nSpeaking time: ' + g('wc-speaking');
+  var done = function() { showToast('Stats copied'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() { fallbackCopyText(text, done); });
+  } else { fallbackCopyText(text, done); }
 }
 function clearText() {
   document.getElementById('wc-input').value = '';

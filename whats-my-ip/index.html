@@ -114,6 +114,8 @@ a:hover{color:#22d3ee}
   <div class="ip-label" id="ipLabel">正在检测您的IP地址...</div>
   <div class="ip-address" id="ipAddress"><div class="loading"><div class="spinner"></div><div style="margin-top:8px">查询中...</div></div></div>
   <button class="copy-btn" id="copyBtn" onclick="copyIP()" style="display:none">📋 复制IP地址</button>
+  <button class="copy-btn" id="copyAllBtn" onclick="copyFullReport()" style="display:none">📋 复制全部信息</button>
+  <button class="copy-btn" id="refreshBtn" onclick="fetchIP()">🔄 重新检测</button>
 </div>
 
 <div class="info-grid">
@@ -224,6 +226,7 @@ async window.fetchIP = fetchIP; function fetchIP() {
     document.getElementById("coordinates").textContent = (data.latitude && data.longitude) ? data.latitude.toFixed(4) + ", " + data.longitude.toFixed(4) : "—";
     document.getElementById("postal").textContent = data.postal || "—";
     document.getElementById("ipVersion").textContent = data.version || "—";
+    document.getElementById("copyAllBtn").style.display = "inline-flex";
 
   } catch(e) {
     ipEl.innerHTML = '<div class="error-msg">' + (isCN() ? '查询失败: ' : 'Query failed: ') + e.message + '<button class="retry-btn" onclick="fetchIP()">' + (isCN() ? '重试' : 'Retry') + '</button></div>';
@@ -238,6 +241,36 @@ function copyIP() {
   }).catch(function() {
     showToast(isCN() ? "复制失败" : "Copy failed", true);
   });
+}
+
+function copyFullReport() {
+  var fields = [
+    ['IP', currentIP],
+    ['ISP', document.getElementById('isp').textContent],
+    ['ASN', document.getElementById('asn').textContent],
+    ['Country', document.getElementById('country').textContent],
+    ['City', document.getElementById('city').textContent],
+    ['Timezone', document.getElementById('timezone').textContent],
+    ['Coordinates', document.getElementById('coordinates').textContent],
+    ['Postal', document.getElementById('postal').textContent],
+    ['Version', document.getElementById('ipVersion').textContent]
+  ];
+  var text = fields.map(function(f) { return f[0] + ': ' + f[1]; }).join('\n');
+  if (!text.trim() || !currentIP) { showToast(isCN() ? '没有可复制的内容' : 'Nothing to copy', true); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function() {
+      showToast(isCN() ? '已复制全部信息' : 'Full report copied');
+    }).catch(function() { showToast(isCN() ? '复制失败' : 'Copy failed', true); });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast(isCN() ? '已复制全部信息' : 'Full report copied'); } catch(e) { showToast(isCN() ? '复制失败' : 'Copy failed', true); }
+    document.body.removeChild(ta);
+  }
 }
 
 fetchIP();

@@ -123,6 +123,7 @@ footer a{color:#64748b}
 </table>
 <div class="btn-row">
 <button class="btn btn-primary" id="copyJsonBtn">📋 Copy as JSON</button>
+<button class="btn btn-secondary" id="sampleBtn">🎲 Try Sample</button>
 <button class="btn btn-secondary" id="clearFileBtn">🗑️ Clear</button>
 </div>
 </div>
@@ -258,7 +259,30 @@ fileInput.addEventListener('change',()=>{
 
 document.getElementById('copyJsonBtn').addEventListener('click',()=>{
   if(!lastMetaData){showToast('Nothing to copy');return;}
-  navigator.clipboard.writeText(JSON.stringify(lastMetaData,null,2)).then(()=>showToast('JSON copied ✓'));
+  const json=JSON.stringify(lastMetaData,null,2);
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(json).then(()=>showToast('JSON copied ✓')).catch(()=>fallbackCopy(json));
+  }else{fallbackCopy(json);}
+});
+function fallbackCopy(t){
+  const ta=document.createElement('textarea');
+  ta.value=t;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');showToast('JSON copied ✓');}catch(e){showToast('Copy failed');}
+  document.body.removeChild(ta);
+}
+document.getElementById('sampleBtn').addEventListener('click',()=>{
+  const sample={
+    'Filename':'sample-report.pdf','File Size':'1.24 MB','PDF Version':'1.7','Pages':12,
+    'Encrypted':'no','Title':'2026 Annual Report','Author':'Marketing Team',
+    'Subject':'Company performance summary','Keywords':'annual, report, growth',
+    'Creator':'Adobe InDesign','Producer':'Adobe PDF Library','Creation Date':'6/18/2026, 8:30:00 AM',
+    'Modification Date':'7/2/2026, 2:15:00 PM','Metadata Format':'XMP'
+  };
+  metaTable.innerHTML=Object.entries(sample).map(([k,v])=>`<tr><td class="key">${k}</td><td class="val">${v}</td></tr>`).join('');
+  lastMetaData=sample;resultSection.style.display='block';
+  fileInfo.style.display='block';fileInfo.textContent='📎 sample-report.pdf (1.24 MB)';
+  showToast('Sample loaded ✓');
 });
 document.getElementById('clearFileBtn').addEventListener('click',()=>{
   fileInput.value='';fileInfo.style.display='none';resultSection.style.display='none';

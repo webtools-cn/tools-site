@@ -161,25 +161,61 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 // === 图片转卡通 - Canvas API ===
 var cartoonImageData=null;
+function initCartoonApp(src){
+  var img=new Image();
+  img.onload=function(){
+    var app=document.getElementById('app');
+    app.innerHTML='<div style="margin-bottom:12px"><label style="color:#94a3b8;font-size:.85rem">卡通强度: <span id="strengthVal">8</span></label><br><input type="range" id="cartoonStrength" min="2" max="20" value="8" oninput="document.getElementById(\'strengthVal\').textContent=this.value;processCartoon()"></div>'+
+      '<div style="margin-bottom:12px"><label style="color:#94a3b8;font-size:.85rem">色阶数: <span id="levelsVal">8</span></label><br><input type="range" id="cartoonLevels" min="2" max="16" value="8" oninput="document.getElementById(\'levelsVal\').textContent=this.value;processCartoon()"></div>'+
+      '<div style="display:flex;gap:16px;flex-wrap:wrap"><div style="text-align:center"><div style="color:#94a3b8;font-size:.8rem;margin-bottom:4px">原图</div><img id="cartoonOriginal" style="max-width:300px;max-height:300px;border-radius:8px"></div><div style="text-align:center"><div style="color:#94a3b8;font-size:.8rem;margin-bottom:4px">卡通效果</div><canvas id="cartoonCanvas" style="max-width:300px;max-height:300px;border-radius:8px"></canvas></div></div>'+
+      '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button class="btn btn-primary" onclick="downloadCartoon()">⬇️ 下载卡通图片</button><button class="btn btn-secondary" onclick="copyCartoonImage()">📋 复制图片</button></div>';
+    document.getElementById('cartoonOriginal').src=src;
+    cartoonImageData=img;
+    processCartoon();
+  };
+  img.src=src;
+}
 function handleCartoonFile(input){
   var file=input.files&&input.files[0];
   if(!file)return;
   var reader=new FileReader();
-  reader.onload=function(e){
-    var img=new Image();
-    img.onload=function(){
-      var app=document.getElementById('app');
-      app.innerHTML='<div style="margin-bottom:12px"><label style="color:#94a3b8;font-size:.85rem">卡通强度: <span id="strengthVal">8</span></label><br><input type="range" id="cartoonStrength" min="2" max="20" value="8" oninput="document.getElementById(\'strengthVal\').textContent=this.value;processCartoon()"></div>'+
-        '<div style="margin-bottom:12px"><label style="color:#94a3b8;font-size:.85rem">色阶数: <span id="levelsVal">8</span></label><br><input type="range" id="cartoonLevels" min="2" max="16" value="8" oninput="document.getElementById(\'levelsVal\').textContent=this.value;processCartoon()"></div>'+
-        '<div style="display:flex;gap:16px;flex-wrap:wrap"><div style="text-align:center"><div style="color:#94a3b8;font-size:.8rem;margin-bottom:4px">原图</div><img id="cartoonOriginal" style="max-width:300px;max-height:300px;border-radius:8px"></div><div style="text-align:center"><div style="color:#94a3b8;font-size:.8rem;margin-bottom:4px">卡通效果</div><canvas id="cartoonCanvas" style="max-width:300px;max-height:300px;border-radius:8px"></canvas></div></div>'+
-        '<div style="margin-top:12px"><button class="btn btn-primary" onclick="downloadCartoon()">⬇️ 下载卡通图片</button></div>';
-      document.getElementById('cartoonOriginal').src=e.target.result;
-      cartoonImageData=img;
-      processCartoon();
-    };
-    img.src=e.target.result;
-  };
+  reader.onload=function(e){ initCartoonApp(e.target.result); };
   reader.readAsDataURL(file);
+}
+function useSampleImage(){
+  var c=document.createElement('canvas');
+  c.width=400;c.height=300;
+  var ctx=c.getContext('2d');
+  var sky=ctx.createLinearGradient(0,0,0,300);
+  sky.addColorStop(0,'#7ec8e3');sky.addColorStop(1,'#d9f0fb');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,400,300);
+  ctx.fillStyle='#ffd54f';
+  ctx.beginPath();ctx.arc(330,60,36,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#8bc34a';
+  ctx.beginPath();ctx.moveTo(0,300);ctx.quadraticCurveTo(100,170,220,240);ctx.quadraticCurveTo(300,180,400,260);ctx.lineTo(400,300);ctx.fill();
+  ctx.fillStyle='#66bb6a';
+  ctx.beginPath();ctx.moveTo(0,300);ctx.quadraticCurveTo(140,210,300,280);ctx.lineTo(400,300);ctx.fill();
+  ctx.fillStyle='#ef8f5b';
+  ctx.fillRect(150,190,100,80);
+  ctx.fillStyle='#8d5524';
+  ctx.beginPath();ctx.moveTo(140,190);ctx.lineTo(200,140);ctx.lineTo(260,190);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#5c4033';
+  ctx.fillRect(185,220,30,50);
+  ctx.fillStyle='#b0bec5';
+  ctx.fillRect(235,210,12,12);ctx.fillRect(155,210,12,12);
+  initCartoonApp(c.toDataURL('image/png'));
+}
+function copyCartoonImage(){
+  var canvas=document.getElementById('cartoonCanvas');
+  if(!canvas){showToast('请先处理图片');return;}
+  canvas.toBlob(function(blob){
+    if(!blob){showToast('复制失败');return;}
+    if(navigator.clipboard&&navigator.clipboard.write&&window.ClipboardItem){
+      navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(function(){showToast('图片已复制到剪贴板');})['catch'](function(){showToast('复制失败，请使用下载');});
+    }else{
+      showToast('当前浏览器不支持复制图片，请使用下载');
+    }
+  },'image/png');
 }
 
 function processCartoon(){
@@ -243,7 +279,7 @@ function downloadCartoon(){
 document.addEventListener('DOMContentLoaded',function(){
   var app=document.getElementById('app');
   if(app){
-    app.innerHTML='<div style="text-align:center;padding:30px"><input type="file" id="cartoonFileInput" accept="image/*" onchange="handleCartoonFile(this)" style="display:none"><button class="btn btn-primary" onclick="document.getElementById(\'cartoonFileInput\').click()" style="padding:12px 24px;font-size:1rem">📁 上传图片</button><p style="color:#94a3b8;margin-top:8px;font-size:.85rem">支持 JPG/PNG/WebP，纯浏览器Canvas处理</p></div>';
+    app.innerHTML='<div style="text-align:center;padding:30px"><input type="file" id="cartoonFileInput" accept="image/*" onchange="handleCartoonFile(this)" style="display:none"><button class="btn btn-primary" onclick="document.getElementById(\'cartoonFileInput\').click()" style="padding:12px 24px;font-size:1rem">📁 上传图片</button><div style="display:flex;gap:10px;justify-content:center;margin-top:10px"><button class="btn btn-secondary" onclick="useSampleImage()" style="padding:10px 20px">🎲 使用示例图片</button><button class="btn btn-secondary" onclick="copyCartoonImage()" style="padding:10px 20px">📋 复制图片</button></div><p style="color:#94a3b8;margin-top:8px;font-size:.85rem">支持 JPG/PNG/WebP，纯浏览器Canvas处理</p></div>';
   }
 });
 

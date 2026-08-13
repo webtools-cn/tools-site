@@ -152,6 +152,13 @@ a{color:#06b6d4;text-decoration:none}
         <button class="btn btn-success" id="downloadBtn" disabled>📥 下载增强音频</button>
       </div>
       <div id="processingMsg" style="display:none;text-align:center;padding:20px;color:#22d3ee">⏳ 正在处理音频，请稍候...</div>
+      <div id="result" style="display:none;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px;padding:14px;margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap">
+          <span style="color:#22d3ee;font-size:.9rem;font-weight:600">⚙️ 处理摘要</span>
+          <button class="btn btn-secondary" type="button" onclick="copyAudioResult()">📋 复制结果</button>
+        </div>
+        <pre id="resultText" style="margin:0;color:#94a3b8;font-size:.8rem;white-space:pre-wrap;word-break:break-all;font-family:ui-monospace,monospace">等待处理...</pre>
+      </div>
     </div>
   </div>
   <div class="info-section" id="usage">
@@ -213,6 +220,14 @@ function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.c
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
 (function(){var s=document.createElement('script');s.src='/tools-site/libs/feedback.js';document.body.appendChild(s);})();
+
+function fmtSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(2)+' MB'}
+var boostSlider=document.getElementById('boostSlider');
+if(boostSlider){boostSlider.addEventListener('input',function(){var v=boostSlider.value;document.getElementById('boostVal').textContent=v+'%';var lbl=document.getElementById('boostLabel');if(lbl)lbl.textContent=v+'%';var w=document.getElementById('volumeWarning');if(w)w.style.display=(+v>200)?'block':'none';updateAudioSummary();});}
+var fileInputEl=document.getElementById('fileInput');
+if(fileInputEl){fileInputEl.addEventListener('change',function(){var f=fileInputEl.files[0];if(!f)return;document.getElementById('controlsArea').style.display='block';document.getElementById('fileName').textContent=f.name;document.getElementById('fileSize').textContent=fmtSize(f.size);updateAudioSummary();});}
+function updateAudioSummary(){var res=document.getElementById('result');if(!res)return;res.style.display='block';var f=fileInputEl&&fileInputEl.files[0];var boost=boostSlider?+boostSlider.value:100;var txt='文件名: '+(f?f.name:'-')+'\n文件大小: '+(f?fmtSize(f.size):'-')+'\n音量增强: '+boost+'%\n建议: '+(boost>200?'⚠️ 超过200%可能失真':'✅ 正常范围');document.getElementById('resultText').textContent=txt;}
+function copyAudioResult(){var el=document.getElementById('resultText');if(!el||!el.textContent)return;var txt=el.textContent;function done(){showToast('已复制')}function fail(){showToast('复制失败')}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done,fail)}else{var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(e){fail()}document.body.removeChild(ta)}}
 
 </script>
 </body>

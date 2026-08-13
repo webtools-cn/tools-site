@@ -45,6 +45,9 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:#3b82f6;box-sh
 .btn-success{background:#10b981;color:#fff}
 .btn-success:hover{background:#059669}
 .result-box{background:#0f172a;border:2px solid #e2e8f0;border-radius:10px;padding:16px;min-height:60px;font-family:'SF Mono','Cascadia Code',monospace;font-size:14px;word-break:break-all;white-space:pre-wrap}
+.form-group{margin-bottom:14px}
+.form-row{display:flex;gap:12px;flex-wrap:wrap}
+.form-row .form-group{flex:1;min-width:200px}
 .faq-section{margin-top:48px}
 .faq-section h2{font-size:22px;font-weight:700;margin-bottom:20px;color:#0f172a}
 .faq-item{background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:12px;margin-bottom:12px;overflow:hidden}
@@ -96,7 +99,47 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:#3b82f6;box-sh
 <div class="hero"><p>免费在线国际电话号码格式化与验证工具，支持200+国家/地区号码格式。无需注册，保护隐私安全。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
-    
+    <h2>📞 电话号码格式化</h2>
+    <div class="form-group">
+      <label>电话号码</label>
+      <input type="text" id="phoneInput" placeholder="输入电话号码，如 13800138000 或 +86 138 0013 8000" oninput="formatPhone()">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>国家/地区</label>
+        <select id="countryCode" onchange="formatPhone()">
+          <option value="CN">中国 (+86)</option>
+          <option value="US">美国 (+1)</option>
+          <option value="GB">英国 (+44)</option>
+          <option value="JP">日本 (+81)</option>
+          <option value="HK">香港 (+852)</option>
+          <option value="TW">台湾 (+886)</option>
+          <option value="DE">德国 (+49)</option>
+          <option value="FR">法国 (+33)</option>
+          <option value="AU">澳大利亚 (+61)</option>
+          <option value="KR">韩国 (+82)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>输出格式</label>
+        <select id="formatType" onchange="formatPhone()">
+          <option value="E164">E.164（+8613800138000）</option>
+          <option value="INTERNATIONAL">国际格式（+86 138 0013 8000）</option>
+          <option value="NATIONAL">国内格式（138 0013 8000）</option>
+          <option value="RFC3966">RFC3966（tel:+86-138-0013-8000）</option>
+          <option value="PLAIN">纯数字（8613800138000）</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="formatPhone()">🔄 格式化</button>
+      <button class="btn btn-secondary" onclick="validatePhone()">✅ 验证</button>
+      <button class="btn btn-secondary" onclick="fillExample()">🎲 填入示例</button>
+    </div>
+    <div class="result-box" id="formattedResult">输入号码后自动格式化，或点击「填入示例」体验</div>
+    <div class="btn-row">
+      <button class="btn btn-success" onclick="copyPhoneResult()">📋 复制结果</button>
+    </div>
 
 <div class="faq-section">
 <h2>常见问题</h2>
@@ -117,6 +160,8 @@ function sendFeedback(type){showToast('感谢反馈！');gtag&&gtag('event','fee
 const countryPatterns={CN:{code:'86',len:11},US:{code:'1',len:10},GB:{code:'44',len:10},JP:{code:'81',len:10},HK:{code:'852',len:8},TW:{code:'886',len:9},DE:{code:'49',len:10},FR:{code:'33',len:9},AU:{code:'61',len:9},KR:{code:'82',len:10}};
 function formatPhone(){const input=document.getElementById('phoneInput').value.replace(/[^0-9+]/g,'');const country=document.getElementById('countryCode').value;const format=document.getElementById('formatType').value;const out=document.getElementById('formattedResult');if(!input){out.textContent='';return;}const pat=countryPatterns[country]||countryPatterns.US;const digits=input.replace(/\+/g,'');const fullDigits=digits.startsWith(pat.code)?digits:pat.code+digits;switch(format){case'E164':out.textContent='+'+fullDigits.slice(0,15);break;case'INTERNATIONAL':out.textContent='+'+fullDigits.replace(/(\d{1,3})(\d{1,3})(\d{1,3})(\d{0,4})/,'$1 $2 $3 $4').trim();break;case'NATIONAL':if(country==='CN')out.textContent=fullDigits.slice(2).replace(/(\d{3})(\d{4})(\d{4})/,'$1 $2 $3');else if(country==='US')out.textContent=fullDigits.slice(1).replace(/(\d{3})(\d{3})(\d{4})/,'($1) $2-$3');else out.textContent=fullDigits.slice(pat.code.length);break;case'RFC3966':out.textContent='tel:+'+fullDigits.replace(/(\d{1,3})(\d{1,3})(\d{1,3})/,'$1-$2-$3');break;case'PLAIN':out.textContent=fullDigits;break;default:out.textContent='+'+fullDigits;}}
 function validatePhone(){const input=document.getElementById('phoneInput').value.replace(/[^0-9+]/g,'');const country=document.getElementById('countryCode').value;const pat=countryPatterns[country]||countryPatterns.US;const digits=input.replace(/\+/g,'');const isLen=digits.length>=pat.len-1&&digits.length<=pat.len+1;if(isLen)showToast("✅ 号码格式有效");else showToast("⚠️ 号码长度不匹配，请检查");}
+function fillExample(){const samples=['13800138000','+86 139 1234 5678','2125551234','070-1234-5678','+1 (415) 555-2671'];const v=samples[Math.floor(Math.random()*samples.length)];document.getElementById('phoneInput').value=v;formatPhone();showToast('已填入示例号码：'+v);}
+function copyPhoneResult(){const el=document.getElementById('formattedResult');if(!el)return;navigator.clipboard.writeText(el.textContent||el.innerText).then(()=>showToast('已复制格式化结果'))["catch"](()=>showToast('复制失败'));}
 </script>
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>

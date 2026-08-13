@@ -104,6 +104,7 @@
         <div class="stat-box"><div class="num" id="diaperCount">0</div><div class="lbl">Diapers Today</div></div>
         <div class="stat-box"><div class="num" id="sleepTotal">0h</div><div class="lbl">Total Sleep</div></div>
       </div>
+      <button class="btn-save" id="copySummaryBtn" style="width:100%;margin-bottom:12px;background:#0f172a;color:#22d3ee;border:1px solid rgba(6,182,212,.3)">📋 复制今日总结</button>
       <div class="tracker-tabs" id="tabs">
         <div class="tab-btn active" data-tab="feed">🍼 Feeding</div>
         <div class="tab-btn" data-tab="sleep">😴 Sleep</div>
@@ -196,10 +197,13 @@
         } else if (currentTab === 'growth') {
           const growthLogs = logs.filter(l => l.type === 'growth').sort((a,b) => a.date.localeCompare(b.date));
           el.innerHTML = '<div class="growth-section"><div class="growth-row"><input type="date" id="growthDate" value="'+today()+'"><input type="number" id="growthHeight" placeholder="Height cm" step="0.1" min="0"><input type="number" id="growthWeight" placeholder="Weight kg" step="0.01" min="0"><button class="btn-save" id="growthSave">Record</button></div>' +
+            '<div class="growth-row" style="grid-template-columns:1fr auto auto"><button class="btn-save" id="growthExample" style="background:#0f172a;color:#22d3ee;border:1px solid rgba(6,182,212,.3)">🎲 填入示例</button></div>' +
+            '<canvas id="growthChart" width="620" height="220" style="width:100%;max-width:620px;height:220px;margin:12px auto;display:block;background:#0f172a;border-radius:8px;border:1px solid rgba(148,163,184,.1)"></canvas>' +
             (growthLogs.length ? '<table class="growth-table"><tr><th>Date</th><th>Height(cm)</th><th>Weight(kg)</th><th></th></tr>' +
             growthLogs.map(l => '<tr><td>'+l.date+'</td><td>'+l.height+'</td><td>'+l.weight+'</td><td><span class="log-delete" data-idx="'+logs.indexOf(l)+'">Delete</span></td></tr>').join('') +
             '</table>' : '<div style="text-align:center;color:#94a3b8;padding:16px">No growth data yet</div>') +
             '</div>';
+          drawGrowthChart();
         }
       }
 
@@ -250,6 +254,102 @@
         if (!confirm('Clear all of today\'s logs?')) return;
         logs = logs.filter(l => l.date !== td);
         save();
+      });
+
+      function ftEnsureCopy(text, cb){
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).then(function(){cb(true)}).catch(function(){cb(ftFallbackCopy(text))});
+        } else { cb(ftFallbackCopy(text)); }
+      }
+      function ftFallbackCopy(text){
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch(e) { ok = false; }
+        document.body.removeChild(ta);
+        return ok;
+      }
+
+      document.getElementById('copySummaryBtn').addEventListener('click', function(){
+        const td = today();
+        const tl = logs.filter(l => l.date === td);
+        const btn = this;
+        if (!tl.length) { btn.textContent = '⚠️ 暂无今日记录'; setTimeout(function(){ btn.textContent = '📋 复制今日总结'; }, 1500); return; }
+        const feed = tl.filter(l=>l.type==='feed').length;
+        const sleep = tl.filter(l=>l.type==='sleep');
+        const diaper = tl.filter(l=>l.type==='diaper');
+        const sleepMins = sleep.reduce((s,l)=>s+(parseInt(l.duration)||0),0);
+        const lines = [
+          '👶 Baby Tracker — Today\'s Summary ('+td+')',
+          '🍼 Feedings: '+feed,
+          '😴 Naps: '+sleep.length+' (total '+Math.floor(sleepMins/60)+'h'+(sleepMins%60?' '+sleepMins%60+'m':'')+')',
+          '🧷 Diapers: '+diaper.length
+        ];
+        ftEnsureCopy(lines.join('\n'), function(ok){
+          btn.textContent = ok ? '✅ 已复制' : '❌ 复制失败';
+          setTimeout(function(){ btn.textContent = '📋 复制今日总结'; }, 1500);
+        });
+      });
+
+      function drawGrowthChart(){
+        const cv = document.getElementById('growthChart');
+        if (!cv || !cv.getContext) return;
+        const g = logs.filter(l=>l.type==='growth').sort((a,b)=>a.date.localeCompare(b.date));
+        const ctx = cv.getContext('2d');
+        const w = cv.width, h = cv.height;
+        ctx.clearRect(0,0,w,h);
+        ctx.fillStyle = '#0f172a'; ctx.fillRect(0,0,w,h);
+        if (!g.length) {
+          ctx.fillStyle = '#64748b'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText('Record growth data to see the chart', w/2, h/2);
+          return;
+        }
+        const heights = g.map(l=>parseFloat(l.height)||0);
+        const weights = g.map(l=>parseFloat(l.weight)||0);
+        const maxV = Math.max.apply(null, heights.concat(weights), 1);
+        const minV = Math.min.apply(null, heights.concat(weights));
+        const padL = 40, padR = 12, padT = 16, padB = 28;
+        const plotW = w - padL - padR, plotH = h - padT - padB;
+        function sx(i){ return padL + (g.length===1 ? plotW/2 : i*(plotW/(g.length-1))); }
+        function sy(v){ return padT + plotH - ((v-minV)/((maxV-minV)||1))*plotH; }
+        ctx.strokeStyle = 'rgba(148,163,184,.15)'; ctx.fillStyle = '#64748b'; ctx.font = '10px sans-serif';
+        for (let i=0;i<=4;i++){
+          const y = padT + plotH*i/4;
+          ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(w-padR,y); ctx.stroke();
+          ctx.fillText((maxV-(maxV-minV)*i/4).toFixed(1), 4, y+3);
+        }
+        function plotLine(arr, color){
+          ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2;
+          arr.forEach(function(v,i){ if(i===0) ctx.moveTo(sx(i),sy(v)); else ctx.lineTo(sx(i),sy(v)); });
+          ctx.stroke();
+          ctx.fillStyle = color;
+          arr.forEach(function(v,i){ ctx.beginPath(); ctx.arc(sx(i),sy(v),3,0,Math.PI*2); ctx.fill(); });
+        }
+        if (heights.some(v=>v)) plotLine(heights, '#22d3ee');
+        if (weights.some(v=>v)) plotLine(weights, '#fbbf24');
+        ctx.fillStyle = '#94a3b8'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+        if (g.length===1) ctx.fillText(g[0].date, padL+plotW/2, h-8);
+        else g.forEach(function(l,i){ if(i%Math.max(1,Math.floor(g.length/6))===0 || i===g.length-1) ctx.fillText(l.date.slice(5), sx(i), h-8); });
+        ctx.textAlign = 'left'; ctx.fillStyle = '#22d3ee';
+        ctx.fillText('— Height(cm)', w-120, padT+6);
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillText('— Weight(kg)', w-120, padT+20);
+      }
+
+      document.getElementById('tabContent').addEventListener('click', function(e){
+        if (e.target.id === 'growthExample') {
+          const gd = document.getElementById('growthDate');
+          const gh = document.getElementById('growthHeight');
+          const gw = document.getElementById('growthWeight');
+          if (!gd || !gh || !gw) return;
+          gd.value = today();
+          gh.value = (55 + Math.random()*8).toFixed(1);
+          gw.value = (4.5 + Math.random()*3).toFixed(2);
+          const btn = e.target;
+          btn.textContent = '✅ 已填入，点 Record 保存';
+          setTimeout(function(){ btn.textContent = '🎲 填入示例'; }, 2000);
+        }
       });
 
       load();

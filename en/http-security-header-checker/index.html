@@ -65,6 +65,8 @@
 <h2>📊 Security Score</h2>
 <div class="score-circle" id="score-circle">-</div>
 <div style="text-align:center;margin-bottom:16px"><span id="score-text" style="font-size:.9rem;color:#94a3b8"></span></div>
+<canvas id="headerChart" width="760" height="220" style="width:100%;height:auto;margin-bottom:16px;display:block"></canvas>
+<div style="text-align:center;margin-bottom:16px"><button class="btn btn-secondary" onclick="copyReport()">📋 复制结果</button></div>
 <div id="header-list"></div>
 </div>
 </div>
@@ -107,8 +109,44 @@ const securityHeaders=[
 {name:'X-XSS-Protection',key:'x-xss-protection',weight:5,desc:'Enables built-in XSS filter (deprecated, use CSP)',fix:'Nginx: add_header X-XSS-Protection "1; mode=block";\nNote: Deprecated in modern browsers, use CSP instead'},
 {name:'Cross-Origin-Opener-Policy',key:'cross-origin-opener-policy',weight:5,desc:'Controls cross-origin opener policy, preventing Spectre attacks',fix:'Nginx: add_header Cross-Origin-Opener-Policy "same-origin";\nApache: Header set Cross-Origin-Opener-Policy "same-origin"'}
 ];
+var lastHeaders=null,lastScore=0,lastScoreText='';
 function checkHeaders(){const url=document.getElementById('url-input').value.trim();if(!url){showToast('Please enter a URL');return}if(!url.startsWith('http')){showToast('URL must start with http:// or https://');return}showToast('Checking...');fetch(url,{mode:'no-cors',method:'HEAD'}).then(r=>{const h={};r.headers.forEach((v,k)=>{h[k.toLowerCase()]=v});displayResults(h)}).catch(()=>{const d={'content-security-policy':"default-src 'self'",'strict-transport-security':'max-age=31536000','x-content-type-options':'nosniff','x-frame-options':'SAMEORIGIN'};showToast('CORS restricted, showing example');displayResults(d)})}
-function displayResults(headers){let score=0,total=0;const list=document.getElementById('header-list');list.innerHTML='';securityHeaders.forEach(h=>{total+=h.weight;const val=headers[h.key];const item=document.createElement('div');item.className='header-item';if(val){score+=h.weight;item.innerHTML=`<div><div class="header-name">${h.name}</div><div class="header-detail">Value: ${val.substring(0,80)}${val.length>80?'...':''}</div></div><span class="header-status status-pass">✅ Pass</span>`}else{item.innerHTML=`<div><div class="header-name">${h.name}</div><div class="header-detail">${h.desc}</div><div class="header-fix">Fix:\n${h.fix}</div></div><span class="header-status status-fail">❌ Missing</span>`}list.appendChild(item)});const pct=Math.round(score/total*100);const circle=document.getElementById('score-circle');circle.textContent=pct+'%';circle.className='score-circle '+(pct>=80?'score-a':pct>=60?'score-b':pct>=40?'score-c':'score-f');document.getElementById('score-text').textContent=pct>=80?'Excellent security config':pct>=60?'Good config, room for improvement':pct>=40?'Insufficient security, needs improvement':'Critical: security headers missing';document.getElementById('results').style.display='block'}
+function displayResults(headers){let score=0,total=0;const list=document.getElementById('header-list');list.innerHTML='';securityHeaders.forEach(h=>{total+=h.weight;const val=headers[h.key];const item=document.createElement('div');item.className='header-item';if(val){score+=h.weight;item.innerHTML=`<div><div class="header-name">${h.name}</div><div class="header-detail">Value: ${val.substring(0,80)}${val.length>80?'...':''}</div></div><span class="header-status status-pass">✅ Pass</span>`}else{item.innerHTML=`<div><div class="header-name">${h.name}</div><div class="header-detail">${h.desc}</div><div class="header-fix">Fix:\n${h.fix}</div></div><span class="header-status status-fail">❌ Missing</span>`}list.appendChild(item)});const pct=Math.round(score/total*100);const circle=document.getElementById('score-circle');circle.textContent=pct+'%';circle.className='score-circle '+(pct>=80?'score-a':pct>=60?'score-b':pct>=40?'score-c':'score-f');document.getElementById('score-text').textContent=pct>=80?'Excellent security config':pct>=60?'Good config, room for improvement':pct>=40?'Insufficient security, needs improvement':'Critical: security headers missing';document.getElementById('results').style.display='block';lastHeaders=headers;lastScore=pct;lastScoreText=document.getElementById('score-text').textContent;drawChart(headers)}
+function drawChart(headers){
+  var canvas=document.getElementById('headerChart');
+  if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  var n=securityHeaders.length;
+  var rowH=Math.floor((H-16)/n);
+  ctx.font='12px -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif';
+  securityHeaders.forEach(function(h,i){
+    var present=!!headers[h.key];
+    var y=14+i*rowH;
+    ctx.fillStyle=present?'#22c55e':'#f87171';
+    ctx.beginPath();
+    ctx.arc(12,y-3,4,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle=present?'#e2e8f0':'#94a3b8';
+    ctx.fillText(h.name,24,y);
+    var maxW=W-300;
+    var bw=present?Math.max(10,h.weight/100*maxW):8;
+    ctx.fillStyle=present?'rgba(34,197,94,.6)':'rgba(248,113,113,.35)';
+    ctx.fillRect(250,y-9,bw,10);
+    ctx.fillStyle='#64748b';
+    ctx.fillText(present?'Pass +'+h.weight:'Missing',Math.min(250+bw+8,W-40),y);
+  });
+}
+function copyReport(){
+  if(!lastHeaders){showToast('Run a check first');return;}
+  var txt='HTTP Security Header Report\nScore: '+lastScore+'% ('+lastScoreText+')\n';
+  securityHeaders.forEach(function(h){
+    var val=lastHeaders[h.key];
+    txt+=(val?'[OK] ':'[MISS] ')+h.name+(val?' - '+val.substring(0,80):' - '+h.desc)+'\n';
+  });
+  navigator.clipboard.writeText(txt).then(function(){showToast('Report copied');}).catch(function(){showToast('Copy failed');});
+}
 function loadExample(){const d={'content-security-policy':"default-src 'self'; script-src 'self' 'unsafe-inline'",'strict-transport-security':'max-age=31536000; includeSubDomains','x-content-type-options':'nosniff','x-frame-options':'SAMEORIGIN','referrer-policy':'strict-origin-when-cross-origin'};displayResults(d)}
 function toggleFAQ(el){el.parentElement.classList.toggle('open')}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}

@@ -219,13 +219,18 @@ a{color:#06b6d4;text-decoration:none}
  <span data-mood="5" title="Great" style="cursor:pointer;padding:4px;border-radius:8px;transition:all .2s">🥰</span>
  </div>
  </div>
- <div class="form-group">
- <label for="moodNote">Note (optional)</label>
- <input type="text" id="moodNote" placeholder="What happened today?" onkeydown="if(event.key==='Enter')saveMood()">
- </div>
- <div class="btn-group">
- <button class="btn btn-primary" onclick="saveMood()">💾 Save Today's Mood</button>
- </div>
+  <div class="form-group">
+  <label for="moodNote">Note (optional)</label>
+  <input type="text" id="moodNote" placeholder="What happened today?" onkeydown="if(event.key==='Enter')saveMood()">
+  </div>
+  <div class="btn-group">
+  <button class="btn btn-primary" onclick="saveMood()">💾 Save Today's Mood</button>
+  <button class="btn btn-secondary" onclick="fillNoteExample()">🎲 Fill Example</button>
+  </div>
+  <div class="section" style="margin-bottom:12px">
+  <h2>📊 This Month's Mood Distribution</h2>
+  <canvas id="moodChart" width="700" height="220" style="width:100%;height:auto"></canvas>
+  </div>
  <div class="grid-2" style="margin-bottom:12px">
  <div class="section" style="margin:0;padding:12px;text-align:center">
  <div class="stat-label">Monthly Average</div>
@@ -328,6 +333,38 @@ function saveMood(){
 function deleteMood(date){moods=moods.filter(function(m){return m.date!==date});save()}
 function getMoodEmoji(m){return {1:"😢",2:"😟",3:"😐",4:"😊",5:"🥰"}[m]||"❓"}
 function getMoodLabel(m,lang){return lang==="zh-CN"?{1:"verydiff",2:"notgood",3:"",4:"",5:""}[m]:{1:"Terrible",2:"Bad",3:"Okay",4:"Good",5:"Great"}[m]}
+function drawChart(monthMoods){
+  var cv=document.getElementById("moodChart");
+  if(!cv)return;
+  var ctx=cv.getContext("2d");
+  var W=cv.width,H=cv.height,padL=40,padB=30,padT=20;
+  ctx.clearRect(0,0,W,H);
+  var levels=[1,2,3,4,5];
+  var counts=levels.map(function(l){return monthMoods.filter(function(m){return m.mood===l}).length});
+  var maxC=Math.max.apply(null,counts.concat([1]));
+  var label=["😢","😟","😐","😊","🥰"];
+  var bw=(W-padL-20)/levels.length;
+  for(var i=0;i<levels.length;i++){
+    var h=(counts[i]/maxC)*(H-padT-padB);
+    var x=padL+i*bw+bw*0.2;
+    var grad=ctx.createLinearGradient(0,H-padB-h,0,H-padB);
+    grad.addColorStop(0,"#06b6d4");grad.addColorStop(1,"rgba(6,182,212,.25)");
+    ctx.fillStyle=grad;
+    ctx.fillRect(x,H-padB-h,bw*0.6,h);
+    ctx.fillStyle="#22d3ee";
+    ctx.font="12px sans-serif";ctx.textAlign="center";
+    ctx.fillText(counts[i],x+bw*0.3,H-padB-h-6);
+    ctx.fillText(label[i],x+bw*0.3,H-padB+14);
+    ctx.strokeStyle="rgba(148,163,184,.2)";
+  }
+  ctx.strokeStyle="rgba(148,163,184,.15)";
+  ctx.beginPath();ctx.moveTo(padL,padT);ctx.lineTo(padL,H-padB);ctx.lineTo(W-10,H-padB);ctx.stroke();
+}
+function fillNoteExample(){
+  var tips=["Sunny walk in the park, felt refreshed.","Finished a big project today!","Catching up with an old friend.","Good night's sleep, woke up energetic.","Met my daily workout goal."];
+  document.getElementById("moodNote").value=tips[Math.floor(Math.random()*tips.length)];
+  toast("Example note filled ✓");
+}
 function render(){
   var lang=document.documentElement.lang;
   var now=new Date();var year=now.getFullYear();var month=now.getMonth()+1;
@@ -336,6 +373,7 @@ function render(){
   var avg=monthMoods.length>0?(monthMoods.reduce(function(s,m){return s+m.mood},0)/monthMoods.length):0;
   document.getElementById("moodAvg").textContent=avg>0?getMoodEmoji(Math.round(avg))+" "+avg.toFixed(1):"-";
   document.getElementById("moodDays").textContent=monthMoods.length;
+  drawChart(monthMoods);
   // Calendar
   var firstDay=new Date(year,month-1,1).getDay();
   var calHtml="<div style=\"font-size:.8rem;color:#64748b;display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;margin-bottom:6px\">";

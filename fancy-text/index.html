@@ -94,6 +94,10 @@
   <p class="subtitle">将普通文字转换为各种Unicode风格：粗体、斜体、花体、双线体、圆圈文字等。</p>
   <div class="section">
     <label for="input-text">输入文字</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <button class="btn btn-primary" id="fill-example-btn" style="padding:6px 14px;font-size:.85rem">🎲 填入示例</button>
+      <button class="btn btn-primary" id="copy-all-btn" style="padding:6px 14px;font-size:.85rem">📋 复制全部</button>
+    </div>
     <textarea id="input-text" placeholder="在这里输入你想转换的文字...">Hello World 你好世界</textarea>
     <div class="style-grid" id="style-grid"></div>
   </div>
@@ -197,6 +201,54 @@
   }
 
   input.addEventListener('input',renderStyles);
+
+  var examples=[
+    'Hello World 你好世界',
+    'Free ToolBase 免费工具站',
+    'Design is intelligence made visible.',
+    '把普通文字变成花体字'
+  ];
+
+  function ftEnsureCopy(text,cb){
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(cb).catch(function(){
+        var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+        document.body.appendChild(ta);ta.select();
+        try{document.execCommand('copy');cb();}catch(e){}
+        document.body.removeChild(ta);
+      });
+    }else{
+      var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+      document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');cb();}catch(e){}
+      document.body.removeChild(ta);
+    }
+  }
+
+  function flashBtn(btn,okText){
+    var old=btn.textContent;
+    btn.textContent=okText;
+    btn.style.background='#10b981';
+    setTimeout(function(){btn.textContent=old;btn.style.background='';},1500);
+  }
+
+  document.getElementById('fill-example-btn').addEventListener('click',function(){
+    var pool=input.value.trim()?examples:['Hello World 你好世界','Free ToolBase 免费工具站','把普通文字变成花体字'];
+    input.value=pool[Math.floor(Math.random()*pool.length)];
+    renderStyles();
+    flashBtn(this,'✅ 已填入');
+  });
+
+  document.getElementById('copy-all-btn').addEventListener('click',function(){
+    var text=input.value||'';
+    if(!text.trim()){return;}
+    var parts=[];
+    Object.keys(styles).forEach(function(name){parts.push('【'+name+'】\n'+transform(text,styles[name]));});
+    ftEnsureCopy(parts.join('\n\n'),function(){
+      flashBtn(this,'✅ 已复制');
+    }.bind(this));
+  });
+
   renderStyles();
 })();
 </script>

@@ -171,8 +171,9 @@ table.data td{color:#cbd5e1}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 var app=document.getElementById('app');
+var batteryReportText='';
 
-app.innerHTML='\x3Cdiv class="input-section">\x3Ch2>🔋 电池状态\x3C/h2>\x3Cdiv id="batteryInfo" style="text-align:center;padding:20px 0">正在检测电池信息...\x3C/div>\x3C/div>';
+app.innerHTML='\x3Cdiv class="input-section">\x3Ch2>🔋 电池状态\x3C/h2>\x3Cdiv id="batteryInfo" style="text-align:center;padding:20px 0">正在检测电池信息...\x3C/div>\x3Cdiv style="text-align:center;margin-top:8px">\x3Cbutton class="btn btn-secondary" id="copyBatteryBtn">📋 复制电池报告\x3C/button>\x3C/div>\x3C/div>';
 document.getElementById('usageContent').innerHTML='\x3Cp>此工具使用Battery API读取设备电池信息，实时显示电量、充电状态和剩余时间。\x3C/p>\x3Cp>注意：部分浏览器可能不支持Battery API或需要HTTPS环境。如无法检测，请使用Chrome/Edge浏览器并通过HTTPS访问。\x3C/p>';
 
 function showBattery(battery){
@@ -220,10 +221,17 @@ function showBattery(battery){
   }
   html+='\x3C/div>';
   document.getElementById('batteryInfo').innerHTML=html;
+  var report='电池状态报告\n';
+  report+='充电状态: '+(charging?'⚡ 充电中':'🔋 未充电')+'\n';
+  report+='电量: '+level+'% ('+statusText+')';
+  if(timeRem!==Infinity && timeRem!==null) report+='\n剩余时间: '+Math.floor(timeRem/3600)+'h '+Math.floor((timeRem%3600)/60)+'m';
+  if(timeCharging!==Infinity && timeCharging!==null && charging) report+='\n充满时间: '+Math.floor(timeCharging/3600)+'h '+Math.floor((timeCharging%3600)/60)+'m';
+  batteryReportText=report;
 }
 function _infoCard(t,v){
   return '\x3Cdiv style="background:#0f172a;border-radius:8px;padding:12px;border:1px solid rgba(148,163,184,.08)">\x3Cdiv style="color:#64748b;font-size:.75rem;margin-bottom:4px">'+t+'\x3C/div>\x3Cdiv style="color:#e2e8f0;font-size:.9rem;font-weight:500">'+v+'\x3C/div>\x3C/div>';
 }
+document.getElementById('copyBatteryBtn').addEventListener('click',function(){if(!batteryReportText){showToast('暂无结果');return;}navigator.clipboard.writeText(batteryReportText).then(function(){showToast('已复制')})['catch'](function(){var ta=document.createElement('textarea');ta.value=batteryReportText;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('已复制')});});
 if(navigator.getBattery){
   navigator.getBattery().then(function(battery){
     showBattery(battery);

@@ -70,12 +70,13 @@
     <h2>🔍 Enter Domain</h2>
     <div class="input-row">
       <div class="form-group"><label>Website Domain</label><input type="text" id="domainInput" placeholder="example.com" value="free-toolbase.com"></div>
-      <div class="btn-wrap"><button class="btn" id="checkBtn">Check</button></div>
+      <div class="btn-wrap"><button class="btn" id="checkBtn">Check</button><button class="btn" id="fillBtn" style="background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25)">🎲 Fill Example</button></div>
     </div>
   </div>
   <div class="section" id="resultsCard" style="display:none">
-    <h2>📊 Authority Evaluation</h2>
+    <h2>📊 Authority Evaluation <button class="btn" id="copyBtn" style="padding:6px 14px;font-size:.8rem;margin-left:8px;vertical-align:middle;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25)">📋 Copy Result</button></h2>
     <div id="results"></div>
+    <div class="chart-wrap" style="margin-top:16px"><canvas id="metricChart" width="520" height="200" style="width:100%;height:auto;max-width:520px"></canvas></div>
   </div>
 <h2>What is 🏆 Domain Authority Checker?</h2><p>🏆 Domain Authority Checker is a free online tool that runs entirely in your browser. No software installation, no account registration, just open the page and start using it. All input data is processed locally and never uploaded to any server, ensuring complete privacy. Whether you're a student, engineer, designer, or office worker, you can get started in seconds.</p><h2>Use Cases</h2><ul><li>Verify mathematical calculations during study or teaching</li><li>Solve geometry problems quickly in engineering work</li><li>Calculate ratios and percentages in daily life</li><li>Mobile math calculations without a calculator app</li></ul><h2>Key Features</h2><ul><li><strong>Completely Free</strong>: Ideal for students and engineers</li><li><strong>Transparent Formulas</strong>: Shows calculation steps</li><li><strong>High Precision</strong>: Supports decimals and fractions</li><li><strong>Cross-Platform</strong>: Phone and desktop supported</li></ul><h3>Is 🏆 Domain Authority Checker accurate?</h3><p>This tool's logic is based on standard mathematical formulas. Results are accurate and reliable.</p><h3>Do I need internet to use 🏆 Domain Authority Checker?</h3><p>You need internet to load the page initially. Once loaded, the tool works offline.</p><h3>Is my data recorded?</h3><p>No. This tool has no backend server. All data exists only in your browser's memory.</p>
 </main>
@@ -100,6 +101,9 @@
   const checkBtn = document.getElementById('checkBtn');
   const resultsCard = document.getElementById('resultsCard');
   const resultsEl = document.getElementById('results');
+  const fillBtn = document.getElementById('fillBtn');
+  const copyBtn = document.getElementById('copyBtn');
+  let lastMetrics = [];
 
   function hashScore(str) {
     let hash = 0;
@@ -133,6 +137,7 @@
       { name: 'Social Signals', value: scores.social, max: 15, color: '#C4B5FD' },
       { name: 'Technical SEO', value: scores.technical, max: 20, color: '#7C3AED' },
     ];
+    lastMetrics = metrics;
 
     resultsEl.innerHTML = `
       <div class="score-circle" style="border-color:${color}">
@@ -149,10 +154,67 @@
       <p style="color:#94a3b8;font-size:0.8rem;margin-top:16px;text-align:center">⚠️ This is a simulated score for reference only. Actual authority requires multi-platform data.</p>
     `;
     resultsCard.style.display = 'block';
+    drawChart(metrics);
+  }
+
+  function drawChart(metrics) {
+    const canvas = document.getElementById('metricChart');
+    if (!canvas || !metrics.length) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, 0, W, H);
+    const padL = 30, padR = 10, padT = 12, padB = 28;
+    const chartW = W - padL - padR, chartH = H - padT - padB;
+    const maxVal = Math.max.apply(null, metrics.map(m => m.max));
+    const step = chartW / metrics.length;
+    metrics.forEach((m, i) => {
+      const bx = padL + i * step + step * 0.2;
+      const bw = step * 0.6;
+      const bh = (m.value / maxVal) * chartH;
+      ctx.fillStyle = m.color;
+      ctx.fillRect(bx, padT + chartH - bh, bw, bh);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(String(m.value), bx + bw / 2, padT + chartH - bh - 4);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(m.name, bx + bw / 2, padT + chartH + 16);
+    });
+  }
+
+  function copyResult() {
+    const score = document.querySelector('.score-num');
+    if (!score) return;
+    const lines = ['Domain Authority: ' + score.textContent + ' / 100']
+      .concat(lastMetrics.map(m => m.name + ': ' + m.value + '/' + m.max));
+    const payload = lines.join('\n');
+    function done() {
+      copyBtn.textContent = '✅ Copied';
+      setTimeout(function() { copyBtn.textContent = '📋 Copy Result'; }, 2000);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(payload).then(done).catch(function() { fallbackCopy(payload); done(); });
+    } else { fallbackCopy(payload); done(); }
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
   }
 
   checkBtn.addEventListener('click', check);
   domainEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') check(); });
+  domainEl.addEventListener('input', check);
+  fillBtn.addEventListener('click', function() { domainEl.value = 'example.com'; check(); });
+  copyBtn.addEventListener('click', copyResult);
   check();
 })();
 </script>

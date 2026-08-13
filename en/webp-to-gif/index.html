@@ -199,6 +199,14 @@ input{width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.2);border
       </div>
       <div id="fileList" style="margin-top:16px;display:grid;gap:12px"></div>
       <div id="summary" style="margin-top:12px;font-size:.85rem;color:#94a3b8"></div>
+      <div id="result" style="display:none;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:16px;margin-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:.85rem;color:#22d3ee;font-weight:600">Conversion Summary</span>
+          <button class="btn" onclick="copySummary()" style="padding:4px 12px;font-size:.75rem">📋 Copy Result</button>
+        </div>
+        <div id="resultStats" style="font-size:.82rem;color:#e2e8f0;line-height:1.8"></div>
+        <canvas id="resultChart" width="300" height="120" style="width:100%;max-width:360px;height:120px;margin-top:8px"></canvas>
+      </div>
     </div>
   </div>
   
@@ -324,7 +332,7 @@ function convertFile(file, idx) {
         var origSize = (file.size / 1024).toFixed(1);
         var newSize = (blob.size / 1024).toFixed(1);
         var ratio = ((1 - blob.size / file.size) * 100).toFixed(1);
-        convertedFiles.push({ name: file.name.replace(/\.webp$/i, '.gif'), url: url, blob: blob });
+        convertedFiles.push({ name: file.name.replace(/\.webp$/i, '.gif'), url: url, blob: blob, origSize: file.size });
         var div = document.createElement('div');
         div.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;background:#0f172a;border-radius:8px;flex-wrap:wrap';
         div.innerHTML = '<img src="' + url + '" style="width:48px;height:48px;object-fit:cover;border-radius:6px">'
@@ -343,9 +351,64 @@ function convertFile(file, idx) {
 }
 function updateSummary() {
   var el = document.getElementById('summary');
-  if (convertedFiles.length === 0) { el.textContent = ''; return; }
+  if (convertedFiles.length === 0) { el.textContent = ''; document.getElementById('result').style.display = 'none'; return; }
   el.innerHTML = 'Converted ' + convertedFiles.length + ' file(s) '
     + '<button class="btn" onclick="downloadAll()" style="margin-left:8px">Download All</button>';
+  updateResult();
+}
+function updateResult() {
+  var res = document.getElementById('result');
+  if (convertedFiles.length === 0) { res.style.display = 'none'; return; }
+  var orig = 0, conv = 0;
+  for (var i = 0; i < convertedFiles.length; i++) {
+    orig += convertedFiles[i].origSize || 0;
+    conv += convertedFiles[i].blob.size || 0;
+  }
+  var saved = ((1 - conv / orig) * 100).toFixed(1);
+  document.getElementById('resultStats').textContent =
+    'Files: ' + convertedFiles.length + ' · Original: ' + (orig / 1024).toFixed(1) + ' KB · Converted: ' + (conv / 1024).toFixed(1) + ' KB · Saved: ' + saved + '%';
+  drawChart(orig, conv);
+  res.style.display = 'block';
+}
+function drawChart(orig, conv) {
+  var canvas = document.getElementById('resultChart');
+  if (!canvas || !canvas.getContext) return;
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  var max = Math.max(orig, conv, 1);
+  var pad = 30, base = h - 20;
+  var bars = [['Original', orig, '#64748b'], ['Converted', conv, '#06b6d4']];
+  var bw = (w - pad - 20) / bars.length;
+  for (var i = 0; i < bars.length; i++) {
+    var bh = (bars[i][1] / max) * (base - 30);
+    var x = pad + i * bw + 8;
+    ctx.fillStyle = bars[i][2];
+    ctx.fillRect(x, base - bh, bw - 16, bh);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(bars[i][0], x + (bw - 16) / 2, base + 14);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillText((bars[i][1] / 1024).toFixed(0) + ' KB', x + (bw - 16) / 2, base - bh - 4);
+  }
+}
+function copyTextSafe(t, ok) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(function(){ ok(); }).catch(function(){ fallbackCopy(t, ok); });
+  } else { fallbackCopy(t, ok); }
+}
+function fallbackCopy(t, ok) {
+  var ta = document.createElement('textarea');
+  ta.value = t;
+  ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); ok(); } catch(e) {}
+  document.body.removeChild(ta);
+}
+function copySummary() {
+  var txt = document.getElementById('resultStats').textContent;
+  copyTextSafe(txt, function(){ showToast('Result copied'); });
 }
 function downloadAll() {
   convertedFiles.forEach(function(f) {

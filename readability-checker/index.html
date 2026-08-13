@@ -114,6 +114,7 @@ a{color:#06b6d4;text-decoration:none}
 </div>
 <div class="section">
   <div class="read-input">
+    <div class="btn-row" style="margin-bottom:8px"><button class="btn btn-secondary" id="readExampleBtn">🎲 填入示例</button></div>
     <textarea id="readInput" placeholder="粘贴要分析的文本..." oninput="analyzeReadability()"></textarea>
   </div>
   <div id="readResults" style="display:none">
@@ -133,6 +134,8 @@ a{color:#06b6d4;text-decoration:none}
       <div class="stat-item"><span class="num" id="avgSyll">0</span><span class="lbl">音节/词</span></div>
       <div class="stat-item"><span class="num" id="readTime">0</span><span class="lbl">阅读时间(min)</span></div>
     </div>
+    <div class="btn-row" style="margin-top:12px"><button class="btn btn-secondary" id="readCopyBtn">📋 复制结果</button></div>
+    <canvas id="readChart" style="width:100%;max-width:480px;height:160px;background:#0f172a;border-radius:8px;margin-top:12px;display:block"></canvas>
   </div>
 </div>
 <script>
@@ -160,7 +163,7 @@ document.getElementById('smogScore').textContent=smog;document.getElementById('s
 document.getElementById('colemanScore').textContent=coleman;document.getElementById('colemanDesc').textContent='Grade '+coleman;
 document.getElementById('wordCount').textContent=wordCount;document.getElementById('sentCount').textContent=sentCount;document.getElementById('syllCount').textContent=syllCount;document.getElementById('charCount').textContent=chars;
 document.getElementById('avgWords').textContent=avgWords.toFixed(1);document.getElementById('avgSyll').textContent=avgSyll.toFixed(2);
-var readMin=wordCount/200;document.getElementById('readTime').textContent=readMin<1?'<1':readMin.toFixed(1);}))</script>
+var readMin=wordCount/200;document.getElementById('readTime').textContent=readMin<1?'<1':readMin.toFixed(1);}</script>
 
 <div class="faq-item"><div class="q">Flesch-Kincaid分数代表什么？</div><div class="a">Flesch-Kincaid包含两个指标：阅读轻松度（0-100分，分数越高越易读）和年级等级（对应美国教育年级）。例如，60-70分对应8-9年级水平（较易读），30-50分对应大学水平（较难读）。</div></div>
 <div class="faq-item"><div class="q">我的内容应该达到什么可读性水平？</div><div class="a">一般建议：普通网页内容达到8-9年级水平（60-70分），儿童内容达到5-6年级水平，学术论文或技术文档可达12-16年级水平。面向大众的内容建议控制句子长度在15-20词以内。</div></div>
@@ -229,6 +232,46 @@ document.getElementById('colemanScore').textContent=coleman;document.getElementB
 document.getElementById('wordCount').textContent=wordCount;document.getElementById('sentCount').textContent=sentCount;document.getElementById('syllCount').textContent=syllCount;document.getElementById('charCount').textContent=chars;
 document.getElementById('avgWords').textContent=avgWords.toFixed(1);document.getElementById('avgSyll').textContent=avgSyll.toFixed(2);
 var readMin=wordCount/200;document.getElementById('readTime').textContent=readMin<1?'<1':readMin.toFixed(1);}</script>
+
+<script>
+(function(){
+  function ftToast(m){var t=document.getElementById('toast');if(!t)return;t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000);}
+  var exTxt='The quick brown fox jumps over the lazy dog. This simple sentence is very easy to read and understand. Children learn to read with words just like these every single day at school.';
+  var eb=document.getElementById('readExampleBtn');
+  if(eb){eb.addEventListener('click',function(){var ta=document.getElementById('readInput');ta.value=exTxt;analyzeReadability();ftToast('已填入示例文本');});}
+  var cb=document.getElementById('readCopyBtn');
+  if(cb){cb.addEventListener('click',function(){
+    function s(id){var el=document.getElementById(id);return el?el.textContent:'';}
+    var txt='Flesch Reading Ease: '+s('fleschScore')+' ('+s('fleschDesc')+')\n'
+      +'Flesch-Kincaid Grade: '+s('gradeScore')+'\n'
+      +'Gunning Fog Index: '+s('gunningScore')+'\n'
+      +'SMOG Index: '+s('smogScore')+'\n'
+      +'Coleman-Liau Index: '+s('colemanScore')+'\n'
+      +'单词: '+s('wordCount')+' | 句子: '+s('sentCount')+' | 音节: '+s('syllCount')+' | 字符: '+s('charCount')+' | 阅读时间(min): '+s('readTime');
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){ftToast('已复制结果')})['catch'](function(){ftToast('复制失败');});}
+    else{ftToast('复制失败');}
+  });}
+  window.drawReadChart=function(){
+    var cv=document.getElementById('readChart');var res=document.getElementById('readResults');
+    if(!cv||!cv.getContext)return;if(!res||res.style.display==='none')return;
+    function v(id){var el=document.getElementById(id);return el?parseFloat(el.textContent)||0:0;}
+    var vals=[[v('fleschScore'),100,'Flesch'],[v('gradeScore'),20,'Grade'],[v('gunningScore'),20,'Gunning'],[v('smogScore'),20,'SMOG'],[v('colemanScore'),20,'Coleman']];
+    var W=cv.width=480,H=cv.height=160;var ctx=cv.getContext('2d');
+    ctx.fillStyle='#1e293b';ctx.fillRect(0,0,W,H);
+    var colors=['#06b6d4','#22d3ee','#8b5cf6','#10b981','#f59e0b'];
+    var barW=Math.max(18,(W-40)/5-14);
+    vals.forEach(function(item,i){
+      var val=item[0],max=item[1];var h=Math.max(3,(val/max)*(H-45));
+      ctx.fillStyle=colors[i];ctx.fillRect(20+i*(barW+14),H-30-h,barW,h);
+      ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText(item[2],20+i*(barW+14)+barW/2,H-14);
+      ctx.fillStyle='#e2e8f0';ctx.fillText(String(val),20+i*(barW+14)+barW/2,H-34-h);
+    });
+    ctx.strokeStyle='rgba(148,163,184,.2)';ctx.beginPath();ctx.moveTo(20,H-30);ctx.lineTo(W-20,H-30);ctx.stroke();
+  };
+  var orig=window.analyzeReadability;
+  window.analyzeReadability=function(){if(orig)orig();setTimeout(drawReadChart,50);};
+})();
+</script>
 
 </body>
 </html>

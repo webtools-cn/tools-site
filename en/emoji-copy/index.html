@@ -75,10 +75,15 @@
  <h1>😊 Emoji Copy & Paste</h1>
 <p class="tool-description" style="color:#6b7280;font-size:0.95rem;line-height:1.6;margin:0.5rem 0 1rem;">Online emoji collection. Browse and search emojis by category, one-click copy to clipboard. Includes smiles, gestures, animals, food, travel, symbols, and more.</p>
  <p class="desc">Browse and search thousands of emojis. Click to copy to clipboard. Supports category filtering and keyword search.</p>
- <div class="search-wrapper">
- <input type="text" class="search-box" id="searchInput" placeholder="Search emojis, e.g. smile, heart, cat, sun...">
- </div>
- <div class="categories" id="categories"></div>
+  <div class="search-wrapper">
+  <input type="text" class="search-box" id="searchInput" placeholder="Search emojis, e.g. smile, heart, cat, sun...">
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+  <button class="cat-btn" id="exampleBtn">🎲 Fill Example</button>
+  <button class="cat-btn" id="copyAllBtn">📋 Copy All Visible</button>
+  <span id="emojiCount" style="color:#64748b;font-size:.8rem;margin-left:auto"></span>
+  </div>
+  <div class="categories" id="categories"></div>
  <div id="emojiContainer"></div>
  </main>
 <!-- AdSense -->
@@ -155,6 +160,8 @@
       }
       if (!hasResults) html = '<div class="no-results">😕 No matching emojis found. Try other keywords.</div>';
       container.innerHTML = html;
+      const countEl = document.getElementById('emojiCount');
+      if (countEl) countEl.textContent = hasResults ? container.querySelectorAll('.emoji-item').length + ' emojis' : '0 emojis';
 
       // Bind click events
       container.querySelectorAll('.emoji-item').forEach(item => {
@@ -181,6 +188,34 @@
 
     // Search
     searchInput.addEventListener('input', () => render(searchInput.value.trim()));
+
+    // Fill example
+    const exampleWords = ['smile', 'heart', 'cat', 'dog', 'sun', 'pizza', 'star'];
+    document.getElementById('exampleBtn').addEventListener('click', () => {
+      const word = exampleWords[Math.floor(Math.random() * exampleWords.length)];
+      searchInput.value = word;
+      render(word);
+      showToast('Example: ' + word);
+    });
+
+    // Copy all visible
+    document.getElementById('copyAllBtn').addEventListener('click', () => {
+      const items = container.querySelectorAll('.emoji-item');
+      if (!items.length) { showToast('No emojis to copy'); return; }
+      const text = Array.from(items).map(i => i.dataset.emoji).join(' ');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast('Copied ' + items.length + ' emojis ✓')).catch(() => fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
+    });
+    function fallbackCopy(t) {
+      const ta = document.createElement('textarea');
+      ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); showToast('Copied ✓'); } catch (e) { showToast('Copy failed'); }
+      document.body.removeChild(ta);
+    }
 
     // Initial render
     render();

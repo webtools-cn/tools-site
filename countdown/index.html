@@ -133,7 +133,7 @@ header p { color: #94a3b8; font-size: 0.95em; }
 }
 .btn-primary { background: #22d3ee; color: #fff; }
 .btn-primary:hover { background: var(--primary-hover); }
-.btn-reset { background: #e2e8f0; color: #e2e8f0; }
+.btn-reset { background: #e2e8f0; color: #0f172a; }
 .btn-reset:hover { background: #cbd5e1; }
 .btn-group { display: flex; gap: 10px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
 .faq { margin-top: 30px; }
@@ -185,8 +185,26 @@ header p { color: #94a3b8; font-size: 0.95em; }
 <div class="hero"><p>免费在线倒计时器，支持自定义日期和时间，实时显示剩余天数、小时、分钟、秒。适合活动倒计时、考试倒计时、节日倒计时。纯前端运行，无需注册。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
-
-<div class="countdown-block"><span id="hours">0</span><div class="label">时</div></div>
+  <div class="quick-events">
+    <button class="quick-event" onclick="quickSet('2026-12-25T00:00', '🎄 圣诞节')">🎄 圣诞节</button>
+    <button class="quick-event" onclick="quickSet('2027-01-01T00:00', '🎉 元旦')">🎉 元旦</button>
+    <button class="quick-event" onclick="quickSet('2027-02-14T00:00', '💝 情人节')">💝 情人节</button>
+    <button class="quick-event" onclick="quickSet('2027-06-07T09:00', '📝 高考')">📝 高考</button>
+    <button class="quick-event" onclick="quickSet('2026-10-01T00:00', '🇨🇳 国庆节')">🇨🇳 国庆节</button>
+  </div>
+  <div style="text-align:center">
+    <input type="text" class="title-input" id="eventTitle" placeholder="输入事件名称（可选）" maxlength="50" style="background:#0f172a;color:#e2e8f0">
+  </div>
+  <div class="datetime-inputs">
+    <input type="date" id="targetDate" style="background:#0f172a;color:#e2e8f0">
+    <input type="time" id="targetTime" value="00:00" style="background:#0f172a;color:#e2e8f0">
+    <button class="btn btn-primary" onclick="startCountdown()">🕐 开始倒计时</button>
+  </div>
+  <div class="countdown-display" id="countdownDisplay">
+    <div class="countdown-title" id="displayTitle">选择一个日期开始倒计时</div>
+    <div class="countdown-blocks" id="displayBlocks" style="display:none">
+      <div class="countdown-block"><span id="days">0</span><div class="label">天</div></div>
+      <div class="countdown-block"><span id="hours">0</span><div class="label">时</div></div>
       <div class="countdown-block"><span id="minutes">0</span><div class="label">分</div></div>
       <div class="countdown-block"><span id="seconds">0</span><div class="label">秒</div></div>
     </div>
@@ -194,6 +212,9 @@ header p { color: #94a3b8; font-size: 0.95em; }
 
   <div class="btn-group">
     <button class="btn btn-reset" onclick="resetAll()">↺ 重置</button>
+    <button class="btn btn-primary" onclick="copyCountdown()">📋 复制结果</button>
+  </div>
+</div>
   </div>
 </div>
 
@@ -330,6 +351,32 @@ header p { color: #94a3b8; font-size: 0.95em; }
 
   window.startCountdown = startCountdown;
   window.resetAll = resetAll;
+
+  window.copyCountdown = function() {
+    var d = document.getElementById('days');
+    var h = document.getElementById('hours');
+    var m = document.getElementById('minutes');
+    var s = document.getElementById('seconds');
+    var t = document.getElementById('displayTitle');
+    if (!t || t.textContent.indexOf('选择') !== -1) { showToast('请先设置并开始倒计时'); return; }
+    var parts = [];
+    if (d && parseInt(d.textContent, 10) > 0) parts.push(d.textContent + '天');
+    if (h && parseInt(h.textContent, 10) > 0) parts.push(h.textContent + '时');
+    if (m && parseInt(m.textContent, 10) > 0) parts.push(m.textContent + '分');
+    parts.push(s.textContent + '秒');
+    var v = t.textContent + '：剩余 ' + parts.join(' ');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(v).then(function(){ showToast('✅ 已复制'); })['catch'](function(){ copyCountdownFallback(v); });
+    } else { copyCountdownFallback(v); }
+  };
+  function copyCountdownFallback(v) {
+    var ta = document.createElement('textarea');
+    ta.value = v;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast('✅ 已复制'); } catch (e) { showToast('复制失败'); }
+    document.body.removeChild(ta);
+  }
 
   // 设置默认日期为明天的午夜
   var tomorrow = new Date();

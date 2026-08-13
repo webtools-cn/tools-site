@@ -68,6 +68,7 @@
     <thead><tr><th>Ratio</th><th>Retracement (Uptrend Support)</th><th>Rebound (Downtrend Resistance)</th><th>Range %</th></tr></thead>
     <tbody id="fibBody"></tbody>
   </table>
+  <div style="margin-top:16px"><canvas id="fibChart" width="640" height="240" style="width:100%;height:auto;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px"></canvas></div>
 </div>
 
 <div class="seo-content" style="margin:1.5rem 0;padding:1rem;background:#0f172a;border-radius:8px;font-size:.95rem;color:#475569;line-height:1.8"><p>The Fibonacci Retracement Calculator is a free online tool that runs entirely in your browser — no software installation required. Your data is processed locally and never uploaded to any server. Works on all major browsers and mobile devices. This tool helps you quickly identify key technical levels for trading decisions. All processing happens client-side for fast, secure, and reliable performance.</p></div>
@@ -105,6 +106,7 @@ function calc(){
   var isUptrend=h>l;
   var range=Math.abs(h-l);
   var rows='';
+  var chartData=[];
   ratios.forEach(function(r,i){
     var retraceLevel,reboundLevel;
     if(isUptrend){
@@ -114,12 +116,44 @@ function calc(){
       retraceLevel='—';
       reboundLevel=l+range*r.value;
     }
+    var num=isUptrend?retraceLevel:reboundLevel;
+    chartData.push({label:r.label,value:num});
     var pct=((i===0?0:(i===ratios.length-1?100:r.value*100))).toFixed(1)+'%';
     rows+='<tr class="'+r.cls+'"><td><strong>'+r.label+'</strong></td><td>'+(retraceLevel==='—'?'—':retraceLevel.toFixed(2))+'</td><td>'+(reboundLevel==='—'?'—':reboundLevel.toFixed(2))+'</td><td>'+pct+'</td></tr>';
   });
   document.getElementById('fibBody').innerHTML=rows;
+  drawChart(chartData,isUptrend);
+}
+function drawChart(data,uptrend){
+  var cv=document.getElementById('fibChart');
+  if(!cv)return;
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,padL=60,padR=16,padT=20,padB=30;
+  ctx.clearRect(0,0,W,H);
+  var vals=data.map(function(d){return d.value;});
+  var min=Math.min.apply(null,vals),max=Math.max.apply(null,vals);
+  var range=max-min||1;
+  var bw=(W-padL-padR)/data.length;
+  data.forEach(function(d,i){
+    var hgt=((d.value-min)/range)*(H-padT-padB);
+    var x=padL+i*bw;
+    var y=H-padB-hgt;
+    ctx.fillStyle=i===4?'rgba(6,182,212,.85)':'rgba(79,70,229,.55)';
+    ctx.fillRect(x+4,y,bw-8,hgt);
+    ctx.fillStyle='#e2e8f0';
+    ctx.font='11px sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(d.label,x+bw/2,H-padB+14);
+    ctx.fillText(d.value.toFixed(2),x+bw/2,Math.max(y-4,10));
+  });
+  ctx.fillStyle='#94a3b8';
+  ctx.font='11px sans-serif';
+  ctx.textAlign='left';
+  ctx.fillText(uptrend?'Uptrend retracement (support)':'Downtrend rebound (resistance)',padL,12);
 }
 document.getElementById('calcBtn').addEventListener('click',calc);
+document.getElementById('highPrice').addEventListener('input',calc);
+document.getElementById('lowPrice').addEventListener('input',calc);
 document.getElementById('resetBtn').addEventListener('click',function(){location.reload();});
 calc();
 </script>

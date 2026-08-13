@@ -100,6 +100,7 @@
 
 <div class="btn-row">
 <button class="btn btn-primary" onclick="copySelectedChar()">📋 复制字符</button>
+<button class="btn btn-primary" onclick="copyGrid()">📋 复制本页</button>
 <button class="btn btn-outline" onclick="loadExample()">💡 示例</button>
 </div>
 </div>
@@ -220,8 +221,31 @@ function selectChar(cp){
   renderGrid();
 }
 
-function copyVal(el){navigator.clipboard.writeText(el.textContent).then(()=>showToast('已复制: '+el.textContent));}
-function copySelectedChar(){const ch=String.fromCodePoint(selectedCode);navigator.clipboard.writeText(ch).then(()=>showToast('已复制: '+ch));}
+function ftCopy(text,msg){
+  const done=function(){showToast(msg||'已复制');};
+  const fallback=function(){
+    const ta=document.createElement('textarea');
+    ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');done();}catch(e){showToast('复制失败');}
+    document.body.removeChild(ta);
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(fallback);}
+  else{fallback();}
+}
+function copyVal(el){ftCopy(el.textContent,'已复制: '+el.textContent);}
+function copySelectedChar(){const ch=String.fromCodePoint(selectedCode);ftCopy(ch,'已复制: '+ch);}
+function copyGrid(){
+  const start=currentStart+currentPage*PAGE_SIZE;
+  const end=Math.min(start+PAGE_SIZE,currentEnd+1);
+  if(start>=end){showToast('当前页无字符');return;}
+  let text='';
+  for(let cp=start;cp<end;cp++){
+    if(cp<32||(cp>=127&&cp<160))continue;
+    text+=String.fromCodePoint(cp);
+  }
+  ftCopy(text,'已复制本页 '+text.length+' 个字符');
+}
 
 document.getElementById('searchInput').addEventListener('input',e=>{
   const q=e.target.value.trim().toLowerCase();if(!q){loadBlock();return;}

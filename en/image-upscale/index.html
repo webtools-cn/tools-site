@@ -208,8 +208,40 @@ footer{text-align:center;padding:24px;color:var(--text2);font-size:.85rem}
 </h1>
 <div class="lang-switch"><a href="../../image-upscale/">中文</a><a href="index.html" class="active">EN</a></div>
 
+<div class="tool-card">
+ <p class="tool-desc">Enlarge your images up to 4x with bicubic interpolation. Your files never leave your browser.</p>
+ <div class="upload-zone" id="uploadZone">
+ <div class="icon">🖼️</div>
+ <div class="label">Click to upload or drag & drop</div>
+ <div class="hint">PNG / JPG / WebP — max 50MB</div>
+ <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp">
+ </div>
+ <div class="file-info" id="fileInfo" style="display:none">
+ <span class="name" id="fileName">-</span>
+ <span class="size" id="fileSize">-</span>
+ </div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:16px">
+ <label for="scale" style="margin:0;font-weight:600">Scale:</label>
+ <select id="scale" style="width:auto">
+ <option value="2">2x</option>
+ <option value="3">3x</option>
+ <option value="4" selected>4x</option>
+ </select>
+ <button id="upscaleBtn" class="btn btn-primary">✨ Upscale</button>
+ <button id="resetBtn" class="btn btn-outline btn-sm">↺ Reset</button>
+ </div>
+ <div class="canvas-container" id="canvasContainer" style="display:none">
+ <canvas id="previewCanvas"></canvas>
+ </div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;margin-top:12px">
+ <div class="result-area" id="resultArea" style="flex:1;min-width:220px">Upload an image to see the upscaled result</div>
+ <button id="copyResultBtn" class="btn btn-outline btn-sm" style="display:none;align-self:flex-start">📋 Copy Result</button>
+ </div>
+ <div class="btn-group">
+ <button id="downloadBtn" class="btn btn-primary btn-sm" style="display:none">⬇️ Download Upscaled PNG</button>
+ </div>
+</div>
 
- 
  <div class="faq-item"><div class="faq-question">Are my images uploaded?</div><div class="faq-answer">No. All processing happens entirely in your browser. Your images never leave your device.</div></div>
  <div class="faq-item"><div class="faq-question">What scale factors are supported?</div><div class="faq-answer">2x, 3x, and 4x upscaling. The image pixel dimensions increase but no new details are added.</div></div>
  <div class="faq-item"><div class="faq-question">Will the image become blurry?</div><div class="faq-answer">Uses bicubic interpolation for better quality than simple stretching. However, it cannot add real detail like AI super-resolution.</div></div>
@@ -249,7 +281,7 @@ footer{text-align:center;padding:24px;color:var(--text2);font-size:.85rem}
 document.querySelectorAll('.faq-question').forEach(q => {
   q.addEventListener('click', () => q.parentElement.classList.toggle('open'));
 });
-// Feedback widget
+</script>
 <script>
 
 const uploadZone=document.getElementById('uploadZone'),fileInput=document.getElementById('fileInput');
@@ -258,6 +290,7 @@ const scaleSel=document.getElementById('scale'),upscaleBtn=document.getElementBy
 const downloadBtn=document.getElementById('downloadBtn'),resetBtn=document.getElementById('resetBtn');
 const canvasContainer=document.getElementById('canvasContainer'),previewCanvas=document.getElementById('previewCanvas');
 const resultArea=document.getElementById('resultArea');
+const copyResultBtn=document.getElementById('copyResultBtn');
 let originalImage=null;
 
 uploadZone.addEventListener('click',()=>fileInput.click());
@@ -283,11 +316,27 @@ upscaleBtn.addEventListener('click',()=>{
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
   ctx.drawImage(originalImage,0,0,w,h);
   canvasContainer.style.display='block';downloadBtn.style.display='inline-flex';
-  resultArea.textContent='Upscaled: '+w+'×'+h+' ('+scale+'x)';
+  resultArea.textContent='Upscaled: '+w+'×'+h+' ('+scale+'x) — Original: '+originalImage.width+'×'+originalImage.height;
+  copyResultBtn.style.display='inline-flex';
+  window._upscaleInfo='Original: '+originalImage.width+'×'+originalImage.height+'\nUpscaled: '+w+'×'+h+' ('+scale+'x)';
 });
 
+copyResultBtn.addEventListener('click',()=>{
+  if(!window._upscaleInfo)return;
+  function done(){copyResultBtn.textContent='✓ Copied';setTimeout(()=>{copyResultBtn.textContent='📋 Copy Result';},1500);}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(window._upscaleInfo).then(done).catch(()=>{fallbackCopy(window._upscaleInfo,done);});
+  }else{fallbackCopy(window._upscaleInfo,done);}
+});
+function fallbackCopy(t,done){
+  const ta=document.createElement('textarea');
+  ta.value=t;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');done();}catch(e){}
+  document.body.removeChild(ta);
+}
 downloadBtn.addEventListener('click',()=>{const a=document.createElement('a');a.href=previewCanvas.toDataURL('image/png');a.download='upscaled.png';a.click();});
-resetBtn.addEventListener('click',()=>{originalImage=null;previewCanvas.width=0;previewCanvas.height=0;canvasContainer.style.display='none';downloadBtn.style.display='none';fileInfo.style.display='none';fileInput.value='';resultArea.textContent='Upload an image to see the upscaled result';});
+resetBtn.addEventListener('click',()=>{originalImage=null;previewCanvas.width=0;previewCanvas.height=0;canvasContainer.style.display='none';downloadBtn.style.display='none';copyResultBtn.style.display='none';fileInfo.style.display='none';fileInput.value='';resultArea.textContent='Upload an image to see the upscaled result';});
 </script>
 <script type="application/ld+json">{
   "@context": "https://schema.org",

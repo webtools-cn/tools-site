@@ -97,6 +97,28 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:#3b82f6;box-sh
 <div class="hero"><p>免费在线BlurHash生成与解码工具，为图片生成紧凑的占位符字符串。纯前端Canvas处理，快速生成模糊预览。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
+<div class="btn-row">
+<button id="encodeTab" class="btn btn-primary">生成编码</button>
+<button id="decodeTab" class="btn btn-secondary">解码预览</button>
+</div>
+<div id="encodeMode">
+<label>选择图片生成 BlurHash</label>
+<input type="file" id="encodeInput" accept="image/*" style="background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:10px;width:100%">
+<label style="margin-top:14px">BlurHash 结果</label>
+<div class="result-box" id="blurhashOutput">上传图片后自动生成</div>
+<div class="btn-row">
+<button class="btn btn-secondary" id="btnCopyEncode">📋 复制结果</button>
+</div>
+</div>
+<div id="decodeMode" class="hidden">
+<label>输入 BlurHash 字符串</label>
+<input type="text" id="blurhashInput" placeholder="BLUR:..." style="background:#0f172a;color:#e2e8f0">
+<div class="btn-row">
+<button class="btn btn-secondary" id="btnExampleDecode">🎲 填入示例</button>
+<button class="btn btn-secondary" id="btnCopyDecode">📋 复制</button>
+</div>
+<canvas id="blurhashPreview" width="320" height="200" style="background:#1e293b;border-radius:8px;margin-top:12px;max-width:100%"></canvas>
+</div>
 <div class="faq-item"><div class="faq-q">组件数（4x3, 6x4等）是什么意思？</div><div class="faq-a"><p>组件数决定了BlurHash的精度和字符串长度。更多的组件（如9x9）能更准确地还原图片的颜色分布，但生成的字符串也更长。较少的组件（如4x3）生成更短的字符串但细节更模糊。默认的4x3适合大多数场景。</p></div></div>
 <div class="faq-item"><div class="faq-q">BlurHash字符串可以直接用在HTML中吗？</div><div class="faq-a"><p>BlurHash本身只是一个字符串，需要配合解码库（如blurhash-js）在客户端渲染为Canvas图像。主流前端框架（React、Vue、Svelte）都有对应的BlurHash组件。解码后的渲染约需20-50ms，非常快速。</p></div></div>
 <div class="faq-item"><div class="faq-q">BlurHash和占位图（placeholder image）有什么区别？</div><div class="faq-a"><p>BlurHash是纯文本字符串，不需要额外的网络请求（可直接嵌入HTML/JSON中），而传统的占位图需要额外的HTTP请求加载图片文件。BlurHash也更紧凑——一个30字符的字符串即可表示一幅模糊预览图。</p></div></div>
@@ -115,6 +137,15 @@ function switchMode(mode){currentMode=mode;document.getElementById('encodeTab').
 function handleImage(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{const img=new Image();img.onload=()=>encodeBlurHash(img);img.src=e.target.result;};reader.readAsDataURL(file);}
 function encodeBlurHash(img){if(!img)return;const canvas=document.createElement('canvas');const scale=0.1;canvas.width=Math.max(4,Math.round(img.width*scale));canvas.height=Math.max(3,Math.round(img.height*scale));const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;let r=0,g=0,b=0;for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];}const n=data.length/4;const hash=btoa(String.fromCharCode(Math.round(r/n),Math.round(g/n),Math.round(b/n),canvas.width,canvas.height)).replace(/=/g,'');document.getElementById('blurhashOutput').textContent='BLUR:'+hash;}
 function decodeBlurHash(){const input=document.getElementById('blurhashInput').value.trim();if(!input.startsWith('BLUR:'))return;const canvas=document.getElementById('blurhashPreview');const ctx=canvas.getContext('2d');try{const raw=atob(input.slice(5));const r=raw.charCodeAt(0),g=raw.charCodeAt(1),b=raw.charCodeAt(2);const w=raw.length>3?raw.charCodeAt(3):32,h=raw.length>4?raw.charCodeAt(4):24;canvas.width=w*10;canvas.height=h*10;ctx.fillStyle='rgb('+r+','+g+','+b+')';ctx.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<canvas.height;y+=h){for(let x=0;x<canvas.width;x+=w){ctx.fillStyle='rgba('+(r+(Math.random()-0.5)*30)+','+(g+(Math.random()-0.5)*30)+','+(b+(Math.random()-0.5)*30)+',0.3)';ctx.fillRect(x,y,w,h);}}}catch(e){}}
+function ftCopy(text,msg){function done(){showToast(msg||'已复制');}function fallback(){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){showToast('复制失败');}document.body.removeChild(ta);}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(fallback);}else{fallback();}}
+document.getElementById('encodeTab').addEventListener('click',function(){switchMode('encode');});
+document.getElementById('decodeTab').addEventListener('click',function(){switchMode('decode');});
+document.getElementById('encodeInput').addEventListener('change',function(){handleImage(this);});
+document.getElementById('btnCopyEncode').addEventListener('click',function(){ftCopy(document.getElementById('blurhashOutput').textContent,'已复制BlurHash');});
+document.getElementById('btnCopyDecode').addEventListener('click',function(){ftCopy(document.getElementById('blurhashInput').value,'已复制BlurHash字符串');});
+document.getElementById('btnExampleDecode').addEventListener('click',function(){document.getElementById('blurhashInput').value='BLUR:'+btoa(String.fromCharCode(60,120,200,4,3));decodeBlurHash();showToast('已填入示例');});
+document.getElementById('blurhashInput').addEventListener('input',decodeBlurHash);
+switchMode('encode');
 </script>
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
 <script>

@@ -208,11 +208,13 @@ a{color:#06b6d4;text-decoration:none}
     </div>
     <div class="btn-group">
       <button class="btn btn-primary" onclick="generate()">Generate</button>
+      <button class="btn btn-secondary" onclick="fillExample()">🎲 Fill Example</button>
     </div>
     <div class="code-output" id="resultArea" style="display:none">
       <button class="copy-btn" onclick="copyResult()">Copy</button>
       <pre id="resultText">---</pre>
     </div>
+    <canvas id="fibChart" width="600" height="150" style="width:100%;max-width:600px;height:150px;margin-top:12px;display:none"></canvas>
   </div>
 
   <div class="seo-content">
@@ -282,8 +284,41 @@ function generate(){
   lines+="\n--- Golden Ratio φ ≈ 1.6180339887 ---\nFinal ratio: "+finalRatio.toFixed(10);
   document.getElementById("resultText").textContent=lines;
   document.getElementById("resultArea").style.display="block";
+  drawFibChart(seq);
+}
+function fillExample(){
+  document.getElementById("count").value=Math.floor(Math.random()*8)+12;
+  document.getElementById("start0").value=Math.floor(Math.random()*4);
+  document.getElementById("start1").value=Math.floor(Math.random()*4)+1;
+  generate();
+}
+function drawFibChart(seq){
+  var canvas=document.getElementById("fibChart");
+  if(!canvas||!canvas.getContext) return;
+  var ctx=canvas.getContext("2d");
+  var w=canvas.width,h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+  var show=seq.slice(0,20);
+  var max=1;for(var i=0;i<show.length;i++){if(Math.abs(show[i])>max)max=Math.abs(show[i])}
+  var pad=30,base=h-22;
+  var bw=(w-pad-10)/show.length;
+  for(var i=0;i<show.length;i++){
+    var v=show[i];
+    var bh=Math.abs(v)/max*(base-36);
+    var x=pad+i*bw+2;
+    ctx.fillStyle=v<0?"#ef4444":"#06b6d4";
+    ctx.fillRect(x,base-bh,bw-4,bh);
+    if(i%2===0||show.length<15){
+      ctx.fillStyle="#94a3b8";ctx.font="9px sans-serif";ctx.textAlign="center";
+      ctx.fillText(String(v).length>4?String(v).slice(0,4)+"…":String(v),x+(bw-4)/2,base+12);
+    }
+  }
+  ctx.fillStyle="#94a3b8";ctx.font="10px sans-serif";ctx.textAlign="left";
+  ctx.fillText("Fibonacci values (first "+show.length+" terms)",pad,14);
+  canvas.style.display="block";
 }
 function copyResult(){navigator.clipboard.writeText(document.getElementById("resultText").textContent).then(function(){toast("Copied")})}
+['count','start0','start1'].forEach(function(id){document.getElementById(id).addEventListener('input',generate)});
 </script>
 
 <!-- Feedback Widget -->

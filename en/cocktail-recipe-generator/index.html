@@ -115,6 +115,7 @@
     <select id="baseFilter"><option value="all">All Spirits</option><option value="Vodka">Vodka</option><option value="Gin">Gin</option><option value="Rum">Rum</option><option value="Tequila">Tequila</option><option value="Whiskey">Whiskey</option><option value="Brandy">Brandy</option></select>
     <select id="tasteFilter"><option value="all">All Tastes</option><option value="Sweet">Sweet</option><option value="Sour">Sour</option><option value="Refreshing">Refreshing</option><option value="Strong">Strong</option><option value="Fruity">Fruity</option></select>
     <input type="text" id="searchInput" placeholder="Search cocktail name...">
+    <button class="btn btn-secondary" id="btnSample">🎲 Sample</button>
     <button class="btn btn-primary" id="btnFilter">🔍 Filter</button>
     <button class="btn btn-secondary" id="btnClear">Clear</button>
   </div>
@@ -219,8 +220,12 @@ function render() {
       <span class="base-tag">${c.base}</span>
       <div class="ingredients">📋 ${c.ingredients}</div>
       <div class="method">🍹 ${c.method}</div>
+      <button class="btn btn-secondary card-copy" data-name="${c.name}" style="margin-top:10px;font-size:.8rem;padding:6px 12px">📋 Copy Recipe</button>
     </div>
   `).join('');
+  grid.querySelectorAll('.card-copy').forEach(btn => {
+    btn.addEventListener('click', () => copyRecipe(btn.dataset.name));
+  });
 
   const pag = document.getElementById('pagination');
   const totalPages = Math.ceil(filteredCocktails.length / ITEMS_PER_PAGE);
@@ -249,6 +254,11 @@ function filter() {
 }
 
 document.getElementById('btnFilter').addEventListener('click', filter);
+document.getElementById('btnSample').addEventListener('click', function() {
+  const pick = cocktails[Math.floor(Math.random() * cocktails.length)];
+  document.getElementById('searchInput').value = pick.name;
+  filter();
+});
 document.getElementById('btnClear').addEventListener('click', function() {
   document.getElementById('baseFilter').value = 'all';
   document.getElementById('tasteFilter').value = 'all';
@@ -258,6 +268,25 @@ document.getElementById('btnClear').addEventListener('click', function() {
   render();
 });
 document.getElementById('searchInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') filter(); });
+document.getElementById('searchInput').addEventListener('input', function() { filter(); });
+
+function copyRecipe(name) {
+  const c = cocktails.find(x => x.name === name);
+  if (!c) return;
+  const text = c.name + '\nBase: ' + c.base + '\nTaste: ' + c.taste + '\nIngredients: ' + c.ingredients + '\nMethod: ' + c.method;
+  const toast = document.getElementById('toast');
+  function ok() { toast.textContent = '✅ Recipe copied'; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(ok, function() { fallbackCopy(text); ok(); });
+  } else { fallbackCopy(text); ok(); }
+}
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  document.body.removeChild(ta);
+}
 
 render();
 </script>

@@ -208,7 +208,14 @@ app.innerHTML = `
       \x3Ccanvas id="pdfCanvasB" style="width:100%;border:1px solid #e0e0e0;border-radius:8px">\x3C/canvas>
     \x3C/div>
   \x3C/div>
-  \x3Cdiv id="diffStatus" style="margin-top:12px;text-align:center">\x3C/div>
+    \x3Cdiv id="diffStatus" style="margin-top:12px;text-align:center">\x3C/div>
+    \x3Cdiv id="cmpSummary" style="display:none;margin-top:14px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:10px;padding:12px">
+      \x3Cdiv style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+        \x3Cspan id="cmpSummaryText" style="font-size:.9rem;color:#e2e8f0">\x3C/span>
+        \x3Cbutton class="btn btn-secondary" onclick="copyCompareSummary()">📋 复制对比结果\x3C/button>
+      \x3C/div>
+      \x3Ccanvas id="cmpChart" height="80" style="width:100%;margin-top:8px">\x3C/canvas>
+    \x3C/div>
 `;
 
 var pdfjsLib = null;
@@ -340,14 +347,54 @@ function compareTextContent() {
     var textA = results[0].items.map(function(item) { return item.str; }).join(' ');
     var textB = results[1].items.map(function(item) { return item.str; }).join(' ');
     var div = document.getElementById("diffStatus");
+    var wordCountA = textA.split(/\s+/).filter(Boolean).length;
+    var wordCountB = textB.split(/\s+/).filter(Boolean).length;
     if (textA === textB) {
       div.innerHTML = "\x3Cspan style='color:#10b981;font-weight:600'>No text differences found on this page.\x3C/span>";
     } else {
-      var wordCountA = textA.split(/\s+/).filter(Boolean).length;
-      var wordCountB = textB.split(/\s+/).filter(Boolean).length;
       div.innerHTML = "\x3Cspan style='color:#f59e0b;font-weight:600'>Text differs! (A: " + wordCountA + " words, B: " + wordCountB + " words)\x3C/span>";
     }
+    updateCompareSummary(wordCountA, wordCountB);
   });
+}
+
+window.lastCmpSummary = { wordA: 0, wordB: 0, page: 1, pagesA: 0, pagesB: 0 };
+function updateCompareSummary(wordA, wordB) {
+  lastCmpSummary.wordA = wordA; lastCmpSummary.wordB = wordB;
+  lastCmpSummary.page = currentPage;
+  lastCmpSummary.pagesA = pdfDocA ? pdfDocA.numPages : 0;
+  lastCmpSummary.pagesB = pdfDocB ? pdfDocB.numPages : 0;
+  var box = document.getElementById("cmpSummary");
+  if (!box) return;
+  box.style.display = "block";
+  document.getElementById("cmpSummaryText").textContent = "第 " + currentPage + "/" + Math.max(lastCmpSummary.pagesA, lastCmpSummary.pagesB) + " 页 · PDF A " + lastCmpSummary.pagesA + " 页 " + wordA + " 词 · PDF B " + lastCmpSummary.pagesB + " 页 " + wordB + " 词";
+  drawCmpChart();
+}
+function drawCmpChart() {
+  var c = document.getElementById("cmpChart");
+  if (!c) return;
+  var w = c.clientWidth || c.parentElement.clientWidth || 300;
+  var h = 80, dpr = window.devicePixelRatio || 1;
+  c.width = w * dpr; c.height = h * dpr; c.style.width = w + 'px'; c.style.height = h + 'px';
+  var ctx = c.getContext("2d"); ctx.scale(dpr, dpr);
+  ctx.fillStyle = "#0f172a"; ctx.fillRect(0, 0, w, h);
+  var max = Math.max(lastCmpSummary.wordA, lastCmpSummary.wordB, 1);
+  var barW = Math.max(40, (w - 120) / 2);
+  var bars = [[lastCmpSummary.wordA, 'PDF A 词数', '#06b6d4'], [lastCmpSummary.wordB, 'PDF B 词数', '#22c55e']];
+  ctx.font = '12px sans-serif';
+  bars.forEach(function(d, i) {
+    var x = 60 + i * (barW + 40);
+    var bh = Math.max(2, (d[0] / max) * (h - 40));
+    ctx.fillStyle = 'rgba(148,163,184,.1)'; ctx.fillRect(x, h - 30, barW, h - 6);
+    ctx.fillStyle = d[2]; ctx.fillRect(x, h - 30 - bh, barW, bh);
+    ctx.fillStyle = '#e2e8f0'; ctx.textAlign = 'center'; ctx.fillText(d[0], x + barW / 2, h - 34 - bh);
+    ctx.fillStyle = '#94a3b8'; ctx.fillText(d[1], x + barW / 2, h - 6);
+  });
+}
+window.copyCompareSummary = function() {
+  var s = lastCmpSummary;
+  var txt = "PDF对比结果\n第 " + s.page + " 页 | PDF A: " + s.pagesA + " 页 " + s.wordA + " 词 | PDF B: " + s.pagesB + " 页 " + s.wordB + " 词";
+  copyToClipboard(txt, "已复制对比结果");
 }
 
 document.getElementById("pageNum").addEventListener("change", function() {

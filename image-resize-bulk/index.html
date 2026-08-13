@@ -257,9 +257,14 @@
         <button class="btn btn-secondary" id="downloadAllBtn">下载全部</button>
       </div>
       <div id="previewArea" style="margin-top:16px;display:flex;flex-wrap:wrap;gap:12px"></div>
+      <div id="result" style="display:none;margin-top:16px;padding:16px;background:#1e293b;border:1px solid rgba(148,163,184,.1);border-radius:8px">
+        <div style="font-weight:600;margin-bottom:8px;color:#e2e8f0">📊 批量缩放结果</div>
+        <div id="resultText" style="color:#94a3b8;font-size:.9rem;white-space:pre-wrap;word-break:break-word"></div>
+        <button class="btn btn-secondary" id="copyResultBtn" style="margin-top:12px">📋 复制结果</button>
+      </div>
       <script>
       var resizedImages = [];
-      document.getElementById('resizeBtn').addEventListener('click', function() {
+      function doResize() {
         var files = document.getElementById('imageInput').files;
         if (!files.length) { showToast('请先选择图片'); return; }
         var mode = document.getElementById('resizeMode').value;
@@ -267,6 +272,11 @@
         resizedImages = [];
         var preview = document.getElementById('previewArea');
         preview.innerHTML = '';
+        var resultDiv = document.getElementById('result');
+        var resultText = document.getElementById('resultText');
+        var modeLabels = {percent:'百分比缩放',width:'固定宽度',height:'固定高度',max:'最大边限制'};
+        resultText.textContent = '模式: ' + (modeLabels[mode] || mode) + ' | 数值: ' + val + '\n正在处理 ' + files.length + ' 张图片...';
+        resultDiv.style.display = 'block';
         var count = 0;
         Array.from(files).forEach(function(file, i) {
           var reader = new FileReader();
@@ -300,12 +310,28 @@
               wrapper.appendChild(label);
               preview.appendChild(wrapper);
               count++;
-              if (count === files.length) showToast(count + ' 张图片已缩放');
+              if (count === files.length) {
+                var lines = resizedImages.map(function(r){ return r.name + ' → ' + r.canvas.width + 'x' + r.canvas.height; });
+                resultText.textContent = '模式: ' + (modeLabels[mode] || mode) + ' | 数值: ' + val + '\n共 ' + files.length + ' 张图片已缩放\n\n' + lines.join('\n');
+                showToast(count + ' 张图片已缩放');
+              }
             };
             img.src = e.target.result;
           };
           reader.readAsDataURL(file);
         });
+      }
+      document.getElementById('resizeBtn').addEventListener('click', doResize);
+      document.getElementById('copyResultBtn').addEventListener('click', function() {
+        var t = document.getElementById('resultText').textContent;
+        if (!t) { showToast('没有可复制的结果'); return; }
+        copyText(t);
+      });
+      document.getElementById('resizeMode').addEventListener('change', function() {
+        if (document.getElementById('imageInput').files.length) doResize();
+      });
+      document.getElementById('resizeValue').addEventListener('input', function() {
+        if (document.getElementById('imageInput').files.length) doResize();
       });
       document.getElementById('downloadAllBtn').addEventListener('click', function() {
         if (!resizedImages.length) { showToast('请先缩放图片'); return; }

@@ -224,6 +224,7 @@ a{color:#06b6d4;text-decoration:none}
     <div class="ua-full" id="uaFull"></div>
     <div class="btn-row">
       <button class="btn btn-secondary" onclick="copyUA()">📋 Copy UA</button>
+      <button class="btn btn-secondary" onclick="copyAllInfo()">📋 Copy All Info</button>
       <button class="btn btn-primary" onclick="detectAll()">🔄 Re-detect</button>
     </div>
   </div>
@@ -362,6 +363,40 @@ function copyUA() {
   }
 }
 
+function copyAllInfo() {
+  const sections = [
+    ['uaFull', 'User Agent'],
+    ['browserGrid', 'Browser & Operating System'],
+    ['screenGrid', 'Screen & Display'],
+    ['hardwareGrid', 'Hardware Info'],
+    ['networkGrid', 'Network & Timezone'],
+    ['featureGrid', 'Browser Features & APIs']
+  ];
+  const lines = ['Browser Info Report — ' + new Date().toLocaleString()];
+  sections.forEach(s => {
+    const el = document.getElementById(s[0]);
+    if (!el) return;
+    lines.push('\n[' + s[1] + ']');
+    el.querySelectorAll('.info-item').forEach(item => {
+      const label = item.querySelector('.label');
+      const val = item.querySelector('.value');
+      if (label && val) lines.push(label.textContent + ': ' + val.textContent);
+    });
+  });
+  const text = lines.join('\n');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showToast('All info copied to clipboard'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('All info copied to clipboard');
+  }
+}
+
 function createItem(label, value, type) {
   const item = document.createElement('div');
   item.className = 'info-item';
@@ -490,7 +525,7 @@ function detectAll() {
     { label: 'IndexedDB', value: 'indexedDB' in window ? 'Supported' : 'Not supported', type: 'indexedDB' in window ? 'tag-ok' : 'tag-warn' },
     { label: 'Clipboard API', value: navigator.clipboard ? 'Supported' : 'Not supported', type: navigator.clipboard ? 'tag-ok' : 'tag-warn' },
     { label: 'Web Share API', value: navigator.share ? 'Supported' : 'Not supported', type: navigator.share ? 'tag-ok' : 'tag-warn' },
-    { label: 'Notifications', value: 'Notification' in window ? ('granted' === Notification.permission ? 'Granted' : ('denied' === Notification.permission ? 'Denied' : 'Not requested')) : 'Not supported'), type: 'Notification' in window ? ('granted' === Notification.permission ? 'tag-ok' : 'tag-warn') : 'tag-err' },
+    { label: 'Notifications', value: 'Notification' in window ? ('granted' === Notification.permission ? 'Granted' : ('denied' === Notification.permission ? 'Denied' : 'Not requested')) : 'Not supported', type: 'Notification' in window ? ('granted' === Notification.permission ? 'tag-ok' : 'tag-warn') : 'tag-err' },
     { label: 'Geolocation', value: 'geolocation' in navigator ? 'Supported' : 'Not supported', type: 'geolocation' in navigator ? 'tag-ok' : 'tag-warn' },
     { label: 'PDF Viewer', value: navigator.pdfViewerEnabled !== undefined ? (navigator.pdfViewerEnabled ? 'Built-in' : 'None') : 'Unknown' },
     { label: 'Cookies Enabled', value: navigator.cookieEnabled ? 'Yes' : 'No', type: navigator.cookieEnabled ? 'tag-ok' : 'tag-err' },
@@ -518,7 +553,7 @@ window.addEventListener('resize', () => {
       }
     });
   }
-};</script>
+});</script>
 
 <!-- Feedback Widget -->
 </main>

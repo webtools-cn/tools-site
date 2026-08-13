@@ -126,6 +126,7 @@
                 <thead><tr><th>层级</th><th>名称</th><th>大小 (px)</th><th>大小 (rem)</th><th>预览</th></tr></thead>
                 <tbody id="scaleBody"></tbody>
             </table>
+            <canvas id="scaleChart" width="600" height="220" style="max-width:100%;margin-top:16px"></canvas>
         </div>
 
         <div class="section">
@@ -180,14 +181,81 @@
             body.innerHTML = html;
             document.getElementById('codeOutput').textContent = cssVars;
             window._scssCode = scssVars;
+            drawChart();
+        }
+
+        function drawChart() {
+            var canvas = document.getElementById('scaleChart');
+            if (!canvas || !canvas.getContext) return;
+            var dpr = window.devicePixelRatio || 1;
+            var cssW = canvas.parentElement.clientWidth - 20;
+            if (cssW < 60) cssW = 600;
+            canvas.width = cssW * dpr;
+            canvas.height = 220 * dpr;
+            var ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            var w = cssW, h = 220;
+            ctx.clearRect(0, 0, w, h);
+            var base = parseFloat(document.getElementById('baseSize').value) || 16;
+            var ratio = parseFloat(document.getElementById('customRatio').value) || 1.333;
+            var steps = parseInt(document.getElementById('steps').value) || 8;
+            var sizes = [];
+            for (var i = 0; i <= steps; i++) sizes.push(base * Math.pow(ratio, i));
+            var max = Math.max.apply(null, sizes);
+            var chartH = 140, top = 28, left = 56, right = 16;
+            var innerW = w - left - right;
+            var barGap = 4;
+            var barW = (innerW - barGap * sizes.length) / sizes.length;
+            if (barW < 2) barW = 2;
+            ctx.fillStyle = 'rgba(148,163,184,.06)';
+            ctx.fillRect(left, top, innerW, chartH);
+            ctx.strokeStyle = 'rgba(148,163,184,.12)';
+            ctx.font = '11px monospace';
+            for (var g = 0; g <= 4; g++) {
+                var gy = top + chartH - (chartH * g / 4);
+                ctx.beginPath(); ctx.moveTo(left, gy); ctx.lineTo(w - right, gy); ctx.stroke();
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillText(Math.round(max * g / 4) + 'px', 2, gy + 4);
+            }
+            for (var j = 0; j < sizes.length; j++) {
+                var bh = (sizes[j] / max) * chartH;
+                var x = left + barGap / 2 + j * (barW + barGap);
+                var grad = ctx.createLinearGradient(0, top + chartH - bh, 0, top + chartH);
+                grad.addColorStop(0, '#22d3ee');
+                grad.addColorStop(1, 'rgba(6,182,212,.25)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(x, top + chartH - bh, barW, bh);
+                ctx.fillStyle = '#64748b';
+                if (sizes.length <= 20) {
+                    var num = Math.round(sizes[j]);
+                    ctx.fillText(num + '', x + barW / 2 - 6, top + chartH - bh - 5);
+                }
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillText('s' + j, x + barW / 2 - 6, top + chartH + 16);
+            }
+            ctx.fillStyle = '#64748b';
+            ctx.fillText('字号随层级增长 (ratio=' + ratio.toFixed(3) + ')', left, top - 6);
+        }
+
+        function ftCopy(t, msg) {
+            function ok() { showToast(msg || '已复制'); }
+            function fb() {
+                var ta = document.createElement('textarea');
+                ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); ok(); } catch (e) { showToast('复制失败'); }
+                document.body.removeChild(ta);
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t).then(ok).catch(fb); }
+            else { fb(); }
         }
 
         function copyCode() {
-            navigator.clipboard.writeText(document.getElementById('codeOutput').textContent).then(function() { showToast('已复制CSS到剪贴板'); });
+            ftCopy(document.getElementById('codeOutput').textContent, '已复制CSS到剪贴板');
         }
 
         window.copySCSS = copySCSS; function copySCSS() {
-            navigator.clipboard.writeText(window._scssCode || '').then(function() { showToast('已复制SCSS到剪贴板'); });
+            ftCopy(window._scssCode || '', '已复制SCSS到剪贴板');
         }
 
         calculate();</script></div></div>

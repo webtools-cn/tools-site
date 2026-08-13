@@ -141,6 +141,13 @@ table.data td{color:#cbd5e1}
 <div class="search-box">
 <input type="text" id="emojiSearch" placeholder="搜索Emoji... (如: 笑脸, 动物, heart, smile)" oninput="filterEmojis()">
 </div>
+<div class="btn-row" style="margin-top:0;margin-bottom:12px">
+<button class="btn btn-secondary" onclick="fillExample()">🎲 填入示例</button>
+</div>
+<div id="result" style="display:none;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:10px 12px;margin-bottom:12px;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+<span style="font-size:.85rem">最近复制: <span id="lastEmoji" style="font-size:1.6rem;vertical-align:middle"></span></span>
+<button class="btn btn-primary" onclick="copyLastEmoji()" style="padding:4px 12px;font-size:.75rem">📋 复制结果</button>
+</div>
 <div class="emoji-cats" id="emojiCats"></div>
 <div class="recent-section" id="recentSection" style="display:none">
 <h3>🕐 最近使用</h3>
@@ -262,6 +269,27 @@ function renderGrid(){
 
 window.filterEmojis = filterEmojis; function filterEmojis(){ renderGrid(); }
 
+function fillExample(){
+  document.getElementById('emojiSearch').value = 'heart';
+  renderGrid();
+  showToast('已填入示例关键词 heart');
+}
+
+function copyLastEmoji(){
+  var c = document.getElementById('lastEmoji').textContent;
+  if (!c) { showToast('尚未复制任何Emoji'); return; }
+  navigator.clipboard.writeText(c).then(function(){showToast('✅ 已复制: ' + c)}).catch(function(){
+    var ta = document.createElement('textarea'); ta.value = c; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('✅ 已复制: ' + c);
+  });
+}
+
+function showLastCopied(emoji){
+  document.getElementById('lastEmoji').textContent = emoji;
+  document.getElementById('result').style.display = 'flex';
+}
+
 function copyEmoji(el, emoji){
   navigator.clipboard.writeText(emoji).then(() => {
     el.classList.add('copied');
@@ -274,6 +302,7 @@ function copyEmoji(el, emoji){
     recentEmojis = [emoji, ...recentEmojis.filter(e => e !== emoji)].slice(0, 20);
     localStorage.setItem('recentEmojis', JSON.stringify(recentEmojis));
     renderGrid();
+    showLastCopied(emoji);
   }).catch(() => {
     // Fallback
     const ta = document.createElement('textarea');
@@ -284,6 +313,7 @@ function copyEmoji(el, emoji){
     document.body.removeChild(ta);
     el.classList.add('copied');
     setTimeout(() => el.classList.remove('copied'), 500);
+    showLastCopied(emoji);
   });
 }
 

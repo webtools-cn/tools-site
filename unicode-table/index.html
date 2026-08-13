@@ -86,6 +86,15 @@
     .category-tag:hover { border-color: var(--primary); color: var(--primary); }
     .category-tag.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
+    /* 工具栏 */
+    .toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .toolbar-btn {
+      padding: 8px 16px; border: 1px solid rgba(148,163,184,.2); border-radius: 8px;
+      background: var(--surface); color: #e2e8f0; cursor: pointer; font-size: .85rem;
+      transition: all .15s;
+    }
+    .toolbar-btn:hover { border-color: var(--primary); color: var(--primary); }
+
     /* 统计 */
     .stats { color: var(--text-secondary); font-size: .85rem; margin-bottom: 12px; }
 
@@ -179,6 +188,11 @@
       <select id="blockSelect">
         <option value="all">全部区块</option>
       </select>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" class="toolbar-btn" id="btnExample">🎲 填入示例</button>
+      <button type="button" class="toolbar-btn" id="btnCopyAll">📋 复制全部结果</button>
     </div>
 
     <div class="categories" id="categories"></div>
@@ -423,6 +437,36 @@
       clearTimeout(toast._timeout);
       toast._timeout = setTimeout(() => toast.classList.remove('show'), 2000);
     }
+
+    function ftCopy(text, msg) {
+      const done = () => showToast(msg);
+      const fallback = () => {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) { showToast('复制失败'); }
+        document.body.removeChild(ta);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(fallback);
+      } else { fallback(); }
+    }
+
+    document.getElementById('btnExample').addEventListener('click', () => {
+      const input = document.getElementById('searchInput');
+      input.value = 'U+2603';
+      searchQuery = input.value;
+      page = 1;
+      render();
+    });
+
+    document.getElementById('btnCopyAll').addEventListener('click', () => {
+      const filtered = filterChars();
+      const start = (page - 1) * PAGE_SIZE;
+      const pageChars = filtered.slice(start, start + PAGE_SIZE);
+      if (!pageChars.length) { showToast('当前页没有可复制的字符'); return; }
+      ftCopy(pageChars.map(c => c.char).join(''), `已复制当前页 ${pageChars.length} 个字符`);
+    });
 
     // ============ 初始化UI ============
     function initUI() {

@@ -112,6 +112,9 @@
     <div class="section" id="previewCard" style="display:none">
       <h2>📊 预览结果</h2>
       <div class="stats" id="stats"></div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-secondary" id="copyCsvBtn" onclick="copyMergedCsv()">📋 复制合并结果</button>
+      </div>
       <div style="overflow-x:auto;margin-top:12px">
         <table class="preview-table" id="previewTable"></table>
       </div>
@@ -146,6 +149,7 @@
   <div class="toast" id="toast"></div>
   <script>
     let files = [];
+    let lastMerged = null;
     const MAX_FILES = 20, MAX_SIZE = 10 * 1024 * 1024;
 
     function showToast(msg, isErr) {
@@ -270,6 +274,7 @@
       const result = mergeCSVs();
       if (!result) { showToast('没有可合并的数据', true); return; }
       const csv = rowsToCSV(result.header, result.rows);
+      lastMerged = csv;
       downloadCSV(csv, 'merged.csv');
       
       // preview
@@ -281,6 +286,31 @@
         `<span>📋 ${result.header.length} 列</span><span>📝 ${result.rows.length} 行</span><span>📁 ${files.length} 个文件</span>`;
       document.getElementById('previewCard').style.display = 'block';
       showToast('合并完成，已下载！');
+    });
+
+    function copyMergedCsv() {
+      if (!lastMerged) { showToast('请先合并文件', true); return; }
+      function done() { showToast('已复制合并结果'); }
+      function fail() { showToast('复制失败', true); }
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(lastMerged).then(done, fail); }
+      else {
+        const ta = document.createElement('textarea'); ta.value = lastMerged;
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) { fail(); }
+        document.body.removeChild(ta);
+      }
+    }
+
+    ['removeHeaders', 'addSourceCol'].forEach(id => {
+      const c = document.getElementById(id);
+      if (c) c.addEventListener('change', () => {
+        if (!lastMerged || files.length === 0) return;
+        const r = mergeCSVs();
+        if (!r) return;
+        lastMerged = rowsToCSV(r.header, r.rows);
+        document.getElementById('stats').innerHTML =
+          `<span>📋 ${r.header.length} 列</span><span>📝 ${r.rows.length} 行</span><span>📁 ${files.length} 个文件</span>`;
+      });
     });</script>
 </body>
 </html>

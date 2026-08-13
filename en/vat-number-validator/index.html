@@ -51,8 +51,12 @@
 <div>
 <div class="section">
 <div class="form-group"><label for="vt-input">Enter VAT number</label>
-<textarea id="vt-input" style="min-height:80px;resize:vertical" oninput="convert()" placeholder="e.g. DE123456789"></textarea></div>
+<textarea id="vt-input" style="min-height:80px;resize:vertical" oninput="convert()" placeholder="e.g. DE123456789"></textarea>
+<button type="button" class="btn-mini" onclick="fillExample()">🎲 填入示例</button></div>
+<div id="result" style="margin-top:12px">
 <div id="vt-output" style="min-height:40px"></div>
+<button type="button" class="btn-mini" onclick="copyResult()" style="margin-top:8px">📋 复制结果</button>
+</div>
 </div>
 </div>
 </div>
@@ -119,6 +123,37 @@ function validateVAT(vat) {
   var pattern = VAT_PATTERNS[cc][0];
   if (!pattern.test(vat)) return {valid: false, error: 'Invalid format for ' + VAT_PATTERNS[cc][1] + '. Expected: ' + VAT_PATTERNS[cc][2]};
   return {valid: true, country: VAT_PATTERNS[cc][1], format: VAT_PATTERNS[cc][2]};
+}
+
+var EXAMPLES = ['DE123456789', 'FR12345678901', 'IT12345678901', 'NL123456789B01', 'PL1234567890', 'ESB12345674', 'ATU12345678'];
+
+function fillExample() {
+  var input = document.getElementById('vt-input');
+  input.value = EXAMPLES[Math.floor(Math.random() * EXAMPLES.length)];
+  convert();
+}
+
+function copyResult() {
+  var out = document.getElementById('vt-output');
+  var text = out.innerText || out.textContent;
+  if (!text) return;
+  var done = function() { showToast('Copied to clipboard'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() { fallbackCopy(text, done); });
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+
+function fallbackCopy(text, done) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); done(); } catch (e) { showToast('Copy failed'); }
+  document.body.removeChild(ta);
 }
 
 function convert() {

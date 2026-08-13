@@ -177,6 +177,7 @@ input[type=color]{width:60px;height:40px;cursor:pointer;border-radius:8px;paddin
     <input type="text" id="searchInput" placeholder="Search color name or enter HEX (e.g. coral or #FF7F50)..." oninput="onSearch()">
     <input type="color" id="colorPicker" value="#FF7F50" oninput="onPickerChange()">
     <button class="btn btn-primary" onclick="findClosest()">🔍 Find Closest</button>
+    <button class="btn btn-secondary" id="exampleBtn">🎲 Try an Example</button>
   </div>
   <div class="match-info" id="matchInfo">
     <div class="swatch" id="matchSwatch"></div>
@@ -246,8 +247,13 @@ function renderGrid(filtered){colorGrid.innerHTML='';var list=filtered||COLORS;c
 function onSearch(){var q=searchInput.value.trim().toLowerCase();if(!q){renderGrid();return;}if(q.match(/^#?[0-9a-f]{3,6}$/i)){if(q.length===4)q='#'+q[1]+q[1]+q[2]+q[2]+q[3]+q[3];if(q.length===7){colorPicker.value=q;findClosest();return;}}var filtered=COLORS.filter(function(c){return c.name.toLowerCase().indexOf(q)>=0||c.hex.toLowerCase().indexOf(q)>=0;});renderGrid(filtered);}
 function onPickerChange(){searchInput.value=colorPicker.value;findClosest();}
 function findClosest(){var hex=colorPicker.value;var best=null;var bestDelta=Infinity;for(var i=0;i<COLORS.length;i++){var d=colorDelta(hex,COLORS[i].hex);if(d<bestDelta){bestDelta=d;best=COLORS[i];}}if(best){var rgb=hexToRgb(best.hex);document.getElementById('matchSwatch').style.background=best.hex;document.getElementById('matchName').textContent=best.name;document.getElementById('matchHex').textContent=best.hex;document.getElementById('matchRgb').textContent='rgb('+rgb.r+','+rgb.g+','+rgb.b+')';document.getElementById('matchScore').textContent='Match: '+(100-Math.min(bestDelta/10,100)*1).toFixed(1)+'% (Delta: '+bestDelta.toFixed(1)+')';matchInfo.style.display='block';}}
-function copyMatch(){var name=document.getElementById('matchName').textContent;var hex=document.getElementById('matchHex').textContent;navigator.clipboard.writeText(name+' '+hex).then(function(){}).catch(function(){});}
+function copyMatch(){var name=document.getElementById('matchName').textContent;var hex=document.getElementById('matchHex').textContent;navigator.clipboard.writeText(name+' '+hex).then(function(){showToast('📋 Copied: '+name)}).catch(function(){showToast('Copy failed')});}
 document.addEventListener('keydown',function(e){if(e.ctrlKey&&e.key==='Enter'){findClosest();e.preventDefault();}});
+var exampleColors=['#FF7F50','#6495ED','#8A2BE2','#DC143C','#00CED1','#F4A460','#556B2F','#C71585'];
+var exIdx=0;
+document.getElementById('exampleBtn').addEventListener('click',function(){var h=exampleColors[exIdx%exampleColors.length];exIdx++;searchInput.value=h;colorPicker.value=h;findClosest();showToast('🎲 Example: '+h)});
+var _toast=document.createElement('div');_toast.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s';document.body.appendChild(_toast);
+function showToast(m){_toast.textContent=m;_toast.style.opacity='1';clearTimeout(_toast._t);_toast._t=setTimeout(function(){_toast.style.opacity='0'},2000)}
 window.addEventListener('load',function(){renderGrid();findClosest();});
 </script>
 

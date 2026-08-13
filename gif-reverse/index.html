@@ -273,6 +273,10 @@ footer {
             <button class="btn btn-primary" id="reverseBtn">🔄 倒放</button>
             <button class="btn btn-secondary" id="downloadBtn" disabled>⬇️ 下载倒放GIF</button>
           </div>
+          <div id="resultCard" style="display:none;margin-top:16px;background:#0f172a;border:1px solid rgba(6,182,212,.3);border-radius:8px;padding:14px 16px;font-size:.85rem;color:#94a3b8;line-height:1.8">
+            <div style="font-weight:600;color:#22d3ee;margin-bottom:6px">📊 处理结果</div>
+            <div id="result"></div>
+          </div>
         </div>
         <div class="section">
           <h2>📖 使用说明</h2>
@@ -311,11 +315,23 @@ footer {
           };
           reader.readAsArrayBuffer(file);
         });
+        function formatSize(bytes) {
+          if (bytes < 1024) return bytes + ' B';
+          if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+          return (bytes / 1048576).toFixed(2) + ' MB';
+        }
+        function showResult(html) {
+          var card = document.getElementById('resultCard');
+          if (!card) return;
+          card.style.display = 'block';
+          document.getElementById('result').innerHTML = html;
+        }
         reverseBtn.addEventListener('click', async function() {
           const file = gifInput.files[0];
           if (!file) { showToast('请先选择GIF文件'); return; }
           reverseBtn.textContent = '⏳ 处理中...';
           reverseBtn.disabled = true;
+          const startTime = Date.now();
           try {
             // Use gif.js or canvas approach
             const img = document.createElement('img');
@@ -336,6 +352,13 @@ footer {
             gifPreview.innerHTML = '<p style=\'color:#22d3ee;margin-bottom:8px\'>✅ 已倒放（注意：简单反转处理，GIF动画需逐帧处理）</p>';
             gifPreview.appendChild(revImg);
             downloadBtn.disabled = false;
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+            showResult(
+              '文件大小: <b style="color:#e2e8f0">' + formatSize(file.size) + '</b><br>' +
+              '原始尺寸: <b style="color:#e2e8f0">' + img.naturalWidth + ' × ' + img.naturalHeight + '</b><br>' +
+              '处理耗时: <b style="color:#e2e8f0">' + elapsed + ' 秒</b><br>' +
+              '<span style="color:#64748b">⬇️ 点击"下载倒放GIF"保存结果</span>'
+            );
             showToast('倒放完成！');
           } catch(err) {
             showToast('处理失败：' + err.message);

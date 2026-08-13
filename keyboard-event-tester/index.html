@@ -81,6 +81,7 @@
 <div style="display:flex;gap:8px;margin-bottom:12px">
   <button class="btn btn-primary" onclick="clearLog()" style="padding:6px 14px;border:none;background:#06b6d4;color:#fff;border-radius:6px;cursor:pointer;font-size:.8rem">&#x1F5D1; 清空日志</button>
   <button class="btn" onclick="toggleLock()" style="padding:6px 14px;border:1px solid rgba(148,163,184,.3);border-radius:6px;cursor:pointer;font-size:.8rem;background:transparent;color:#94a3b8" id="lockBtn">&#x1F512; 暂停监听</button>
+  <button class="btn" onclick="copyEventInfo()" style="padding:6px 14px;border:1px solid rgba(6,182,212,.3);border-radius:6px;cursor:pointer;font-size:.8rem;background:rgba(6,182,212,.15);color:#22d3ee">&#x1F4CB; 复制事件信息</button>
 </div>
 <div style="background:#0f172a;border-radius:8px;padding:8px;max-height:200px;overflow-y:auto">
   <table style="width:100%;font-size:.75rem;font-family:monospace">
@@ -152,11 +153,13 @@ function updateMods(e) {
   }
 }
 
+var lastEvent = null;
 function handleKeyEvent(e) {
   if (locked) return;
   var keyDisplay = document.getElementById("keyDisplay");
   var displayKey = e.key === " " ? "Space" : e.key;
   keyDisplay.textContent = displayKey;
+  lastEvent = {key: displayKey, code: e.code, type: e.type, repeat: e.repeat ? "Repeat" : "-", ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey, meta: e.metaKey};
   
   document.getElementById("infoKey").textContent = displayKey;
   document.getElementById("infoCode").textContent = e.code;
@@ -192,6 +195,18 @@ function handleKeyEvent(e) {
 window.clearLog = clearLog; function clearLog() {
   document.getElementById("logBody").innerHTML = "";
   logCount = 0;
+}
+
+function copyEventInfo() {
+  if (!lastEvent) { showToast("暂无按键事件"); return; }
+  var txt = "key=" + lastEvent.key + " code=" + lastEvent.code + " type=" + lastEvent.type +
+    " ctrl=" + lastEvent.ctrl + " alt=" + lastEvent.alt + " shift=" + lastEvent.shift +
+    " meta=" + lastEvent.meta + " repeat=" + lastEvent.repeat;
+  navigator.clipboard.writeText(txt).then(function(){showToast("✅ 已复制事件信息")}).catch(function(){
+    var ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy"); document.body.removeChild(ta);
+    showToast("✅ 已复制事件信息");
+  });
 }
 
 function toggleLock() {

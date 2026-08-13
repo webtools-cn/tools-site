@@ -415,8 +415,44 @@ function copyText(t){navigator.clipboard.writeText(t).then(()=>showToast())}
 function showToast(){const t=document.getElementById('copy-toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500)}
 function toggleFaq(el){el.classList.toggle('open')}
 
-function showToast(){const t=document.getElementById('copy-toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500)}
-function toggleFaq(el){el.classList.toggle('open')}
+function searchPkgs(){
+  const q=document.getElementById('search-input').value.trim();
+  const box=document.getElementById('search-results');
+  const detail=document.getElementById('pkg-detail');
+  if(!q){box.innerHTML='<p style="color:#64748b;text-align:center;padding:12px">Enter a package name to search</p>';return;}
+  box.innerHTML='<div class="loading">⏳ Searching npm registry...</div>';
+  detail.style.display='none';
+  fetch('https://registry.npmjs.org/-/v1/search?text='+encodeURIComponent(q)+'&size=10')
+    .then(r=>r.json())
+    .then(d=>{
+      const objs=d.objects||[];
+      if(!objs.length){box.innerHTML='<p style="color:#64748b;text-align:center;padding:12px">No packages found for "'+q+'"</p>';return;}
+      box.innerHTML=objs.map(o=>{
+        const p=o.package;
+        const meta='<span>📦 <strong style="color:#e2e8f0">'+p.version+'</strong></span>'
+          +'<span>⚖️ '+(p.license||'N/A')+'</span>'
+          +'<span class="highlight">⭐ '+(p.links&&p.links.npm?'npm':'')+'</span>';
+        return '<div class="pkg-card" onclick="showDetail(\''+p.name.replace(/'/g,"\\'")+'\')">'
+          +'<div class="pkg-name">'+p.name+'</div>'
+          +'<div class="pkg-desc">'+((p.description||'').slice(0,140)||'No description')+'</div>'
+          +'<div class="pkg-meta">'+meta+'</div></div>';
+      }).join('');
+    })
+    .catch(()=>{box.innerHTML='<p style="color:#ef4444;text-align:center;padding:12px">Search failed. Check your connection and try again.</p>';});
+}
+function quickSearch(name){
+  document.getElementById('search-input').value=name;
+  searchPkgs();
+}
+(function(){
+  const inp=document.getElementById('search-input');
+  if(!inp)return;
+  let deb=null;
+  inp.addEventListener('input',function(){
+    clearTimeout(deb);
+    deb=setTimeout(searchPkgs,400);
+  });
+})();
 
 </script>
 

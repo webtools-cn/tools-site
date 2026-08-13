@@ -151,12 +151,19 @@ canvas{max-width:100%}
 <div class="hero"><p>免费在线便签纸工具，支持彩色便签、拖拽移动、编辑内容和本地自动保存。无需注册，纯前端。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section"><div id="app"></div><div class="input-row">
+    <div class="input-group" style="flex:2"><label>便签内容</label><textarea id="snInput" rows="3" placeholder="输入便签内容，按 Enter 添加..."></textarea></div>
     <div class="input-group" style="min-width:80px"><label>颜色</label>
-      
+      <div class="color-swatch" style="background:#fef3c7" onclick="selectSNColor('#fef3c7')" title="米黄"></div>
+      <div class="color-swatch" style="background:#dbeafe" onclick="selectSNColor('#dbeafe')" title="淡蓝"></div>
+      <div class="color-swatch" style="background:#d1fae5" onclick="selectSNColor('#d1fae5')" title="淡绿"></div>
+      <div class="color-swatch" style="background:#fce7f3" onclick="selectSNColor('#fce7f3')" title="淡粉"></div>
+      <div class="color-swatch" style="background:#e0e7ff" onclick="selectSNColor('#e0e7ff')" title="靛蓝"></div>
+      <div class="color-swatch" style="background:#fef9c3" onclick="selectSNColor('#fef9c3')" title="柠檬黄"></div>
     </div>
   </div>
   <div class="btn-row">
     <button class="btn btn-primary" onclick="addSNNote()">➕ 添加便签</button>
+    <button class="btn btn-secondary" onclick="copyAllSNNotes()">📋 复制全部</button>
     <button class="btn btn-danger" onclick="clearSNNotes()">🗑️ 清除全部</button>
   </div>
 </div>
@@ -223,11 +230,33 @@ function saveSNNotes(){
   renderSNNotes();
 }
 window.addSNNote = addSNNote; function addSNNote(){
-  var text=document.getElementById('snInput').value.trim();
+  var input=document.getElementById('snInput');
+  var text=input.value.trim();
   if(!text)return;
   snNotes.push({id:Date.now(),text:text,color:snColor,created:new Date().toISOString()});
   saveSNNotes();
-  document.getElementById('snInput').value='';
+  input.value='';
+  input.focus();
+}
+var snInputEl=document.getElementById('snInput');
+if(snInputEl){
+  snInputEl.addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();addSNNote();}
+  });
+}
+function copyAllSNNotes(){
+  if(snNotes.length===0){toast('还没有便签');return;}
+  var text=snNotes.map(function(n,i){return (i+1)+'. '+n.text;}).join('\n');
+  var done=function(){toast('已复制全部便签');};
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done)['catch'](done);
+  }else{
+    var ta=document.createElement('textarea');ta.value=text;
+    ta.style.position='fixed';ta.style.left='-9999px';
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');}catch(e){}
+    document.body.removeChild(ta);done();
+  }
 }
 function deleteSNNote(id){
   snNotes=snNotes.filter(function(n){return n.id!==id;});

@@ -229,6 +229,10 @@ tr:hover td{background:rgba(148,163,184,.05)}.ad-slot{margin:0 auto;text-align:c
  <label for="petAge">Pet Age (years)</label>
  <input type="number" id="petAge" min="0" max="40" step="0.5" value="3" onchange="updateResult()" oninput="updateResult()">
  </div>
+ <div class="form-group" style="flex:1">
+ <label>&nbsp;</label>
+ <button class="btn btn-secondary" style="width:100%" onclick="fillSample()">🎲 Fill Sample</button>
+ </div>
  </div>
  <div class="stats" style="justify-content:center;margin:20px 0">
  <div style="text-align:center">
@@ -236,9 +240,10 @@ tr:hover td{background:rgba(148,163,184,.05)}.ad-slot{margin:0 auto;text-align:c
  <div class="stat-label" id="humanAgeLabel">≈ Human Age</div>
  </div>
  </div>
- <div class="code-output" style="max-height:none">
- <pre id="ageDesc">🐶 Your small dog is about 31 human years old, in their prime!</pre>
- </div>
+  <div class="code-output" style="max-height:none">
+  <button class="copy-btn" onclick="copyAgeDesc()">📋 Copy</button>
+  <pre id="ageDesc">🐶 Your small dog is about 31 human years old, in their prime!</pre>
+  </div>
  <div class="section" style="margin-top:12px">
  <h2>📊 Age Comparison Chart</h2>
  <div id="ageTable"></div>
@@ -274,17 +279,11 @@ tr:hover td{background:rgba(148,163,184,.05)}.ad-slot{margin:0 auto;text-align:c
  <div class="faq-item"><h3>Why do large dogs age faster?</h3><p>Large dogs have faster growth rates, more cell divisions, and higher oxidative stress. A Great Dane is senior at 7 while a Chihuahua can live past 15.</p></div>
  <div class="faq-item"><h3>Is this calculation accurate?</h3><p>This calculator uses veterinary research-based formulas. Individual breeds may vary. Consult your vet for breed-specific assessment.</p></div>
  </div>
- <div>
+  <div>
 <!-- AdSense -->
 
-<div class="seo-content"><table><tr><th>"+(lang==="zh-CN"?"":"Pet Age")+"</th><th>"+(lang==="zh-CN"?"":"Human Age")+"</th><th>"+(lang==="zh-CN"?"phase":"Stage")+"</th></tr>";
-  for(var i=0;i<=20;i+=1){
-    var h=calcHumanAge(type,i);
-    html+="<tr><td>"+i+" "+(lang==="zh-CN"?"year":"yr")+"</td><td>
-</td><td>"+getStage(type,h)+"</td></tr>
-<!-- Feedback Widget -->
 </div>
-</main></div><footer style="background:#0f172a;border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:40px">
+</main><footer style="background:#0f172a;border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:40px">
   <div style="max-width:1200px;margin:0 auto;padding:0 20px;display:flex;flex-wrap:wrap;justify-content:center;gap:16px">
     <a href="../index.html" style="color:#94a3b8;text-decoration:none;font-size:14px">Home</a>
     <a href="mailto:dexshuang@google.com" style="color:#94a3b8;text-decoration:none;font-size:14px">Contact</a>
@@ -307,6 +306,58 @@ const body=encodeURIComponent('**Page**: '+window.location.href+'\n**Type**: '+t
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
 document.getElementById('feedback-success').style.display='block';
 }
+function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},3000)}
+function dogHuman(age){
+  if(age<=0)return 0;
+  if(age<=1)return age*15;
+  if(age<=2)return 15+(age-1)*9;
+  if(age<=5)return 24+(age-2)*4;
+  return 36+(age-5)*5;
+}
+function catHuman(age){
+  if(age<=0)return 0;
+  if(age<=1)return age*15;
+  if(age<=2)return 15+(age-1)*9;
+  return 24+(age-2)*4;
+}
+function getStage(h){return h<18?'Puppy/Kitten':h<35?'Young Adult':h<55?'Middle Age':h<75?'Senior':'Geriatric'}
+function updateResult(){
+  var petType=document.getElementById('petType').value;
+  var petAge=parseFloat(document.getElementById('petAge').value)||0;
+  var isCat=petType==='cat';
+  var human=isCat?catHuman(petAge):dogHuman(petAge);
+  var typeName=petType==='cat'?'cat':petType==='dog-medium'?'medium dog':petType==='dog-large'?'large dog':'small dog';
+  var stage=getStage(human);
+  var icon=isCat?'🐱':'🐶';
+  document.getElementById('humanAge').textContent=Math.round(human);
+  document.getElementById('ageDesc').textContent=icon+' Your '+typeName+' is about '+Math.round(human)+' human years old — '+stage+'.';
+  var rows='<tr><th>Pet Age</th><th>≈ Human Age</th><th>Stage</th></tr>';
+  for(var i=0;i<=20;i++){
+    var h=isCat?catHuman(i):dogHuman(i);
+    rows+='<tr><td>'+i+' yr</td><td>'+Math.round(h)+' yr</td><td>'+getStage(h)+'</td></tr>';
+  }
+  document.getElementById('ageTable').innerHTML='<table>'+rows+'</table>';
+}
+function fillSample(){
+  document.getElementById('petType').value='dog-medium';
+  document.getElementById('petAge').value=5;
+  updateResult();
+  showToast('Sample filled: medium dog, 5 years');
+}
+function copyAgeDesc(){
+  var t=(document.getElementById('ageDesc').textContent||'').trim();
+  if(!t){showToast('Nothing to copy');return}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){showToast('Copied')}).catch(function(){showToast('Copy failed')});
+  }else{
+    try{
+      var ta=document.createElement('textarea');ta.value=t;
+      document.body.appendChild(ta);ta.select();document.execCommand('copy');
+      document.body.removeChild(ta);showToast('Copied');
+    }catch(e){showToast('Copy failed')}
+  }
+}
+updateResult();
 </script>
 </body>
 </html>

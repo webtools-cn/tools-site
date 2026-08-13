@@ -110,9 +110,10 @@
   <div class="filter-bar">
     <select id="baseFilter"><option value="all">全部基酒</option><option value="伏特加">伏特加</option><option value="金酒">金酒</option><option value="朗姆酒">朗姆酒</option><option value="龙舌兰">龙舌兰</option><option value="威士忌">威士忌</option><option value="白兰地">白兰地</option></select>
     <select id="tasteFilter"><option value="all">全部口味</option><option value="甜">甜</option><option value="酸">酸</option><option value="清爽">清爽</option><option value="烈">烈</option><option value="果味">果味</option></select>
-    <input type="text" id="searchInput" placeholder="搜索鸡尾酒名称...">
+    <input type="text" id="searchInput" placeholder="搜索鸡尾酒名称..." style="color:#e2e8f0">
     <button class="btn btn-primary" id="btnFilter">🔍 筛选</button>
     <button class="btn btn-secondary" id="btnClear">清空</button>
+    <button class="btn btn-secondary" id="btnExample">🎲 填入示例</button>
   </div>
   <div class="cocktail-grid" id="cocktailGrid"></div>
   <div class="pagination" id="pagination"></div>
@@ -222,14 +223,26 @@ function render() {
   const grid = document.getElementById('cocktailGrid');
   const start = (currentPage - 1) * ITEMS_PER_PAGE;
   const pageItems = filteredCocktails.slice(start, start + ITEMS_PER_PAGE);
-  grid.innerHTML = pageItems.map(c => `
+  grid.innerHTML = pageItems.map((c, i) => `
     <div class="cocktail-card">
       <h3>${c.name}</h3>
       <span class="base-tag">${c.base}</span>
       <div class="ingredients">📋 ${c.ingredients}</div>
       <div class="method">🍹 ${c.method}</div>
+      <button class="btn btn-secondary copy-card" data-i="${i}" style="margin-top:10px;padding:6px 14px;font-size:.8rem">📋 复制配方</button>
     </div>
   `).join('');
+
+  grid.querySelectorAll('.copy-card').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const c = pageItems[parseInt(this.dataset.i, 10)];
+      if (!c) return;
+      const t = '【' + c.name + '】\n基酒: ' + c.base + '\n口味: ' + c.taste + '\n配料: ' + c.ingredients + '\n做法: ' + c.method;
+      const done = () => { const old = this.textContent; this.textContent = '✅ 已复制'; setTimeout(() => this.textContent = old, 1500); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done).catch(done);
+      else { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch(e) {} document.body.removeChild(ta); }
+    });
+  });
 
   const pag = document.getElementById('pagination');
   const totalPages = Math.ceil(filteredCocktails.length / ITEMS_PER_PAGE);
@@ -267,6 +280,16 @@ document.getElementById('btnClear').addEventListener('click', function() {
   render();
 });
 document.getElementById('searchInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') filter(); });
+document.getElementById('searchInput').addEventListener('input', filter);
+document.getElementById('baseFilter').addEventListener('change', filter);
+document.getElementById('tasteFilter').addEventListener('change', filter);
+document.getElementById('btnExample').addEventListener('click', function() {
+  const names = cocktails.map(c => c.name);
+  const sample = names[Math.floor(Math.random() * names.length)];
+  document.getElementById('searchInput').value = sample;
+  filter();
+  const b = this; b.textContent = '✅ ' + sample; setTimeout(() => b.textContent = '🎲 填入示例', 1500);
+});
 
 render();
 </script>

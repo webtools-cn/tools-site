@@ -117,6 +117,11 @@
  <span class="total-cal" id="total-cal">0 kcal</span>
  </div>
  <button class="btn btn-primary" id="clear-all" style="margin-top:12px">Clear All</button>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+ <button class="btn btn-secondary btn-sm" id="fill-example">🎲 Example Meal</button>
+ <button class="btn btn-success btn-sm" id="copy-result">📋 Copy Result</button>
+ </div>
+ <canvas id="calChart" width="600" height="240" style="max-width:100%;margin-top:16px;display:none"></canvas>
  </div>
  </div>
  <div class="section">
@@ -234,7 +239,7 @@
     var keys=Object.keys(selected);
     var sec=document.getElementById('selected-section');
     var list=document.getElementById('selected-list');
-    if(keys.length===0){sec.style.display='none';return}
+    if(keys.length===0){sec.style.display='none';drawChart();return}
     sec.style.display='block';
     var html='';
     var total=0;
@@ -253,7 +258,61 @@
         renderSelected();
       });
     });
+    drawChart();
   }
+
+  function findFood(name){for(var c in foodData){for(var j=0;j<foodData[c].length;j++){if(foodData[c][j].n===name)return foodData[c][j]}}return null}
+
+  function drawChart(){
+    var cv=document.getElementById('calChart');
+    var keys=Object.keys(selected);
+    if(keys.length===0){cv.style.display='none';return}
+    cv.style.display='block';
+    var ctx=cv.getContext('2d');
+    var W=cv.width,H=cv.height,padL=10,padR=10,padT=24,padB=28;
+    ctx.clearRect(0,0,W,H);
+    var items=keys.map(function(k){return {name:selected[k].name,cal:selected[k].cal*selected[k].qty}});
+    var maxCal=Math.max.apply(null,items.map(function(i){return i.cal}))||1;
+    var bw=Math.min(46,(W-padL-padR)/items.length*0.55);
+    var colors=['#06b6d4','#10b981','#8b5cf6','#f59e0b','#ef4444','#64748b','#22d3ee','#34d399'];
+    ctx.textAlign='center';ctx.font='10px sans-serif';
+    items.forEach(function(item,i){
+      var bh=(H-padT-padB)*item.cal/maxCal;
+      var x=padL+(W-padL-padR)*(i+0.5)/items.length;
+      var y=padT+(H-padT-padB)-bh;
+      ctx.fillStyle=colors[i%colors.length];
+      ctx.fillRect(x-bw/2,y,bw,bh);
+      ctx.fillStyle='#e2e8f0';
+      ctx.fillText(item.cal,x,y-4);
+      ctx.fillStyle='#94a3b8';ctx.font='9px sans-serif';
+      var label=item.name.length>8?item.name.slice(0,7)+'…':item.name;
+      ctx.fillText(label,x,H-8);
+      ctx.font='10px sans-serif';
+    });
+  }
+
+  var _toast=document.createElement('div');_toast.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s';document.body.appendChild(_toast);
+  function showToast(m){_toast.textContent=m;_toast.style.opacity='1';clearTimeout(_toast._t);_toast._t=setTimeout(function(){_toast.style.opacity='0'},2000)}
+
+  document.getElementById('copy-result').addEventListener('click',function(){
+    var keys=Object.keys(selected);
+    if(keys.length===0){showToast('Nothing selected yet');return}
+    var lines=keys.map(function(k){return selected[k].name+' ×'+selected[k].qty+' ('+selected[k].unit+') = '+(selected[k].cal*selected[k].qty)+' kcal'});
+    lines.push('Total: '+document.getElementById('total-cal').textContent);
+    var t=lines.join('\n');
+    function ok(){showToast('📋 Copied')}
+    function fallback(){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(ta);ok()}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(ok).catch(fallback)}else{fallback()}
+  });
+
+  document.getElementById('fill-example').addEventListener('click',function(){
+    var picks=['White Rice','Chicken Breast','Broccoli','Banana'];
+    picks.forEach(function(name){
+      if(!selected[name]){var f=findFood(name);if(f)selected[name]={name:name,cal:f.cal,unit:f.u,qty:1}}
+    });
+    renderSelected();
+    showToast('🎲 Example meal added');
+  });
 
   document.getElementById('clear-all').addEventListener('click',function(){selected={};renderSelected()});
   document.getElementById('food-search').addEventListener('input',filterFoods);

@@ -249,7 +249,10 @@
         <option value="aquarius">水瓶座 (1/20-2/18)</option><option value="pisces">双鱼座 (2/19-3/20)</option>
       </select>
       <button class="btn" id="getHoroscope">查看今日运势</button>
+      <button class="btn btn-secondary" id="copyHoroscopeBtn" style="display:none">📋 复制结果</button>
+      <button class="btn btn-secondary" id="randomSignBtn">🎲 随机星座示例</button>
       <div id="horoscopeResult" class="output"></div>
+      <canvas id="horoscopeChart" style="display:none;max-width:100%;margin-top:12px"></canvas>
       <script>
       var horoscopes = {
         en: {
@@ -281,14 +284,41 @@
           pisces: {love:'\u2605\u2605\u2605\u2605\u2605 浪漫气息', career:'\u2605\u2605\u2605\u2606\u2606 创意项目', health:'\u2605\u2605\u2605\u2606\u2606 脚踏实地', wealth:'\u2605\u2605\u2605\u2606\u2606 艺术投资', color:'海绿', number:12}
         }
       };
-      document.getElementById('getHoroscope').addEventListener('click', function() {
+      var labels = {en: {love:'Love', career:'Career', health:'Health', wealth:'Wealth', color:'Lucky Color', number:'Lucky Number'}, cn: {love:'爱情', career:'事业', health:'健康', wealth:'财运', color:'幸运色', number:'幸运数字'}};
+      function starCount(s){return (s.match(/\u2605/g)||[]).length;}
+      function drawHoroscopeChart(h){
+        var cv=document.getElementById('horoscopeChart');
+        if(!cv)return;
+        var names=['爱情','事业','健康','财运'];
+        var keys=['love','career','health','wealth'];
+        var colors=['#f472b6','#60a5fa','#34d399','#fbbf24'];
+        var vals=keys.map(function(k){return starCount(h[k]);});
+        cv.style.display='block';
+        var w=cv.width=560,ht=cv.height=210;
+        var ctx=cv.getContext('2d');
+        ctx.clearRect(0,0,w,ht);
+        var pad=40,bottom=32,top=28;
+        var max=5,bw=(w-pad*2)/vals.length;
+        ctx.font='13px sans-serif';
+        for(var i=0;i<vals.length;i++){
+          var bh=(vals[i]/max)*(ht-top-bottom);
+          var x=pad+i*bw+bw*0.18,y=ht-bottom-bh;
+          ctx.fillStyle=colors[i];
+          ctx.fillRect(x,y,bw*0.64,bh);
+          ctx.fillStyle='#94a3b8';
+          ctx.textAlign='center';
+          ctx.fillText(names[i]+' '+vals[i]+'/5',x+bw*0.32,ht-bottom+16);
+        }
+        ctx.fillStyle='#e2e8f0';
+        ctx.fillText('今日运势星级图（★评分）',w/2,16);
+      }
+      function renderHoroscope() {
         var sign = document.getElementById('zodiacSelect').value;
         var lang = 'cn';
         var h = horoscopes[lang][sign];
-        var labels = {en: {love:'Love', career:'Career', health:'Health', wealth:'Wealth', color:'Lucky Color', number:'Lucky Number'}, cn: {love:'爱情', career:'事业', health:'健康', wealth:'财运', color:'幸运色', number:'幸运数字'}};
         var lb = labels[lang];
         var todayTitle = lang === 'en' ? "Today's Horoscope" : '今日运势';
-        var html = '<div style="background:#0f172a;padding:20px;border-radius:8px;border:1px solid #e2e8f0"><h2 style="margin-bottom:16px">' + todayTitle + '</h2>';
+        var html = '<div style="background:#0f172a;padding:20px;border-radius:8px;border:1px solid rgba(148,163,184,.1)"><h2 style="margin-bottom:16px">' + todayTitle + '</h2>';
         html += '<div style="margin-bottom:8px"><strong>' + lb.love + ':</strong> ' + h.love + '</div>';
         html += '<div style="margin-bottom:8px"><strong>' + lb.career + ':</strong> ' + h.career + '</div>';
         html += '<div style="margin-bottom:8px"><strong>' + lb.health + ':</strong> ' + h.health + '</div>';
@@ -296,7 +326,21 @@
         html += '<div style="margin-bottom:8px"><strong>' + lb.color + ':</strong> <span style="display:inline-block;width:20px;height:20px;border-radius:50%;vertical-align:middle;background:' + h.color.toLowerCase().replace(' ','') + ';border:1px solid #ccc"></span> ' + h.color + '</div>';
         html += '<div><strong>' + lb.number + ':</strong> ' + h.number + '</div></div>';
         document.getElementById('horoscopeResult').innerHTML = html;
-      };</script>
+        drawHoroscopeChart(h);
+        document.getElementById('copyHoroscopeBtn').style.display='inline-block';
+      }
+      document.getElementById('getHoroscope').addEventListener('click', renderHoroscope);
+      document.getElementById('zodiacSelect').addEventListener('change', renderHoroscope);
+      document.getElementById('randomSignBtn').addEventListener('click', function(){
+        var signs=Object.keys(horoscopes.cn);
+        document.getElementById('zodiacSelect').value=signs[Math.floor(Math.random()*signs.length)];
+        renderHoroscope();
+      });
+      document.getElementById('copyHoroscopeBtn').addEventListener('click', function(){
+        var el=document.getElementById('horoscopeResult');
+        copyText(el.innerText||el.textContent);
+      });
+      renderHoroscope();</script>
     </div>
   
 </div>

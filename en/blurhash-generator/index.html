@@ -137,8 +137,8 @@ header p{color:#64748b;font-size:15px}
 label{display:block;font-size:14px;font-weight:600;color:#334155;margin-bottom:8px}
 textarea,input[type="text"],select{width:100%;padding:12px 16px;border:2px solid #e2e8f0;border-radius:10px;font-size:15px;font-family:inherit;transition:border-color .2s;resize:vertical;min-height:48px}
 textarea{
-      background: var(--surface);
-      color: var(--text);min-height:120px}
+      background: #1e293b;
+      color: #e2e8f0;min-height:120px}
 textarea:focus,input:focus,select:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.1)}
 .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
 .btn{padding:10px 20px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
@@ -198,6 +198,36 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:#3b82f6;box-sh
 </head>
 <body>
 <main class="container">
+<div class="tool-area">
+  <div class="btn-row">
+    <button id="encodeTab" class="btn btn-primary" onclick="switchMode('encode')">🔒 Encode Image</button>
+    <button id="decodeTab" class="btn btn-secondary" onclick="switchMode('decode')">🔓 Decode Hash</button>
+  </div>
+  <div id="encodeMode">
+    <label for="fileInput">Upload Image</label>
+    <div class="file-drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <p>📁 Click or drag an image here</p>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleImage(this)">
+    <label>BlurHash Output</label>
+    <div class="result-box" id="blurhashOutput">Upload an image to generate its BlurHash string</div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="copyText('blurhashOutput')">📋 Copy Hash</button>
+    </div>
+  </div>
+  <div id="decodeMode" class="hidden">
+    <label for="blurhashInput">BlurHash String</label>
+    <textarea id="blurhashInput" placeholder="Paste a BlurHash string, e.g. BLUR:..."></textarea>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="decodeBlurHash()">▶ Decode</button>
+      <button class="btn btn-secondary" onclick="fillExample()">🎲 Fill Example</button>
+    </div>
+    <canvas id="blurhashPreview" width="320" height="240" style="max-width:100%;background:#1e293b;border-radius:8px;border:1px solid rgba(148,163,184,.15)"></canvas>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="copyText('blurhashInput')">📋 Copy Hash</button>
+    </div>
+  </div>
+</div>
 <header>
 <a href="/tools-site/blurhash-generator/" style="position:absolute;top:12px;right:12px;font-size:13px;color:#3b82f6;text-decoration:none;">中文</a>
 <h1>Free BlurHash Generat - Online Tool | No Signup</h1>
@@ -223,6 +253,28 @@ function switchMode(mode){currentMode=mode;document.getElementById('encodeTab').
 function handleImage(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{const img=new Image();img.onload=()=>encodeBlurHash(img);img.src=e.target.result;};reader.readAsDataURL(file);}
 function encodeBlurHash(img){if(!img)return;const canvas=document.createElement('canvas');const scale=0.1;canvas.width=Math.max(4,Math.round(img.width*scale));canvas.height=Math.max(3,Math.round(img.height*scale));const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;let r=0,g=0,b=0;for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];}const n=data.length/4;const hash=btoa(String.fromCharCode(Math.round(r/n),Math.round(g/n),Math.round(b/n),canvas.width,canvas.height)).replace(/=/g,'');document.getElementById('blurhashOutput').textContent='BLUR:'+hash;}
 function decodeBlurHash(){const input=document.getElementById('blurhashInput').value.trim();if(!input.startsWith('BLUR:'))return;const canvas=document.getElementById('blurhashPreview');const ctx=canvas.getContext('2d');try{const raw=atob(input.slice(5));const r=raw.charCodeAt(0),g=raw.charCodeAt(1),b=raw.charCodeAt(2);const w=raw.length>3?raw.charCodeAt(3):32,h=raw.length>4?raw.charCodeAt(4):24;canvas.width=w*10;canvas.height=h*10;ctx.fillStyle='rgb('+r+','+g+','+b+')';ctx.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<canvas.height;y+=h){for(let x=0;x<canvas.width;x+=w){ctx.fillStyle='rgba('+(r+(Math.random()-0.5)*30)+','+(g+(Math.random()-0.5)*30)+','+(b+(Math.random()-0.5)*30)+',0.3)';ctx.fillRect(x,y,w,h);}}}catch(e){}}
+</script>
+<script>
+function fillExample(){
+  const h='BLUR:'+btoa(String.fromCharCode(96,160,200,4,3)).replace(/=/g,'');
+  document.getElementById('blurhashInput').value=h;
+  decodeBlurHash();
+  showToast('Example filled and decoded');
+}
+(function(){
+  const dz=document.getElementById('dropZone');
+  const fi=document.getElementById('fileInput');
+  if(!dz||!fi)return;
+  dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('dragover');});
+  dz.addEventListener('dragleave',function(e){e.preventDefault();dz.classList.remove('dragover');});
+  dz.addEventListener('drop',function(e){
+    e.preventDefault();dz.classList.remove('dragover');
+    if(e.dataTransfer.files&&e.dataTransfer.files.length){
+      fi.files=e.dataTransfer.files;
+      handleImage(fi);
+    }
+  });
+})();
 </script>
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>

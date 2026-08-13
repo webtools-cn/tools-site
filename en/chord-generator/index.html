@@ -64,8 +64,9 @@
 <div class="chord-info" id="chordInfo">
 <div class="chord-name" id="chordName">C Major</div>
 <div class="chord-notes" id="chordNotes"></div>
+<button class="btn btn-primary" id="copyChordBtn" style="margin-top:12px">📋 复制结果</button>
 </div>
-</div>
+<div class="chord-info" id="result" style="display:none"></div></div>
 
 <div class="section">
 <h2>Piano Keyboard</h2>
@@ -89,6 +90,19 @@
 
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+
+function ftEnsureCopy(text,cb){
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(text).then(function(){cb(true)}).catch(function(){ftFallbackCopy(text,cb)});
+  }else{ftFallbackCopy(text,cb)}
+}
+function ftFallbackCopy(text,cb){
+  var ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";
+  document.body.appendChild(ta);ta.select();
+  var ok=false;
+  try{ok=document.execCommand("copy")}catch(e){ok=false}
+  document.body.removeChild(ta);cb(ok);
+}
 
 var NOTES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 var CHORDS={
@@ -134,6 +148,12 @@ function updateDisplay(){
     notesHtml+='<span class="note-badge'+(i===0?' root':'')+'">'+n+'</span>';
   });
   document.getElementById("chordNotes").innerHTML=notesHtml;
+  var resultEl=document.getElementById("result");
+  if(resultEl){
+    var formulaText=rootName+" "+CHORD_NAMES[type]+" = ["+intervals.map(function(iv){return NOTES[(root+iv)%12]}).join(", ")+"]";
+    resultEl.textContent=formulaText;
+    resultEl.style.display="block";
+  }
   highlightKeys(intervals.map(function(iv){return(root+iv)%12}));
 }
 
@@ -212,6 +232,16 @@ function playArpeggio(){
 
 document.getElementById("rootSelect").addEventListener("change",updateDisplay);
 document.getElementById("chordSelect").addEventListener("change",updateDisplay);
+document.getElementById("rootSelect").addEventListener("input",updateDisplay);
+document.getElementById("chordSelect").addEventListener("input",updateDisplay);
+document.getElementById("copyChordBtn").addEventListener("click",function(){
+  var root=parseInt(document.getElementById("rootSelect").value);
+  var type=document.getElementById("chordSelect").value;
+  var intervals=CHORDS[type];
+  var notes=intervals.map(function(iv){return NOTES[(root+iv)%12]}).join(", ");
+  var text=NOTES[root]+" "+CHORD_NAMES[type]+" → "+notes;
+  ftEnsureCopy(text,function(ok){showToast(ok?"Copied to clipboard":"Copy failed")});
+});
 
 buildPiano();
 updateDisplay();

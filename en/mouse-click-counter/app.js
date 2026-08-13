@@ -21,8 +21,13 @@
       <button class="btn-primary" id="btnStartTimer">Start Timer</button>
       <button class="btn-secondary" id="btnStopTimer">Stop</button>
       <button class="btn-secondary" id="btnResetClicks">Reset</button>
+      <button class="btn-secondary" id="btnCopyResult">📋 Copy Result</button>
     </div>
     <div class="result" id="clickResult" style="text-align:center;color:var(--text2);">Click the area above to start counting (CPS calculated in timer mode only)</div>
+    <div class="card" style="margin-top:12px;">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px;text-align:center;">📊 Click Distribution</div>
+      <canvas id="clickChart" style="width:100%;height:140px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px;"></canvas>
+    </div>
   `;
   toolArea.innerHTML = html;
 
@@ -47,6 +52,44 @@
       document.getElementById('cpsDisplay').textContent = cps;
       document.getElementById('timerDisplay').textContent = Math.round(elapsed) + 's';
     }
+    drawChart();
+  }
+
+  function drawChart() {
+    const canvas = document.getElementById('clickChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    const data = [
+      { label: 'Left', value: leftClicks, color: '#22d3ee' },
+      { label: 'Right', value: rightClicks, color: '#f59e0b' },
+      { label: 'Middle', value: middleClicks, color: '#10b981' }
+    ];
+    const max = Math.max(1, leftClicks, rightClicks, middleClicks);
+    const barAreaH = h - 30;
+    const barW = Math.min(80, (w - 40) / data.length);
+    const gap = 12;
+
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    data.forEach(function(d, i) {
+      const barH = Math.max(2, (d.value / max) * barAreaH);
+      const x = 20 + i * (barW + gap) + (w - 40 - data.length * (barW + gap)) / 2;
+      const y = h - 20 - barH;
+      ctx.fillStyle = d.color;
+      ctx.fillRect(x, y, barW, barH);
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(d.label, x + barW / 2, h - 6);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillText(String(d.value), x + barW / 2, y - 4);
+    });
   }
 
   function handleClick(e) {
@@ -95,4 +138,25 @@
     document.getElementById('clickResult').textContent = 'Click the area above to start counting (CPS calculated in timer mode only)';
     updateDisplay();
   });
+
+  document.getElementById('btnCopyResult').addEventListener('click', () => {
+    const resultText = document.getElementById('clickResult').textContent;
+    const report = 'Mouse Click Counter Report\nTotal: ' + totalClicks + '\nLeft: ' + leftClicks + '\nRight: ' + rightClicks + '\nMiddle: ' + middleClicks + '\nCPS: ' + document.getElementById('cpsDisplay').textContent + '\nTimer: ' + document.getElementById('timerDisplay').textContent + '\nStatus: ' + resultText;
+    function ok() { showToast('Copied!'); }
+    function fallback() {
+      const ta = document.createElement('textarea');
+      ta.value = report;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); ok(); } catch (e) { showToast('Copy failed'); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(report).then(ok).catch(fallback);
+    } else { fallback(); }
+  });
+
+  drawChart();
 })();

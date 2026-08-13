@@ -247,11 +247,18 @@
       <input type="text" id="articleTitle" placeholder="Enter the news headline...">
       <label for="articleContent">Article Content</label>
       <textarea id="articleContent" placeholder="Paste the article text to analyze..."></textarea>
-      <button class="btn" id="analyzeBtn">Analyze</button>
+      <div class="row" style="margin-bottom:16px">
+        <button class="btn" id="analyzeBtn">Analyze</button>
+        <button class="btn btn-secondary" id="fillExampleBtn">🎲 Fill Example</button>
+      </div>
       <div id="detectorResult" class="output"></div>
+      <div style="margin-top:10px">
+        <button class="btn btn-secondary" id="copyResultBtn" style="display:none">📋 Copy Result</button>
+      </div>
       <script>
       var sensationalWords = {en: ['shocking','unbelievable','you won\'t believe','doctors hate','what happens next','secret they don\'t want you to know','miracle','cure','conspiracy','wake up','they are hiding','this changes everything','mind-blowing','jaw-dropping','bombshell'], cn: ['Shocking','Unbelievable','You will never believe','Doctors hide this','Explosive secret','Insider','Miracle','Snake oil','Conspiracy','Awakening','They are hiding','Mind-blowing','Shocking discovery','Horrifying truth','Explosive']};
       var emotionalWords = {en: ['outrage','disgusting','horrifying','terrifying','devastating','heartbreaking','infuriating','panic','fear','hate'], cn: ['Outrage','Disgusting','Horrifying','Devastating','Heartbreaking','Infuriating','Panic','Fear','Hate','Heartbreaking']};
+      var lastReport = '';
       document.getElementById('analyzeBtn').addEventListener('click', function() {
         var title = document.getElementById('articleTitle').value;
         var content = document.getElementById('articleContent').value;
@@ -283,7 +290,34 @@
         html += '<p><strong>Exclamation Marks:</strong> ' + exclCount + '</p>';
         html += '<p style="margin-top:12px;color:#64748b;font-size:.85rem">⚠️ This tool detects linguistic patterns, not factual accuracy. Always verify with trusted sources.</p></div>';
         document.getElementById('detectorResult').innerHTML = html;
-      });</script>
+        lastReport = 'Fake News Detector Report\nRisk Score: ' + riskScore + '/100 — ' + level + '\nSensational Words: ' + (foundSens.length ? [...new Set(foundSens)].join(', ') : 'None') + '\nEmotional Manipulation: ' + (foundEmo.length ? [...new Set(foundEmo)].join(', ') : 'None') + '\nWord Count: ' + wordCount + '\nCapitalization Ratio: ' + (capsRatio*100).toFixed(1) + '%\nExclamation Marks: ' + exclCount;
+        document.getElementById('copyResultBtn').style.display = 'inline-block';
+      });
+      document.getElementById('fillExampleBtn').addEventListener('click', function() {
+        document.getElementById('articleTitle').value = "Shocking Secret They Don't Want You To Know!";
+        document.getElementById('articleContent').value = "This changes everything! You won't believe what doctors hate about this miracle cure. Wake up!! It's a conspiracy they are hiding from you! Doctors are terrified, the truth is outrageous!!";
+        document.getElementById('analyzeBtn').click();
+      });
+      document.getElementById('copyResultBtn').addEventListener('click', function() {
+        if (!lastReport) return;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(lastReport).then(function(){ showToast('Copied!'); });
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = lastReport;
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          showToast('Copied!');
+        }
+      });
+      function debounce(fn, wait) { var t; return function() { clearTimeout(t); t = setTimeout(fn, wait); }; }
+      var autoRun = debounce(function() { document.getElementById('analyzeBtn').click(); }, 500);
+      document.getElementById('articleTitle').addEventListener('input', autoRun);
+      document.getElementById('articleContent').addEventListener('input', autoRun);</script>
     </div>
   </main>
   

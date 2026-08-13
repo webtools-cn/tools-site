@@ -95,6 +95,11 @@ a{color:#06b6d4;text-decoration:none}
   <div class="input-row"><label>初始时间(分)</label><input type="number" id="initTime" value="5" min="1" max="120" style="width:80px"><label>增量(秒)</label><input type="number" id="increment" value="0" min="0" max="60" style="width:80px"><button class="btn btn-primary" id="resetBtn">重置</button></div>
 <div class="stats-grid"><div class="stat-card" id="player1Card" style="cursor:pointer"><div class="stat-label">玩家1 ♟️</div><div class="stat-value" id="player1Time" style="font-size:2rem">5:00</div><div class="stat-label">点击计时</div></div><div class="stat-card" id="player2Card" style="cursor:pointer"><div class="stat-label">玩家2 ♟️</div><div class="stat-value" id="player2Time" style="font-size:2rem">5:00</div><div class="stat-label">点击计时</div></div></div>
 <div style="text-align:center;margin-top:12px;color:#64748b;font-size:.85rem">点击玩家卡片开始/切换计时</div>
+<div class="btn-row">
+<button class="btn btn-secondary" id="exampleBtn">🎲 填入示例 (10+5)</button>
+<button class="btn btn-secondary" id="copyBtn">📋 复制棋钟状态</button>
+</div>
+<div class="result-box" id="result">准备开始…</div>
 </div>
 <div class="privacy-note">🔒 <span>所有处理均在浏览器本地完成，数据不会上传到服务器。</span></div>
 <div class="panel">
@@ -111,16 +116,20 @@ a{color:#06b6d4;text-decoration:none}
 <div class="toast" id="toast"></div>
 <script>
 function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
-var p1Time,p2Time,currentPlayer,timerInterval,inc;
+var p1Time,p2Time,currentPlayer,timerInterval,inc,moveCount=0;
 function formatTime(sec){var m=Math.floor(sec/60);var s=sec%60;return m+':'+String(s).padStart(2,'0')}
-function updateDisplay(){document.getElementById('player1Time').textContent=formatTime(p1Time);document.getElementById('player2Time').textContent=formatTime(p2Time)}
+function updateResult(){var el=document.getElementById('result');var turn=currentPlayer===1?'玩家1':(currentPlayer===2?'玩家2':'未开始');el.textContent='当前回合: '+turn+' | 已走步数: '+moveCount+' | 玩家1: '+formatTime(p1Time)+' | 玩家2: '+formatTime(p2Time);}
+function updateDisplay(){document.getElementById('player1Time').textContent=formatTime(p1Time);document.getElementById('player2Time').textContent=formatTime(p2Time);updateResult()}
 function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterval=null}}
-function switchPlayer(){stopTimer();if(currentPlayer===1){p1Time+=inc;currentPlayer=2}else{p2Time+=inc;currentPlayer=1}updateDisplay();startTimer()}
+function switchPlayer(){stopTimer();if(currentPlayer===1){p1Time+=inc;currentPlayer=2}else{p2Time+=inc;currentPlayer=1}moveCount++;updateDisplay();startTimer()}
 function startTimer(){document.getElementById('player1Card').style.borderColor='rgba(148,163,184,.15)';document.getElementById('player2Card').style.borderColor='rgba(148,163,184,.15)';if(currentPlayer===1)document.getElementById('player1Card').style.borderColor='#22d3ee';else document.getElementById('player2Card').style.borderColor='#22d3ee';timerInterval=setInterval(function(){if(currentPlayer===1){p1Time--;if(p1Time<=0){p1Time=0;stopTimer();updateDisplay();showToast('玩家1超时！玩家2获胜！');return}}else{p2Time--;if(p2Time<=0){p2Time=0;stopTimer();updateDisplay();showToast('玩家2超时！玩家1获胜！');return}}updateDisplay()},1000)}
-function reset(){stopTimer();var initMin=parseInt(document.getElementById('initTime').value)||5;inc=parseInt(document.getElementById('increment').value)||0;p1Time=initMin*60;p2Time=initMin*60;currentPlayer=0;updateDisplay();document.getElementById('player1Card').style.borderColor='rgba(148,163,184,.15)';document.getElementById('player2Card').style.borderColor='rgba(148,163,184,.15)'}
+function reset(){stopTimer();var initMin=parseInt(document.getElementById('initTime').value)||5;inc=parseInt(document.getElementById('increment').value)||0;p1Time=initMin*60;p2Time=initMin*60;currentPlayer=0;moveCount=0;updateDisplay();document.getElementById('player1Card').style.borderColor='rgba(148,163,184,.15)';document.getElementById('player2Card').style.borderColor='rgba(148,163,184,.15)'}
 document.getElementById('player1Card').addEventListener('click',function(){if(currentPlayer===0){currentPlayer=1;startTimer()}else if(currentPlayer===2){switchPlayer()}else{showToast('已经是玩家1的回合')}});
 document.getElementById('player2Card').addEventListener('click',function(){if(currentPlayer===0){currentPlayer=2;startTimer()}else if(currentPlayer===1){switchPlayer()}else{showToast('已经是玩家2的回合')}});
 document.getElementById('resetBtn').addEventListener('click',reset);
+document.getElementById('exampleBtn').addEventListener('click',function(){document.getElementById('initTime').value=10;document.getElementById('increment').value=5;reset();showToast('已填入示例：10分钟+5秒增量');});
+function ftCopy(text,msg){function done(){showToast(msg||'已复制');}function fallback(){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){showToast('复制失败');}document.body.removeChild(ta);}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(fallback);}else{fallback();}}
+document.getElementById('copyBtn').addEventListener('click',function(){ftCopy(document.getElementById('result').textContent,'已复制棋钟状态');});
 reset();
 </script>
 

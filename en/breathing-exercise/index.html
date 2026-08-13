@@ -230,6 +230,10 @@ a{color:#06b6d4;text-decoration:none}
     <div class="breath-circle" id="breathCircle"><div class="inner"><div class="phase" id="phaseLabel">Ready</div><div class="timer" id="timerLabel">&mdash;</div></div></div>
     <div class="progress-bar"><div class="progress-fill" id="sessionProgress" style="width:0%"></div></div>
     <p style="color:#64748b;font-size:.8rem;margin-top:4px" id="sessionLabel">0 / 0 cycles</p>
+    <div id="result" style="display:none;background:#0a0f1e;border:1px solid rgba(6,182,212,.2);border-radius:8px;padding:12px 16px;margin-top:12px;font-size:.85rem;color:#94a3b8;text-align:left">
+      <div id="resultText"></div>
+      <button class="btn btn-primary" id="copySessionBtn" style="margin-top:8px">📋 复制结果</button>
+    </div>
     <div class="form-row" style="max-width:240px;margin:16px auto 0">
       <div class="form-group"><label>Duration</label><select id="duration"><option value="1">1 min</option><option value="2">2 min</option><option value="3" selected>3 min</option><option value="5">5 min</option><option value="10">10 min</option></select></div>
     </div>
@@ -313,7 +317,11 @@ function tick(){
   if(esec>=tsec&&tsec>0){stopB();playB();setTimeout(function(){playB()},200);setTimeout(function(){playB()},400);return}
   playB();tid=setTimeout(tick,1000);
 }
-function updateP(){var p=tsec>0?Math.min(100,Math.round(esec/tsec*100)):0;document.getElementById('sessionProgress').style.width=p+'%';document.getElementById('sessionLabel').textContent=cycles+' / '+tcycles+' cycles';}
+function updateP(){var p=tsec>0?Math.min(100,Math.round(esec/tsec*100)):0;document.getElementById('sessionProgress').style.width=p+'%';document.getElementById('sessionLabel').textContent=cycles+' / '+tcycles+' cycles';updateResult();}
+function updateResult(){var names={478:'4-7-8 Relaxing Breath',box:'Box Breathing',481:'4-8-7 Breath',deep:'Deep Belly Breathing'};var r=document.getElementById('result');if(!r)return;var dm=parseInt(document.getElementById('duration').value);r.style.display='block';document.getElementById('resultText').textContent=names[mode]+' · '+dm+' min · Completed '+cycles+' / '+tcycles+' cycles · '+(esec>=tsec?'✅ Session complete':'🔄 Session in progress');window._breathSummary=(names[mode]+' | Duration: '+dm+' min | Completed: '+cycles+'/'+tcycles+' cycles | Elapsed: '+esec+'s');}
+function ftEnsureCopy(text,cb){if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(function(){cb(true)}).catch(function(){ftFallbackCopy(text,cb)})}else{ftFallbackCopy(text,cb)}}
+function ftFallbackCopy(text,cb){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy')}catch(e){ok=false}document.body.removeChild(ta);cb(ok)}
+document.getElementById('copySessionBtn').addEventListener('click',function(){if(window._breathSummary)ftEnsureCopy(window._breathSummary,function(ok){var t=document.getElementById('toast');t.textContent=ok?'Copied to clipboard':'Copy failed';t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)})});
 function startB(){running=true;var ph=patterns[mode];pidx=0;ptime=0;cycles=0;esec=0;var dm=parseInt(document.getElementById('duration').value);var cd=ph.reduce(function(a,b){return a+b},0);tsec=dm*60;tcycles=Math.ceil(tsec/(cd||1));document.getElementById('btnStart').textContent="Stop";document.getElementById('btnStart').classList.add('running');playB();tick();}
 function stopB(){running=false;if(tid){clearTimeout(tid);tid=null}document.getElementById('btnStart').textContent="Start";document.getElementById('btnStart').classList.remove('running');}
 function toggleB(){if(running){stopB();return}startB();}

@@ -66,6 +66,13 @@
 <tbody id="model-tbody"></tbody>
 </table>
 </div>
+<div class="btn-group" style="margin-top:10px">
+<button class="btn btn-primary" style="padding:8px 16px;font-size:.85rem" onclick="copyModelList()">📋 复制当前列表</button>
+</div>
+<div id="chart-wrap" style="display:none;margin-top:16px">
+<h3 style="color:#22d3ee;font-size:.9rem;margin-bottom:8px">📊 输入价格对比 ($/M tokens) — 前8名</h3>
+<canvas id="priceChart" style="width:100%;height:180px;display:block"></canvas>
+</div>
 </div>
 </div>
 <div>
@@ -140,7 +147,49 @@ const MODELS=[
 let sortKey='name',sortAsc=true;
 function sortBy(key){if(sortKey===key)sortAsc=!sortAsc;else{sortKey=key;sortAsc=true}renderTable()}
 function getFiltered(){const v=document.getElementById('filter-vendor').value;const t=document.getElementById('filter-type').value;return MODELS.filter(m=>{if(v!=='all'&&m.vendor!==v)return false;if(t==='open'&&!m.type==='open')return false;if(t==='closed'&&m.type!=='closed')return false;if(t==='free'&&!m.free)return false;return true}).sort((a,b)=>{let va=a[sortKey],vb=b[sortKey];if(typeof va==='string')return sortAsc?va.localeCompare(vb):vb.localeCompare(va);return sortAsc?va-vb:vb-va})}
-window.renderTable = renderTable; function renderTable(){const models=getFiltered();const tbody=document.getElementById('model-tbody');tbody.innerHTML=models.map(m=>`\x3Ctr>\x3Ctd>\x3Cstrong>${m.name}\x3C/strong>\x3C/td>\x3Ctd>\x3Cspan class="vendor-badge vendor-${m.vendor}">${m.vendor}\x3C/span>\x3C/td>\x3Ctd>${m.ctx>=1000?(m.ctx/1000)+'M':m.ctx+'K'}\x3C/td>\x3Ctd>$${m.input_price}/M\x3C/td>\x3Ctd>$${m.output_price}/M\x3C/td>\x3Ctd>\x3Cspan class="model-tag ${m.type==='open'?'tag-open':'tag-closed'}">${m.type==='open'?'开源':'闭源'}\x3C/span>${m.free?'\x3Cspan class="model-tag tag-free">免费\x3C/span>':''}\x3C/td>\x3C/tr>`).join('')}
+window.renderTable = renderTable; function renderTable(){const models=getFiltered();const tbody=document.getElementById('model-tbody');tbody.innerHTML=models.map(m=>`\x3Ctr>\x3Ctd>\x3Cstrong>${m.name}\x3C/strong>\x3C/td>\x3Ctd>\x3Cspan class="vendor-badge vendor-${m.vendor}">${m.vendor}\x3C/span>\x3C/td>\x3Ctd>${m.ctx>=1000?(m.ctx/1000)+'M':m.ctx+'K'}\x3C/td>\x3Ctd>$${m.input_price}/M\x3C/td>\x3Ctd>$${m.output_price}/M\x3C/td>\x3Ctd>\x3Cspan class="model-tag ${m.type==='open'?'tag-open':'tag-closed'}">${m.type==='open'?'开源':'闭源'}\x3C/span>${m.free?'\x3Cspan class="model-tag tag-free">免费\x3C/span>':''}\x3C/td>\x3C/tr>`).join('');drawPriceChart()}
+function copyModelList(){
+  const tbody=document.getElementById('model-tbody');
+  const rows=Array.prototype.map.call(tbody.querySelectorAll('tr'),function(tr){
+    return Array.prototype.map.call(tr.querySelectorAll('td'),function(td){return td.textContent.trim()}).join(' | ');
+  });
+  if(!rows.length){showToast('列表为空');return;}
+  const text='AI模型目录 - 当前筛选列表\n'+rows.join('\n');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){showToast('已复制当前列表')},function(){showToast('复制失败')});
+  }else{
+    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');showToast('已复制当前列表');}catch(e){showToast('复制失败');}
+    document.body.removeChild(ta);
+  }
+}
+function drawPriceChart(){
+  const models=getFiltered();
+  const wrap=document.getElementById('chart-wrap');
+  const c=document.getElementById('priceChart');
+  if(!models.length||!wrap||!c){if(wrap)wrap.style.display='none';return;}
+  const top=models.slice().sort(function(a,b){return b.input_price-a.input_price}).slice(0,8);
+  wrap.style.display='block';
+  const dpr=window.devicePixelRatio||1;
+  const w=c.clientWidth||600,h=180;
+  c.width=w*dpr;c.height=h*dpr;c.style.width=w+'px';c.style.height=h+'px';
+  const ctx=c.getContext('2d');ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+  const max=Math.max.apply(null,top.map(function(m){return m.input_price}))*1.15||1;
+  const padL=44,padB=24,padT=10;
+  const bw=(w-padL-8)/top.length,cw=bw*0.6;
+  top.forEach(function(m,i){
+    const x=padL+i*bw+bw*0.2;
+    const bh=(h-padB-padT)*(m.input_price/max);
+    const y=h-padB-bh;
+    ctx.fillStyle=m.type==='open'?'#4ade80':'#06b6d4';
+    ctx.fillRect(x,y,cw,bh);
+    ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';ctx.textAlign='center';
+    ctx.fillText(m.name.split(' ')[0],x+cw/2,h-padB+12);
+    ctx.fillStyle='#22d3ee';
+    ctx.fillText('$'+m.input_price,x+cw/2,y-3);
+  });
+}
 window.addEventListener('load',renderTable);
 
 </script>

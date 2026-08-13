@@ -258,6 +258,9 @@ a{color:#06b6d4;text-decoration:none}
 
   <div class="section">
     <h2>🎨 Styles <span class="count-badge" id="fontCount">0</span></h2>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="copyAllBtn">📋 Copy All Styles</button>
+    </div>
     <div class="font-grid" id="fontGrid"></div>
   </div>
 
@@ -361,12 +364,14 @@ function generate() {
   const grid = document.getElementById('fontGrid');
   grid.innerHTML = '';
   let count = 0;
+  window.__styles = [];
 
   for (const [name, fontDef] of Object.entries(fonts)) {
     const converted = convertText(text, fontDef);
     if (converted === text) continue;
 
     count++;
+    window.__styles.push({name: name, converted: converted});
     const card = document.createElement('div');
     card.className = 'font-card';
     card.innerHTML = `
@@ -403,6 +408,21 @@ function copyText(btn, text) {
     }, 2000);
   });
 }
+
+document.getElementById('copyAllBtn').addEventListener('click', function() {
+  if (!window.__styles || !window.__styles.length) { showToast('Generate styles first'); return; }
+  const text = window.__styles.map(s => s.name + ': ' + s.converted).join('\n');
+  const done = () => { showToast('All styles copied!'); };
+  navigator.clipboard.writeText(text).then(done).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    done();
+  });
+});
 
 document.addEventListener('DOMContentLoaded', function() {
   generate();

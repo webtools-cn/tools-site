@@ -105,6 +105,7 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 </div>
 <div class="output-area"><pre id="output-text">等待输入...</pre></div>
 <div class="output-actions">
+<button class="btn" onclick="fillExample()">🎲 填入示例</button>
 <button class="btn btn-success" onclick="copyResult()">📋 复制结果</button>
 </div>
 </div>
@@ -159,7 +160,24 @@ function convertSentenceCase(){
 function copyResult(){
   const text = document.getElementById('output-text').textContent;
   if(!text || text === '等待输入...') return;
-  navigator.clipboard.writeText(text).then(()=>showToast('已复制')).catch(()=>showToast('复制失败'));
+  const done = () => showToast('已复制');
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { showToast('复制失败'); }
+    document.body.removeChild(ta);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(fallback);
+  } else { fallback(); }
+}
+
+function fillExample(){
+  const text = 'THIS IS A SAMPLE TEXT. it NEEDS to be converted to SENTENCE CASE.\nTHE QUICK BROWN FOX JUMPS OVER THE LAZY DOG.';
+  document.getElementById('input-text').value = text;
+  convertSentenceCase();
+  showToast('已填入示例');
 }</script>
 
 <!-- FAQ Section -->

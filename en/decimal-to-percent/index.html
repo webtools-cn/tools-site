@@ -88,6 +88,8 @@
       <span data-dec="1.5">1.5</span>
       <span data-dec="0.001">0.001</span>
     </div>
+    <div id="result" style="display:none;margin-top:12px;padding:12px;background:#0f172a;border:1px solid rgba(6,182,212,.25);border-radius:8px;font-family:monospace;font-size:1rem;color:#22d3ee"></div>
+    <button id="copyResultBtn" style="display:none;margin-top:8px;padding:8px 16px;background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;font-size:.85rem;cursor:pointer">📋 Copy Result</button>
   </div>
   <div class="section">
     <h2 style="font-size:18px;margin-bottom:8px">📐 Conversion Formulas</h2>
@@ -121,6 +123,24 @@
 (function(){
   const decInput = document.getElementById('decimal');
   const pctInput = document.getElementById('percent');
+  const resBox = document.getElementById('result');
+  const copyBtn = document.getElementById('copyResultBtn');
+
+  function updateResult(){
+    const d = parseFloat(decInput.value);
+    const raw = pctInput.value.replace(/%/g,'').trim();
+    const p = parseFloat(raw);
+    if(!isNaN(d) || !isNaN(p)){
+      resBox.style.display = 'block';
+      copyBtn.style.display = 'inline-block';
+      const dStr = isNaN(d) ? '—' : String(d);
+      const pStr = isNaN(p) ? '—' : (p + '%');
+      resBox.textContent = dStr + ' ⇄ ' + pStr;
+    }else{
+      resBox.style.display = 'none';
+      copyBtn.style.display = 'none';
+    }
+  }
 
   decInput.addEventListener('input', function(){
     const v = parseFloat(decInput.value);
@@ -129,6 +149,7 @@
     }else if(decInput.value===''){
       pctInput.value = '';
     }
+    updateResult();
   });
 
   pctInput.addEventListener('input', function(){
@@ -139,6 +160,27 @@
     }else if(raw===''){
       decInput.value = '';
     }
+    updateResult();
+  });
+
+  copyBtn.addEventListener('click', function(){
+    const d = decInput.value || '';
+    const p = pctInput.value || '';
+    const text = 'Decimal: ' + d + '\nPercent: ' + p;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text);
+    }else{
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try{ document.execCommand('copy'); }catch(e){}
+      document.body.removeChild(ta);
+    }
+    copyBtn.textContent = '✅ Copied';
+    setTimeout(function(){ copyBtn.textContent = '📋 Copy Result'; }, 2000);
   });
 
   document.querySelector('.examples').addEventListener('click', function(e){

@@ -215,414 +215,6 @@ textarea{
 <link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/image-color-corrector/">
 </head><body>
 
-  const uploadZone = document.getElementById('uploadZone');
-  const fileInput = document.getElementById('fileInput');
-  const originalImg = document.getElementById('originalImg');
-  const resultCanvas = document.getElementById('resultCanvas');
-  const previewSection = document.getElementById('preview');
-  const controlsSection = document.getElementById('controls');
-  const downloadBtn = document.getElementById('downloadBtn');
-  const resetBtn = document.getElementById('resetBtn');
-  
-  const brightness = document.getElementById('brightness');
-  const contrast = document.getElementById('contrast');
-  const saturation = document.getElementById('saturation');
-  const hue = document.getElementById('hue');
-  const exposure = document.getElementById('exposure');
-  const temperature = document.getElementById('temperature');
-  
-  const brightnessVal = document.getElementById('brightnessVal');
-  const contrastVal = document.getElementById('contrastVal');
-  const saturationVal = document.getElementById('saturationVal');
-  const hueVal = document.getElementById('hueVal');
-  const exposureVal = document.getElementById('exposureVal');
-  const temperatureVal = document.getElementById('temperatureVal');
-  
-  let imgLoaded = false;
-  let originalData = null;
-  
-  uploadZone.addEventListener('click', () => fileInput.click());
-  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
-  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
-  uploadZone.addEventListener('drop', (e) => { e.preventDefault(); uploadZone.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
-  fileInput.addEventListener('change', (e) => { if(e.target.files[0]) handleFile(e.target.files[0]); });
-  
-  function handleFile(file){
-  if(!file.type.match(/image\//)){
-    showToast('Choose an image file');
-    return;
-  }
-  var reader = new FileReader();
-  reader.onload = function(e){
-    var img = new Image();
-    img.onload = function(){
-      originalImage = img;
-      resultImageDataUrl = null;
-      // Display file info
-      document.getElementById('fileName').textContent = '📄 ' + file.name;
-      document.getElementById('fileSize').textContent = '📦 ' + formatSize(file.size);
-      document.getElementById('fileDim').textContent = '📐 ' + img.width + ' × ' + img.height + ' px';
-      document.getElementById('fileInfo').classList.add('show');
-      uploadArea.classList.add('has-file');
-      // Show controls
-      document.getElementById('controlSection').classList.add('show');
-      // Draw original preview
-      drawSourcePreview(img);
-      // Auto-apply default border
-      applyBorder();
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-function formatSize(bytes){
-  if(bytes < 1024) return bytes + ' B';
-  if(bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
-  return (bytes/1048576).toFixed(2) + ' MB';
-}
-
-function drawSourcePreview(img){
-  var canvas = document.getElementById('sourceCanvas');
-  var maxW = 400, maxH = 300;
-  var scale = Math.min(maxW/img.width, maxH/img.height, 1);
-  canvas.width = img.width * scale;
-  canvas.height = img.height * scale;
-  var ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-}
-
-// ========== Apply Border (core feature) ==========
-function applyBorder(){
-  if(!originalImage){
-    showToast('Upload an image first');
-    return;
-  }
-
-  var borderW = parseInt(document.getElementById('borderWidth').value);
-  var borderRadius = parseInt(document.getElementById('borderRadius').value);
-  var borderColor = document.getElementById('borderColor').value;
-  var borderStyle = document.getElementById('borderStyle').value;
-  var bgColor = document.getElementById('bgColor').value;
-  var exportFormat = document.getElementById('exportFormat').value;
-  var gradientColorEnd = document.getElementById('gradientColorEnd').value;
-
-  // Shadow settings
-  var shadowEnabled = document.getElementById('shadowEnabled').value === 'yes';
-  var shadowColor = document.getElementById('shadowColor').value;
-  var shadowBlur = parseInt(document.getElementById('shadowBlur').value);
-  var shadowX = parseInt(document.getElementById('shadowX').value);
-  var shadowY = parseInt(document.getElementById('shadowY').value);
-
-  var img = originalImage;
-  var imgW = img.width;
-  var imgH = img.height;
-
-  // Calculate total canvas size (border + shadow space)
-  var shadowSpace = shadowEnabled ? Math.max(Math.abs(shadowX) + shadowBlur, Math.abs(shadowY) + shadowBlur) : 0;
-  var totalW = imgW + borderW * 2 + shadowSpace * 2;
-  var totalH = imgH + borderW * 2 + shadowSpace * 2;
-
-  var canvas = document.createElement('canvas');
-  canvas.width = totalW;
-  canvas.height = totalH;
-  var ctx = canvas.getContext('2d');
-
-  // Fill background
-  ctx.fillStyle = bgColor;
-  ctx.fillRect(0, 0, totalW, totalH);
-
-  // Image position after shadow offset
-  var imgX = borderW + shadowSpace;
-  var imgY = borderW + shadowSpace;
-
-  // If shadow is enabled, draw it first
-  if(shadowEnabled){
-    ctx.save();
-    ctx.shadowColor = shadowColor;
-    ctx.shadowBlur = shadowBlur;
-    ctx.shadowOffsetX = shadowX;
-    ctx.shadowOffsetY = shadowY;
-    // Draw a fill rectangle to create the shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.01)'; // Nearly transparent, just to trigger the shadow
-    if(borderRadius > 0){
-      roundRect(ctx, imgX, imgY, imgW + borderW * 2, imgH + borderW * 2, borderRadius + borderW, true, false);
-    } else {
-      ctx.fillRect(imgX, imgY, imgW + borderW * 2, imgH + borderW * 2);
-    }
-    ctx.restore();
-  }
-
-  // Draw border
-  var borderX = imgX;
-  var borderY = imgY;
-  var borderOuterW = imgW + borderW * 2;
-  var borderOuterH = imgH + borderW * 2;
-
-  if(borderStyle === 'gradient'){
-    // Gradient border
-    var grad = ctx.createLinearGradient(borderX, borderY, borderX + borderOuterW, borderY + borderOuterH);
-    grad.addColorStop(0, borderColor);
-    grad.addColorStop(1, gradientColorEnd);
-    ctx.fillStyle = grad;
-  } else if(borderStyle === 'double'){
-    // Double border: draw the outer line first
-    ctx.fillStyle = borderColor;
-  } else {
-    ctx.fillStyle = borderColor;
-  }
-
-  if(borderRadius > 0){
-    roundRect(ctx, borderX, borderY, borderOuterW, borderOuterH, borderRadius + borderW, true, false);
-  } else {
-    ctx.fillRect(borderX, borderY, borderOuterW, borderOuterH);
-  }
-
-  // Double border inner line
-  if(borderStyle === 'double'){
-    var innerMargin = Math.max(3, Math.floor(borderW / 3));
-    var innerX = borderX + innerMargin;
-    var innerY = borderY + innerMargin;
-    var innerW = borderOuterW - innerMargin * 2;
-    var innerH = borderOuterH - innerMargin * 2;
-    ctx.fillStyle = bgColor;
-    if(borderRadius > 0){
-      roundRect(ctx, innerX, innerY, innerW, innerH, Math.max(0, borderRadius + borderW - innerMargin), true, false);
-    } else {
-      ctx.fillRect(innerX, innerY, innerW, innerH);
-    }
-  }
-
-  // Draw image
-  ctx.save();
-  if(borderRadius > 0){
-    // Create the clip path for the image area
-    ctx.beginPath();
-    var picX = imgX + borderW;
-    var picY = imgY + borderW;
-    if(borderRadius > 0){
-      roundRectPath(ctx, picX, picY, imgW, imgH, borderRadius);
-    } else {
-      ctx.rect(picX, picY, imgW, imgH);
-    }
-    ctx.clip();
-  }
-  ctx.drawImage(img, imgX + borderW, imgY + borderW, imgW, imgH);
-  ctx.restore();
-
-  // Update preview
-  var resultCanvas = document.getElementById('resultCanvas');
-  var maxPreviewW = 400, maxPreviewH = 300;
-  var previewScale = Math.min(maxPreviewW/totalW, maxPreviewH/totalH, 1);
-  resultCanvas.width = totalW * previewScale;
-  resultCanvas.height = totalH * previewScale;
-  var rctx = resultCanvas.getContext('2d');
-  rctx.drawImage(canvas, 0, 0, resultCanvas.width, resultCanvas.height);
-
-  // Update metadata
-  document.getElementById('previewMeta').innerHTML =
-    '<span>Original: ' + imgW + '×' + imgH + ' px</span>' +
-    '<span>Output: ' + totalW + '×' + totalH + ' px</span>' +
-    '<span>Border: ' + borderW + 'px</span>' +
-    (borderRadius > 0 ? '<span>Radius: ' + borderRadius + 'px</span>' : '');
-
-  // Show preview area
-  document.getElementById('previewSection').classList.add('show');
-
-  // Save result
-  resultImageDataUrl = canvas.toDataURL(exportFormat, 0.92);
-
-  showToast('Border applied ✓');
-}
-
-// Rounded rectangle fill
-function roundRect(ctx, x, y, w, h, r, fill, stroke){
-  ctx.beginPath();
-  roundRectPath(ctx, x, y, w, h, r);
-  if(fill) ctx.fill();
-  if(stroke) ctx.stroke();
-}
-
-function roundRectPath(ctx, x, y, w, h, r){
-  r = Math.min(r, w/2, h/2);
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.arcTo(x + w, y, x + w, y + r, r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-  ctx.lineTo(x + r, y + h);
-  ctx.arcTo(x, y + h, x, y + h - r, r);
-  ctx.lineTo(x, y + r);
-  ctx.arcTo(x, y, x + r, y, r);
-  ctx.closePath();
-}
-
-// ========== Download Result ==========
-function downloadResult(){
-  if(!resultImageDataUrl){
-    showToast('Please apply the border first');
-    return;
-  }
-  var exportFormat = document.getElementById('exportFormat').value;
-  var ext = exportFormat === 'image/png' ? 'png' : 'jpg';
-  var link = document.createElement('a');
-  link.download = 'image-with-border.' + ext;
-  link.href = resultImageDataUrl;
-  link.click();
-  showToast('Download complete ✓');
-}
-
-// ========== Reset Settings ==========
-function resetSettings(){
-  document.getElementById('borderStyle').value = 'solid';
-  document.getElementById('borderWidth').value = 20;
-  document.getElementById('borderWidthVal').textContent = '20px';
-  document.getElementById('borderColor').value = '#ffffff';
-  document.getElementById('gradientColorEnd').value = '#06b6d4';
-  document.getElementById('borderRadius').value = 0;
-  document.getElementById('borderRadiusVal').textContent = '0px';
-  document.getElementById('bgColor').value = '#ffffff';
-  document.getElementById('exportFormat').value = 'image/png';
-  document.getElementById('shadowEnabled').value = 'no';
-  document.getElementById('shadowColor').value = '#000000';
-  document.getElementById('shadowBlur').value = 15;
-  document.getElementById('shadowBlurVal').textContent = '15px';
-  document.getElementById('shadowX').value = 5;
-  document.getElementById('shadowXVal').textContent = '5px';
-  document.getElementById('shadowY').value = 5;
-  document.getElementById('shadowYVal').textContent = '5px';
-  document.getElementById('gradientColorGroup').style.display = 'none';
-  document.querySelectorAll('.color-preset').forEach(function(el){el.classList.remove('active')});
-  var whitePreset = document.querySelector('.color-preset[style*="#ffffff"]');
-  if(whitePreset) whitePreset.classList.add('active');
-  showToast('Settings reset');
-}
-
-// ========== Clear Image ==========
-function clearImage(){
-  originalImage = null;
-  resultImageDataUrl = null;
-  document.getElementById('fileInfo').classList.remove('show');
-  uploadArea.classList.remove('has-file');
-  document.getElementById('controlSection').classList.remove('show');
-  document.getElementById('previewSection').classList.remove('show');
-  var srcCanvas = document.getElementById('sourceCanvas');
-  var resCanvas = document.getElementById('resultCanvas');
-  var ctx1 = srcCanvas.getContext('2d');
-  var ctx2 = resCanvas.getContext('2d');
-  ctx1.clearRect(0, 0, srcCanvas.width, srcCanvas.height);
-  ctx2.clearRect(0, 0, resCanvas.width, resCanvas.height);
-  srcCanvas.width = 0; srcCanvas.height = 0;
-  resCanvas.width = 0; resCanvas.height = 0;
-  fileInput.value = '';
-  showToast('Image cleared');
-}
-
-// ========== Feedback ==========
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-var type=document.getElementById('feedback-type').value;
-var typeLabel={feedback:'💡 Feature request',bug:'🐛 Feedback',other:'💬 Other'}[type];
-var title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-var body=encodeURIComponent('**Page**: '+window.location.href+'\\n**Type**: '+typeLabel);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-}
-
-document.addEventListener('click',function(e){
-  if(e.target&&e.target.closest&&e.target.closest('button')){
-    setTimeout(ftEnsureCopy,250);
-  }
-});
-function ftEnsureCopy(){
-  var res=document.getElementById('result');
-  if(!res||res.offsetParent===null)return;
-  if(res.querySelector('.ft-copy-btn'))return;
-  var langEN=/^en/i.test((document.documentElement.getAttribute('lang')||'zh'));
-  var btn=document.createElement('button');
-  btn.className='btn btn-secondary ft-copy-btn';
-  btn.textContent=langEN?'📋 Copy Result':'📋 Copy result';
-  btn.style.cssText='margin-top:12px;display:block';
-  btn.onclick=function(){
-    var txt=(res.innerText||res.textContent||'').replace(/\s+/g,' ').trim();
-    function toast(m){
-      var t=document.getElementById('toast');
-      if(t){t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
-    }
-    if(navigator.clipboard&&navigator.clipboard.writeText){
-      navigator.clipboard.writeText(txt).then(function(){toast(langEN?'Copied!':'Copied')}).catch(function(){ftFallbackCopy(txt);toast(langEN?'Copied!':'Copied')});
-    }else{ftFallbackCopy(txt);toast(langEN?'Copied!':'Copied')}
-  };
-  res.appendChild(btn);
-}
-function ftFallbackCopy(txt){
-  var ta=document.createElement('textarea');
-  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
-  document.body.appendChild(ta);ta.select();
-  try{document.execCommand('copy')}catch(err){}
-  document.body.removeChild(ta);
-}
-function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("Copied")})["catch"](function(){showToast("Copy failed")})}
-
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 Feature request',bug:'🐛 Feedback',other:'💬 Other'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**Page**: '+window.location.href+'\n**Type**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-}
-
-// === rewritten function implementation ===
-var quotes = [
-  {text:'A journey of a thousand miles begins with a single step.',author:'Lao Tzu',cat:'Motivation'},
-  {text:'The best time to plant a tree was 20 years ago. The second best time is now.',author:'Chinese Proverb',cat:'Motivation'},
-  {text:'Success is not final, failure is not fatal: it is the courage to continue that counts.',author:'Winston Churchill',cat:'Motivation'},
-  {text:'The only way to do great work is to love what you do.',author:'Steve Jobs',cat:'Motivation'},
-  {text:'Whether you think you can or you think you can\'t, you\'re right.',author:'Henry Ford',cat:'Motivation'},
-  {text:'It always seems impossible until it\'s done.',author:'Nelson Mandela',cat:'Motivation'},
-  {text:'Genius is one percent inspiration and ninety-nine percent perspiration.',author:'Thomas Edison',cat:'Wisdom'},
-  {text:'Knowledge is power.',author:'Francis Bacon',cat:'Wisdom'},
-  {text:'The only true wisdom is in knowing you know nothing.',author:'Socrates',cat:'Wisdom'},
-  {text:'An investment in knowledge pays the best interest.',author:'Benjamin Franklin',cat:'Wisdom'},
-  {text:'Life is what happens when you\'re busy making other plans.',author:'John Lennon',cat:'Life'},
-  {text:'In the middle of difficulty lies opportunity.',author:'Albert Einstein',cat:'Life'},
-  {text:'The purpose of our lives is to be happy.',author:'Dalai Lama',cat:'Life'},
-  {text:'You miss 100% of the shots you don\'t take.',author:'Wayne Gretzky',cat:'Life'},
-  {text:'The best and most beautiful things in the world cannot be seen or even touched — they must be felt with the heart.',author:'Helen Keller',cat:'Love'},
-  {text:'Being deeply loved by someone gives you strength, while loving someone deeply gives you courage.',author:'Lao Tzu',cat:'Love'},
-  {text:'To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment.',author:'Ralph Waldo Emerson',cat:'Life'},
-  {text:'The journey of life is not to arrive at the grave safely, but to fall, get up, and keep going.',author:'Maya Angelou',cat:'Life'},
-  {text:'Happiness is not something ready made. It comes from your own actions.',author:'Dalai Lama',cat:'Life'},
-  {text:'Well done is better than well said.',author:'Benjamin Franklin',cat:'Wisdom'},
-  {text:'A problem is a chance for you to do your best.',author:'Duke Ellington',cat:'Motivation'},
-  {text:'Everything you\'ve ever wanted is on the other side of fear.',author:'George Addair',cat:'Motivation'},
-  {text:'Perseverance is not a long race; it is many short races one after the other.',author:'Walter Elliot',cat:'Motivation'},
-  {text:'The secret of getting ahead is getting started.',author:'Mark Twain',cat:'Motivation'}
-];
-var currentQuote = null;
-
-function generateQuote() {
-  var idx = Math.floor(Math.random() * quotes.length);
-  currentQuote = quotes[idx];
-  document.getElementById('quoteText').textContent = currentQuote.text;
-  document.getElementById('quoteAuthor').textContent = '— ' + currentQuote.author;
-  document.getElementById('quoteCategory').textContent = currentQuote.cat;
-}
-
-function copyQuote() {
-  if (!currentQuote) return;
-  var t = '\"' + currentQuote.text + '\" — ' + currentQuote.author;
-  navigator.clipboard.writeText(t).then(function(){showToast('Copied')}).catch(function(){showToast('Copy failed')});
-}
-
-function shareTwitter() {
-  if (!currentQuote) return;
-  var t = encodeURIComponent('\"' + currentQuote.text + '\" — ' + currentQuote.author);
-  window.open('https://twitter.com/intent/tweet?text=' + t, '_blank');
-}
 
   <main class="container">
     <div class="header">
@@ -742,6 +334,108 @@ function shareTwitter() {
 
     </div>
   </main>
+<div class="toast" id="toast"></div>
+<script>
+var toastEl=document.getElementById('toast');
+function showToast(m){if(!toastEl){toastEl=document.getElementById('toast');}if(!toastEl)return;toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show')},3000);}
+function $(id){return document.getElementById(id);}
+var uploadZone=$('uploadZone'),fileInput=$('fileInput'),originalImg=$('originalImg'),resultCanvas=$('resultCanvas'),previewSection=$('preview'),controlsSection=$('controls'),downloadBtn=$('downloadBtn'),resetBtn=$('resetBtn');
+var brightness=$('brightness'),contrast=$('contrast'),saturation=$('saturation'),hue=$('hue'),exposure=$('exposure'),temperature=$('temperature');
+var brightnessVal=$('brightnessVal'),contrastVal=$('contrastVal'),saturationVal=$('saturationVal'),hueVal=$('hueVal'),exposureVal=$('exposureVal'),temperatureVal=$('temperatureVal');
+var sourceCanvas=$('sourceCanvas');
+if(!sourceCanvas){sourceCanvas=document.createElement('canvas');sourceCanvas.id='sourceCanvas';}
+var originalImage=null,imgLoaded=false;
+
+uploadZone.addEventListener('click',function(){fileInput.click();});
+uploadZone.addEventListener('dragover',function(e){e.preventDefault();uploadZone.classList.add('dragover');});
+uploadZone.addEventListener('dragleave',function(){uploadZone.classList.remove('dragover');});
+uploadZone.addEventListener('drop',function(e){e.preventDefault();uploadZone.classList.remove('dragover');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);});
+fileInput.addEventListener('change',function(e){if(e.target.files[0])handleFile(e.target.files[0]);});
+
+function handleFile(file){
+  if(!file.type.match(/image\//)){showToast('Please choose an image file');return;}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      originalImage=img;imgLoaded=true;
+      originalImg.src=img.src;
+      originalImg.style.display='block';
+      previewSection.style.display='block';
+      controlsSection.style.display='block';
+      render();
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function render(){
+  if(!originalImage)return;
+  var b=parseInt(brightness.value)||0,c=parseInt(contrast.value)||0,s=parseInt(saturation.value)||0,h=parseInt(hue.value)||0,e=parseInt(exposure.value)||0,t=parseInt(temperature.value)||0;
+  var canvas=resultCanvas;
+  canvas.width=originalImage.naturalWidth;
+  canvas.height=originalImage.naturalHeight;
+  var ctx=canvas.getContext('2d');
+  ctx.drawImage(originalImage,0,0);
+  var imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+  var d=imgData.data;
+  var factor=(259*(c+255))/(255*(259-c));
+  var expMult=Math.pow(2,e/200);
+  for(var i=0;i<d.length;i+=4){
+    var r=d[i],g=d[i+1],bl=d[i+2];
+    r=Math.max(0,Math.min(255,(factor*(r-128)+128)*expMult+b));
+    g=Math.max(0,Math.min(255,(factor*(g-128)+128)*expMult+b));
+    bl=Math.max(0,Math.min(255,(factor*(bl-128)+128)*expMult+b));
+    if(s!==0){
+      var gray=0.299*r+0.587*g+0.114*bl;
+      r=gray+(r-gray)*(s/100+1);
+      g=gray+(g-gray)*(s/100+1);
+      bl=gray+(bl-gray)*(s/100+1);
+    }
+    if(t!==0){
+      r+=t*0.5;bl-=t*0.5;
+    }
+    if(h!==0){
+      var rad=h*Math.PI/180;
+      var cr=Math.cos(rad),sg=Math.sin(rad);
+      var nr=cr*r+(1-cr)/3*r+(1-cr)/3*g+(1-cr)/3*bl+sg*(-0.213*r-0.715*g+0.928*bl);
+      var ng=(1-cr)/3*r+cr*g+(1-cr)/3*g+(1-cr)/3*bl+sg*(0.143*r-0.14*g-0.283*bl);
+      var nb=(1-cr)/3*r+(1-cr)/3*g+cr*bl+(1-cr)/3*bl+sg*(-0.787*r+0.715*g+0.072*bl);
+      r=nr;g=ng;bl=nb;
+    }
+    d[i]=Math.max(0,Math.min(255,r));
+    d[i+1]=Math.max(0,Math.min(255,g));
+    d[i+2]=Math.max(0,Math.min(255,bl));
+  }
+  ctx.putImageData(imgData,0,0);
+  if(sourceCanvas.parentNode!==resultCanvas.parentNode){resultCanvas.parentNode.insertBefore(sourceCanvas,resultCanvas);}
+  sourceCanvas.width=canvas.width;sourceCanvas.height=canvas.height;
+  sourceCanvas.getContext('2d').drawImage(originalImage,0,0,canvas.width,canvas.height);
+}
+
+var sliders=[brightness,contrast,saturation,hue,exposure,temperature];
+var vals=[brightnessVal,contrastVal,saturationVal,hueVal,exposureVal,temperatureVal];
+sliders.forEach(function(sl,i){
+  sl.addEventListener('input',function(){vals[i].textContent=sl.value;render();});
+});
+
+resetBtn.addEventListener('click',function(){
+  brightness.value=0;contrast.value=0;saturation.value=0;hue.value=0;exposure.value=0;temperature.value=0;
+  vals.forEach(function(v){v.textContent='0';});
+  if(imgLoaded)render();
+  showToast('Settings reset');
+});
+
+downloadBtn.addEventListener('click',function(){
+  if(!imgLoaded){showToast('Upload an image first');return;}
+  var link=document.createElement('a');
+  link.download='color-corrected.png';
+  link.href=resultCanvas.toDataURL('image/png');
+  link.click();
+  showToast('PNG downloaded');
+});
+</script>
 <!-- Feedback Widget -->
 </div>
 <script>

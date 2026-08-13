@@ -116,6 +116,7 @@ a{color:#06b6d4;text-decoration:none}
   <div class="btn-group">
     <button class="btn btn-primary" onclick="updateCalc()">🔄 计算</button>
     <button class="btn btn-secondary" onclick="resetDefault()">📋 恢复默认</button>
+    <button class="btn btn-secondary" id="copyRmdBtn">📋 复制结果</button>
   </div>
   <div id="rmdResult" class="rmd-result">
     <div class="amount" id="rmdAmount">$18,868</div>
@@ -140,6 +141,12 @@ a{color:#06b6d4;text-decoration:none}
       <tbody id="rmdTableBody"></tbody>
     </table>
   </div>
+</div>
+
+<div class="section">
+  <h2>📊 RMD随年龄变化图</h2>
+  <p class="info-text">当前余额下，各年龄对应的预计RMD金额柱状图（高亮为当前年龄）。</p>
+  <canvas id="rmdChart" width="900" height="220" style="width:100%;height:auto;background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px"></canvas>
 </div>
 
 <div class="section"><h2>常见问题</h2>
@@ -227,6 +234,7 @@ function updateCalc(){
 
   renderTable();
   highlightRow();
+  drawChart();
 }
 
 function estimateYears(age,balance,factor){
@@ -272,6 +280,67 @@ function highlightRow(){
 }
 
 function fmtNum(n){return n.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+
+function drawChart(){
+  var canvas=document.getElementById('rmdChart');
+  if(!canvas) return;
+  var balance=getBalance();
+  var cur=getCurrency();
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  var padL=52,padR=10,padT=16,padB=26;
+  var ages=[],vals=[];
+  for(var a=72;a<=120;a++){
+    ages.push(a);
+    var f=getFactor(a);
+    vals.push(f?balance/f:0);
+  }
+  var max=Math.max.apply(null,vals)||1;
+  ctx.font='10px sans-serif';
+  for(var i=0;i<=4;i++){
+    var y=padT+(H-padT-padB)*i/4;
+    var v=max*(1-i/4);
+    ctx.strokeStyle='rgba(148,163,184,.18)';
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.textAlign='right';
+    ctx.fillText(cur+fmtShort(v),padL-6,y+3);
+  }
+  var bw=(W-padL-padR)/ages.length;
+  var selAge=getAge();
+  for(var k=0;k<ages.length;k++){
+    var h=(H-padT-padB)*(vals[k]/max);
+    var x=padL+k*bw+bw*0.15;
+    ctx.fillStyle=(ages[k]===selAge)?'#22d3ee':'rgba(6,182,212,.72)';
+    ctx.fillRect(x,H-padB-h,bw*0.7,h);
+    if(ages[k]%5===0){
+      ctx.fillStyle='#94a3b8';ctx.textAlign='center';
+      ctx.fillText(ages[k],x+bw*0.35,H-padB+12);
+    }
+  }
+}
+
+function fmtShort(n){
+  if(n>=1e6) return (n/1e6).toFixed(1)+'M';
+  if(n>=1e3) return (n/1e3).toFixed(0)+'K';
+  return Math.round(n).toString();
+}
+
+function copyRmdResult(){
+  var amt=document.getElementById('rmdAmount').textContent;
+  var det=document.getElementById('rmdDetail').textContent;
+  var text='RMD强制最低分配额: '+amt+' | '+det;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){showToast('已复制');});
+  }else{
+    var ta=document.createElement('textarea');
+    ta.value=text;ta.style.position='fixed';ta.style.left='-9999px';
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');showToast('已复制');}catch(e){showToast('复制失败');}
+    document.body.removeChild(ta);
+  }
+}
+document.getElementById('copyRmdBtn').addEventListener('click',copyRmdResult);
 
 function resetDefault(){
   document.getElementById('age').value=73;

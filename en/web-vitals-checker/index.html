@@ -140,9 +140,10 @@
       </div>
       <div class="privacy-note"><span>🔒</span><span>All measurements happen locally. No data is uploaded to any server.</span></div>
     </div>
-    <div class="panel" id="resultPanel" style="display:none">
+      <div class="panel" id="resultPanel" style="display:none">
       <div class="panel-title">📊 Results</div>
       <div class="stat-grid" id="vitalsGrid"></div>
+      <canvas id="vitalsChart" style="max-width:100%;margin:8px 0 16px;border-radius:10px;border:1px solid rgba(148,163,184,.1);background:#0f172a"></canvas>
       <div id="tipsContainer"></div>
     </div>
   </div></div>
@@ -236,7 +237,34 @@ function renderResults(){
   });
   grid.innerHTML=gridHTML;
   tips.innerHTML=tipsHTML;
+  renderChart();
   document.getElementById('resultPanel').style.display='block';
+}
+function renderChart(){
+  const cv=document.getElementById('vitalsChart');
+  if(!cv)return;
+  const parent=cv.parentElement;
+  const w=Math.max(parent.clientWidth-32,280),h=200;
+  cv.width=w*2;cv.height=h*2;cv.style.width=w+'px';cv.style.height=h+'px';
+  const ctx=cv.getContext('2d');ctx.scale(2,2);
+  ctx.fillStyle='#0f172a';ctx.fillRect(0,0,w,h);
+  const thresholds={LCP:{good:2500,poor:4000},FID:{good:100,poor:300},CLS:{good:0.1,poor:0.25},INP:{good:200,poor:500},TTFB:{good:800,poor:1800}};
+  const metrics=['LCP','INP','CLS','FID','TTFB'];
+  const data=metrics.filter(m=>vitalsData[m]!==undefined&&vitalsData[m]!==0).map(m=>({m:m,v:vitalsData[m]}));
+  if(data.length===0){ctx.fillStyle='#475569';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('Run a check to see the chart',w/2,h/2);return;}
+  const pad=40,chartW=w-2*pad,chartH=h-40,top=10,bw=chartW/data.length;
+  data.forEach(d=>{
+    const t=thresholds[d.m];
+    const ratio=t?Math.min(d.v/t.poor,1):Math.min(d.v/100,1);
+    const x=pad+(data.indexOf(d))*bw,barW=bw*0.6,barH=ratio*chartH,y=top+chartH-barH;
+    const score=getScore(d.m,d.v);
+    ctx.fillStyle=score==='good'?'#10b981':score==='needs-improvement'?'#f59e0b':'#ef4444';
+    ctx.fillRect(x+barW/2,y,barW,barH);
+    ctx.fillStyle='#e2e8f0';ctx.font='11px sans-serif';ctx.textAlign='center';
+    ctx.fillText(formatValue(d.m,d.v),x+bw/2,y-4);
+    ctx.fillStyle='#94a3b8';
+    ctx.fillText(d.m,x+bw/2,h-2);
+  });
 }
 function exportReport(){
   if(!Object.keys(vitalsData).length)return;

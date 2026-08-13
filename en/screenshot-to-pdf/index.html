@@ -127,14 +127,14 @@ header{text-align:center;padding:40px 0 20px;}
 header h1{font-size:2em;color:#f1f5f9;margin-bottom:8px;}
 header p{color:#94a3b8;font-size:1.05em;}
 .tool-panel{background:#0f172a;border-radius:16px;padding:30px;box-shadow:0 2px 12px rgba(0,0,0,0.06);}
-.upload-zone{border:2px dashed #d0d5dd;border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:20px;}
-.upload-zone:hover,.upload-zone.drag-over{border-color:#4f46e5;background:#f5f3ff;}
+.upload-zone{border:2px dashed rgba(148,163,184,.35);border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:20px;background:#1e293b;}
+.upload-zone:hover,.upload-zone.drag-over{border-color:#06b6d4;background:#1e293b;}
 .upload-zone .icon{font-size:48px;margin-bottom:10px;}
-.upload-zone p{margin:5px 0;color:#888;}
-.upload-zone .btn{display:inline-block;margin-top:10px;padding:10px 24px;background:#4f46e5;color:#fff;border-radius:8px;cursor:pointer;}
+.upload-zone p{margin:5px 0;color:#94a3b8;}
+.upload-zone .btn{display:inline-block;margin-top:10px;padding:10px 24px;background:#06b6d4;color:#0f172a;border-radius:8px;cursor:pointer;}
 .options{margin:20px 0;display:flex;gap:16px;flex-wrap:wrap;align-items:center;}
 .options label{display:flex;align-items:center;gap:6px;font-size:14px;}
-.options select{padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:14px;}
+.options select{padding:8px 12px;border:1px solid rgba(148,163,184,.2);border-radius:6px;font-size:14px;background:#0f172a;color:#e2e8f0;}
 .file-list{display:none;margin:16px 0;}
 .file-list h3{font-size:1em;color:#f1f5f9;margin-bottom:10px;}
 .file-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:6px;margin-bottom:6px;font-size:14px;}
@@ -186,6 +186,40 @@ input[type="file"]{display:none;}
   
 </h1>
 <p class="tool-description" style="color:#6b7280;font-size:0.95rem;line-height:1.6;margin:0.5rem 0 1rem;">Free online screenshot to PDF converter. Convert PNG, JPG, WebP images to PDF. Merge multiple images into one PDF, auto-fit to A4/Letter. Pure client-side, n...</p>
+
+    <div class="upload-zone" id="uploadZone">
+      <div class="icon">📄</div>
+      <p>Drag &amp; drop screenshots here, or</p>
+      <span class="btn">Browse Images</span>
+      <p style="font-size:.8rem;color:#94a3b8">PNG / JPG / WebP / BMP / GIF · up to 50 images</p>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" multiple>
+    <div class="options">
+      <label>Page Size
+        <select id="pageSize">
+          <option value="a4" selected>A4</option>
+          <option value="letter">Letter</option>
+          <option value="original">Original Size</option>
+        </select>
+      </label>
+      <label>Orientation
+        <select id="orientation">
+          <option value="auto" selected>Auto</option>
+          <option value="portrait">Portrait</option>
+          <option value="landscape">Landscape</option>
+        </select>
+      </label>
+    </div>
+    <div class="file-list" id="fileList">
+      <h3>Selected Images (<span id="fileCount">0</span>)</h3>
+      <div id="fileItems"></div>
+    </div>
+    <div id="result" style="display:none;margin-top:16px;padding:16px;background:#0f172a;border:1px solid rgba(6,182,212,.25);border-radius:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <span id="resultText" style="font-size:.85rem;color:#e2e8f0"></span>
+        <button id="copyResultBtn" style="padding:6px 12px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;cursor:pointer;font-size:.8rem">📋 Copy Result</button>
+      </div>
+    </div>
 
     <div class="error-msg" id="errorMsg"></div>
     <button class="btn-pdf" id="btnPDF">📄 Generate & Download PDF</button>
@@ -252,7 +286,36 @@ input[type="file"]{display:none;}
       + '<span class="remove" onclick="removeFile('+i+')">×</span>'
       + '</div>'
     ).join('');
+    updateResult();
   }
+
+  function updateResult(){
+    var res = document.getElementById('result');
+    if(!res) return;
+    if(files.length === 0){ res.style.display = 'none'; return; }
+    var total = files.reduce(function(s,f){ return s + f.size; }, 0);
+    var pageSize = document.getElementById('pageSize');
+    var txt = files.length + ' image(s) selected · total ' + formatSize(total)
+      + ' · page: ' + (pageSize ? pageSize.value : 'a4');
+    document.getElementById('resultText').textContent = txt;
+    res.style.display = 'block';
+  }
+
+  document.getElementById('copyResultBtn').addEventListener('click', function(){
+    var txt = document.getElementById('resultText').textContent;
+    function fb(){
+      var ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch(e) {}
+      document.body.removeChild(ta);
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(fb, fb);
+    } else { fb(); }
+  });
+
+  var pageSizeSel = document.getElementById('pageSize');
+  if(pageSizeSel) pageSizeSel.addEventListener('change', updateResult);
 
   function formatSize(bytes){
     if(bytes < 1024) return bytes + ' B';

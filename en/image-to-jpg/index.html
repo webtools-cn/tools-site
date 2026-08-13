@@ -106,7 +106,10 @@
         <span>JPG Quality: <strong id="qualityVal">85</strong>%</span>
         <input type="range" id="qualityRange" min="10" max="100" value="85">
       </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <button class="btn btn-primary" id="convertBtn" disabled>Convert to JPG &amp; Download</button>
+      <button class="btn" id="sampleBtn" style="background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25)">🎲 Try Sample Image</button>
+      </div>
     </div>
     <div class="section" id="previewCard" style="display:none">
       <h2>👁️ Preview</h2>
@@ -186,13 +189,51 @@
         document.getElementById('previewResult').src = url;
         document.getElementById('resultInfo').textContent =
           `${canvas.width}×${canvas.height} · ${(blob.size/1024).toFixed(1)} KB · image/jpeg`;
-        
+      }, 'image/jpeg', quality);
+    }
+
+    function convertAndDownload() {
+      if (!sourceImage) return;
+      const quality = parseInt(document.getElementById('qualityRange').value) / 100;
+      const canvas = document.createElement('canvas');
+      canvas.width = sourceImage.width;
+      canvas.height = sourceImage.height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(sourceImage, 0, 0);
+      canvas.toBlob(blob => {
         const a = document.createElement('a');
-        a.href = url;
+        a.href = URL.createObjectURL(blob);
         a.download = sourceName + '.jpg';
         a.click();
         showToast('Converted and downloaded!');
       }, 'image/jpeg', quality);
+    }
+
+    function loadSampleImage() {
+      const c = document.createElement('canvas');
+      c.width = 640; c.height = 400;
+      const ctx = c.getContext('2d');
+      const g = ctx.createLinearGradient(0, 0, 640, 400);
+      g.addColorStop(0, '#06b6d4');
+      g.addColorStop(1, '#8b5cf6');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 640, 400);
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.arc(320, 200, 90, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = 'bold 42px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Sample', 320, 210);
+      ctx.fillRect(0, 360, 640, 40);
+      c.toBlob(blob => {
+        const f = new File([blob], 'sample.png', { type: 'image/png' });
+        loadImage(f);
+        showToast('Sample image loaded — adjust quality or convert');
+      }, 'image/png');
     }
 
     document.getElementById('dropZone').addEventListener('click', () => document.getElementById('fileInput').click());
@@ -205,8 +246,10 @@
     });
     document.getElementById('qualityRange').addEventListener('input', e => {
       document.getElementById('qualityVal').textContent = e.target.value;
+      if (sourceImage) convertToJPG();
     });
-    document.getElementById('convertBtn').addEventListener('click', convertToJPG);
+    document.getElementById('convertBtn').addEventListener('click', convertAndDownload);
+    document.getElementById('sampleBtn').addEventListener('click', loadSampleImage);
   </script>
 </body>
 </html>

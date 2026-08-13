@@ -54,6 +54,7 @@
     <button class="btn btn-download" onclick="downloadGif()" id="btnDownload" disabled>⬇️ 下载新GIF</button>
     <div class="preview-area" id="preview"></div>
     <div class="speed-info" id="speedInfo">当前速度: 1x</div>
+    <div id="result" style="display:none;margin-top:12px;background:#0f172a;border:1px solid rgba(6,182,212,.3);border-radius:8px;padding:12px 14px;font-size:.85rem;color:#94a3b8;line-height:1.9"></div>
     <div class="info-box">💡 速度范围 0.1x ~ 5x。处理在浏览器本地完成，不上传文件。</div>
   </div>
   <div class="footer">Free ToolBase © 2024 | 纯前端处理</div>
@@ -62,7 +63,17 @@
 <script>
 let gifData=null,gifUrl=null;
 document.getElementById('gifInput').addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(ev){gifData=ev.target.result;if(gifUrl)URL.revokeObjectURL(gifUrl);gifUrl=URL.createObjectURL(file);showPreview()};reader.readAsDataURL(file)});
-document.getElementById('speedRange').addEventListener('input',function(){const speed=parseFloat(this.value);document.getElementById('speedLabel').textContent=speed+'x';document.getElementById('speedInfo').textContent='当前速度: '+speed+'x';const img=document.querySelector('#preview img');if(img){img.style.animationDuration=(1/speed).toFixed(2)+'s';img.style.animationPlayState='running'}});
+document.getElementById('speedRange').addEventListener('input',function(){const speed=parseFloat(this.value);document.getElementById('speedLabel').textContent=speed+'x';document.getElementById('speedInfo').textContent='当前速度: '+speed+'x';const img=document.querySelector('#preview img');if(img){img.style.animationDuration=(1/speed).toFixed(2)+'s';img.style.animationPlayState='running'}updateResult(speed)});
+function updateResult(speed){
+  const el=document.getElementById('result');
+  if(!el)return;
+  el.style.display='block';
+  const ratio=(1/speed).toFixed(2);
+  const pct=Math.abs((1/speed-1)*100).toFixed(0);
+  el.innerHTML='当前速度: <b style="color:#22d3ee">'+speed.toFixed(1)+'x</b>（原始1秒 → '+ratio+' 秒）<br>'+
+    '帧时长'+(speed>1?'缩短':'延长')+'约 <b style="color:#22d3ee">'+pct+'%</b><br>'+
+    '<span style="color:#64748b">速度越慢帧越长，导出文件可能越大</span>';
+}
 function showPreview(){const speed=parseFloat(document.getElementById('speedRange').value);document.getElementById('preview').innerHTML=`<img src="${gifUrl}" alt="GIF预览">`;document.getElementById('btnDownload').disabled=false;document.getElementById('speedInfo').textContent='当前速度: '+speed+'x'}
 function downloadGif(){if(!gifUrl){showToast('请先选择GIF文件');return}const speed=parseFloat(document.getElementById('speedRange').value);const a=document.createElement('a');a.href=gifUrl;a.download='speed_'+speed+'x.gif';document.body.appendChild(a);a.click();document.body.removeChild(a);showToast('下载中...速度调整需用专业工具精确处理，当前下载原始GIF')}
 function showToast(msg){document.getElementById('toast').textContent=msg;document.getElementById('toast').style.display='block';setTimeout(()=>document.getElementById('toast').style.display='none',3000)}

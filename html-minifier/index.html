@@ -181,9 +181,27 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
   <body>
   
 </textarea>
+    <div class="options">
+      <label><input type="checkbox" id="removeComments" checked> 移除注释</label>
+      <label><input type="checkbox" id="keepLineBreaks"> 保留标签间换行</label>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="minifyBtn">🔧 压缩HTML</button>
+      <button class="btn btn-secondary" id="sampleBtn">🎲 填入示例</button>
+      <button class="btn btn-secondary" id="clearBtn">🗑️ 清空</button>
+    </div>
+  </div>
+
+  <div class="result-section" id="resultSection" style="display:none">
+    <h2>压缩结果</h2>
+    <div class="output-wrap">
+      <textarea id="outputHtml" readonly></textarea>
+      <button class="copy-btn" id="copyBtn">📋 复制</button>
+    </div>
+    <div class="stats" id="miniStats"></div>
+  </div>
 
 <!-- 反馈收集 -->
-</div>
 <script>
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function submitFeedback(){
@@ -226,6 +244,54 @@ const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**:
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
 document.getElementById('feedback-success').style.display='block';
 }
+
+function minifyHtml(){
+  var input=document.getElementById('inputHtml').value;
+  if(!input.trim()){showToast('请先粘贴或输入HTML代码');return;}
+  var html=input;
+  if(document.getElementById('removeComments').checked){
+    html=html.replace(/<!--[\s\S]*?-->/g,'');
+  }
+  if(document.getElementById('keepLineBreaks').checked){
+    html=html.replace(/>\s*</g,'>\n<');
+  }else{
+    html=html.replace(/>\s*</g,'><');
+  }
+  html=html.replace(/\s*=\s*/g,'=');
+  html=html.trim();
+  var out=document.getElementById('outputHtml');
+  out.value=html;
+  document.getElementById('resultSection').style.display='block';
+  var orig=input.length,mini=html.length;
+  var pct=orig?Math.round((1-mini/orig)*100):0;
+  document.getElementById('miniStats').innerHTML='原始: <b>'+orig+'</b> 字符 | 压缩后: <b>'+mini+'</b> 字符 | 节省: <b style="color:#4ade80">'+pct+'%</b>';
+  return html;
+}
+function fillSampleHtml(){
+  document.getElementById('inputHtml').value='<!DOCTYPE html>\n<html lang="zh-CN">\n  <head>\n    <meta charset="UTF-8">\n    <title>示例页面</title>\n  </head>\n  <body>\n    <!-- 这是注释，压缩时会被移除 -->\n    <h1>Hello World</h1>\n    <p>这是一个 <strong>HTML</strong> 压缩示例。</p>\n  </body>\n</html>';
+  minifyHtml();
+}
+document.getElementById('minifyBtn').addEventListener('click',minifyHtml);
+document.getElementById('sampleBtn').addEventListener('click',fillSampleHtml);
+document.getElementById('clearBtn').addEventListener('click',function(){
+  document.getElementById('inputHtml').value='';
+  document.getElementById('resultSection').style.display='none';
+  showToast('已清空');
+});
+document.getElementById('copyBtn').addEventListener('click',function(){
+  var t=document.getElementById('outputHtml').value;
+  if(!t){showToast('请先生成压缩结果');return;}
+  navigator.clipboard.writeText(t).then(function(){showToast('✅ 已复制压缩结果')})["catch"](function(){showToast('复制失败')});
+});
+(function(){
+  var t=null;
+  document.getElementById('inputHtml').addEventListener('input',function(){
+    clearTimeout(t);
+    t=setTimeout(function(){
+      if(document.getElementById('inputHtml').value.trim())minifyHtml();
+    },700);
+  });
+})();
 
 </script>
 

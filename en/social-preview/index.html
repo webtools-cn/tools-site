@@ -102,6 +102,7 @@
   <div class="input-row">
     <input type="url" id="urlInput" placeholder="Enter webpage URL, e.g., https://example.com" value="https://free-toolbase.com">
     <button class="btn" id="fetchBtn">🔍 Detect & Preview</button>
+    <button class="btn" id="sampleBtn" style="background:rgba(6,182,212,.15);color:#22d3ee;border:1px solid rgba(6,182,212,.3)">🎲 Sample URL</button>
   </div>
 
   <div class="previews" id="previews" style="display:none;">
@@ -131,6 +132,7 @@
     <thead><tr><th>Meta Tag</th><th>Content</th><th>Status</th></tr></thead>
     <tbody id="metaBody"></tbody>
   </table>
+  <button class="btn" id="copyMetaBtn" style="display:none;background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.3);margin-top:12px">📋 Copy Meta Tags</button>
 
 <h2>What is Social Preview - OG/Twitter Card Preview ToolBase?</h2><p>Social Preview - OG/Twitter Card Preview ToolBase is a free online tool that runs entirely in your browser. No download or signup needed — enter Social Share Previewer and other values to get results instantly. All data is processed locally.</p>
 <h2>Use Cases</h2><ul><li>Verify mathematical calculations during study or teaching</li><li>Solve geometry problems quickly in engineering work</li><li>Calculate ratios and percentages in daily life</li><li>Mobile math calculations without a calculator app</li></ul>
@@ -160,6 +162,9 @@
   const metaTable = document.getElementById('metaTable');
   const metaBody = document.getElementById('metaBody');
   const toastEl = document.getElementById('toast');
+  const sampleBtn = document.getElementById('sampleBtn');
+  const copyMetaBtn = document.getElementById('copyMetaBtn');
+  let lastMeta = {};
 
   function showToast(msg) {
     toastEl.textContent = msg;
@@ -236,6 +241,7 @@
     const data = { ...og };
     for (const [k, v] of Object.entries(twitter)) data[k] = v;
 
+    lastMeta = data;
     renderFromData(data, url);
 
     metaBody.innerHTML = '';
@@ -246,6 +252,7 @@
       metaBody.innerHTML += `<tr><td>${escapeHtml(key)}</td><td>${escapeHtml(val || '—')}</td><td>${status}</td></tr>`;
     });
     metaTable.style.display = '';
+    copyMetaBtn.style.display = '';
   }
 
   function renderFromData(data, url) {
@@ -282,6 +289,30 @@
   fetchBtn.addEventListener('click', fetchMeta);
   urlInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') fetchMeta();
+  });
+  sampleBtn.addEventListener('click', () => {
+    urlInput.value = 'https://github.com/webtools-cn/tools-site';
+    fetchMeta();
+  });
+  function copyText(t, msg) {
+    const done = () => showToast(msg);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(done).catch(() => fallbackCopy(t, done));
+    } else { fallbackCopy(t, done); }
+  }
+  function fallbackCopy(t, done) {
+    const ta = document.createElement('textarea');
+    ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch(e) { showToast('Copy failed'); }
+    document.body.removeChild(ta);
+  }
+  copyMetaBtn.addEventListener('click', () => {
+    const lines = [];
+    for (const k of ['og:title','og:description','og:image','og:url','og:type','twitter:card','twitter:title','twitter:description','twitter:image']) {
+      if (lastMeta[k]) lines.push('<meta property="' + k + '" content="' + escapeHtml(lastMeta[k]) + '">');
+    }
+    copyText(lines.join('\n'), '✅ Meta tags copied');
   });
 })();
 </script>

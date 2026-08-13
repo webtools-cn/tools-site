@@ -89,6 +89,7 @@ footer a{color:#475569}
 <div class="actions">
 <button class="btn btn-primary" onclick="copyText()">Copy Text</button>
 <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+<button class="btn btn-secondary" onclick="fillExample()">🎲 Fill Example</button>
 </div>
 </div>
 <div class="tool-section">
@@ -102,6 +103,7 @@ footer a{color:#475569}
 <div class="stat-item"><span class="stat-label">Bytes (UTF-8)</span><span class="stat-value" id="byteCount">0</span></div>
 <div class="stat-item"><span class="stat-label">Sentences</span><span class="stat-value" id="sentCount">0</span></div>
 <div class="stat-item"><span class="stat-label">Reading Time</span><span class="stat-value" id="readTime">0 min</span></div>
+<canvas id="statChart" width="300" height="150" style="width:100%;margin-top:16px"></canvas>
 </div>
 </div>
 
@@ -130,11 +132,45 @@ function updateStats(){
   stats.sentCount.textContent=(t.match(/[.!?.！？\n]+/g)||[]).length||(t.trim()?1:0);
   const wpm=200,words=stats.wordCount.textContent*1;
   stats.readTime.textContent=(words>0?Math.max(1,Math.ceil(words/wpm)):0)+' min';
+  drawChart(words, t.length, parseInt(stats.cnWordCount.textContent)||0, parseInt(stats.sentCount.textContent)||0);
+}
+function drawChart(words, chars, chinese, sentences){
+  const canvas=document.getElementById('statChart');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width,h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+  const data=[
+    {label:'Words',value:words},
+    {label:'Chars',value:chars},
+    {label:'Chinese',value:chinese},
+    {label:'Sentences',value:sentences}
+  ];
+  const max=Math.max.apply(null,data.map(d=>d.value).concat([1]));
+  const bw=(w-40)/data.length;
+  for(let i=0;i<data.length;i++){
+    const bh=(data[i].value/max)*(h-40);
+    const x=10+i*(bw+10);
+    const y=h-25-bh;
+    ctx.fillStyle='#06b6d4';
+    ctx.fillRect(x,y,bw,bh);
+    ctx.fillStyle='#94a3b8';
+    ctx.font='10px monospace';
+    ctx.textAlign='center';
+    ctx.fillText(data[i].value,x+bw/2,y-4);
+    ctx.fillText(data[i].label,x+bw/2,h-8);
+  }
 }
 input.addEventListener('input',updateStats);
 function copyText(){navigator.clipboard.writeText(input.value).then(()=>showToast('Copied!'));}
 function clearAll(){input.value='';updateStats();showToast('Cleared!');}
+function fillExample(){
+  input.value='The quick brown fox jumps over the lazy dog.\n\nFree online tools make everyday work easier! Count characters, words, lines, and sentences in real time. 在线工具让工作更高效。\n\nCopy, paste, and analyze any text instantly with just a few clicks. Try a live counter today!';
+  updateStats();
+  showToast('Example filled!');
+}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+updateStats();
 </script>
 </body>
 </html>

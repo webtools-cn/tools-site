@@ -124,6 +124,10 @@ canvas{max-width:100%;border-radius:8px}
 <button class="btn btn-success" id="cutBtn">✂️ 剪切并下载</button>
 </div>
 <audio id="audioPlayer" controls style="width:100%;margin-top:12px;display:none"></audio>
+<div id="result" style="display:none;margin-top:12px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+<span id="resultText" style="font-family:monospace;font-size:.85rem;color:#22d3ee"></span>
+<button class="btn btn-secondary" onclick="copyResult()" style="padding:4px 12px;font-size:.75rem">📋 复制结果</button>
+</div>
 </div>
 <div class="input-section">
 <h2>📝 说明</h2>
@@ -142,6 +146,7 @@ document.getElementById('audioInput').addEventListener('change',function(e){
       document.getElementById('endTime').value=Math.min(parseFloat(document.getElementById('endTime').value),buf.duration);
       document.getElementById('audioPlayer').style.display='block';
       document.getElementById('audioPlayer').src=URL.createObjectURL(file);
+      updateCutInfo();
       showToast('音频已加载');
     },function(){showToast('音频解码失败');});
   };
@@ -203,6 +208,23 @@ function encodeWAV(buf){
     }
   }
   return arr;
+}
+function fmtTime(t){if(isNaN(t)||t<0)return '0.0s';return t.toFixed(1)+'s';}
+function updateCutInfo(){
+  var s=parseFloat(document.getElementById('startTime').value);
+  var e=parseFloat(document.getElementById('endTime').value);
+  var total=audioBuffer?audioBuffer.duration:0;
+  var dur=(isNaN(s)||isNaN(e)||s<0||e<0)?0:Math.max(0,e-s);
+  var txt='选区: '+fmtTime(s)+' ~ '+fmtTime(e)+' | 时长: '+fmtTime(dur)+(total>0?' | 总长: '+fmtTime(total):'');
+  document.getElementById('resultText').textContent=txt;
+  document.getElementById('result').style.display='flex';
+}
+document.getElementById('startTime').addEventListener('input',updateCutInfo);
+document.getElementById('endTime').addEventListener('input',updateCutInfo);
+function copyResult(){
+  var t=document.getElementById('resultText').textContent;
+  if(!t)return;
+  navigator.clipboard.writeText(t).then(function(){showToast('✅ 已复制结果')}).catch(function(){var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('✅ 已复制结果');});
 }
 </script>
 

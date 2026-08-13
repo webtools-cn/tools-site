@@ -220,7 +220,10 @@ a{color:#06b6d4;text-decoration:none}
   </span>
 </div>
 
-  <input type="text" class="search-plat" id="platformSearch" placeholder="Search platforms..." oninput="filterPlatforms()">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+  <input type="text" class="search-plat" id="platformSearch" placeholder="Search platforms..." oninput="filterPlatforms()" style="flex:1;min-width:200px">
+  <button class="btn btn-secondary" onclick="fillExample()" style="padding:10px 14px;border-radius:8px;cursor:pointer;background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)">🎲 Fill Example</button>
+  </div>
 
   <div class="platform-grid" id="platformGrid"></div>
 
@@ -502,8 +505,43 @@ function selectPlatform(id) {
   html += `</div></div>`;
 
   html += `<div class="info-note">💡 Tip: Actual display may vary across devices. Upload the highest resolution version and let platforms optimize. Keep critical text and logos within safe zones to avoid cropping.</div>`;
+  html += `<div class="btn-row" style="margin-top:16px"><button class="btn btn-primary" id="copySizesBtn">📋 Copy Sizes</button></div>`;
 
   panel.innerHTML = html;
+  const copyBtn = document.getElementById('copySizesBtn');
+  if (copyBtn) {
+    copyBtn.onclick = () => copySizes(p);
+  }
+}
+
+function copySizes(p) {
+  if (!p) { showToast('Nothing to copy yet'); return; }
+  const lines = p.sizes.map(s => `${s.label} — ${s.dim} (${s.ratio}) — ${s.note || ''}`.trim());
+  const text = `${p.name} Image Sizes\n${lines.join('\n')}`;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => showToast('Sizes copied ✓')).catch(() => fallbackCopySizes(text));
+  } else {
+    fallbackCopySizes(text);
+  }
+}
+function fallbackCopySizes(t) {
+  const ta = document.createElement('textarea');
+  ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); showToast('Sizes copied ✓'); } catch (e) { showToast('Copy failed'); }
+  document.body.removeChild(ta);
+}
+function fillExample() {
+  const ex = ['instagram', 'youtube', 'linkedin', 'tiktok'];
+  document.getElementById('platformSearch').value = ex[Math.floor(Math.random() * ex.length)];
+  filterPlatforms();
+  showToast('Example filled ✓');
+}
+function showToast(m) {
+  let t = document.getElementById('toast');
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;z-index:999;opacity:0;transition:opacity .3s'; document.body.appendChild(t); }
+  t.textContent = m; t.style.opacity = '1';
+  setTimeout(() => { t.style.opacity = '0'; }, 2000);
 }
 
 function getTypeLabel(type) {

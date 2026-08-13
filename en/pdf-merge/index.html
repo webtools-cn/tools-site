@@ -108,6 +108,10 @@
 </h1>
 
 <div class="status" id="status">Ready — upload PDF files to begin</div>
+<div id="result" style="display:none;background:#0f172a;border:1px solid rgba(6,182,212,.2);border-radius:12px;padding:16px;margin-bottom:16px;color:#e2e8f0">
+  <strong style="color:#22d3ee">✅ Merge complete</strong>
+  <div id="resultText" style="margin-top:6px;font-size:.9rem;color:#94a3b8"></div>
+</div>
 <div class="btn-row"><button class="btn btn-primary" id="mergeBtn" disabled>🔗 Merge PDFs</button><button class="btn btn-outline" id="clearBtn">🗑️ Clear List</button></div>
 </div>
 
@@ -126,7 +130,7 @@ document.getElementById('uploadZone').addEventListener('dragover',e=>e.preventDe
 document.getElementById('uploadZone').addEventListener('drop',e=>{e.preventDefault();addFiles(e.dataTransfer.files);});
 document.getElementById('fileInput').addEventListener('change',function(){addFiles(this.files);this.value='';});
 document.getElementById('clearBtn').addEventListener('click',()=>{files=[];renderList();document.getElementById('status').textContent='Ready — upload PDF files to begin';});
-document.getElementById('mergeBtn').addEventListener('click',async()=>{if(files.length<2)return;const btn=document.getElementById('mergeBtn');btn.disabled=true;btn.textContent='Merging...';const p=document.getElementById('progressBar');p.style.display='block';const f=document.getElementById('progressFill');f.style.width='10%';const s=document.getElementById('status');try{const{PDFDocument}=PDFLib;const md=await PDFDocument.create();for(let i=0;i<files.length;i++){s.textContent=`Processing: ${files[i].name} (${i+1}/${files.length})`;const ab=await files[i].arrayBuffer();const d=await PDFDocument.load(ab);const pgs=await md.copyPages(d,d.getPageIndices());pgs.forEach(pg=>md.addPage(pg));f.style.width=(30+70*(i+1)/files.length)+'%';}s.textContent='Generating merged file...';f.style.width='95%';const mb=await md.save();const bl=new Blob([mb],{type:'application/pdf'});const u=URL.createObjectURL(bl);const a=document.createElement('a');a.href=u;a.download='merged.pdf';a.click();URL.revokeObjectURL(u);f.style.width='100%';s.textContent=`✅ Merged! ${files.length} PDF files combined`;}catch(e){s.textContent='❌ Merge failed: '+e.message;}finally{btn.disabled=false;btn.textContent='🔗 Merge PDFs';setTimeout(()=>{p.style.display='none';f.style.width='0';},1500);}});
+document.getElementById('mergeBtn').addEventListener('click',async()=>{if(files.length<2)return;const btn=document.getElementById('mergeBtn');btn.disabled=true;btn.textContent='Merging...';const p=document.getElementById('progressBar');p.style.display='block';const f=document.getElementById('progressFill');f.style.width='10%';const s=document.getElementById('status');try{const{PDFDocument}=PDFLib;const md=await PDFDocument.create();for(let i=0;i<files.length;i++){s.textContent=`Processing: ${files[i].name} (${i+1}/${files.length})`;const ab=await files[i].arrayBuffer();const d=await PDFDocument.load(ab);const pgs=await md.copyPages(d,d.getPageIndices());pgs.forEach(pg=>md.addPage(pg));f.style.width=(30+70*(i+1)/files.length)+'%';}s.textContent='Generating merged file...';f.style.width='95%';const mb=await md.save();const bl=new Blob([mb],{type:'application/pdf'});const u=URL.createObjectURL(bl);const a=document.createElement('a');a.href=u;a.download='merged.pdf';a.click();URL.revokeObjectURL(u);f.style.width='100%';s.textContent=`✅ Merged! ${files.length} PDF files combined`;const totalSize=files.reduce((s2,f)=>s2+f.size,0);document.getElementById('result').style.display='block';document.getElementById('resultText').textContent='merged.pdf  ·  '+files.length+' files  ·  '+formatSize(totalSize)+'  ·  '+new Date().toLocaleTimeString();}catch(e){s.textContent='❌ Merge failed: '+e.message;}finally{btn.disabled=false;btn.textContent='🔗 Merge PDFs';setTimeout(()=>{p.style.display='none';f.style.width='0';},1500);}});
 
 // === Implementation ===
 function moveDown() {

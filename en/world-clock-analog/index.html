@@ -82,6 +82,7 @@
 .related-tools a{transition:all .2s ease;border:1px solid rgba(148,163,184,.1)}
 .related-tools a:hover{border-color:rgba(34,211,238,.35);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
 .info-section{border:1px solid rgba(148,163,184,.1);border-radius:12px;padding:20px;background:rgba(30,41,59,.5)}
+.copy-time-btn{margin-top:8px;font-size:.75rem;padding:4px 12px;display:block;margin-left:auto;margin-right:auto}
 .seo-content h2{background:linear-gradient(135deg,#06b6d4,#3b82f6);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:1.35rem}
 .seo-content h3{color:#22d3ee;font-size:1.1rem;margin-top:18px}
 </style>
@@ -208,7 +209,7 @@ let clocks=['Asia/Shanghai','America/New_York','Europe/London','Asia/Tokyo'];
 let animId=null;
 function addCity(){const sel=document.getElementById('city-select');const tz=sel.value;if(clocks.includes(tz))return;if(clocks.length>=8){return}clocks.push(tz);renderClocks()}
 function removeCity(tz){clocks=clocks.filter(c=>c!==tz);renderClocks()}
-function renderClocks(){const grid=document.getElementById('clock-grid');grid.innerHTML='';clocks.forEach(tz=>{const name=cityNames[tz]||tz.split('/').pop();const card=document.createElement('div');card.className='clock-card';card.innerHTML=`<button class="remove-btn" onclick="removeCity('${tz}')">✕</button><div class="city-name">${name}</div><div class="digital-time" id="digital-${tz.replace(/\//g,'-')}"></div><div class="date-info" id="date-${tz.replace(/\//g,'-')}"></div><canvas class="clock-canvas" id="canvas-${tz.replace(/\//g,'-')}" width="180" height="180"></canvas>`;grid.appendChild(card)});startAnimation()}
+function renderClocks(){const grid=document.getElementById('clock-grid');grid.innerHTML='';clocks.forEach(tz=>{const name=cityNames[tz]||tz.split('/').pop();const card=document.createElement('div');card.className='clock-card';card.innerHTML=`<button class="remove-btn" onclick="removeCity('${tz}')">✕</button><div class="city-name">${name}</div><div class="digital-time" id="digital-${tz.replace(/\//g,'-')}"></div><div class="date-info" id="date-${tz.replace(/\//g,'-')}"></div><canvas class="clock-canvas" id="canvas-${tz.replace(/\//g,'-')}" width="180" height="180"></canvas><button class="btn btn-primary btn-sm copy-time-btn" onclick="copyCityTime('${tz}')">📋 Copy Time</button>`;grid.appendChild(card)});startAnimation()}
 function getTimeInTZ(tz){const now=new Date();const str=now.toLocaleString('en-US',{timeZone:tz,hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});const parts=str.split(':');const dateStr=now.toLocaleDateString('en-US',{timeZone:tz,month:'short',day:'numeric',weekday:'short'});return{h:parseInt(parts[0])%24,m:parseInt(parts[1]),s:parseInt(parts[2]),date:dateStr}}
 function drawClock(canvasId,tz){const canvas=document.getElementById(canvasId);if(!canvas)return;const ctx=canvas.getContext('2d');const w=canvas.width,h=canvas.height;const cx=w/2,cy=h/2,r=Math.min(cx,cy)-10;const t=getTimeInTZ(tz);ctx.clearRect(0,0,w,h);
 // Face
@@ -229,6 +230,8 @@ ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fillStyle='#06b6d4';ctx.fill();
 const digitalEl=document.getElementById('digital-'+tz.replace(/\//g,'-'));if(digitalEl){const hStr=String(t.h).padStart(2,'0');const mStr=String(t.m).padStart(2,'0');const sStr=String(t.s).padStart(2,'0');digitalEl.textContent=hStr+':'+mStr+':'+sStr}
 const dateEl=document.getElementById('date-'+tz.replace(/\//g,'-'));if(dateEl){dateEl.textContent=t.date}}
 function startAnimation(){if(animId)cancelAnimationFrame(animId);function tick(){clocks.forEach(tz=>{drawClock('canvas-'+tz.replace(/\//g,'-'),tz)});animId=requestAnimationFrame(tick)}tick()}
+function showToast(m){let t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s';document.body.appendChild(t)}t.textContent=m;t.style.opacity='1';clearTimeout(window._tt);window._tt=setTimeout(()=>{t.style.opacity='0'},2000)}
+function copyCityTime(tz){const t=getTimeInTZ(tz);const name=cityNames[tz]||tz;const txt=name+' '+String(t.h).padStart(2,'0')+':'+String(t.m).padStart(2,'0')+':'+String(t.s).padStart(2,'0')+' '+t.date;const fb=()=>{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');showToast('Copied: '+name)}catch(e){}document.body.removeChild(ta)};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(()=>showToast('Copied: '+name),fb)}else{fb()}}
 window.addEventListener('load',function(){renderClocks()});
 </script>
 

@@ -124,7 +124,9 @@
     <div class="section" id="result-card" style="display:none">
         <h2>📊 对比结果</h2>
         <div class="stats" id="stats"></div>
+        <canvas id="diffChart" style="width:100%;max-width:480px;height:160px;background:#0f172a;border-radius:8px;margin:12px 0;display:block"></canvas>
         <div class="diff-container" id="diff-output"></div>
+        <div style="margin-top:12px"><button class="btn btn-secondary" onclick="copyDiff()">📋 复制结果</button></div>
     </div>
 
     <div class="section">
@@ -182,7 +184,9 @@
 
     function checkReady(){
         var btn=document.getElementById('compareBtn');
-        btn.disabled=!(fileTexts[1]&&fileTexts[2]);
+        var ready=!!(fileTexts[1]&&fileTexts[2]);
+        btn.disabled=!ready;
+        if(ready)comparePDFs();
     }
 
     function formatSize(bytes){
@@ -208,6 +212,7 @@
         return result;
     }
 
+    var diffTxt='';
     function comparePDFs(){
         if(!fileTexts[1]||!fileTexts[2])return;
         var linesA=fileTexts[1].split('\n');
@@ -220,14 +225,50 @@
             '\x3Cdiv class="stat-item stat-removed">➖ 删除: '+removed+' 行\x3C/div>'+
             '\x3Cdiv class="stat-item stat-unchanged">⏸ 未变: '+unchanged+' 行\x3C/div>';
         var html='';
+        diffTxt='';
         diff.forEach(function(d){
             var cls=d.type==='added'?'added':d.type==='removed'?'removed':'unchanged';
             var prefix=d.type==='added'?'+ ':d.type==='removed'?'- ':'  ';
             var lineNum=d.type==='removed'?'L'+d.lineA:d.type==='added'?'L'+d.lineB:'L'+(d.lineA||d.lineB);
             html+='\x3Cdiv class="diff-line '+cls+'">\x3Cspan class="line-num">'+lineNum+'\x3C/span>'+prefix+escapeHtml(d.text)+'\x3C/div>';
+            diffTxt+=prefix+d.text+'\n';
         });
         document.getElementById('diff-output').innerHTML=html;
         document.getElementById('result-card').style.display='';
+        var dch=document.getElementById('diffChart');
+        if(dch&&dch.getContext){drawDiffChart(dch,added,removed,unchanged);}
+    }
+
+    function drawDiffChart(cv,added,removed,unchanged){
+        var W=cv.width=480,H=cv.height=160;
+        var ctx=cv.getContext('2d');
+        ctx.fillStyle='#1e293b';ctx.fillRect(0,0,W,H);
+        var nums=[added,removed,unchanged];
+        var labels=['新增','删除','未变'];
+        var colors=['#10b981','#ef4444','#64748b'];
+        var max=Math.max.apply(null,nums.concat([1]));
+        var barW=Math.max(16,(W-40)/3-12);
+        nums.forEach(function(n,i){
+            var bh=Math.max(4,(n/max)*(H-45));
+            ctx.fillStyle=colors[i];
+            ctx.fillRect(20+i*(barW+12),H-30-bh,barW,bh);
+            ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';ctx.textAlign='center';
+            ctx.fillText(labels[i],20+i*(barW+12)+barW/2,H-14);
+            ctx.fillStyle='#e2e8f0';
+            ctx.fillText(String(n),20+i*(barW+12)+barW/2,H-34-bh);
+        });
+        ctx.strokeStyle='rgba(148,163,184,.2)';ctx.beginPath();ctx.moveTo(20,H-30);ctx.lineTo(W-20,H-30);ctx.stroke();
+    }
+
+    function copyDiff(){
+        if(!diffTxt){showToast('暂无对比结果');return;}
+        if(navigator.clipboard&&navigator.clipboard.writeText){
+            navigator.clipboard.writeText(diffTxt).then(function(){showToast('已复制对比结果')})['catch'](function(){showToast('复制失败')});
+        }else{
+            var ta=document.createElement('textarea');ta.value=diffTxt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+            try{document.execCommand('copy');showToast('已复制对比结果');}catch(e){showToast('复制失败');}
+            document.body.removeChild(ta);
+        }
     }
 
     function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/\x3C/g,'&lt;').replace(/>/g,'&gt;');}
