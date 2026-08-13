@@ -342,7 +342,7 @@ input[type=text]:focus,input[type=url]:focus,select:focus{outline:none;border-co
 <script>
 
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已Copy")})["catch"](function(){showToast("Copy失败")})}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("Copy")})["catch"](function(){showToast("CopyFailed")})}
 let bookmarks=[];
 let editId=null;
 const STORAGE_KEY='my_bookmarks';
@@ -356,13 +356,13 @@ function addBookmark(title,url,category){
 if(!title.trim()||!url.trim()){showToast('请填写标题和URL');return}
 if(!/^https?:\/\//i.test(url)){showToast('URL必须以 http:// 或 https:// 开头');return}
 bookmarks.push({id:genId(),title:title.trim(),url:url.trim(),category:category||'其他',created:new Date().toISOString()});
-saveData();render();showToast('书签已添加');clearForm();
+saveData();render();showToast('书签Added');clearForm();
 }
 
 function deleteBookmark(id){
-if(!confirm('确定删除此书签？'))return;
+if(!confirm('确定Delete此书签？'))return;
 bookmarks=bookmarks.filter(b=>b.id!==id);
-saveData();render();showToast('书签已删除');
+saveData();render();showToast('书签Deleted');
 }
 
 function editBookmark(id){
@@ -382,7 +382,7 @@ const cat=document.getElementById('editCategory').value;
 if(!title||!url){showToast('请填写标题和URL');return}
 if(!/^https?:\/\//i.test(url)){showToast('URL必须以 http:// 或 https:// 开头');return}
 const idx=bookmarks.findIndex(b=>b.id===editId);
-if(idx>-1){bookmarks[idx]={...bookmarks[idx],title,url,category:cat};saveData();render();showToast('书签已更新')}
+if(idx>-1){bookmarks[idx]={...bookmarks[idx],title,url,category:cat};saveData();render();showToast('书签Updated')}
 document.getElementById('editModal').classList.remove('show');
 editId=null;
 }
@@ -398,8 +398,8 @@ if(search)filtered=filtered.filter(b=>b.title.toLowerCase().includes(search)||b.
 const grid=document.getElementById('bmGrid');
 const stat=document.getElementById('statBar');
 stat.innerHTML='\x3Cspan>共 \x3Cstrong>'+bookmarks.length+'\x3C/strong> 个书签\x3C/span>\x3Cspan>显示 \x3Cstrong>'+filtered.length+'\x3C/strong> 个\x3C/span>';
-if(!filtered.length){grid.innerHTML='\x3Cdiv class="empty-state">'+((bookmarks.length)?'没有匹配的书签':'还没有书签，点击上方添加')+'\x3C/div>';return}
-grid.innerHTML=filtered.map(b=>'\x3Cdiv class="bm-card">\x3Cdiv class="bm-title" onclick="window.open(\''+b.url.replace(/'/g,"\\'")+'\',\'_blank\')">'+escapeHtml(b.title)+'\x3C/div>\x3Cspan class="bm-url">'+escapeHtml(b.url)+'\x3C/span>\x3Cdiv>\x3Cspan class="bm-cat">'+escapeHtml(b.category)+'\x3C/span>\x3C/div>\x3Cdiv class="bm-actions">\x3Cbutton class="btn btn-sm btn-primary" onclick="window.editBookmark(\''+b.id+'\')">✏️ 编辑\x3C/button>\x3Cbutton class="btn btn-sm btn-danger" onclick="window.deleteBookmark(\''+b.id+'\')">🗑 删除\x3C/button>\x3C/div>\x3Cdiv class="bm-date">'+new Date(b.created).toLocaleDateString()+'\x3C/div>\x3C/div>').join('');
+if(!filtered.length){grid.innerHTML='\x3Cdiv class="empty-state">'+((bookmarks.length)?'没有匹配的书签':'还没有书签，点击上方Add')+'\x3C/div>';return}
+grid.innerHTML=filtered.map(b=>'\x3Cdiv class="bm-card">\x3Cdiv class="bm-title" onclick="window.open(\''+b.url.replace(/'/g,"\\'")+'\',\'_blank\')">'+escapeHtml(b.title)+'\x3C/div>\x3Cspan class="bm-url">'+escapeHtml(b.url)+'\x3C/span>\x3Cdiv>\x3Cspan class="bm-cat">'+escapeHtml(b.category)+'\x3C/span>\x3C/div>\x3Cdiv class="bm-actions">\x3Cbutton class="btn btn-sm btn-primary" onclick="window.editBookmark(\''+b.id+'\')">✏️ Edit\x3C/button>\x3Cbutton class="btn btn-sm btn-danger" onclick="window.deleteBookmark(\''+b.id+'\')">🗑 Delete\x3C/button>\x3C/div>\x3Cdiv class="bm-date">'+new Date(b.created).toLocaleDateString()+'\x3C/div>\x3C/div>').join('');
 }
 
 function escapeHtml(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/\x3C/g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
@@ -409,12 +409,12 @@ const blob=new Blob([JSON.stringify(bookmarks,null,2)],{type:'application/json'}
 const a=document.createElement('a');
 a.href=URL.createObjectURL(blob);
 a.download='bookmarks_backup_'+new Date().toISOString().slice(0,10)+'.json';
-a.click();showToast('导出成功');
+a.click();showToast('ExportSuccess');
 }
 
 function importData(file){
 const reader=new FileReader();
-reader.onload=function(e){try{const data=JSON.parse(e.target.result);if(!Array.isArray(data))throw new Error('invalid');const oldCount=bookmarks.length;bookmarks=bookmarks.concat(data);saveData();render();showToast('导入 '+data.length+' 个书签（原有 '+oldCount+' 个）')}catch(err){showToast('导入失败：无效的JSON文件')}}
+reader.onload=function(e){try{const data=JSON.parse(e.target.result);if(!Array.isArray(data))throw new Error('invalid');const oldCount=bookmarks.length;bookmarks=bookmarks.concat(data);saveData();render();showToast('Import '+data.length+' 个书签（原有 '+oldCount+' 个）')}catch(err){showToast('ImportFailed：Invalid的JSON文件')}}
 reader.readAsText(file);
 }
 
