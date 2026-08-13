@@ -137,6 +137,12 @@ a{color:#06b6d4;text-decoration:none}
   </div>
 
   <div class="panel">
+    <h2>📊 按键频率统计 <button class="btn btn-secondary" onclick="clearPressStats()">清空统计</button></h2>
+    <p>已统计不同按键数: <strong id="uniqueKeyCount" style="color:#22d3ee">0</strong></p>
+    <div style="background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px;padding:12px;margin-top:8px"><div style="font-size:.85rem;color:#94a3b8;margin-bottom:8px">📊 按下次数 Top 8</div><canvas id="pressChart" width="560" height="180" style="width:100%;height:auto;max-width:560px;"></canvas></div>
+  </div>
+
+  <div class="panel">
     <h2>使用教程</h2>
     <p>本键盘按键测试工具操作简单直观，以下是详细的使用指南：</p>
     <p><strong>基本测试：</strong>打开工具页面后，直接按下键盘上的任意按键，虚拟键盘会实时高亮显示对应的按键位置，同时下方的按键详情面板会显示该按键的完整信息，包括 key、code、keyCode、location 等属性。您可以逐个测试键盘上的每一个按键，确认它们是否正常工作。</p>
@@ -243,9 +249,162 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function clearHistory() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+// === 键盘实时检测逻辑 ===
+var keyMap={};
+(function(){
+  var rows=[
+    ['Escape','F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12'],
+    ['Backquote','Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9','Digit0','Minus','Equal','Backspace'],
+    ['Tab','KeyQ','KeyW','KeyE','KeyR','KeyT','KeyY','KeyU','KeyI','KeyO','KeyP','BracketLeft','BracketRight','Backslash'],
+    ['CapsLock','KeyA','KeyS','KeyD','KeyF','KeyG','KeyH','KeyJ','KeyK','KeyL','Semicolon','Quote','Enter'],
+    ['ShiftLeft','KeyZ','KeyX','KeyC','KeyV','KeyB','KeyN','KeyM','Comma','Period','Slash','ShiftRight'],
+    ['ControlLeft','AltLeft','MetaLeft','Space','MetaRight','AltRight','ControlRight']
+  ];
+  var labels={
+    Escape:'Esc',Backquote:'`',Minus:'-',Equal:'=',Backspace:'⌫',Tab:'Tab',BracketLeft:'[',BracketRight:']',Backslash:'\\',
+    CapsLock:'Caps',Semicolon:';',Quote:"'",Enter:'⏎',ShiftLeft:'Shift',Comma:',',Period:'.',Slash:'/',ShiftRight:'Shift',
+    ControlLeft:'Ctrl',AltLeft:'Alt',MetaLeft:'Win',Space:'␣',MetaRight:'Win',AltRight:'Alt',ControlRight:'Ctrl'
+  };
+  var kb=document.getElementById('keyboard');
+  rows.forEach(function(row){
+    row.forEach(function(code){
+      var d=document.createElement('div');
+      d.className='key';d.id='key-'+code;d.textContent=labels[code]||code.replace(/^Key/,'').replace(/^Digit/,'');
+      if(code==='Space')d.classList.add('space');
+      if(code==='Enter'||code==='CapsLock')d.classList.add('wide2');
+      if(code==='Backspace'||code==='Tab')d.classList.add('wide3');
+      if(code==='ShiftLeft')d.classList.add('wide4');
+      if(code==='ShiftRight')d.classList.add('wide5');
+      kb.appendChild(d);
+    });
+  });
+})();
+
+var totalPresses=0,currentPressed=0,maxSimultaneous=0,modifierList=['Ctrl','Alt','Shift','Meta'];
+var pressedKeys={};
+var pressCounts={};
+function modifierSummary(e){
+  var mods=[];
+  if(e.ctrlKey)mods.push('Ctrl');if(e.altKey)mods.push('Alt');if(e.shiftKey)mods.push('Shift');if(e.metaKey)mods.push('Win');
+  return mods.join('+')||'-';
+}
+function updateStats(){
+  document.getElementById('totalPresses').textContent=totalPresses;
+  document.getElementById('currentPressed').textContent=currentPressed;
+  document.getElementById('maxSimultaneous').textContent=maxSimultaneous;
+  document.getElementById('nkeyRollover').textContent=maxSimultaneous>=6?'≥'+maxSimultaneous+'键':(maxSimultaneous+'-'+Math.max(maxSimultaneous,1)+'键');
+}
+function addHistory(e,dir){
+  var list=document.getElementById('historyList');
+  var d=document.createElement('div');
+  d.className='history-item';
+  var now=new Date();
+  var ts=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+  d.innerHTML='<span class="hi-key">'+e.key+'</span><span class="hi-code">'+e.code+'</span><span class="hi-mods">'+(dir==='down'?'▼':'▲')+' '+modifierSummary(e)+'</span><span class="hi-mods">'+ts+'</span>';
+  list.insertBefore(d,list.firstChild);
+  while(list.children.length>50){list.removeChild(list.lastChild);}
+}
+document.addEventListener('keydown',function(e){
+  if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT'))return;
+  var el=document.getElementById('key-'+e.code);
+  if(el){el.classList.add('active');}
+  if(!pressedKeys[e.code]){totalPresses++;currentPressed++;pressedKeys[e.code]=true;if(currentPressed>maxSimultaneous)maxSimultaneous=currentPressed;pressCounts[e.key]=(pressCounts[e.key]||0)+1;drawPressChart();}
+  document.getElementById('kiKey').textContent=e.key||'-';
+  document.getElementById('kiCode').textContent=e.code||'-';
+  document.getElementById('kiKeyCode').textContent=e.which||e.keyCode||'-';
+  document.getElementById('kiLocation').textContent=e.location;
+  document.getElementById('kiModifiers').textContent=modifierSummary(e);
+  document.getElementById('kiTimestamp').textContent=Math.floor(e.timeStamp)+'ms';
+  updateStats();
+  addHistory(e,'down');
+});
+document.addEventListener('keyup',function(e){
+  var el=document.getElementById('key-'+e.code);
+  if(el){el.classList.remove('active');}
+  if(pressedKeys[e.code]){pressedKeys[e.code]=false;currentPressed=Math.max(0,currentPressed-1);}
+  updateStats();
+  addHistory(e,'up');
+});
+function clearHistory(){
+  var list=document.getElementById('historyList');
+  if(list){list.innerHTML='';}
+  showToast('已清空历史');
+}
+function drawPressChart(){
+  var cv=document.getElementById('pressChart');
+  if(!cv)return;
+  var ukc=document.getElementById('uniqueKeyCount');
+  if(ukc){ukc.textContent=Object.keys(pressCounts).length;}
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,padL=40,padB=24,padT=16,padR=10;
+  ctx.clearRect(0,0,W,H);
+  var entries=[];
+  for(var k in pressCounts){entries.push({key:k,count:pressCounts[k]});}
+  entries.sort(function(a,b){return b.count-a.count;});
+  entries=entries.slice(0,8);
+  if(!entries.length){
+    ctx.fillStyle='#64748b';ctx.font='11px sans-serif';ctx.textAlign='center';
+    ctx.fillText('按下任意按键开始统计',W/2,H/2);
+    return;
+  }
+  var max=1;entries.forEach(function(e){if(e.count>max)max=e.count;});
+  ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=3;g++){
+    var y=padT+(H-padT-padB)*g/3,val=Math.round(max*(3-g)/3);
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillText(val,padL-6,y+3);
+  }
+  var slot=(W-padL-padR)/entries.length;
+  var bw=slot*0.55;
+  ctx.textAlign='center';
+  for(var i=0;i<entries.length;i++){
+    var bh=Math.max(2,(H-padT-padB)*entries[i].count/max);
+    var x=padL+slot*(i+0.5);
+    ctx.fillStyle='#06b6d4';
+    ctx.fillRect(x-bw/2,H-padB-bh,bw,bh);
+    ctx.fillStyle='#f1f5f9';
+    ctx.fillText(entries[i].count,x,H-padB-bh-4);
+    ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';
+    var lbl=entries[i].key;if(lbl===' '){lbl='Space';}if(lbl.length>6){lbl=lbl.slice(0,6);}
+    ctx.fillText(lbl,x,H-6);
+  }
+}
+function clearPressStats(){
+  pressCounts={};
+  drawPressChart();
+  showToast('已清空按键统计');
+}
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){
+    setTimeout(ensureCopyBtn,250);
+  }
+});
+function ensureCopyBtn(){
+  var grid=document.getElementById('keyInfo');
+  if(!grid||grid.offsetParent===null)return;
+  if(grid.querySelector('.ft-copy-btn'))return;
+  var btn=document.createElement('button');
+  btn.className='btn btn-secondary ft-copy-btn';
+  btn.textContent='📋 复制按键信息';
+  btn.style.cssText='margin-top:12px;display:block';
+  btn.onclick=function(){
+    var pairs=[];
+    var labels={kiKey:'key',kiCode:'code',kiKeyCode:'keyCode',kiLocation:'location',kiModifiers:'modifiers',kiTimestamp:'timestamp'};
+    for(var k in labels){var v=document.getElementById(k);if(v)pairs.push(labels[k]+': '+(v.textContent||'-'));}
+    var txt=pairs.join('\n');
+    function toast(m){showToast(m)}
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){toast('已复制')})['catch'](function(){ftFallbackCopy(txt);toast('已复制')});
+    }else{ftFallbackCopy(txt);toast('已复制')}
+  };
+  grid.appendChild(btn);
+}
+function ftFallbackCopy(txt){
+  var ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(err){}
+  document.body.removeChild(ta);
 }
 </script>
 

@@ -109,9 +109,11 @@ a{color:#06b6d4;text-decoration:none}
     <div id="settings" style="display:none">
       <!-- Settings area - customized by JS -->
     </div>
-    <div id="results"></div>
+    <div id="result"></div>
+    <div id="dataChartWrap" style="display:none;margin-top:12px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px;padding:12px"><div style="font-size:.85rem;color:#94a3b8;margin-bottom:8px">📊 数据统计（行 / 列 / 单元格）</div><canvas id="dataChart" width="560" height="160" style="width:100%;height:auto;max-width:560px;"></canvas></div>
     <div id="batchActions" style="display:none;margin-top:12px">
       <button class="btn btn-primary" onclick="downloadAll()">📥 批量下载</button>
+      <button class="btn btn-secondary" onclick="copyTableCSV()">📋 复制表格(CSV)</button>
       <button class="btn btn-secondary" onclick="clearResults()">🗑️ 清空</button>
     </div>
   </div>
@@ -312,8 +314,43 @@ function renderPreview() {
   html += '</tbody></table></div>';
   html += '<p style="color:#64748b;font-size:.8rem;margin-top:8px">共 ' + parsedData.rows.length + ' 行数据 · ' + parsedData.headers.length + ' 列</p>';
 
-  document.getElementById('results').innerHTML = html;
+  document.getElementById('result').innerHTML = html;
   document.getElementById('batchActions').style.display = 'block';
+  var rows = parsedData.rows.length;
+  var cols = parsedData.headers.length;
+  var nonEmpty = 0, total = 0;
+  for (var rr = 0; rr < parsedData.rows.length; rr++) {
+    total += parsedData.rows[rr].length;
+    for (var cc = 0; cc < parsedData.rows[rr].length; cc++) {
+      if (String(parsedData.rows[rr][cc]).trim() !== '') nonEmpty++;
+    }
+  }
+  drawDataChart(rows, cols, nonEmpty, total);
+}
+
+function drawDataChart(rows, cols, nonEmpty, total) {
+  var wrap = document.getElementById('dataChartWrap');
+  var cv = document.getElementById('dataChart');
+  if (!wrap || !cv) return;
+  wrap.style.display = 'block';
+  var ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height, padL = 8, padB = 24, padT = 16, padR = 8;
+  ctx.clearRect(0, 0, W, H);
+  var items = [['数据行', rows, '#06b6d4'], ['数据列', cols, '#8b5cf6'], ['非空单元格', nonEmpty, '#10b981'], ['空单元格', Math.max(total - nonEmpty, 0), '#64748b']];
+  var max = Math.max(rows, cols, total, 1);
+  var slot = (W - padL - padR) / items.length;
+  var bw = slot * 0.5;
+  ctx.textAlign = 'center'; ctx.font = '11px sans-serif';
+  for (var k = 0; k < items.length; k++) {
+    var bh = Math.max(2, (H - padT - padB) * items[k][1] / max);
+    var x = padL + slot * (k + 0.5);
+    ctx.fillStyle = items[k][2];
+    ctx.fillRect(x - bw / 2, H - padB - bh, bw, bh);
+    ctx.fillStyle = '#f1f5f9';
+    ctx.fillText(items[k][1], x, H - padB - bh - 4);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText(items[k][0], x, H - 6);
+  }
 }
 
 function escapeHtml(str) {
@@ -368,10 +405,32 @@ function printPDF() {
 function clearResults() {
   parsedData = null;
   document.getElementById('csvInput').value = '';
-  document.getElementById('results').innerHTML = '';
+  document.getElementById('result').innerHTML = '';
   document.getElementById('batchActions').style.display = 'none';
   document.getElementById('fileInput').value = '';
+  var dcw = document.getElementById('dataChartWrap');
+  if (dcw) { dcw.style.display = 'none'; }
   showToast('已清空');
+}
+
+function copyTableCSV() {
+  if (!parsedData) { showToast('请先解析数据'); return; }
+  var rows = [parsedData.headers].concat(parsedData.rows);
+  var csv = rows.map(function(r) {
+    return r.map(function(c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(',');
+  }).join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(csv).then(function(){ showToast('已复制CSV数据'); })
+      .catch(function(){ ftFallbackCopy(csv); showToast('已复制CSV数据'); });
+  } else { ftFallbackCopy(csv); showToast('已复制CSV数据'); }
+}
+
+function ftFallbackCopy(txt){
+  var ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(err){}
+  document.body.removeChild(ta);
 }
 
 // download all (export as CSV)
@@ -400,12 +459,29 @@ function downloadAll() {
     div.innerHTML = '<div class="form-row" style="margin-bottom:8px"><label style="min-width:auto">或粘贴CSV数据：</label></div>' +
       '<textarea id="csvInput" placeholder="姓名,年龄,城市&#10;张三,25,北京&#10;李四,30,上海" style="width:100%;min-height:120px;padding:10px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;color:#e2e8f0;font-size:.85rem;font-family:monospace;resize:vertical"></textarea>' +
       '<div style="margin-top:8px"><button class="btn btn-primary" onclick="parseAndPreview()">📋 解析预览</button> ' +
-      '<button class="btn btn-secondary" onclick="showSettings()">⚙️ 显示设置</button></div>';
+      '<button class="btn btn-secondary" onclick="showSettings()">⚙️ 显示设置</button> ' +
+      '<button class="btn btn-secondary" onclick="fillExample()">🎲 填入示例</button></div>';
     // insert after upload zone
     var uploadZone = document.getElementById('uploadZone');
     uploadZone.parentNode.insertBefore(div, uploadZone.nextSibling);
+    div.querySelector('#csvInput').addEventListener('input', function(){
+      var csvEl=document.getElementById('csvInput');
+      var txt=csvEl.value.trim();
+      if(!txt)return;
+      clearTimeout(csvEl._rtimer);
+      csvEl._rtimer=setTimeout(function(){parseAndPreview();},500);
+    });
   }
 })();
+
+function fillExample(){
+  var el=document.getElementById('csvInput');
+  if(!el)return;
+  el.value='姓名,年龄,城市\n张三,25,北京\n李四,30,上海\n王五,28,广州\n赵六,32,深圳\n孙七,27,杭州';
+  parseAndPreview();
+  showSettings();
+  showToast('已填入示例数据并解析');
+}
 </script>
 </body>
 </html>

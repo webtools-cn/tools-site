@@ -96,6 +96,23 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:#3b82f6;box-sh
 <div class="hero"><p>免费在线PDF解密工具，移除PDF文件的密码保护（需知道密码）。无需注册，文件安全不上传。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
+<div class="file-drop-zone" id="dropZone">
+  <div style="font-size:2rem">📄</div>
+  <p>点击选择PDF文件 或 拖拽到此处</p>
+  <p style="color:#64748b;font-size:.75rem">文件在浏览器本地处理，不会上传</p>
+  <input type="file" id="pdfFile" accept="application/pdf" style="display:none">
+</div>
+<div id="fileInfo" class="hidden" style="margin-bottom:12px;font-size:.85rem;color:#22d3ee">已选择文件</div>
+<div style="margin-bottom:12px">
+  <label for="pdfPass">PDF打开密码</label>
+  <input type="password" id="pdfPass" placeholder="请输入PDF打开密码" style="width:100%;padding:12px 16px;border:1px solid rgba(148,163,184,.2);border-radius:10px;background:#0f172a;color:#e2e8f0;font-size:15px">
+</div>
+<div class="btn-row">
+  <button class="btn btn-primary" onclick="decryptPDF()">🔓 解密PDF</button>
+  <button class="btn btn-success hidden" id="downloadBtn" onclick="downloadPDF()">⬇ 下载解密后PDF</button>
+</div>
+<div id="result" class="result-box" aria-live="polite" style="background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:10px;padding:16px;font-size:.85rem;color:#94a3b8"></div>
+<div id="sizeChartWrap" style="display:none;margin-top:12px;background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:10px;padding:12px"><div style="font-size:.85rem;color:#94a3b8;margin-bottom:8px">📊 文件大小对比（原始 vs 解密后）</div><canvas id="sizeChart" width="400" height="160" style="width:100%;height:auto;max-width:400px;"></canvas></div>
 <div class="faq-item"><div class="faq-q">解密后的PDF保留原始内容吗？</div><div class="faq-a"><p>是的，解密后的PDF保留所有原始内容（文字、图片、格式、链接等），仅移除了密码保护。解密不会修改PDF的实质内容。</p></div></div>
 <div class="faq-item"><div class="faq-q">解密PDF需要什么权限？</div><div class="faq-a"><p>你只需要知道PDF的打开密码（用户密码）。如果PDF有所有者密码但没有用户密码，通常也可以直接打开并解密。不需要所有者密码即可解密。</p></div></div>
 <div class="faq-item"><div class="faq-q">这个工具安全吗？</div><div class="faq-a"><p>完全安全。所有处理在您的浏览器本地完成，PDF文件不会上传到任何服务器。解密完成后，您可以立即下载，原始文件数据不会保留。</p></div></div>
@@ -111,14 +128,81 @@ function sendFeedback(type){showToast('感谢反馈！');gtag&&gtag('event','fee
 <script>
 let pdfBytes=null,decryptedBytes=null;
 const dropZone=document.getElementById('dropZone');
+const pdfFile=document.getElementById('pdfFile');
 if(dropZone){
+dropZone.addEventListener('click',()=>{if(pdfFile)pdfFile.click();});
 dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover');});
 dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
 dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('dragover');handleFile({files:e.dataTransfer.files});});
 }
+if(pdfFile){pdfFile.addEventListener('change',e=>{handleFile(e.target);});}
 async function handleFile(input){const file=input.files?.[0]||input;if(!file||file.type!=='application/pdf')return showToast("请选择PDF文件");pdfBytes=new Uint8Array(await file.arrayBuffer());document.getElementById('fileInfo').textContent=`已选择：${file.name} (${(file.size/1024).toFixed(1)} KB)`;document.getElementById('fileInfo').classList.remove('hidden');}
-async function decryptPDF(){if(!pdfBytes)return showToast("请先上传PDF文件");const password=document.getElementById('pdfPass').value;if(!password)return showToast("请输入PDF密码");try{if(typeof PDFLib==='undefined'){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}const pdfDoc=await PDFLib.PDFDocument.load(pdfBytes,{ignoreEncryption:true});if(!pdfDoc.isEncrypted)showToast("此PDF未加密");decryptedBytes=await pdfDoc.save();showToast("解密完成！");document.getElementById('downloadBtn').classList.remove('hidden');}catch(e){showToast("解密失败：密码错误或文件损坏");}}
+async function decryptPDF(){if(!pdfBytes)return showToast("请先上传PDF文件");const password=document.getElementById('pdfPass').value;if(!password)return showToast("请输入PDF密码");try{if(typeof PDFLib==='undefined'){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}const pdfDoc=await PDFLib.PDFDocument.load(pdfBytes,{ignoreEncryption:true});if(!pdfDoc.isEncrypted)showToast("此PDF未加密");decryptedBytes=await pdfDoc.save();const res=document.getElementById('result');if(res){res.textContent=`✅ 解密成功\n文件已就绪，可点击「下载解密后PDF」保存。\n原文件 ${pdfBytes.length} 字节 → 解密后 ${decryptedBytes.length} 字节`;}drawSizeChart(pdfBytes.length,decryptedBytes.length);showToast("解密完成！");document.getElementById('downloadBtn').classList.remove('hidden');ensureCopyBtn();}catch(e){const res=document.getElementById('result');if(res){res.textContent='❌ 解密失败：密码错误或文件损坏';}showToast("解密失败：密码错误或文件损坏");}}
+function drawSizeChart(o,n){
+  const wrap=document.getElementById('sizeChartWrap');
+  const cv=document.getElementById('sizeChart');
+  if(!wrap||!cv)return;
+  wrap.style.display='block';
+  const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height,padL=54,padB=24,padT=16,padR=10;
+  ctx.clearRect(0,0,W,H);
+  const max=Math.max(o,n,1);
+  const pairs=[['原始',o,'#64748b'],['解密后',n,'#06b6d4']];
+  ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(let g=0;g<=3;g++){
+    const y=padT+(H-padT-padB)*g/3,val=max*(3-g)/3;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillText(val>=1048576?(val/1048576).toFixed(1)+'MB':Math.round(val/1024)+'KB',padL-6,y+3);
+  }
+  const slot=(W-padL-padR)/pairs.length;
+  const bw=slot*0.4;
+  for(let k=0;k<pairs.length;k++){
+    const bh=Math.max(2,(H-padT-padB)*pairs[k][1]/max);
+    const x=padL+slot*(k+0.5);
+    ctx.fillStyle=pairs[k][2];
+    ctx.fillRect(x-bw/2,H-padB-bh,bw,bh);
+    ctx.fillStyle='#f1f5f9';ctx.textAlign='center';ctx.font='10px sans-serif';
+    ctx.fillText(pairs[k][1]>=1048576?(pairs[k][1]/1048576).toFixed(2)+'MB':Math.round(pairs[k][1]/1024)+'KB',x,H-padB-bh-4);
+    ctx.fillStyle='#94a3b8';
+    ctx.fillText(pairs[k][0],x,H-6);
+  }
+}
 function downloadPDF(){if(!decryptedBytes)return;const blob=new Blob([decryptedBytes],{type:'application/pdf'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='decrypted.pdf';a.click();URL.revokeObjectURL(url);}
+function ensureCopyBtn(){
+  const res=document.getElementById('result');
+  if(!res||!res.textContent)return;
+  if(res.querySelector('.ft-copy-btn'))return;
+  const btn=document.createElement('button');
+  btn.className='btn btn-secondary ft-copy-btn';
+  btn.textContent='📋 复制结果';
+  btn.style.cssText='margin-top:12px;display:block';
+  btn.onclick=function(){
+    const txt=(res.innerText||res.textContent||'').trim();
+    function toast(m){showToast(m)}
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(()=>toast('已复制')).catch(()=>{ftFallbackCopy(txt);toast('已复制');});
+    }else{ftFallbackCopy(txt);toast('已复制');}
+  };
+  res.appendChild(btn);
+}
+function ftFallbackCopy(txt){
+  const ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(err){}
+  document.body.removeChild(ta);
+}
+(function(){
+  const pass=document.getElementById('pdfPass');
+  if(!pass)return;
+  let _t=null;
+  pass.addEventListener('input',function(){
+    clearTimeout(_t);
+    _t=setTimeout(function(){
+      if(pdfBytes&&document.getElementById('pdfPass').value.trim()){decryptPDF();}
+    },600);
+  });
+})();
 </script>
 <div class="section"><h2>常见问题</h2></div>
 <div>

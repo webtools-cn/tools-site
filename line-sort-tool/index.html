@@ -102,7 +102,8 @@
       </div>
     </div>
     <button class="btn" id="sortBtn">🔄 排序</button>
-    <div id="outputSection"></div>
+    <button class="btn btn-sm" id="exampleBtn" style="margin-left:8px">🎲 填入示例</button>
+    <div id="result"></div>
   </div>
 </main>
 <!-- AdSense -->
@@ -136,7 +137,7 @@
 <script>
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
 
-document.getElementById('sortBtn').addEventListener('click', function(){
+function runSort(){
   var text = document.getElementById('input').value;
   if (!text.trim()) { toast('请输入文本'); return; }
   var lines = text.split('\n');
@@ -205,15 +206,71 @@ document.getElementById('sortBtn').addEventListener('click', function(){
   }
 
   var output = lines.join('\n');
-  document.getElementById('outputSection').innerHTML =
+  document.getElementById('result').innerHTML =
     '<div class="stats"><div class="stat">📄 行数: <strong>' + lines.length + '</strong></div>' +
     '<div class="stat">📏 字符: <strong>' + output.length + '</strong></div></div>' +
     '<div class="output-area">' + output.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>') + '</div>' +
-    '<button class="btn btn-sm" id="copyBtn" style="margin-top:8px;">📋 复制结果</button>';
+    '<button class="btn btn-sm" id="copyBtn" style="margin-top:8px;">📋 复制结果</button>' +
+    '<div style="background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:12px;padding:12px;margin-top:12px"><div style="font-size:.85rem;color:#94a3b8;margin-bottom:8px">📊 行长分布（各长度段行数）</div><canvas id="lengthChart" width="560" height="160" style="width:100%;height:auto;max-width:560px;"></canvas></div>';
   document.getElementById('copyBtn').addEventListener('click', function(){
-    navigator.clipboard.writeText(output).then(function(){ toast('已复制!'); });
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(output).then(function(){ toast('已复制!'); })
+        ['catch'](function(){ ftFallbackCopy(output); toast('已复制!'); });
+    }else{ ftFallbackCopy(output); toast('已复制!'); }
   });
+  drawLengthChart(lines);
+}
+function ftFallbackCopy(txt){
+  var ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(err){}
+  document.body.removeChild(ta);
+}
+
+function drawLengthChart(lines){
+  var cv=document.getElementById('lengthChart');
+  if(!cv)return;
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  var buckets=[0,0,0,0,0,0];
+  var names=['0-4','5-9','10-14','15-19','20-29','30+'];
+  for(var i=0;i<lines.length;i++){
+    var n=lines[i].length;
+    if(n<=4)buckets[0]++;else if(n<=9)buckets[1]++;else if(n<=14)buckets[2]++;else if(n<=19)buckets[3]++;else if(n<=29)buckets[4]++;else buckets[5]++;
+  }
+  var max=1;for(var j=0;j<buckets.length;j++){if(buckets[j]>max)max=buckets[j];}
+  ctx.clearRect(0,0,W,H);
+  var padL=8,padB=22;
+  var bw=(W-padL)/(buckets.length*1.5);
+  var colors=['#06b6d4','#10b981','#8b5cf6','#f59e0b','#ef4444','#64748b'];
+  ctx.textAlign='center';ctx.font='11px sans-serif';
+  for(var k=0;k<buckets.length;k++){
+    var bh=(H-padB)*buckets[k]/max;
+    var x=padL+bw/2+k*(W-padL)/buckets.length;
+    ctx.fillStyle=colors[k];
+    ctx.fillRect(x-bw/2,H-padB-bh,bw,bh);
+    ctx.fillStyle='#94a3b8';
+    ctx.fillText(names[k],x,H-6);
+  }
+}
+
+document.getElementById('exampleBtn').addEventListener('click', function(){
+  document.getElementById('input').value='banana\napple\ncherry\napple\ndate\npeach\nfig\nelderberry\nblueberry\nkiwi';
+  toast('已填入示例数据');
+  runSort();
 });
+
+document.getElementById('sortBtn').addEventListener('click', runSort);
+
+var _rtimer=null;
+function _scheduleSort(){
+  clearTimeout(_rtimer);
+  _rtimer=setTimeout(runSort,400);
+}
+document.getElementById('input').addEventListener('input',_scheduleSort);
+document.getElementById('sortType').addEventListener('change',_scheduleSort);
+document.getElementById('unique').addEventListener('change',_scheduleSort);
 </script>
 </body>
 </html>

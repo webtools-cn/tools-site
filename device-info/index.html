@@ -103,8 +103,16 @@ a{color:#06b6d4;text-decoration:none}
 <div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">时区</div><div style="font-weight:bold;color:#e2e8f0;font-size:.9rem" id="timezone">-</div></div>
 <div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">在线状态</div><div style="font-weight:bold;color:#e2e8f0;font-size:.9rem" id="online">-</div></div>
 <div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">Cookies</div><div style="font-weight:bold;color:#e2e8f0;font-size:.9rem" id="cookies">-</div></div>
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">屏幕分辨率</div><div style="font-weight:bold;color:#e2e8f0;font-size:.9rem" id="screen">-</div></div>
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">像素比</div><div style="font-weight:bold;color:#e2e8f0;font-size:.9rem" id="dpr">-</div></div>
+<div style="background:#0f172a;padding:16px;border-radius:8px"><div style="color:#64748b;font-size:.8rem">网络类型</div><div style="font-weight:bold;color:#e2e8f0;font-size:.9rem" id="network">-</div></div>
 </div>
-<button class="btn btn-secondary" id="refreshBtn" style="margin-top:12px">🔄 刷新</button>
+<div style="background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px;padding:12px;margin-top:12px"><div style="font-size:.85rem;color:#94a3b8;margin-bottom:8px">📊 硬件指标对比（相对大小）</div><canvas id="metricChart" width="480" height="160" style="width:100%;height:auto;max-width:480px;"></canvas></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+  <button class="btn btn-secondary" id="refreshBtn">🔄 刷新</button>
+  <button class="btn btn-secondary" id="copyReportBtn">📋 复制设备信息</button>
+</div>
+<div id="result" class="result-box" aria-live="polite" style="display:none"></div>
 </div>
 <div class="info-section"><h2>关于 设备信息查看器</h2><p>免费在线设备信息查看器，一键查看浏览器、操作系统、CPU、内存、网络、电池等详细信息。无需注册。</p></div>
 <div class="info-section"><h2>常见问题</h2><div class="faq-item"><h3>能查看哪些信息？</h3><p>可以查看浏览器名称版本、操作系统、CPU核心数、内存大小、网络类型、电池状态、语言、时区、Cookie/LocalStorage状态等。</p></div>
@@ -117,7 +125,7 @@ a{color:#06b6d4;text-decoration:none}
   <a href="../user-agent-parser/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">User-Agent 解析器</a>
   <a href="../sql-formatter/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">SQL格式化工具</a>
   <a href="../html-form-generator/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">HTML表单生成器</a>
-</div></section>
+</section></div>
 
 
     <h2>什么是📱 设备信息查看器</h2>
@@ -151,7 +159,65 @@ function copyText(text){if(navigator.clipboard){navigator.clipboard.writeText(te
 function fallbackCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('已复制!');}
 function getBrowser(){var ua=navigator.userAgent;if(ua.indexOf('Firefox')>-1)return 'Firefox '+ua.match(/Firefox\/(\d+)/)[1];if(ua.indexOf('Edg')>-1)return 'Edge '+ua.match(/Edg\/(\d+)/)[1];if(ua.indexOf('Chrome')>-1)return 'Chrome '+ua.match(/Chrome\/(\d+)/)[1];if(ua.indexOf('Safari')>-1)return 'Safari '+ua.match(/Version\/(\d+)/)[1];return ua;}
 function getOS(){var p=navigator.platform||'';if(p.indexOf('Win')>-1)return 'Windows';if(p.indexOf('Mac')>-1)return 'macOS';if(p.indexOf('Linux')>-1)return 'Linux';if(p.indexOf('Android')>-1)return 'Android';if(p.indexOf('iPhone')>-1||p.indexOf('iPad')>-1)return 'iOS';return p;}
-function update(){document.getElementById('browser').textContent=getBrowser();document.getElementById('os').textContent=getOS();document.getElementById('cpu').textContent=navigator.hardwareConcurrency||'未知';document.getElementById('memory').textContent=navigator.deviceMemory?navigator.deviceMemory+' GB':'未知';document.getElementById('language').textContent=navigator.language||'未知';document.getElementById('timezone').textContent=Intl.DateTimeFormat().resolvedOptions().timeZone||'未知';document.getElementById('online').textContent=navigator.onLine?'在线':'离线';document.getElementById('cookies').textContent=navigator.cookieEnabled?'已启用':'已禁用';}update();document.getElementById('refreshBtn').addEventListener('click',update);
+function getNetwork(){var c=navigator.connection||(navigator.mozConnection)||(navigator.webkitConnection);if(!c)return'未知';var type=(c.effectiveType||c.type||'未知')+' ('+(c.downlink||'?')+' Mbps)';return type;}
+function drawMetricChart(){
+  var cv=document.getElementById('metricChart');
+  if(!cv)return;
+  var conn=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+  var netSpeed=conn?(parseFloat(conn.downlink)||0):0;
+  var items=[
+    ['CPU核',navigator.hardwareConcurrency||0],
+    ['内存GB',navigator.deviceMemory||0],
+    ['像素比',window.devicePixelRatio||1],
+    ['屏MP',(screen.width*screen.height)/1e6],
+    ['网速Mbps',netSpeed]
+  ];
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,padL=8,padB=24,padT=16,padR=8;
+  ctx.clearRect(0,0,W,H);
+  var max=1;items.forEach(function(it){if(it[1]>max)max=it[1];});
+  var slot=(W-padL-padR)/items.length;
+  var bw=slot*0.5;
+  var colors=['#06b6d4','#10b981','#8b5cf6','#f59e0b','#ef4444'];
+  ctx.textAlign='center';ctx.font='10px sans-serif';
+  for(var k=0;k<items.length;k++){
+    var bh=Math.max(2,(H-padT-padB)*items[k][1]/max);
+    var x=padL+slot*(k+0.5);
+    ctx.fillStyle=colors[k];
+    ctx.fillRect(x-bw/2,H-padB-bh,bw,bh);
+    ctx.fillStyle='#f1f5f9';
+    ctx.fillText(Number(items[k][1]).toFixed(1),x,H-padB-bh-4);
+    ctx.fillStyle='#94a3b8';
+    ctx.fillText(items[k][0],x,H-6);
+  }
+}
+function update(){document.getElementById('browser').textContent=getBrowser();document.getElementById('os').textContent=getOS();document.getElementById('cpu').textContent=navigator.hardwareConcurrency||'未知';document.getElementById('memory').textContent=navigator.deviceMemory?navigator.deviceMemory+' GB':'未知';document.getElementById('language').textContent=navigator.language||'未知';document.getElementById('timezone').textContent=Intl.DateTimeFormat().resolvedOptions().timeZone||'未知';document.getElementById('online').textContent=navigator.onLine?'在线':'离线';document.getElementById('cookies').textContent=navigator.cookieEnabled?'已启用':'已禁用';document.getElementById('screen').textContent=screen.width+'×'+screen.height;document.getElementById('dpr').textContent=window.devicePixelRatio||1;document.getElementById('network').textContent=getNetwork();drawMetricChart();}
+function buildReport(){
+  var pairs=[
+    ['浏览器',getBrowser()],['操作系统',getOS()],['CPU核心',navigator.hardwareConcurrency||'未知'],['内存',navigator.deviceMemory?navigator.deviceMemory+' GB':'未知'],['语言',navigator.language||'未知'],['时区',Intl.DateTimeFormat().resolvedOptions().timeZone||'未知'],['在线状态',navigator.onLine?'在线':'离线'],['Cookies',navigator.cookieEnabled?'已启用':'已禁用'],['屏幕分辨率',screen.width+'×'+screen.height],['像素比',window.devicePixelRatio||1],['网络类型',getNetwork()],['User-Agent',navigator.userAgent]
+  ];
+  return pairs.map(function(p){return p[0]+': '+p[1];}).join('\n');
+}
+update();document.getElementById('refreshBtn').addEventListener('click',update);
+document.getElementById('copyReportBtn').addEventListener('click',function(){
+  var txt=buildReport();
+  var res=document.getElementById('result');
+  if(res){res.textContent=txt;res.style.display='block';}
+  copyText(txt);
+});
+document.getElementById('result').addEventListener('click',function(){
+  if(!this.textContent)return;
+  copyText(this.textContent);
+  showToast('已复制');
+});
+var _dt=null;
+function _scheduleUpdate(){clearTimeout(_dt);_dt=setTimeout(update,200);}
+window.addEventListener('resize',_scheduleUpdate);
+window.addEventListener('orientationchange',update);
+window.addEventListener('online',update);
+window.addEventListener('offline',update);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)update();});
+
 </script>
 
 </body>

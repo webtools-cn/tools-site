@@ -53,6 +53,11 @@ a{color:#06b6d4;text-decoration:none}
 .shade-item:hover{transform:scale(1.08);box-shadow:0 4px 12px rgba(0,0,0,.3);z-index:2}
 .shade-item .hex{opacity:0;transition:opacity .2s}
 .shade-item:hover .hex{opacity:1}
+.result-box{background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:10px;padding:16px;margin-top:12px;font-family:monospace;font-size:.85rem;color:#e2e8f0;word-break:break-all}
+.result-box:empty{display:none}
+.result-box .ft-copy-btn{margin-top:12px;display:block}
+.chart-box{background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:10px;padding:12px;margin-top:12px}
+.chart-box .chart-title{font-size:.8rem;color:#94a3b8;margin-bottom:8px}
 .info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
 .info-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
 .info-section h3{font-size:.95rem;color:#e2e8f0;margin:16px 0 8px}
@@ -103,8 +108,11 @@ a{color:#06b6d4;text-decoration:none}
       <input type="color" id="colorPicker" value="#FF5733">
       <input type="text" id="colorInput" value="#FF5733" placeholder="输入HEX、RGB或HSL颜色值">
       <button class="btn btn-primary" onclick="generateShades()">生成配色</button>
+      <button class="btn btn-secondary" onclick="fillExample()">🎲 填入示例</button>
     </div>
     <div class="color-preview" id="colorPreview">#FF5733</div>
+    <div id="result" class="result-box" aria-live="polite"></div>
+    <div id="chartWrap" class="chart-box"><div class="chart-title">📊 明度变化图（相对亮度，条越高越亮）</div><canvas id="shadeChart" width="560" height="140" style="width:100%;height:auto;max-width:560px;"></canvas></div>
   </div>
 
   <div class="shade-section">
@@ -226,8 +234,86 @@ function generateShades() {
   }).join('');
   var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');
   if(out){out.innerHTML=html;}
+  drawShadeChart(shades);
   showToast('已生成9个色阶！');
 }
+
+function drawShadeChart(shades){
+  var cv=document.getElementById('shadeChart');
+  if(!cv||!shades||!shades.length)return;
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,padL=8,padB=24,padT=18;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#64748b';ctx.font='10px sans-serif';ctx.textAlign='left';
+  ctx.fillText('相对亮度（1=最亮）',padL,padT-6);
+  var vals=[];
+  for(var i=0;i<shades.length;i++){
+    var h=String(shades[i]).replace('#','');
+    var r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16);
+    vals.push((0.299*r+0.587*g+0.114*b)/255);
+  }
+  var max=1;for(var j=0;j<vals.length;j++){if(vals[j]>max)max=vals[j];}
+  var slot=W/(vals.length+1);
+  var bw=slot*0.55;
+  ctx.textAlign='center';ctx.font='10px sans-serif';
+  for(var k=0;k<vals.length;k++){
+    var bh=Math.max(2,(H-padT-padB)*vals[k]/max);
+    var x=slot*(k+1);
+    ctx.fillStyle=shades[k];
+    ctx.fillRect(x-bw/2,H-padB-bh,bw,bh);
+    ctx.strokeStyle='rgba(148,163,184,.15)';
+    ctx.strokeRect(x-bw/2,H-padB-bh,bw,bh);
+    ctx.fillStyle='#94a3b8';
+    ctx.fillText('#'+(k+1),x,H-6);
+  }
+}
+
+function fillExample(){
+  var cp=document.getElementById('colorPicker'),ci=document.getElementById('colorInput');
+  var ex='#4F46E5';
+  if(cp){cp.value=ex;}
+  if(ci){ci.value=ex;}
+  document.getElementById('colorPreview').textContent=ex;
+  generateShades();
+  showToast('已填入示例颜色');
+}
+
+function ensureCopyBtn(){
+  var res=document.getElementById('result');
+  if(!res||res.offsetParent===null)return;
+  if(res.querySelector('.ft-copy-btn'))return;
+  var btn=document.createElement('button');
+  btn.className='btn btn-secondary ft-copy-btn';
+  btn.textContent='📋 复制结果';
+  btn.onclick=function(){
+    var txt=(res.innerText||res.textContent||'').replace(/\s+/g,' ').trim();
+    function toast(m){showToast(m)}
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){toast('已复制')})['catch'](function(){ftFallbackCopy(txt);toast('已复制')});
+    }else{ftFallbackCopy(txt);toast('已复制')}
+  };
+  res.appendChild(btn);
+}
+function ftFallbackCopy(txt){
+  var ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(err){}
+  document.body.removeChild(ta);
+}
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){setTimeout(ensureCopyBtn,250);}
+});
+(function(){
+  var ci=document.getElementById('colorInput'),cp=document.getElementById('colorPicker');
+  var timer=null;
+  function realtime(){
+    clearTimeout(timer);
+    timer=setTimeout(function(){generateShades();},300);
+  }
+  if(ci){ci.addEventListener('input',function(){var v=ci.value.trim();if(cp&&/^#[0-9a-fA-F]{6}$/.test(v)){cp.value=v;}realtime();});}
+  if(cp){cp.addEventListener('input',function(){if(ci){ci.value=cp.value;}document.getElementById('colorPreview').textContent=cp.value;realtime();});}
+})();
 </script>
 
 

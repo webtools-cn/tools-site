@@ -120,13 +120,18 @@ a{color:#06b6d4;text-decoration:none}
       <p>点击上传文件 或 拖拽到此处</p>
       <p style="color:#475569;font-size:.75rem">支持批量，单文件最大50MB</p>
     </div>
+    <div style="text-align:center;margin:-8px 0 4px">
+      <button class="btn btn-secondary" onclick="fillExampleImage()">🎲 填入示例图片</button>
+    </div>
     <input type="file" id="fileInput" multiple accept="image/*,.xls,.xlsx,.epub,.pdf" style="display:none">
     <div id="settings" style="display:none">
       <!-- Settings area - customized by JS -->
     </div>
-    <div id="results"></div>
+    <div id="result"></div>
+    <div id="chartWrap" style="display:none;margin-top:12px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:12px;padding:12px"><div style="font-size:.85rem;color:#94a3b8;margin-bottom:8px">📊 文件大小对比（原始 vs 调整后）</div><canvas id="sizeChart" width="560" height="180" style="width:100%;height:auto;max-width:560px;"></canvas></div>
     <div id="batchActions" style="display:none;margin-top:12px">
       <button class="btn btn-primary" onclick="downloadAll()">📥 批量下载</button>
+      <button class="btn btn-secondary" onclick="copyResultReport()">📋 复制结果报告</button>
       <button class="btn btn-secondary" onclick="clearResults()">🗑️ 清空</button>
     </div>
   </div>
@@ -221,8 +226,30 @@ function handleFiles(fileList) {
   renderFileList();
 }
 
+function fillExampleImage() {
+  var cv = document.createElement('canvas');
+  cv.width = 1200; cv.height = 800;
+  var ctx = cv.getContext('2d');
+  var grad = ctx.createLinearGradient(0, 0, cv.width, cv.height);
+  grad.addColorStop(0, '#06b6d4'); grad.addColorStop(1, '#8b5cf6');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = 'rgba(255,255,255,.25)';
+  for (var i = 0; i < 40; i++) {
+    ctx.beginPath();
+    ctx.arc(Math.random() * cv.width, Math.random() * cv.height, 4 + Math.random() * 26, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  cv.toBlob(function(blob) {
+    if (!blob) { showToast('生成示例图片失败'); return; }
+    var file = new File([blob], '示例渐变图片.png', { type: 'image/png' });
+    files.push(file);
+    renderFileList();
+    showToast('已生成示例图片，可点击「调整尺寸」预览效果');
+  }, 'image/png');
+}
+
 function renderFileList() {
-  var container = document.getElementById('results');
+  var container = document.getElementById('result');
   container.innerHTML = '';
   results = [];
 
@@ -280,6 +307,19 @@ function renderFileList() {
     }
   });
 
+  var _rTimer = null;
+  function _scheduleResize() {
+    if (files.length === 0) return;
+    clearTimeout(_rTimer);
+    _rTimer = setTimeout(resizeAll, 600);
+  }
+  document.getElementById('resizeMode').addEventListener('change', _scheduleResize);
+  document.getElementById('targetW').addEventListener('input', _scheduleResize);
+  document.getElementById('targetH').addEventListener('input', _scheduleResize);
+  document.getElementById('percentSlider').addEventListener('input', _scheduleResize);
+  document.getElementById('outFormat').addEventListener('change', _scheduleResize);
+  document.getElementById('quality').addEventListener('input', _scheduleResize);
+
   // preview each file
   for (var i = 0; i < files.length; i++) {
     (function(idx) {
@@ -316,7 +356,7 @@ function resizeAll() {
   var mode = document.getElementById('resizeMode').value;
   var format = document.getElementById('outFormat').value;
   var quality = parseInt(document.getElementById('quality').value) / 100;
-  var container = document.getElementById('results');
+  var container = document.getElementById('result');
   container.innerHTML = '';
   results = [];
 
@@ -364,13 +404,50 @@ function resizeAll() {
           ' (原 ' + formatSize(file.size) + ')</div></div>' +
           '<a class="btn btn-primary" href="' + url + '" download="' + baseName + ext + '">⬇ 下载</a>';
         container.appendChild(div);
-        results.push({ name: baseName + ext, url: url });
+        results.push({ name: baseName + ext, url: url, originalSize: file.size, newSize: blob.size, w: targetW, h: targetH });
 
         processed++;
-        if (processed === files.length) showToast('全部调整完成！');
+        if (processed === files.length) { drawSizeChart(); showToast('全部调整完成！'); }
       }, outType, quality);
     })(i, files[i]);
   }
+}
+
+function drawSizeChart(){
+  var wrap=document.getElementById('chartWrap');
+  var cv=document.getElementById('sizeChart');
+  if(!wrap||!cv)return;
+  if(!results.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,padL=46,padR=10,padB=20,padT=14;
+  var shown=results.slice(0,8);
+  var pairs=[];
+  for(var i=0;i<shown.length;i++){pairs.push({o:shown[i].originalSize||0,n:shown[i].newSize||0,name:(shown[i].name||('图'+(i+1))).replace(/\.[^.]+$/,'')});}
+  var max=1;
+  pairs.forEach(function(p){if(p.o>max)max=p.o;if(p.n>max)max=p.n;});
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=3;g++){
+    var y=padT+(H-padT-padB)*g/3,val=max*(3-g)/3;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillText(val>=1048576?(val/1048576).toFixed(1)+'MB':(val/1024).toFixed(0)+'KB',padL-6,y+3);
+  }
+  var slot=(W-padL-padR)/pairs.length;
+  var bw=slot*0.28;
+  ctx.textAlign='center';
+  for(var k=0;k<pairs.length;k++){
+    var ox=padL+slot*(k+0.5)-bw/2;
+    var oh=(H-padT-padB)*pairs[k].o/max;
+    var nh=(H-padT-padB)*pairs[k].n/max;
+    ctx.fillStyle='#64748b';ctx.fillRect(ox,H-padB-oh,bw,oh);
+    ctx.fillStyle='#06b6d4';ctx.fillRect(ox+bw+1,H-padB-nh,bw,nh);
+    var name=pairs[k].name;if(name.length>6)name=name.slice(0,5)+'…';
+    ctx.fillStyle='#94a3b8';ctx.fillText(name,padL+slot*(k+0.5),H-6);
+  }
+  ctx.textAlign='left';ctx.fillStyle='#94a3b8';
+  ctx.fillRect(padL+4,H-6,10,4);ctx.fillStyle='#64748b';ctx.fillText(' 原始',padL+16,H-4);
+  ctx.fillStyle='#94a3b8';ctx.fillRect(padL+80,H-6,10,4);ctx.fillStyle='#06b6d4';ctx.fillText(' 调整后',padL+92,H-4);
 }
 
 function downloadAll() {
@@ -391,7 +468,30 @@ function clearResults() {
   results = [];
   document.getElementById('fileInput').value = '';
   renderFileList();
+  var wrap=document.getElementById('chartWrap');
+  if(wrap){wrap.style.display='none';}
   showToast('已清空');
+}
+
+function copyResultReport() {
+  if(!results.length){showToast('暂无结果可复制');return;}
+  var lines=['图片尺寸调整结果报告',''];
+  for(var i=0;i<results.length;i++){
+    var r=results[i];
+    lines.push((i+1)+'. '+r.name+' | '+(r.w||'?')+'×'+(r.h||'?')+' | 调整后 '+formatSize(r.newSize)+'（原 '+formatSize(r.originalSize)+'）');
+  }
+  var txt=lines.join('\n');
+  function done(){showToast('已复制结果报告');}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(function(){ftFallbackCopy(txt);done();});
+  }else{ftFallbackCopy(txt);done();}
+}
+function ftFallbackCopy(txt){
+  var ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(err){}
+  document.body.removeChild(ta);
 }
 </script>
 

@@ -139,8 +139,18 @@ textarea::placeholder{color:#475569}
   <a href="#">了解更多</a>
   <table>
     <tr><td>数据1</td><td>数据2</td></tr>
-  </table></div></div>
+  </table>
 </textarea>
+</div>
+<div class="btn-row">
+  <button class="btn btn-primary" onclick="submit()">🔍 开始检测</button>
+  <button class="btn btn-secondary" onclick="fillExample()">🎲 填入示例</button>
+</div>
+<div id="result" class="result-section" aria-live="polite" style="display:none">
+  <h2>检测结果</h2>
+  <div id="resultBody"></div>
+  <div id="chartWrap" style="display:none;margin-top:12px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px;padding:12px"><div style="font-size:.85rem;color:#94a3b8;margin-bottom:8px">📊 检测统计（各类型数量）</div><canvas id="issueChart" width="480" height="160" style="width:100%;height:auto;max-width:480px;"></canvas></div>
+</div>
 </div>
 
 <div class="section"><h2>常见问题</h2></div>
@@ -156,7 +166,88 @@ textarea::placeholder{color:#475569}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function submit(){var input=document.getElementById('urlInput')||document.getElementById('url')||document.getElementById('input');var output=document.getElementById('output')||document.getElementById('result');if(!input){showToast('请输入URL或HTML');return}var val=input.value||input.textContent;if(!val){showToast('请输入内容');return}if(output){var issues=[];if(val.indexOf('alt=')===-1&&val.indexOf('<img')!==-1)issues.push('⚠️ 图片缺少alt属性');if(val.indexOf('<label')===-1&&val.indexOf('aria-label')===-1&&val.indexOf('<input')!==-1)issues.push('⚠️ 表单控件缺少label');if(val.indexOf('lang=')===-1&&val.indexOf('<html')!==-1)issues.push('⚠️ html标签缺少lang属性');if(val.indexOf('title=')===-1&&val.indexOf('<a')!==-1)issues.push('⚠️ 链接可能缺少描述性title');if(val.indexOf('role=')===-1)issues.push('ℹ️ 建议添加ARIA role属性');output.innerHTML='<h3>可访问性检查结果</h3>'+(issues.length?'<ul>'+issues.map(function(i){return '<li>'+i+'</li>'}).join('')+'</ul>':'<p>✅ 未发现明显可访问性问题</p>');}showToast('检查完成')}
+function submit(){var input=document.getElementById('htmlInput')||document.getElementById('urlInput')||document.getElementById('url')||document.getElementById('input');var output=document.getElementById('resultBody');if(!input){showToast('请输入HTML代码');return}var val=input.value||input.textContent;if(!val){showToast('请输入HTML代码');return}var issues=[];var passes=[];if(val.indexOf('<img')!==-1){if(val.indexOf('alt=')===-1){issues.push('⚠️ 图片缺少alt属性');}else{passes.push('✅ 图片包含alt属性');}}if(val.indexOf('<input')!==-1||val.indexOf('<select')!==-1||val.indexOf('<textarea')!==-1){if(val.indexOf('<label')===-1&&val.indexOf('aria-label')===-1&&val.indexOf('aria-labelledby')===-1){issues.push('⚠️ 表单控件缺少label或aria-label');}else{passes.push('✅ 表单控件有可访问标签');}}if(val.indexOf('<html')!==-1){if(val.indexOf('lang=')===-1){issues.push('⚠️ html标签缺少lang属性');}else{passes.push('✅ html声明了lang语言');}}if(val.indexOf('<a')!==-1){var re=/<a[^>]*>/g,m,emptyCount=0;while((m=re.exec(val))!==null){if(/>\s*</.test(m[0])||m[0].indexOf('href="#"')>-1){emptyCount++;}}if(emptyCount>0){issues.push('⚠️ 检测到'+emptyCount+'个空链接或无意义链接（仅#）');}}if(val.indexOf('role=')===-1){issues.push('ℹ️ 建议添加ARIA role属性以增强语义');}var h3m=val.match(/<h3[\s>]/g);var h2m=val.match(/<h2[\s>]/g);if(h3m&&h3m.length>0&&(!h2m||h2m.length===0)){issues.push('⚠️ 存在h3但缺少h2，标题层级跳跃');}var stats='<div class="stat-row">'+
+  '<div class="stat-item"><div class="stat-label">发现的问题</div><div class="stat-item-value" style="color:#ef4444">'+issues.length+'</div></div>'+
+  '<div class="stat-item"><div class="stat-label">通过的检查</div><div class="stat-item-value" style="color:#10b981">'+passes.length+'</div></div>'+
+  '</div>';
+var html='<div class="stat-row">'+stats+'</div>';
+html+=passes.map(function(p){return '<div class="issue-item issue-pass"><span class="issue-tag tag-pass">PASS</span>'+p+'</div>';}).join('');
+html+=issues.map(function(i){
+  var tag='info',tagCls='tag-info',cls='issue-info';
+  if(i.indexOf('⚠️')===0){tag='WARN';tagCls='tag-warning';cls='issue-warning';}
+  return '<div class="issue-item '+cls+'"><span class="issue-tag '+tagCls+'">'+tag+'</span>'+i+'</div>';
+}).join('');
+if(output){output.innerHTML=html;}
+var warnCount=0,infoCount=0;
+for(var ii=0;ii<issues.length;ii++){if(issues[ii].indexOf('⚠️')===0)warnCount++;else infoCount++;}
+drawIssueChart(passes.length,warnCount,infoCount);
+var resBox=document.getElementById('result');
+if(resBox){resBox.style.display='block';ensureCopyBtn();}
+showToast('检查完成');}
+function fillExample(){
+  var el=document.getElementById('htmlInput');
+  if(!el)return;
+  el.value='<!DOCTYPE html>\n<html lang="zh-CN">\n<head><title>示例页面</title></head>\n<body>\n  <img src="logo.png">\n  <div class="btn" onclick="submit()">提交</div>\n  <input type="text" placeholder="请输入姓名">\n  <h3>跳过了h2</h3>\n  <div role="button">点击我</div>\n  <a href="#">了解更多</a>\n</body>\n</html>';
+  showToast('已填入示例HTML');
+  submit();
+}
+var _rtimer=null;
+function _scheduleSubmit(){
+  clearTimeout(_rtimer);
+  _rtimer=setTimeout(submit,400);
+}
+(function(){
+  var el=document.getElementById('htmlInput');
+  if(el){el.addEventListener('input',_scheduleSubmit);}
+})();
+function ensureCopyBtn(){
+  var res=document.getElementById('resultBody');
+  if(!res||res.offsetParent===null)return;
+  if(res.querySelector('.ft-copy-btn'))return;
+  var btn=document.createElement('button');
+  btn.className='btn btn-secondary ft-copy-btn';
+  btn.textContent='📋 复制报告';
+  btn.style.cssText='margin-top:12px;display:block';
+  btn.onclick=function(){
+    var txt=(res.innerText||res.textContent||'').replace(/\s+/g,' ').trim();
+    function toast(m){showToast(m)}
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){toast('已复制')})['catch'](function(){ftFallbackCopy(txt);toast('已复制')});
+    }else{ftFallbackCopy(txt);toast('已复制')}
+  };
+  res.appendChild(btn);
+}
+function drawIssueChart(pass,warn,info){
+  var wrap=document.getElementById('chartWrap');
+  var cv=document.getElementById('issueChart');
+  if(!wrap||!cv)return;
+  wrap.style.display='block';
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,padL=8,padB=24,padT=16,padR=8;
+  ctx.clearRect(0,0,W,H);
+  var items=[['通过',pass,'#10b981'],['警告',warn,'#f59e0b'],['提示',info,'#06b6d4']];
+  var max=Math.max(pass,warn,info,1);
+  var slot=(W-padL-padR)/items.length;
+  var bw=slot*0.5;
+  ctx.textAlign='center';ctx.font='11px sans-serif';
+  for(var k=0;k<items.length;k++){
+    var bh=Math.max(2,(H-padT-padB)*items[k][1]/max);
+    var x=padL+slot*(k+0.5);
+    ctx.fillStyle=items[k][2];
+    ctx.fillRect(x-bw/2,H-padB-bh,bw,bh);
+    ctx.fillStyle='#f1f5f9';
+    ctx.fillText(items[k][1],x,H-padB-bh-4);
+    ctx.fillStyle='#94a3b8';
+    ctx.fillText(items[k][0],x,H-6);
+  }
+}
+function ftFallbackCopy(txt){
+  var ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(err){}
+  document.body.removeChild(ta);
+}
 </script>
 </div>
 
@@ -174,6 +265,7 @@ function submit(){var input=document.getElementById('urlInput')||document.getEle
       <li>跨平台：任何浏览器可用</li>
       <li>零依赖：打开即用</li>
     </ul>
+</div>
 
 <footer class="footer container">
 <div style="margin-bottom:12px">
