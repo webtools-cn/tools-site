@@ -118,9 +118,6 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线动画文字生成器</p>
 <div class="hero"><p>免费在线动画文字生成器，创建炫酷CSS文字动画效果。支持霓虹灯、打字机、弹跳、渐变等样式，一键复制代码，适合网页设计的文字特效工具。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section">
-    </div>
-  </div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -185,7 +182,7 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
     <textarea id="codeOutput" class="output-textarea" style="min-height:250px;font-family:monospace" readonly></textarea>
     <div class="btn-row">
       <button class="btn btn-primary" onclick="copyCode()">📋 复制代码</button>
-      <button class="btn btn-secondary" onclick="switchTab('css')">📋 复制CSS</button>
+      <button class="btn btn-secondary" onclick="switchTab('css');copyCode()">📋 复制CSS</button>
     </div>
   </div>
 
@@ -253,24 +250,77 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 <div class="toast" id="toast"></div>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
-
-function toggleFeedback(){const p=document.getElementById("feedback-panel");p.style.display=p.style.display==="none"?"block":"none";}
-function submitFeedback(){
-const type=document.getElementById("feedback-type").value;
-if(!text){showToast("请输入反馈内容");return;}
-const typeLabel={feedback:"💡 功能建议",bug:"🐛 问题反馈",other:"💬 其他"}[type];
-const title=encodeURIComponent(typeLabel+" - "+window.location.pathname);
-const body=encodeURIComponent("**页面**: "+window.location.href+"\n**类型**: "+typeLabel+"\n\n"+text);
-window.open("https://github.com/webtools-cn/tools-site/issues/new?title="+title+"&body="+body,"_blank");
-document.getElementById("feedback-success").style.display="block";
+function getKeyframes(effect, speed, color, bgColor) {
+  var animations = {
+    neon: '@keyframes neonPulse {\n  0%, 100% { text-shadow: 0 0 7px ' + color + ', 0 0 10px ' + color + ', 0 0 21px ' + color + ', 0 0 42px ' + color + '; }\n  50% { text-shadow: 0 0 2px ' + color + ', 0 0 5px ' + color + ', 0 0 10px ' + color + ', 0 0 20px ' + color + '; }\n}',
+    typewriter: '@keyframes typewriter {\n  from { width: 0; }\n  to { width: 100%; }\n}\n@keyframes blink {\n  50% { border-color: transparent; }\n}',
+    bounce: '@keyframes bounce {\n  0%, 100% { transform: translateY(0); }\n  25% { transform: translateY(-20px); }\n  50% { transform: translateY(0); }\n  75% { transform: translateY(-10px); }\n}',
+    gradient: '@keyframes gradientFlow {\n  0% { background-position: 0% 50%; }\n  50% { background-position: 100% 50%; }\n  100% { background-position: 0% 50%; }\n}',
+    rotate3d: '@keyframes rotate3d {\n  0% { transform: perspective(500px) rotateY(0deg); }\n  100% { transform: perspective(500px) rotateY(360deg); }\n}',
+    blink: '@keyframes blinkAnim {\n  0%, 100% { opacity: 1; }\n  50% { opacity: 0; }\n}',
+    wave: '@keyframes wave {\n  0%, 100% { transform: translateY(0) rotate(0deg); }\n  25% { transform: translateY(-10px) rotate(-3deg); }\n  75% { transform: translateY(-5px) rotate(3deg); }\n}',
+    rainbow: '@keyframes rainbow {\n  0% { filter: hue-rotate(0deg); }\n  100% { filter: hue-rotate(360deg); }\n}'
+  };
+  return animations[effect] || animations.neon;
 }
-
-function switchTab(name){document.querySelectorAll('.tab-pane,.tab-content>div').forEach(e=>{e.style.display=e.dataset.tab===name?'block':'none'});document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.textContent.includes(name)||b.dataset.tab===name))}
-window.switchTab=switchTab;
-
-function copyCode(id){var el=document.getElementById(id||"result");if(!el)return;var t=el.textContent||el.innerText||el.value||"";navigator.clipboard.writeText(t).then(function(){}).catch(function(){})}window.copyCode=copyCode;
-function updatePreview(){}window.updatePreview=updatePreview;
+function getStyle(effect, speed, color, bgColor, fontSize) {
+  var styles = {
+    neon: { color: color, animation: 'neonPulse ' + speed + 's ease-in-out infinite', textShadow: '0 0 7px ' + color },
+    typewriter: { color: color, overflow: 'hidden', whiteSpace: 'nowrap', borderRight: '2px solid ' + color, animation: 'typewriter ' + speed + 's steps(30) forwards, blink 0.75s step-end infinite', display: 'inline-block', maxWidth: 'fit-content' },
+    bounce: { color: color, animation: 'bounce ' + speed + 's ease-in-out infinite', display: 'inline-block' },
+    gradient: { color: 'transparent', background: 'linear-gradient(270deg, ' + color + ', #06b6d4, #8b5cf6, ' + color + ')', backgroundSize: '300% 300%', WebkitBackgroundClip: 'text', backgroundClip: 'text', animation: 'gradientFlow ' + speed + 's ease infinite' },
+    rotate3d: { color: color, animation: 'rotate3d ' + speed + 's linear infinite', display: 'inline-block', transformStyle: 'preserve-3d' },
+    blink: { color: color, animation: 'blinkAnim ' + speed + 's step-end infinite' },
+    wave: { color: color, animation: 'wave ' + speed + 's ease-in-out infinite', display: 'inline-block' },
+    rainbow: { color: color, animation: 'rainbow ' + speed + 's linear infinite' }
+  };
+  return styles[effect] || styles.neon;
+}
+function updatePreview() {
+  var text = document.getElementById('animText').value || 'Text';
+  var effect = document.getElementById('animEffect').value;
+  var speed = parseFloat(document.getElementById('animSpeed').value) || 2;
+  var color = document.getElementById('textColor').value;
+  var bg = document.getElementById('bgColor').value;
+  var fs = parseInt(document.getElementById('fontSize').value) || 48;
+  var preview = document.getElementById('previewText');
+  var box = document.getElementById('previewBox');
+  preview.textContent = text;
+  preview.style.cssText = '';
+  box.style.background = bg;
+  var style = getStyle(effect, speed, color, bg, fs);
+  for (var k in style) { preview.style[k] = style[k]; }
+  preview.style.fontSize = fs + 'px';
+  generateCode();
+}
+function generateCode() {
+  var text = document.getElementById('animText').value || 'Text';
+  var effect = document.getElementById('animEffect').value;
+  var speed = parseFloat(document.getElementById('animSpeed').value) || 2;
+  var color = document.getElementById('textColor').value;
+  var bg = document.getElementById('bgColor').value;
+  var fs = parseInt(document.getElementById('fontSize').value) || 48;
+  var keyframes = getKeyframes(effect, speed, color, bg);
+  var style = getStyle(effect, speed, color, bg, fs);
+  var cssProps = Object.keys(style).map(function(k) {
+    var prop = k.replace(/([A-Z])/g, '-$1').toLowerCase();
+    return prop + ': ' + style[k] + ';';
+  }).join('\n  ');
+  var cssCode = '<style>\n' + keyframes + '\n.animated-text {\n  font-size: ' + fs + 'px;\n  font-weight: 700;\n  ' + cssProps + '\n}\n</style>\n<div class="animated-text">' + text + '</div>';
+  document.getElementById('codeOutput').value = cssCode;
+  document.getElementById('resultSection').classList.add('show');
+}
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  if (tab === 'css') { document.getElementById('tabCss').classList.add('active'); } else { document.getElementById('tabHtml').classList.add('active'); }
+  generateCode();
+}
+function copyCode() {
+  var out = document.getElementById('codeOutput');
+  if (!out || !out.value) return;
+  navigator.clipboard.writeText(out.value).then(function() { showToast('已复制') })["catch"](function() { showToast('复制失败') });
+}
+updatePreview();
 </script>
 
 

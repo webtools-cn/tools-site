@@ -36,6 +36,7 @@ a{color:#06b6d4;text-decoration:none}
 .lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
 .nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
 .nav-back a{color:#64748b}.nav-back a:hover{color:#94a3b8}
+.badge{display:inline-block;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12);color:#22d3ee;font-size:.8rem;margin-bottom:16px}
 textarea,input,select{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:.85rem;outline:none;font-family:inherit}
 textarea:focus,input:focus,select:focus{border-color:rgba(6,182,212,.5)}
 .btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
@@ -102,7 +103,7 @@ textarea:focus,input:focus,select:focus{border-color:rgba(6,182,212,.5)}
 <main class="container">
 <div class="header"><h1>📋 在线API变更日志生成器</h1><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/api-changelog-generator/" class="">EN</a></div></div>
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线API变更日志生成器</p>
-<div class="hero"><p>免费在线API变更日志生成器，根据API端点变更自动生成changelog。支持语义化版本、Markdown输出、变更分类。无需注册。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
+<div class="hero"><p>免费在线API变更日志生成器，根据API端点变更自动生成changelog。支持语义化版本、Markdown输出、变更分类。无需注册，数据绝不上传服务器。</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section"><div class="tool-section">
     <h2>📝 版本信息</h2>
@@ -213,7 +214,7 @@ textarea:focus,input:focus,select:focus{border-color:rgba(6,182,212,.5)}
 <div>
 <!-- AdSense -->
 
-<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#374151;">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px;"><a href="/acronym-generator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔤 缩写词生成器</a><a href="/add-watermark/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔏 图片添加水印工具</a><a href="/audio-crossfade/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">音频交叉渐变</a></div></section>
+<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#e2e8f0;">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px;"><a href="/acronym-generator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔤 缩写词生成器</a><a href="/add-watermark/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔏 图片添加水印工具</a><a href="/audio-crossfade/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">音频交叉渐变</a></div></section>
 <footer class="footer container">
 <div style="margin-bottom:12px">
 <a href="../index.html">首页</a>
@@ -235,18 +236,166 @@ textarea:focus,input:focus,select:focus{border-color:rgba(6,182,212,.5)}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+var changeList=[];
+var TYPE_NAMES={added:'Added',changed:'Changed',deprecated:'Deprecated',removed:'Removed',fixed:'Fixed',security:'Security'};
 
-function addChange(){var r=document.getElementById('result')||document.getElementById('output');if(r)r.textContent+='已添加\n'}
-window.addChange=addChange;
+function renderChangeList(){
+  var c=document.getElementById('changeList');
+  if(!c)return;
+  if(changeList.length===0){
+    c.textContent='暂无变更条目，请添加或加载示例...';
+    c.style.color='#64748b';
+    return;
+  }
+  c.style.color='';
+  c.textContent='';
+  changeList.forEach(function(item,i){
+    var row=document.createElement('div');
+    row.className='change-item';
+    var tag=document.createElement('span');
+    tag.className='change-type type-'+item.type;
+    tag.textContent=TYPE_NAMES[item.type]||item.type;
+    var desc=document.createElement('span');
+    desc.className='change-desc';
+    desc.textContent=item.desc;
+    var del=document.createElement('button');
+    del.className='change-remove';
+    del.textContent='✕';
+    del.setAttribute('aria-label','删除变更');
+    del.onclick=function(){changeList.splice(i,1);renderChangeList();generateOutput();};
+    row.appendChild(tag);row.appendChild(desc);row.appendChild(del);
+    c.appendChild(row);
+  });
+}
 
-function clearChanges(){var inputs=document.querySelectorAll("input,textarea");inputs.forEach(function(el){el.value=""});var o=document.getElementById("result")||document.getElementById("output");if(o)o.textContent=""}window.clearChanges=clearChanges;
-function copyOutput(id){var el=document.getElementById(id||"result");if(!el)return;var t=el.textContent||el.innerText||el.value||"";navigator.clipboard.writeText(t).then(function(){}).catch(function(){})}window.copyOutput=copyOutput;
-function downloadOutput(){var c=document.querySelector("canvas");if(c){var a=document.createElement("a");a.download="output.png";a.href=c.toDataURL();a.click()}else{var t=document.getElementById("result");if(t){var b=new Blob([t.textContent||t.value||""],{type:"text/plain"});var u=URL.createObjectURL(b);var a=document.createElement("a");a.href=u;a.download="output.txt";a.click()}}}window.downloadOutput=downloadOutput;
-function generateOutput(){var i=document.querySelector("textarea, input[type=text]");var o=document.getElementById("result")||document.getElementById("output");if(o)o.innerHTML="<p>"+(i&&i.value?i.value.substring(0,200):"已生成结果")+"</p>"}window.generateOutput=generateOutput;
+function addChange(){
+  var type=document.getElementById('changeType').value;
+  var desc=document.getElementById('changeDesc').value.trim();
+  if(!desc){showToast('请输入变更描述');return;}
+  changeList.push({type:type,desc:desc});
+  document.getElementById('changeDesc').value='';
+  renderChangeList();
+  generateOutput();
+}
 
-function importChanges(){}window.importChanges=importChanges;
-function loadExample(arg){}window.loadExample=loadExample;
+function loadExample(){
+  document.getElementById('version').value='1.3.0';
+  document.getElementById('releaseDate').value=new Date().toISOString().slice(0,10);
+  document.getElementById('projectName').value='My API';
+  changeList=[
+    {type:'added',desc:'新增 /api/v2/users 端点，支持分页'},
+    {type:'changed',desc:'修改 GET /api/v1/orders 响应字段 order_status'},
+    {type:'deprecated',desc:'废弃 /api/v1/legacy 端点，将于2027年移除'},
+    {type:'fixed',desc:'修复认证Token在部分场景下过期时间计算错误'}
+  ];
+  renderChangeList();
+  generateOutput();
+  showToast('✅ 示例已加载');
+}
+
+function importChanges(){
+  var raw=document.getElementById('changeDesc').value.trim();
+  if(!raw){showToast('请在描述输入框中粘贴JSON数组');return;}
+  try{
+    var arr=JSON.parse(raw);
+    if(!Array.isArray(arr))throw new Error('need-array');
+    var validTypes=['added','changed','deprecated','removed','fixed','security'];
+    var count=0;
+    arr.forEach(function(it){
+      if(it&&typeof it==='object'&&it.desc&&validTypes.indexOf(it.type)>=0){
+        changeList.push({type:it.type,desc:String(it.desc)});
+        count++;
+      }
+    });
+    if(count===0){showToast('未找到有效变更条目');return;}
+    document.getElementById('changeDesc').value='';
+    renderChangeList();
+    generateOutput();
+    showToast('✅ 已导入 '+count+' 条');
+  }catch(e){showToast('JSON格式错误，示例: [{"type":"added","desc":"..."}]');}
+}
+
+function clearChanges(){
+  changeList=[];
+  document.getElementById('changeDesc').value='';
+  renderChangeList();
+  document.getElementById('resultOutput').value='';
+  document.getElementById('versionHint').textContent='';
+  showToast('已清空');
+}
+
+function suggestVersion(){
+  var v=document.getElementById('version').value.trim()||'1.0.0';
+  var m=v.match(/^(\d+)\.(\d+)\.(\d+)/);
+  var major=m?parseInt(m[1]):1,minor=m?parseInt(m[2]):0,patch=m?parseInt(m[3]):0;
+  if(changeList.some(function(c){return c.type==='removed'||c.type==='changed';}))major++;
+  else if(changeList.some(function(c){return c.type==='added';}))minor++;
+  else patch++;
+  return major+'.'+minor+'.'+patch;
+}
+
+function generateOutput(){
+  var format=document.getElementById('outputFormat').value;
+  var name=document.getElementById('projectName').value.trim()||'My API';
+  var ver=document.getElementById('version').value.trim()||'1.0.0';
+  var date=document.getElementById('releaseDate').value||new Date().toISOString().slice(0,10);
+  var out='';
+  if(format==='json'){
+    out=JSON.stringify({project:name,version:ver,date:date,changes:changeList},null,2);
+  }else if(format==='html'){
+    var rows=changeList.map(function(c){
+      return '<li><strong>'+(TYPE_NAMES[c.type]||c.type)+'</strong>: '+c.desc.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</li>';
+    }).join('');
+    out='<h1>Changelog</h1><h2>['+ver+'] - '+date+'</h2><ul>'+rows+'</ul>';
+  }else{
+    var groups={added:'### Added',changed:'### Changed',deprecated:'### Deprecated',removed:'### Removed',fixed:'### Fixed',security:'### Security'};
+    var order=['added','changed','deprecated','removed','fixed','security'];
+    var lines=['# Changelog','','## ['+ver+'] - '+date,''];
+    order.forEach(function(t){
+      var items=changeList.filter(function(c){return c.type===t;});
+      if(items.length){
+        lines.push(groups[t]);
+        items.forEach(function(c){lines.push('- '+c.desc);});
+        lines.push('');
+      }
+    });
+    out=lines.join('\n');
+  }
+  document.getElementById('resultOutput').value=out;
+  var hint='';
+  if(document.getElementById('showVersionHint').checked){
+    hint='💡 建议版本号: '+suggestVersion()+'（'+versionReason()+'）';
+  }
+  document.getElementById('versionHint').textContent=hint;
+}
+
+function versionReason(){
+  if(changeList.some(function(c){return c.type==='removed'||c.type==='changed';}))return '包含破坏性变更';
+  if(changeList.some(function(c){return c.type==='added';}))return '包含新增功能';
+  return '仅Bug修复';
+}
+
+function copyOutput(){
+  var o=document.getElementById('resultOutput');
+  if(!o.value){showToast('请先生成结果');return;}
+  navigator.clipboard.writeText(o.value).then(function(){showToast('✅ 已复制')})["catch"](function(){showToast('复制失败')});
+}
+
+function downloadOutput(){
+  var o=document.getElementById('resultOutput');
+  if(!o.value){showToast('请先生成结果');return;}
+  var format=document.getElementById('outputFormat').value;
+  var ext={markdown:'md',json:'json',html:'html'}[format]||'txt';
+  var b=new Blob([o.value],{type:'text/plain'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(b);
+  a.download='CHANGELOG.'+ext;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('✅ 已下载');
+}
+
+generateOutput();
 </script>
 
 </div>
