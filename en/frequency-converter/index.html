@@ -75,9 +75,14 @@ footer a{color:#64748b;margin:0 8px}footer a:hover{color:var(--muted)}
 <div class="form-group"><label for="freqValue">Value</label><input type="number" id="freqValue" placeholder="e.g. 100" min="0" step="any"></div>
 <div class="form-group"><label for="freqUnit">From Unit</label><select id="freqUnit"><option value="Hz">Hz (Hertz)</option><option value="kHz">kHz (Kilohertz)</option><option value="MHz">MHz (Megahertz)</option><option value="GHz">GHz (Gigahertz)</option><option value="THz">THz (Terahertz)</option><option value="RPM">RPM (Revs/Min)</option><option value="rad/s">rad/s (Radian/sec)</option></select></div>
 </div>
-<button class="btn-calc" onclick="convert()">📡 Convert Frequency</button>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+<button class="btn-calc" style="flex:1;min-width:200px" onclick="convert()">📡 Convert Frequency</button>
+<button class="btn-calc" style="flex:0 0 auto;width:auto;padding:12px 18px;background:rgba(148,163,184,.1);color:#94a3b8" onclick="fillExample()">🎲 Fill Example</button>
+</div>
 <div id="results" style="display:none">
 <div class="conv-grid" id="convGrid"></div>
+<canvas id="freqChart" style="width:100%;height:200px;margin-top:16px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px"></canvas>
+<button class="btn-calc" onclick="copyResults()" style="margin-top:12px;padding:10px;background:rgba(34,197,94,.15);color:#22c55e">📋 Copy Result</button>
 </div>
 </div>
 <div class="section">
@@ -89,9 +94,6 @@ footer a{color:#64748b;margin:0 8px}footer a:hover{color:var(--muted)}
 <div class="faq-item"><h3>What does 44.1 kHz sampling rate mean?</h3><p>A 44.1 kHz sampling rate means 44,100 audio samples are captured per second — the CD audio standard. Per the Nyquist theorem, this can reproduce frequencies up to 22.05 kHz, covering the full human hearing range (20 Hz - 20 kHz).</p></div>
 </div>
 <footer><a href="../../index.html">Home</a><a href="mailto:dexshuang@google.com">Contact Us</a><a href="../../privacy/">Privacy Policy</a><a href="../../terms/">Terms of Service</a><a href="../../about/">About Us</a></footer>
-<script>
-const units={Hz:1,kHz:1e3,MHz:1e6,GHz:1e9,THz:1e12,RPM:1/60,rad/s:1/(2*Math.PI)};
-</script>
 </main>
 <div class="toast" id="toast"></div>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://free-toolbase.com/"},{"@type":"ListItem","position":2,"name":"Tools","item":"https://free-toolbase.com/#tools"},{"@type":"ListItem","position":3,"name":"Frequency Converter","item":"https://free-toolbase.com/en/frequency-converter/"}]}</script>
@@ -149,16 +151,83 @@ function convert(){
   const hz=val*units[unit];
   const grid=document.getElementById('convGrid');
   grid.innerHTML='';
+  const rows=[];
   for(const[u,factor]of Object.entries(units)){
     const result=hz/factor;
+    rows.push({unit:u,val:result});
     const div=document.createElement('div');
     div.className='conv-item'+(u===unit?' source':'');
     div.innerHTML='<span class="unit">'+unitNames[u]+'</span><span class="val">'+formatNum(result)+'</span>';
     grid.appendChild(div);
   }
   document.getElementById('results').style.display='block';
+  drawChart(rows);
   showToast('转换完成！');
 }
+function fillExample(){
+  document.getElementById('freqValue').value='440';
+  document.getElementById('freqUnit').value='Hz';
+  convert();
+}
+function copyResults(){
+  const val=parseFloat(document.getElementById('freqValue').value);
+  const unit=document.getElementById('freqUnit').value;
+  if(!val||val<0){showToast('Please convert first');return;}
+  const hz=val*units[unit];
+  let text='Frequency: '+val+' '+unit+' ('+hz+' Hz)\n';
+  for(const[u,factor]of Object.entries(units)){
+    text+=unitNames[u]+': '+formatNum(hz/factor)+'\n';
+  }
+  doCopy(text.trim(),'Result copied to clipboard');
+}
+function doCopy(text,msg){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>showToast(msg)).catch(()=>fallbackCopy(text,msg));
+  }else{fallbackCopy(text,msg);}
+}
+function fallbackCopy(text,msg){
+  const ta=document.createElement('textarea');
+  ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');showToast(msg);}catch(e){showToast('Copy failed');}
+  document.body.removeChild(ta);
+}
+function drawChart(rows){
+  const cv=document.getElementById('freqChart');
+  if(!cv||!cv.getContext)return;
+  const dpr=window.devicePixelRatio||1;
+  const w=cv.clientWidth||700,h=200;
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.width=w+'px';cv.style.height=h+'px';
+  const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
+  const padL=56,padR=12,padT=16,padB=26;
+  const vals=rows.map(r=>Math.abs(r.val)).filter(v=>v>0);
+  let logMax,logMin,span;
+  if(vals.length){logMax=Math.log10(Math.max(...vals));logMin=Math.log10(Math.min(...vals));span=(logMax-logMin)||1;}
+  const innerW=w-padL-padR,innerH=h-padT-padB;
+  ctx.font='10px sans-serif';ctx.fillStyle='#94a3b8';ctx.textAlign='right';
+  ctx.strokeStyle='rgba(148,163,184,.15)';
+  for(let i=0;i<=3;i++){
+    const gy=padT+innerH*i/3;
+    ctx.beginPath();ctx.moveTo(padL,gy);ctx.lineTo(w-padR,gy);ctx.stroke();
+    if(vals.length){const logv=logMax-(logMax-logMin)*i/3;ctx.fillText(formatNum(Math.pow(10,logv)),padL-6,gy+3);}
+  }
+  if(!vals.length)return;
+  const n=rows.length,slot=innerW/n,barW=Math.min(34,slot*0.55);
+  for(let i=0;i<rows.length;i++){
+    const v=Math.abs(rows[i].val);
+    const x=padL+slot*i+(slot-barW)/2;
+    let bh=0;
+    if(v>0){bh=Math.max(2,((Math.log10(v)-logMin)/span)*innerH);}
+    const grad=ctx.createLinearGradient(0,padT+innerH-bh,0,padT+innerH);
+    grad.addColorStop(0,'#06b6d4');grad.addColorStop(1,'rgba(6,182,212,.35)');
+    ctx.fillStyle=grad;
+    ctx.fillRect(x,padT+innerH-bh,barW,bh);
+    ctx.fillStyle='#e2e8f0';ctx.textAlign='center';
+    ctx.fillText(rows[i].unit,padL+slot*i+slot/2,h-6);
+  }
+}
+document.getElementById('freqValue').addEventListener('input',convert);
+document.getElementById('freqUnit').addEventListener('change',convert);
 </script>
 </body>
 </html>

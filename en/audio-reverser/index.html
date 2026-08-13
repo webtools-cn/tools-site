@@ -226,6 +226,7 @@ a{color:#06b6d4;text-decoration:none}
 <div class="hint">Supports MP3 / WAV / OGG / M4A</div>
 </div>
 <input type="file" id="fileInput" accept="audio/*" style="display:none">
+<button type="button" class="btn btn-secondary" id="sampleBtn" onclick="useSample()" style="display:block;margin:12px auto 0">🎲 Try sample audio</button>
 </div>
 <div class="section" id="preview" style="display:none" id="reverserSection">
 <div class="file-info">
@@ -316,6 +317,29 @@ function handleFile(){
   };
   reader.readAsArrayBuffer(file);
 }
+
+function useSample(){
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  var sampleRate=audioCtx.sampleRate;
+  var dur=3;
+  var length=sampleRate*dur;
+  rawBuffer=audioCtx.createBuffer(1,length,sampleRate);
+  var d=rawBuffer.getChannelData(0);
+  for(var i=0;i<length;i++){
+    var t=i/sampleRate;
+    var f=200+1800*(t/dur);
+    d[i]=0.5*Math.sin(2*Math.PI*f*t)*(1-t/dur);
+  }
+  reverseBuffer();
+  document.getElementById('reverserSection').style.display='block';
+  document.getElementById('fileName').textContent='sample_tone.wav';
+  document.getElementById('fileDetail').textContent='Sample tone · '+dur+'s · '+sampleRate+'Hz';
+  document.getElementById('timeDisplay').textContent='0:00 / 0:0'+dur;
+  window.scrollTo({top:document.getElementById('preview').offsetTop-20,behavior:'smooth'});
+  drawWaveform();
+  showToast('Sample audio loaded');
+}
+window.useSample=useSample;
 
 function reverseBuffer(){
   var numChannels=rawBuffer.numberOfChannels;

@@ -75,6 +75,7 @@
 <div class="btn-row">
 <button class="btn btn-start" id="startBtn" onclick="toggleRead()">▶ Start</button>
 <button class="btn btn-reset" onclick="resetRead()">🔄 Reset</button>
+<button class="btn btn-reset" onclick="copyReport()">📋 Copy Report</button>
 </div>
 <div class="stats-row">
 <div class="stat-item">Read: <span class="stat-value" id="readCount">0</span>/<span id="totalCount">0</span> words</div>
@@ -158,6 +159,26 @@ function resetRead(){
   document.getElementById("elapsed").textContent="0s";
   document.getElementById("progressFill").style.width="0";
   document.getElementById("startBtn").textContent="▶ Start";
+}
+
+function copyReport(){
+  var read=parseInt(document.getElementById("readCount").textContent)||0;
+  var total=parseInt(document.getElementById("totalCount").textContent)||0;
+  var elapsed=parseInt(document.getElementById("elapsed").textContent)||0;
+  var speed=document.getElementById("speedSlider").value;
+  var achieved=elapsed>0?Math.round(read/(elapsed/60)):0;
+  var text="Speed Reading Session Report\nWords read: "+read+" / "+total+"\nTime: "+elapsed+"s"+(elapsed>=60?" ("+Math.floor(elapsed/60)+"m "+elapsed%60+"s)":"")+"\nTarget speed: "+speed+" WPM\nEffective rate: "+achieved+" WPM\n"+(total>0?"Progress: "+Math.round(read/total*100)+"%":"Progress: 0%");
+  var done=function(){showToast("Report copied to clipboard")};
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(function(){fallbackCopyReport(text,done)});
+  }else{fallbackCopyReport(text,done);}
+}
+function fallbackCopyReport(text,done){
+  var ta=document.createElement("textarea");
+  ta.value=text;ta.style.position="fixed";ta.style.opacity="0";
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand("copy");done();}catch(e){showToast("Copy failed");}
+  document.body.removeChild(ta);
 }
 </script>
 </main>

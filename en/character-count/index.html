@@ -180,10 +180,16 @@ UTF-8 is the standard encoding for web pages. English characters use 1 byte each
 Chinese characters like yougood use 3 bytes each in UTF-8 encoding.
 
 Emoji such as 😀🎉 use 4 bytes. Numbers 123 and punctuation.,! each use 1 byte.</textarea>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+    <button type="button" class="btn btn-secondary" id="exampleBtn">🎲 填入示例</button>
+    <button type="button" class="btn btn-secondary" id="copyBtn">📋 复制统计</button>
+    <button type="button" class="btn btn-secondary" id="clearBtn">🗑️ 清空</button>
+  </div>
   </div>
   <div class="tool-section">
     <h2>📊 Statistics</h2>
     <div class="stats-grid" id="statsGrid"></div>
+    <canvas id="countChart" style="width:100%;height:150px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px"></canvas>
   </div>
   <div class="tool-section">
     <h2>📖 How to Use</h2>
@@ -275,6 +281,73 @@ Emoji such as 😀🎉 use 4 bytes. Numbers 123 and punctuation.,! each use 1 by
 
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
+
+<div class="toast" id="toast"></div>
+<script>
+function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},2500)}
+var EXAMPLE_TEXT="Hello World! 👋 This is a sample text for character counting.\n\nUTF-8 is the standard encoding for web pages. English characters use 1 byte each.\nChinese characters like 你好 use 3 bytes each in UTF-8 encoding.\n\nEmoji such as 😀🎉 use 4 bytes. Numbers 123 and punctuation.,! each use 1 byte.";
+var _statsText="";
+function countStats(){
+  var text=document.getElementById("textInput").value;
+  var chars=text.length;
+  var charsNoSpace=text.replace(/\s/g,"").length;
+  var bytes=new TextEncoder().encode(text).length;
+  var lines=text===""?0:text.split("\n").length;
+  var words=text.trim()===""?0:text.trim().split(/\s+/).length;
+  var paras=text===""?0:text.split(/\n\s*\n/).filter(function(p){return p.trim()!==""}).length;
+  var cn=(text.match(/[\u4e00-\u9fff]/g)||[]).length;
+  var en=(text.match(/[A-Za-z]/g)||[]).length;
+  var data=[["Characters",chars],["Without spaces",charsNoSpace],["Words",words],["Lines",lines],["UTF-8 bytes",bytes],["Chinese",cn],["English letters",en],["Paragraphs",paras]];
+  var grid=document.getElementById("statsGrid");
+  grid.innerHTML="";
+  data.forEach(function(d){
+    var card=document.createElement("div");card.className="stat-card";
+    var v=document.createElement("div");v.className="value";v.textContent=d[1];
+    var l=document.createElement("div");l.className="label";l.textContent=d[0];
+    card.appendChild(v);card.appendChild(l);
+    grid.appendChild(card);
+  });
+  drawChart([["Chars",chars],["Words",words],["Lines",lines],["Bytes",bytes]]);
+  _statsText="Characters: "+chars+" | Without spaces: "+charsNoSpace+" | Words: "+words+" | Lines: "+lines+" | UTF-8 bytes: "+bytes+" | Chinese chars: "+cn+" | English letters: "+en;
+}
+function drawChart(items){
+  var c=document.getElementById("countChart");
+  if(!c)return;
+  var dpr=window.devicePixelRatio||1;
+  var w=c.clientWidth||800,h=c.clientHeight||150;
+  c.width=w*dpr;c.height=h*dpr;
+  var ctx=c.getContext("2d");
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+  var max=1;
+  items.forEach(function(it){max=Math.max(max,it[1]);});
+  var n=items.length;
+  var bw=Math.min(60,(w-(n+1)*12)/n);
+  var maxH=h-26;
+  items.forEach(function(it,i){
+    var bh=Math.max(2,(it[1]/max)*maxH);
+    var x=12+i*(bw+12);
+    var color=it[0]==="Bytes"?"rgba(168,85,247,.8)":(it[0]==="Words"?"rgba(34,197,94,.8)":"rgba(6,182,212,.8)");
+    ctx.fillStyle=color;ctx.fillRect(x,h-16-bh,bw,bh);
+    ctx.fillStyle="#94a3b8";ctx.font="11px sans-serif";ctx.textAlign="center";
+    ctx.fillText(it[0],x+bw/2,h-4);
+    ctx.fillStyle="#e2e8f0";ctx.fillText(it[1],x+bw/2,h-20-bh);
+  });
+}
+var ti=document.getElementById("textInput");
+ti.addEventListener("input",countStats);
+document.getElementById("exampleBtn").addEventListener("click",function(){
+  ti.value=EXAMPLE_TEXT;countStats();showToast("Example filled");
+});
+document.getElementById("copyBtn").addEventListener("click",function(){
+  if(!_statsText)countStats();
+  navigator.clipboard.writeText(_statsText).then(function(){showToast("Copied to clipboard")})["catch"](function(){showToast("Copy failed")});
+});
+document.getElementById("clearBtn").addEventListener("click",function(){
+  ti.value="";countStats();showToast("Cleared");
+});
+countStats();
+</script>
 
 </main>
 

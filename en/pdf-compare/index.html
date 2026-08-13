@@ -380,19 +380,50 @@ function compareTextContent() {
     var textA = results[0].items.map(function(item) { return item.str; }).join(' ');
     var textB = results[1].items.map(function(item) { return item.str; }).join(' ');
     var div = document.getElementById("diffStatus");
+    var wordCountA = textA.split(/\s+/).filter(Boolean).length;
+    var wordCountB = textB.split(/\s+/).filter(Boolean).length;
     if (textA === textB) {
       div.innerHTML = "<span style='color:#10b981;font-weight:600'>No text differences found on this page.</span>";
     } else {
-      var wordCountA = textA.split(/\s+/).filter(Boolean).length;
-      var wordCountB = textB.split(/\s+/).filter(Boolean).length;
-      div.innerHTML = "<span style='color:#f59e0b;font-weight:600'>Text differs! (A: " + wordCountA + " words, B: " + wordCountB + " words)</span>";
+      div.innerHTML = "<span style='color:#f59e0b;font-weight:600'>Text differs! (A: " + wordCountA + " words, B: " + wordCountB + " words)</span>"
+        + "<div style='text-align:center;margin-top:8px'><button class='btn btn-secondary' onclick=\"copyToClipboard('PDF A: ' + " + wordCountA + " + ' words, PDF B: ' + " + wordCountB + " + ' words, Page ' + " + pageNum + ", Status: Text differs', 'Copied!')\">📋 Copy Result</button></div>";
+      drawWordChart(wordCountA, wordCountB, pageNum);
     }
+  });
+}
+
+function drawWordChart(a, b, pageNum) {
+  var div = document.getElementById("diffStatus");
+  var cv = document.createElement("canvas");
+  cv.width = 320; cv.height = 120;
+  cv.style.cssText = "max-width:100%;height:120px;margin:10px auto;display:block;background:#0f172a;border-radius:8px";
+  div.appendChild(cv);
+  var ctx = cv.getContext("2d");
+  var W = cv.width, H = cv.height;
+  var max = Math.max(a, b, 1);
+  var vals = [a, b], colors = ["#f59e0b", "#06b6d4"], labels = ["PDF A", "PDF B"];
+  var bw = 70, bh = H - 34, bx0 = (W - 2 * bw - 30) / 2;
+  ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+  vals.forEach(function(v, i) {
+    var h = Math.max(4, v / max * (bh - 10));
+    var x = bx0 + i * (bw + 30) + bw / 2, y = bh - h + 10;
+    ctx.fillStyle = colors[i]; ctx.fillRect(bx0 + i * (bw + 30), y, bw, h);
+    ctx.fillStyle = "#e2e8f0"; ctx.fillText(v + " words", x, y - 4);
+    ctx.fillStyle = "#94a3b8"; ctx.fillText(labels[i] + " · Page " + pageNum, x, H - 8);
   });
 }
 
 document.getElementById("pageNum").addEventListener("change", function() {
   var val = parseInt(this.value);
   if (!isNaN(val) && val > 0) renderPage(val);
+});
+
+["pdfFileA", "pdfFileB"].forEach(function(id) {
+  document.getElementById(id).addEventListener("change", function() {
+    var a = document.getElementById("pdfFileA").files[0];
+    var b = document.getElementById("pdfFileB").files[0];
+    if (a && b) comparePDFs();
+  });
 });
 
 </script>

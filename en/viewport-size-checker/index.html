@@ -186,6 +186,10 @@ a{color:#06b6d4;text-decoration:none}
   <div style="margin-top:12px;font-size:.82rem;color:#64748b;text-align:center">
     💡 Physical pixels = CSS pixels × DPR
   </div>
+  <div style="margin-top:12px">
+    <canvas id="ftChart" width="640" height="200" style="width:100%;height:200px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px"></canvas>
+    <p style="text-align:center;color:#64748b;font-size:12px;margin-top:6px">📊 Pixel Comparison Chart</p>
+  </div>
 </div>
 
 <div class="section">
@@ -362,11 +366,13 @@ function addHistory(w,h){
 var lastW=viewportWidth,lastH=viewportHeight;
 updateStats();
 addHistory(viewportWidth,viewportHeight);
+ftDrawChart();
 var debounceTimer;
 window.addEventListener('resize',function(){
   clearTimeout(debounceTimer);
   debounceTimer=setTimeout(function(){
     updateStats();
+    ftDrawChart();
     if(viewportWidth!==lastW||viewportHeight!==lastH){
       addHistory(viewportWidth,viewportHeight);
       lastW=viewportWidth;lastH=viewportHeight;
@@ -376,6 +382,7 @@ window.addEventListener('resize',function(){
 if(window.visualViewport){
   window.visualViewport.addEventListener('resize',function(){
     updateStats();
+    ftDrawChart();
   });
 }
 window.clearHistory=function(){
@@ -385,8 +392,44 @@ window.copyCurrentSize=function(){
   var text='Viewport: '+viewportWidth+'×'+viewportHeight+'px\nScreen: '+screenWidth+'×'+screenHeight+'px\nDPR: '+devicePixelRatio.toFixed(1)+'x';
   navigator.clipboard.writeText(text).then(function(){showToast('Size info copied!')})['catch'](function(){showToast('Copy failed')});
 };
+function ftDrawChart(){
+  var cv=document.getElementById('ftChart');
+  if(!cv)return;
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height,padL=62,padR=10,padT=14,padB=24;
+  ctx.clearRect(0,0,W,H);
+  var vals=[
+    {label:'CSS W',v:viewportWidth,color:'#06b6d4'},
+    {label:'CSS H',v:viewportHeight,color:'#0ea5e9'},
+    {label:'Phys W',v:Math.round(viewportWidth*devicePixelRatio),color:'#f59e0b'},
+    {label:'Phys H',v:Math.round(viewportHeight*devicePixelRatio),color:'#10b981'}
+  ];
+  var maxV=Math.max.apply(null,vals.map(function(x){return x.v}));
+  if(maxV<=0)return;
+  ctx.font='10px sans-serif';ctx.textAlign='right';
+  for(var g=0;g<=4;g++){
+    var y=padT+(H-padT-padB)*g/4,val=maxV*(4-g)/4;
+    ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.fillText(val>=1e6?(val/1e6).toFixed(1)+'M':val>=1e3?(val/1e3).toFixed(1)+'K':val.toFixed(0),padL-6,y+3);
+  }
+  var bw=(W-padL-padR)/vals.length*0.5;
+  ctx.textAlign='center';
+  for(var i=0;i<vals.length;i++){
+    var bh=(H-padT-padB)*vals[i].v/maxV;
+    var x=padL+(W-padL-padR)*(i+0.5)/vals.length;
+    ctx.fillStyle=vals[i].color;
+    ctx.fillRect(x-bw/2,padT+(H-padT-padB)-bh,bw,bh);
+    ctx.fillStyle='#e2e8f0';ctx.fillText(vals[i].v.toFixed(0),x,padT+(H-padT-padB)-bh-4);
+    ctx.fillStyle='#94a3b8';ctx.fillText(vals[i].label,x,padT+(H-padT-padB)+12);
+  }
+}
+function updateStatsWithChart(){
+  updateStats();
+  ftDrawChart();
+}
 window.updateStats=updateStats;
 window.addHistory=addHistory;
+window.ftDrawChart=ftDrawChart;
 
 function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},3000);}
 function toggleFeedback(){var p=document.getElementById('feedback-panel');if(p){p.style.display=p.style.display==='none'?'block':'none';}}

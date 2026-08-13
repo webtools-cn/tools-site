@@ -209,6 +209,11 @@ a{color:#06b6d4;text-decoration:none}
 <div class="info-section">
 <h2>All Holidays</h2>
 <div class="holiday-grid" id="hcGrid"></div>
+<div style="margin-top:12px">
+  <canvas id="hcChart" width="800" height="220" style="width:100%;max-width:800px;display:block;margin:0 auto;background:#0f172a;border-radius:8px"></canvas>
+  <p style="color:#64748b;font-size:.75rem;text-align:center;margin-top:6px">Days until each holiday this year</p>
+</div>
+<div style="text-align:center;margin-top:12px"><button class="btn btn-secondary" id="hcCopyBtn" style="padding:8px 20px;border:1px solid rgba(6,182,212,.3);background:rgba(6,182,212,.12);color:#22d3ee;border-radius:8px;font-size:.9rem;cursor:pointer;transition:all .2s">📋 Copy Countdown</button></div>
 </div>
 
 <div class="info-section">
@@ -274,6 +279,92 @@ function hcLaborDay(y){
 function hcDaysDiff(a, b){
   return Math.round((b.getTime() - a.getTime()) / 86400000);
 }
+
+function hcDrawChart(){
+  const canvas = document.getElementById('hcChart');
+  if (!canvas) return;
+  const now = new Date();
+  const year = now.getFullYear();
+  const hols = hcGetHolidays(year).filter(h => hcDaysDiff(now, h.date) >= 0);
+  hols.sort((a,b)=>a.date-b.date);
+  if (!hols.length) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const pad = {l:46,r:16,t:24,b:30};
+  const cw = W-pad.l-pad.r, ch = H-pad.t-pad.b;
+  const maxDays = Math.max.apply(null, hols.map(h => hcDaysDiff(now, h.date)));
+  const colors = ['#06b6d4','#818cf8','#fbbf24','#34d399','#f472b6','#f87171','#60a5fa','#c084fc','#f59e0b','#2dd4bf','#fb7185','#a3e635','#fda4af'];
+  const bw = Math.min(46, (cw/hols.length)-12);
+  hols.forEach((h, i) => {
+    const days = hcDaysDiff(now, h.date);
+    const bh = maxDays > 0 ? Math.round(ch * (days/maxDays)) : ch;
+    const x = pad.l + (cw/hols.length)*i + (cw/hols.length-bw)/2;
+    const y = pad.t + ch - bh;
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fillRect(x, y, bw, bh);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(days, x+bw/2, y-5);
+    const n = h.icon + ' ' + h.name.split(' ')[0];
+    ctx.fillText(n.length>10?n.slice(0,9)+'…':n, x+bw/2, pad.t+ch+18);
+  });
+  ctx.strokeStyle = 'rgba(148,163,184,.2)';
+  ctx.beginPath();
+  ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, pad.t+ch); ctx.lineTo(W-pad.r, pad.t+ch);
+  ctx.stroke();
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('0', 8, pad.t+ch+4);
+  ctx.fillText(maxDays, 8, pad.t+4);
+}
+
+function hcToast(msg){
+  let t = document.getElementById('hcToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'hcToast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  setTimeout(() => { t.style.opacity = '0'; }, 2000);
+}
+
+function hcCopy(){
+  const now = new Date();
+  const year = now.getFullYear();
+  const hols = hcGetHolidays(year);
+  hols.sort((a,b)=>a.date-b.date);
+  const lines = ['Holiday Countdown', '==============='];
+  hols.forEach(h => {
+    const d = hcDaysDiff(now, h.date);
+    const label = d === 0 ? 'Today!' : d > 0 ? d + ' days' : 'Passed';
+    lines.push(h.icon + ' ' + h.name + ': ' + label);
+  });
+  const text = lines.join('\n');
+  const done = () => hcToast('Countdown copied');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => hcCopyFallback(text, done));
+  } else {
+    hcCopyFallback(text, done);
+  }
+}
+function hcCopyFallback(text, done){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  done();
+}
+
 function hcRender(){
   const now = new Date();
   const year = now.getFullYear();
@@ -298,8 +389,14 @@ function hcRender(){
     else if(d < 0){ cls='passed'; label='Passed'; }
     return '<div class="holiday-card"><div class="hc-name">'+h.icon+' '+h.name+'</div><div class="hc-date">'+(h.date.getMonth()+1)+'/'+h.date.getDate()+'</div><div class="hc-days '+cls+'">'+label+'</div></div>';
   }).join('');
+  hcDrawChart();
+  const cb = document.getElementById('hcCopyBtn');
+  if (cb && !cb.dataset.bound) {
+    cb.addEventListener('click', hcCopy);
+    cb.dataset.bound = '1';
+  }
 }
-document.addEventListener('DOMContentLoaded', hcRender;)
+document.addEventListener('DOMContentLoaded', hcRender);
 </script>
 <!-- Related Tools (cross-recommendation) -->
 <link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">

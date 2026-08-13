@@ -28,7 +28,14 @@
       <button class="btn-primary" id="btnStart">Start Race</button>
       <button class="btn-secondary" id="btnReset">New Text</button>
     </div>
-    <div class="result" id="raceResult" style="text-align:center;color:var(--text2);">Click "Start Race" to challenge your typing speed</div>
+    <div id="result" style="background:#1e293b;border:1px solid rgba(148,163,184,.1);border-radius:12px;padding:16px;margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+        <span style="color:#f1f5f9;font-weight:600;font-size:.95rem">📊 Race Result &amp; History</span>
+        <button id="copyResult" style="padding:6px 14px;border:1px solid rgba(6,182,212,.3);background:rgba(6,182,212,.2);color:#22d3ee;border-radius:6px;cursor:pointer;font-size:.8rem">📋 Copy Result</button>
+      </div>
+      <div id="raceResult" style="text-align:center;color:#94a3b8;background:#0f172a;border-radius:8px;padding:12px;">Click "Start Race" to challenge your typing speed</div>
+      <canvas id="historyChart" width="600" height="200" style="width:100%;height:auto;margin-top:12px;background:#0f172a;border-radius:8px;display:none"></canvas>
+    </div>
   `;
   toolArea.innerHTML = html;
 
@@ -36,6 +43,42 @@
   let startTime = null;
   let timerInterval = null;
   let racing = false;
+  let lastResult = '';
+  let history = [];
+  try { history = JSON.parse(localStorage.getItem('typingRaceHistory') || '[]'); } catch (e) { history = []; }
+
+  function copyTextFb(t) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(t).then(() => showToast('Result copied'), () => showToast('Copy failed'));
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = t; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('Result copied');
+    }
+  }
+
+  function renderChart() {
+    const c = document.getElementById('historyChart');
+    if (!c || history.length === 0) return;
+    c.style.display = 'block';
+    const ctx = c.getContext('2d');
+    const W = c.width, H = c.height, pad = 30;
+    ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, W, H);
+    const max = Math.max(20, ...history.map(h => h.wpm));
+    const n = history.length, bw = (W - pad * 2) / Math.max(n, 1);
+    history.forEach(function(h, i) {
+      const hh = (h.wpm / max) * (H - pad * 2);
+      ctx.fillStyle = 'rgba(6,182,212,.85)';
+      ctx.fillRect(pad + i * bw + 4, H - pad - hh, bw - 8, hh);
+      ctx.fillStyle = '#94a3b8'; ctx.font = '10px monospace'; ctx.textAlign = 'center';
+      ctx.fillText(h.wpm, pad + i * bw + bw / 2, H - pad - hh - 4);
+    });
+    ctx.fillStyle = '#64748b'; ctx.textAlign = 'left'; ctx.font = '10px monospace';
+    ctx.fillText('WPM per race (last ' + n + ')', 8, 14);
+  }
 
   function showToast(msg) {
     const t = document.getElementById('toast');
@@ -86,6 +129,11 @@
       const finalWPM = wpm;
       const rating = finalWPM > 80 ? '🏆 Elite' : finalWPM > 60 ? '🥇 Excellent' : finalWPM > 40 ? '🥈 Good' : finalWPM > 20 ? '🥉 Average' : '💪 Keep Practicing';
       document.getElementById('raceResult').innerHTML = `🎉 Complete! WPM: <b>${finalWPM}</b> | Accuracy: <b>${accuracy}%</b> | Rating: <b>${rating}</b>`;
+      lastResult = `Typing Race Result | WPM: ${finalWPM} | Accuracy: ${accuracy}% | Time: ${Math.round(elapsed)}s | Rating: ${rating}`;
+      history.unshift({ wpm: finalWPM, accuracy, rating });
+      history = history.slice(0, 10);
+      localStorage.setItem('typingRaceHistory', JSON.stringify(history));
+      renderChart();
       showToast('Race complete!');
     }
   }
@@ -116,6 +164,13 @@
   });
 
   document.getElementById('userInput').addEventListener('input', updateStats);
+
+  document.getElementById('copyResult').addEventListener('click', () => {
+    if (!lastResult) { showToast('Finish a race first'); return; }
+    copyTextFb(lastResult);
+  });
+
   targetText = pickParagraph();
   document.getElementById('targetText').innerHTML = targetText;
+  renderChart();
 })();

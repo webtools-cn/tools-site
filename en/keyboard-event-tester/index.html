@@ -127,6 +127,13 @@
     <tbody id="logBody"></tbody>
   </table>
 </div>
+<div id="result" style="background:#0f172a;border-radius:8px;padding:12px;margin-top:12px;border:1px solid rgba(148,163,184,.1);display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span style="color:#94a3b8;font-size:.8rem;font-weight:600">📋 Last Event</span>
+    <button onclick="copyLastEvent()" style="padding:4px 12px;border:1px solid rgba(6,182,212,.3);background:rgba(6,182,212,.2);color:#22d3ee;border-radius:6px;cursor:pointer;font-size:.8rem">📋 Copy Result</button>
+  </div>
+  <div id="resultText" style="font-family:monospace;font-size:.85rem;color:#e2e8f0;word-break:break-all">-</div>
+</div>
 </div></div>
 </div>
 <div class="seo-content"><h2>What is a Keyboard Event Tester?</h2><p>A keyboard event tester is a developer tool that captures and displays keyboard event details in real-time. When you press a key, the tool instantly shows event.key, event.code, event type, modifier key states, and key repeat information - all from the browser native KeyboardEvent API.</p><h2>Why Use a Keyboard Event Tester?</h2><p>Understanding keyboard events is essential for building accessible web applications. This tool helps you debug keyboard shortcut implementations, test key behavior across layouts, understand event.key vs event.code differences, and verify modifier key combinations.</p><h2>About the KeyboardEvent API</h2><p>The KeyboardEvent interface describes keyboard interactions. It fires two main event types: keydown (key pressed) and keyup (key released). Key properties include key (character value), code (physical key position), ctrlKey/altKey/shiftKey/metaKey (modifier states), and repeat (auto-repeat).</p></div>
@@ -158,10 +165,16 @@
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("Copied")})["catch"](function(){showToast("Copy failed")})}
+function copyTextStr(t){
+  if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){showToast("Copied")})["catch"](function(){showToast("Copy failed")});}
+  else{var ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";ta.style.left="-9999px";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);showToast("Copied");}
+}
+function copyLastEvent(){if(!lastEventStr||lastEventStr==="-"){showToast("No key event yet");return;}copyTextStr(lastEventStr);}
 
 var locked = false;
 var logCount = 0;
 var MAX_LOG = 50;
+var lastEventStr = '-';
 
 function modOn(el) {
   el.style.background = "rgba(6,182,212,.2)";
@@ -205,6 +218,10 @@ function handleKeyEvent(e) {
   var modStr = mods.length ? mods.join("+") : "-";
   
   var typeColor = e.type === "keydown" ? "#22d3ee" : "#f1c40f";
+  
+  lastEventStr = e.type + " | key: " + displayKey + " | code: " + e.code + " | modifiers: " + modStr + " | repeat: " + (e.repeat ? "yes" : "no");
+  document.getElementById("resultText").textContent = lastEventStr;
+  document.getElementById("result").style.display = "block";
   
   var row = document.createElement("tr");
   row.style.color = "#94a3b8";

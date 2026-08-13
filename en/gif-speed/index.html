@@ -56,6 +56,15 @@
     <div class="speed-info" id="speedInfo">Current Speed: 1x</div>
     <div class="info-box">💡 Speed range 0.1x ~ 5x. All processing is local.</div>
   </div>
+  <div class="section" id="result" style="display:none">
+    <h2>📊 Speed Stats</h2>
+    <div class="result-box" style="background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:14px;font-size:.9rem">
+      <div style="color:#22d3ee;font-size:1.4rem;font-weight:700"><span id="stSpeed">1</span>x</div>
+      <div style="color:#94a3b8;margin-top:4px">Duration factor: <span id="stDur">100</span>%</div>
+      <div style="color:#94a3b8">Source: <span id="stFile">—</span> (<span id="stSize">—</span>)</div>
+    </div>
+    <button class="btn btn-download" id="copyResultBtn" style="margin-top:12px">📋 Copy Result</button>
+  </div>
   <div class="footer">Free ToolBase © 2024 | Client-side only</div>
 </main>
 <div class="toast" id="toast"></div>
@@ -66,6 +75,30 @@ document.getElementById('speedRange').addEventListener('input',function(){const 
 function showPreview(){const speed=parseFloat(document.getElementById('speedRange').value);document.getElementById('preview').innerHTML=`<img src="${gifUrl}" alt="GIF Preview">`;document.getElementById('btnDownload').disabled=false;document.getElementById('speedInfo').textContent='Current Speed: '+speed+'x'}
 function downloadGif(){if(!gifUrl){showToast('Please select a GIF file first');return}const speed=parseFloat(document.getElementById('speedRange').value);const a=document.createElement('a');a.href=gifUrl;a.download='speed_'+speed+'x.gif';document.body.appendChild(a);a.click();document.body.removeChild(a);showToast('Downloading... Precise speed adjustment requires dedicated tools')}
 function showToast(msg){document.getElementById('toast').textContent=msg;document.getElementById('toast').style.display='block';setTimeout(()=>document.getElementById('toast').style.display='none',3000)}
+function updateSpeedStats(){
+  const speed=parseFloat(document.getElementById('speedRange').value);
+  const dur=1/speed;
+  document.getElementById('stSpeed').textContent=speed;
+  document.getElementById('stDur').textContent=Math.round(dur*100);
+  const f=document.getElementById('gifInput').files[0];
+  document.getElementById('stFile').textContent=f?f.name:'—';
+  document.getElementById('stSize').textContent=f?(f.size/1024).toFixed(1)+' KB':'—';
+  document.getElementById('result').style.display='block';
+}
+document.getElementById('speedRange').addEventListener('input',updateSpeedStats);
+document.getElementById('copyResultBtn').addEventListener('click',function(){
+  const text='GIF Speed: '+document.getElementById('stSpeed').textContent+'x\nDuration factor: '+document.getElementById('stDur').textContent+'%\nSource: '+document.getElementById('stFile').textContent+' ('+document.getElementById('stSize').textContent+')';
+  const done=()=>showToast('Result copied');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>copySpeedFallback(text));
+  }else{copySpeedFallback(text);}
+});
+function copySpeedFallback(text){
+  const ta=document.createElement('textarea');
+  ta.value=text;document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');showToast('Result copied');}catch(e){showToast('Copy failed');}
+  ta.remove();
+}
 </script>
 
 <div class="seo-content" style="margin:1.5rem 0;padding:1rem;background:#0f172a;border-radius:8px;font-size:.95rem;color:#475569;line-height:1.8"><p>GIF Speed Changer is a free online tool that runs entirely in your browser. No installation, registration, or server uploads required — your data stays private and secure. Use GIF Speed Changer to quickly complete tasks and boost your productivity. Built with pure front-end technology, it works on all modern browsers and mobile devices. GIF Speed Changer provides accurate results instantly. Everything runs locally: Select GIF File and other values are processed on your device, never sent to a server for fast, secure, and reliable performance on any device.</p></div>

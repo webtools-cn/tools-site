@@ -101,6 +101,15 @@ footer a{color:#475569}
 <button class="btn btn-secondary" id="clearBtn" disabled>Clear List</button>
 </div>
 <div class="file-list" id="fileList"></div>
+<div id="result" style="display:none;margin-top:16px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:12px;padding:16px">
+<h2 style="font-size:1rem;color:#f1f5f9;margin-bottom:12px">📊 Compression Results</h2>
+<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">
+<div style="flex:1;min-width:120px;text-align:center;padding:12px;background:#1e293b;border-radius:8px"><div id="resOrig" style="font-size:1.4rem;font-weight:700;color:#e2e8f0">0 KB</div><div style="font-size:.75rem;color:#64748b">Original</div></div>
+<div style="flex:1;min-width:120px;text-align:center;padding:12px;background:#1e293b;border-radius:8px"><div id="resComp" style="font-size:1.4rem;font-weight:700;color:#22d3ee">0 KB</div><div style="font-size:.75rem;color:#64748b">Compressed</div></div>
+<div style="flex:1;min-width:120px;text-align:center;padding:12px;background:#1e293b;border-radius:8px"><div id="resSaved" style="font-size:1.4rem;font-weight:700;color:#4ade80">0%</div><div style="font-size:.75rem;color:#64748b">Saved</div></div>
+</div>
+<canvas id="chart" width="600" height="160" style="width:100%;height:auto"></canvas>
+</div>
 </div>
 
 <h2>What is File Upload Compressor - Compress Images OnlineBase?</h2><p>File Upload Compressor - Compress Images OnlineBase is a free online tool that runs entirely in your browser. No download or signup needed — enter File Upload Compressor and other values to get results instantly. All data is processed locally.</p>
@@ -132,7 +141,31 @@ function handleFiles(newFiles){for(const f of newFiles){if(f.type.startsWith('im
 function renderList(){if(files.length===0){fileList.innerHTML='';compressBtn.disabled=true;clearBtn.disabled=true;return;}compressBtn.disabled=false;clearBtn.disabled=false;fileList.innerHTML=files.map((f,i)=>'<div class="file-item"><span class="file-name">'+f.name+'</span><span class="file-size">'+(f.size/1024).toFixed(1)+' KB</span><button class="btn btn-secondary" style="font-size:.75rem;padding:4px 8px" onclick="removeFile('+i+')">Remove</button></div>').join('');}
 function removeFile(i){files.splice(i,1);renderList();}
 clearBtn.addEventListener('click',()=>{files.length=0;renderList();showToast('Cleared!');});
-compressBtn.addEventListener('click',async()=>{if(files.length===0)return;showToast('Compressing...');const q=+quality.value/100;for(let i=0;i<files.length;i++){const f=files[i];try{const img=await createImageBitmap(f);const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);const blob=await new Promise(r=>canvas.toBlob(r,f.type,q));const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='compressed_'+f.name;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);}catch(e){}}showToast('Compression complete! Files downloading.');});
+compressBtn.addEventListener('click',async()=>{if(files.length===0)return;showToast('Compressing...');const q=+quality.value/100;let origTotal=0,compTotal=0;for(let i=0;i<files.length;i++){const f=files[i];origTotal+=f.size;try{const img=await createImageBitmap(f);const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);const blob=await new Promise(r=>canvas.toBlob(r,f.type,q));compTotal+=blob.size;const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='compressed_'+f.name;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);}catch(e){}}showResult(origTotal,compTotal);showToast('Compression complete! Files downloading.');});
+function showResult(orig,comp){
+  const el=document.getElementById('result');el.style.display='block';
+  document.getElementById('resOrig').textContent=(orig/1024).toFixed(1)+' KB';
+  document.getElementById('resComp').textContent=(comp/1024).toFixed(1)+' KB';
+  document.getElementById('resSaved').textContent=orig>0?Math.round((1-comp/orig)*100)+'%':'0%';
+  drawChart(orig,comp);
+}
+function drawChart(orig,comp){
+  const c=document.getElementById('chart');const ctx=c.getContext('2d');
+  const w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
+  const max=Math.max(orig,comp,1);const barW=w/3,pad=40;
+  const bars=[{label:'Original',v:orig,color:'#64748b'},{label:'Compressed',v:comp,color:'#06b6d4'}];
+  ctx.textAlign='center';
+  bars.forEach(function(b,i){
+    const bh=Math.max(4,(b.v/max)*(h-60));
+    const x=pad+i*(w-2*pad)/2+(w-2*pad)/4;
+    const y=h-20-bh;
+    ctx.fillStyle=b.color;ctx.fillRect(x-barW/2,y,barW,bh);
+    ctx.fillStyle='#e2e8f0';ctx.font='13px monospace';
+    ctx.fillText((b.v/1024).toFixed(1)+' KB',x,y-6);
+    ctx.fillStyle='#94a3b8';ctx.font='12px sans-serif';
+    ctx.fillText(b.label,x,h-6);
+  });
+}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
 </script>
 </body>

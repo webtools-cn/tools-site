@@ -70,6 +70,9 @@
 <main>
   <div class="section">
     <textarea id="input" placeholder="Type your text to preview different font styles..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="copy-btn" onclick="fillExample()" style="background:rgba(148,163,184,.1);color:#94a3b8">🎲 Fill Example</button>
+    </div>
   </div>
   <div class="font-grid" id="font-grid"></div>
 </div>
@@ -124,8 +127,16 @@ function renderFonts(){
 function copyFont(i){
   const input=document.getElementById('input').value||'Hello World';
   const result=convert(input,fonts[i]);
-  navigator.clipboard.writeText(result).then(()=>showToast('✅ Copied')).catch(()=>showToast('❌ Copy failed'));
+  const done=()=>showToast('✅ Copied');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(result).then(done).catch(()=>{legacyCopy(result);done();});
+  }else{legacyCopy(result);done();}
 }
+function legacyCopy(text){
+  const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);
+}
+function fillExample(){document.getElementById('input').value='Make your words stand out!';renderFonts();showToast('✅ Example filled');}
 document.getElementById('input').addEventListener('input',renderFonts);
 renderFonts();
 function showToast(msg){const t=document.createElement('div');t.style.cssText='position:fixed;bottom:20px;right:20px;background:#333;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:.9rem';

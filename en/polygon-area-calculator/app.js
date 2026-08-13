@@ -13,9 +13,29 @@
       <button class="btn-secondary" id="btnExample">Load Example</button>
     </div>
     <div class="result" id="areaResult">Enter vertex coordinates and click "Calculate Area"</div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn btn-success" id="copyResult">📋 Copy Result</button>
+    </div>
     <canvas id="polyCanvas" width="600" height="400" style="width:100%;height:auto;border:1px solid #e2e8f0;margin-top:12px;"></canvas>
   `;
   toolArea.innerHTML = html;
+
+  function copyResult() {
+    const el = document.getElementById('areaResult');
+    const text = el.textContent;
+    if (!text || text.indexOf('Area') === -1) { showToast('Nothing to copy yet'); return; }
+    const done = () => showToast('Result copied');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else { fallbackCopy(text, done); }
+  }
+  function fallbackCopy(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch(e) {}
+    document.body.removeChild(ta);
+  }
 
   function showToast(msg) {
     const t = document.getElementById('toast');
@@ -138,4 +158,8 @@
     document.getElementById('vertexInput').value = '0,0\n4,0\n5,2\n4,4\n0,4\n-1,2';
     calculate();
   });
+  document.getElementById('vertexInput').addEventListener('input', () => {
+    if (document.getElementById('vertexInput').value.trim()) calculate();
+  });
+  document.getElementById('copyResult').addEventListener('click', copyResult);
 })();

@@ -82,6 +82,7 @@
   </div>
   <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
     <button class="btn btn-primary" onclick="searchMime()">🔍 Search</button>
+    <button class="btn btn-secondary" id="sampleBtn">🎲 Try an example</button>
     <button class="btn" style="background:#1e293b;color:#94a3b8" onclick="clearSearch()">Clear</button>
     <label style="color:#94a3b8;font-size:.85rem;display:flex;align-items:center;gap:4px">
       Show <select id="limitSelect" onchange="searchMime()" style="background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:4px;padding:2px 6px;font-size:.8rem">
@@ -115,6 +116,9 @@
 .mime-table td{padding:8px 12px;border-bottom:1px solid rgba(148,163,184,.06);color:#e2e8f0;vertical-align:top}
 .mime-table .ext{color:#22d3ee;font-family:'Consolas','Monaco','Courier New',monospace;font-size:.8rem}
 .mime-table .cat-tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:500}
+.mime-copy{padding:2px 7px;margin-left:6px;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:5px;cursor:pointer;font-size:.72rem;transition:all .2s}
+.mime-copy:hover{background:rgba(6,182,212,.25)}
+.mime-copy.copied{background:rgba(34,197,94,.15);color:#22c55e;border-color:rgba(34,197,94,.3)}
 .cat-image{background:rgba(16,185,129,.15);color:#10b981}
 .cat-text{background:rgba(59,130,246,.15);color:#3b82f6}
 .cat-application{background:rgba(139,92,246,.15);color:#8b5cf6}
@@ -347,7 +351,7 @@ function renderTable(data) {
   for (var i = 0; i < data.length; i++) {
     var item = data[i];
     html += '<tr>' +
-      '<td style="font-family:Consolas,Monaco,monospace;font-size:.82rem;color:#e2e8f0;word-break:break-all">' + escapeHtml(item.mime) + '</td>' +
+      '<td style="font-family:Consolas,Monaco,monospace;font-size:.82rem;color:#e2e8f0;word-break:break-all">' + escapeHtml(item.mime) + ' <button class="mime-copy" data-mime="' + escapeHtml(item.mime).replace(/"/g,'&quot;') + '" title="Copy MIME type">📋</button></td>' +
       '<td class="ext">' + escapeHtml(item.ext || '-') + '</td>' +
       '<td><span class="cat-tag ' + getCatClass(item.cat) + '">' + getCatLabel(item.cat) + '</span></td>' +
       '<td style="color:#94a3b8;font-size:.8rem">' + escapeHtml(item.desc) + '</td>' +
@@ -394,6 +398,30 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 window.onload = searchMime;
+
+function copyMimeText(text,btn){
+  var done=function(){showToast('Copied: '+text);btn.innerHTML='✅';btn.classList.add('copied');setTimeout(function(){btn.innerHTML='📋';btn.classList.remove('copied');},1500);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done)['catch'](function(){
+      var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');done();}catch(err){showToast('Copy failed')}
+      document.body.removeChild(ta);
+    });
+  }else{
+    var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');done();}catch(err){showToast('Copy failed')}
+    document.body.removeChild(ta);
+  }
+}
+document.getElementById('mimeTableBody').addEventListener('click',function(e){
+  var btn=e.target.closest('.mime-copy');
+  if(btn)copyMimeText(btn.getAttribute('data-mime'),btn);
+});
+document.getElementById('sampleBtn').addEventListener('click',function(){
+  var samples=['image','json','.pdf','audio','font','video','.zip'];
+  document.getElementById('searchInput').value=samples[Math.floor(Math.random()*samples.length)];
+  searchMime();
+});
 
 </script>
 

@@ -160,12 +160,16 @@ a{color:#06b6d4;text-decoration:none}
     </div>
   </div>
   <div class="section" id="detailSection" style="display:none">
-    <h2>📊 Detailed Comparison</h2>
+    <h2>📊 Detailed Comparison <button class="btn btn-secondary" id="copyReportBtn" style="padding:4px 12px;font-size:.75rem;margin-left:8px">📋 Copy Report</button></h2>
     <div style="overflow-x:auto">
       <table class="info-table" id="detailTable">
         <thead><tr><th>Parameter</th></tr></thead>
         <tbody id="detailBody"></tbody>
       </table>
+    </div>
+    <div style="margin-top:12px">
+      <canvas id="pixelChart" width="800" height="260" style="width:100%;max-width:800px;display:block;margin:0 auto;background:#0a0f1e;border-radius:8px"></canvas>
+      <p style="color:#64748b;font-size:.75rem;text-align:center;margin-top:6px">Physical pixels (width × height × DPR²)</p>
     </div>
   </div>
   <div class="section">
@@ -300,7 +304,76 @@ function renderCompare(){
   var thead=document.querySelector("#detailTable thead tr");
   thead.innerHTML="<th>Parameter</th>";
   compared.forEach(function(d){thead.innerHTML+='<th>'+d.icon+' '+d.name+'</th>'});
+
+  drawPixelChart();
 }
+
+function drawPixelChart(){
+  var canvas=document.getElementById("pixelChart");
+  if(!canvas)return;
+  if(compared.length===0){canvas.style.display="none";return;}
+  canvas.style.display="block";
+  var ctx=canvas.getContext("2d");
+  var W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  var pad={l:70,r:20,t:24,b:34};
+  var chartW=W-pad.l-pad.r,chartH=H-pad.t-pad.b;
+  var maxPix=0;
+  var data=compared.map(function(d){var p=Math.round(d.w*d.dpr*d.h*d.dpr);if(p>maxPix)maxPix=p;return {name:d.icon+' '+d.name,pix:p};});
+  if(maxPix===0)maxPix=1;
+  var colors=["#06b6d4","#818cf8","#fbbf24","#f472b6","#34d399","#f87171"];
+  data.forEach(function(d,i){
+    var barH=Math.round(chartH*(d.pix/maxPix));
+    var barW=Math.min(70,(chartW/data.length)-20);
+    var x=pad.l+(chartW/data.length)*i+(chartW/data.length-barW)/2;
+    var y=pad.t+chartH-barH;
+    ctx.fillStyle=colors[i%colors.length];
+    ctx.fillRect(x,y,barW,barH);
+    ctx.fillStyle="#94a3b8";
+    ctx.font="11px monospace";
+    ctx.textAlign="center";
+    ctx.fillText((d.pix/1e6).toFixed(1)+'M',x+barW/2,y-6);
+    var name=d.name.length>14?d.name.slice(0,13)+'…':d.name;
+    ctx.fillText(name,x+barW/2,pad.t+chartH+18);
+  });
+  ctx.strokeStyle="rgba(148,163,184,.2)";
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,pad.t+chartH);ctx.lineTo(W-pad.r,pad.t+chartH);ctx.stroke();
+  ctx.fillStyle="#94a3b8";
+  ctx.font="11px monospace";
+  ctx.textAlign="left";
+  ctx.fillText('0',6,pad.t+chartH+4);
+  ctx.fillText((maxPix/1e6).toFixed(1)+'M',6,pad.t+4);
+}
+
+function copyReport(){
+  if(compared.length===0){showToast("Nothing to copy");return;}
+  var lines=["Screen Resolution Comparison Report","================================="];
+  compared.forEach(function(d){
+    lines.push(d.icon+" "+d.name);
+    lines.push("  Resolution: "+d.w+"×"+d.h);
+    lines.push("  DPR: "+d.dpr+"x");
+    lines.push("  Physical: "+Math.round(d.w*d.dpr)+"×"+Math.round(d.h*d.dpr));
+    lines.push("  Physical Pixels: "+Math.round(d.w*d.dpr*d.h*d.dpr).toLocaleString());
+  });
+  var text=lines.join("\n");
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){showToast("Report copied")}).catch(function(){copyReportFallback(text);});
+  }else{
+    copyReportFallback(text);
+  }
+}
+function copyReportFallback(text){
+  var ta=document.createElement("textarea");
+  ta.value=text;
+  ta.style.position="fixed";
+  ta.style.opacity="0";
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+  showToast("Report copied");
+}
+document.getElementById("copyReportBtn").addEventListener("click",copyReport);
 
 renderCompare();
 </script>

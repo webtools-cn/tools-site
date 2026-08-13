@@ -131,6 +131,15 @@ canvas{max-width:100%;border-radius:8px}
 <h2>📝 Notes</h2>
 <p>After uploading an audio file, the duration will be displayed. Set start and end times, then click cut to download the trimmed audio. All computation happens on your device — Start Time, End Time and other inputs stay in your browser.</p>
 </div>
+<div class="input-section" id="result" style="display:none">
+<h2>📊 Cut Summary</h2>
+<div class="result-grid">
+<div class="result-card"><div class="label">Start</div><div class="value" id="resStart">--</div></div>
+<div class="result-card"><div class="label">End</div><div class="value" id="resEnd">--</div></div>
+<div class="result-card"><div class="label">Cut Length</div><div class="value" id="resLen">--</div></div>
+</div>
+<div class="btn-row"><button class="btn btn-secondary" id="copyResultBtn">📋 Copy Result</button></div>
+</div>
 <script>
 var audioCtx=null,audioBuffer=null;
 document.getElementById('audioInput').addEventListener('change',function(e){
@@ -206,6 +215,28 @@ function encodeWAV(buf){
   }
   return arr;
 }
+</script>
+<script>
+(function(){
+  var res=document.getElementById('result');
+  var startEl=document.getElementById('startTime'),endEl=document.getElementById('endTime');
+  function updateSummary(){
+    var s=parseFloat(startEl.value)||0,e=parseFloat(endEl.value)||0;
+    var len=Math.max(0,e-s);
+    document.getElementById('resStart').textContent=s.toFixed(1)+'s';
+    document.getElementById('resEnd').textContent=e.toFixed(1)+'s';
+    document.getElementById('resLen').textContent=len.toFixed(1)+'s';
+    res.style.display='block';
+  }
+  function copyResult(){
+    var text='Audio Cut Summary | Start: '+document.getElementById('resStart').textContent+' | End: '+document.getElementById('resEnd').textContent+' | Cut Length: '+document.getElementById('resLen').textContent;
+    if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){showToast('Result copied')})['catch'](function(){showToast('Copy failed')});}
+    else{var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('Result copied');}
+  }
+  startEl.addEventListener('input',updateSummary);
+  endEl.addEventListener('input',updateSummary);
+  document.getElementById('copyResultBtn').addEventListener('click',copyResult);
+})();
 </script>
 
 <div class="info-section">

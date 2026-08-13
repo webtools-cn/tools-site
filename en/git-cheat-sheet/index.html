@@ -55,6 +55,8 @@ footer a{color:#94a3b8}
 .toast.show{opacity:1}
 .toast.success{border-color:rgba(16,185,129,.5);color:#10b981}
 .counter{color:#64748b;font-size:.8rem;text-align:center;margin:8px 0}
+.btn-copy-cmd{padding:4px 10px;font-size:.75rem;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.25);border-radius:6px;cursor:pointer;transition:all .2s}
+.btn-copy-cmd:hover{background:rgba(6,182,212,.25)}
 @media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.container{padding:0 12px}.btn{padding:8px 14px;font-size:.85rem}.panel{padding:16px}}
 
 /* Visual enhancement v2 */
@@ -91,6 +93,7 @@ footer a{color:#94a3b8}
 <div class="tool-section">
 <h2>🔍 Search Git Commands</h2>
 <input type="text" id="searchInput" placeholder="Search by command name or keyword (e.g., clone, branch, merge)..." autocomplete="off">
+<button class="btn btn-secondary" id="sampleBtn" style="margin-top:8px">🎲 Try an example</button>
 <p class="counter" id="resultCount"></p>
 </div>
 <div id="commandList"></div>
@@ -169,7 +172,7 @@ function renderCommands(filter){
     cats[cat].forEach(function(c){
       total++;
       html+='<div class="cmd-card">';
-      html+='<div class="cmd-header"><span class="cmd-name">'+c.cmd+'</span><span class="cmd-category">'+c.cat+'</span></div>';
+      html+='<div class="cmd-header"><span class="cmd-name">'+c.cmd+'</span><span class="cmd-category">'+c.cat+'</span><button class="btn-copy-cmd" data-cmd="'+c.cmd.replace(/"/g,'&quot;')+'">📋 Copy</button></div>';
       html+='<div class="cmd-desc">'+c.desc+'</div>';
       html+='<div class="cmd-example">'+c.eg+'</div>';
       html+='</div>';
@@ -182,6 +185,33 @@ function renderCommands(filter){
 
 document.getElementById("searchInput").addEventListener("input",function(){
   renderCommands(this.value.trim().toLowerCase());
+});
+
+function copyTextFallback(text,msg){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){showToast(msg)})["catch"](function(){
+      var ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();
+      try{document.execCommand("copy");showToast(msg);}catch(e){showToast("Copy failed")}
+      document.body.removeChild(ta);
+    });
+  }else{
+    var ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();
+    try{document.execCommand("copy");showToast(msg);}catch(e){showToast("Copy failed")}
+    document.body.removeChild(ta);
+  }
+}
+
+document.getElementById("commandList").addEventListener("click",function(e){
+  var btn=e.target.closest(".btn-copy-cmd");
+  if(!btn)return;
+  copyTextFallback(btn.getAttribute("data-cmd"),"Copied: "+btn.getAttribute("data-cmd"));
+});
+
+document.getElementById("sampleBtn").addEventListener("click",function(){
+  var samples=["clone","merge","branch","rebase","stash","log","diff","tag"];
+  var q=samples[Math.floor(Math.random()*samples.length)];
+  document.getElementById("searchInput").value=q;
+  renderCommands(q);
 });
 
 renderCommands("");

@@ -254,15 +254,18 @@ tr:hover td{background:rgba(148,163,184,.03)}
     <textarea id="codeInput" placeholder="Paste your code here..."></textarea>
     <div class="btn-row">
       <button class="btn btn-primary" onclick="analyzeCode()">📊 Analyze</button>
+      <button class="btn btn-secondary" onclick="fillExample()">🎲 Fill Example</button>
       <button class="btn btn-secondary" onclick="clearAll()">🗑 Clear</button>
     </div>
   </div>
 
   <div id="resultsSection" style="display:none">
+    <div style="text-align:right;margin-bottom:8px"><button class="btn btn-secondary" onclick="copyResults()">📋 Copy Results</button></div>
     <div class="stats" id="summaryStats"></div>
 
     <div class="table-container">
       <h2>File Statistics</h2>
+      <canvas id="lineChart" width="320" height="130" style="max-width:100%;height:130px;margin:8px 0;background:#0f172a;border-radius:8px"></canvas>
       <table id="resultsTable">
         <thead>
           <tr>
@@ -515,6 +518,7 @@ function displayResults(results, allResults) {
       <div class="label">Empty Lines</div>
     </div>
   `;
+  drawLineChart(allResults);
 
   resultsBody.innerHTML = '';
   results.forEach((r, i) => {
@@ -556,6 +560,52 @@ function clearAll() {
   emptyState.style.display = 'block';
   document.querySelector('.drop-zone p').textContent = 'Drag files here or click to select';
   document.querySelector('.drop-zone .hint').textContent = 'Supports .js .ts .py .java .c .cpp .cs .go .rs .php .rb .swift .kt .html .css .sql .sh .md etc.';
+}
+
+const exampleCode = "// Example: counting code lines\nfunction greet(name) {\n  // say hello\n  const msg = 'Hello, ' + name + '!';\n  return msg;\n}\n\nconst users = ['Alice', 'Bob'];\nusers.forEach(function(u) {\n  console.log(greet(u));\n});\n";
+
+function fillExample() {
+  codeInput.value = exampleCode;
+  document.getElementById('languageSelect').value = 'javascript';
+  analyzeCode();
+}
+
+function copyResults() {
+  const table = document.getElementById('resultsTable');
+  if (!table || !table.rows.length) { showToast('Nothing to copy yet'); return; }
+  const lines = [];
+  for (const row of table.rows) {
+    lines.push(Array.from(row.cells).map((c) => c.textContent.trim()).join('\t'));
+  }
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(() => showToast('✅ Results copied')).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showToast('✅ Results copied'); } catch (e) {}
+    document.body.removeChild(ta);
+  });
+}
+
+function drawLineChart(stats) {
+  const cv = document.getElementById('lineChart');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  const vals = [stats.total, stats.code, stats.comment, stats.empty];
+  const labels = ['Total', 'Code', 'Comments', 'Empty'];
+  const colors = ['#06b6d4', '#22d3ee', '#f59e0b', '#64748b'];
+  const max = Math.max(...vals, 1);
+  const bw = 60, bh = H - 34, bx0 = (W - 4 * bw - 30) / 2;
+  ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  vals.forEach((v, i) => {
+    const h = Math.max(4, v / max * (bh - 10));
+    const x = bx0 + i * (bw + 10) + bw / 2, y = bh - h + 10;
+    ctx.fillStyle = colors[i]; ctx.fillRect(bx0 + i * (bw + 10), y, bw, h);
+    ctx.fillStyle = '#e2e8f0'; ctx.fillText(v.toLocaleString(), x, y - 4);
+    ctx.fillStyle = '#94a3b8'; ctx.fillText(labels[i], x, H - 8);
+  });
 }
 
 dropZone.addEventListener('dragover', (e) => {
@@ -605,7 +655,13 @@ function handleFiles(files) {
     };
     reader.readAsText(file);
   }
-}</script>
+}
+
+codeInput.addEventListener('input', () => {
+  if (codeInput.value.trim() && uploadedFiles.length === 0) {
+    analyzeCode();
+  }
+});</script>
 
 <!-- Feedback Widget -->
 </div>

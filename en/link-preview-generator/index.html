@@ -239,11 +239,21 @@ table.data td{color:#cbd5e1}
 <!-- AdSense -->
 
 
+<style>.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}.toast.show{opacity:1}</style>
+<div class="toast" id="toast"></div>
 <script>
 var app=document.getElementById('app');
 
-app.innerHTML='<div class="input-section"><h2>🔗 Enter URL</h2><div class="row"><div class="field" style="flex:3"><label>URL</label><input type="url" id="urlInput" placeholder="https://example.com/article"></div><div class="field" style="flex:1"><label>&nbsp;</label><button class="btn btn-primary" id="fetchBtn" style="width:100%">🔍 Fetch</button></div></div></div><div class="input-section"><h2>📱 Preview</h2><div style="color:#64748b;font-size:.85rem;text-align:center;padding:16px">Enter a URL and click Fetch to preview how it looks on social platforms</div><div id="previewArea"></div></div>';
+app.innerHTML='<div class="input-section"><h2>🔗 Enter URL</h2><div class="row"><div class="field" style="flex:3"><label>URL</label><input type="url" id="urlInput" placeholder="https://example.com/article"></div><div class="field" style="flex:1"><label>&nbsp;</label><button class="btn btn-primary" id="fetchBtn" style="width:100%">🔍 Fetch</button></div></div><div class="btn-row"><button class="btn btn-secondary" id="fillEx">🎲 Fill Example</button></div></div><div class="input-section"><h2>📱 Preview</h2><div style="color:#64748b;font-size:.85rem;text-align:center;padding:16px">Enter a URL and click Fetch to preview how it looks on social platforms</div><div id="previewArea"></div></div>';
 document.getElementById('usageContent').innerHTML='<p>Enter any URL to fetch its Open Graph metadata and preview how it appears when shared on social media.</p><p>Note: Due to CORS restrictions, some URLs may not be accessible. This tool requires network request support.</p>';
+
+document.getElementById('fillEx').addEventListener('click',function(){
+  document.getElementById('urlInput').value='https://example.com/blog/top-10-markdown-tips';
+  document.getElementById('fetchBtn').click();
+  showToast('Example filled ✓');
+});
+function showToast(m){const t=document.getElementById('toast');if(!t)return;t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+function fallbackCopy(text,done){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){}document.body.removeChild(ta);}
 
 document.getElementById('fetchBtn').addEventListener('click',function(){
   var url=document.getElementById('urlInput').value.trim();
@@ -290,6 +300,18 @@ document.getElementById('fetchBtn').addEventListener('click',function(){
     card+='</div></div>';
     
     document.getElementById('cardPreview').innerHTML=card;
+    document.getElementById('cardPreview').dataset.html=card;
+    var cpBtn=document.getElementById('copyCard');
+    if(!cpBtn){
+      var w=document.createElement('div');w.style.marginTop='8px';w.style.textAlign='center';
+      w.innerHTML='<button class="btn btn-secondary" id="copyCard" style="font-size:.8rem">📋 Copy Card HTML</button>';
+      document.getElementById('cardPreview').parentNode.appendChild(w);
+      document.getElementById('copyCard').addEventListener('click',function(){
+        var h=document.getElementById('cardPreview').dataset.html;
+        var done=function(){showToast('Card HTML copied ✓')};
+        if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(h).then(done).catch(function(){fallbackCopy(h,done);});}else{fallbackCopy(h,done);}
+      });
+    }
   });
   
   document.getElementById('previewBtn').click();

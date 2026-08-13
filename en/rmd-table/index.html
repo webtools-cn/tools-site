@@ -125,18 +125,25 @@ a{color:#06b6d4;text-decoration:none}
  <button class="btn btn-primary" onclick="updateCalc()">🔄 Calculate</button>
  <button class="btn btn-secondary" onclick="resetDefault()">📋 RestoreDefault</button>
  </div>
- <div id="rmdResult" class="rmd-result">
- <div class="amount" id="rmdAmount">$18,868</div>
- <div class="label">2024 Required Minimum Distribution</div>
- <div class="detail" id="rmdDetail">Distribution Factor: 26.5 | Withdrawal Rate: 3.77%</div>
- </div>
+  <div id="rmdResult" class="rmd-result">
+  <div class="amount" id="rmdAmount">$18,868</div>
+  <div class="label">2024 Required Minimum Distribution</div>
+  <div class="detail" id="rmdDetail">Distribution Factor: 26.5 | Withdrawal Rate: 3.77%</div>
+  <button class="copy-btn" id="copyResultBtn" type="button" style="margin-top:12px">📋 Copy Result</button>
+  </div>
  <div class="stats">
  <div class="stat-card"><div class="stat-value" id="lifeFactor">26.5</div><div class="stat-label">Distribution Factor</div></div>
  <div class="stat-card"><div class="stat-value" id="withdrawPct">3.77%</div><div class="stat-label">Withdrawal Rate</div></div>
  <div class="stat-card highlight"><div class="stat-value" id="remainingBal">$481,132</div><div class="stat-label">Remaining Balance</div></div>
  <div class="stat-card"><div class="stat-value" id="yearsLeft">-</div><div class="stat-label">Est. Depletion Year</div></div>
  </div>
- <div id="warningBox"></div>
+  <div id="warningBox"></div>
+</div>
+
+<div class="section">
+  <h2>📊 RMD Projection Chart</h2>
+  <p class="info-text">Expected annual RMD for ages 72–95 at your current account balance. Recalculates live as inputs change.</p>
+  <canvas id="rmdChart" style="width:100%;max-height:320px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px;"></canvas>
 </div>
 
 <div class="section">
@@ -232,7 +239,71 @@ function updateCalc(){
 
   renderTable();
   highlightRow();
+  drawChart();
 }
+
+function drawChart(){
+  var canvas=document.getElementById('rmdChart');
+  if(!canvas) return;
+  var balance=getBalance();
+  var cur=getCurrency();
+  var dpr=window.devicePixelRatio||1;
+  var w=canvas.clientWidth||560;
+  var h=canvas.clientHeight||280;
+  canvas.width=w*dpr;canvas.height=h*dpr;
+  canvas.style.height=h+'px';
+  var ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+  var years=[];
+  for(var a=72;a<=95;a++){
+    var f=getFactor(a);
+    years.push({age:a,rmd:f?balance/f:0});
+  }
+  var maxRmd=Math.max.apply(null,years.map(function(y){return y.rmd;}))||1;
+  var pad={l:64,r:16,t:16,b:30};
+  var bw=(w-pad.l-pad.r)/years.length;
+  var selected=selectedAge||73;
+  years.forEach(function(y,i){
+    var x=pad.l+i*bw;
+    var hh=(y.rmd/maxRmd)*(h-pad.t-pad.b);
+    ctx.fillStyle=(y.age===selected)?'#06b6d4':'rgba(6,182,212,.35)';
+    ctx.fillRect(x+2,h-pad.b-hh,bw-4,hh);
+    if(y.age%5===0||y.age===72){
+      ctx.fillStyle='#94a3b8';
+      ctx.font='10px system-ui,sans-serif';
+      ctx.textAlign='center';
+      ctx.fillText(y.age,x+bw/2,h-pad.b+14);
+    }
+  });
+  ctx.fillStyle='#06b6d4';
+  ctx.font='11px system-ui,sans-serif';
+  ctx.textAlign='right';
+  ctx.fillText(cur+fmtNum(maxRmd),pad.l-8,pad.t+10);
+  ctx.fillStyle='#94a3b8';
+  ctx.fillText(cur+'0',pad.l-8,h-pad.b+4);
+}
+
+function copyResult(){
+  var amount=document.getElementById('rmdAmount').textContent;
+  var detail=document.getElementById('rmdDetail').textContent;
+  var text='RMD '+amount+' | '+detail;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){showToast('Result copied to clipboard');}).catch(function(){fallbackCopy(text);});
+  }else{
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text){
+  var ta=document.createElement('textarea');
+  ta.value=text;ta.style.position='fixed';ta.style.left='-9999px';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');showToast('Result copied to clipboard');}catch(e){showToast('Copy failed');}
+  document.body.removeChild(ta);
+}
+
+document.getElementById('copyResultBtn').addEventListener('click',copyResult);
 
 function estimateYears(age,balance,factor){
   var bal=balance;

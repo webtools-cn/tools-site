@@ -247,8 +247,9 @@ table.data td{color:#cbd5e1}
 
 <div class="input-section">
 <h2>Emoji Copy & Paste</h2>
-<div class="search-box">
-<input type="text" id="emojiSearch" placeholder="Search emojis... (e.g., smile, heart, food, flag)" oninput="filterEmojis()">
+<div class="search-box" style="display:flex;gap:8px;align-items:center">
+<input type="text" id="emojiSearch" placeholder="Search emojis... (e.g., smile, heart, food, flag)" oninput="filterEmojis()" style="flex:1;margin-bottom:0">
+<button class="btn btn-secondary" onclick="fillExample()" style="white-space:nowrap;flex-shrink:0;padding:10px 14px;margin-bottom:0">🎲 填入示例</button>
 </div>
 <div class="emoji-cats" id="emojiCats"></div>
 <div class="recent-section" id="recentSection" style="display:none">
@@ -257,6 +258,13 @@ table.data td{color:#cbd5e1}
 </div>
 <div class="emoji-grid" id="emojiGrid"></div>
 <div class="emoji-count" id="emojiCount"></div>
+<div id="result" style="background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px;padding:12px;margin-top:12px;display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span style="color:#94a3b8;font-size:.85rem;font-weight:600">📋 Last Copied</span>
+    <button class="btn btn-secondary" id="copyLastBtn" style="padding:4px 12px;font-size:.8rem;margin-bottom:0">📋 Copy Result</button>
+  </div>
+  <div id="resultText" style="font-size:2rem;text-align:center;color:#e2e8f0"></div>
+</div>
 </div>
 <div id="copyToast" class="copy-toast">Copied to clipboard!</div>
 
@@ -286,6 +294,7 @@ const EMOJI_DATA = {
 const CAT_NAMES = Object.keys(EMOJI_DATA);
 let recentEmojis = JSON.parse(localStorage.getItem('recentEmojis') || '[]');
 let currentCat = CAT_NAMES[0];
+let lastCopied = '';
 
 function renderCats(){
   const container = document.getElementById('emojiCats');
@@ -341,6 +350,10 @@ function filterEmojis(){ renderGrid(); }
 
 function copyEmoji(el, emoji){
   navigator.clipboard.writeText(emoji).then(() => {
+    lastCopied = emoji;
+    const res = document.getElementById('result');
+    res.style.display = 'block';
+    document.getElementById('resultText').textContent = emoji;
     el.classList.add('copied');
     setTimeout(() => el.classList.remove('copied'), 500);
     const toast = document.getElementById('copyToast');
@@ -363,6 +376,39 @@ function copyEmoji(el, emoji){
     setTimeout(() => el.classList.remove('copied'), 500);
   });
 }
+
+function fillExample(){
+  document.getElementById('emojiSearch').value = 'smile';
+  filterEmojis();
+}
+
+function showCopiedFeedback(msg){
+  const toast = document.getElementById('copyToast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1500);
+}
+
+function copyTextFb(text){
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showCopiedFeedback('✅ Copied: ' + text));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showCopiedFeedback('✅ Copied: ' + text);
+  }
+}
+
+document.getElementById('copyLastBtn').addEventListener('click', () => {
+  if (!lastCopied) return;
+  copyTextFb(lastCopied);
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   renderCats();

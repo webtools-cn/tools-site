@@ -152,6 +152,7 @@
  <thead><tr><th>layerlevel</th><th>name</th><th>Size (px)</th><th>Size (rem)</th><th>Preview</th></tr></thead>
  <tbody id="scaleBody"></tbody>
  </table>
+ <div style="margin-top:16px"><canvas id="scaleChart" style="width:100%;height:200px;background:#0f172a;border-radius:8px;border:1px solid rgba(148,163,184,.1)"></canvas></div>
  </div>
 
  <div class="section">
@@ -217,6 +218,41 @@
             body.innerHTML = html;
             document.getElementById('codeOutput').textContent = ':root {\n' + cssVars + '}';
             window._scssCode = '$scale-base: ' + base + 'px;\n$scale-ratio: ' + ratio + ';\n' + scssVars;
+            drawScaleChart(base, ratio, steps);
+        }
+
+        function drawScaleChart(base, ratio, steps) {
+            var cv = document.getElementById('scaleChart');
+            if (!cv) return;
+            var dpr = window.devicePixelRatio || 1;
+            var w = cv.clientWidth || cv.parentNode.clientWidth || 700;
+            var h = 200;
+            cv.width = w * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+            var ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, w, h);
+            var sizes = [];
+            for (var i = 0; i <= steps; i++) { sizes.push(base * Math.pow(ratio, i)); }
+            var maxV = Math.max.apply(null, sizes);
+            var padL = 42, padB = 26, padT = 16, padR = 10;
+            var cw = w - padL - padR, ch = h - padB - padT;
+            ctx.strokeStyle = 'rgba(148,163,184,.2)';
+            for (var g = 0; g <= 4; g++) {
+                var gy = padT + ch - (g / 4 * ch);
+                ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(padL + cw, gy); ctx.stroke();
+                ctx.fillStyle = '#64748b'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+                ctx.fillText((maxV * g / 4).toFixed(0) + 'px', padL - 5, gy + 3);
+            }
+            var bw = cw / sizes.length;
+            sizes.forEach(function(size, i) {
+                var bh = size / maxV * ch;
+                var x = padL + i * bw + bw * 0.15, y = padT + ch - bh;
+                ctx.fillStyle = '#06b6d4';
+                ctx.fillRect(x, y, bw * 0.7, bh);
+                ctx.fillStyle = '#94a3b8'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText(i, padL + i * bw + bw * 0.5, padT + ch + 13);
+                ctx.fillStyle = '#22d3ee'; ctx.font = 'bold 10px sans-serif';
+                ctx.fillText(size.toFixed(1), padL + i * bw + bw * 0.5, y - 4);
+            });
         }
 
         function copyCode() {

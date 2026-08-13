@@ -47,6 +47,7 @@
     .btn-primary { background: #22d3ee; color: #fff; }
     .btn-primary:hover { background: var(--primary-hover); }
     .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
     .preview-table { width: 100%; border-collapse: collapse; font-size: 13px; overflow-x: auto; display: block; }
     .preview-table th, .preview-table td { border: 1px solid rgba(148,163,184,.1); padding: 6px 10px; text-align: left; white-space: nowrap; }
     .preview-table th { background: #0f172a; font-weight: 600; }
@@ -114,6 +115,9 @@
     <div class="section" id="previewCard" style="display:none">
       <h2>📊 Preview</h2>
       <div class="stats" id="stats"></div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-primary" id="copyCsvBtn">📋 Copy Result CSV</button>
+      </div>
       <div style="overflow-x:auto;margin-top:12px">
         <table class="preview-table" id="previewTable"></table>
       </div>
@@ -273,6 +277,24 @@
         `<span>📋 ${result.header.length} columns</span><span>📝 ${result.rows.length} rows</span><span>📁 ${files.length} files</span>`;
       document.getElementById('previewCard').style.display = 'block';
       showToast('Merge complete, downloaded!');
-    });</script>
+    });
+
+    function copyMergedCSV() {
+      const result = mergeCSVs();
+      if (!result) { showToast('No data to copy', true); return; }
+      const csv = rowsToCSV(result.header, result.rows);
+      const done = () => showToast('CSV copied to clipboard');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(csv).then(done).catch(() => fallbackCopy(csv, done));
+      } else { fallbackCopy(csv, done); }
+    }
+    function fallbackCopy(text, done) {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch(e) {}
+      document.body.removeChild(ta);
+    }
+    document.getElementById('copyCsvBtn').addEventListener('click', copyMergedCSV);</script>
 </body>
 </html>

@@ -129,6 +129,7 @@
 <button class="btn btn-primary" onclick="validateCron()">✅ Validate</button>
 </div>
 <div id="validation-result" style="margin-top:12px"></div>
+<div style="margin-top:8px;text-align:right"><button class="btn btn-secondary" onclick="copyCronResult(this)">📋 Copy Result</button></div>
 </div>
 <div class="section">
 <h2>📋 Common Presets</h2>
@@ -203,6 +204,18 @@ else{var desc=describeCron(parts,type);resultEl.innerHTML='<div class="valid">�
 function describeCron(parts,type){var min=parts[type===5?0:1],hour=parts[type===5?1:2],day=parts[type===5?2:3],month=parts[type===5?3:4],dow=parts[type===5?4:5];if(min==='*'&&hour==='*'&&day==='*'&&month==='*'&&dow==='*')return'Every minute';if(min.startsWith('*/'))return'Every '+min.split('/')[1]+' minutes';if(hour.startsWith('*/')&&min==='0')return'Every '+hour.split('/')[1]+' hours';if(min==='0'&&hour!=='*'&&day==='*'&&month==='*'&&dow==='*')return'Daily at '+hour+':00';if(min==='0'&&hour==='0'&&day==='*'&&month==='*'&&dow!=='*')return'Weekly on day '+dow+' at 00:00';if(min==='0'&&hour==='0'&&day!=='*'&&month==='*'&&dow==='*')return'Monthly on day '+day+' at 00:00';return'min='+min+' hour='+hour+' day='+day+' month='+month+' dow='+dow;}
 function showNextTimes(parts,type){var card=document.getElementById('next-card'),list=document.getElementById('next-times');card.style.display='block';list.innerHTML='';var now=new Date();for(var i=0;i<5;i++){var li=document.createElement('li');var next=new Date(now.getTime()+(i+1)*60000);li.textContent=next.getFullYear()+'-'+String(next.getMonth()+1).padStart(2,'0')+'-'+String(next.getDate()).padStart(2,'0')+' '+String(next.getHours()).padStart(2,'0')+':'+String(next.getMinutes()).padStart(2,'0')+':'+String(next.getSeconds()).padStart(2,'0');list.appendChild(li);}}
 function setPreset(expr){document.getElementById('cron-expr').value=expr;document.getElementById('cron-type').value='5';validateCron();}
+function cronFallbackCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);}
+function copyCronResult(btn){
+  var res=document.getElementById('validation-result').textContent.trim();
+  if(!res)return;
+  var times=document.getElementById('next-times').textContent.trim();
+  var text=res+(times?'\nNext executions:\n'+times:'');
+  var done=function(){var old=btn.textContent;btn.textContent='✅ Copied';setTimeout(function(){btn.textContent=old;},1500);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done,function(){cronFallbackCopy(text);done();});}
+  else{cronFallbackCopy(text);done();}
+}
+var cronInputTimer=null;
+document.getElementById('cron-expr').addEventListener('input',function(){clearTimeout(cronInputTimer);cronInputTimer=setTimeout(validateCron,300);});
 </script>
 </main>
   <div class="info-section faq-section">

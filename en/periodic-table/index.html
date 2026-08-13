@@ -201,6 +201,7 @@ a{color:#06b6d4;text-decoration:none}
   <div class="section"><p class="info-text">Interactive periodic table of elements. Click any element for detailed properties including atomic mass, electron configuration, and physical properties.</p>
     <div class="tool-body">
     <div style="margin-bottom:12px">
+      <input type="text" id="elementSearch" placeholder="🔎 Search element by name, symbol or number, e.g. Carbon / C / 6" style="width:100%;padding:10px 14px;background:#0f172a;border:1px solid rgba(6,182,212,.3);border-radius:8px;color:#e2e8f0;font-size:.9rem;outline:none;margin-bottom:10px">
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
         <span style="font-size:.75rem;color:#94a3b8">Legend:</span>
         <span style="font-size:.7rem;padding:2px 6px;border-radius:3px;background:rgba(56,189,248,.2);color:#38bdf8">Nonmetal</span>
@@ -217,6 +218,7 @@ a{color:#06b6d4;text-decoration:none}
     <div class="section" id="detailPanel" style="display:none;margin-bottom:0">
       <h2 id="detailTitle">Element Details</h2>
       <div id="detailContent" style="color:#94a3b8;font-size:.9rem"></div>
+      <div style="margin-top:12px"><button class="btn btn-secondary" id="copyDetailBtn" onclick="copyElementDetail()">📋 Copy Details</button></div>
     </div>
     </div>
   </div>
@@ -434,6 +436,31 @@ var ELEMENTS=[
       "<div><strong>Group:</strong> "+(el.gr||"-")+"</div><div><strong>Period:</strong> "+el.pr+"</div>"+
       "<div><strong>Melting Point:</strong> "+mp+"</div><div><strong>Boiling Point:</strong> "+bp+"</div>"+
       "<div style='grid-column:1/3'><strong>Electron Config:</strong> "+(el.e||"N/A")+"</div></div>"
+  }
+  var searchBox=document.getElementById("elementSearch");
+  searchBox.addEventListener("input",function(){
+    var q=this.value.trim().toLowerCase();
+    if(!q)return;
+    var match=ELEMENTS.filter(function(el){
+      return String(el.n)===q||el.s.toLowerCase()===q||el.n.toLowerCase().indexOf(q)!==-1;
+    })[0];
+    if(match)showDetail(match);
+  });
+  function copyElementDetail(){
+    var panel=document.getElementById("detailPanel");
+    if(panel.style.display==="none"){showToast("Select an element first");return;}
+    var text=document.getElementById("detailTitle").textContent+"\n"+
+      document.getElementById("detailContent").textContent.replace(/\s+/g," ").trim();
+    var btn=document.getElementById("copyDetailBtn");
+    function done(){btn.textContent="✅ Copied";setTimeout(function(){btn.textContent="📋 Copy Details";},2000);}
+    function fb(){var ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);done();}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(fb);}else fb();
+  }
+  function showToast(msg){
+    var t=document.getElementById("toast");
+    if(!t)return;
+    t.textContent=msg;t.classList.add("show");
+    setTimeout(function(){t.classList.remove("show");},2000);
   }
 </script>
 

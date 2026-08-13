@@ -241,6 +241,7 @@ a{color:#06b6d4;text-decoration:none}
 
  <div class="btn-row">
  <button class="btn btn-primary" onclick="generateSchema()">📊 GenerateJSON-LD</button>
+ <button class="btn-sm btn-copy" onclick="fillExample()">🎲 Fill Example</button>
  </div>
 
  <div id="resultSection" class="hidden" style="margin-top:16px">
@@ -455,7 +456,7 @@ function renderForm() {
   });
 }
 
-function generateSchema() {
+function generateSchema(silent) {
   const resultSection = document.getElementById('resultSection');
   const output = document.getElementById('schemaOutput');
   
@@ -489,7 +490,47 @@ function generateSchema() {
   const json = JSON.stringify(schema, null, 2);
   output.textContent = json;
   resultSection.classList.remove('hidden');
-  showToast('📊 JSON-LDcodeAlreadyGenerate');
+  if (!silent) showToast('📊 JSON-LDcodeAlreadyGenerate');
+}
+
+function fillExample() {
+  const s = selectedSchema;
+  const now = new Date();
+  const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  const samples = {
+    headline: 'How to Master JSON-LD in 5 Minutes',
+    description: 'A practical guide to adding structured data to any webpage for rich search results.',
+    author: 'Jane Doe',
+    datePublished: today,
+    dateModified: today,
+    image: 'https://example.com/article.jpg',
+    url: 'https://example.com/article',
+    name: 'Wireless Headphones Pro',
+    price: '129.99',
+    priceCurrency: 'USD',
+    brand: 'SoundMax',
+    sku: 'WH-1000',
+    logo: 'https://example.com/logo.png',
+    telephone: '+1-555-0100',
+    email: 'contact@example.com',
+    address: '123 Main Street',
+    sameAs: 'https://twitter.com/example, https://facebook.com/example',
+    faqItems: 'What is JSON-LD?|JSON-LD is a lightweight linked-data format for structured data.\nHow do I add it?|Paste the generated code into your page head.',
+    priceRange: '$$',
+    openingHours: 'Mo-Fr 09:00-18:00',
+    breadcrumbItems: 'Home|https://example.com/\nProducts|https://example.com/products\nWireless Headphones Pro|https://example.com/product/wh-1000'
+  };
+  s.fields.forEach(f => {
+    const el = document.getElementById(f.id);
+    if (!el) return;
+    if (f.type === 'select') {
+      if (f.id === 'priceCurrency') el.value = 'USD';
+      else if (el.options.length) el.selectedIndex = 0;
+    } else if (f.id in samples) {
+      el.value = samples[f.id];
+    }
+  });
+  generateSchema();
 }
 
 function getVal(id) {
@@ -715,6 +756,11 @@ function showToast(msg) {
   toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), 2500);
 }
+
+document.getElementById('formFields').addEventListener('input', function(){
+  clearTimeout(window.__schemaTimer);
+  window.__schemaTimer = setTimeout(function(){ generateSchema(true); }, 400);
+});
 
 init();
 </script>

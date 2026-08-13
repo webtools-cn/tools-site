@@ -221,9 +221,11 @@ canvas{max-width:100%}
  <label>Overbust (cm)</label>
  <input type="number" id="overbust" value="90" min="50" max="160" step="0.5">
  </div>
- <div class="form-group" style="display:flex;align-items:flex-end">
- <button class="btn btn-primary" onclick="calcBraSize()">📐 Calculate</button>
- </div>
+  <div class="form-group" style="display:flex;align-items:flex-end;gap:8px">
+  <button class="btn btn-primary" onclick="calcBraSize()">📐 Calculate</button>
+  <button class="btn btn-secondary" onclick="fillExample()">🎲 Example</button>
+  </div>
+
 </div>
 <div class="preview-box" style="flex-direction:column;padding:16px">
  <div style="font-size:1.5rem;margin-bottom:12px">👙 Size Results</div>
@@ -235,7 +237,9 @@ canvas{max-width:100%}
  <tr><td>US</td><td id="braUs">-</td></tr>
  <tr><td>UK</td><td id="braUk">-</td></tr>
  </table>
- <div style="margin-top:12px;color:#64748b;font-size:.85rem" id="braDetail"></div>
+  <div style="margin-top:12px;color:#64748b;font-size:.85rem" id="braDetail"></div>
+  <button class="btn btn-secondary" onclick="copyResult()" style="margin-top:12px">📋 Copy Result</button>
+
 </div>
 <p class="info-text">💡 Tip: Use a soft measuring tape. Keep it snug but not tight. Different brands may vary.</p>
 
@@ -305,11 +309,11 @@ function getCupLetter(diff) {
   return 'K+';
 }
 
-function calcBraSize(){
+function calcBraSize(silent){
   var ub=parseFloat(document.getElementById('underbust').value);
   var ob=parseFloat(document.getElementById('overbust').value);
-  if(isNaN(ub)||isNaN(ob)||ub<=40||ob<=40||ub>180||ob>180){toast('Please enter valid measurements (40-180 cm)');return}
-  if(ob<=ub){toast('Overbust should be larger than underbust');return}
+  if(isNaN(ub)||isNaN(ob)||ub<=40||ob<=40||ub>180||ob>180){if(!silent)toast('Please enter valid measurements (40-180 cm)');return}
+  if(ob<=ub){if(!silent)toast('Overbust should be larger than underbust');return}
   
   var diff=ob-ub;
   var cup=getCupLetter(diff);
@@ -348,6 +352,48 @@ function calcBraSize(){
   
   toast('Result: ' + cnSize + ' (CN)');
 }
+
+function fillExample() {
+  var ub = 68 + Math.round(Math.random() * 24);
+  var ob = ub + 8 + Math.round(Math.random() * 14);
+  document.getElementById('underbust').value = ub;
+  document.getElementById('overbust').value = ob;
+  calcBraSize();
+}
+
+function copyResult() {
+  var r = document.getElementById('braResult').textContent;
+  if (!r || r === '--') { toast('No result to copy'); return; }
+  var text = 'Bra Size Result\n====================\n' +
+    'CN: ' + document.getElementById('braCn').textContent + '\n' +
+    'EU: ' + document.getElementById('braEu').textContent + '\n' +
+    'US: ' + document.getElementById('braUs').textContent + '\n' +
+    'UK: ' + document.getElementById('braUk').textContent + '\n' +
+    document.getElementById('braDetail').textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function() { toast('Result copied'); }).catch(function() { copyFallback(text); });
+  } else {
+    copyFallback(text);
+  }
+}
+function copyFallback(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  toast('Result copied');
+}
+function calcBraLive() {
+  var ub = document.getElementById('underbust').value;
+  var ob = document.getElementById('overbust').value;
+  if (ub && ob && !isNaN(parseFloat(ub)) && !isNaN(parseFloat(ob))) calcBraSize(true);
+}
+document.getElementById('underbust').addEventListener('input', calcBraLive);
+document.getElementById('overbust').addEventListener('input', calcBraLive);
 calcBraSize();
 
 </script>

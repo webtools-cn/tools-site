@@ -17,6 +17,8 @@
     </div>
     <div class="input-group">
       <button class="btn-primary" id="btnGenerate">Generate</button>
+      <button class="btn-secondary" id="btnRandom">🎲 Random</button>
+      <button class="btn-secondary" id="btnCopyPNG">📋 Copy PNG</button>
       <button class="btn-secondary" id="btnDownloadPNG">Download PNG</button>
       <button class="btn-secondary" id="btnDownloadSVG">Download SVG</button>
     </div>
@@ -78,6 +80,28 @@
     showToast('Downloading PNG...');
   }
 
+  const RANDOM_TEXTS = ['AB', 'FT', '🧡', '☀', 'OK', '88', 'Hi', '★'];
+
+  function randomText() {
+    const input = document.getElementById('faviconText');
+    input.value = RANDOM_TEXTS[Math.floor(Math.random() * RANDOM_TEXTS.length)];
+    generateFavicon();
+    showToast('Random sample filled');
+  }
+
+  function copyPNG() {
+    const canvas = document.getElementById('faviconCanvas');
+    canvas.toBlob((blob) => {
+      if (!blob) { showToast('Copy not supported'); return; }
+      const item = new ClipboardItem({'image/png': blob});
+      navigator.clipboard.write([item]).then(() => {
+        showToast('PNG copied to clipboard');
+      }).catch(() => {
+        showToast('Copy blocked — use Download PNG instead');
+      });
+    }, 'image/png');
+  }
+
   function downloadSVG() {
     const text = document.getElementById('faviconText').value || 'A';
     const bgColor = document.getElementById('bgColor').value;
@@ -102,6 +126,8 @@
     document.getElementById(id).addEventListener('input', generateFavicon);
   });
   document.getElementById('btnGenerate').addEventListener('click', generateFavicon);
+  document.getElementById('btnRandom').addEventListener('click', randomText);
+  document.getElementById('btnCopyPNG').addEventListener('click', copyPNG);
   document.getElementById('btnDownloadPNG').addEventListener('click', downloadPNG);
   document.getElementById('btnDownloadSVG').addEventListener('click', downloadSVG);
 

@@ -219,9 +219,13 @@ canvas{max-width:100%}
     <div><span style="color:#64748b">Time Left:</span> <span id="cpsTimeLeft">0s</span></div>
   </div>
 </div>
+<div id="cpsChartWrap" style="margin-top:12px;display:none"><canvas id="cpsChart" width="560" height="110" style="width:100%;height:auto"></canvas></div>
 <div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
   <div><span style="color:#64748b">Best CPS:</span> <span id="cpsBest">{localStorage.getItem('cpsBest')||'--'}</span></div>
   <div><span style="color:#64748b">Tests:</span> <span id="cpsTotalTests">{localStorage.getItem('cpsTotal')||'0'}</span></div>
+</div>
+<div style="margin-top:8px;display:flex;gap:8px;justify-content:center">
+  <button class="btn btn-secondary" onclick="copyCpsResult()">📋 Copy Result</button>
 </div>
 <p class="info-text">💡 Click rapidly in the area above to test your clicking speed!</p>
     </div>
@@ -275,11 +279,11 @@ canvas{max-width:100%}
 <script>
 var lang=document.documentElement.lang;
 function toast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},2000)}
-var cpsClickCount=0,cpsActive=false,cpsTimer=null,cpsDuration=10,cpsStartTime=0;
+var cpsClickCount=0,cpsActive=false,cpsTimer=null,cpsDuration=10,cpsStartTime=0,cpsHistory=[],lastCpsResult=null;
 function handleClick(){
   if(!cpsActive){
     cpsDuration=parseInt(document.getElementById('cpsDuration').value);
-    cpsClickCount=0;cpsActive=true;cpsStartTime=Date.now();
+    cpsClickCount=0;cpsActive=true;cpsStartTime=Date.now();cpsHistory=[];
     document.getElementById('cpsStatus').textContent='Click fast!';
     document.getElementById('cpsIcon').textContent='\u{1F5B1}\uFE0F';
     document.getElementById('cpsCount').textContent='0';
@@ -294,7 +298,12 @@ function updateCPS(){
   var elapsed=(Date.now()-cpsStartTime)/1000;
   var remaining=cpsDuration-elapsed;
   document.getElementById('cpsTimeLeft').textContent=Math.ceil(remaining)+'s';
-  if(elapsed>0) document.getElementById('cpsRate').textContent=(cpsClickCount/elapsed).toFixed(1);
+  if(elapsed>0){
+    var curCps=cpsClickCount/elapsed;
+    document.getElementById('cpsRate').textContent=curCps.toFixed(1);
+    cpsHistory.push(curCps);
+    drawCpsChart();
+  }
   if(remaining<=0){
     clearInterval(cpsTimer);cpsTimer=null;
     cpsActive=false;
@@ -302,6 +311,7 @@ function updateCPS(){
     document.getElementById('cpsRate').textContent=cps.toFixed(2);
     document.getElementById('cpsStatus').textContent='Done! '+cps.toFixed(2)+' CPS';
     document.getElementById('cpsIcon').textContent='\u{1F3C6}';
+    lastCpsResult={clicks:cpsClickCount,cps:parseFloat(cps.toFixed(2)),duration:cpsDuration};
     // Save score
     var best=parseFloat(localStorage.getItem('cpsBest')||'0');
     if(cps>best){localStorage.setItem('cpsBest',cps);document.getElementById('cpsBest').textContent=cps.toFixed(2)}
@@ -311,6 +321,34 @@ function updateCPS(){
     toast(cps.toFixed(2)+' CPS!');
   }
 }
+function drawCpsChart(){
+  var cv=document.getElementById('cpsChart');if(!cv)return;
+  var wrap=document.getElementById('cpsChartWrap');wrap.style.display='block';
+  var ctx=cv.getContext('2d');
+  var w=cv.width,h=cv.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='rgba(148,163,184,.06)';ctx.fillRect(0,0,w,h);
+  var data=cpsHistory.slice();if(!data.length)data.push(0);
+  var max=Math.max.apply(null,data);if(max<1)max=1;
+  var bw=w/data.length;
+  for(var i=0;i<data.length;i++){
+    var bh=(data[i]/max)*(h-10);
+    ctx.fillStyle='#06b6d4';
+    ctx.fillRect(i*bw+1,h-4-bh,Math.max(bw-2,1),bh);
+  }
+  ctx.strokeStyle='rgba(148,163,184,.15)';
+  ctx.beginPath();ctx.moveTo(0,h-4);ctx.lineTo(w,h-4);ctx.stroke();
+  ctx.fillStyle='#64748b';ctx.font='10px sans-serif';
+  ctx.fillText('CPS over time',4,12);
+}
+function copyCpsResult(){
+  if(!lastCpsResult){toast('Finish a test first');return;}
+  var text='CPS Test Result\nDuration: '+lastCpsResult.duration+'s\nClicks: '+lastCpsResult.clicks+'\nCPS: '+lastCpsResult.cps;
+  var done=function(){toast('✅ Result copied');};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done,function(){cpsFallbackCopy(text);done();});}
+  else{cpsFallbackCopy(text);done();}
+}
+function cpsFallbackCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);}
 </script>
 
 <!-- Feedback Widget -->

@@ -250,7 +250,14 @@ a{color:#06b6d4;text-decoration:none}
         </div>
       </div>
       <div class="volume-warning" id="volumeWarning">⚠️ Boost above 200% may cause distortion. Preview recommended.</div>
-      <div class="waveform-placeholder" id="waveform">Audio waveform preview</div>
+      <div class="waveform-placeholder" id="waveform" style="display:block;height:90px">
+        <canvas id="waveformCanvas" width="800" height="90" style="width:100%;height:90px;display:block"></canvas>
+      </div>
+      <div class="file-info" id="fileStats" style="display:none">
+        <span class="name" id="statDuration"></span>
+        <span class="size" id="statChannel"></span>
+        <span class="size" id="statRate"></span>
+      </div>
       <div class="play-controls">
         <button class="btn btn-play" id="playBtn">▶ Preview</button>
         <span class="play-time" id="playTime">0:00 / 0:00</span>
@@ -311,6 +318,35 @@ var playTime=document.getElementById('playTime');
 var progressFill=document.getElementById('progressFill');
 var downloadBtn=document.getElementById('downloadBtn');
 var volumeWarning=document.getElementById('volumeWarning');
+var statDuration=document.getElementById('statDuration');
+var statChannel=document.getElementById('statChannel');
+var statRate=document.getElementById('statRate');
+var fileStats=document.getElementById('fileStats');
+
+function drawWaveform(buffer){
+  var canvas=document.getElementById('waveformCanvas');
+  if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var data=buffer.getChannelData(0);
+  var w=canvas.width,h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='rgba(6,182,212,.06)';
+  ctx.fillRect(0,0,w,h);
+  var step=Math.ceil(data.length/w);
+  ctx.fillStyle='rgba(6,182,212,.75)';
+  for(var x=0;x<w;x++){
+    var max=0;
+    for(var i=x*step;i<(x+1)*step&&i<data.length;i++){
+      var v=Math.abs(data[i]);
+      if(v>max)max=v;
+    }
+    var bh=Math.max(2,max*h);
+    var mid=h/2;
+    ctx.fillRect(x,mid-bh/2,1,bh);
+  }
+  ctx.strokeStyle='rgba(148,163,184,.3)';
+  ctx.beginPath();ctx.moveTo(0,mid);ctx.lineTo(w,mid);ctx.stroke();
+}
 
 uploadZone.addEventListener('click',function(){fileInput.click();});
 uploadZone.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('dragover');});
@@ -338,6 +374,11 @@ function handleFile(file){
       playTime.textContent='0:00 / '+formatTime(buffer.duration);
       downloadBtn.disabled=false;
       updateBoostDisplay();
+      drawWaveform(buffer);
+      fileStats.style.display='flex';
+      statDuration.textContent='Duration: '+formatTime(buffer.duration);
+      statChannel.textContent='Channels: '+buffer.numberOfChannels;
+      statRate.textContent='Sample Rate: '+(buffer.sampleRate/1000).toFixed(1)+' kHz';
     },function(){showToast('Could not decode this audio file. Please check the format.');});
   };
   reader.readAsArrayBuffer(file);

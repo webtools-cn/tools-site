@@ -112,6 +112,10 @@ footer a { color: #22d3ee; text-decoration: none; }
   <div class="section">
     <textarea id="spell-input" rows="6" placeholder="InputEnglishText..." style="width:100%;font-family:inherit;font-size:.95rem;"></textarea>
     <button class="btn" id="spell-check-btn" style="margin-top:12px;">🔍 Check spelling</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn btn-secondary" id="spell-example-btn" style="background:rgba(148,163,184,.15);color:#e2e8f0;">🎲 Fill Example</button>
+      <button class="btn btn-secondary" id="spell-copy-btn" style="background:rgba(148,163,184,.15);color:#e2e8f0;">📋 Copy Result</button>
+    </div>
     <div id="spell-result" class="output" style="margin-top:16px;font-family:inherit;min-height:40px;color:#94a3b8;">Waiting for input...</div>
   </div>
   <div class="how-to">
@@ -177,7 +181,7 @@ footer a { color: #22d3ee; text-decoration: none; }
 </head>
 <body>
 <header>
-  <a href="<script>
+<script>
 
 (function() {
   'use strict';
@@ -244,7 +248,7 @@ footer a { color: #22d3ee; text-decoration: none; }
     setTimeout(() => t.classList.remove('show'), 2000);
   }
 
-  document.getElementById('spell-check-btn').addEventListener('click', function() {
+  function runCheck() {
     const text = document.getElementById('spell-input').value.trim();
     const resultDiv = document.getElementById('spell-result');
     
@@ -279,7 +283,40 @@ footer a { color: #22d3ee; text-decoration: none; }
     html += '<div style="margin-top:12px;padding-top:8px;border-top:1px solid rgba(148,163,184,.1);">修改后：<br><span style="color:#e2e8f0;">' + corrected.join('') + '</span></div>';
     
     resultDiv.innerHTML = html;
+  }
+
+  document.getElementById('spell-check-btn').addEventListener('click', runCheck);
+
+  document.getElementById('spell-example-btn').addEventListener('click', function() {
+    document.getElementById('spell-input').value = 'Teh quick brown fox jumped over teh lazy dog. Please recieve your package and belive in yourself. This is definately a grate day, we shoud work togehter. It is neccessary to make a seperate plan for this project.';
+    runCheck();
   });
+
+  function fallbackCopySpell(t) {
+    var ta = document.createElement('textarea');
+    ta.value = t;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Copied!');
+  }
+
+  document.getElementById('spell-copy-btn').addEventListener('click', function() {
+    var r = document.getElementById('spell-result');
+    if (!r) return;
+    var t = r.textContent || r.innerText;
+    if (!t || t.indexOf('Waiting') === 0) { showToast('No result to copy'); return; }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(t).then(function(){showToast('Copied!');})['catch'](function(){fallbackCopySpell(t);});
+    } else {
+      fallbackCopySpell(t);
+    }
+  });
+
+  document.getElementById('spell-input').addEventListener('input', runCheck);
 }());
 
 

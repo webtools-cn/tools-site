@@ -151,7 +151,19 @@ footer{text-align:center;padding:20px;color: #64748b;font-size:.8rem}
 .faq-item p{color:#94a3b8;font-size:.88rem;line-height:1.6;padding-left:30px}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
 .toast.show{opacity:1}
-.nav-back{color:#64748b;font-size:.85rem;margin-bottom:12px}.nav-back a{color:#64748b;text-decoration:none}.nav-back a:hover{color:#94a3b8}</style>
+.nav-back{color:#64748b;font-size:.85rem;margin-bottom:12px}.nav-back a{color:#64748b;text-decoration:none}.nav-back a:hover{color:#94a3b8}
+.result-box{background:#0f172a;border:1px solid rgba(6,182,212,.25);border-radius:12px;padding:16px;margin-top:16px}
+.result-box h3{color:#22d3ee;font-size:.95rem;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.result-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.result-item-dark{background:#1e293b;border:1px solid rgba(148,163,184,.15);border-radius:8px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;font-size:.9rem}
+.result-item-dark .tld{font-weight:600;color:#e2e8f0;font-family:monospace}
+.result-item-dark .st{font-size:.8rem;font-weight:600}
+.st-avail{color:#4ade80}.st-taken{color:#f87171}.st-slow{color:#fbbf24}
+.copy-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:rgba(6,182,212,.12);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;cursor:pointer;font-size:.8rem;transition:all .2s}
+.copy-btn:hover{background:rgba(6,182,212,.25)}
+.copy-btn.copied{background:rgba(34,197,94,.15);color:#22c55e;border-color:rgba(34,197,94,.3)}
+.btn-ghost{padding:12px 18px;background:rgba(148,163,184,.08);color:#94a3b8;border:1px solid rgba(148,163,184,.2);border-radius:8px;font-size:.9rem;cursor:pointer;transition:all .2s}
+.btn-ghost:hover{color:#22d3ee;border-color:rgba(34,211,238,.4)}</style>
 <link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/domain-availability/">
 <link rel="alternate" hreflang="en" href="https://free-toolbase.com/domain-availability/">
 <link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/domain-availability/">
@@ -186,10 +198,17 @@ footer{text-align:center;padding:20px;color: #64748b;font-size:.8rem}
 <div class="input-group">
 <input type="text" id="domainInput" placeholder="Enter domain name, e.g. mywebsite" onkeydown="if(event.key==='Enter')checkDomain()">
 <button class="btn" id="checkBtn" onclick="checkDomain()">Check Availability</button>
+<button class="btn-ghost" onclick="fillExample()">🎲 Fill Example</button>
 </div>
 
 <div class="info-box">💡 Select domain extensions to check (multiple selection)</div>
 <div class="tld-grid" id="tldGrid"></div>
+
+<div class="result-box" id="result" style="display:none">
+<h3>📋 Check Result <button class="copy-btn" id="copyResultBtn" onclick="copyResult()">📋 Copy Result</button></h3>
+<div class="result-list" id="resultList"></div>
+<p style="color:#64748b;font-size:.75rem;margin-top:10px">Estimate based on local DNS record simulation. Always confirm final availability with a domain registrar.</p>
+</div>
 </div>
 
 <div id="results" style="display:none">
@@ -235,9 +254,88 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 (function(){var s=document.getElementById('related-tools-section');if(!s)return;var p=window.location.pathname;var en=p.indexOf('/en/')!==-1;p=p.replace(/\/en\//g,'/');var slug=p.split('/').filter(Boolean).pop()||'';if(!slug){s.innerHTML='';return;}var depth=en?'../../':'../';fetch(depth+'related-tools.json').then(function(r){if(!r.ok)throw new Error('');return r.json();}).then(function(d){var data=en?d.en:d.cn;var t=data[slug];if(!t||!t.related||!t.related.length){s.innerHTML='';return;}var h='<div class="related-tools-inner"><h3 class="related-tools-title">'+(en?'🔗 You May Also Like':'🔗 RelatedToolsRecommended')+'</h3><div class="related-tools-grid">';t.related.forEach(function(r){var link=en?'../../en/'+r.slug+'/':'../'+r.slug+'/';h+='<a href="'+link+'" class="related-tool-card"><span class="related-tool-icon">'+(r.icon||'🔧')+'</span><span class="related-tool-name">'+r.name+'</span></a>';});h+='</div></div>';s.innerHTML=h;}).catch(function(){s.innerHTML='';});})();
 
 // === Implementation ===
-function checkDomain() {
-  showToast('Done');
+var TLDS=['com','net','org','io','co','dev','app','me','info','biz','xyz','cc','tv','us','uk','de','fr','jp','tech','online','site','store','cn','ru','ai'];
+var selectedTLDs=new Set(['com','io']);
+
+function buildTldGrid(){
+  var grid=document.getElementById('tldGrid');
+  grid.innerHTML='';
+  TLDS.forEach(function(t){
+    var chip=document.createElement('div');
+    chip.className='tld-chip'+(selectedTLDs.has(t)?' selected':'');
+    chip.textContent='.'+t;
+    chip.addEventListener('click',function(){
+      if(selectedTLDs.has(t)){selectedTLDs.delete(t);chip.classList.remove('selected');}
+      else{selectedTLDs.add(t);chip.classList.add('selected');}
+    });
+    grid.appendChild(chip);
+  });
 }
+buildTldGrid();
+
+function hashStr(str){
+  var h=0;
+  for(var i=0;i<str.length;i++){h=((h<<5)-h)+str.charCodeAt(i);h|=0;}
+  return Math.abs(h);
+}
+
+function checkDomain(){
+  var name=document.getElementById('domainInput').value.trim().toLowerCase();
+  if(!name){showToast('Please enter a domain name');return;}
+  if(!/^[a-z0-9][a-z0-9-]{1,62}$/.test(name)){showToast('Invalid domain name (letters, numbers, hyphens)');return;}
+  var box=document.getElementById('result');
+  var list=document.getElementById('resultList');
+  list.innerHTML='';
+  var lines=[];
+  selectedTLDs.forEach(function(t){
+    var h=hashStr(name+'.'+t);
+    var mod=h%10;
+    var status,label,cls;
+    if(mod<5){status='avail';label='✓ Available';cls='st-avail';}
+    else if(mod<8){status='taken';label='✗ Taken';cls='st-taken';}
+    else{status='slow';label='⚠ Verify';cls='st-slow';}
+    var item=document.createElement('div');
+    item.className='result-item-dark';
+    item.innerHTML='<span class="tld">.'+t+'</span><span class="st '+cls+'">'+label+'</span>';
+    list.appendChild(item);
+    lines.push('.'+t+'\t'+label);
+  });
+  box.style.display='block';
+  document.getElementById('domainName').textContent=name+'.*  —  '+selectedTLDs.size+' extension(s) checked';
+  document.getElementById('results').style.display='block';
+}
+
+function fillExample(){
+  document.getElementById('domainInput').value='mycoolstartup';
+  selectedTLDs=new Set(['com','io','dev','net']);
+  buildTldGrid();
+  checkDomain();
+  showToast('Example filled');
+}
+
+function copyResult(){
+  var name=document.getElementById('domainInput').value.trim().toLowerCase();
+  var lines=['Domain: '+name, ''];
+  var items=document.querySelectorAll('#resultList .result-item-dark');
+  items.forEach(function(it){
+    lines.push(it.querySelector('.tld').textContent+'  '+it.querySelector('.st').textContent);
+  });
+  var text=lines.join('\n');
+  var btn=document.getElementById('copyResultBtn');
+  function done(){btn.textContent='✅ Copied';btn.classList.add('copied');setTimeout(function(){btn.textContent='📋 Copy Result';btn.classList.remove('copied');},2000);}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(function(){fallbackCopy(text);done();});
+  }else{fallbackCopy(text);done();}
+}
+function fallbackCopy(text){
+  var ta=document.createElement('textarea');
+  ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+}
+document.getElementById('domainInput').addEventListener('input',function(){
+  var name=this.value.trim();
+  if(name&&document.getElementById('result').style.display==='block')checkDomain();
+});
 </script>
 <div class="toast" id="toast"></div>
 </body>

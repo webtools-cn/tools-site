@@ -154,6 +154,7 @@
     <div class="section" id="result-card" style="display:none">
         <h2>📊 Comparison Results</h2>
         <div class="stats" id="stats"></div>
+        <canvas id="ftChart" width="640" height="200" style="width:100%;height:200px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:10px;margin-bottom:12px"></canvas>
         <div class="diff-container" id="diff-output"></div>
     </div>
 
@@ -289,6 +290,34 @@ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/p
         });
         document.getElementById('diff-output').innerHTML=html;
         document.getElementById('result-card').style.display='';
+        ftDrawDiffChart(added,removed,unchanged);
+    }
+
+    function ftDrawDiffChart(added,removed,unchanged){
+        var cv=document.getElementById('ftChart');
+        if(!cv)return;
+        var ctx=cv.getContext('2d');
+        var W=cv.width,H=cv.height,padL=44,padR=10,padT=18,padB=30;
+        ctx.clearRect(0,0,W,H);
+        var data=[{label:'Added',v:added,color:'#10b981'},{label:'Removed',v:removed,color:'#ef4444'},{label:'Unchanged',v:unchanged,color:'#64748b'}];
+        var maxV=Math.max.apply(null,data.map(function(x){return x.v}));
+        if(maxV<=0)return;
+        ctx.font='10px sans-serif';ctx.textAlign='right';
+        for(var g=0;g<=4;g++){
+            var y=padT+(H-padT-padB)*g/4,val=maxV*(4-g)/4;
+            ctx.strokeStyle='rgba(148,163,184,.12)';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+            ctx.fillStyle='#94a3b8';ctx.fillText(Math.round(val),padL-6,y+3);
+        }
+        var bw=(W-padL-padR)/data.length*0.4;
+        ctx.textAlign='center';
+        for(var i=0;i<data.length;i++){
+            var bh=(H-padT-padB)*data[i].v/maxV;
+            var x=padL+(W-padL-padR)*(i+0.5)/data.length;
+            ctx.fillStyle=data[i].color;
+            ctx.fillRect(x-bw/2,padT+(H-padT-padB)-bh,bw,bh);
+            ctx.fillStyle='#e2e8f0';ctx.fillText(data[i].v,x,padT+(H-padT-padB)-bh-4);
+            ctx.fillStyle='#94a3b8';ctx.fillText(data[i].label,x,padT+(H-padT-padB)+14);
+        }
     }
 
     function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/\x3C/g,'&lt;').replace(/>/g,'&gt;');}

@@ -105,6 +105,9 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:rgba(6,182,212
     <h2>📋 Frames (<span id="frameCount">0</span>)</h2>
     <div class="stats" id="gifInfo"></div>
     <div id="framesContainer" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="copyFramesBtn" onclick="copyFramesInfo()">📋 Copy Frame Info</button>
+    </div>
   </div>
 <script>
 let gifFrames=[],gifBlob=null;
@@ -118,6 +121,23 @@ function handleFile(input){
   gifFrames=[];
   document.getElementById('resultCard').style.display='none';
   document.getElementById('downloadAll').style.display='none';
+  splitGIF();
+}
+function copyFramesInfo(){
+  if(!gifFrames.length){toast('No frames to copy');return;}
+  let txt='GIF Splitter Result\n';
+  txt+='Total frames: '+gifFrames.length+'\n';
+  gifFrames.forEach((f,i)=>{txt+='Frame '+(i+1)+': '+f.width+'x'+f.height+'\n';});
+  const done=()=>toast('Frame info copied');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(()=>copyFramesFallback(txt));
+  }else{copyFramesFallback(txt);}
+}
+function copyFramesFallback(txt){
+  const ta=document.createElement('textarea');
+  ta.value=txt;document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');toast('Frame info copied');}catch(e){toast('Copy failed');}
+  ta.remove();
 }
 async function splitGIF(){
   if(!gifBlob){toast('Please select a GIF file first');return;}

@@ -179,6 +179,10 @@
 <div class="output-section">
  <h2>📋 Extractstatus</h2>
  <div id="statusArea" class="output-area">SelectPDFfile Settingspagesiderangeafter，click"Extractpageside Download".</div>
+ <div class="btn-row">
+  <button class="btn btn-secondary" id="exampleRangeBtn" type="button">🎲 Fill Example Range</button>
+  <button class="btn btn-secondary" id="copyStatusBtn" type="button">📋 Copy Result</button>
+ </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -235,6 +239,32 @@ async function handleFile(file) {
 selectAllBtn.addEventListener('click', () => {
   pageRange.value = '1-' + totalPages;
 });
+
+document.getElementById('exampleRangeBtn').addEventListener('click', () => {
+  pageRange.value = totalPages >= 8 ? '1,3,5-8' : '1-' + totalPages;
+  showToast('Example range filled');
+});
+
+document.getElementById('copyStatusBtn').addEventListener('click', () => {
+  const text = statusArea.textContent;
+  if (!text || text.indexOf('❌') !== -1 && text.indexOf('SelectPDFfile') !== -1) {
+    showToast('Nothing to copy');
+    return;
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => showToast('Result copied')).catch(() => copyFallback(text));
+  } else {
+    copyFallback(text);
+  }
+});
+
+function copyFallback(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); showToast('Result copied'); } catch(e) { showToast('Copy failed'); }
+  document.body.removeChild(ta);
+}
 
 function parsePageRange(input, max) {
   const pages = new Set();

@@ -265,6 +265,14 @@ a{color:#06b6d4;text-decoration:none}
       <div id="processingMsg" style="display:none;text-align:center;padding:20px;color:#22d3ee">⏳ Trimming audio, please wait...</div>
     </div>
   </div>
+  <div class="section" id="result" style="display:none">
+    <h2>📊 Trim Summary</h2>
+    <div class="file-info">
+      <span class="name" id="resFile">-</span>
+      <span class="dur" id="resRange">-</span>
+    </div>
+    <div class="btn-row"><button class="btn btn-secondary" id="copyResultBtn">📋 Copy Result</button></div>
+  </div>
   <div class="info-section" id="usage">
     <h2>How to Use</h2>
     <div>
@@ -332,6 +340,7 @@ function handleFile(file){
   originalName=file.name.replace(/\.[^.]+$/,'');
   fileName.textContent=file.name;
   fileSize.textContent=formatSize(file.size);
+  document.getElementById('resFile').textContent=file.name;
   controlsArea.style.display='block';
   stopPlayback();
   var reader=new FileReader();
@@ -358,6 +367,8 @@ function updateRangeDisplay(){
   startVal.textContent=fmt(sTime);
   endVal.textContent=fmt(eTime);
   selectionInfo.textContent='Selected: '+fmt(sTime)+' - '+fmt(eTime)+' ('+(eTime-sTime).toFixed(1)+'s)';
+  var resEl=document.getElementById('result');
+  if(resEl){resEl.style.display='block';document.getElementById('resRange').textContent='Selected: '+fmt(sTime)+' - '+fmt(eTime)+' ('+(eTime-sTime).toFixed(1)+'s)';}
 }
 startSlider.addEventListener('input',function(){if(parseFloat(this.value)>=parseFloat(endSlider.value)-1)this.value=Math.max(0,parseFloat(endSlider.value)-1);updateRangeDisplay();});
 endSlider.addEventListener('input',function(){if(parseFloat(this.value)<=parseFloat(startSlider.value)+1)this.value=Math.min(100,parseFloat(startSlider.value)+1);updateRangeDisplay();});
@@ -435,6 +446,12 @@ function audioBufferToWav(buffer){
 }
 function ws(v,o,s){for(var i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));}
 window.addEventListener('beforeunload',function(){if(audioCtx)audioCtx.close();});
+
+document.getElementById('copyResultBtn').addEventListener('click',function(){
+  var txt='Audio Trim Summary | File: '+fileName.textContent+' | '+document.getElementById('resRange').textContent;
+  if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){showToast('Result copied')})['catch'](function(){showToast('Copy failed')});}
+  else{var ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('Result copied');}
+});
 })();
 </script>
 <script>

@@ -145,6 +145,8 @@ a{color:#06b6d4;text-decoration:none}
 <div class="value" id="totalDaily">$0.00</div>
 </div>
 </div>
+<div style="text-align:center;margin-top:14px"><button class="btn btn-add" onclick="copySummary()">📋 复制结果</button></div>
+<div style="margin-top:16px"><canvas id="subChart" style="width:100%;height:220px;background:#0a0f1e;border-radius:8px;border:1px solid rgba(148,163,184,.1)"></canvas></div>
 </div>
 
 <div class="section">
@@ -254,6 +256,51 @@ var totalD=totalM/30;
 document.getElementById('totalMonthly').textContent='$'+totalM.toFixed(2);
 document.getElementById('totalYearly').textContent='$'+totalY.toFixed(2);
 document.getElementById('totalDaily').textContent='$'+totalD.toFixed(2);
+drawChart();
+}
+
+function drawChart(){
+var cv=document.getElementById('subChart');
+if(!cv)return;
+var dpr=window.devicePixelRatio||1;
+var w=cv.clientWidth||cv.parentNode.clientWidth||600;
+var h=220;
+cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+var ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
+ctx.clearRect(0,0,w,h);
+var items=subscriptions.map(function(s){return {name:s.name,v:getMonthly(s)};});
+items.sort(function(a,b){return b.v-a.v;});
+items=items.slice(0,12);
+if(!items.length){ctx.fillStyle='#64748b';ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('Add subscriptions to see the chart',w/2,h/2);return;}
+var maxV=Math.max.apply(null,items.map(function(i){return i.v;}));
+var padL=10,padB=26,padT=18,padR=10;
+var cw=w-padL-padR,ch=h-padB-padT;
+var bw=cw/items.length;
+items.forEach(function(it,i){
+var bh=it.v/maxV*ch;
+var x=padL+i*bw+bw*0.12,y=padT+ch-bh;
+ctx.fillStyle='#06b6d4';
+ctx.fillRect(x,y,bw*0.76,bh);
+ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';ctx.textAlign='center';
+var label=it.name.length>8?it.name.slice(0,8)+'…':it.name;
+ctx.fillText(label,padL+i*bw+bw*0.5,padT+ch+13);
+ctx.fillStyle='#22d3ee';ctx.font='bold 10px sans-serif';
+ctx.fillText('$'+it.v.toFixed(2),padL+i*bw+bw*0.5,y-4);
+});
+ctx.strokeStyle='rgba(148,163,184,.2)';
+ctx.beginPath();ctx.moveTo(padL,padT);ctx.lineTo(padL,padT+ch);ctx.stroke();
+}
+
+function copySummary(){
+if(!subscriptions.length){showToast('No subscriptions to copy');return;}
+var m=subscriptions.reduce(function(s,x){return s+getMonthly(x);},0);
+var lines=['Subscription Cost Summary','Monthly: $'+m.toFixed(2),'Yearly: $'+(m*12).toFixed(2),'Daily: $'+(m/30).toFixed(2),'Subscriptions ('+subscriptions.length+'):'];
+subscriptions.forEach(function(s){lines.push('  '+s.name+' — $'+s.price.toFixed(2)+(s.cycle==='monthly'?'/mo':'/yr'));});
+var text=lines.join('\n');
+var ok=function(){showToast('Summary copied');};
+var fail=function(){showToast('Copy failed');};
+if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok).catch(fail);}
+else{var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');ok();}catch(e){fail();}document.body.removeChild(ta);}
 }
 
 function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2000);}

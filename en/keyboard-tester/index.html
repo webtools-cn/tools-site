@@ -232,11 +232,13 @@ a{color:#06b6d4;text-decoration:none}
       <div class="info-item"><div class="label">Code</div><div class="value" id="infoKeyCode">-</div></div>
       <div class="info-item"><div class="label">Modifiers</div><div class="value" id="infoModifiers">-</div></div>
     </div>
+    <div class="btn-row" style="margin-top:12px"><button class="btn btn-secondary" id="copyKeyBtn">📋 Copy Key Info</button></div>
   </div>
 
   <div class="history-section" id="historySection" style="display:none">
     <h2>📝 Key History</h2>
     <div class="history-list" id="historyList"></div>
+    <div class="btn-row" style="margin-top:12px"><button class="btn btn-secondary" id="copyHistoryBtn">📋 Copy History</button></div>
   </div>
 
   <div class="info-section" id="usage">
@@ -361,6 +363,32 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
     document.getElementById('historySection').style.display='none';
     document.querySelectorAll('.vk-key.active').forEach(function(el){el.classList.remove('active');});
     showToast('Test reset');
+  });
+
+  function copyTextFallback(text,msg){
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){showToast(msg)})['catch'](function(){
+        var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+        try{document.execCommand('copy');showToast(msg);}catch(e){showToast('Copy failed')}
+        document.body.removeChild(ta);
+      });
+    }else{
+      var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');showToast(msg);}catch(e){showToast('Copy failed')}
+      document.body.removeChild(ta);
+    }
+  }
+
+  document.getElementById('copyKeyBtn').addEventListener('click',function(){
+    var key=document.getElementById('infoKey').textContent;
+    var text='Key: '+key+' | KeyCode: '+document.getElementById('infoCode').textContent+' | Code: '+document.getElementById('infoKeyCode').textContent+' | Modifiers: '+document.getElementById('infoModifiers').textContent;
+    copyTextFallback(text,'Key info copied');
+  });
+
+  document.getElementById('copyHistoryBtn').addEventListener('click',function(){
+    if(!history.length){showToast('No keys pressed yet');return;}
+    var text=history.map(function(h){return h.code+' ('+h.codeStr+')  '+h.key;}).join('\n');
+    copyTextFallback(text,'History copied');
   });
 
 </script>

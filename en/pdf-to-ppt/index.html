@@ -175,6 +175,9 @@
 <div class="output-section">
  <h2>📋 Convertstatus</h2>
  <div id="statusArea" class="output-area">SelectPDFfile clickConvertafter，PPTfilewillautodynamicDownload.</div>
+ <div class="btn-row">
+  <button class="btn btn-secondary" id="copyStatusBtn" type="button">📋 Copy Result</button>
+ </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -195,6 +198,27 @@ dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.clas
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
 dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
 fileInput.addEventListener('change', (e) => { if(e.target.files.length) handleFile(e.target.files[0]); });
+
+document.getElementById('copyStatusBtn').addEventListener('click', () => {
+  const text = statusArea.textContent;
+  if (!text || text.indexOf('SelectPDFfile') !== -1) {
+    showToast('Nothing to copy');
+    return;
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => showToast('Result copied')).catch(() => copyFallback(text));
+  } else {
+    copyFallback(text);
+  }
+});
+
+function copyFallback(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); showToast('Result copied'); } catch(e) { showToast('Copy failed'); }
+  document.body.removeChild(ta);
+}
 
 function handleFile(file) {
   if(file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {

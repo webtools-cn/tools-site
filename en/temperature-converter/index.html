@@ -84,7 +84,12 @@ input:focus{outline:none;border-color:#06b6d4}
  <input type="number" id="fahrenheit" placeholder="32" step="any">
  <div class="panel-title" style="margin-top:14px">Kelvin (K)</div>
  <input type="number" id="kelvin" placeholder="273.15" step="any">
- <div class="btn-row"><button class="btn btn-secondary" id="resetBtn">🔄 Reset</button></div>
+ <div class="btn-row"><button class="btn btn-secondary" id="resetBtn">🔄 Reset</button><button class="btn btn-secondary" onclick="fillExample()">🎲 Example</button></div>
+</div>
+<div class="panel" id="result" style="display:none">
+ <div class="panel-title">📋 Result</div>
+ <div class="formula" id="resultText" style="font-size:1rem;padding:12px"></div>
+ <div class="btn-row"><button class="btn btn-secondary" onclick="copyResult()">📋 Copy Result</button></div>
 </div>
 <div class="panel">
  <div class="panel-title">📐 Formulas</div>
@@ -119,13 +124,17 @@ input:focus{outline:none;border-color:#06b6d4}
 <script>
 function showToast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},1500);}
 var cEl=document.getElementById("celsius"),fEl=document.getElementById("fahrenheit"),kEl=document.getElementById("kelvin"),updating=false;
-function cToOthers(v){updating=true;fEl.value=(v*9/5+32).toFixed(2);kEl.value=(v+273.15).toFixed(2);updating=false;}
-function fToOthers(v){updating=true;cEl.value=((v-32)*5/9).toFixed(2);kEl.value=((v-32)*5/9+273.15).toFixed(2);updating=false;}
-function kToOthers(v){updating=true;cEl.value=(v-273.15).toFixed(2);fEl.value=((v-273.15)*9/5+32).toFixed(2);updating=false;}
-cEl.addEventListener("input",function(){if(updating)return;var v=parseFloat(this.value);if(isNaN(v))return;cToOthers(v);});
-fEl.addEventListener("input",function(){if(updating)return;var v=parseFloat(this.value);if(isNaN(v))return;fToOthers(v);});
-kEl.addEventListener("input",function(){if(updating)return;var v=parseFloat(this.value);if(isNaN(v))return;kToOthers(v);});
-document.getElementById("resetBtn").addEventListener("click",function(){cEl.value="";fEl.value="";kEl.value="";});
+function updateResult(){var r=document.getElementById("result");if(!r)return;var c=cEl.value,f=fEl.value,k=kEl.value;if(c===""&&f===""&&k===""){r.style.display="none";return;}document.getElementById("resultText").innerHTML="°C: <code>"+(c||"—")+"</code>&nbsp;&nbsp;°F: <code>"+(f||"—")+"</code>&nbsp;&nbsp;K: <code>"+(k||"—")+"</code>";r.style.display="block";}
+function cToOthers(v){updating=true;fEl.value=(v*9/5+32).toFixed(2);kEl.value=(v+273.15).toFixed(2);updating=false;updateResult();}
+function fToOthers(v){updating=true;cEl.value=((v-32)*5/9).toFixed(2);kEl.value=((v-32)*5/9+273.15).toFixed(2);updating=false;updateResult();}
+function kToOthers(v){updating=true;cEl.value=(v-273.15).toFixed(2);fEl.value=((v-273.15)*9/5+32).toFixed(2);updating=false;updateResult();}
+function fillExample(){cEl.value=25;cToOthers(25);showToast("✅ Example filled: 25°C");}
+function legacyCopyResult(text){var ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(e){}document.body.removeChild(ta);}
+function copyResult(){var text="°C: "+cEl.value+"\n°F: "+fEl.value+"\nK: "+kEl.value;var done=function(){showToast("✅ Result copied");};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(function(){legacyCopyResult(text);done();});}else{legacyCopyResult(text);done();}}
+cEl.addEventListener("input",function(){if(updating)return;var v=parseFloat(this.value);if(isNaN(v)){updateResult();return;}cToOthers(v);});
+fEl.addEventListener("input",function(){if(updating)return;var v=parseFloat(this.value);if(isNaN(v)){updateResult();return;}fToOthers(v);});
+kEl.addEventListener("input",function(){if(updating)return;var v=parseFloat(this.value);if(isNaN(v)){updateResult();return;}kToOthers(v);});
+document.getElementById("resetBtn").addEventListener("click",function(){cEl.value="";fEl.value="";kEl.value="";updateResult();});
 </script>
 
 </main>

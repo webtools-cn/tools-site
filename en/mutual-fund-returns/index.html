@@ -90,7 +90,10 @@ textarea:focus,input:focus,select:focus{border-color:rgba(6,182,212,.5)}
 <div class="hero"><p>Free online Mutual Fund Returns Calculator. Calculate annualized returns (CAGR) for your investments. Enter initial investment, final value, and holding period to see CAGR and total gain.</p><span class="badge">Investment</span><span class="badge">Analysis</span><span class="badge">Private</span></div>
 <div class="main-grid"><div>
 <div class="tool-section"><h2>Parameters</h2><div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px"><div style="flex:1;min-width:180px"><label style="color:#94a3b8;font-size:.85rem">Initial Investment ($)</label><input type="number" id="initialValue" value="10000" min="0" step="100"></div><div style="flex:1;min-width:180px"><label style="color:#94a3b8;font-size:.85rem">Final Value ($)</label><input type="number" id="finalValue" value="20000" min="0" step="100"></div><div style="flex:1;min-width:180px"><label style="color:#94a3b8;font-size:.85rem">Years Held</label><input type="number" id="years" value="5" min="0.1" step="0.1"></div></div><div style="display:flex;gap:8px"><button class="btn btn-primary" onclick="calculate()">💰 Calculate</button><button class="btn btn-secondary" onclick="clearAll()">🗑️ Clear</button></div></div>
-<div class="tool-section"><h2>Results</h2><div class="stat-row" style="margin-bottom:12px"><div class="stat-item"><div class="stat-value" id="cagr">0%</div><div class="stat-label">CAGR</div></div><div class="stat-item"><div class="stat-value" id="absoluteReturn">$0</div><div class="stat-label">Absolute Return</div></div><div class="stat-item"><div class="stat-value" id="returnPct">0%</div><div class="stat-label">Total Return</div></div></div></div>
+<div class="tool-section"><h2>Results</h2><div class="stat-row" style="margin-bottom:12px"><div class="stat-item"><div class="stat-value" id="cagr">0%</div><div class="stat-label">CAGR</div></div><div class="stat-item"><div class="stat-value" id="absoluteReturn">$0</div><div class="stat-label">Absolute Return</div></div><div class="stat-item"><div class="stat-value" id="returnPct">0%</div><div class="stat-label">Total Return</div></div></div>
+<canvas id="returnChart" style="width:100%;max-width:480px;height:180px;margin:0 auto;display:block"></canvas>
+<div class="result-actions" style="margin-top:12px"><button class="btn btn-primary" id="copyResultBtn">📋 Copy Result</button></div>
+</div>
 </div></div>
 <div class="seo-content"><h3>CAGR measures long-term investment performance</h3><p>CAGR (Compound Annual Growth Rate) is the standard metric for measuring annualized returns. Enter initial and final values to calculate your fund's performance.</p></div>
 </main>
@@ -106,7 +109,56 @@ textarea:focus,input:focus,select:focus{border-color:rgba(6,182,212,.5)}
 <script>
 function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2000);}
 function copyResult(){var el=document.getElementById('cagr');if(el){var v=parseFloat(el.textContent);if(v>0){navigator.clipboard.writeText(v.toFixed(2)+'%');showToast('Copied!');}}}
-function clearAll(){document.getElementById('initialValue').value='';document.getElementById('finalValue').value='';document.getElementById('years').value='';document.getElementById('cagr').textContent='0%';document.getElementById('absoluteReturn').textContent='$0';document.getElementById('returnPct').textContent='0%';}
+function drawChart(iv,fv){
+  var c=document.getElementById('returnChart');
+  if(!c||!c.getContext)return;
+  var ctx=c.getContext('2d');
+  c.width=c.offsetWidth*2||960;c.height=180*2||360;
+  ctx.scale(2,2);
+  var w=c.width/2,h=c.height/2;
+  ctx.clearRect(0,0,c.width,c.height);
+  var max=Math.max(iv,fv,1);
+  var pad=30,bw=70,gap=40;
+  var baseY=h-30;
+  function bar(x,val,color,label){
+    var bh=Math.max(2,(val/max)*(h-70));
+    ctx.fillStyle='rgba(148,163,184,.15)';ctx.fillRect(x-pad/2,baseY-bh,bw+pad,bh+30);
+    ctx.fillStyle=color;ctx.fillRect(x,baseY-bh,bw,bh);
+    ctx.fillStyle='#94a3b8';ctx.font='12px sans-serif';ctx.textAlign='center';
+    ctx.fillText('$'+Math.round(val).toLocaleString(),x+bw/2,baseY-bh-8);
+    ctx.fillStyle='#94a3b8';ctx.font='12px sans-serif';ctx.textAlign='center';
+    ctx.fillText(label,x+bw/2,h-12);
+  }
+  var center=w/2;
+  bar(center-bw/2-gap,iv,'#64748b','Initial');
+  bar(center+bw/2+gap,fv,'#06b6d4','Final');
+}
+function copyAllResult(){
+  var iv=parseFloat(document.getElementById('initialValue').value)||10000;
+  var fv=parseFloat(document.getElementById('finalValue').value)||20000;
+  var y=parseFloat(document.getElementById('years').value)||5;
+  if(iv<=0||y<=0){showToast('Enter valid values first');return;}
+  var cagr=(Math.pow(fv/iv,1/y)-1)*100;
+  var ar=fv-iv;
+  var rp=ar/iv*100;
+  var text='Mutual Fund Returns\nInitial Investment: $'+iv.toLocaleString()+
+    '\nFinal Value: $'+Math.round(fv).toLocaleString()+
+    '\nCAGR: '+cagr.toFixed(2)+'%'+
+    '\nAbsolute Return: $'+Math.round(ar).toLocaleString()+
+    '\nTotal Return: '+rp.toFixed(2)+'%';
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){showToast('Copied! ✓')})['catch'](function(){
+      var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');showToast('Copied! ✓');}catch(e){showToast('Copy failed')}
+      document.body.removeChild(ta);
+    });
+  }else{
+    var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');showToast('Copied! ✓');}catch(e){showToast('Copy failed')}
+    document.body.removeChild(ta);
+  }
+}
+function clearAll(){document.getElementById('initialValue').value='';document.getElementById('finalValue').value='';document.getElementById('years').value='';document.getElementById('cagr').textContent='0%';document.getElementById('absoluteReturn').textContent='$0';document.getElementById('returnPct').textContent='0%';drawChart(0,0);}
 function calculate(){
   var iv=parseFloat(document.getElementById('initialValue').value)||10000;
   var fv=parseFloat(document.getElementById('finalValue').value)||20000;
@@ -118,8 +170,10 @@ function calculate(){
   document.getElementById('cagr').textContent=cagr.toFixed(2)+'%';
   document.getElementById('absoluteReturn').textContent='$'+Math.round(ar).toLocaleString();
   document.getElementById('returnPct').textContent=rp.toFixed(2)+'%';
+  drawChart(iv,fv);
 }
 window.addEventListener('load',calculate);
 ['initialValue','finalValue','years'].forEach(function(id){document.getElementById(id).addEventListener('input',calculate);});
+document.getElementById('copyResultBtn').addEventListener('click',copyAllResult);
 </script>
 </body></html>

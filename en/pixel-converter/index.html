@@ -230,7 +230,13 @@ app.innerHTML = `
   <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn btn-secondary" onclick="swapToCm()">📐 Calculate PX from CM</button>
     <button class="btn btn-secondary" onclick="swapToInch()">📏 Calculate PX from INCH</button>
+    <button class="btn btn-secondary" onclick="fillPxExample()">🎲 填入示例</button>
     <button class="btn btn-secondary" onclick="copyAll()">📋 Copy All Results</button>
+  </div>
+  <div style="margin-top:20px">
+    <h3 style="font-size:.95rem;color:#f1f5f9;margin-bottom:8px">📊 Physical Width at Common PPI Densities</h3>
+    <canvas id="ppiChart" height="170" style="width:100%;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px"></canvas>
+    <p style="font-size:.75rem;color:#64748b;margin-top:6px">Real-world width of <span id="chartPxLabel">100</span> px at 72 / 96 / 192 / 300 PPI</p>
   </div>
 `;
 
@@ -252,6 +258,42 @@ function convert() {
   document.getElementById("resultPt").textContent = (px * 72 / ppi).toFixed(prec);
   document.getElementById("resultPc").textContent = (px * 6 / ppi).toFixed(prec);
   document.getElementById("resultEm").textContent = (px / 16).toFixed(prec);
+  drawChart(px);
+}
+
+function drawChart(px) {
+  var canvas = document.getElementById("ppiChart");
+  if (!canvas) return;
+  var ctx = canvas.getContext("2d");
+  var w = canvas.clientWidth || 600, h = canvas.height || 170;
+  canvas.width = w; canvas.height = h;
+  ctx.clearRect(0, 0, w, h);
+  var ppis = [72, 96, 192, 300];
+  var cms = ppis.map(function(p){ return px / p * 2.54; });
+  var max = Math.max.apply(null, cms.concat([1]));
+  var padL = 52, padB = 24, padT = 18;
+  var bw = (w - padL - 8) / ppis.length;
+  for (var i = 0; i < ppis.length; i++) {
+    var x = padL + i * bw + 4;
+    var bh = (h - padT - padB) * (cms[i] / max);
+    var y = h - padB - bh;
+    ctx.fillStyle = (i % 2 === 0) ? "#06b6d4" : "#22d3ee";
+    ctx.fillRect(x, y, bw - 8, bh);
+    ctx.fillStyle = "#e2e8f0";
+    ctx.font = "12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(ppis[i] + " PPI", x + (bw - 8) / 2, h - 7);
+    ctx.fillStyle = "#94a3b8";
+    ctx.fillText(cms[i].toFixed(2) + "cm", x + (bw - 8) / 2, y - 5);
+  }
+}
+
+function fillPxExample() {
+  var ex = [16, 32, 64, 100, 250, 512, 768, 1024];
+  var v = ex[Math.floor(Math.random() * ex.length)];
+  document.getElementById("pxValue").value = v;
+  convert();
+  showToast("Filled example: " + v + "px");
 }
 
 function swapToCm() {

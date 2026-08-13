@@ -125,6 +125,16 @@ canvas{max-width:100%;border-radius:8px}
 <button class="btn btn-success" id="vDownloadBtn">✂️ Download Trimmed Video</button>
 </div>
 <video id="videoPlayer" controls style="width:100%;max-height:400px;margin-top:12px;display:none;border-radius:8px"></video>
+<div class="result-section" id="result">
+<h2>✂️ Trim Summary</h2>
+<div class="result-grid">
+<div class="result-card"><div class="label">Start Time</div><div class="value" id="rStart">--</div></div>
+<div class="result-card"><div class="label">End Time</div><div class="value" id="rEnd">--</div></div>
+<div class="result-card"><div class="label">Video Duration</div><div class="value" id="rDur">--</div></div>
+<div class="result-card"><div class="label">Cut Length</div><div class="value" id="rCut">--</div></div>
+</div>
+<button class="btn btn-secondary" id="rCopyBtn" style="margin-top:12px">📋 Copy Result</button>
+</div>
 </div>
 <div class="input-section">
 <h2>📝 Notes</h2>
@@ -132,6 +142,34 @@ canvas{max-width:100%;border-radius:8px}
 </div>
 <script>
 var videoBlob=null;
+var vidDuration=0;
+function updateTrimInfo(){
+  var s=parseFloat(document.getElementById('vStartTime').value)||0;
+  var e=parseFloat(document.getElementById('vEndTime').value)||0;
+  if(vidDuration>0){e=Math.min(e,vidDuration);}
+  document.getElementById('rStart').textContent=s.toFixed(1)+'s';
+  document.getElementById('rEnd').textContent=e.toFixed(1)+'s';
+  document.getElementById('rDur').textContent=vidDuration>0?vidDuration.toFixed(1)+'s':'--';
+  document.getElementById('rCut').textContent=(e-s)>0?(e-s).toFixed(1)+'s':'--';
+}
+function showTrimInfo(){
+  var rs=document.getElementById('result');
+  if(vidDuration>0){rs.classList.add('show');updateTrimInfo();}
+}
+document.getElementById('vStartTime').addEventListener('input',updateTrimInfo);
+document.getElementById('vEndTime').addEventListener('input',updateTrimInfo);
+document.getElementById('rCopyBtn').addEventListener('click',function(){
+  var txt='Video Trim Summary\nStart: '+document.getElementById('rStart').textContent+'\nEnd: '+document.getElementById('rEnd').textContent+'\nDuration: '+document.getElementById('rDur').textContent+'\nCut Length: '+document.getElementById('rCut').textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){showToast('Result copied!')}).catch(function(){ftFallbackCopy(txt);showToast('Result copied!')});
+  }else{ftFallbackCopy(txt);showToast('Result copied!')}
+});
+function ftFallbackCopy(t){
+  var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(err){}
+  document.body.removeChild(ta);
+}
 document.getElementById('videoInput').addEventListener('change',function(e){
   var file=e.target.files[0];if(!file)return;
   videoBlob=file;
@@ -139,8 +177,10 @@ document.getElementById('videoInput').addEventListener('change',function(e){
   var vp=document.getElementById('videoPlayer');
   vp.src=url;vp.style.display='block';
   vp.onloadedmetadata=function(){
+    vidDuration=vp.duration;
     document.getElementById('vDuration').textContent=vp.duration.toFixed(1)+'s';
     document.getElementById('vEndTime').value=Math.min(parseFloat(document.getElementById('vEndTime').value),vp.duration);
+    showTrimInfo();
   };
   showToast('Video loaded');
 });

@@ -303,11 +303,12 @@ table.data td{color:#cbd5e1}
 
 <script>
 
-function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");t.style.opacity="1";setTimeout(function(){t.style.opacity="0";t.classList.remove("show")},2000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 var app=document.getElementById('app');
 
-app.innerHTML='\x3Cdiv class="input-section">\x3Ch2>🔋 电池状态\x3C/h2>\x3Cdiv id="batteryInfo" style="text-align:center;padding:20px 0">正在检测电池信息...\x3C/div>\x3C/div>';
+var lastBatteryText='';
+app.innerHTML='\x3Cdiv class="input-section">\x3Ch2>🔋 电池状态\x3C/h2>\x3Cdiv id="batteryInfo" style="text-align:center;padding:20px 0">正在检测电池信息...\x3C/div>\x3Cdiv style="text-align:center;padding-bottom:16px">\x3Cbutton class="btn btn-primary" id="batteryCopy" style="display:none">📋 复制结果\x3C/button>\x3C/div>\x3C/div>';
 document.getElementById('usageContent').innerHTML='\x3Cp>此工具使用Battery API读取设备电池信息，实时显示电量、充电状态和剩余时间。\x3C/p>\x3Cp>注意：部分浏览器可能不支持Battery API或需要HTTPS环境。如无法检测，请使用Chrome/Edge浏览器并通过HTTPS访问。\x3C/p>';
 
 function showBattery(battery){
@@ -355,6 +356,11 @@ function showBattery(battery){
   }
   html+='\x3C/div>';
   document.getElementById('batteryInfo').innerHTML=html;
+  lastBatteryText='电池状态: '+(charging?'充电中':'未充电')+' | 电量: '+level+'% ('+statusText+')';
+  if(timeRem!==Infinity && timeRem!==null){lastBatteryText+=' | 剩余时间: '+Math.floor(timeRem/3600)+'h '+Math.floor((timeRem%3600)/60)+'m';}
+  if(timeCharging!==Infinity && timeCharging!==null && charging){lastBatteryText+=' | 充满时间: '+Math.floor(timeCharging/3600)+'h '+Math.floor((timeCharging%3600)/60)+'m';}
+  var bc=document.getElementById('batteryCopy');
+  if(bc){bc.style.display='inline-block';bc.onclick=function(){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(lastBatteryText).then(function(){showToast('已复制')})['catch'](function(){showToast('复制失败')});}else{showToast('当前浏览器不支持复制')}};}
 }
 function _infoCard(t,v){
   return '\x3Cdiv style="background:#0f172a;border-radius:8px;padding:12px;border:1px solid rgba(148,163,184,.08)">\x3Cdiv style="color:#64748b;font-size:.75rem;margin-bottom:4px">'+t+'\x3C/div>\x3Cdiv style="color:#e2e8f0;font-size:.9rem;font-weight:500">'+v+'\x3C/div>\x3C/div>';
@@ -401,5 +407,6 @@ function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','
   <p style="margin-top:8px">&copy; 2025 Online Tools Matrix &middot; Free Online Tools &middot; Pure Frontend</p>
 <a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener">GitHub</a>
 </footer>
+<div class="toast" id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 20px;border-radius:8px;font-size:.85rem;border:1px solid rgba(6,182,212,.3);opacity:0;transition:opacity .3s;pointer-events:none;z-index:100"></div>
 </div></body>
 </html>

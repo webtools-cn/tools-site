@@ -118,6 +118,8 @@ a{color:#06b6d4} .container{max-width:960px;margin:0 auto;padding:24px 16px}
 .result-card .lbl{font-size:.8rem;color:#64748b}
 .tag-btn{display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;color:#94a3b8;cursor:pointer;font-size:.8rem;transition:all .2s}
 .tag-btn:hover{border-color:rgba(6,182,212,.3);color:#22d3ee}
+.result-panel{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:16px;margin-top:12px}
+.result-panel canvas{width:100%;height:auto;margin-top:12px}
 .faq-item{margin-bottom:16px} .faq-item h3{font-size:.95rem;color:#e2e8f0;margin-bottom:6px} .faq-item p{color:#94a3b8;font-size:.9rem}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#22d3ee;padding:10px 24px;border-radius:8px;border:1px solid rgba(6,182,212,.3);font-size:.85rem;z-index:999;opacity:0;transition:opacity .3s}
 .toast.show{opacity:1}
@@ -179,15 +181,105 @@ a{color:#06b6d4} .container{max-width:960px;margin:0 auto;padding:24px 16px}
   </span>
 </div>
 
+<div class="section">
+<h2>🧮 Resolution Calculator</h2>
+<div class="form-row">
+  <div class="form-group"><label>Width (px)</label><input type="number" id="resW" placeholder="e.g. 1920" min="1"></div>
+  <div class="form-group"><label>Height (px)</label><input type="number" id="resH" placeholder="e.g. 1080" min="1"></div>
+</div>
+<div class="form-row">
+  <div class="form-group"><label>Screen size (in, optional)</label><input type="number" id="resDiag" placeholder="e.g. 27" min="1"></div>
+  <div class="form-group"><label>PPI (optional)</label><input type="number" id="resPPI" placeholder="e.g. 109" min="1"></div>
+</div>
+<div class="btn-group">
+  <button class="btn btn-primary" onclick="calcResolution()">🧮 Calculate</button>
+  <button class="btn btn-secondary" onclick="fillResExample()">🎲 Fill Example</button>
+</div>
+<div class="result-panel" id="result">
+  <div class="result-grid">
+    <div class="result-card"><span class="lbl">Aspect Ratio</span><span class="val" id="resRatio">--</span></div>
+    <div class="result-card"><span class="lbl">Total Pixels</span><span class="val" id="resPixels">--</span></div>
+    <div class="result-card"><span class="lbl">Megapixels</span><span class="val" id="resMP">--</span></div>
+    <div class="result-card"><span class="lbl">PPI</span><span class="val" id="resPPIOut">--</span></div>
+    <div class="result-card"><span class="lbl">Diagonal (in)</span><span class="val" id="resDiagOut">--</span></div>
+    <div class="result-card"><span class="lbl">Category</span><span class="val" id="resCat">--</span></div>
+  </div>
+  <div style="text-align:center;margin-top:12px">
+    <button class="btn btn-secondary" onclick="copyResResult()">📋 Copy Result</button>
+  </div>
+  <canvas id="resChart" width="600" height="150"></canvas>
+</div>
+</div>
 <script>
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-
-function toggleFeedback(){const p=document.getElementById("feedback-panel");p.style.display=p.style.display==="none"?"block":"none";}
-const typeLabel={feedback:"💡 Suggestion",bug:"🐛 Bug Report",other:"💬 Other"}[type];
-const title=encodeURIComponent(typeLabel+" - "+window.location.pathname);
-const body=encodeURIComponent("**Page**: "+window.location.href+"\n**Type**: "+typeLabel+"\n\n"+text);
-window.open("https://github.com/webtools-cn/tools-site/issues/new?title="+title+"&body="+body,"_blank");
-document.getElementById("feedback-success").style.display="block";
+function showToast(msg){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+function resGcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){const t=b;b=a%b;a=t;}return a||1;}
+function resCategory(pixels){
+  const standards=[[7680,4320,'8K UHD'],[3840,2160,'4K UHD'],[2560,1440,'2K QHD'],[1920,1080,'Full HD'],[1280,720,'HD']];
+  let best=null,bestDiff=Infinity;
+  standards.forEach(s=>{const d=Math.abs(pixels-s[0]*s[1]);if(d<bestDiff){bestDiff=d;best=s[2];}});
+  if(bestDiff/pixels<0.15)return best;
+  return 'Custom';
+}
+function drawResChart(curPixels){
+  const cv=document.getElementById('resChart');if(!cv)return;
+  const ctx=cv.getContext('2d');const w=cv.width,h=cv.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='rgba(148,163,184,.06)';ctx.fillRect(0,0,w,h);
+  const data=[['HD',0.92],['FHD',2.07],['2K',3.69],['4K',8.29],['8K',33.18],['Yours',curPixels/1e6]];
+  const max=Math.max.apply(null,data.map(d=>d[1]))*1.1;
+  const bw=w/data.length;
+  data.forEach((d,i)=>{
+    const bh=(d[1]/max)*(h-28);
+    ctx.fillStyle=(i===data.length-1)?'#22d3ee':'#06b6d4';
+    ctx.fillRect(i*bw+4,h-8-bh,bw-8,bh);
+    ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';ctx.textAlign='center';
+    ctx.fillText(d[0],i*bw+bw/2,h-12);
+    ctx.fillText(d[1].toFixed(1)+'MP',i*bw+bw/2,h-14-bh);
+  });
+  ctx.strokeStyle='rgba(148,163,184,.15)';ctx.beginPath();ctx.moveTo(0,h-8);ctx.lineTo(w,h-8);ctx.stroke();
+}
+function calcResolution(){
+  const w=parseFloat(document.getElementById('resW').value);
+  const h=parseFloat(document.getElementById('resH').value);
+  if(!w||!h||w<1||h<1){showToast('Please enter width and height');return;}
+  const g=resGcd(w,h);
+  const ratio=(w/g)+':'+(h/g);
+  const pixels=w*h,mp=pixels/1e6;
+  const diagIn=parseFloat(document.getElementById('resDiag').value);
+  const ppiIn=parseFloat(document.getElementById('resPPI').value);
+  let ppi=null,diagOut=null;
+  if(diagIn&&diagIn>0){diagOut=diagIn;ppi=Math.sqrt(w*w+h*h)/diagIn;}
+  else if(ppiIn&&ppiIn>0){ppi=ppiIn;diagOut=Math.sqrt(w*w+h*h)/ppiIn;}
+  document.getElementById('resRatio').textContent=ratio;
+  document.getElementById('resPixels').textContent=Math.round(pixels).toLocaleString();
+  document.getElementById('resMP').textContent=mp.toFixed(1)+' MP';
+  document.getElementById('resPPIOut').textContent=ppi?ppi.toFixed(1):'--';
+  document.getElementById('resDiagOut').textContent=diagOut?diagOut.toFixed(1):'--';
+  document.getElementById('resCat').textContent=resCategory(pixels);
+  drawResChart(pixels);
+}
+function fillResExample(){
+  document.getElementById('resW').value='1920';
+  document.getElementById('resH').value='1080';
+  document.getElementById('resDiag').value='24';
+  document.getElementById('resPPI').value='';
+  calcResolution();
+}
+function resFallbackCopy(text){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);}
+function copyResResult(){
+  const items=['Aspect Ratio','Total Pixels','Megapixels','PPI','Diagonal (in)','Category'].map((l,i)=>{
+    const el=document.querySelectorAll('#result .result-card .val')[i];
+    return l+': '+(el?el.textContent:'--');
+  });
+  const text='Resolution Calculator Result\n'+items.join('\n');
+  const done=()=>showToast('✅ Result copied');
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done,()=>{resFallbackCopy(text);done();});}
+  else{resFallbackCopy(text);done();}
+}
+let resInputTimer=null;
+['resW','resH','resDiag','resPPI'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',()=>{clearTimeout(resInputTimer);resInputTimer=setTimeout(calcResolution,300);});
+});
 </script>
 <!-- Related Tools (cross-recommendation) -->
 <link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">

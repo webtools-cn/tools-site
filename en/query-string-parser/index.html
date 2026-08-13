@@ -144,7 +144,7 @@ function copyText(el){var t=el.textContent||el.innerText;navigator.clipboard.wri
 
 (function(){
 var app=document.getElementById('app');
-app.innerHTML='';
+app.innerHTML='<div class="input-section"><h2>🔗 Enter URL or Query String</h2><div class="btn-row" style="margin-top:0;margin-bottom:8px"><button class="btn btn-secondary" id="fillExample">🎲 Fill Example</button></div><textarea id="inputUrl" rows="3" placeholder="Enter URL or query string...">https://example.com/search?q=hello+world&page=1&sort=desc&tags=js,css</textarea><div class="btn-row"><button class="btn btn-primary" id="parseBtn">🔍 Parse</button><button class="btn btn-secondary" id="clearBtn">Clear</button></div></div><div class="result-section show" id="resultSection"><h2>📊 Parse Result</h2><div id="parseResult"></div><div class="btn-row"><button class="btn btn-success" id="copyJson">📋 Copy JSON</button><button class="btn btn-success" id="copyQuery">📋 Copy Query String</button></div></div>';
 function parseQueryString(str){
   str=str.trim();
   var idx=str.indexOf('?');
@@ -169,15 +169,15 @@ function compute(){
   var result=parseQueryString(input);
   var params=result.params;
   var keys=Object.keys(params);
-  if(keys.length===0){document.getElementById('parseResult').innerHTML='<p style="color:#94a3b8;text-align:center;padding:20px">NotfindtoqueryParameters</p>';return;}
-  var html='';
+  if(keys.length===0){document.getElementById('parseResult').innerHTML='<p style="color:#94a3b8;text-align:center;padding:20px">No query parameters found</p>';return;}
+  var html='<table class="data" style="width:100%"><tr><th>#</th><th>Key</th><th>Value</th><th>Type</th></tr>';
   keys.forEach(function(key,i){
     var val=params[key];
     var type=Array.isArray(val)?'array('+val.length+')':typeof val;
     var display=Array.isArray(val)?val.join(', '):String(val);
     html+='<tr><td>'+(i+1)+'</td><td style="font-family:monospace;color:#22d3ee">'+key+'</td><td style="font-family:monospace;word-break:break-all">'+display+'</td><td style="color:#94a3b8">'+type+'</td></tr>';
   });
-  html+=''+keys.length+'';
+  html+='</table><p style="color:#64748b;font-size:.8rem;margin-top:8px">'+keys.length+' parameters</p>';
   document.getElementById('parseResult').innerHTML=html;
   // store for copy
   document.getElementById('parseResult').dataset.json=JSON.stringify(params,null,2);
@@ -186,13 +186,18 @@ function compute(){
 document.getElementById('parseBtn').addEventListener('click',compute);
 document.getElementById('inputUrl').addEventListener('input',compute);
 document.getElementById('clearBtn').addEventListener('click',function(){document.getElementById('inputUrl').value='';document.getElementById('parseResult').innerHTML='';});
+document.getElementById('fillExample').addEventListener('click',function(){
+  document.getElementById('inputUrl').value='https://example.com/products?category=electronics&sort=price_asc&page=2&in_stock=true&tag=usb-c&tag=fast-charge';
+  compute();
+  showToast('Example filled ✓');
+});
 document.getElementById('copyJson').addEventListener('click',function(){
   var json=document.getElementById('parseResult').dataset.json;
-  if(json)navigator.clipboard.writeText(json).then(function(){showToast('JSONAlreadyCopy ✓')});
+  if(json)navigator.clipboard.writeText(json).then(function(){showToast('JSON copied ✓')});
 });
 document.getElementById('copyQuery').addEventListener('click',function(){
   var q=document.getElementById('parseResult').dataset.query;
-  if(q)navigator.clipboard.writeText(q).then(function(){showToast('querystringAlreadyCopy ✓')});
+  if(q)navigator.clipboard.writeText(q).then(function(){showToast('Query string copied ✓')});
 });
 compute();
 })();
