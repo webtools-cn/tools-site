@@ -455,7 +455,7 @@ init();))
   <p style="text-align:center;color:#64748b;font-size:12px;margin-top:12px">Feedback: dexshuang@google.com</p>
 </footer>
 
-
+<script>
 const unitData = {
   length: {
     name: '📏 Length',
@@ -654,12 +654,17 @@ function renderAllResults(val, fromUnit) {
   container.innerHTML = units.map(u => {
     const r = convert(val, fromUnit, u, currentCategory);
     const sym = data.units[u].symbol || '';
-    return '<div class="result-item" onclick="copyToClipboard(this.querySelector(\'.unit-value\').textContent + \' ' + (sym || '') + \')">' +
+    return '<div class="result-item" data-copy="' + encodeURIComponent(formatNumber(r) + ' ' + sym) + '">' +
       '<div class="unit-label">' + u + (sym ? ' (' + sym + ')' : '') + '</div>' +
       '<div class="unit-value">' + formatNumber(r) + '</div>' +
       '<div class="copy-hint">Click to copy</div>' +
       '</div>';
   }).join('');
+  container.onclick = function(e) {
+    const item = e.target.closest('.result-item');
+    if (!item || !item.dataset.copy) return;
+    copyToClipboard(decodeURIComponent(item.dataset.copy));
+  };
 }
 
 function swapUnits() {
@@ -718,15 +723,37 @@ function runBatch() {
   const container = document.getElementById('batchResults');
   if (!input) { container.innerHTML = ''; return; }
   const lines = input.split('\n').map(l => l.trim()).filter(l => l);
-  const units = Object.keys(unitData[currentCategory].units);
   const data = unitData[currentCategory];
-  
-  let html = '<script>
+  const toUnit = document.getElementById('toUnit').value;
+  const toSym = data.units[toUnit].symbol || '';
+  const rows = [];
+  lines.forEach(line => {
+    const parts = line.split(/\s+/);
+    const val = parseFloat(parts[0]);
+    if (isNaN(val)) return;
+    let fromUnit = toUnit;
+    if (parts.length > 1) {
+      const token = parts.slice(1).join(' ').toLowerCase();
+      const match = Object.keys(data.units).find(u =>
+        (data.units[u].symbol || '').toLowerCase() === token || u.toLowerCase() === token
+      );
+      if (match) fromUnit = match;
+    }
+    const result = convert(val, fromUnit, toUnit, currentCategory);
+    const fromSym = data.units[fromUnit].symbol || '';
+    rows.push('<tr><td>' + val + ' ' + fromSym + '</td><td>' + fromUnit + '</td><td>' + formatNumber(result) + ' ' + toSym + '</td></tr>');
+  });
+  container.innerHTML = rows.length
+    ? '<table><thead><tr><th>Input</th><th>From unit</th><th>Result</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>'
+    : '<p style="color:#94a3b8;font-size:.85rem">No valid values found. Use format like "100 m".</p>';
+}
+
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function submitFeedback(){
 const type=document.getElementById('feedback-type').value;
 const typeLabel={feedback:'💡 Feature Request',bug:'🐛 Bug Report',other:'💬 Other'}[type];
 const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
+const text=document.getElementById('feedback-text').value||'';
 const body=encodeURIComponent('**Page**: '+window.location.href+'\n**Type**: '+typeLabel+'\n\n'+text);
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
 document.getElementById('feedback-success').style.display='block';
