@@ -86,6 +86,7 @@
   <p class="subtitle">收录各类Unicode特殊符号，点击即可复制。最近使用的符号会保留在这里。</p>
   <div class="section">
     <div class="category-tabs" id="cat-tabs"></div>
+    <div style="margin-bottom:12px"><input type="text" id="symbol-search" placeholder="🔍 搜索符号或关键词，如: 箭头, star, heart" style="width:100%;padding:10px 14px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;font-size:.9rem;outline:none"></div>
     <div class="symbol-grid" id="symbol-grid"></div>
     <h3 style="font-size:.95rem;margin-top:20px">🕐 最近使用</h3>
     <div class="recent-row" id="recent-row"><span style="color:#94a3b8;font-size:.85rem">点击上方符号开始</span></div>
@@ -138,6 +139,41 @@
   var cats=Object.keys(symbols);
   var activeCat=cats[0];
   var recents=[];
+  var ftSearchTerm='';
+
+  function renderSymbols(){
+    var html='';
+    var list=symbols[activeCat]||[];
+    if(ftSearchTerm){
+      var q=ftSearchTerm.toLowerCase();
+      var all=[];
+      cats.forEach(function(c){all=all.concat(symbols[c]);});
+      list=all.filter(function(s){return s.toLowerCase().indexOf(q)!==-1;});
+      if(list.length===0){list=['']; }
+    }
+    list.forEach(function(s){
+      if(s==='')return;
+      html+='<div class="sym" data-sym="'+s+'">'+s+'</div>';
+    });
+    document.getElementById('symbol-grid').innerHTML=html;
+    if(ftSearchTerm&&!document.getElementById('symbol-grid').innerHTML){
+      document.getElementById('symbol-grid').innerHTML='<div style="grid-column:1/-1;text-align:center;color:#94a3b8;font-size:.85rem;padding:20px">未找到匹配符号</div>';
+    }
+    document.querySelectorAll('#symbol-grid .sym').forEach(function(el){
+      el.addEventListener('click',function(){
+        var s=this.dataset.sym;
+        navigator.clipboard.writeText(s).then(function(){
+          toast('已复制: '+s);
+          addRecent(s);
+        }).catch(function(){});
+      });
+    });
+  }
+
+  document.getElementById('symbol-search').addEventListener('input',function(){
+    ftSearchTerm=this.value.trim();
+    renderSymbols();
+  });
 
   function renderCats(){
     var html='';
@@ -149,23 +185,6 @@
         this.classList.add('active');
         activeCat=this.dataset.cat;
         renderSymbols();
-      });
-    });
-  }
-
-  function renderSymbols(){
-    var html='';
-    symbols[activeCat].forEach(function(s){
-      html+='<div class="sym" data-sym="'+s+'">'+s+'</div>';
-    });
-    document.getElementById('symbol-grid').innerHTML=html;
-    document.querySelectorAll('#symbol-grid .sym').forEach(function(el){
-      el.addEventListener('click',function(){
-        var s=this.dataset.sym;
-        navigator.clipboard.writeText(s).then(function(){
-          toast('已复制: '+s);
-          addRecent(s);
-        }).catch(function(){});
       });
     });
   }

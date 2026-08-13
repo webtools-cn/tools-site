@@ -114,6 +114,10 @@ canvas{max-width:100%}
     </div>
   </div>
 </div>
+<div class="form-group">
+    <label>最近节拍 BPM 柱状图</label>
+    <canvas id="bpmChart" width="520" height="120" style="width:100%;max-width:520px;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px"></canvas>
+  </div>
 <div class="preview-box" style="min-height:200px;cursor:pointer;user-select:none" onclick="tap()" onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();tap()}" tabindex="0">
   <div style="font-size:3rem;margin-bottom:8px" id="bpmIcon">🥁</div>
   <div style="font-size:1.5rem;color:#22d3ee" id="bpmDisplay">点击敲击</div>
@@ -228,6 +232,8 @@ function tap() {
     document.getElementById('bpmLog').value = log.join('\n');
   }
   
+  drawBpmChart();
+  
   // Beat animation
   var beat = document.getElementById('bpmBeat');
   beat.style.opacity = '1';
@@ -243,6 +249,7 @@ function tap() {
     document.getElementById('bpmDisplay').textContent = '点击敲击';
     document.getElementById('bpmIcon').textContent = '🥁';
     document.getElementById('bpmLog').value = '等待敲击...';
+    drawBpmChart();
   }, 3000);
 }
 
@@ -255,6 +262,7 @@ function resetBPM() {
   document.getElementById('bpmIcon').textContent = '🥁';
   document.getElementById('bpmLog').value = '等待敲击...';
   clearTimeout(window._tapTimeout);
+  drawBpmChart();
   showToast('已重置');
 }
 
@@ -267,6 +275,44 @@ function copyBPM() {
     showToast('复制失败');
   });
 }
+
+function drawBpmChart(){
+  var c = document.getElementById('bpmChart');
+  if (!c) return;
+  var ctx = c.getContext('2d');
+  var W = c.width, H = c.height;
+  ctx.clearRect(0, 0, W, H);
+  if (tapTimes.length < 2) {
+    ctx.fillStyle = '#475569';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('敲击后显示每个间隔的BPM', W/2, H/2);
+    return;
+  }
+  var vals = [];
+  for (var i = 1; i < tapTimes.length; i++) {
+    var ms = tapTimes[i] - tapTimes[i-1];
+    if (ms > 0) vals.push(Math.round(60000 / ms));
+  }
+  if (!vals.length) return;
+  var maxB = Math.max.apply(null, vals);
+  var minB = Math.min.apply(null, vals);
+  var n = vals.length;
+  var slotW = W / n;
+  var top = 8, bottom = H - 16;
+  for (var k = 0; k < n; k++) {
+    var ratio = (maxB - minB) ? (vals[k] - minB) / (maxB - minB) : 0.5;
+    var barH = Math.max(4, ratio * (bottom - top));
+    var x = k * slotW + slotW * 0.14;
+    ctx.fillStyle = '#06b6d4';
+    ctx.fillRect(x, bottom - barH, slotW * 0.72, barH);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(vals[k]), k * slotW + slotW / 2, H - 2);
+  }
+}
+drawBpmChart();
 </script>
 
 </main>

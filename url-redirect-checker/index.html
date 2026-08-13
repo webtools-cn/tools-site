@@ -221,6 +221,7 @@ const redirectCount=hops.filter(h=>h.isRedirect).length;
 const finalStatus=last&&!last.isRedirect?last.status:'—';
 
 let html='<div class="card">';
+html+='<div style="text-align:right;margin-bottom:10px"><button class="btn btn-primary" id="copyReportBtn" style="font-size:.8rem;padding:6px 14px">📋 复制报告</button></div>';
 html+='<div class="summary">';
 html+='<strong>原始URL:</strong> '+escapeHtml(origUrl)+'<br>';
 html+='<strong>总跳转次数:</strong> '+redirectCount+'<br>';
@@ -256,6 +257,23 @@ if(i<hops.length-1)html+='<div class="arrow-down">↓</div>';
 
 html+='</div>';
 resultArea.innerHTML=html;
+const copyBtn=resultArea.querySelector('#copyReportBtn');
+if(copyBtn){copyBtn.addEventListener('click',function(){copyReport(origUrl,hops);});}
+}
+
+function copyReport(origUrl,hops){
+const lines=['URL重定向检查报告','原始URL: '+origUrl,'检查时间: '+new Date().toLocaleString()];
+hops.forEach(function(h,i){
+lines.push('');
+lines.push('第'+(i+1)+'跳: '+((h.status&&h.status>0)?h.status+' '+h.statusText:(h.isLoop?'循环检测':(h.error||'错误'))));
+lines.push('  URL: '+h.url);
+if(h.headers&&h.headers['location'])lines.push('  Location: '+h.headers['location']);
+if(h.headers&&h.headers['content-type'])lines.push('  Content-Type: '+h.headers['content-type']);
+});
+const text=lines.join('\n');
+if(navigator.clipboard&&navigator.clipboard.writeText){
+navigator.clipboard.writeText(text).then(function(){showToast('报告已复制')})['catch'](function(){showToast('复制失败')});
+}else{showToast('复制失败');}
 }
 
 function escapeHtml(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}

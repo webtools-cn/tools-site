@@ -52,7 +52,7 @@
 <div class="section">
   <h2>💰 月收入</h2>
   <div class="income-bar">
-    <input type="number" id="monthlyIncome" placeholder="月收入" min="0" step="0.01" value="15000" onchange="updateAll()">
+    <input type="number" id="monthlyIncome" placeholder="月收入" min="0" step="0.01" value="15000" oninput="updateAll()" onchange="updateAll()">
     <span style="color:#64748b">元/月</span>
   </div>
   <div class="summary-row">
@@ -60,6 +60,7 @@
     <div class="summary-item" id="remainingBox"><div class="val" id="remaining">¥0</div><div class="lbl">剩余可分配</div></div>
     <div class="summary-item"><div class="val" id="pctUsed">0%</div><div class="lbl">已分配比例</div></div>
   </div>
+  <button class="btn btn-primary" onclick="copyBudget()" style="margin-top:8px">📋 复制预算结果</button>
 </div>
 
 <div class="section">
@@ -91,6 +92,17 @@ let envelopes = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[{"name":"房�
 
 function showToast(m) { const t=document.getElementById('toast'); t.textContent=m; t.style.opacity='1'; setTimeout(()=>t.style.opacity='0',2000); }
 function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(envelopes)); }
+function copyBudget() {
+  const income = parseFloat(document.getElementById('monthlyIncome').value)||0;
+  const lines = ['📊 信封预算分配方案', '月收入: ¥'+income.toFixed(2)];
+  envelopes.forEach(e=>lines.push((e.name||'类别')+': ¥'+(parseFloat(e.amount)||0).toFixed(2)));
+  lines.push('已分配: '+document.getElementById('totalBudgeted').textContent);
+  lines.push('剩余: '+document.getElementById('remaining').textContent);
+  const t = lines.join('\n');
+  function done(ok){ showToast(ok?'已复制':'复制失败'); }
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(()=>done(true)).catch(()=>done(false)); }
+  else { try{ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done(true); }catch(e){ done(false); } }
+}
 
 const COLORS = ['#06b6d4','#22c55e','#f59e0b','#8b5cf6','#ec4899','#f97316','#14b8a6','#e11d48','#6366f1','#84cc16'];
 
@@ -115,7 +127,7 @@ function renderEnvelopes() {
     const pct = parseFloat(document.getElementById('monthlyIncome').value)>0 ? (parseFloat(e.amount||0)/parseFloat(document.getElementById('monthlyIncome').value)*100).toFixed(1) : '0';
     return `<li class="envelope-item">
       <span class="cat-name">${escHtml(e.name)}</span>
-      <input type="number" class="cat-amount" value="${e.amount}" data-idx="${i}" onchange="updateAmount(${i},this.value)">
+      <input type="number" class="cat-amount" value="${e.amount}" data-idx="${i}" oninput="updateAmount(${i},this.value)" onchange="updateAmount(${i},this.value)">
       <span class="cat-pct">${pct}%</span>
       <button class="del-btn" onclick="delCategory(${i})">✕</button>
     </li>`;

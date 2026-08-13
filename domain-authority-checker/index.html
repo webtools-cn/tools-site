@@ -77,11 +77,13 @@
     <div class="input-row">
       <div class="form-group"><label>网站域名</label><input type="text" id="domainInput" placeholder="example.com" value="free-toolbase.com"></div>
       <div class="btn-wrap"><button class="btn" id="checkBtn">检测</button></div>
+      <div class="btn-wrap"><button class="btn" id="sampleBtn" style="background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)">🎲 填入示例</button></div>
     </div>
   </div>
   <div class="section" id="resultsCard" style="display:none">
     <h2>📊 权重评估</h2>
     <div id="results"></div>
+    <div style="text-align:center;margin-top:16px"><button id="copyResultBtn" style="padding:8px 18px;background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.3);border-radius:8px;font-size:.85rem;cursor:pointer">📋 复制结果</button></div>
   </div>
 <h2>什么是🏆 域名权重检测器</h2><p>🏆 域名权重检测器是一款免费在线工具。无需安装或注册，输入网站域名、相关参数即可在浏览器中直接使用。网站域名、相关参数等输入仅在本地处理，不会上传到任何服务器。</p><h2>使用场景</h2><ul><li>日常工作中需要快速计算相关数值时</li><li>学习或教学中验证计算结果是否正确</li><li>移动设备上临时需要计算，不想安装专用软件</li><li>需要快速对比不同参数下的计算结果</li></ul><h2>工具特点</h2><ul><li><strong>完全免费</strong>：无需注册、无使用次数限制、无隐藏费用</li><li><strong>隐私安全</strong>：所有计算在浏览器本地完成，数据不上传服务器</li><li><strong>跨平台</strong>：支持Windows、Mac、Linux、iOS、Android</li><li><strong>零依赖</strong>：无需安装插件或软件，打开网页即用</li></ul><h3>🏆 域名权重检测器准确吗？</h3><p>本工具的计算逻辑基于标准数学公式和行业规范，结果准确可靠。</p><h3>使用🏆 域名权重检测器需要联网吗？</h3><p>首次打开页面需要联网加载，页面加载完成后即可离线使用。</p><h3>我的数据会被记录吗？</h3><p>不会。本工具没有任何后端服务器，您输入的所有数据仅存在于浏览器内存中。</p>
 <div class="seo-content" style="max-width:720px;margin:0 auto;padding:20px;line-height:1.8"><h3>域名权重检测器的计算逻辑</h3><p>本工具的核心计算逻辑：</p><ul><li><code>total</code> = Object.values(scores).reduce((a, b) => a + b, 0)</li></ul>
@@ -110,8 +112,14 @@
 (function() {
   const domainEl = document.getElementById('domainInput');
   const checkBtn = document.getElementById('checkBtn');
+  const sampleBtn = document.getElementById('sampleBtn');
   const resultsCard = document.getElementById('resultsCard');
   const resultsEl = document.getElementById('results');
+
+  var ftSamples=['google.com','github.com','wikipedia.org','apple.com','mozilla.org','free-toolbase.com'];
+  var ftSampleIdx=0;
+  var ftDebounceTimer=null;
+  var ftLastText='';
 
   function hashScore(str) {
     let hash = 0;
@@ -160,11 +168,41 @@
       `).join('')}
       <p style="color:#94a3b8;font-size:0.8rem;margin-top:16px;text-align:center">⚠️ 此评分为模拟计算，仅供参考。实际权重需结合多平台数据。</p>
     `;
+
+    ftLastText = '📊 域名权重检测结果\n域名: ' + domain + '\n总分: ' + total + ' (' + rating + ')\n'
+      + metrics.map(m => m.name + ': ' + m.value + '/' + m.max).join('\n')
+      + '\n⚠️ 模拟评分仅供参考';
     resultsCard.style.display = 'block';
   }
 
   checkBtn.addEventListener('click', check);
+  sampleBtn.addEventListener('click', function(){
+    domainEl.value = ftSamples[ftSampleIdx % ftSamples.length];
+    ftSampleIdx++;
+    check();
+  });
+  domainEl.addEventListener('input', function(){
+    clearTimeout(ftDebounceTimer);
+    ftDebounceTimer = setTimeout(check, 400);
+  });
   domainEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') check(); });
+  document.getElementById('copyResultBtn').addEventListener('click', function(){
+    var btn=this;
+    var done=function(){
+      btn.textContent='✅ 已复制';
+      setTimeout(function(){btn.textContent='📋 复制结果';},2000);
+    };
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(ftLastText).then(done).catch(function(){ftDAFallback(done);});
+    }else{ftDAFallback(done);}
+  });
+  function ftDAFallback(done){
+    var ta=document.createElement('textarea');
+    ta.value=ftLastText;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');done();}catch(e){}
+    document.body.removeChild(ta);
+  }
   check();
 })();
 </script>

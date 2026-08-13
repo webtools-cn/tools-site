@@ -110,6 +110,10 @@ a{color:#06b6d4;text-decoration:none}
 <div class="best-value" id="bestName"></div>
 <div class="best-save" id="bestSave"></div>
 </div>
+<div style="margin-top:12px">
+<button class="btn btn-add" onclick="copyResult()">📋 复制比价结果</button>
+</div>
+<canvas id="priceChart" width="600" height="220" style="display:block;width:100%;max-width:600px;height:auto;margin:16px auto 0"></canvas>
 </div>
 
 <div class="section">
@@ -212,25 +216,78 @@ updateBest();
 }
 
 function updateBest(){
-var valid=products.filter(function(p){return calcUnitPrice(p)!==null&&p.name;});
-var banner=document.getElementById('bestBanner');
-// Reset all rows
-document.querySelectorAll('.product-row').forEach(function(r){r.classList.remove('best');});
-if(valid.length<2){banner.style.display='none';return;}
-var best=valid.reduce(function(min,p){var up=calcUnitPrice(p);return min===null||up<min.up?{p:p,up:up}:min;},null);
-if(best){
-banner.style.display='block';
-document.getElementById('bestName').textContent=best.p.name+' — ¥'+best.up.toFixed(4)+'/'+unitLabels[best.p.unit];
-var worst=valid.reduce(function(max,p){var up=calcUnitPrice(p);return max===null||up>max.up?{p:p,up:up}:max;},null);
-if(worst&&worst.up>best.up){
-var savePct=((worst.up-best.up)/worst.up*100).toFixed(1);
-document.getElementById('bestSave').textContent='比最贵的省 '+savePct+'%';
+  var valid=products.filter(function(p){return calcUnitPrice(p)!==null&&p.name;});
+  var banner=document.getElementById('bestBanner');
+  // Reset all rows
+  document.querySelectorAll('.product-row').forEach(function(r){r.classList.remove('best');});
+  if(valid.length<2){banner.style.display='none';drawPriceChart();return;}
+  var best=valid.reduce(function(min,p){var up=calcUnitPrice(p);return min===null||up<min.up?{p:p,up:up}:min;},null);
+  if(best){
+    banner.style.display='block';
+    document.getElementById('bestName').textContent=best.p.name+' — ¥'+best.up.toFixed(4)+'/'+unitLabels[best.p.unit];
+    var worst=valid.reduce(function(max,p){var up=calcUnitPrice(p);return max===null||up>max.up?{p:p,up:up}:max;},null);
+    if(worst&&worst.up>best.up){
+      var savePct=((worst.up-best.up)/worst.up*100).toFixed(1);
+      document.getElementById('bestSave').textContent='比最贵的省 '+savePct+'%';
+    }
+    // Highlight best row
+    var idx=products.indexOf(best.p);
+    var rows=document.querySelectorAll('.product-row');
+    if(rows[idx])rows[idx].classList.add('best');
+  }
+  drawPriceChart();
 }
-// Highlight best row
-var idx=products.indexOf(best.p);
-var rows=document.querySelectorAll('.product-row');
-if(rows[idx])rows[idx].classList.add('best');
+
+function drawPriceChart(){
+  var cv=document.getElementById('priceChart');
+  if(!cv)return;
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  var valid=products.filter(function(p){return calcUnitPrice(p)!==null&&p.name;});
+  if(valid.length<2)return;
+  var best=valid.reduce(function(min,p){var up=calcUnitPrice(p);return up<min.up?{p:p,up:up}:min;},{p:valid[0],up:calcUnitPrice(valid[0])});
+  var max=Math.max.apply(null,valid.map(function(p){return calcUnitPrice(p);}));
+  var n=valid.length;
+  var gap=(W-50)/n;
+  var bw=gap*0.55;
+  var base=H-32;
+  for(var i=0;i<n;i++){
+    var up=calcUnitPrice(valid[i]);
+    var h=(up/max)*(H-60);
+    var x=25+gap*i+(gap-bw)/2;
+    var isBest=valid[i]===best.p;
+    ctx.fillStyle=isBest?'#4ade80':'#06b6d4';
+    ctx.fillRect(x,base-h,bw,h);
+    ctx.font='10px sans-serif';
+    ctx.textAlign='center';
+    ctx.fillStyle='#94a3b8';
+    var name=valid[i].name.length>8?valid[i].name.slice(0,8)+'…':valid[i].name;
+    ctx.fillText(name,x+bw/2,base+12);
+    ctx.fillStyle='#22d3ee';
+    ctx.fillText('¥'+up.toFixed(2),x+bw/2,base-h-4);
+  }
 }
+
+function copyResult(){
+  var valid=products.filter(function(p){return calcUnitPrice(p)!==null&&p.name;});
+  if(valid.length===0){showToast('没有可复制的数据');return;}
+  var lines=['单价比较结果（单价越低越划算）'];
+  valid.forEach(function(p){var up=calcUnitPrice(p);lines.push(p.name+' — ¥'+up.toFixed(4)+'/'+(unitLabels[p.unit]||p.unit));});
+  var best=valid.reduce(function(min,p){var up=calcUnitPrice(p);return up<min.up?{p:p,up:up}:min;},{p:valid[0],up:calcUnitPrice(valid[0])});
+  lines.push('最划算：'+best.p.name);
+  ftEnsureCopy(lines.join('\n'));
+}
+
+function ftEnsureCopy(text){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){showToast('✅ 已复制到剪贴板')}).catch(function(){fallbackCopy(text)});
+  }else{fallbackCopy(text);}
+}
+function fallbackCopy(text){
+  var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');showToast('✅ 已复制到剪贴板');}catch(e){showToast('复制失败');}
+  document.body.removeChild(ta);
 }
 
 function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2000);}

@@ -73,6 +73,10 @@ a{color:#06b6d4;text-decoration:none}
 .node-editor input{background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 12px;font-size:.9rem;width:240px;margin-bottom:10px}
 .node-editor input:focus{outline:none;border-color:rgba(6,182,212,.5)}
 .node-editor .btn-row{display:flex;gap:8px;justify-content:flex-end}
+.node-editor .btn{padding:8px 16px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s}
+.node-editor .btn-primary{background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3)}
+.node-editor .btn-primary:hover{background:rgba(6,182,212,.35)}
+.node-editor .btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:none}
 .overlay.show{display:block}
 .ad-slot{margin:0 auto;text-align:center;max-width:960px}.ad-slot:not(:has(ins[frame])){display:none}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{max-width:300px}
@@ -106,7 +110,20 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线思维导图工具</p>
 <div class="hero"><p>免费在线思维导图工具，支持节点拖拽、添加删除、多层级结构、导出PNG/JSON。纯前端本地运行，数据不上传服务器。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><div class="canvas-wrap" id="canvasWrap">
+<div><div class="section"><div class="toolbar">
+    <button class="btn btn-primary" onclick="addNode()">➕ 添加子节点</button>
+    <button class="btn btn-secondary" onclick="editNode()">✏️ 编辑节点</button>
+    <button class="btn btn-danger" onclick="deleteNode()">🗑 删除节点</button>
+    <span class="sep"></span>
+    <button class="btn btn-secondary" onclick="exportPNG()">🖼 导出PNG</button>
+    <button class="btn btn-secondary" onclick="exportJSON()">💾 导出JSON</button>
+    <button class="btn btn-secondary" onclick="copyNodeJSON()">📋 复制JSON</button>
+    <button class="btn btn-secondary" onclick="importJSON()">📂 导入JSON</button>
+    <span class="sep"></span>
+    <button class="btn btn-secondary" onclick="resetView()">🔍 重置视图</button>
+    <span class="hint">单击选中节点 · 双击编辑文本 · 拖拽移动节点 · Tab添加子节点 · Delete删除</span>
+  </div>
+  <div class="canvas-wrap" id="canvasWrap">
     <svg id="svgLines"></svg>
     <div id="nodeContainer"></div>
   </div>
@@ -198,20 +215,357 @@ a{color:#06b6d4;text-decoration:none}
 
 </div>
 <div class="toast" id="toast"></div>
+<div class="overlay" id="overlay"></div>
+<div class="node-editor" id="nodeEditor">
+  <input type="text" id="nodeInput" placeholder="输入节点内容...">
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="closeEditor()">取消</button>
+    <button class="btn btn-primary" onclick="saveNodeText()">确认</button>
+  </div>
+</div>
 <script>
-function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
-
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2000);
 }
 
+var canvasWrap = document.getElementById('canvasWrap');
+var nodeContainer = document.getElementById('nodeContainer');
+var svgLines = document.getElementById('svgLines');
+var overlay = document.getElementById('overlay');
+var nodeEditor = document.getElementById('nodeEditor');
+var nodeInput = document.getElementById('nodeInput');
+
+var nodes = [];
+var nextId = 1;
+var selectedId = null;
+var dragNodeId = null;
+var dragOffsetX = 0;
+var dragOffsetY = 0;
+var isDragging = false;
+
+function createNode(id, text, x, y, parentId, isRoot) {
+  var div = document.createElement('div');
+  div.className = 'node' + (isRoot ? ' root' : '') + (selectedId === id ? ' selected' : '');
+  div.id = 'node-' + id;
+  div.textContent = text;
+  div.style.left = x + 'px';
+  div.style.top = y + 'px';
+  div.dataset.id = id;
+
+  div.addEventListener('mousedown', function(e) {
+    e.stopPropagation();
+    selectNode(id);
+    dragNodeId = id;
+    var rect = div.getBoundingClientRect();
+    dragOffsetX = e.clientX - rect.left;
+    dragOffsetY = e.clientY - rect.top;
+    isDragging = false;
+  });
+
+  div.addEventListener('dblclick', function(e) {
+    e.stopPropagation();
+    selectNode(id);
+    editNode();
+  });
+
+  nodeContainer.appendChild(div);
+  return { id: id, text: text, x: x, y: y, parentId: parentId, isRoot: isRoot, el: div };
+}
+
+function selectNode(id) {
+  selectedId = id;
+  document.querySelectorAll('.node').forEach(function(n){ n.classList.remove('selected'); });
+  var node = nodes.find(function(n){ return n.id === id; });
+  if (node && node.el) node.el.classList.add('selected');
+}
+
+function addNode() {
+  if (!selectedId) { showToast('请先选中一个节点'); return; }
+  var parent = nodes.find(function(n){ return n.id === selectedId; });
+  if (!parent) return;
+  var siblings = nodes.filter(function(n){ return n.parentId === selectedId; });
+  var index = siblings.length;
+  var x = parent.x + 180;
+  var y = parent.y + index * 60 - (siblings.length * 30) / 2 + 30;
+  var node = createNode(nextId++, '新节点', x, y, selectedId, false);
+  nodes.push(node);
+  selectNode(node.id);
+  drawLines();
+  showToast('已添加子节点');
+}
+
+function editNode() {
+  if (!selectedId) { showToast('请先选中一个节点'); return; }
+  var node = nodes.find(function(n){ return n.id === selectedId; });
+  if (!node) return;
+  nodeInput.value = node.text;
+  overlay.classList.add('show');
+  nodeEditor.classList.add('show');
+  nodeInput.focus();
+  nodeInput.select();
+}
+
+function saveNodeText() {
+  var text = nodeInput.value.trim();
+  if (!text) { showToast('节点内容不能为空'); return; }
+  var node = nodes.find(function(n){ return n.id === selectedId; });
+  if (node) { node.text = text; node.el.textContent = text; }
+  closeEditor();
+}
+
+function closeEditor() {
+  overlay.classList.remove('show');
+  nodeEditor.classList.remove('show');
+}
+
+function deleteNode() {
+  if (!selectedId) { showToast('请先选中一个节点'); return; }
+  var node = nodes.find(function(n){ return n.id === selectedId; });
+  if (!node) return;
+  if (node.isRoot) { showToast('不能删除根节点'); return; }
+  function removeTree(id) {
+    var children = nodes.filter(function(n){ return n.parentId === id; });
+    children.forEach(function(c){ removeTree(c.id); });
+    var idx = nodes.findIndex(function(n){ return n.id === id; });
+    if (idx !== -1) { nodes[idx].el.remove(); nodes.splice(idx, 1); }
+  }
+  removeTree(selectedId);
+  selectedId = null;
+  drawLines();
+  showToast('已删除节点');
+}
+
+function drawLines() {
+  svgLines.innerHTML = '';
+  for (var i = 0; i < nodes.length; i++) {
+    var node = nodes[i];
+    if (node.parentId === null) continue;
+    var parent = nodes.find(function(n){ return n.id === node.parentId; });
+    if (!parent) continue;
+    var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', parent.x + parent.el.offsetWidth / 2);
+    line.setAttribute('y1', parent.y + parent.el.offsetHeight / 2);
+    line.setAttribute('x2', node.x + node.el.offsetWidth / 2);
+    line.setAttribute('y2', node.y + node.el.offsetHeight / 2);
+    svgLines.appendChild(line);
+  }
+}
+
+function initDefault() {
+  nodes = [];
+  nextId = 1;
+  nodeContainer.innerHTML = '';
+  svgLines.innerHTML = '';
+  var root = createNode(nextId++, '中心主题', 80, 200, null, true);
+  nodes.push(root);
+  selectNode(root.id);
+  drawLines();
+}
+
+function resetView() {
+  initDefault();
+  showToast('已重置为默认导图');
+}
+
+function exportPNG() {
+  var canvas = document.createElement('canvas');
+  var ctx = canvas.getContext('2d');
+  var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (var i = 0; i < nodes.length; i++) {
+    var n = nodes[i];
+    var w = n.el.offsetWidth, h = n.el.offsetHeight;
+    minX = Math.min(minX, n.x); minY = Math.min(minY, n.y);
+    maxX = Math.max(maxX, n.x + w); maxY = Math.max(maxY, n.y + h);
+  }
+  var pad = 40;
+  var width = maxX - minX + pad * 2;
+  var height = maxY - minY + pad * 2;
+  canvas.width = width * 2;
+  canvas.height = height * 2;
+  ctx.scale(2, 2);
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, width, height);
+
+  for (var j = 0; j < nodes.length; j++) {
+    var n2 = nodes[j];
+    if (n2.parentId === null) continue;
+    var p = nodes.find(function(x){ return x.id === n2.parentId; });
+    if (!p) continue;
+    ctx.beginPath();
+    ctx.moveTo(p.x - minX + pad + p.el.offsetWidth / 2, p.y - minY + pad + p.el.offsetHeight / 2);
+    ctx.lineTo(n2.x - minX + pad + n2.el.offsetWidth / 2, n2.y - minY + pad + n2.el.offsetHeight / 2);
+    ctx.strokeStyle = 'rgba(148,163,184,.3)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  for (var k = 0; k < nodes.length; k++) {
+    var n3 = nodes[k];
+    var w3 = n3.el.offsetWidth, h3 = n3.el.offsetHeight;
+    var x3 = n3.x - minX + pad, y3 = n3.y - minY + pad;
+    ctx.fillStyle = n3.isRoot ? 'rgba(139,92,246,.25)' : 'rgba(6,182,212,.15)';
+    ctx.strokeStyle = n3.isRoot ? 'rgba(139,92,246,.5)' : 'rgba(6,182,212,.4)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, x3, y3, w3, h3, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = n3.isRoot ? '600 14px sans-serif' : '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(n3.text, x3 + w3 / 2, y3 + h3 / 2);
+  }
+
+  var link = document.createElement('a');
+  link.download = 'mind-map.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast('已导出PNG图片');
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function exportJSON() {
+  var data = nodes.map(function(n){ return { id: n.id, text: n.text, x: n.x, y: n.y, parentId: n.parentId, isRoot: n.isRoot }; });
+  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  var link = document.createElement('a');
+  link.download = 'mind-map.json';
+  link.href = URL.createObjectURL(blob);
+  link.click();
+  showToast('已导出JSON文件');
+}
+
+function copyNodeJSON() {
+  if (nodes.length === 0) { showToast('暂无节点数据'); return; }
+  var data = nodes.map(function(n){ return { id: n.id, text: n.text, x: n.x, y: n.y, parentId: n.parentId, isRoot: n.isRoot }; });
+  var txt = JSON.stringify(data, null, 2);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(function(){ showToast('已复制JSON数据'); })['catch'](function(){ showToast('复制失败'); });
+  } else {
+    var ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove(); showToast('已复制JSON数据');
+  }
+}
+
+function importJSON() {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var data = JSON.parse(ev.target.result);
+        if (!Array.isArray(data) || data.length === 0) { showToast('无效的JSON格式'); return; }
+        nodeContainer.innerHTML = '';
+        nodes = [];
+        var maxId = 0;
+        for (var i = 0; i < data.length; i++) {
+          var item = data[i];
+          maxId = Math.max(maxId, item.id);
+          var div = document.createElement('div');
+          div.className = 'node' + (item.isRoot ? ' root' : '');
+          div.id = 'node-' + item.id;
+          div.textContent = item.text;
+          div.style.left = item.x + 'px';
+          div.style.top = item.y + 'px';
+          div.dataset.id = item.id;
+          (function(itemId) {
+            div.addEventListener('mousedown', function(e2) {
+              e2.stopPropagation();
+              selectNode(itemId);
+              dragNodeId = itemId;
+              var rect = div.getBoundingClientRect();
+              dragOffsetX = e2.clientX - rect.left;
+              dragOffsetY = e2.clientY - rect.top;
+              isDragging = false;
+            });
+            div.addEventListener('dblclick', function(e2) {
+              e2.stopPropagation();
+              selectNode(itemId);
+              editNode();
+            });
+          })(item.id);
+          nodeContainer.appendChild(div);
+          nodes.push({ id: item.id, text: item.text, x: item.x, y: item.y, parentId: item.parentId, isRoot: item.isRoot, el: div });
+        }
+        nextId = maxId + 1;
+        selectedId = null;
+        drawLines();
+        showToast('导入成功');
+      } catch (err) { showToast('导入失败: ' + err.message); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+canvasWrap.addEventListener('mousedown', function(e) {
+  if (e.target === canvasWrap || e.target === svgLines) {
+    selectedId = null;
+    document.querySelectorAll('.node').forEach(function(n){ n.classList.remove('selected'); });
+  }
+});
+
+document.addEventListener('mousemove', function(e) {
+  if (dragNodeId !== null) {
+    isDragging = true;
+    var node = nodes.find(function(n){ return n.id === dragNodeId; });
+    if (!node) return;
+    var wrapRect = canvasWrap.getBoundingClientRect();
+    var x = e.clientX - wrapRect.left - dragOffsetX;
+    var y = e.clientY - wrapRect.top - dragOffsetY;
+    x = Math.max(0, Math.min(x, wrapRect.width - node.el.offsetWidth));
+    y = Math.max(0, Math.min(y, wrapRect.height - node.el.offsetHeight));
+    node.x = x;
+    node.y = y;
+    node.el.style.left = x + 'px';
+    node.el.style.top = y + 'px';
+    drawLines();
+  }
+});
+
+document.addEventListener('mouseup', function() {
+  dragNodeId = null;
+});
+
+document.addEventListener('keydown', function(e) {
+  if (overlay.classList.contains('show')) {
+    if (e.key === 'Enter') { e.preventDefault(); saveNodeText(); }
+    if (e.key === 'Escape') { e.preventDefault(); closeEditor(); }
+    return;
+  }
+  if (e.key === 'Tab') { e.preventDefault(); addNode(); }
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    var tag = document.activeElement ? document.activeElement.tagName : '';
+    if (selectedId && tag !== 'INPUT' && tag !== 'TEXTAREA') { deleteNode(); }
+  }
+  if (e.key === 'F2') { e.preventDefault(); editNode(); }
+});
+
+nodeInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); saveNodeText(); }
+  if (e.key === 'Escape') { e.preventDefault(); closeEditor(); }
+});
+
+initDefault();
 </script>
 
 

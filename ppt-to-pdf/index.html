@@ -113,6 +113,7 @@ header p{color:#94a3b8;font-size:1rem}
 </div>
 <div class="btn-row">
 <button class="btn btn-primary" disabled="" id="convertBtn">🔄 转换为 PDF</button>
+<button class="btn btn-secondary" id="copySlidesBtn" style="display:none">📋 复制幻灯片文字</button>
 <button class="btn btn-secondary" id="clearBtn" style="display:none">✕ 清除</button>
 </div>
 </div>
@@ -133,6 +134,7 @@ const fileSize=document.getElementById('fileSize');
 const previewSection=document.getElementById('previewSection');
 const previewContent=document.getElementById('previewContent');
 const convertBtn=document.getElementById('convertBtn');
+const copySlidesBtn=document.getElementById('copySlidesBtn');
 const clearBtn=document.getElementById('clearBtn');
 const progressBar=document.getElementById('progressBar');
 const progressFill=document.getElementById('progressFill');
@@ -172,6 +174,7 @@ fileSize.textContent=formatSize(file.size);
 fileInfo.style.display='block';
 convertBtn.disabled=false;
 clearBtn.style.display='inline-block';
+copySlidesBtn.style.display='inline-block';
 uploadZone.style.display='none';
 parsePptx(file);
 }
@@ -271,7 +274,7 @@ y+=lineHeight;
 }
 y+=4;
 }
-progressFill.style.width((20+(i+1)/slideContents.length*70)+'%');
+progressFill.style.width=(20+(i+1)/slideContents.length*70)+'%';
 }
 
 progressFill.style.width='95%';
@@ -292,8 +295,18 @@ fileInfo.style.display='none';
 previewSection.style.display='none';
 convertBtn.disabled=true;
 clearBtn.style.display='none';
+copySlidesBtn.style.display='none';
 uploadZone.style.display='block';
 fileInput.value='';
+});
+
+copySlidesBtn.addEventListener('click',function(){
+var out=[];
+slideContents.forEach(function(s){out.push('幻灯片 '+s.num+'\n'+s.texts.join('\n'));});
+var text=out.join('\n\n');
+if(!text){showToast('暂无文字可复制','error');return;}
+if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){showToast('幻灯片文字已复制','success')})['catch'](function(){showToast('复制失败','error')});}
+else{var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');showToast('幻灯片文字已复制','success');}catch(e){showToast('复制失败','error');}document.body.removeChild(ta);}
 });
 
 document.querySelectorAll('.faq-q').forEach(function(q){

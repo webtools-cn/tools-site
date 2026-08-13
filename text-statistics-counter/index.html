@@ -91,6 +91,7 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <textarea id="textInput" placeholder="在此输入或粘贴文本，统计数据将实时更新..."></textarea>
 <div class="btn-row">
 <button class="btn btn-secondary" id="btnClear">🗑️ 清空</button>
+<button class="btn btn-secondary" id="btnExample">🎲 填入示例</button>
 <button class="btn btn-primary" id="btnCopyStats">📋 复制统计</button>
 </div>
 </div>
@@ -106,6 +107,10 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <div class="stat-item"><div class="num" id="lineCount">0</div><div class="label">行数</div></div>
 <div class="stat-item"><div class="num" id="nonChineseCount">0</div><div class="label">非中文字符数</div></div>
 <div class="stat-item"><div class="num" id="digitCount">0</div><div class="label">数字数</div></div>
+</div>
+<div class="card">
+<h2>📊 指标柱状图</h2>
+<canvas id="statChart" style="width:100%;height:220px;background:#0f172a;border-radius:8px"></canvas>
 </div>
 </div>
 
@@ -178,6 +183,30 @@ function updateStats(){
   document.getElementById('lineCount').textContent=lines;
   document.getElementById('nonChineseCount').textContent=nonChinese;
   document.getElementById('digitCount').textContent=digits;
+  drawStatsChart();
+}
+
+function drawStatsChart(){
+  var cv=document.getElementById('statChart');
+  if(!cv)return;
+  var W=cv.offsetWidth||800;
+  cv.width=W*2;cv.height=440;
+  var ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,cv.width,cv.height);
+  var items=[['字符',document.getElementById('charCount').textContent],['去空格',document.getElementById('charNoSpace').textContent],['字数',document.getElementById('wordCount').textContent],['句',document.getElementById('sentenceCount').textContent],['段',document.getElementById('paraCount').textContent],['行',document.getElementById('lineCount').textContent],['数字',document.getElementById('digitCount').textContent]];
+  var vals=items.map(function(x){return parseFloat(x[1])||0;});
+  var max=1;vals.forEach(function(v){if(v>max)max=v;});
+  var pad=44,n=items.length,step=(cv.width-pad*2)/n;
+  ctx.font=(W>600?'13px':'11px')+' sans-serif';
+  items.forEach(function(it,i){
+    var bh=Math.max(4,(vals[i]/max)*(cv.height-pad*2));
+    ctx.fillStyle='rgba(6,182,212,.85)';
+    ctx.fillRect(pad+i*step+4,cv.height-pad-bh,step*0.6,bh);
+    ctx.fillStyle='#94a3b8';ctx.textAlign='center';
+    ctx.fillText(it[0],pad+(i+0.5)*step,cv.height-pad+16);
+    ctx.fillStyle='#22d3ee';
+    ctx.fillText(vals[i],pad+(i+0.5)*step,cv.height-pad-bh-8);
+  });
 }
 
 document.getElementById('textInput').addEventListener('input',updateStats);
@@ -186,6 +215,12 @@ document.getElementById('btnClear').addEventListener('click',function(){
   document.getElementById('textInput').value='';
   updateStats();
   showToast('已清空');
+});
+
+document.getElementById('btnExample').addEventListener('click',function(){
+  document.getElementById('textInput').value='春眠不觉晓，处处闻啼鸟。夜来风雨声，花落知多少。\n\nThe quick brown fox jumps over the lazy dog. This pangram contains every letter of the English alphabet at least once.\n\n人工智能正在改变我们的生活方式，从智能手机到自动驾驶汽车，2026年将会看到更多创新。';
+  updateStats();
+  showToast('已填入示例文本');
 });
 
 document.getElementById('btnCopyStats').addEventListener('click',function(){

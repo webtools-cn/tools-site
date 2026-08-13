@@ -80,8 +80,12 @@
         <div class="stat-item"><div class="label">不支持</div><div class="value red" id="unsupported">0</div></div>
         <div class="stat-item"><div class="label">部分支持</div><div class="value yellow" id="partial">0</div></div>
       </div>
+      <canvas id="apiChart" width="640" height="140" style="width:100%;height:auto;background:#0f172a;border-radius:8px;border:1px solid rgba(148,163,184,.1);margin-top:12px"></canvas>
     </div>
-    <div id="resultArea" style="display:none;margin-top:16px"></div>
+    <div id="resultArea" style="display:none;margin-top:16px">
+      <div id="result" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:14px;color:#e2e8f0;font-size:.85rem;white-space:pre-wrap;line-height:1.7;max-height:400px;overflow:auto"></div>
+      <button class="copy-btn" id="copyApiBtn" style="margin-top:10px;padding:8px 16px;background:rgba(6,182,212,.15);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;cursor:pointer">📋 复制结果</button>
+    </div>
   </div>
 
   <div class="section"><h2>常见问题</h2>
@@ -135,7 +139,7 @@ function exportReport() {
 }
 
 function runCheck(){
-  var output=document.getElementById('output')||document.getElementById('result');
+  var output=document.getElementById('result');
   var apis=[
     {name:'Fetch API',check:function(){return typeof fetch!=='undefined';}},
     {name:'WebSocket',check:function(){return typeof WebSocket!=='undefined';}},
@@ -173,10 +177,52 @@ function runCheck(){
   results.push('支持: '+supported+'/'+apis.length);
   if(output){
     output.textContent=results.join('\n');
-    output.style.display='block';
+    document.getElementById('resultArea').style.display='block';
   }
+  document.getElementById('supported').textContent=supported;
+  document.getElementById('unsupported').textContent=apis.length-supported;
+  document.getElementById('partial').textContent=0;
+  document.getElementById('statsArea').style.display='block';
+  drawApiChart(supported, apis.length-supported);
   showToast('检测完成: '+supported+'/'+apis.length+' API可用');
 }
+
+function drawApiChart(ok,no){
+  var c=document.getElementById('apiChart');if(!c)return;
+  var ctx=c.getContext('2d');var W=c.width,H=c.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0f172a';ctx.fillRect(0,0,W,H);
+  if(!ok&&!no){ctx.fillStyle='#64748b';ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('暂无数据',W/2,H/2);return;}
+  var items=[{label:'支持',v:ok,color:'#22c55e'},{label:'不支持',v:no,color:'#ef4444'}];
+  var max=Math.max(ok,no,1);
+  var step=(W-40)/2;
+  items.forEach(function(it,i){
+    var h=(H-46)*it.v/max;
+    var x=20+i*step+(step-70)/2;
+    var y=H-28-h;
+    ctx.fillStyle=it.color;ctx.fillRect(x,y,70,Math.max(h,2));
+    ctx.fillStyle='#e2e8f0';ctx.font='12px sans-serif';ctx.textAlign='center';
+    ctx.fillText(it.v,x+35,y-4);
+    ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';
+    ctx.fillText(it.label,x+35,H-12);
+  });
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  var cat=document.getElementById('category');
+  if(cat)cat.addEventListener('change',function(){runCheck();});
+  var btn=document.getElementById('copyApiBtn');
+  if(btn)btn.addEventListener('click',function(){
+    var el=document.getElementById('result');
+    if(!el||!el.textContent){showToast('请先开始检测');return;}
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(el.textContent).then(function(){btn.textContent='✅ 已复制';setTimeout(function(){btn.textContent='📋 复制结果';},1500);}).catch(function(){showToast('复制失败');});
+    }else{
+      var ta=document.createElement('textarea');ta.value=el.textContent;document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');btn.textContent='✅ 已复制';setTimeout(function(){btn.textContent='📋 复制结果';},1500);}catch(e){showToast('复制失败');}
+      document.body.removeChild(ta);
+    }
+  });
+});
 </script>
 
 

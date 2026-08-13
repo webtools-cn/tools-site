@@ -206,33 +206,64 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+function buildFilterXML(type, iv) {
+  var std = Math.max(0.5, isFinite(iv) ? iv : 3);
+  switch (type) {
+    case 'blur': return '<feGaussianBlur stdDeviation="' + std + '"/>';
+    case 'shadow': return '<feDropShadow dx="' + Math.round(std) + '" dy="' + Math.round(std) + '" stdDeviation="' + (std / 2).toFixed(1) + '" flood-color="#000000" flood-opacity="0.5"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>';
+    case 'grayscale': return '<feColorMatrix type="saturate" values="0"/>';
+    case 'sepia': return '<feColorMatrix type="matrix" values="0.393 0.769 0.189 0 0 0.349 0.686 0.168 0 0 0.272 0.534 0.131 0 0 0 0 0 1 0"/>';
+    case 'invert': return '<feColorMatrix type="matrix" values="-1 0 0 0 1 0 -1 0 0 1 0 0 -1 0 1 0 0 0 1 0"/>';
+    case 'emboss': return '<feConvolveMatrix order="3" kernelMatrix="0 -1 0 -1 ' + (4 + std * 0.5).toFixed(1) + ' -1 0 -1 0" preserveAlpha="true"/>';
+  }
+  return '<feGaussianBlur stdDeviation="3"/>';
+}
+
 function applyFilter(){
-  var filterType=document.getElementById('filterType')||document.querySelector('select');
-  var preview=document.getElementById('preview')||document.querySelector('.preview-box')||document.getElementById('output');
-  var codeBox=document.getElementById('code')||document.querySelector('.code-box');
-  var type=filterType?filterType.value:'blur';
-  var filters={
-    'blur':'blur(5px)',
-    'grayscale':'grayscale(100%)',
-    'sepia':'sepia(100%)',
-    'invert':'invert(100%)',
-    'brightness':'brightness(1.5)',
-    'contrast':'contrast(200%)',
-    'hueRotate':'hue-rotate(90deg)',
-    'saturate':'saturate(3)',
-    'dropShadow':'drop-shadow(5px 5px 5px rgba(0,0,0,.5))'
-  };
-  var cssFilter=filters[type]||'blur(5px)';
-  if(preview){preview.style.filter=cssFilter;}
-  if(codeBox){codeBox.textContent='filter: '+cssFilter+';';}
-  showToast('滤镜已应用: '+type);
+  var typeSel=document.getElementById('filterType')||document.querySelector('select');
+  var intInput=document.getElementById('intensity');
+  var type=typeSel?typeSel.value:'blur';
+  var iv=intInput?parseFloat(intInput.value):3;
+  var filterEl=document.getElementById('currentFilter');
+  var codeBox=document.getElementById('resultCode');
+  var area=document.getElementById('resultArea');
+  var xml=buildFilterXML(type,iv);
+  if(filterEl){filterEl.innerHTML=xml;}
+  if(codeBox){
+    var code='<svg width="200" height="200" viewBox="0 0 200 200">\n'
+      + '  <defs>\n    <filter id="myFilter">\n      '+xml+'\n    </filter>\n  </defs>\n'
+      + '  <circle cx="100" cy="80" r="50" fill="#06b6d4" filter="url(#myFilter)"/>\n'
+      + '  <rect x="60" y="110" width="80" height="40" rx="8" fill="#10b981" filter="url(#myFilter)"/>\n'
+      + '</svg>';
+    codeBox.textContent=code;
+  }
+  if(area){area.style.display='block';}
+  showToast('滤镜已应用: '+type+' (强度 '+iv+')');
+}
+
+function fallbackCopy(t){
+  var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');showToast('已复制')}catch(e){showToast('复制失败')}
+  document.body.removeChild(ta);
 }
 
 function copyResult() {
-  var text = document.getElementById('resultArea').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  var codeBox=document.getElementById('resultCode');
+  if(!codeBox||!codeBox.textContent){showToast('没有可复制的代码');return;}
+  var t=codeBox.textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){showToast('已复制')})['catch'](function(){fallbackCopy(t)});
+  }else{fallbackCopy(t);}
 }
+
+(function(){
+  var ft=document.getElementById('filterType');
+  var it=document.getElementById('intensity');
+  if(ft)ft.addEventListener('change',applyFilter);
+  if(it)it.addEventListener('input',applyFilter);
+  applyFilter();
+})();
 </script>
 
 

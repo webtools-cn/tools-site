@@ -52,6 +52,7 @@
       <div id="actions" style="display:none;margin-top:12px">
         <p class="info" id="fileInfo"></p>
         <button class="btn" id="downloadBtn">下载PNG</button>
+        <button class="btn" id="copyBtn" style="background:rgba(148,163,184,.1);color:#e2e8f0;border:1px solid rgba(148,163,184,.2);margin-left:8px">📋 复制PNG</button>
       </div>
     </div>
   
@@ -97,6 +98,20 @@
   dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('dragover');const file=e.dataTransfer.files[0];if(file)processFile(file)})
   fileInput.addEventListener('change',()=>{const file=fileInput.files[0];if(file)processFile(file)})
   downloadBtn.addEventListener('click',()=>{if(!pngDataUrl){showToast('请先选择图片');return}const a=document.createElement('a');a.href=pngDataUrl;a.download=(origName||'image')+'.png';a.click();showToast('下载开始')})
+  const copyBtn=document.getElementById('copyBtn');
+  copyBtn.addEventListener('click',async()=>{
+    if(!pngDataUrl){showToast('请先选择图片');return}
+    try{
+      const blob=await(await fetch(pngDataUrl)).blob();
+      if(navigator.clipboard&&window.ClipboardItem){
+        await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+        showToast('PNG图片已复制到剪贴板');
+      }else{
+        const ta=document.createElement('textarea');ta.value=pngDataUrl;document.body.appendChild(ta);ta.select();
+        document.execCommand('copy');ta.remove();showToast('已复制图片数据');
+      }
+    }catch(err){showToast('复制失败，请使用下载')}
+  })
   </script>
 </body>
 </html>

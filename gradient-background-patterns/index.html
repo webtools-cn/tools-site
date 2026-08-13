@@ -240,7 +240,7 @@ var presetsHtml='';
 for(var i=0;i<presets.length;i++){
   presetsHtml+='<div class="preset-item" data-idx="'+i+'" style="cursor:pointer;display:inline-block;width:60px;height:40px;border-radius:6px;margin:4px;border:2px solid transparent;background:linear-gradient(135deg,'+presets[i].c1+','+presets[i].c2+')" title="'+presets[i].name+'"></div>';
 }
-app.innerHTML='<div class="input-section"><h2>🎨 预设配色</h2><div style="text-align:center">'+presetsHtml+'</div></div><div class="input-section"><h2>⚙️ 自定义</h2><div class="row"><div class="field"><label>颜色1</label><input type="color" id="c1" value="#667eea"></div><div class="field"><label>颜色2</label><input type="color" id="c2" value="#764ba2"></div></div><div class="row"><div class="field"><label>渐变类型</label><select id="gradType"><option value="linear">线性渐变</option><option value="radial">径向渐变</option></select></div><div class="field"><label>角度 (°)</label><input type="number" id="angle" value="135" min="0" max="360"></div></div><div class="btn-row"><button class="btn btn-primary" id="applyBtn">🎨 应用渐变</button><button class="btn btn-success" id="copyCssBtn">📋 复制CSS</button></div></div><div class="input-section"><h2>📺 预览</h2><div id="previewArea" style="width:100%;height:250px;border-radius:8px;background:linear-gradient(135deg,#667eea,#764ba2);border:1px solid rgba(148,163,184,.1)"></div></div>';
+app.innerHTML='<div class="input-section"><h2>🎨 预设配色</h2><div style="text-align:center">'+presetsHtml+'</div></div><div class="input-section"><h2>⚙️ 自定义</h2><div class="row"><div class="field"><label>颜色1</label><input type="color" id="c1" value="#667eea"></div><div class="field"><label>颜色2</label><input type="color" id="c2" value="#764ba2"></div></div><div class="row"><div class="field"><label>渐变类型</label><select id="gradType"><option value="linear">线性渐变</option><option value="radial">径向渐变</option></select></div><div class="field"><label>角度 (°)</label><input type="number" id="angle" value="135" min="0" max="360"></div></div><div class="btn-row"><button class="btn btn-primary" id="applyBtn">🎨 应用渐变</button><button class="btn btn-success" id="copyCssBtn">📋 复制CSS</button></div></div><div class="input-section"><h2>📺 预览</h2><div id="previewArea" style="width:100%;height:250px;border-radius:8px;background:linear-gradient(135deg,#667eea,#764ba2);border:1px solid rgba(148,163,184,.1)"></div><div id="result" style="display:none;background:#0f172a;border:1px solid rgba(6,182,212,.3);border-radius:8px;padding:12px;margin-top:12px"><div style="font-size:.75rem;color:#64748b;margin-bottom:6px">当前 CSS</div><div id="cssText" class="result-box" style="margin:0"></div><div class="btn-row"><button class="btn btn-primary" id="downloadPngBtn">🖼️ 下载PNG</button></div></div></div>';
 document.getElementById('usageContent').innerHTML='<p>选择预设配色方案或自定义颜色，生成精美的渐变背景图案。支持线性渐变和径向渐变，可调节角度。</p><p>点击预设自动预览，点击"复制CSS"一键获取样式代码。可用于网页背景、PPT、壁纸等。</p>';
 
 function applyGradient(){
@@ -256,6 +256,9 @@ function applyGradient(){
   }
   document.getElementById('previewArea').style.cssText='width:100%;height:250px;border-radius:8px;'+css+';border:1px solid rgba(148,163,184,.1)';
   window._currentCss=css;
+  window._currentAngle=parseFloat(angle)||135;
+  document.getElementById('cssText').textContent=css+';';
+  document.getElementById('result').style.display='block';
 }
 
 var presetEls=document.querySelectorAll('.preset-item');
@@ -282,6 +285,35 @@ document.getElementById('c2').addEventListener('input',applyGradient);
 document.getElementById('gradType').addEventListener('change',applyGradient);
 document.getElementById('angle').addEventListener('input',applyGradient);
 applyGradient();
+
+document.getElementById('downloadPngBtn').addEventListener('click',function(){
+  if(!window._currentCss)applyGradient();
+  var c=document.createElement('canvas');
+  c.width=800;c.height=500;
+  var ctx=c.getContext('2d');
+  var colors=window._currentCss.match(/#[0-9a-fA-F]{3,8}/g)||[];
+  if(colors.length<2){showToast('颜色解析失败');return;}
+  var grad;
+  if(window._currentCss.indexOf('radial')>-1){
+    grad=ctx.createRadialGradient(400,250,0,400,250,500);
+  } else {
+    var rad=(window._currentAngle-90)*Math.PI/180;
+    var len=Math.sqrt(800*800+500*500)/2;
+    var cx=400,cy=250;
+    var sx=cx-Math.cos(rad)*len, sy=cy+Math.sin(rad)*len;
+    var ex=cx+Math.cos(rad)*len, ey=cy-Math.sin(rad)*len;
+    grad=ctx.createLinearGradient(sx,sy,ex,ey);
+  }
+  grad.addColorStop(0,colors[0]);
+  grad.addColorStop(1,colors[1]);
+  ctx.fillStyle=grad;
+  ctx.fillRect(0,0,800,500);
+  var a=document.createElement('a');
+  a.href=c.toDataURL('image/png');
+  a.download='gradient-background.png';
+  a.click();
+  showToast('PNG已下载');
+});
 </script>
 </body>
 </html>

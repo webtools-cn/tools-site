@@ -100,6 +100,7 @@ a{color:#06b6d4;text-decoration:none}
 <div class="btn-row">
   <button class="btn btn-primary btn-large" id="nextBtn">🔄 下一题</button>
   <button class="btn btn-secondary" id="revealBtn">📊 看统计</button>
+  <button class="btn btn-secondary" id="copyQBtn">📋 复制本题</button>
 </div>
 <div id="statsPanel" class="stats-panel" style="display:none"></div>
 </div>
@@ -125,7 +126,9 @@ function loadQ(){currentQ=getRandomQ();document.getElementById('optionA').textCo
 document.getElementById('optionA').addEventListener('click',function(){this.classList.add('selected');document.getElementById('optionB').classList.remove('selected');voted.push(currentQ[0])});
 document.getElementById('optionB').addEventListener('click',function(){this.classList.add('selected');document.getElementById('optionA').classList.remove('selected');voted.push(currentQ[1])});
 document.getElementById('nextBtn').addEventListener('click',loadQ);
-document.getElementById('revealBtn').addEventListener('click',function(){var p=document.getElementById('statsPanel');if(p.style.display==='none'){p.style.display='block';var s='';var counts={};voted.forEach(function(v){counts[v]=counts[v]?counts[v]+1:1});var entries=[];for(var k in counts)entries.push([k,counts[k]]);entries.sort(function(a,b){return b[1]-a[1]});entries.forEach(function(e){s+='<div class="stat-row"><span>'+e[0]+'</span><span style="color:#22d3ee">'+e[1]+' 票</span></div>'});p.innerHTML='<div style="color:#f1f5f9;margin-bottom:8px;font-weight:600">投票统计（共'+voted.length+'票）</div>'+s}else{p.style.display='none'}});
+document.getElementById('copyQBtn').addEventListener('click',function(){if(!currentQ){showToast('还没有题目');return;}var t='你更愿意: '+currentQ[0]+' 还是 '+currentQ[1]+'？';function done(ok){showToast(ok?'已复制':'复制失败')}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){done(true)}).catch(function(){done(false)})}else{try{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);done(true);}catch(e){done(false)}}});
+document.getElementById('revealBtn').addEventListener('click',function(){var p=document.getElementById('statsPanel');if(p.style.display==='none'){p.style.display='block';var s='';var counts={};voted.forEach(function(v){counts[v]=counts[v]?counts[v]+1:1});var entries=[];for(var k in counts)entries.push([k,counts[k]]);entries.sort(function(a,b){return b[1]-a[1]});entries.forEach(function(e){s+='<div class="stat-row"><span>'+e[0]+'</span><span style="color:#22d3ee">'+e[1]+' 票</span></div>'});p.innerHTML='<div style="color:#f1f5f9;margin-bottom:8px;font-weight:600">投票统计（共'+voted.length+'票）</div><canvas id="voteChart" style="width:100%;height:160px;margin-top:8px"></canvas>'+s;drawVoteChart(entries);}else{p.style.display='none'}});
+function drawVoteChart(entries){var cv=document.getElementById('voteChart');if(!cv||!entries.length)return;cv.width=(cv.offsetWidth||600)*2;cv.height=320;var ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);var max=1;entries.forEach(function(e){if(e[1]>max)max=e[1];});var n=entries.length,pad=44,step=(cv.width-pad*2)/n;ctx.font='12px sans-serif';entries.forEach(function(e,i){var bh=Math.max(4,(e[1]/max)*(cv.height-pad*2));ctx.fillStyle='rgba(6,182,212,.85)';ctx.fillRect(pad+i*step+4,cv.height-pad-bh,step*0.6,bh);ctx.fillStyle='#22d3ee';ctx.textAlign='center';ctx.fillText(String(e[1]),pad+(i+0.5)*step,cv.height-pad-bh-6);var name=e[0].length>6?e[0].slice(0,6)+'…':e[0];ctx.fillStyle='#94a3b8';ctx.fillText(name,pad+(i+0.5)*step,cv.height-pad+14);});}
 loadQ();
 </script>
 

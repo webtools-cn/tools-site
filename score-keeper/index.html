@@ -101,6 +101,10 @@ a{color:#06b6d4;text-decoration:none}
 
 <div class="card">
 <h3>👥 玩家列表</h3>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+<button class="btn-sm" id="fillExampleBtn">🎲 填入示例玩家</button>
+<button class="btn-sm" id="copyScoreBtn">📋 复制结果</button>
+</div>
 <div id="playerList"></div>
 <div class="add-player">
 <input type="text" id="newPlayerName" placeholder="输入玩家名称">
@@ -111,6 +115,7 @@ a{color:#06b6d4;text-decoration:none}
 <div class="card">
 <h3>🏅 当前排名</h3>
 <div id="ranking"></div>
+<canvas id="scoreChart" style="width:100%;height:160px;margin-top:12px;display:none"></canvas>
 </div>
 
 <div class="card">
@@ -170,7 +175,41 @@ function addHistory(msg){history.push({msg:msg,time:new Date().toLocaleString()}
 function addPlayer(name){var trimmed=name.trim();if(!trimmed)return;players.push({id:nextId++,name:trimmed,score:0});saveData();renderAll();addHistory('添加玩家: '+trimmed)}
 function removePlayer(id){var p=players.find(function(p){return p.id===id});if(p){addHistory('删除玩家: '+p.name);players=players.filter(function(p){return p.id!==id});saveData();renderAll()}}
 function changeScore(id,delta){var p=players.find(function(p){return p.id===id});if(p){p.score+=delta;saveData();renderAll();addHistory(p.name+': '+(delta>0?'+':'')+delta+' (当前:'+p.score+')')}}
-function renderAll(){renderPlayers();renderRanking()}
+function renderAll(){renderPlayers();renderRanking();renderChart()}
+function renderChart(){
+  var canvas=document.getElementById('scoreChart');
+  if(!canvas)return;
+  if(players.length===0){canvas.style.display='none';return;}
+  canvas.style.display='block';
+  var dpr=window.devicePixelRatio||1;
+  var w=canvas.clientWidth||canvas.parentNode.clientWidth;
+  var h=160;
+  canvas.width=w*dpr;canvas.height=h*dpr;
+  canvas.style.height=h+'px';
+  var ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  var sorted=players.slice().sort(function(a,b){return b.score-a.score});
+  var maxScore=Math.max.apply(null,sorted.map(function(p){return Math.abs(p.score)}))||1;
+  var pad=10,bottom=22,gap=14;
+  var barW=(w-pad*2-gap*(sorted.length-1))/sorted.length;
+  sorted.forEach(function(p,i){
+    var x=pad+i*(barW+gap);
+    var ratio=Math.max(0.02,Math.abs(p.score)/maxScore);
+    var bh=(h-bottom-pad)*ratio;
+    var y=h-bottom-bh;
+    ctx.fillStyle=p.score>=0?'#06b6d4':'#f87171';
+    ctx.beginPath();
+    if(barW>=12&&ctx.roundRect){ctx.roundRect(x,y,barW,bh,4);ctx.fill();}
+    else{ctx.fillRect(x,y,barW,bh);}
+    ctx.fillStyle='#94a3b8';
+    ctx.font='10px sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(p.name.length>6?p.name.slice(0,6)+'…':p.name,x+barW/2,h-6);
+    ctx.fillStyle='#22d3ee';
+    ctx.fillText(p.score,x+barW/2,y-4);
+  });
+}
 function renderPlayers(){var el=document.getElementById('playerList');if(players.length===0){el.innerHTML='<p style="color:#475569;text-align:center;padding:16px;font-size:.9rem">还没有玩家，请添加</p>';return}
 el.innerHTML=players.map(function(p){return'<div class="player-row"><span class="player-name">'+p.name+'</span><button class="score-btn minus" data-action="minus" data-id="'+p.id+'">-</button><span class="player-score">'+p.score+'</span><button class="score-btn plus" data-action="plus" data-id="'+p.id+'">+</button><button class="score-btn del" data-action="del" data-id="'+p.id+'">✕</button></div>'}).join('')}
 function renderRanking(){var el=document.getElementById('ranking');var sorted=players.slice().sort(function(a,b){return b.score-a.score});if(sorted.length===0){el.innerHTML='<p style="color:#475569;text-align:center;padding:16px;font-size:.9rem">暂无排名数据</p>';return}
@@ -182,6 +221,32 @@ document.getElementById('addPlayerBtn').addEventListener('click',function(){var 
 document.getElementById('newPlayerName').addEventListener('keydown',function(e){if(e.key==='Enter'){addPlayer(this.value);this.value=''}});
 document.getElementById('playerList').addEventListener('click',function(e){var btn=e.target.closest('.score-btn');if(!btn)return;var id=parseInt(btn.dataset.id);var action=btn.dataset.action;if(action==='plus')changeScore(id,1);else if(action==='minus')changeScore(id,-1);else if(action==='del')removePlayer(id)});
 document.getElementById('clearHistoryBtn').addEventListener('click',function(){history=[];saveData();renderHistory()});
+document.getElementById('fillExampleBtn').addEventListener('click',function(){
+  if(players.length>0){showToast('已有玩家，请先清空或直接使用示例名称');return;}
+  var samples=[['小明',12],['小红',8],['阿伟',15],['小美',6]];
+  samples.forEach(function(s){
+    var name=s[0];
+    if(!players.some(function(p){return p.name===name})){
+      players.push({id:nextId++,name:name,score:s[1]});
+    }
+  });
+  saveData();renderAll();
+  addHistory('填入示例玩家');
+  showToast('已填入 4 名示例玩家');
+});
+document.getElementById('copyScoreBtn').addEventListener('click',function(){
+  if(players.length===0){showToast('暂无玩家数据');return;}
+  var sorted=players.slice().sort(function(a,b){return b.score-a.score});
+  var lines=sorted.map(function(p,i){return (i+1)+'. '+p.name+': '+p.score+' 分';});
+  var text='计分板排行 ('+new Date().toLocaleString()+')\n'+lines.join('\n');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){showToast('计分结果已复制');}).catch(function(){showToast('复制失败');});
+  }else{
+    var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');showToast('计分结果已复制');}catch(e){showToast('复制失败');}
+    document.body.removeChild(ta);
+  }
+});
 })();
 </script>
 </body>

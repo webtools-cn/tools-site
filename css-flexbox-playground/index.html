@@ -145,6 +145,19 @@ a{color:#06b6d4;text-decoration:none}
   <div class="layout">
     <div class="controls">
       <div class="section">
+        <h2>⚙️ 容器属性</h2>
+        <div class="form-group"><label>flex-direction <span id="v-direction">row</span></label><select id="direction" onchange="updatePreview()"><option value="row">row</option><option value="row-reverse">row-reverse</option><option value="column">column</option><option value="column-reverse">column-reverse</option></select></div>
+        <div class="form-group"><label>justify-content <span id="v-justify">flex-start</span></label><select id="justify" onchange="updatePreview()"><option value="flex-start">flex-start</option><option value="flex-end">flex-end</option><option value="center">center</option><option value="space-between">space-between</option><option value="space-around">space-around</option><option value="space-evenly">space-evenly</option></select></div>
+        <div class="form-group"><label>align-items <span id="v-align">stretch</span></label><select id="align" onchange="updatePreview()"><option value="stretch">stretch</option><option value="flex-start">flex-start</option><option value="flex-end">flex-end</option><option value="center">center</option><option value="baseline">baseline</option></select></div>
+        <div class="form-group"><label>flex-wrap <span id="v-wrap">nowrap</span></label><select id="wrap" onchange="updatePreview()"><option value="nowrap">nowrap</option><option value="wrap">wrap</option><option value="wrap-reverse">wrap-reverse</option></select></div>
+        <div class="form-group"><label>gap <span id="v-gap">8px</span></label><input type="range" id="gap" min="0" max="40" value="8" oninput="updatePreview()"></div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="addItem()">+ 添加子元素</button>
+          <button class="btn btn-secondary" onclick="removeItem()">- 删除子元素</button>
+          <button class="btn btn-secondary" onclick="resetAll()">🎲 重置示例</button>
+        </div>
+      </div>
+      <div class="section">
         <h2>选中子元素属性</h2>
         <div id="itemProps">
           <p style="color:#94a3b8;font-size:.85rem">点击预览区的子元素来编辑属性</p>
@@ -242,12 +255,107 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function copyCode() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
-  if (!text) { showToast('没有可复制的内容'); return; }
-  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
+// === 恢复的 Flexbox 交互逻辑 ===
+var items=[{label:'1',grow:1,shrink:1,basis:'auto',order:0,alignSelf:'auto'},{label:'2',grow:1,shrink:1,basis:'auto',order:0,alignSelf:'auto'},{label:'3',grow:1,shrink:1,basis:'auto',order:0,alignSelf:'auto'}];
+var selectedItem=-1;
+function updatePreview(){
+  var container=document.getElementById('flexContainer');
+  if(!container)return;
+  var direction=document.getElementById('direction').value;
+  var justify=document.getElementById('justify').value;
+  var align=document.getElementById('align').value;
+  var wrap=document.getElementById('wrap').value;
+  var gap=document.getElementById('gap').value;
+  document.getElementById('v-direction').textContent=direction;
+  document.getElementById('v-justify').textContent=justify;
+  document.getElementById('v-align').textContent=align;
+  document.getElementById('v-wrap').textContent=wrap;
+  document.getElementById('v-gap').textContent=gap+'px';
+  container.style.flexDirection=direction;
+  container.style.justifyContent=justify;
+  container.style.alignItems=align;
+  container.style.flexWrap=wrap;
+  container.style.gap=gap+'px';
+  container.innerHTML='';
+  items.forEach(function(item,i){
+    var el=document.createElement('div');
+    el.className='flex-item';
+    el.style.flexGrow=item.grow;
+    el.style.flexShrink=item.shrink;
+    el.style.flexBasis=item.basis;
+    el.style.order=item.order;
+    el.style.alignSelf=item.alignSelf;
+    if(i===selectedItem){el.style.borderColor='#06b6d4';el.style.background='rgba(6,182,212,.2)'}
+    el.innerHTML=item.label+'<div class="item-label">flex: '+item.grow+' '+item.shrink+' '+item.basis+'</div>';
+    el.onclick=function(){selectItem(i)};
+    container.appendChild(el);
+  });
+  updateCode();
 }
+function selectItem(i){
+  selectedItem=i;
+  var item=items[i];
+  var props=document.getElementById('itemProps');
+  props.innerHTML='<div class="form-group"><label>flex-grow <span id="v-grow">'+item.grow+'</span></label><input type="range" id="itemGrow" min="0" max="5" step="0.5" value="'+item.grow+'" oninput="updateItem()"></div>'+
+    '<div class="form-group"><label>flex-shrink <span id="v-shrink">'+item.shrink+'</span></label><input type="range" id="itemShrink" min="0" max="5" step="0.5" value="'+item.shrink+'" oninput="updateItem()"></div>'+
+    '<div class="form-group"><label>flex-basis</label><select id="itemBasis" onchange="updateItem()"><option value="auto"'+(item.basis==='auto'?' selected':'')+'>auto</option><option value="0"'+(item.basis==='0'?' selected':'')+'>0</option><option value="100px"'+(item.basis==='100px'?' selected':'')+'>100px</option><option value="150px"'+(item.basis==='150px'?' selected':'')+'>150px</option><option value="200px"'+(item.basis==='200px'?' selected':'')+'>200px</option><option value="50%"'+(item.basis==='50%'?' selected':'')+'>50%</option></select></div>'+
+    '<div class="form-group"><label>order <span id="v-order">'+item.order+'</span></label><input type="range" id="itemOrder" min="-5" max="5" value="'+item.order+'" oninput="updateItem()"></div>'+
+    '<div class="form-group"><label>align-self</label><select id="itemAlignSelf" onchange="updateItem()"><option value="auto"'+(item.alignSelf==='auto'?' selected':'')+'>auto</option><option value="flex-start"'+(item.alignSelf==='flex-start'?' selected':'')+'>flex-start</option><option value="flex-end"'+(item.alignSelf==='flex-end'?' selected':'')+'>flex-end</option><option value="center"'+(item.alignSelf==='center'?' selected':'')+'>center</option><option value="stretch"'+(item.alignSelf==='stretch'?' selected':'')+'>stretch</option><option value="baseline"'+(item.alignSelf==='baseline'?' selected':'')+'>baseline</option></select></div>';
+  updatePreview();
+}
+function updateItem(){
+  if(selectedItem<0)return;
+  var item=items[selectedItem];
+  item.grow=parseFloat(document.getElementById('itemGrow').value);
+  item.shrink=parseFloat(document.getElementById('itemShrink').value);
+  item.basis=document.getElementById('itemBasis').value;
+  item.order=parseInt(document.getElementById('itemOrder').value);
+  item.alignSelf=document.getElementById('itemAlignSelf').value;
+  document.getElementById('v-grow').textContent=item.grow;
+  document.getElementById('v-shrink').textContent=item.shrink;
+  document.getElementById('v-order').textContent=item.order;
+  updatePreview();
+}
+function addItem(){items.push({label:''+(items.length+1),grow:1,shrink:1,basis:'auto',order:0,alignSelf:'auto'});updatePreview()}
+function removeItem(){
+  if(items.length<=1){showToast('至少保留 1 个子元素');return}
+  if(selectedItem>=0&&selectedItem<items.length){items.splice(selectedItem,1);selectedItem=-1}else{items.pop()}
+  items.forEach(function(item,i){item.label=''+(i+1)});
+  updatePreview();
+}
+function resetAll(){
+  items=[{label:'1',grow:1,shrink:1,basis:'auto',order:0,alignSelf:'auto'},{label:'2',grow:1,shrink:1,basis:'auto',order:0,alignSelf:'auto'},{label:'3',grow:1,shrink:1,basis:'auto',order:0,alignSelf:'auto'}];
+  selectedItem=-1;
+  document.getElementById('direction').value='row';
+  document.getElementById('justify').value='flex-start';
+  document.getElementById('align').value='stretch';
+  document.getElementById('wrap').value='nowrap';
+  document.getElementById('gap').value='8';
+  document.getElementById('itemProps').innerHTML='<p style="color:#94a3b8;font-size:.85rem">点击预览区的子元素来编辑属性</p>';
+  updatePreview();
+}
+function updateCode(){
+  var direction=document.getElementById('direction').value;
+  var justify=document.getElementById('justify').value;
+  var align=document.getElementById('align').value;
+  var wrap=document.getElementById('wrap').value;
+  var gap=document.getElementById('gap').value;
+  var code='.container {\n  display: flex;\n  flex-direction: '+direction+';\n  justify-content: '+justify+';\n  align-items: '+align+';\n  flex-wrap: '+wrap+';\n  gap: '+gap+'px;\n}\n';
+  items.forEach(function(item,i){
+    var props=[];
+    if(item.grow!==1||item.shrink!==1||item.basis!=='auto')props.push('  flex: '+item.grow+' '+item.shrink+' '+item.basis+';');
+    if(item.order!==0)props.push('  order: '+item.order+';');
+    if(item.alignSelf!=='auto')props.push('  align-self: '+item.alignSelf+';');
+    if(props.length>0)code+='\n.item-'+(i+1)+' {\n'+props.join('\n')+'\n}';
+  });
+  document.getElementById('codeOutput').textContent=code;
+}
+function copyCode(){
+  var code=document.getElementById('codeOutput').textContent;
+  if(!code){showToast('没有可复制的内容');return;}
+  navigator.clipboard.writeText(code).then(function(){showToast('✅ CSS代码已复制')}).catch(function(){showToast('复制失败')});
+}
+updatePreview();
 </script>
 </main>
 

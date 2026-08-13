@@ -122,6 +122,9 @@ table.data-table th{background:#0f172a;color:#94a3b8;font-weight:500}
   <div id="brResult" class="preview-wrap" style="min-height:60px">
     <p style="color:#475569;padding:20px;text-align:center">上传或拍摄条码图片以开始识别</p>
   </div>
+  <div class="btn-row" id="brCopyRow" style="display:none;margin-top:12px">
+    <button class="btn btn-primary" id="brCopyBtn">📋 复制解码结果</button>
+  </div>
 </div>
 <div class="section">
   <h2>📋 支持的条码格式</h2>
@@ -159,8 +162,11 @@ const video = document.getElementById('brVideo');
 const captureBtn = document.getElementById('brCaptureBtn');
 const resultDiv = document.getElementById('brResult');
 const loadingDiv = document.getElementById('brLoading');
+const brCopyBtn = document.getElementById('brCopyBtn');
+const brCopyRow = document.getElementById('brCopyRow');
 
 let stream = null;
+let lastCodes = [];
 
 // ZXing decoder
 let decoder = null;
@@ -179,6 +185,8 @@ async function decodeImage(img) {
     if (decoder && decoder.detect) {
       const codes = await decoder.detect(img);
       if (codes.length > 0) {
+        lastCodes = codes.map(function(c){return c.rawValue;});
+        brCopyRow.style.display = 'block';
         let html = '\x3Ch3 style="color:#4ade80;margin-bottom:12px">' + 
           '✅ 成功识别 ' + codes.length + ' 个条码' + '\x3C/h3>';
         codes.forEach((c, i) => {
@@ -273,6 +281,23 @@ window.addEventListener('beforeunload', function() {
   if (stream) {
     stream.getTracks().forEach(t => t.stop());
   }
+});
+
+brCopyBtn.addEventListener('click', function() {
+  if (lastCodes.length === 0) { showToast('暂无可复制的内容'); return; }
+  const text = lastCodes.join('\n');
+  const done = function(){ showToast('已复制解码结果 ✓'); };
+  const fb = function(){
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta); done();
+    }catch(e){ showToast('复制失败'); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(fb);
+  } else { fb(); }
 });
 })();
 }catch(e){}

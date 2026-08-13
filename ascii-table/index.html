@@ -122,6 +122,7 @@ a{color:#06b6d4;text-decoration:none}
   <div class="filter-section">
     <h2>搜索与筛选</h2>
     <input type="text" class="search-box" id="searchBox" placeholder="搜索ASCII值、字符或描述...（例如：65、A、换行、LF）">
+    <button class="filter-tag" onclick="fillExample()" style="background:rgba(6,182,212,.2);color:#22d3ee;border-color:rgba(6,182,212,.3)">🎲 填入示例</button>
     <div class="filter-tags" id="filterTags">
       <span class="filter-tag active" data-filter="all">全部</span>
       <span class="filter-tag" data-filter="control">控制字符</span>
@@ -256,6 +257,103 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
+</script>
+<script>
+var CTL_NAMES=[["NUL","空字符"],["SOH","标题开始"],["STX","正文开始"],["ETX","正文结束"],["EOT","传输结束"],["ENQ","询问字符"],["ACK","确认回应"],["BEL","响铃"],["BS","退格"],["HT","水平制表符"],["LF","换行"],["VT","垂直制表符"],["FF","换页"],["CR","回车"],["SO","移出"],["SI","移入"],["DLE","数据链路转义"],["DC1","设备控制1"],["DC2","设备控制2"],["DC3","设备控制3"],["DC4","设备控制4"],["NAK","否定应答"],["SYN","同步空闲"],["ETB","块传输结束"],["CAN","取消"],["EM","介质结束"],["SUB","替换"],["ESC","转义字符"],["FS","文件分隔符"],["GS","分组分隔符"],["RS","记录分隔符"],["US","单元分隔符"]];
+function asciiEntry(i){
+  var ctrl=CTL_NAMES[i];
+  if(ctrl)return{ch:'',name:ctrl[0],desc:ctrl[1],cls:'ctrl-char'};
+  if(i===127)return{ch:'',name:'DEL',desc:'删除字符',cls:'ctrl-char'};
+  var ch=String.fromCharCode(i);
+  var htmlEntity=ch;
+  var map={"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;","'":"&#39;"};
+  if(map[ch])htmlEntity=map[ch];
+  var cls='punct-char';
+  if(i>=48&&i<=57)cls='num-char';
+  else if((i>=65&&i<=90)||(i>=97&&i<=122))cls='alpha-char';
+  else if(i>=32)cls='print-char';
+  var names={32:"空格",33:"感叹号",34:"双引号",35:"井号",36:"美元符号",37:"百分号",38:"与符号",39:"单引号",40:"左括号",41:"右括号",42:"星号",43:"加号",44:"逗号",45:"连字符",46:"句点",47:"斜杠",58:"冒号",59:"分号",60:"小于号",61:"等号",62:"大于号",63:"问号",64:"@符号",91:"左方括号",92:"反斜杠",93:"右方括号",94:"脱字符",95:"下划线",96:"反引号",123:"左花括号",124:"竖线",125:"右花括号",126:"波浪号"};
+  var desc=names[i]||(i>=65&&i<=90?String.fromCharCode(i):i>=97&&i<=122?String.fromCharCode(i):ch);
+  return{ch:ch,name:ch,desc:desc,cls:cls,entity:htmlEntity};
+}
+var asciiData=[];
+for(var n=0;n<128;n++)asciiData.push(asciiEntry(n));
+var currentFilter='all';
+function getCategory(i){
+  if(i===127)return 'control';
+  if(i<32)return 'control';
+  if(i>=48&&i<=57)return 'digit';
+  if(i>=65&&i<=90)return 'upper';
+  if(i>=97&&i<=122)return 'lower';
+  if(i>=32)return 'punct';
+  return 'control';
+}
+function pad(v,len){return String(v).padStart(len,'0');}
+function renderAscii(){
+  var q=(document.getElementById('searchBox').value||'').trim().toLowerCase();
+  var body=document.getElementById('tableBody');
+  var rows=[];
+  for(var i=0;i<128;i++){
+    var cat=getCategory(i);
+    if(currentFilter!=='all'&&currentFilter!==cat)continue;
+    var e=asciiData[i];
+    if(q){
+      var dec=''+i,hex=i.toString(16),oct=i.toString(8),bin=i.toString(2);
+      var hay=(dec+' '+hex+' '+oct+' '+bin+' '+e.name+' '+(e.desc||'')).toLowerCase();
+      if(hay.indexOf(q)===-1)continue;
+    }
+    rows.push('<tr data-index="'+i+'" class="'+e.cls+'">'+
+      '<td class="val-cell" data-copy="'+i+'">'+i+'</td>'+
+      '<td class="val-cell" data-copy="0x'+hex.toUpperCase()+'" title="点击复制">0x'+hex.toUpperCase()+'</td>'+
+      '<td class="val-cell" data-copy="0'+oct+'">0'+oct+'</td>'+
+      '<td class="val-cell" data-copy="'+bin+'">'+pad(bin,8)+'</td>'+
+      '<td class="char-cell">'+e.ch+'</td>'+
+      '<td class="val-cell" data-copy="'+e.entity+'">'+e.entity+'</td>'+
+      '<td>'+(e.desc||e.name)+'</td>'+
+    '</tr>');
+  }
+  body.innerHTML=rows.join('');
+  document.getElementById('noResults').style.display=rows.length?'none':'block';
+}
+document.getElementById('searchBox').addEventListener('input',renderAscii);
+document.getElementById('filterTags').addEventListener('click',function(e){
+  var t=e.target.closest('.filter-tag');
+  if(!t||!t.dataset.filter)return;
+  currentFilter=t.dataset.filter;
+  document.querySelectorAll('#filterTags .filter-tag').forEach(function(x){x.classList.remove('active')});
+  t.classList.add('active');
+  renderAscii();
+});
+document.getElementById('tableBody').addEventListener('click',function(e){
+  var cell=e.target.closest('.val-cell');
+  if(cell){
+    var txt=cell.getAttribute('data-copy')!==null?cell.getAttribute('data-copy'):cell.textContent;
+    navigator.clipboard.writeText(txt).then(function(){showToast('已复制: '+txt)})['catch'](function(){
+      var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('已复制: '+txt);
+    });
+    return;
+  }
+  var tr=e.target.closest('tr');
+  if(!tr)return;
+  var idx=parseInt(tr.getAttribute('data-index'),10);
+  var d=asciiData[idx];
+  var panel=document.getElementById('detailPanel');
+  var grid=document.getElementById('detailGrid');
+  grid.innerHTML='<div class="detail-item"><label>十进制 (DEC)</label><span>'+idx+'</span></div>'+
+    '<div class="detail-item"><label>十六进制 (HEX)</label><span>0x'+idx.toString(16).toUpperCase()+'</span></div>'+
+    '<div class="detail-item"><label>八进制 (OCT)</label><span>0'+idx.toString(8)+'</span></div>'+
+    '<div class="detail-item"><label>二进制 (BIN)</label><span>'+pad(idx.toString(2),8)+'</span></div>'+
+    '<div class="detail-item"><label>字符</label><span>'+(d.ch||'（不可见）')+'</span></div>'+
+    '<div class="detail-item"><label>名称</label><span>'+d.name+'</span></div>'+
+    '<div class="detail-item"><label>描述</label><span>'+d.desc+'</span></div>';
+  panel.style.display='block';
+});
+window.fillExample=function(){
+  document.getElementById('searchBox').value='换行';
+  renderAscii();
+  showToast('已填入示例: 换行 (LF=10)');
+};
+renderAscii();
 </script>
 
 </body>

@@ -159,6 +159,25 @@ a{color:#06b6d4;text-decoration:none}
 </div>
 
   <div class="section">
+    <h2>选择测试颜色</h2>
+    <p style="color:#94a3b8;font-size:.85rem;margin-bottom:12px">点击颜色按钮进入全屏模式，仔细观察屏幕上是否有异常像素。点击屏幕任意位置或按 ESC 退出全屏。</p>
+    <div class="color-grid">
+      <button class="color-btn color-btn-red" onclick="fullscreenTest('#ff0000','红色')"><span class="name">红色</span><span class="hex">#FF0000</span></button>
+      <button class="color-btn color-btn-green" onclick="fullscreenTest('#00ff00','绿色')"><span class="name">绿色</span><span class="hex">#00FF00</span></button>
+      <button class="color-btn color-btn-blue" onclick="fullscreenTest('#0000ff','蓝色')"><span class="name">蓝色</span><span class="hex">#0000FF</span></button>
+      <button class="color-btn color-btn-white" onclick="fullscreenTest('#ffffff','白色')"><span class="name">白色</span><span class="hex">#FFFFFF</span></button>
+      <button class="color-btn color-btn-black" onclick="fullscreenTest('#000000','黑色')"><span class="name">黑色</span><span class="hex">#000000</span></button>
+      <button class="color-btn color-btn-gray" onclick="fullscreenTest('#888888','灰色')"><span class="name">灰色</span><span class="hex">#888888</span></button>
+      <button class="color-btn color-btn-custom" onclick="fullscreenTestCustom()"><span class="name">自定义</span><span class="hex">取色</span></button>
+    </div>
+    <div class="color-input-group">
+      <label style="color:#94a3b8;font-size:.85rem">自定义颜色:</label>
+      <input type="color" id="customColor" value="#ff6b00">
+      <button class="btn btn-secondary" onclick="fullscreenTest(document.getElementById('customColor').value,'自定义')">测试</button>
+    </div>
+  </div>
+
+  <div class="section">
     <h2>使用说明</h2>
     <div class="instructions">
       <strong>1.</strong> 调暗室内灯光，获得最佳检测效果<br>
@@ -239,7 +258,62 @@ a{color:#06b6d4;text-decoration:none}
 <p style="margin-top:8px;color:#475569;font-size:.8rem;text-align:center">问题反馈: dexshuang@google.com</p>
 </footer>
 
+<div class="fullscreen-overlay" id="fullscreenOverlay">
+  <div class="color-label" id="fullscreenLabel">颜色名称</div>
+  <div class="exit-hint">点击任意位置或按 ESC 退出</div>
+</div>
 <div class="toast" id="toast"></div>
+<script>
+let isFullscreen = false;
+
+function fullscreenTest(color, name) {
+  const overlay = document.getElementById('fullscreenOverlay');
+  overlay.style.background = color;
+  document.getElementById('fullscreenLabel').textContent = name + ' (' + color + ')';
+  if (color === '#000000' || color === '#000') {
+    document.getElementById('fullscreenLabel').style.color = 'rgba(255,255,255,.7)';
+  } else {
+    document.getElementById('fullscreenLabel').style.color = 'rgba(255,255,255,.6)';
+  }
+  overlay.classList.add('show');
+  isFullscreen = true;
+  document.body.style.overflow = 'hidden';
+  if (document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().catch(function(){});
+  }
+}
+
+function fullscreenTestCustom() {
+  const c = document.getElementById('customColor').value;
+  fullscreenTest(c, '自定义');
+}
+
+document.getElementById('fullscreenOverlay').addEventListener('click', function() {
+  exitFullscreenMode();
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && isFullscreen) {
+    exitFullscreenMode();
+  }
+});
+
+document.addEventListener('fullscreenchange', function() {
+  if (!document.fullscreenElement && isFullscreen) {
+    exitFullscreenMode();
+  }
+});
+
+function exitFullscreenMode() {
+  const overlay = document.getElementById('fullscreenOverlay');
+  overlay.classList.remove('show');
+  isFullscreen = false;
+  document.body.style.overflow = '';
+  if (document.fullscreenElement && document.exitFullscreen) {
+    document.exitFullscreen().catch(function(){});
+  }
+}
+</script>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}

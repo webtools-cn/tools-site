@@ -66,6 +66,7 @@
     <thead><tr><th>比率</th><th>回撤位 (上升趋势支撑)</th><th>反弹位 (下降趋势阻力)</th><th>价格区间占比</th></tr></thead>
     <tbody id="fibBody"></tbody>
   </table>
+  <canvas id="fibChart" width="640" height="280" style="width:100%;height:auto;margin-top:16px"></canvas>
 </div>
 
 <div class="seo-content" style="margin:1.5rem 0;padding:1rem;background:#0f172a;border-radius:8px;font-size:.95rem;color:#475569;line-height:1.8"><p>斐波那契回撤计算器是一款免费的在线工具，无需安装任何软件即可直接在浏览器中使用。计算全程在您的设备本地完成，价格高点、价格低点等数据不会上传至服务器。支持所有主流浏览器和移动设备，随时随地可用。使用斐波那契回撤计算器可以帮助您快速定位关键技术位，辅助交易决策。本工具采用纯前端技术实现，打开即用，无需注册账号或下载插件。操作简单直观，结果即时呈现。斐波那契回撤计算器提供精准的计算功能，满足技术分析需求。所有处理均在浏览器本地完成，响应速度快且安全可靠。</p></div>
@@ -107,10 +108,11 @@ var ratios=[
 function calc(){
   var h=parseFloat(document.getElementById('highPrice').value);
   var l=parseFloat(document.getElementById('lowPrice').value);
-  if(isNaN(h)||isNaN(l)||h===l){showToast('⚠️ 高点必须不等于低点');return;}
+  if(isNaN(h)||isNaN(l)||h===l){drawChart([]);showToast('⚠️ 高点必须不等于低点');return;}
   var isUptrend=h>l;
   var range=Math.abs(h-l);
   var rows='';
+  var levels=[];
   ratios.forEach(function(r,i){
     var retraceLevel,reboundLevel;
     if(isUptrend){
@@ -120,13 +122,59 @@ function calc(){
       retraceLevel='—';
       reboundLevel=l+range*r.value;
     }
+    var level=isUptrend?(h-range*r.value):(l+range*r.value);
+    var norm=isUptrend?(h-level)/range:(level-l)/range;
+    levels.push({label:r.label,level:level,norm:norm});
     var pct=((i===0?0:(i===ratios.length-1?100:r.value*100))).toFixed(1)+'%';
     rows+='<tr class="'+r.cls+'"><td><strong>'+r.label+'</strong></td><td>'+(retraceLevel==='—'?'—':retraceLevel.toFixed(2))+'</td><td>'+(reboundLevel==='—'?'—':reboundLevel.toFixed(2))+'</td><td>'+pct+'</td></tr>';
   });
   document.getElementById('fibBody').innerHTML=rows;
+  drawChart(levels,h,l,isUptrend);
+}
+function drawChart(levels,h,l,isUptrend){
+  var canvas=document.getElementById('fibChart');
+  if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var w=canvas.clientWidth||640;
+  var hgt=280;
+  var dpr=window.devicePixelRatio||1;
+  canvas.width=w*dpr;canvas.height=hgt*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,hgt);
+  if(!levels||levels.length===0)return;
+  var min=Math.min(h,l),max=Math.max(h,l);
+  var range=max-min||1;
+  var padL=52,padR=12,padT=18,padB=24;
+  var plotW=w-padL-padR,plotH=hgt-padT-padB;
+  ctx.font='11px monospace';
+  levels.forEach(function(level){
+    var y=padT+(1-level.norm)*(plotH);
+    ctx.strokeStyle='rgba(148,163,184,.15)';
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(w-padR,y);ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.textAlign='right';
+    ctx.fillText(level.level.toFixed(2),padL-6,y+4);
+  });
+  var barW=Math.max(10,(plotW/levels.length)*0.55);
+  levels.forEach(function(level,i){
+    var x=padL+(i+0.5)*(plotW/levels.length)-barW/2;
+    var y=padT+(1-level.norm)*(plotH);
+    var bh=(plotH*level.norm);
+    var grad=ctx.createLinearGradient(0,y,0,padT+plotH);
+    grad.addColorStop(0,'rgba(6,182,212,.85)');
+    grad.addColorStop(1,'rgba(6,182,212,.12)');
+    ctx.fillStyle=grad;
+    ctx.fillRect(x,y,barW,bh);
+    ctx.fillStyle='#cbd5e1';ctx.textAlign='center';
+    ctx.fillText(level.label,x+barW/2,y-4);
+  });
+  ctx.fillStyle='#94a3b8';ctx.textAlign='left';
+  ctx.fillText(isUptrend?'支撑位（高→低）':'阻力位（低→高）',padL,hgt-6);
 }
 document.getElementById('calcBtn').addEventListener('click',calc);
 document.getElementById('resetBtn').addEventListener('click',function(){location.reload();});
+['highPrice','lowPrice'].forEach(function(id){
+  document.getElementById(id).addEventListener('input',calc);
+});
 calc();
 </script>
 <script>

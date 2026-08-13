@@ -94,6 +94,13 @@ a{color:#06b6d4;text-decoration:none}
   <div class="panel-title">🗓️ 一年第几天计算器</div>
   <div class="input-row"><input type="date" id="dateInput" style="flex:1"><button class="btn btn-primary" id="calcBtn">计算</button></div>
 <div class="stats-grid"><div class="stat-card"><div class="stat-value" id="dayNum">-</div><div class="stat-label">一年中的第几天</div></div><div class="stat-card"><div class="stat-value" id="remainDays">-</div><div class="stat-label">剩余天数</div></div><div class="stat-card"><div class="stat-value" id="weekDay">-</div><div class="stat-label">星期几</div></div></div>
+<div class="result-box" id="result" style="margin-top:16px">
+  <div class="result-label">📈 年度进度</div>
+  <div style="display:flex;justify-content:space-between;font-size:.85rem;color:#94a3b8;margin-bottom:6px"><span id="progressPct">-</span><span>0% —— 100%</span></div>
+  <canvas id="progressChart" style="width:100%;height:24px"></canvas>
+  <div style="display:flex;justify-content:space-between;font-size:.75rem;color:#64748b;margin-top:4px"><span>第1天</span><span id="progressEnd">第365天</span></div>
+  <button class="btn btn-secondary" id="copyDayBtn" style="margin-top:12px">📋 复制结果</button>
+</div>
 </div>
 <div class="privacy-note">🔒 <span>所有处理均在浏览器本地完成，数据不会上传到服务器。</span></div>
 <div class="panel">
@@ -129,9 +136,12 @@ a{color:#06b6d4;text-decoration:none}
 <script>
 function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
 document.getElementById('dateInput').valueAsDate=new Date();
-function calc(){var d=document.getElementById('dateInput').valueAsDate;if(!d){showToast('请选择日期');return}var start=new Date(d.getFullYear(),0,1);var diff=Math.floor((d-start)/86400000)+1;document.getElementById('dayNum').textContent=diff;var isLeap=(d.getFullYear()%4===0&&d.getFullYear()%100!==0)||(d.getFullYear()%400===0);document.getElementById('remainDays').textContent=(isLeap?366:365)-diff;var wds=['日','一','二','三','四','五','六'];document.getElementById('weekDay').textContent='周'+wds[d.getDay()]}
+function calc(){var d=document.getElementById('dateInput').valueAsDate;if(!d){showToast('请选择日期');return}var start=new Date(d.getFullYear(),0,1);var diff=Math.floor((d-start)/86400000)+1;document.getElementById('dayNum').textContent=diff;var isLeap=(d.getFullYear()%4===0&&d.getFullYear()%100!==0)||(d.getFullYear()%400===0);document.getElementById('remainDays').textContent=(isLeap?366:365)-diff;var wds=['日','一','二','三','四','五','六'];document.getElementById('weekDay').textContent='周'+wds[d.getDay()];drawProgressChart();}
+function drawProgressChart(){var d=document.getElementById('dateInput').valueAsDate;if(!d)return;var y=d.getFullYear();var isLeap=(y%4===0&&y%100!==0)||(y%400===0);var total=isLeap?366:365;var start=new Date(y,0,1);var day=Math.floor((d-start)/86400000)+1;var pct=Math.min(100,Math.round(day/total*100));var cv=document.getElementById('progressChart');if(!cv)return;var w=cv.clientWidth||300,h=24;cv.width=w*2;cv.height=h*2;var ctx=cv.getContext('2d');ctx.scale(2,2);ctx.clearRect(0,0,w,h);ctx.fillStyle='#0f172a';ctx.beginPath();if(ctx.roundRect)ctx.roundRect(0,0,w,h,6);else ctx.rect(0,0,w,h);ctx.fill();var gx=ctx.createLinearGradient(0,0,w,0);gx.addColorStop(0,'#06b6d4');gx.addColorStop(1,'#3b82f6');ctx.fillStyle=gx;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(0,0,w*pct/100,h,6);else ctx.rect(0,0,w*pct/100,h);ctx.fill();ctx.fillStyle='#f1f5f9';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.fillText(pct+'%',w/2,16);document.getElementById('progressPct').textContent=pct+'% 已过';document.getElementById('progressEnd').textContent='第'+total+'天';}
+function copyString(str,msg){function fb(){var ta=document.createElement('textarea');ta.value=str;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');showToast(msg||'已复制')}catch(e){showToast('复制失败')}document.body.removeChild(ta)}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(str).then(function(){showToast(msg||'已复制')})["catch"](fb)}else{fb()}}
 document.getElementById('calcBtn').addEventListener('click',calc);
 document.getElementById('dateInput').addEventListener('change',calc);
+document.getElementById('copyDayBtn').addEventListener('click',function(){var d=document.getElementById('dateInput').valueAsDate;if(!d)return;var day=document.getElementById('dayNum').textContent;var rem=document.getElementById('remainDays').textContent;var wd=document.getElementById('weekDay').textContent;copyString(d.getFullYear()+'年'+day+'是当年第'+day+'天，剩余'+rem+'天，'+wd,'结果已复制');});
 calc();
 </script>
 

@@ -177,6 +177,13 @@ a{color:#06b6d4;text-decoration:none}
     <div class="control-row"><button class="btn btn-primary" id="btnStart" onclick="toggleB()">开始</button><button class="btn btn-secondary" onclick="resetB()">重置</button></div>
   </div>
 
+  <div class="section" id="sessionResult" style="display:none;text-align:left">
+    <h2>📋 会话报告</h2>
+    <canvas id="breathChart" width="640" height="140" style="width:100%;height:auto;background:#0f172a;border-radius:8px;border:1px solid rgba(148,163,184,.1);margin-bottom:12px"></canvas>
+    <div id="breathResultText" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:14px;color:#e2e8f0;font-size:.85rem;white-space:pre-wrap;line-height:1.7"></div>
+    <button class="btn btn-secondary" id="copyBreathBtn" style="margin-top:10px">📋 复制结果</button>
+  </div>
+
   <div class="section"><h2>常见问题</h2>
     <div class="faq-item">
       <h3>什么是4-7-8呼吸法？</h3>
@@ -262,13 +269,103 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function resetB() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+var _brTimer=null,_brRunning=false,_brPhase=0,_brPhaseLeft=0,_brCycle=0,_brSessionSecs=0,_brTotalCycles=0;
+
+function breathPhases(){
+  var p={inhale:4,hold:7,exhale:8};
+  return {p:p,seq:[['吸气',p.inhale,'inhale'],['屏息',p.hold,'hold'],['呼气',p.exhale,'exhale']]};
 }
 
-function toggleB() {
-  showToast('Toggled!');
+function runPhaseUI(){
+  var s=breathPhases();var ph=s.seq[_brPhase];
+  document.getElementById('phaseLabel').textContent=ph[0];
+  document.getElementById('timerLabel').textContent=ph[1];
+  document.getElementById('breathCircle').className='breath-circle '+ph[2];
 }
+
+function toggleB(){
+  if(_brRunning){stopB();renderBreathResult(false);return;}
+  var durMin=parseInt(document.getElementById('duration').value)||3;
+  var s=breathPhases();
+  var cycleLen=s.p.inhale+s.p.hold+s.p.exhale;
+  _brSessionSecs=durMin*60;
+  _brTotalCycles=Math.ceil(_brSessionSecs/cycleLen);
+  _brCycle=0;_brPhase=0;_brPhaseLeft=s.p.inhale;
+  _brRunning=true;
+  var btn=document.getElementById('btnStart');
+  btn.textContent='⏹ 停止';btn.classList.add('running');
+  document.getElementById('sessionLabel').textContent='0 / '+_brTotalCycles+' 循环';
+  runPhaseUI();
+  _brTimer=setInterval(function(){
+    _brPhaseLeft--;
+    document.getElementById('timerLabel').textContent=Math.max(_brPhaseLeft,0);
+    if(_brPhaseLeft<=0){
+      _brPhase++;
+      if(_brPhase>=3){_brPhase=0;_brCycle++;document.getElementById('sessionLabel').textContent=_brCycle+' / '+_brTotalCycles+' 循环';document.getElementById('sessionProgress').style.width=Math.min(100,_brCycle/_brTotalCycles*100)+'%';}
+      runPhaseUI();
+    }
+    _brSessionSecs--;
+    if(_brSessionSecs<=0){stopB();renderBreathResult(true);showToast('✅ 呼吸练习完成！');}
+  },1000);
+}
+
+function stopB(){
+  _brRunning=false;
+  if(_brTimer){clearInterval(_brTimer);_brTimer=null;}
+  var btn=document.getElementById('btnStart');
+  if(btn){btn.textContent='开始';btn.classList.remove('running');}
+}
+
+function resetB(){
+  stopB();
+  _brPhase=0;_brCycle=0;_brSessionSecs=0;
+  document.getElementById('phaseLabel').textContent='准备开始';
+  document.getElementById('timerLabel').textContent='—';
+  document.getElementById('sessionLabel').textContent='0 / 0 循环';
+  document.getElementById('sessionProgress').style.width='0%';
+  var c=document.getElementById('breathCircle');if(c)c.className='breath-circle';
+  renderBreathResult(false);
+}
+
+function renderBreathResult(finished){
+  var box=document.getElementById('sessionResult');
+  if(!box)return;
+  if(_brCycle===0&&!finished){box.style.display='none';return;}
+  var s=breathPhases();
+  var txt=['🧘 呼吸练习会话报告','----------------------','模式: 4-7-8 呼吸法','吸气 '+s.p.inhale+'s · 屏息 '+s.p.hold+'s · 呼气 '+s.p.exhale+'s','完成循环: '+_brCycle+' 次','单循环时长: '+(s.p.inhale+s.p.hold+s.p.exhale)+' 秒','状态: '+(finished?'✅ 已完成':'⏹ 已停止')];
+  document.getElementById('breathResultText').textContent=txt.join('\n');
+  box.style.display='block';
+  drawBreathChart(s.p);
+}
+
+function drawBreathChart(p){
+  var c=document.getElementById('breathChart');if(!c)return;
+  var ctx=c.getContext('2d');var W=c.width,H=c.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0f172a';ctx.fillRect(0,0,W,H);
+  var items=[['吸气',p.inhale,'#06b6d4'],['屏息',p.hold,'#fbbf24'],['呼气',p.exhale,'#a855f7']];
+  var max=Math.max(p.inhale,p.hold,p.exhale);
+  var step=(W-40)/3;
+  items.forEach(function(it,i){
+    var h=(H-46)*it[1]/max;
+    var x=20+i*step+(step-70)/2;
+    ctx.fillStyle=it[2];ctx.fillRect(x,H-28-h,70,Math.max(h,2));
+    ctx.fillStyle='#e2e8f0';ctx.font='12px sans-serif';ctx.textAlign='center';
+    ctx.fillText(it[1]+'s',x+35,H-34-h);
+    ctx.fillStyle='#94a3b8';ctx.font='11px sans-serif';ctx.fillText(it[0],x+35,H-12);
+  });
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  var dur=document.getElementById('duration');
+  if(dur)dur.addEventListener('change',function(){if(_brRunning){resetB();}});
+  var cb=document.getElementById('copyBreathBtn');
+  if(cb)cb.addEventListener('click',function(){
+    var el=document.getElementById('breathResultText');if(!el||!el.textContent){showToast('请先开始呼吸练习');return;}
+    function done(){cb.textContent='✅ 已复制';setTimeout(function(){cb.textContent='📋 复制结果';},1500);}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(el.textContent).then(done).catch(function(){showToast('复制失败');});}
+    else{var ta=document.createElement('textarea');ta.value=el.textContent;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){showToast('复制失败');}document.body.removeChild(ta);}
+  });
+});
 </script>
 </body>
 </html>

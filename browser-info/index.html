@@ -106,6 +106,7 @@ a{color:#06b6d4;text-decoration:none}
     <div class="ua-full" id="uaFull"></div>
     <div class="btn-row">
       <button class="btn btn-secondary" onclick="copyUA()">📋 复制UA</button>
+      <button class="btn btn-primary" onclick="copyAllInfo()">📋 复制全部信息</button>
       <button class="btn btn-primary" onclick="detectAll()">🔄 重新检测</button>
     </div>
   </div>
@@ -256,6 +257,30 @@ function copyUA() {
   var text = document.getElementById('uaFull').textContent || '';
   if (!text) { showToast('没有可复制的内容'); return; }
   navigator.clipboard.writeText(text).then(function(){showToast('✅ UA已复制到剪贴板');}).catch(function(){showToast('复制失败');});
+}
+
+function ftEnsureCopy(text){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){showToast('✅ 已复制到剪贴板')}).catch(function(){fallbackCopy(text)});
+  }else{fallbackCopy(text);}
+}
+function fallbackCopy(text){
+  var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');showToast('✅ 已复制到剪贴板');}catch(e){showToast('复制失败');}
+  document.body.removeChild(ta);
+}
+function copyAllInfo(){
+  var rows=[];
+  [['浏览器与操作系统','browserGrid'],['屏幕与显示','screenGrid'],['硬件信息','hardwareGrid'],['网络与时区','networkGrid'],['浏览器功能与API','featureGrid']].forEach(function(g){
+    rows.push('【'+g[0]+'】');
+    document.querySelectorAll('#'+g[1]+' .info-item').forEach(function(it){
+      var label=it.querySelector('.label')?it.querySelector('.label').textContent:'';
+      var value=it.querySelector('.value')?it.querySelector('.value').textContent:'';
+      rows.push(label+': '+value);
+    });
+  });
+  var text='浏览器信息检测结果\nUA: '+document.getElementById('uaFull').textContent+'\n'+rows.join('\n');
+  ftEnsureCopy(text);
 }
 
 function detectAll() {

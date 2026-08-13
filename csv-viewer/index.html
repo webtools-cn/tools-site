@@ -125,7 +125,9 @@ canvas{max-width:100%}
   <table id="csvTable"><tr><td style="text-align:center;padding:20px;color:#64748b">请上传CSV文件</td></tr></table>
 </div>
 <div class="btn-group">
+  <button class="btn btn-primary" onclick="fillExampleCSV()">🎲 填入示例</button>
   <button class="btn btn-primary" onclick="exportJSON()">📥 导出JSON</button>
+  <button class="btn btn-secondary" onclick="copyCSV()">📋 复制CSV</button>
   <button class="btn btn-secondary" onclick="clearCSV()">🗑️ 清空</button>
 </div>
     </div>
@@ -322,6 +324,38 @@ function renderTable() {
 
 function escapeHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fillExampleCSV() {
+  var sample = '产品,地区,销量,单价(元),销售额(元)\n'
+    + '无线鼠标,华东,320,89,28480\n'
+    + '机械键盘,华南,215,299,64285\n'
+    + '显示器,华北,98,1099,107702\n'
+    + '耳机,西南,410,159,65190\n'
+    + '摄像头,东北,156,199,31044\n'
+    + '蓝牙音箱,华中,287,139,39893';
+  parseCSV(sample, ',');
+  _csvRawText = sample;
+  renderTable();
+  showToast('已填入示例数据');
+}
+
+function copyCSV() {
+  if (_csvData.length === 0) { showToast('没有数据可复制'); return; }
+  var lines = [_csvHeaders.join(',')];
+  _csvData.forEach(function(row) {
+    lines.push(row.map(function(c) {
+      var s = String(c);
+      return (s.indexOf(',') !== -1 || s.indexOf('"') !== -1) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join(','));
+  });
+  var txt = lines.join('\n');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(function(){showToast('已复制CSV数据')})['catch'](function(){showToast('复制失败')});
+  } else {
+    var ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove(); showToast('已复制CSV数据');
+  }
 }
 </script>
 

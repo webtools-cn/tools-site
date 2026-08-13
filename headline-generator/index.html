@@ -100,10 +100,21 @@ input[type=text]:focus,select:focus{border-color:rgba(6,182,212,.4)}
   </span>
 </div>
 
+<div class="section">
+<h2>📝 生成标题</h2>
+<div class="form-group"><label>主题 / 关键词</label><input type="text" id="topicInput" placeholder="例如: 远程办公提效技巧"></div>
+<div class="form-group"><label>风格</label><select id="styleSelect"><option value="professional">专业实用</option><option value="creative">创意吸睛</option><option value="urgent">紧迫时效</option><option value="curiosity">好奇驱动</option></select></div>
+<div class="controls-row">
+<button class="btn btn-primary" id="generateBtn">✦ 生成标题</button>
+<button class="btn btn-success" id="loadSampleBtn">📄 填入示例</button>
+<button class="btn btn-secondary" id="clearBtn">✕ 清空</button>
+</div>
+</div>
+
 <div class="section" id="resultSection" style="display:none">
 <h2>🎯 生成的标题</h2>
 <p style="color:#94a3b8;font-size:.85rem;margin-bottom:12px">点击任意标题可复制。</p>
-<div class="controls-row"><button class="btn btn-secondary" id="regenerateBtn">🔄 重新生成</button></div>
+<div class="controls-row"><button class="btn btn-secondary" id="regenerateBtn">🔄 重新生成</button><button class="btn btn-secondary" id="copyAllBtn">📋 复制全部</button></div>
 <div class="headline-list" id="headlineList"></div>
 </div>
 
@@ -138,6 +149,68 @@ function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.c
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
 function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+
+var TMPL={
+  professional:{list:['N种{topic}策略','{topic}完全指南','如何用N步掌握{topic}','{topic}必备技巧','为什么{topic}在今天很重要','终极{topic}资源合集','N个久经验证的{topic}技巧','深入理解{topic}','进阶{topic}方法','{topic}的核心原则'],howto:['如何精通{topic}','如何开始使用{topic}'],question:['关于{topic}你应该知道的那些事','{topic}适合你吗？']},
+  creative:{list:['N种使用{topic}的出人意料方式','{topic}革命','你以为你懂{topic}？再想想','前所未有的{topic}','{topic}不为人知的一面','你必须知道的N个{topic}诀窍','{topic}深度揭秘','重新想象{topic}'],howto:['如何像专家一样玩转{topic}'],question:['{topic}真的能改变一切吗？']},
+  urgent:{list:['N个紧迫的{topic}趋势','为什么{topic}比以往更关键','{topic}危机','立即行动：{topic}正在改变','别错过：{topic}机遇'],howto:['如何快速解决{topic}难题'],question:['你的{topic}策略准备好了吗？']},
+  curiosity:{list:['没有人告诉你的{topic}真相','专家不愿分享的{topic}秘密','N个{topic}误区辟谣','{topic}的隐藏世界','{topic}揭秘','关于{topic}的真相','解开{topic}之谜'],howto:['{topic}究竟是怎么运作的'],question:['{topic}背后的真实故事是什么？']}
+};
+
+function generate(){
+  var tp=document.getElementById('topicInput'),st=document.getElementById('styleSelect');
+  var rs=document.getElementById('resultSection'),hl=document.getElementById('headlineList');
+  var t=tp.value.trim(),s=st.value;
+  if(!t){showToast('请先输入主题');return;}
+  var tpl=TMPL[s]||TMPL.professional;
+  var headlines=[];
+  Object.values(tpl).forEach(function(arr){
+    arr.forEach(function(h){
+      var txt=h.replace(/\{topic\}/g,t);
+      txt=txt.replace(/\bN\b/g,Math.floor(Math.random()*9)+2);
+      var fmt=h.indexOf('?')>=0?'问题型':h.indexOf('如何')>=0?'指南型':(h.indexOf('N种')==0||h.indexOf('N个')==0)?'列表型':'指南型';
+      headlines.push({text:txt,fmt:fmt});
+    });
+  });
+  headlines.push({text:'{topic}的力量'.replace('{topic}',t),fmt:'短句'});
+  headlines.push({text:'掌握{topic}'.replace('{topic}',t),fmt:'短句'});
+  headlines.sort(function(){return Math.random()-0.5;});
+  headlines=headlines.slice(0,20);
+  var html='';
+  headlines.forEach(function(h){
+    var e=h.text.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    html+='<div class="headline-item" onclick="copyHeadline(\''+e+'\')"><div class="hl-text">'+h.text+'</div><div class="hl-format">#'+h.fmt+'</div></div>';
+  });
+  hl.innerHTML=html;
+  rs.style.display='block';
+}
+
+function copyHeadline(t){
+  function done(){showToast('标题已复制');}
+  function fail(){showToast('复制失败，请手动选择');}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done)['catch'](fail);}
+  else{var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){fail();}document.body.removeChild(ta);}
+}
+
+function copyAllHeadlines(){
+  var hl=document.getElementById('headlineList');
+  var titles=[];
+  hl.querySelectorAll('.hl-text').forEach(function(el){titles.push(el.textContent);});
+  if(!titles.length){showToast('暂无标题可复制');return;}
+  copyHeadline(titles.join('\n'));
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  var tp=document.getElementById('topicInput'),st=document.getElementById('styleSelect');
+  var gn=document.getElementById('generateBtn'),cl=document.getElementById('clearBtn'),ld=document.getElementById('loadSampleBtn');
+  var rg=document.getElementById('regenerateBtn'),ca=document.getElementById('copyAllBtn');
+  gn.addEventListener('click',generate);
+  rg.addEventListener('click',generate);
+  cl.addEventListener('click',function(){tp.value='';document.getElementById('resultSection').style.display='none';});
+  ld.addEventListener('click',function(){tp.value='远程办公提效技巧';st.value='professional';generate();});
+  ca.addEventListener('click',copyAllHeadlines);
+  tp.addEventListener('keydown',function(e){if(e.key==='Enter')generate();});
+});
 
 </script>
 

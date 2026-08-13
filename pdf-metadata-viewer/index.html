@@ -115,6 +115,7 @@ footer a{color:#64748b}
 </table>
 <div class="btn-row">
 <button class="btn btn-primary" id="copyJsonBtn">📋 复制为JSON</button>
+<button class="btn btn-primary" id="copyTextBtn">📋 复制为文本</button>
 <button class="btn btn-secondary" id="clearFileBtn">🗑️ 清除</button>
 </div>
 </div>
@@ -254,9 +255,19 @@ fileInput.addEventListener('change',()=>{
   if(file)parsePDF(file);
 });
 
+function ftEnsureCopy(txt,msg){
+  const done=()=>showToast(msg);
+  const fb=()=>{try{const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);done();}catch(e){showToast('复制失败');}};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done).catch(fb);}else{fb();}
+}
 document.getElementById('copyJsonBtn').addEventListener('click',()=>{
   if(!lastMetaData){showToast('没有可复制的内容');return;}
-  navigator.clipboard.writeText(JSON.stringify(lastMetaData,null,2)).then(()=>showToast('已复制JSON ✓'));
+  ftEnsureCopy(JSON.stringify(lastMetaData,null,2),'已复制JSON ✓');
+});
+document.getElementById('copyTextBtn').addEventListener('click',()=>{
+  if(!lastMetaData){showToast('没有可复制的内容');return;}
+  const lines=Object.entries(lastMetaData).map(([k,v])=>k+'：'+v).join('\n');
+  ftEnsureCopy(lines,'已复制文本 ✓');
 });
 document.getElementById('clearFileBtn').addEventListener('click',()=>{
   fileInput.value='';fileInfo.style.display='none';resultSection.style.display='none';

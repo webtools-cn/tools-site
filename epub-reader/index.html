@@ -126,6 +126,9 @@ a{color:#06b6d4;text-decoration:none}
       <!-- Settings area - customized by JS -->
     </div>
     <div id="results"></div>
+    <div id="epubActions" style="display:none;margin-top:12px">
+      <button class="btn btn-primary" id="copyEpubBtn">📋 复制结果</button>
+    </div>
     <div id="batchActions" style="display:none;margin-top:12px">
       <button class="btn btn-primary" onclick="downloadAll()">📥 批量下载</button>
       <button class="btn btn-secondary" onclick="clearResults()">🗑️ 清空</button>
@@ -224,6 +227,44 @@ function downloadAll() {
   a.click();
   showToast('已下载');
 }
+
+// === 增强: 输出容器 + 复制 ===
+function fallbackCopy(t) {
+  var ta = document.createElement('textarea');
+  ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); showToast('已复制'); }
+  catch (e) { showToast('复制失败'); }
+  document.body.removeChild(ta);
+}
+(function () {
+  var fileInput = document.getElementById('fileInput');
+  var results = document.getElementById('results');
+  var epubActions = document.getElementById('epubActions');
+  if (!fileInput || !results || !epubActions) return;
+  fileInput.addEventListener('change', function () {
+    var files = fileInput.files;
+    if (!files || !files.length) { return; }
+    var html = '';
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      var size = f.size >= 1048576 ? (f.size / 1048576).toFixed(2) + ' MB' : (f.size / 1024).toFixed(1) + ' KB';
+      html += '<div class="result-item">'
+        + '<div class="info"><div class="name">📖 ' + f.name + '</div>'
+        + '<div class="size">大小: ' + size + ' · 类型: ' + (f.type || '未知') + ' · 最后修改: ' + new Date(f.lastModified).toLocaleString() + '</div></div></div>';
+    }
+    results.innerHTML = html;
+    epubActions.style.display = 'block';
+    showToast('已读取 ' + files.length + ' 个文件');
+  });
+  document.getElementById('copyEpubBtn').addEventListener('click', function () {
+    var t = results.innerText || results.textContent;
+    if (!t || !t.trim()) { showToast('没有可复制的内容'); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(function () { showToast('已复制') }, function () { fallbackCopy(t); });
+    } else { fallbackCopy(t); }
+  });
+})();
 </script>
 
 

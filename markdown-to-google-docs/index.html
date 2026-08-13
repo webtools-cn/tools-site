@@ -65,10 +65,13 @@
 
 [链接示例](https://example.com)</textarea>
       <button class="btn" id="convertBtn">转换并预览</button>
+      <button class="btn" id="exampleBtn" style="background:rgba(148,163,184,.15);color:#94a3b8;margin-left:8px">🎲 填入示例</button>
     </div>
     <div class="section">
       <label>富文本预览（可直接复制到Google Docs）</label>
       <div class="preview" id="preview" contenteditable="false"></div>
+      <button class="btn" id="copyHtmlBtn" style="background:rgba(6,182,212,.2);color:#22d3ee">📋 复制富文本</button>
+      <button class="btn" id="copyTextBtn" style="background:rgba(6,182,212,.2);color:#22d3ee;margin-left:8px">📋 复制纯文本</button>
     </div>
   
 </div>
@@ -107,6 +110,12 @@
   function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2000)}
   function mdToHtml(md){let html=md.replace(/```(\w*)\n([\s\S]*?)```/g,(_,lang,code)=>`<pre><code>${code.trim()}</code></pre>`);html=html.replace(/`([^`]+)`/g,'<code>$1</code>');html=html.replace(/^### (.+)$/gm,'<h3>$1</h3>');html=html.replace(/^## (.+)$/gm,'<h2>$1</h2>');html=html.replace(/^# (.+)$/gm,'<h2>$1</h2>');html=html.replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>');html=html.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');html=html.replace(/\*(.+?)\*/g,'<em>$1</em>');html=html.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2">$1</a>');html=html.replace(/^- (.+)$/gm,'<li>$1</li>');html=html.replace(/(<li>.*<\/li>\n?)+/g,'<ul>$&</ul>');html=html.replace(/^\d+\. (.+)$/gm,'<li>$1</li>');html=html.replace(/<li>.*<\/li>\n?/g,m=>m.includes('<ul>')?m:m);html=html.replace(/\n\n/g,'</p><p>');html='<p>'+html+'</p>';html=html.replace(/<p>\s*<\/p>/g,'');html=html.replace(/<p><h([1-6])>/g,'<h$1>');html=html.replace(/<\/h([1-6])><\/p>/g,'</h$1>');html=html.replace(/<p><ul>/g,'<ul>');html=html.replace(/<\/ul><\/p>/g,'</ul>');html=html.replace(/<p><pre>/g,'<pre>');html=html.replace(/<\/pre><\/p>/g,'</pre>');html=html.replace(/<p><blockquote>/g,'<blockquote>');html=html.replace(/<\/blockquote><\/p>/g,'</blockquote>');return html}
   function convert(){const md=input.value;if(!md.trim()){preview.innerHTML='<p style="color:#94a3b8">输入Markdown后点击转换</p>';return}try{preview.innerHTML=mdToHtml(md)}catch(e){showToast('转换出错');preview.innerHTML='<p style="color:red">转换失败</p>'}}
-  convertBtn.addEventListener('click',convert);</script>
+  convertBtn.addEventListener('click',convert);
+  input.addEventListener('input',convert);
+  const DEFAULT_MD=input.value;
+  exampleBtn.addEventListener('click',function(){input.value=DEFAULT_MD;convert();showToast('已填入示例');});
+  function copyString(str,msg){function fb(){var ta=document.createElement('textarea');ta.value=str;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');showToast(msg)}catch(e){showToast('复制失败')}document.body.removeChild(ta)}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(str).then(function(){showToast(msg)})["catch"](fb)}else{fb()}}
+  copyHtmlBtn.addEventListener('click',function(){if(!preview.innerHTML.trim()){showToast('请先转换');return}const holder=document.createElement('div');holder.style.position='fixed';holder.style.left='-9999px';holder.style.top='0';holder.contentEditable='true';holder.innerHTML=preview.innerHTML;document.body.appendChild(holder);const range=document.createRange();range.selectNodeContents(holder);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);let ok=false;try{ok=document.execCommand('copy')}catch(e){}sel.removeAllRanges();document.body.removeChild(holder);if(ok){showToast('富文本已复制')}else{copyString(preview.innerHTML,'富文本已复制')}});
+  copyTextBtn.addEventListener('click',function(){if(!preview.innerText.trim()){showToast('请先转换');return}copyString(preview.innerText,'纯文本已复制')});</script>
 </body>
 </html>

@@ -171,7 +171,7 @@ table.data td{color:#cbd5e1}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 var app=document.getElementById('app');
-app.innerHTML='\x3Cdiv class="input-section">\x3Ch2>🎞️ 选择视频\x3C/h2>\x3Cinput type="file" id="videoFile" accept="video/*">\x3Cdiv class="btn-row">\x3Cbutton class="btn btn-primary" id="loadBtn">📂 加载视频\x3C/button>\x3C/div>\x3C/div>\x3Cdiv class="input-section" id="videoSection" style="display:none">\x3Ch2>🎥 视频预览\x3C/h2>\x3Cdiv style="position:relative;background:#000;border-radius:8px;overflow:hidden">\x3Cvideo id="videoEl" controls style="width:100%;max-height:400px">\x3C/video>\x3C/div>\x3Cdiv class="row" style="margin-top:12px">\x3Cdiv class="field">\x3Clabel>当前时间\x3C/label>\x3Cinput type="number" id="currentTime" value="0" step="0.01" min="0">\x3C/div>\x3Cdiv class="field">\x3Clabel>\x3Cspan id="durationLabel">0:00\x3C/span>\x3C/label>\x3C/div>\x3C/div>\x3Cdiv class="row">\x3Cdiv class="field">\x3Clabel>定位时间（秒）\x3C/label>\x3Cinput type="number" id="seekTime" value="0" step="0.1" min="0">\x3C/div>\x3Cdiv class="field">\x3Clabel>&nbsp;\x3C/label>\x3Cbutton class="btn btn-secondary" id="seekBtn" style="width:100%">⏩ 定位\x3C/button>\x3C/div>\x3C/div>\x3Cdiv class="btn-row">\x3Cbutton class="btn btn-primary" id="captureBtn">📸 截图\x3C/button>\x3Cbutton class="btn btn-success" id="captureBatchBtn">📸 连拍5帧\x3C/button>\x3C/div>\x3C/div>\x3Cdiv class="input-section" id="resultSection" style="display:none">\x3Ch2>📸 截图结果\x3C/h2>\x3Cdiv id="captures">\x3C/div>\x3C/div>';
+app.innerHTML='\x3Cdiv class="input-section">\x3Ch2>🎞️ 选择视频\x3C/h2>\x3Cinput type="file" id="videoFile" accept="video/*">\x3Cdiv class="btn-row">\x3Cbutton class="btn btn-primary" id="loadBtn">📂 加载视频\x3C/button>\x3C/div>\x3C/div>\x3Cdiv class="input-section" id="videoSection" style="display:none">\x3Ch2>🎥 视频预览\x3C/h2>\x3Cdiv style="position:relative;background:#000;border-radius:8px;overflow:hidden">\x3Cvideo id="videoEl" controls style="width:100%;max-height:400px">\x3C/video>\x3C/div>\x3Cdiv class="row" style="margin-top:12px">\x3Cdiv class="field">\x3Clabel>当前时间\x3C/label>\x3Cinput type="number" id="currentTime" value="0" step="0.01" min="0">\x3C/div>\x3Cdiv class="field">\x3Clabel>\x3Cspan id="durationLabel">0:00\x3C/span>\x3C/label>\x3C/div>\x3C/div>\x3Cdiv class="row">\x3Cdiv class="field">\x3Clabel>定位时间（秒）\x3C/label>\x3Cinput type="number" id="seekTime" value="0" step="0.1" min="0">\x3C/div>\x3Cdiv class="field">\x3Clabel>&nbsp;\x3C/label>\x3Cbutton class="btn btn-secondary" id="seekBtn" style="width:100%">⏩ 定位\x3C/button>\x3C/div>\x3C/div>\x3Cdiv class="btn-row">\x3Cbutton class="btn btn-primary" id="captureBtn">📸 截图\x3C/button>\x3Cbutton class="btn btn-success" id="captureBatchBtn">📸 连拍5帧\x3C/button>\x3C/div>\x3C/div>\x3Cdiv class="input-section" id="resultSection" style="display:none">\x3Ch2>📸 截图结果\x3C/h2>\x3Cdiv id="captures">\x3C/div>\x3Cdiv class="btn-row">\x3Cbutton class="btn btn-secondary" id="copyFrameBtn">📋 复制当前帧\x3C/button>\x3C/div>\x3C/div>';
 document.getElementById('usageContent').innerHTML='\x3Cp>选择视频文件，定位到想要截取的时间点，点击截图按钮提取静帧图片。\x3C/p>\x3Cp>支持MP4、WebM、AVI、MOV等HTML5兼容的视频格式。\x3Cbr>连拍功能：每间隔1秒连续截取5帧。\x3Cbr>右键点击图片可保存（或点击下载按钮）。\x3C/p>';
 
 var videoEl=null;
@@ -222,6 +222,21 @@ document.getElementById('captureBatchBtn').addEventListener('click',function(){
     })(ct+i);
   }
   document.getElementById('resultSection').style.display='block';
+});
+
+document.getElementById('copyFrameBtn').addEventListener('click',function(){
+  if(!videoEl)return;
+  var canvas=document.createElement('canvas');
+  canvas.width=videoEl.videoWidth;
+  canvas.height=videoEl.videoHeight;
+  canvas.getContext('2d').drawImage(videoEl,0,0);
+  canvas.toBlob(function(blob){
+    if(navigator.clipboard&&navigator.clipboard.write&&window.ClipboardItem){
+      navigator.clipboard.write([new ClipboardItem({'image/png':blob})]).then(function(){showToast('当前帧已复制')})["catch"](function(){showToast('复制失败')});
+    }else{
+      var a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='frame_'+videoEl.currentTime.toFixed(2)+'.png';a.click();showToast('已下载当前帧');
+    }
+  },'image/png');
 });
 
 function captureFrame(time,single){

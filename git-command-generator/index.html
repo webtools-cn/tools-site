@@ -268,35 +268,363 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function copyCommand() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
-}
+// === Git 命令生成核心逻辑（实时计算） ===
+var paramsPanel=document.getElementById('paramsPanel');
+var commandDisplay=document.getElementById('commandDisplay');
+var commandDesc=document.getElementById('commandDesc');
+var quickList=document.getElementById('quickList');
 
-function onOperationChange() {
-  var sel = document.getElementById('operation') || document.querySelector('select[name="operation"]');
-  if (!sel) return;
-  var op = sel.value;
-  var panels = document.querySelectorAll('.op-panel');
-  panels.forEach(function(p) { p.style.display = 'none'; });
-  var active = document.getElementById('panel-' + op);
-  if (active) active.style.display = 'block';
+var opConfigs={
+  init:{desc:'初始化一个新的 Git 仓库',params:[
+    {id:'initBare',type:'checkbox',label:'创建裸仓库 (--bare)'},
+    {id:'initDir',type:'text',label:'目标目录（可选）',placeholder:'默认当前目录'},
+  ]},
+  clone:{desc:'克隆远程仓库到本地',params:[
+    {id:'cloneUrl',type:'text',label:'仓库 URL *',placeholder:'https://github.com/user/repo.git'},
+    {id:'cloneDir',type:'text',label:'本地目录名（可选）',placeholder:'默认为仓库名'},
+    {id:'cloneDepth',type:'text',label:'克隆深度 (--depth)',placeholder:'例如 1（浅克隆）'},
+    {id:'cloneBranch',type:'text',label:'指定分支 (-b)',placeholder:'例如 main'},
+  ]},
+  status:{desc:'查看工作区状态',params:[
+    {id:'statusShort',type:'checkbox',label:'短格式 (-s)'},
+    {id:'statusBranch',type:'checkbox',label:'显示分支信息 (-b)'},
+    {id:'statusUntracked',type:'text',label:'未跟踪文件 (--untracked-files)',placeholder:'all/normal/no'},
+  ]},
+  add:{desc:'暂存文件到索引',params:[
+    {id:'addFiles',type:'text',label:'文件路径 *',placeholder:'例如 . 或 src/main.js'},
+    {id:'addAll',type:'checkbox',label:'添加全部改动 (-A)'},
+    {id:'addPatch',type:'checkbox',label:'交互式添加 (-p)'},
+    {id:'addForce',type:'checkbox',label:'强制添加 (-f)'},
+  ]},
+  commit:{desc:'提交暂存的更改到本地仓库',params:[
+    {id:'commitMsg',type:'text',label:'提交信息 *',placeholder:'描述本次更改'},
+    {id:'commitAmend',type:'checkbox',label:'修改上次提交 (--amend)'},
+    {id:'commitNoVerify',type:'checkbox',label:'跳过钩子 (--no-verify)'},
+    {id:'commitAll',type:'checkbox',label:'自动暂存所有改动 (-a)'},
+  ]},
+  push:{desc:'推送本地提交到远程仓库',params:[
+    {id:'pushRemote',type:'text',label:'远程名称',placeholder:'origin',value:'origin'},
+    {id:'pushBranch',type:'text',label:'分支名称',placeholder:'main',value:'main'},
+    {id:'pushForce',type:'checkbox',label:'强制推送 (-f) 谨慎使用！'},
+    {id:'pushTags',type:'checkbox',label:'推送所有标签 (--tags)'},
+    {id:'pushSetUpstream',type:'checkbox',label:'建立追踪关系 (-u)',checked:true},
+  ]},
+  pull:{desc:'拉取并合并远程更新',params:[
+    {id:'pullRemote',type:'text',label:'远程名称',placeholder:'origin',value:'origin'},
+    {id:'pullBranch',type:'text',label:'分支名称',placeholder:'main',value:'main'},
+    {id:'pullRebase',type:'checkbox',label:'使用变基 (--rebase)'},
+    {id:'pullNoCommit',type:'checkbox',label:'不自动提交 (--no-commit)'},
+  ]},
+  branch:{desc:'创建、删除、重命名或列出分支',params:[
+    {id:'branchAction',type:'select',label:'操作类型',options:[{value:'create',text:'创建新分支'},{value:'delete',text:'删除分支'},{value:'rename',text:'重命名分支'},{value:'list',text:'列出所有分支'}]},
+    {id:'branchName',type:'text',label:'分支名称',placeholder:'feature/new-feature'},
+    {id:'branchNewName',type:'text',label:'新分支名称（重命名）',placeholder:'feature/updated-name'},
+    {id:'branchCheckout',type:'checkbox',label:'创建后切换到新分支'},
+    {id:'branchForce',type:'checkbox',label:'强制删除 (-D)'},
+    {id:'branchAll',type:'checkbox',label:'显示远程分支 (-a)'},
+  ]},
+  checkout:{desc:'切换分支或恢复文件',params:[
+    {id:'checkoutTarget',type:'text',label:'目标分支/提交',placeholder:'main 或 abc123'},
+    {id:'checkoutNew',type:'checkbox',label:'创建并切换 (-b)'},
+    {id:'checkoutFile',type:'text',label:'恢复指定文件（可选）',placeholder:'src/app.js'},
+    {id:'checkoutForce',type:'checkbox',label:'强制覆盖 (-f)'},
+  ]},
+  merge:{desc:'合并分支到当前分支',params:[
+    {id:'mergeBranch',type:'text',label:'要合并的分支 *',placeholder:'feature/login'},
+    {id:'mergeNoFF',type:'checkbox',label:'禁用快进合并 (--no-ff)'},
+    {id:'mergeSquash',type:'checkbox',label:'压缩提交 (--squash)'},
+    {id:'mergeAbort',type:'checkbox',label:'中止合并 (--abort)'},
+  ]},
+  rebase:{desc:'将当前分支变基到另一分支',params:[
+    {id:'rebaseBranch',type:'text',label:'目标分支',placeholder:'main'},
+    {id:'rebaseInteractive',type:'checkbox',label:'交互式变基 (-i)'},
+    {id:'rebaseContinue',type:'checkbox',label:'继续变基 (--continue)'},
+    {id:'rebaseAbort',type:'checkbox',label:'中止变基 (--abort)'},
+    {id:'rebaseOnto',type:'text',label:'变基到新基线 (--onto)',placeholder:'newbase oldbase'},
+  ]},
+  stash:{desc:'暂存当前未提交的更改',params:[
+    {id:'stashAction',type:'select',label:'操作类型',options:[{value:'push',text:'保存当前改动 (push)'},{value:'pop',text:'恢复并删除最新 (pop)'},{value:'apply',text:'恢复但不删除 (apply)'},{value:'list',text:'列出所有暂存 (list)'},{value:'drop',text:'删除指定暂存 (drop)'},{value:'clear',text:'清空所有暂存 (clear)'}]},
+    {id:'stashMsg',type:'text',label:'描述信息 (-m)',placeholder:'保存当前进度'},
+    {id:'stashIndex',type:'text',label:'暂存索引（pop/apply/drop）',placeholder:'例如 stash@{0}'},
+    {id:'stashIncludeUntracked',type:'checkbox',label:'包含未跟踪文件 (-u)'},
+  ]},
+  log:{desc:'查看提交历史',params:[
+    {id:'logCount',type:'text',label:'显示数量 (-n)',placeholder:'例如 10'},
+    {id:'logOneline',type:'checkbox',label:'单行模式 (--oneline)',checked:true},
+    {id:'logGraph',type:'checkbox',label:'图形视图 (--graph)'},
+    {id:'logAll',type:'checkbox',label:'显示所有分支 (--all)'},
+    {id:'logAuthor',type:'text',label:'按作者筛选 (--author)',placeholder:'例如 John'},
+    {id:'logSince',type:'text',label:'起始日期 (--since)',placeholder:'例如 2024-01-01'},
+    {id:'logFile',type:'text',label:'按文件筛选',placeholder:'例如 src/app.js'},
+  ]},
+  diff:{desc:'查看文件差异',params:[
+    {id:'diffCommit1',type:'text',label:'提交 1',placeholder:'HEAD 或 abc123'},
+    {id:'diffCommit2',type:'text',label:'提交 2（可选）',placeholder:'def456'},
+    {id:'diffCached',type:'checkbox',label:'已暂存的改动 (--cached)'},
+    {id:'diffFile',type:'text',label:'指定文件',placeholder:'src/app.js'},
+  ]},
+  remote:{desc:'管理远程仓库',params:[
+    {id:'remoteAction',type:'select',label:'操作类型',options:[{value:'add',text:'添加远程 (add)'},{value:'remove',text:'删除远程 (remove)'},{value:'set-url',text:'更新远程 URL (set-url)'},{value:'rename',text:'重命名远程 (rename)'},{value:'list',text:'列出所有远程 (list)'}]},
+    {id:'remoteName',type:'text',label:'远程名称',placeholder:'origin',value:'origin'},
+    {id:'remoteUrl',type:'text',label:'仓库 URL',placeholder:'https://github.com/user/repo.git'},
+    {id:'remoteVerbose',type:'checkbox',label:'详细模式 (-v)',checked:true},
+  ]},
+  tag:{desc:'标签管理',params:[
+    {id:'tagAction',type:'select',label:'操作类型',options:[{value:'create',text:'创建标签 (create)'},{value:'delete',text:'删除标签 (delete)'},{value:'list',text:'列出所有标签 (list)'}]},
+    {id:'tagName',type:'text',label:'标签名称',placeholder:'v1.0.0'},
+    {id:'tagMsg',type:'text',label:'标签注解 (-m)',placeholder:'发布版本 1.0.0'},
+    {id:'tagCommit',type:'text',label:'目标提交',placeholder:'abc123（默认 HEAD）'},
+    {id:'tagPush',type:'checkbox',label:'推送到远程'},
+  ]},
+  reset:{desc:'将当前分支重置到指定状态',params:[
+    {id:'resetCommit',type:'text',label:'目标提交',placeholder:'HEAD~1 或 abc123'},
+    {id:'resetMode',type:'select',label:'重置模式',options:[{value:'soft',text:'soft - 保留改动到暂存区'},{value:'mixed',text:'mixed - 保留改动到工作区（默认）'},{value:'hard',text:'hard - 丢弃所有改动（危险！）'}]},
+  ]},
+  revert:{desc:'创建新提交来撤销指定提交',params:[
+    {id:'revertCommit',type:'text',label:'要撤销的提交 *',placeholder:'abc123'},
+    {id:'revertNoEdit',type:'checkbox',label:'不编辑提交信息 (--no-edit)'},
+    {id:'revertNoCommit',type:'checkbox',label:'不自动提交 (--no-commit)'},
+  ]},
+  'cherry-pick':{desc:'将指定提交的更改应用到当前分支',params:[
+    {id:'cherryCommit',type:'text',label:'要选取的提交 *',placeholder:'abc123'},
+    {id:'cherryNoCommit',type:'checkbox',label:'不自动提交 (-n)'},
+  ]}
+};
+
+var quickCommands=[
+  {cmd:'git init',desc:'初始化仓库'},
+  {cmd:'git clone <url>',desc:'克隆仓库'},
+  {cmd:'git status',desc:'查看状态'},
+  {cmd:'git add .',desc:'暂存全部改动'},
+  {cmd:'git commit -m "msg"',desc:'提交更改'},
+  {cmd:'git push origin main',desc:'推送代码'},
+  {cmd:'git pull origin main',desc:'拉取更新'},
+  {cmd:'git branch -a',desc:'列出所有分支'},
+  {cmd:'git checkout -b feat',desc:'创建并切换分支'},
+  {cmd:'git merge main',desc:'合并分支'},
+  {cmd:'git stash push -m "wip"',desc:'暂存当前改动'},
+  {cmd:'git log --oneline -10',desc:'查看最近10条提交'},
+];
+
+function renderParams(){
+  var op=document.getElementById('operationSelect').value;
+  var config=opConfigs[op];
+  if(!config)return;
+  commandDesc.textContent=config.desc;
+  var html='';
+  config.params.forEach(function(p){
+    html+='<div class="param-group">';
+    if(p.type==='checkbox'){
+      html+='<label class="checkbox"><input type="checkbox" id="'+p.id+'"'+(p.checked?' checked':'')+' onchange="generateCommand()"> '+p.label+'</label>';
+    }else if(p.type==='select'){
+      html+='<label>'+p.label+'</label><select id="'+p.id+'" onchange="generateCommand()">';
+      p.options.forEach(function(o){html+='<option value="'+o.value+'">'+o.text+'</option>';});
+      html+='</select>';
+    }else{
+      html+='<label>'+p.label+'</label><input type="'+p.type+'" id="'+p.id+'" placeholder="'+(p.placeholder||'')+'" value="'+(p.value||'')+'" oninput="generateCommand()">';
+    }
+    html+='</div>';
+  });
+  paramsPanel.innerHTML=html;
   generateCommand();
-  showToast('已切换到: ' + op);
 }
 
-function generateCommand() {
-  var sel = document.getElementById('operation') || document.querySelector('select[name="operation"]');
-  if (!sel) return;
-  var op = sel.value;
-  var cmd = 'git ' + op;
-  var output = document.getElementById('output') || document.getElementById('commandOutput') || document.querySelector('.output');
-  if (output) output.textContent = cmd;
+function get(id){var el=document.getElementById(id);return el?el.checked:false;}
+function getVal(id){var el=document.getElementById(id);return el?el.value:'';}
+
+function generateCommand(){
+  var op=document.getElementById('operationSelect').value;
+  var config=opConfigs[op];
+  if(!config){commandDisplay.innerHTML='<span class="placeholder">选择操作并配置参数后，命令将显示在这里...</span>';return;}
+  var cmd='git '+op;
+  switch(op){
+    case 'init':
+      if(get('initBare'))cmd+=' --bare';
+      if(getVal('initDir'))cmd+=' '+getVal('initDir');
+      break;
+    case 'clone':
+      if(getVal('cloneUrl')){cmd+=' '+getVal('cloneUrl');}else{cmd+=' <repository-url>';}
+      if(getVal('cloneDir'))cmd+=' '+getVal('cloneDir');
+      if(getVal('cloneDepth'))cmd+=' --depth '+getVal('cloneDepth');
+      if(getVal('cloneBranch'))cmd+=' -b '+getVal('cloneBranch');
+      break;
+    case 'status':
+      if(get('statusShort'))cmd+=' -s';
+      if(get('statusBranch'))cmd+=' -b';
+      if(getVal('statusUntracked'))cmd+=' --untracked-files='+getVal('statusUntracked');
+      break;
+    case 'add':
+      if(get('addAll')){cmd+=' -A';}else if(getVal('addFiles')){cmd+=' '+getVal('addFiles');}else{cmd+=' <file>';}
+      if(get('addPatch'))cmd+=' -p';
+      if(get('addForce'))cmd+=' -f';
+      break;
+    case 'commit':
+      if(get('commitAmend')){cmd+=' --amend';if(getVal('commitMsg'))cmd+=' -m "'+getVal('commitMsg')+'"';}
+      else{if(getVal('commitMsg'))cmd+=' -m "'+getVal('commitMsg')+'"';else cmd+=' -m "<message>"';}
+      if(get('commitNoVerify'))cmd+=' --no-verify';
+      if(get('commitAll'))cmd+=' -a';
+      break;
+    case 'push':
+      if(getVal('pushRemote'))cmd+=' '+getVal('pushRemote');
+      if(getVal('pushBranch'))cmd+=' '+getVal('pushBranch');
+      if(get('pushForce'))cmd+=' -f';
+      if(get('pushTags'))cmd+=' --tags';
+      if(get('pushSetUpstream'))cmd+=' -u';
+      break;
+    case 'pull':
+      if(getVal('pullRemote'))cmd+=' '+getVal('pullRemote');
+      if(getVal('pullBranch'))cmd+=' '+getVal('pullBranch');
+      if(get('pullRebase'))cmd+=' --rebase';
+      if(get('pullNoCommit'))cmd+=' --no-commit';
+      break;
+    case 'branch':{
+      var bAction=getVal('branchAction');
+      if(bAction==='create'){
+        if(get('branchCheckout'))cmd='git checkout -b '+(getVal('branchName')||'<branch-name>');
+        else{cmd+=' '+(getVal('branchName')||'<branch-name>');}
+      }else if(bAction==='delete'){
+        cmd+=(get('branchForce')?' -D ':' -d ')+(getVal('branchName')||'<branch-name>');
+      }else if(bAction==='rename'){
+        cmd+=' -m '+(getVal('branchName')||'<old-name>')+' '+(getVal('branchNewName')||'<new-name>');
+      }else{
+        cmd+=(get('branchAll')?' -a':'');
+      }
+      break;
+    }
+    case 'checkout':
+      if(get('checkoutNew'))cmd+=' -b';
+      if(getVal('checkoutTarget'))cmd+=' '+getVal('checkoutTarget');else cmd+=' <branch>';
+      if(getVal('checkoutFile'))cmd+=' -- '+getVal('checkoutFile');
+      if(get('checkoutForce'))cmd+=' -f';
+      break;
+    case 'merge':
+      if(get('mergeAbort')){cmd+=' --abort';}
+      else{
+        if(getVal('mergeBranch'))cmd+=' '+getVal('mergeBranch');else cmd+=' <branch>';
+        if(get('mergeNoFF'))cmd+=' --no-ff';
+        if(get('mergeSquash'))cmd+=' --squash';
+      }
+      break;
+    case 'rebase':
+      if(get('rebaseContinue')){cmd+=' --continue';}
+      else if(get('rebaseAbort')){cmd+=' --abort';}
+      else{
+        if(getVal('rebaseOnto')){cmd+=' --onto '+getVal('rebaseOnto');}
+        if(getVal('rebaseBranch'))cmd+=' '+getVal('rebaseBranch');
+        if(get('rebaseInteractive'))cmd+=' -i';
+      }
+      break;
+    case 'stash':{
+      var sAction=getVal('stashAction');
+      if(sAction==='push'){
+        cmd+=' push';
+        if(getVal('stashMsg'))cmd+=' -m "'+getVal('stashMsg')+'"';
+        if(get('stashIncludeUntracked'))cmd+=' -u';
+      }else if(sAction==='pop'){cmd+=' pop '+(getVal('stashIndex')||'');}
+      else if(sAction==='apply'){cmd+=' apply '+(getVal('stashIndex')||'');}
+      else if(sAction==='list'){cmd+=' list';}
+      else if(sAction==='drop'){cmd+=' drop '+(getVal('stashIndex')||'<stash>');}
+      else if(sAction==='clear'){cmd='git stash clear';}
+      break;
+    }
+    case 'log':
+      if(get('logOneline'))cmd+=' --oneline';
+      if(get('logGraph'))cmd+=' --graph';
+      if(get('logAll'))cmd+=' --all';
+      if(getVal('logCount'))cmd+=' -n '+getVal('logCount');
+      if(getVal('logAuthor'))cmd+=' --author="'+getVal('logAuthor')+'"';
+      if(getVal('logSince'))cmd+=' --since="'+getVal('logSince')+'"';
+      if(getVal('logFile'))cmd+=' -- '+getVal('logFile');
+      break;
+    case 'diff':
+      if(get('diffCached'))cmd+=' --cached';
+      if(getVal('diffCommit1')){
+        cmd+=' '+getVal('diffCommit1');
+        if(getVal('diffCommit2'))cmd+=' '+getVal('diffCommit2');
+      }
+      if(getVal('diffFile'))cmd+=' -- '+getVal('diffFile');
+      break;
+    case 'remote':{
+      var rAction=getVal('remoteAction');
+      if(rAction==='add'){
+        cmd+=' add '+(getVal('remoteName')||'<name>')+' '+(getVal('remoteUrl')||'<url>');
+      }else if(rAction==='remove'){
+        cmd+=' remove '+(getVal('remoteName')||'<name>');
+      }else if(rAction==='set-url'){
+        cmd+=' set-url '+(getVal('remoteName')||'<name>')+' '+(getVal('remoteUrl')||'<url>');
+      }else if(rAction==='rename'){
+        cmd+=' rename '+(getVal('remoteName')||'<old>')+' <new>';
+      }else{
+        cmd+=(get('remoteVerbose')?' -v':'');
+      }
+      break;
+    }
+    case 'tag':{
+      var tAction=getVal('tagAction');
+      if(tAction==='create'){
+        cmd+=' -a '+(getVal('tagName')||'<tag>')+' -m "'+(getVal('tagMsg')||'tag message')+'"';
+        if(getVal('tagCommit'))cmd=cmd.replace(' -m ',' '+getVal('tagCommit')+' -m ');
+        if(get('tagPush'))cmd+='\ngit push origin '+(getVal('tagName')||'<tag>');
+      }else if(tAction==='delete'){
+        cmd+=' -d '+(getVal('tagName')||'<tag>');
+      }else{
+        cmd+=' -l';
+      }
+      break;
+    }
+    case 'reset':
+      if(getVal('resetCommit')){cmd+=' --'+getVal('resetMode')+' '+getVal('resetCommit');}
+      else{cmd+=' --'+getVal('resetMode')+' <commit>';}
+      break;
+    case 'revert':
+      if(getVal('revertCommit'))cmd+=' '+getVal('revertCommit');else cmd+=' <commit>';
+      if(get('revertNoEdit'))cmd+=' --no-edit';
+      if(get('revertNoCommit'))cmd+=' --no-commit';
+      break;
+    case 'cherry-pick':
+      if(getVal('cherryCommit'))cmd+=' '+getVal('cherryCommit');else cmd+=' <commit>';
+      if(get('cherryNoCommit'))cmd+=' -n';
+      break;
+  }
+  commandDisplay.textContent=cmd;
 }
 
-function resetParams() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+function onOperationChange(){renderParams();}
+
+function resetParams(){
+  renderParams();
+  showToast('参数已重置');
 }
+
+function copyCommand(){
+  var text=commandDisplay.textContent;
+  if(!text||text.indexOf('选择操作')!==-1){showToast('暂无可复制的命令');return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){showToast('命令已复制');}).catch(function(){
+      var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');showToast('命令已复制');}catch(e){showToast('复制失败');}
+      document.body.removeChild(ta);
+    });
+  }else{
+    var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');showToast('命令已复制');}catch(e){showToast('复制失败');}
+    document.body.removeChild(ta);
+  }
+}
+
+function renderQuickList(){
+  quickList.innerHTML=quickCommands.map(function(q){
+    return '<div class="command-item" onclick="setQuick(\''+q.cmd.replace(/</g,'&lt;')+'\')">'+q.cmd.replace(/</g,'&lt;')+'<span style="color:#64748b;margin-left:8px">'+q.desc+'</span></div>';
+  }).join('');
+}
+
+function setQuick(cmd){
+  commandDisplay.textContent=cmd;
+  showToast('已加载快捷命令');
+}
+
+renderParams();
+renderQuickList();
 </script>
 
 

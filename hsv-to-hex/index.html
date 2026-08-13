@@ -93,15 +93,20 @@ footer{text-align:center;padding:24px;color:#64748b;font-size:.8rem;border-top:1
 <div class="field"><label>S (饱和度 0-100)</label><input type="range" id="s" min="0" max="100" value="80" style="width:100%;margin-bottom:4px"><div style="text-align:center;color:#94a3b8;font-size:.85rem"><span id="s-val">80</span>%</div></div>
 <div class="field"><label>V (明度 0-100)</label><input type="range" id="v" min="0" max="100" value="80" style="width:100%;margin-bottom:4px"><div style="text-align:center;color:#94a3b8;font-size:.85rem"><span id="v-val">80</span>%</div></div>
 </div>
-<div style="display:flex;align-items:center;gap:12px;margin:12px 0">
+<div id="result" style="background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:10px;padding:14px;margin:12px 0">
+<div style="display:flex;align-items:center;gap:12px">
 <div class="color-preview" id="preview" style="width:64px;height:64px"></div>
 <div>
 <div class="info-row"><span>HEX:</span><strong id="hex-val" style="color:#22d3ee">#29cccc</strong></div>
 <div class="info-row"><span>RGB:</span><strong id="rgb-val" style="color:#94a3b8">--</strong></div>
 </div>
 </div>
+<canvas id="hueChart" width="560" height="24" style="width:100%;height:24px;border-radius:6px;margin-top:10px;display:block"></canvas>
+<div style="text-align:center;color:#64748b;font-size:.75rem;margin-top:6px">色相 Hue 分布 · 白色标记为当前值</div>
+</div>
 <div class="btn-row">
 <button class="btn btn-success" id="btn-copy">复制HEX</button>
+<button class="btn btn-warning" id="btn-random">🎲 随机示例</button>
 </div>
 </div>
 
@@ -139,6 +144,22 @@ function copyText(text){navigator.clipboard.writeText(text).then(function(){show
 
 function hsvToRgb(h,s,v){s/=100;v/=100;var c=v*s;var x=c*(1-Math.abs((h/60)%2-1));var m=v-c;var r,g,b;if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}else if(h<180){r=0;g=c;b=x}else if(h<240){r=0;g=x;b=c}else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}r=Math.round((r+m)*255);g=Math.round((g+m)*255);b=Math.round((b+m)*255);return{r:r,g:g,b:b}}
 function rgbToHex(r,g,b){return'#'+[r,g,b].map(function(x){var h=x.toString(16);return h.length===1?'0'+h:h}).join('')}
+function drawHueChart(hue){
+  var cv=document.getElementById('hueChart');
+  if(!cv)return;
+  var ctx=cv.getContext('2d');
+  var w=cv.width,hgt=cv.height;
+  for(var x=0;x<w;x++){
+    var hu=Math.round(x/w*360);
+    var rgb=hsvToRgb(hu,100,100);
+    ctx.fillStyle='rgb('+rgb.r+','+rgb.g+','+rgb.b+')';
+    ctx.fillRect(x,0,1,hgt);
+  }
+  var px=Math.round(hue/360*w);
+  ctx.strokeStyle='#ffffff';
+  ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(px,0);ctx.lineTo(px,hgt);ctx.stroke();
+}
 function update(){
   var h=parseInt(document.getElementById('h').value);
   var s=parseInt(document.getElementById('s').value);
@@ -151,11 +172,19 @@ function update(){
   document.getElementById('preview').style.backgroundColor=hex;
   document.getElementById('hex-val').textContent=hex;
   document.getElementById('rgb-val').textContent='rgb('+rgb.r+', '+rgb.g+', '+rgb.b+')';
+  drawHueChart(h);
 }
 document.getElementById('h').addEventListener('input',update);
 document.getElementById('s').addEventListener('input',update);
 document.getElementById('v').addEventListener('input',update);
 document.getElementById('btn-copy').addEventListener('click',function(){copyText(document.getElementById('hex-val').textContent)});
+document.getElementById('btn-random').addEventListener('click',function(){
+  document.getElementById('h').value=Math.floor(Math.random()*361);
+  document.getElementById('s').value=Math.floor(Math.random()*81)+20;
+  document.getElementById('v').value=Math.floor(Math.random()*81)+20;
+  update();
+  showToast('已生成随机示例颜色');
+});
 update();
 
 </script>

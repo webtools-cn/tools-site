@@ -141,6 +141,9 @@ textarea{font-family:monospace;resize:vertical;min-height:120px}
       <div id="scale-info" style="margin-top:12px;padding:10px;background:#0f172a;border-radius:8px;border:1px solid rgba(148,163,184,.1)">
         <p style="color:#94a3b8;font-size:.85rem"></p>
       </div>
+      <div style="margin-top:12px;text-align:right">
+        <button class="btn" id="copyScaleBtn" style="background:rgba(6,182,212,.15);color:#22d3ee;border:1px solid rgba(6,182,212,.3)">📋 复制音阶</button>
+      </div>
     </div>
   </div>
   <div class="info-section">
@@ -308,7 +311,10 @@ var scaleNoteNames=scaleNotes.map(function(n){return NOTE_NAMES[n];});
 var uniqueNotes=[];
 scaleNoteNames.forEach(function(n){if(uniqueNotes.indexOf(n)<0)uniqueNotes.push(n);});
 var rootName=NOTE_NAMES[root];
-scaleInfo.textContent=rootName+' '+SCALE_LABELS[scaleType]+'：'+uniqueNotes.join(' - ');
+var intervals=SCALES[scaleType]||SCALES.major;
+var steps=[];
+for(var si=1;si<intervals.length;si++){steps.push(intervals[si]-intervals[si-1]);}
+scaleInfo.textContent=rootName+' '+SCALE_LABELS[scaleType]+'：'+uniqueNotes.join(' - ')+'  音程: '+steps.join('-');
 
 // Add click handlers
 keyboard.querySelectorAll('[data-midi]').forEach(function(key){
@@ -338,6 +344,19 @@ setTimeout(function(){playNote(startMidi+interval+12);},(intervals.length+i)*300
 
 renderKeyboard();
 });
+// === 增强: 复制音阶 ===
+(function(){
+var copyBtn=document.getElementById('copyScaleBtn');
+if(!copyBtn)return;
+copyBtn.addEventListener('click',function(){
+var info=document.getElementById('scale-info');
+var text=info?info.innerText:'';
+if(!text||!text.trim()){showToast('暂无音阶信息，请先选择音阶');return;}
+if(navigator.clipboard&&navigator.clipboard.writeText){
+navigator.clipboard.writeText(text).then(function(){showToast('已复制音阶')})['catch'](function(){showToast('复制失败')});
+}else{showToast('复制失败');}
+});
+})();
 function submitFeedback(){
 var type=document.getElementById('feedback-type').value;
 var labels=type==='bug'?'bug':'enhancement';

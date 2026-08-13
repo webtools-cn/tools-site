@@ -162,11 +162,12 @@ a{color:#06b6d4;text-decoration:none}
     <div class="form-group">
       <label for="moodNote">备注（可选）</label>
       <input type="text" id="moodNote" placeholder="今天发生了什么？" onkeydown="if(event.key==='Enter')saveMood()">
+      <button class="btn btn-secondary" onclick="fillMoodExample()" style="font-size:.85rem;padding:8px 16px;margin-top:8px">🎲 填入示例</button>
     </div>
     <div class="btn-group">
       <button class="btn btn-primary" onclick="saveMood()">💾 保存今天心情</button>
     </div>
-    <div class="grid-2" style="margin-bottom:12px">
+      <div class="grid-2" style="margin-bottom:12px">
       <div class="section" style="margin:0;padding:12px;text-align:center">
         <div class="stat-label">本月平均</div>
         <div class="stat-value" id="moodAvg">-</div>
@@ -175,6 +176,14 @@ a{color:#06b6d4;text-decoration:none}
         <div class="stat-label">记录天数</div>
         <div class="stat-value" id="moodDays">0</div>
       </div>
+    </div>
+    <div class="section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h2 style="font-size:1rem;color:#f1f5f9;margin:0">📊 情绪分布</h2>
+        <button class="btn btn-secondary" id="copyMoodBtn" style="padding:6px 12px;font-size:.8rem">📋 复制报告</button>
+      </div>
+      <canvas id="moodChart" width="640" height="160" style="width:100%;height:auto;background:#0f172a;border-radius:8px;border:1px solid rgba(148,163,184,.1)"></canvas>
+      <div id="moodReport" style="background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;margin-top:12px;color:#e2e8f0;font-size:.85rem;white-space:pre-wrap;line-height:1.7"></div>
     </div>
     <div class="section">
       <h2>心情记录</h2>
@@ -329,7 +338,80 @@ function renderMoodEntries() {
   }
   var daysEl = document.getElementById('moodDays');
   if (daysEl) daysEl.textContent = _moodEntries.length + ' 天';
+
+  drawMoodChart();
+  renderMoodReport();
 }
+
+function fillMoodExample() {
+  var samples = ['今天天气很好，出去散步了，心情不错', '工作太忙，有点焦虑', '和朋友一起吃了顿大餐，很开心', '睡得很好，一整天都很平静'];
+  var inp = document.getElementById('moodNote');
+  if (inp) { inp.value = samples[Math.floor(Math.random() * samples.length)]; showToast('已填入示例'); }
+}
+
+function drawMoodChart() {
+  var c = document.getElementById('moodChart');
+  if (!c) return;
+  var ctx = c.getContext('2d'); var W = c.width, H = c.height;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle='#0f172a'; ctx.fillRect(0,0,W,H);
+  var colors = {1:'#64748b',2:'#94a3b8',3:'#fbbf24',4:'#22d3ee',5:'#4ade80'};
+  var labels = {1:'😢很差',2:'😟不好',3:'😐一般',4:'😊不错',5:'🥰很棒'};
+  if (!_moodEntries.length) {
+    ctx.fillStyle='#64748b'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('暂无记录，开始记录心情后自动生成图表', W/2, H/2);
+    return;
+  }
+  var counts = {1:0,2:0,3:0,4:0,5:0};
+  _moodEntries.forEach(function(e){ if (counts[e.mood] !== undefined) counts[e.mood]++; });
+  var max = Math.max.apply(null, Object.keys(counts).map(function(k){ return counts[k]; })) || 1;
+  var step = (W-40)/5;
+  for (var i=1;i<=5;i++){
+    var h = (H-48) * counts[i] / max;
+    var x = 20 + (i-1)*step + (step-56)/2;
+    var y = H-34-h;
+    ctx.fillStyle = colors[i]; ctx.fillRect(x, y, 56, Math.max(h, counts[i]>0?2:0));
+    ctx.fillStyle='#e2e8f0'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(counts[i], x+28, y-4);
+    ctx.fillStyle='#94a3b8'; ctx.font='11px sans-serif';
+    ctx.fillText(labels[i], x+28, H-20);
+  }
+}
+
+function renderMoodReport() {
+  var el = document.getElementById('moodReport');
+  if (!el) return;
+  if (!_moodEntries.length) { el.textContent = '暂无记录'; return; }
+  var labels = {1:'很差',2:'不好',3:'一般',4:'不错',5:'很棒'};
+  var sum = _moodEntries.reduce(function(a,e){ return a + e.mood; }, 0);
+  var avg = (sum / _moodEntries.length).toFixed(1);
+  var lines = ['📝 情绪报告 (' + _moodEntries.length + ' 条记录)','------------------','平均情绪: ' + avg + ' / 5'];
+  [5,4,3,2,1].forEach(function(m){
+    var cnt = _moodEntries.filter(function(e){ return e.mood === m; }).length;
+    lines.push(labels[m] + ': ' + cnt + ' 次' + (cnt ? ' ▍'.repeat(Math.round(cnt*10/_moodEntries.length)) : ''));
+  });
+  lines.push('------------------');
+  lines.push('最近5条记录:');
+  _moodEntries.slice(-5).reverse().forEach(function(e){
+    lines.push(e.date + ' ' + (labels[e.mood] || '') + (e.note ? ' — ' + e.note : ''));
+  });
+  el.textContent = lines.join('\n');
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  var cb = document.getElementById('copyMoodBtn');
+  if (cb) cb.addEventListener('click', function(){
+    var el = document.getElementById('moodReport');
+    if (!el || !el.textContent || el.textContent === '暂无记录') { showToast('暂无可复制的报告'); return; }
+    function done(){ cb.textContent='✅ 已复制'; setTimeout(function(){ cb.textContent='📋 复制报告'; }, 1500); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(el.textContent).then(done).catch(function(){ showToast('复制失败'); });
+    } else {
+      var ta = document.createElement('textarea'); ta.value = el.textContent; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch(e) { showToast('复制失败'); }
+      document.body.removeChild(ta);
+    }
+  });
+});
 
 function escapeHtmlMood(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');

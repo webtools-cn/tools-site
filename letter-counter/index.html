@@ -52,6 +52,9 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 .stat-card.punctuation{border-color:rgba(244,114,182,.3)}.stat-card.punctuation .stat-value{color:#f472b6}
 .stat-card.total{border-color:rgba(148,163,184,.3)}.stat-card.total .stat-value{color:#e2e8f0}
 .stat-card.letters{border-color:rgba(6,182,212,.3)}.stat-card.letters .stat-value{color:#22d3ee}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:none;border-radius:8px;font-size:.85rem;cursor:pointer;transition:all .2s;font-weight:600}
+.btn-secondary{background:rgba(148,163,184,.1);color:#94a3b8;border:1px solid rgba(148,163,184,.2)}
+.btn-secondary:hover{background:rgba(148,163,184,.2)}
 .info-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
 .info-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
 .info-section h3{font-size:.95rem;color:#e2e8f0;margin:16px 0 8px}
@@ -109,6 +112,11 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 <div class="tool-section">
 <h2>🔤 在线字母统计</h2>
 <textarea id="input-text" placeholder="在此输入要统计的文本..." oninput="countLetters()" autofocus></textarea>
+<div class="btn-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+  <button class="btn btn-secondary" onclick="loadSample()">🎲 填入示例</button>
+  <button class="btn btn-secondary" onclick="copyStats()">📋 复制统计结果</button>
+  <button class="btn btn-secondary" onclick="clearText()">✕ 清空</button>
+</div>
 <div class="stats-grid" id="stats-grid">
 <div class="stat-card letters"><div class="stat-value" id="count-letters">0</div><div class="stat-label">字母总数</div></div>
 <div class="stat-card uppercase"><div class="stat-value" id="count-uppercase">0</div><div class="stat-label">大写字母</div></div>
@@ -120,6 +128,7 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 <div class="stat-card punctuation"><div class="stat-value" id="count-punctuation">0</div><div class="stat-label">标点符号</div></div>
 <div class="stat-card total"><div class="stat-value" id="count-total">0</div><div class="stat-label">总字符数</div></div>
 </div>
+<canvas id="letterChart" width="600" height="220" style="display:block;width:100%;max-width:600px;height:auto;margin:18px auto 0"></canvas>
 </div>
 
 <script>
@@ -158,6 +167,66 @@ function countLetters(){
   document.getElementById('count-spaces').textContent = spaces;
   document.getElementById('count-punctuation').textContent = punctuation;
   document.getElementById('count-total').textContent = text.length;
+  drawChart([letters, uppercase, lowercase, vowels, consonants, digits, spaces, punctuation]);
+}
+
+function loadSample(){
+  var ta = document.getElementById('input-text');
+  ta.value = 'The quick brown fox jumps over the lazy dog. Technology is advancing at an unprecedented pace, transforming how we live and work every single day! Hello World 2026 #SEO @Tools';
+  countLetters();
+}
+function clearText(){
+  document.getElementById('input-text').value = '';
+  countLetters();
+}
+function copyStats(){
+  var t = document.getElementById('input-text').value;
+  if(!t){ showToast('没有可复制的统计结果'); return; }
+  var rows = [
+    ['字母总数', 'count-letters'], ['大写字母', 'count-uppercase'], ['小写字母', 'count-lowercase'],
+    ['元音', 'count-vowels'], ['辅音', 'count-consonants'], ['数字', 'count-digits'],
+    ['空格', 'count-spaces'], ['标点符号', 'count-punctuation'], ['总字符数', 'count-total']
+  ];
+  var lines = ['字母统计结果'];
+  rows.forEach(function(r){ lines.push(r[0] + ': ' + document.getElementById(r[1]).textContent); });
+  ftEnsureCopy(lines.join('\n') + '\n\n原文:\n' + t);
+}
+function drawChart(values){
+  var cv = document.getElementById('letterChart');
+  if(!cv) return;
+  var ctx = cv.getContext('2d');
+  var W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  var labels = ['字母','大写','小写','元音','辅音','数字','空格','标点'];
+  var colors = ['#06b6d4','#818cf8','#38bdf8','#fbbf24','#34d399','#f87171','#a78bfa','#f472b6'];
+  var max = Math.max.apply(null, values.concat([1]));
+  var n = values.length;
+  var gap = (W - 40) / n;
+  var bw = gap * 0.55;
+  var base = H - 30;
+  for(var i = 0; i < n; i++){
+    var h = (values[i] / max) * (H - 60);
+    var x = 20 + gap * i + (gap - bw) / 2;
+    ctx.fillStyle = colors[i];
+    ctx.fillRect(x, base - h, bw, h);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(labels[i], x + bw / 2, base + 16);
+    ctx.fillText(values[i], x + bw / 2, base - h - 4);
+  }
+}
+function ftEnsureCopy(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){ showToast('✅ 已复制到剪贴板'); }).catch(function(){ fallbackCopy(text); });
+  }else{ fallbackCopy(text); }
+}
+function fallbackCopy(text){
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); showToast('✅ 已复制到剪贴板'); }catch(e){ showToast('复制失败'); }
+  document.body.removeChild(ta);
 }
 </script>
 

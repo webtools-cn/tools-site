@@ -96,6 +96,25 @@ textarea:focus,input:focus,select:focus{outline:none;border-color:#3b82f6;box-sh
 <div class="hero"><p>免费在线PDF加密工具，为PDF文件添加密码保护。无需注册，文件不上传服务器，安全可靠。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
+<div class="file-drop-zone" id="dropZone">
+<p style="font-size:2rem;margin-bottom:8px">📄</p>
+<p>点击或拖拽 PDF 文件到此处</p>
+<p style="font-size:.8rem;margin-top:4px">文件将在浏览器本地加密，绝不上传服务器</p>
+</div>
+<input type="file" id="fileInput" accept="application/pdf" style="display:none" onchange="handleFile(this)">
+<p id="fileInfo" class="hidden" style="color:#22d3ee;font-size:.85rem;margin-bottom:12px"></p>
+<div style="margin-bottom:12px">
+<label>用户密码（打开密码）</label>
+<input type="text" id="userPass" placeholder="输入打开 PDF 所需的密码" autocomplete="off">
+</div>
+<div style="margin-bottom:12px">
+<label>所有者密码（权限密码，可选）</label>
+<input type="text" id="ownerPass" placeholder="不填则与用户密码相同" autocomplete="off">
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" onclick="encryptPDF()">🔒 加密 PDF</button>
+<button class="btn btn-success hidden" id="downloadBtn" onclick="downloadPDF()">⬇ 下载加密后的 PDF</button>
+</div>
 <div class="faq-item"><div class="faq-q">用户密码和所有者密码有什么区别？</div><div class="faq-a"><p>用户密码（打开密码）是打开PDF时需要输入的密码。所有者密码用于控制权限（如打印、复制、编辑等），设置所有者密码可以防止他人修改PDF的权限设置。</p></div></div>
 <div class="faq-item"><div class="faq-q">加密后的PDF在所有设备上都能打开吗？</div><div class="faq-a"><p>是的，使用标准PDF加密算法（AES-256和RC4），加密后的PDF可在所有主流PDF阅读器中打开，包括Adobe Acrobat、浏览器内置PDF查看器等。</p></div></div>
 <div class="faq-item"><div class="faq-q">可以加密什么样的PDF？</div><div class="faq-a"><p>本工具支持加密任何有效的PDF文件。如果PDF文件本身已加密，建议先解密再重新加密，以确保兼容性。文件大小建议在50MB以内以获得最佳性能。</p></div></div>
@@ -114,6 +133,7 @@ const dropZone=document.getElementById('dropZone');
 dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover');});
 dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
 dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('dragover');handleFile({files:e.dataTransfer.files});});
+dropZone.addEventListener('click',()=>document.getElementById('fileInput').click());
 async function handleFile(input){const file=input.files?.[0]||input;if(!file||file.type!=='application/pdf')return showToast("请选择PDF文件");pdfBytes=new Uint8Array(await file.arrayBuffer());document.getElementById('fileInfo').textContent=`已选择：${file.name} (${(file.size/1024).toFixed(1)} KB)`;document.getElementById('fileInfo').classList.remove('hidden');}
 async function encryptPDF(){if(!pdfBytes)return showToast("请先上传PDF文件");const userPass=document.getElementById('userPass').value;if(!userPass)return showToast("请输入用户密码");try{if(typeof PDFLib==='undefined'){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}const pdfDoc=await PDFLib.PDFDocument.load(pdfBytes);const ownerPass=document.getElementById('ownerPass').value||userPass;pdfDoc.encrypt({userPassword:userPass,ownerPassword:ownerPass,permissions:{printing:'highResolution',modifying:false,copying:true,annotating:true,fillingForms:true,contentAccessibility:true,documentAssembly:false}});encryptedBytes=await pdfDoc.save();showToast("加密完成！");document.getElementById('downloadBtn').classList.remove('hidden');}catch(e){showToast("加密失败："+e.message);}}
 function downloadPDF(){if(!encryptedBytes)return;const blob=new Blob([encryptedBytes],{type:'application/pdf'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='encrypted.pdf';a.click();URL.revokeObjectURL(url);}

@@ -282,6 +282,13 @@ footer {
             <button class="btn btn-primary" id="changeBtn">⚡ 应用变速</button>
             <button class="btn btn-secondary" id="resetBtn">🔄 重置</button>
           </div>
+          <div id="result" style="display:none;margin-top:16px;padding:14px;background:#0f172a;border:1px solid rgba(148,163,184,.15);border-radius:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <strong style="color:#22d3ee;font-size:.9rem">处理结果</strong>
+              <button class="btn btn-secondary" onclick="copyGifResult()" style="padding:4px 12px;font-size:.8rem">📋 复制结果</button>
+            </div>
+            <div id="resultText" style="font-size:.85rem;color:#94a3b8;line-height:1.7;white-space:pre-line"></div>
+          </div>
         </div>
         <div class="section">
           <h2>📖 使用说明</h2>
@@ -301,13 +308,35 @@ footer {
         const resetBtn = document.getElementById('resetBtn');
         let originalDataUrl = null;
         let currentImg = null;
+        function applySpeed() {
+          const speed = parseFloat(speedRange.value);
+          if (currentImg) currentImg.style.animationDuration = (1/speed) + 's';
+          const r = document.getElementById('result');
+          const rt = document.getElementById('resultText');
+          if (r && rt) {
+            r.style.display = 'block';
+            const name = currentImg && currentImg.dataset.fileName ? currentImg.dataset.fileName : (fileSize ? fileSize : '已上传GIF');
+            rt.textContent = '文件: ' + name + '\n播放速度: ' + speed + 'x\n动画时长: ' + (1/speed).toFixed(2) + 's';
+          }
+        }
+        let fileSize = null;
         speedRange.addEventListener('input', function() {
           speedVal.textContent = this.value + 'x';
+          if (currentImg) applySpeed();
         });
+        window.copyGifResult = function() {
+          const rt = document.getElementById('resultText');
+          if (!rt || !rt.textContent) { showToast('暂无结果可复制'); return; }
+          const txt = rt.textContent;
+          navigator.clipboard.writeText(txt).then(function(){showToast('结果已复制')}).catch(function(){
+            const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('结果已复制');
+          });
+        };
         gifInput.addEventListener('change', function(e) {
           const file = e.target.files[0];
           if (!file || file.type !== 'image/gif') { showToast('请选择GIF文件'); return; }
           const reader = new FileReader();
+          fileSize = (file.size/1024).toFixed(1)+' KB';
           reader.onload = function(ev) {
             originalDataUrl = ev.target.result;
             currentImg = document.createElement('img');
@@ -315,21 +344,22 @@ footer {
             currentImg.style.maxWidth = '100%';
             currentImg.style.maxHeight = '300px';
             currentImg.style.animationDuration = '1s';
+            currentImg.dataset.fileName = file.name;
             gifPreview.innerHTML = '';
             gifPreview.appendChild(currentImg);
+            applySpeed();
           };
           reader.readAsDataURL(file);
         });
         changeBtn.addEventListener('click', function() {
           if (!currentImg) { showToast('请先选择GIF文件'); return; }
-          const speed = parseFloat(speedRange.value);
-          currentImg.style.animationDuration = (1/speed) + 's';
-          showToast('速度已调整为 ' + speed + 'x');
+          applySpeed();
+          showToast('速度已调整为 ' + parseFloat(speedRange.value) + 'x');
         });
         resetBtn.addEventListener('click', function() {
           speedRange.value = 1;
           speedVal.textContent = '1x';
-          if (currentImg) currentImg.style.animationDuration = '1s';
+          if (currentImg) { currentImg.style.animationDuration = '1s'; applySpeed(); }
           showToast('已重置为原速');
         });
         </script>

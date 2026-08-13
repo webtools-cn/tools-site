@@ -217,6 +217,78 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
+function ftIpToInt(ip){
+var parts=ip.split('.').map(Number);
+if(parts.length!==4||parts.some(function(n){return isNaN(n)||n<0||n>255;}))return -1;
+return ((parts[0]<<24)>>>0)+((parts[1]<<16)>>>0)+((parts[2]<<8)>>>0)+parts[3];
+}
+function ftIntToIp(n){
+return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join('.');
+}
+function ftCalc(){
+var raw=document.getElementById('ipInput').value.trim();
+var ipStr=raw,maskStr=document.getElementById('subnetMask').value.trim(),prefix=parseInt(document.getElementById('cidrPrefix').value,10);
+var ip,slash=raw.indexOf('/');
+if(slash!==-1){ipStr=raw.slice(0,slash).trim();var p=parseInt(raw.slice(slash+1),10);if(!isNaN(p))prefix=p;}
+ip=ftIpToInt(ipStr);
+if(ip===-1){document.getElementById('ipError').textContent='IP地址格式无效，请输入如 192.168.1.0';document.getElementById('ipError').style.display='block';document.getElementById('ipResult').style.display='none';return;}
+if(isNaN(prefix)||prefix<0||prefix>32){prefix=24;}
+if(maskStr&&maskStr.indexOf('.')!==-1){
+var m=ftIpToInt(maskStr);
+if(m!==-1){
+prefix=0;
+for(var i=0;i<32;i++){if((m>>>(31-i))&1)prefix++;else break;}
+}
+}
+var mask=prefix===0?0:((0xFFFFFFFF<<(32-prefix))>>>0);
+var net=ip&mask;
+var bcast=net|((~mask)>>>0);
+var totalHosts=Math.pow(2,32-prefix);
+var first=net,last=bcast;
+var hostCount=totalHosts;
+if(prefix<31){first=net+1;last=bcast-1;hostCount=Math.max(0,totalHosts-2);}
+if(prefix===31){hostCount=2;}
+if(prefix===32){hostCount=1;}
+document.getElementById('netAddr').textContent=ftIntToIp(net);
+document.getElementById('bcastAddr').textContent=ftIntToIp(bcast);
+document.getElementById('hostRange').textContent=ftIntToIp(first)+' ~ '+ftIntToIp(last);
+document.getElementById('hostCount').textContent=hostCount;
+document.getElementById('maskDisplay').textContent=ftIntToIp(mask);
+var firstOct=(ip>>>24)&255;
+var cls=firstOct<=127?'A类':firstOct<=191?'B类':firstOct<=223?'C类':firstOct<=239?'D类(组播)':'E类(保留)';
+document.getElementById('ipClass').textContent=cls+' ('+firstOct+'开头)';
+document.getElementById('ipError').style.display='none';
+document.getElementById('ipResult').style.display='block';
+document.getElementById('subnetMask').value=ftIntToIp(mask);
+document.getElementById('cidrPrefix').value=prefix;
+}
+function ftCopyIPResult(btn){
+var t='IP子网计算结果\n输入: '+document.getElementById('ipInput').value+'\n网络地址: '+document.getElementById('netAddr').textContent+'\n广播地址: '+document.getElementById('bcastAddr').textContent+'\n可用主机范围: '+document.getElementById('hostRange').textContent+'\n可用主机数: '+document.getElementById('hostCount').textContent+'\n子网掩码: '+document.getElementById('maskDisplay').textContent+'\nIP类别: '+document.getElementById('ipClass').textContent;
+var done=function(){showToast('已复制');if(btn){btn.textContent='✅ 已复制';setTimeout(function(){btn.textContent='📋 复制结果';},2000);}};
+if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done).catch(function(){ftIPCtl();done();});}else{ftIPCtl();done();}
+function ftIPCtl(){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);}
+}
+document.addEventListener('DOMContentLoaded',function(){
+var samples=['192.168.1.0/24','10.0.0.0/8','172.16.0.0/12','8.8.8.8/32','203.0.113.0/27'];
+var si=0;
+document.getElementById('calcBtn').addEventListener('click',ftCalc);
+document.getElementById('sampleIPBtn').addEventListener('click',function(){
+document.getElementById('ipInput').value=samples[si%5];
+var slash=samples[si%5].indexOf('/');
+document.getElementById('cidrPrefix').value=samples[si%5].slice(slash+1);
+si++;ftCalc();
+});
+document.getElementById('ipInput').addEventListener('input',ftCalc);
+document.getElementById('cidrPrefix').addEventListener('input',ftCalc);
+document.getElementById('subnetMask').addEventListener('input',ftCalc);
+var cbtn=document.createElement('button');
+cbtn.textContent='📋 复制结果';
+cbtn.style.cssText='padding:8px 16px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.3);margin-top:12px';
+cbtn.addEventListener('click',function(){ftCopyIPResult(this);});
+document.getElementById('ipResult').appendChild(cbtn);
+ftCalc();
+});
+
 </script>
 
 </main>

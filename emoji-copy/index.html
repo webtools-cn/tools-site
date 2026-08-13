@@ -74,6 +74,10 @@
     <div class="search-wrapper">
       <input type="text" class="search-box" id="searchInput" placeholder="搜索Emoji，如 笑、心、猫、太阳...">
     </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      <button id="exampleBtn" style="padding:8px 16px;background:var(--card-bg);border:1px solid rgba(148,163,184,.2);color:#94a3b8;border-radius:8px;cursor:pointer;font-size:13px">🎲 填入示例搜索</button>
+      <span id="lastCopied" style="display:none;align-items:center;gap:8px;background:var(--card-bg);border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:6px 12px;font-size:13px;color:#94a3b8">最近复制: <span id="lastEmoji" style="font-size:22px"></span><button id="reCopyBtn" style="padding:4px 10px;background:rgba(6,182,212,.15);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:6px;cursor:pointer;font-size:12px">📋 再复制</button></span>
+    </div>
     <div class="categories" id="categories"></div>
     <div id="emojiContainer"></div>
   
@@ -138,6 +142,25 @@
     function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 2000); }
 
     let activeCategory = 'all';
+    let lastEmojiChar = '';
+
+    function copyToClipboard(text, cb) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(cb).catch(function(){ showToast('复制失败，请手动复制'); });
+      } else {
+        const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); cb(); } catch(e) { showToast('复制失败，请手动复制'); }
+        document.body.removeChild(ta);
+      }
+    }
+
+    function showLastCopied(emoji) {
+      lastEmojiChar = emoji;
+      const box = document.getElementById('lastCopied');
+      const em = document.getElementById('lastEmoji');
+      if (box) box.style.display = 'inline-flex';
+      if (em) em.textContent = emoji;
+    }
 
     // Build category buttons
     let catHtml = '<button class="cat-btn active" data-cat="all">全部</button>';
@@ -179,11 +202,12 @@
       container.querySelectorAll('.emoji-item').forEach(item => {
         item.addEventListener('click', () => {
           const emoji = item.dataset.emoji;
-          navigator.clipboard.writeText(emoji).then(() => {
+          copyToClipboard(emoji, () => {
             item.classList.add('copied');
             showToast(`已复制 ${emoji} 到剪贴板`);
+            showLastCopied(emoji);
             setTimeout(() => item.classList.remove('copied'), 300);
-          }).catch(() => showToast('复制失败，请手动复制'));
+          });
         });
       });
     }
@@ -200,6 +224,21 @@
 
     // Search
     searchInput.addEventListener('input', () => render(searchInput.value.trim()));
+
+    // Example fill
+    document.getElementById('exampleBtn').addEventListener('click', () => {
+      const samples = ['笑', '心', '猫', '太阳', '哭', '钱', '吃'];
+      const kw = samples[Math.floor(Math.random() * samples.length)];
+      searchInput.value = kw;
+      render(kw);
+      showToast('已填入示例: ' + kw);
+    });
+
+    // Re-copy last emoji
+    document.getElementById('reCopyBtn').addEventListener('click', () => {
+      if (!lastEmojiChar) { showToast('还没有复制的表情'); return; }
+      copyToClipboard(lastEmojiChar, () => showToast(`已复制 ${lastEmojiChar} 到剪贴板`));
+    });
 
     // Initial render
     render();

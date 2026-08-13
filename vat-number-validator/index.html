@@ -51,8 +51,12 @@
 <div>
 <div class="section">
 <div class="form-group"><label for="vt-input">输入VAT号</label>
-<textarea id="vt-input" style="min-height:80px;resize:vertical" oninput="convert()" placeholder="例如: DE123456789"></textarea></div>
-<div id="vt-output" style="min-height:40px"></div>
+<textarea id="vt-input" style="min-height:80px;resize:vertical" oninput="convert()" placeholder="例如: DE123456789"></textarea>
+<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+<button type="button" class="btn btn-mini" onclick="fillVATExample()">🎲 填入示例</button>
+<button type="button" class="btn btn-mini" onclick="copyVATResult()">📋 复制结果</button>
+</div></div>
+<div id="result"><div id="vt-output" style="min-height:40px"></div></div>
 </div>
 </div>
 </div>
@@ -121,6 +125,29 @@ function validateVAT(vat) {
   var pattern = VAT_PATTERNS[cc][0];
   if (!pattern.test(vat)) return {valid: false, error: 'Invalid format for ' + VAT_PATTERNS[cc][1] + '. Expected: ' + VAT_PATTERNS[cc][2]};
   return {valid: true, country: VAT_PATTERNS[cc][1], format: VAT_PATTERNS[cc][2]};
+}
+
+function fillVATExample(){
+  var el = document.getElementById('vt-input');
+  el.value = 'DE123456789';
+  convert();
+  showToast('已填入示例 VAT 号，可直接修改');
+}
+function copyVATResult(){
+  var t = document.getElementById('vt-output');
+  if(!t || !t.textContent){ showToast('暂无结果可复制'); return; }
+  var text = t.textContent.replace(/✅|❌/g, '').replace(/\s+/g, ' ').trim();
+  function done(){ showToast('结果已复制'); }
+  function fail(){ showToast('复制失败，请手动选择复制'); }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done)['catch'](fail);
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch(e){ fail(); }
+    document.body.removeChild(ta);
+  }
 }
 
 window.convert = convert; function convert() {

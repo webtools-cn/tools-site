@@ -111,7 +111,10 @@ a{color:#06b6d4;text-decoration:none}
     Updated: 2026-07-11
   </span>
 </div>
-<input class="search-plat" id="platformSearch" oninput="filterPlatforms()" placeholder="搜索平台名称..." type="text"/>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+<input class="search-plat" id="platformSearch" oninput="filterPlatforms()" placeholder="搜索平台名称..." type="text" style="flex:1;min-width:180px;padding:10px 14px;background:#1e293b;border:1px solid rgba(148,163,184,.15);border-radius:8px;color:#e2e8f0;font-size:.9rem;outline:none"/>
+<button onclick="fillExamplePlatform()" style="padding:10px 16px;background:rgba(6,182,212,.15);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:8px;cursor:pointer;font-size:.85rem">🎲 填入示例</button>
+</div>
 <div class="platform-grid" id="platformGrid"></div>
 <div class="detail-panel" id="detailPanel">
 <div class="platform-header">
@@ -352,6 +355,7 @@ function selectPlatform(id) {
       \x3Ch2>${p.name}\x3C/h2>
       \x3Cdiv class="url">${p.url} · ${p.sizes.length} 种图片尺寸规格\x3C/div>
     \x3C/div>
+    \x3Cbutton id="copySizesBtn" style="margin-left:auto;padding:8px 16px;background:rgba(6,182,212,.15);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:8px;cursor:pointer;font-size:.8rem">📋 复制尺寸表\x3C/button>
   \x3C/div>
   \x3Ctable class="size-table">
     \x3Cthead>\x3Ctr>\x3Cth>类型\x3C/th>\x3Cth>用途\x3C/th>\x3Cth>尺寸 (px)\x3C/th>\x3Cth>比例\x3C/th>\x3Cth>说明\x3C/th>\x3C/tr>\x3C/thead>
@@ -391,6 +395,35 @@ function selectPlatform(id) {
   html += `\x3Cdiv class="info-note">💡 提示：不同设备的实际显示效果可能略有差异。建议上传最高分辨率的版本，让平台自动压缩优化。关键文字和Logo放在安全区域内，避免被裁剪。\x3C/div>`;
 
   panel.innerHTML = html;
+
+  const copyBtn = document.getElementById('copySizesBtn');
+  if (copyBtn) copyBtn.onclick = function(){ copySizes(p); };
+}
+
+function copySizes(p) {
+  if (!p) return;
+  const lines = [p.name + ' 图片尺寸大全 (' + p.url + ')'];
+  p.sizes.forEach(function(s){
+    lines.push('- ' + s.label + ': ' + s.dim + ' (' + s.ratio + ')' + (s.note ? ' — ' + s.note : ''));
+  });
+  const txt = lines.join('\n');
+  function done(){ const b = document.getElementById('copySizesBtn'); if (b) { b.textContent = '✅ 已复制'; setTimeout(function(){ b.textContent = '📋 复制尺寸表'; }, 1500); } }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(done).catch(function(){ showToast('复制失败'); });
+  } else {
+    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch(e) { showToast('复制失败'); }
+    document.body.removeChild(ta);
+  }
+}
+
+function fillExamplePlatform() {
+  const samples = ['Instagram', 'YouTube', '微信', '小红书', 'TikTok', '微博'];
+  const kw = samples[Math.floor(Math.random() * samples.length)];
+  const inp = document.getElementById('platformSearch');
+  inp.value = kw;
+  renderPlatforms(kw);
+  showToast('已填入示例: ' + kw);
 }
 
 function getTypeLabel(type) {

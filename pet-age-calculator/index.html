@@ -124,7 +124,7 @@ tr:hover td{background:rgba(148,163,184,.05)}.ad-slot{margin:0 auto;text-align:c
     <div class="form-row">
       <div class="form-group" style="flex:1">
         <label for="petType">宠物类型</label>
-        <select id="petType" onchange="updateResult()">
+        <select id="petType" onchange="updateResult()" oninput="updateResult()">
           <option value="dog-small">小型犬（≤10kg）</option>
           <option value="dog-medium">中型犬（10-25kg）</option>
           <option value="dog-large">大型犬（≥25kg）</option>
@@ -144,10 +144,15 @@ tr:hover td{background:rgba(148,163,184,.05)}.ad-slot{margin:0 auto;text-align:c
     </div>
     <div class="code-output" style="max-height:none">
       <pre id="ageDesc">🐶 你的小型犬大约相当于人类 31 岁，正值青壮年时期。</pre>
+      <button class="copy-btn" onclick="copyAgeDesc()">📋 复制结果</button>
     </div>
     <div class="section" style="margin-top:12px">
       <h2>📊 年龄对照表</h2>
       <div id="ageTable"></div>
+    </div>
+    <div class="section" style="margin-top:12px">
+      <h2>📈 年龄换算曲线</h2>
+      <canvas id="ageChart" style="width:100%;height:220px;background:#0f172a;border-radius:8px"></canvas>
     </div>
     </div>
   </div>
@@ -220,47 +225,79 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+function dogHuman(age) {
+  if (age <= 0) return 0;
+  if (age <= 1) return age * 15;
+  if (age <= 2) return 15 + (age - 1) * 9;
+  if (age <= 5) return 24 + (age - 2) * 4;
+  return 24 + 12 + (age - 5) * 5;
+}
+function catHuman(age) {
+  if (age <= 0) return 0;
+  if (age <= 1) return age * 15;
+  if (age <= 2) return 15 + (age - 1) * 9;
+  return 24 + (age - 2) * 4;
+}
 function updateResult() {
   var petType = document.getElementById('petType').value;
   var petAge = parseFloat(document.getElementById('petAge').value) || 0;
-  var resultDiv = document.getElementById('result') || document.getElementById('resultArea');
-  if (!resultDiv) return;
-  
-  var humanAge = 0, description = '';
-  if (petType === 'dog') {
-    if (petAge <= 0) humanAge = 0;
-    else if (petAge <= 1) humanAge = petAge * 15;
-    else if (petAge <= 2) humanAge = 15 + (petAge - 1) * 9;
-    else if (petAge <= 5) humanAge = 24 + (petAge - 2) * 4;
-    else humanAge = 24 + 12 + (petAge - 5) * 5;
-    description = '狗狗年龄换算';
-  } else if (petType === 'cat') {
-    if (petAge <= 0) humanAge = 0;
-    else if (petAge <= 1) humanAge = petAge * 15;
-    else if (petAge <= 2) humanAge = 15 + (petAge - 1) * 9;
-    else humanAge = 24 + (petAge - 2) * 4;
-    description = '猫咪年龄换算';
-  } else if (petType === 'rabbit') {
-    humanAge = petAge * 8;
-    description = '兔子年龄换算';
-  } else if (petType === 'hamster') {
-    humanAge = petAge * 25;
-    description = '仓鼠年龄换算';
-  } else if (petType === 'bird') {
-    humanAge = petAge * 5;
-    description = '鸟类年龄换算';
-  } else {
-    humanAge = petAge * 7;
-    description = '通用年龄换算';
+  var isCat = petType === 'cat';
+  var human = isCat ? catHuman(petAge) : dogHuman(petAge);
+  var typeName = petType === 'cat' ? '猫咪' : petType === 'dog-medium' ? '中型犬' : petType === 'dog-large' ? '大型犬' : '小型犬';
+  var stage = human < 18 ? '幼年' : human < 35 ? '青壮年' : human < 55 ? '中年' : human < 75 ? '初老' : '老年';
+  document.getElementById('humanAge').textContent = Math.round(human);
+  document.getElementById('ageDesc').textContent =
+    (isCat ? '🐱 ' : '🐶 ') + '你的' + typeName + '大约相当于人类 ' + Math.round(human) + ' 岁，正值' + stage + '时期。';
+  var rows = '<tr><th>宠物年龄</th><th>约合人类年龄</th></tr>';
+  for (var i = 0; i <= 20; i++) {
+    rows += '<tr><td>' + i + ' 岁</td><td>' + Math.round(isCat ? catHuman(i) : dogHuman(i)) + ' 岁</td></tr>';
   }
-  
-  var html = '<div style="text-align:center;padding:20px">';
-  html += '<div style="color:#94a3b8;font-size:.9rem;margin-bottom:8px">' + description + '</div>';
-  html += '<div style="font-size:3rem;font-weight:700;color:#22d3ee">' + Math.round(humanAge) + '</div>';
-  html += '<div style="color:#94a3b8;font-size:.85rem;margin-top:4px">相当于人类年龄</div>';
-  html += '</div>';
-  resultDiv.innerHTML = html;
+  document.getElementById('ageTable').innerHTML = '<table>' + rows + '</table>';
+  drawAgeChart(isCat);
 }
+
+function drawAgeChart(isCat) {
+  var cv = document.getElementById('ageChart');
+  if (!cv) return;
+  var W = cv.offsetWidth || 900;
+  cv.width = W * 2; cv.height = 440;
+  var ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  var n = 15, pad = 44;
+  var step = (cv.width - pad * 2) / n;
+  var maxH = isCat ? 100 : 110;
+  ctx.font = (W > 600 ? '13px' : '11px') + ' sans-serif';
+  for (var i = 1; i <= n; i++) {
+    var v = isCat ? catHuman(i) : dogHuman(i);
+    var bh = Math.max(4, (v / maxH) * (cv.height - pad * 2));
+    ctx.fillStyle = 'rgba(6,182,212,.85)';
+    ctx.fillRect(pad + (i - 1) * step + 2, cv.height - pad - bh, step * 0.6, bh);
+    ctx.fillStyle = '#94a3b8';
+    ctx.textAlign = 'center';
+    ctx.fillText(i + 'y', pad + (i - 0.5) * step, cv.height - pad + 16);
+  }
+  ctx.fillStyle = '#22d3ee';
+  ctx.textAlign = 'left';
+  ctx.fillText(isCat ? '猫咪年龄换算曲线' : '狗狗年龄换算曲线', pad, 16);
+  ctx.fillStyle = '#64748b';
+  ctx.textAlign = 'center';
+  ctx.fillText('宠物年龄（岁）', cv.width / 2, cv.height - 4);
+}
+
+function copyAgeDesc() {
+  var t = (document.getElementById('ageDesc').textContent || '').trim();
+  if (!t) { showToast('没有可复制的内容'); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(function(){ showToast('已复制'); }).catch(function(){ showToast('复制失败'); });
+  } else {
+    try {
+      var ta = document.createElement('textarea'); ta.value = t;
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta); showToast('已复制');
+    } catch (e) { showToast('复制失败'); }
+  }
+}
+updateResult();
 </script>
 
 

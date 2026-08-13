@@ -120,6 +120,9 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
       <input type="file" id="fileInput" accept="image/*" style="display:none">
     </div>
     <div class="status-bar" id="statusBar"></div>
+    <div style="text-align:center;margin-top:12px">
+      <button id="sampleBtn" style="padding:10px 20px;background:rgba(6,182,212,.2);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:8px;font-size:.9rem;cursor:pointer">🎲 使用示例图片</button>
+    </div>
   </div>
 
   <div class="main-section" id="mainSection">
@@ -136,6 +139,7 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
           <div class="color-row"><label>HSL</label><span class="value" id="hslValue" onclick="copyVal('hslValue')">—</span><span class="copy-hint">点击复制</span></div>
         </div>
       </div>
+      <canvas id="rgbChart" width="280" height="100" style="width:100%;max-width:360px;display:block;margin:12px auto 0;background:#0f172a;border:1px solid rgba(148,163,184,.1);border-radius:8px"></canvas>
     </div>
 
     <div class="history-section">
@@ -297,7 +301,46 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
     hexValue.textContent = hex;
     rgbValue.textContent = rgb;
     hslValue.textContent = hsl;
+    drawRgbChart(r, g, b);
   }
+
+  function drawRgbChart(r, g, b) {
+    const cv = document.getElementById('rgbChart');
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    const vals = [['R', r, '#f87171'], ['G', g, '#4ade80'], ['B', b, '#60a5fa']];
+    const w = cv.width - 20, h = cv.height - 28, bh = 60;
+    for (let i = 0; i < 3; i++) {
+      const x = 10 + i * (w / 3) + (w / 3 - 60) / 2;
+      const vh = (vals[i][1] / 255) * bh;
+      ctx.fillStyle = vals[i][2];
+      ctx.fillRect(x, h - vh, 60, vh);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(vals[i][0], x + 30, h - vh - 6);
+      ctx.fillText(Math.round(vals[i][1]), x + 30, h + 14);
+    }
+  }
+
+  function loadSampleImage() {
+    const c = document.createElement('canvas');
+    c.width = 400; c.height = 260;
+    const g = c.getContext('2d');
+    const grad = g.createLinearGradient(0, 0, 400, 260);
+    grad.addColorStop(0, '#ff6b6b'); grad.addColorStop(0.33, '#ffd93d');
+    grad.addColorStop(0.66, '#6bcb77'); grad.addColorStop(1, '#4d96ff');
+    g.fillStyle = grad; g.fillRect(0, 0, 400, 260);
+    g.fillStyle = '#0f172a'; g.beginPath(); g.arc(200, 130, 70, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#facc15'; g.beginPath(); g.arc(300, 80, 28, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(110, 170, 34, 0, Math.PI * 2); g.fill();
+    c.toBlob(function(blob) {
+      loadImage(new File([blob], 'sample.png', {type: 'image/png'}));
+    }, 'image/png');
+  }
+
+  document.getElementById('sampleBtn').addEventListener('click', loadSampleImage);
 
   function rgbToHex(r, g, b) {
     return '#' + [r, g, b].map(function(c) {
