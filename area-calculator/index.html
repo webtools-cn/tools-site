@@ -200,18 +200,69 @@ a{color:#06b6d4;text-decoration:none}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
+var SHAPES={
+  circle:['半径 r'],
+  triangle:['底边','高'],
+  rectangle:['长','宽'],
+  square:['边长'],
+  parallelogram:['底边','高'],
+  trapezoid:['上底','下底','高'],
+  ellipse:['长半轴 a','短半轴 b'],
+  polygon:['边长','边数']
+};
+var currentShape='circle';
+
+function renderInputs(){
+  var labels=SHAPES[currentShape];
+  var html='';
+  for(var i=0;i<labels.length;i++){
+    html+='<div class="form-group"><label>'+labels[i]+'</label><input type="number" id="in'+i+'" placeholder="请输入'+labels[i]+'" step="any"></div>';
+  }
+  document.getElementById('inputArea').innerHTML=html;
 }
 
-function calculate(){var r=document.getElementById('result')||document.getElementById('output');if(r)r.textContent='计算完成'}
-window.calculate=calculate;
+function selectShape(shape){
+  if(!SHAPES[shape])return;
+  currentShape=shape;
+  document.querySelectorAll('.shape-tab').forEach(function(t){
+    t.classList.toggle('active',t.getAttribute('data-shape')===shape);
+  });
+  renderInputs();
+}
+
+function calculate(){
+  var labels=SHAPES[currentShape];
+  var vals=[];
+  for(var i=0;i<labels.length;i++){
+    var el=document.getElementById('in'+i);
+    var v=parseFloat(el?el.value:NaN);
+    if(isNaN(v)||v<=0){showToast('请输入有效的正数值');return;}
+    vals.push(v);
+  }
+  var a;
+  switch(currentShape){
+    case 'circle': a=Math.PI*vals[0]*vals[0];break;
+    case 'triangle': a=0.5*vals[0]*vals[1];break;
+    case 'rectangle': a=vals[0]*vals[1];break;
+    case 'square': a=vals[0]*vals[0];break;
+    case 'parallelogram': a=vals[0]*vals[1];break;
+    case 'trapezoid': a=0.5*(vals[0]+vals[1])*vals[2];break;
+    case 'ellipse': a=Math.PI*vals[0]*vals[1];break;
+    case 'polygon':
+      if(vals[1]<3){showToast('边数至少为3');return;}
+      a=(vals[1]*vals[0]*vals[0])/(4*Math.tan(Math.PI/vals[1]));
+      break;
+    default: return;
+  }
+  var cm2=a;
+  var out=cm2.toLocaleString('zh-CN',{maximumFractionDigits:4})+' 平方厘米';
+  if(cm2>=10000){out+='（'+(cm2/10000).toLocaleString('zh-CN',{maximumFractionDigits:4})+' 平方米）';}
+  document.getElementById('resultArea').textContent=out;
+}
+
+document.querySelectorAll('.shape-tab').forEach(function(tab){
+  tab.addEventListener('click',function(){selectShape(tab.getAttribute('data-shape'));});
+});
 
 document.addEventListener('click',function(e){
   if(e.target&&e.target.closest&&e.target.closest('button')){
@@ -219,7 +270,7 @@ document.addEventListener('click',function(e){
   }
 });
 function ftEnsureCopy(){
-  var res=document.getElementById('result');
+  var res=document.getElementById('resultArea');
   if(!res||res.offsetParent===null)return;
   if(res.querySelector('.ft-copy-btn'))return;
   var langEN=/^en/i.test((document.documentElement.getAttribute('lang')||'zh'));
@@ -247,6 +298,7 @@ function ftFallbackCopy(txt){
   document.body.removeChild(ta);
 }
 
+renderInputs();
 </script>
 </main>
 
