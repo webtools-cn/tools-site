@@ -25,7 +25,7 @@
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "首页", "item": "https://free-toolbase.com/"}, {"@type": "ListItem", "position": 2, "name": "工具", "item": "https://free-toolbase.com/#tools"}, {"@type": "ListItem", "position": 3, "name": "AI提示词链生成器", "item": "https://free-toolbase.com/ai-prompt-chain-generator/"}]}</script>
 <style>:root{--primary:#06b6d4;--primary-light:#22d3ee;--primary-dark:#0891b2;--bg:#0f172a;--card-bg:#1e293b;--text:#e2e8f0;--text-secondary:#94a3b8;--border:rgba(148,163,184,.1);--accent-gradient:linear-gradient(135deg,#06b6d4,#3b82f6);--radius:12px}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,PingFang SC"Microsoft YaHei"{"," if not is_en else ""}sans-serif;line-height:1.6;min-height:100vh}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;min-height:100vh}
 a{color:#06b6d4;text-decoration:none}
 .container{max-width:960px;margin:0 auto;padding:24px 16px}
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
@@ -203,12 +203,62 @@ const body=encodeURIComponent('**Page**: '+window.location.href+'\n**Type**: '+t
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
 }
 
-function addStep(){var r=document.getElementById('result')||document.getElementById('output');if(r)r.textContent+='已添加\n'}
+var stepCount=3;
+function addStep(){stepCount++;var div=document.createElement('div');div.className='chain-step';div.setAttribute('data-step',stepCount);div.innerHTML='<span class="step-num">'+stepCount+'</span><button class="remove-btn" onclick="removeStep(this)">删除</button><div class="form-group"><label>步骤'+stepCount+'</label><textarea id="step'+stepCount+'" placeholder="输入此步骤的提示词..."></textarea></div><div class="form-group"><label>输出变量名</label><input type="text" id="var'+stepCount+'" placeholder="例如：result'+stepCount+'" value="result'+stepCount+'"></div>';document.getElementById('chainSteps').appendChild(div)}
 window.addStep=addStep;
-
-function copyResult(id){var el=document.getElementById(id||"result");if(!el)return;var t=el.textContent||el.innerText||el.value||"";navigator.clipboard.writeText(t).then(function(){}).catch(function(){})}window.copyResult=copyResult;
-function exportChain(){}window.exportChain=exportChain;
-function generateChain(){var i=document.querySelector("textarea, input[type=text]");var o=document.getElementById("result")||document.getElementById("output");if(o)o.innerHTML="<p>"+(i&&i.value?i.value.substring(0,200):"已生成结果")+"</p>"}window.generateChain=generateChain;
+function removeStep(btn){var step=btn.parentElement;step.remove();var steps=document.querySelectorAll('.chain-step');stepCount=steps.length;steps.forEach(function(s,i){s.setAttribute('data-step',i+1);s.querySelector('.step-num').textContent=i+1})}
+window.removeStep=removeStep;
+function copyResult(){
+  var text=document.getElementById('resultChain').textContent;
+  if(!text){showToast('请先生成提示词链');return}
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制')})["catch"](function(){showToast('复制失败')});
+}
+window.copyResult=copyResult;
+function exportChain(){
+  var steps=document.querySelectorAll('.chain-step');
+  var chain='# AI提示词链\n';
+  chain+='# 生成时间: '+new Date().toLocaleString()+'\n';
+  chain+='# 步骤数: '+steps.length+'\n\n';
+  steps.forEach(function(s,i){
+    var num=i+1;
+    var content=document.getElementById('step'+num);
+    var varName=document.getElementById('var'+num);
+    if(!content||!content.value.trim())return;
+    chain+='--- 步骤 '+num+' ---\n';
+    chain+='输入: '+(i>0?'{{'+(document.getElementById('var'+i)?document.getElementById('var'+i).value:'prev')+'}}':'用户输入')+'\n';
+    chain+='提示词: '+content.value.trim()+'\n';
+    chain+='输出: '+(varName?varName.value:'output'+num)+'\n\n';
+  });
+  chain+='--- 使用说明 ---\n';
+  chain+='1. 按顺序将每步提示词发送给AI\n';
+  chain+='2. 将AI响应作为下一步的输入\n';
+  chain+='3. 变量 {{xxx}} 引用上一步的输出\n';
+  document.getElementById('resultChain').textContent=chain;
+  document.getElementById('resultArea').style.display='block';
+  showToast('提示词链已导出');
+}
+window.exportChain=exportChain;
+function generateChain(){
+  var steps=document.querySelectorAll('.chain-step');
+  var chain='';
+  steps.forEach(function(s,i){
+    var num=i+1;
+    var content=document.getElementById('step'+num);
+    var varName=document.getElementById('var'+num);
+    if(!content||!content.value.trim())return;
+    chain+='═══════════════════════════════════════\n';
+    chain+='📌 步骤 '+num+'\n';
+    chain+='═══════════════════════════════════════\n\n';
+    if(i>0){chain+='[上一步输出 → '+(varName?varName.value:'输入')+']\n\n'}
+    chain+=content.value.trim()+'\n\n';
+    chain+='[输出变量: '+(varName?varName.value:'output'+num)+']\n\n';
+  });
+  if(!chain){showToast('请至少填写一个步骤的提示词');return}
+  document.getElementById('resultChain').textContent=chain;
+  document.getElementById('resultArea').style.display='block';
+  showToast('提示词链已生成');
+}
+window.generateChain=generateChain;
 </script>
 
 </div>
