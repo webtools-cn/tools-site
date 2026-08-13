@@ -168,6 +168,41 @@ app.innerHTML='<div class="input-section"><h2>📥 文本转二进制</h2><texta
 document.getElementById('toBin').addEventListener('click',function(){var txt=document.getElementById('textInput').value,out=[];for(var i=0;i<txt.length;i++){var b=txt.charCodeAt(i).toString(2);while(b.length<8)b='0'+b;out.push(b);}document.getElementById('binaryOutput').textContent=out.join(' ');});
 document.getElementById('toText').addEventListener('click',function(){var bin=document.getElementById('binInput').value.trim(),bits=parseInt(document.getElementById('bitMode').value),out='',parts=bin.split(/\s+/);for(var i=0;i<parts.length;i++){if(parts[i].length>0){var code=parseInt(parts[i],2);if(!isNaN(code))out+=String.fromCharCode(code);}}document.getElementById('binaryOutput').textContent=out;});
 document.getElementById('copyResult').addEventListener('click',function(){navigator.clipboard.writeText(document.getElementById('binaryOutput').textContent).then(function(){}).catch(function(){});});})();
+
+document.addEventListener('click',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('button')){
+    setTimeout(ftEnsureCopy,250);
+  }
+});
+function ftEnsureCopy(){
+  var res=document.getElementById('result');
+  if(!res||res.offsetParent===null)return;
+  if(res.querySelector('.ft-copy-btn'))return;
+  var langEN=/^en/i.test((document.documentElement.getAttribute('lang')||'zh'));
+  var btn=document.createElement('button');
+  btn.className='btn btn-secondary ft-copy-btn';
+  btn.textContent=langEN?'📋 Copy Result':'📋 复制结果';
+  btn.style.cssText='margin-top:12px;display:block';
+  btn.onclick=function(){
+    var txt=(res.innerText||res.textContent||'').replace(/\s+/g,' ').trim();
+    function toast(m){
+      var t=document.getElementById('toast');
+      if(t){t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){toast(langEN?'Copied!':'已复制')}).catch(function(){ftFallbackCopy(txt);toast(langEN?'Copied!':'已复制')});
+    }else{ftFallbackCopy(txt);toast(langEN?'Copied!':'已复制')}
+  };
+  res.appendChild(btn);
+}
+function ftFallbackCopy(txt){
+  var ta=document.createElement('textarea');
+  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(err){}
+  document.body.removeChild(ta);
+}
+
 </script>
 </body>
 </html>
