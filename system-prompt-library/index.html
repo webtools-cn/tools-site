@@ -134,6 +134,10 @@ body{background:#0f172a;color:#e2e8f0;font-family:system-ui,-apple-system,sans-s
 <div class="stat-bar">
 共 <span id="total-count">0</span> 个模板 · 当前显示 <span id="show-count">0</span> 个
 </div>
+<div class="btn-group" style="margin:0 0 14px">
+<button class="btn btn-primary btn-sm" onclick="randomPrompt()">🎲 随机示例</button>
+<button class="btn btn-secondary btn-sm" onclick="exportAll()">📥 导出全部</button>
+</div>
 <div class="category-tabs" id="category-tabs"></div>
 <div class="prompt-grid" id="prompt-grid"></div>
 <div class="prompt-detail" id="prompt-detail">
@@ -240,6 +244,7 @@ body{background:#0f172a;color:#e2e8f0;font-family:system-ui,-apple-system,sans-s
 </footer>
 
 <div class="toast" id="toast"></div>
+<div class="copy-toast" id="copy-toast"></div>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
@@ -314,6 +319,23 @@ function showDetail(p) {
 function closeDetail() {
   document.getElementById('prompt-detail').classList.remove('show');
   currentPrompt = null;
+}
+
+window.randomPrompt = randomPrompt; function randomPrompt() {
+  const p = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+  showDetail(p);
+  showToast('🎲 随机示例: ' + p.title);
+}
+
+window.exportAll = exportAll; function exportAll() {
+  const txt = PROMPTS.map(p => '# ' + p.title + '（' + p.cat + '）\n\n' + p.content).join('\n\n---\n\n');
+  const blob = new Blob([txt], {type: 'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'system-prompts.md';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('📥 已导出 ' + PROMPTS.length + ' 个提示词');
 }
 
 window.copyPrompt = copyPrompt; function copyPrompt() {

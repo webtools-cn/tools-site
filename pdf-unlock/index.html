@@ -39,6 +39,9 @@
 .info-section{border:1px solid rgba(148,163,184,.1);border-radius:12px;padding:20px;background:rgba(30,41,59,.5)}
 .seo-content h2{background:linear-gradient(135deg,#06b6d4,#3b82f6);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:1.35rem}
 .seo-content h3{color:#22d3ee;font-size:1.1rem;margin-top:18px}
+.result{background:#0f172a;border:1px solid rgba(6,182,212,.3);border-radius:10px;padding:16px;margin-top:14px}
+.result .result-title{font-weight:700;color:#22d3ee;font-size:.9rem;margin-bottom:8px}
+.result pre{font-family:monospace;font-size:.85rem;color:#e2e8f0;white-space:pre-wrap;word-break:break-all;line-height:1.7;margin-bottom:10px}
 </style>
 <meta property="og:image" content="https://free-toolbase.com/og-image.svg">
 <meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
@@ -73,6 +76,11 @@
     <button class="btn btn-outline" id="resetBtn">重置</button>
   </div>
   <div class="status" id="status">请上传需要解锁的PDF文件</div>
+  <div class="result" id="result" style="display:none">
+    <div class="result-title">🔓 解锁结果</div>
+    <pre id="resultText"></pre>
+    <button class="btn btn-outline" id="copyResultBtn">📋 复制结果</button>
+  </div>
 </div></div>
 <script src="../libs/pdf-lib.min.js"></script>
 <script>
@@ -120,7 +128,7 @@ document.getElementById('uploadZone').addEventListener('drop',e=>{e.preventDefau
 document.getElementById('fileInput').addEventListener('change',function(){const f=this.files[0];if(f)checkPDF(f);});
 
 document.getElementById('resetBtn').addEventListener('click',()=>{
-pdfFile=null;document.getElementById('fileInfo').style.display='none';document.getElementById('passwordRow').style.display='none';document.getElementById('uploadZone').classList.remove('has-file');document.getElementById('uploadZone').querySelector('p').textContent='点击或拖拽加密的PDF文件到此处';document.getElementById('unlockBtn').disabled=true;document.getElementById('status').textContent='请上传需要解锁的PDF文件';document.getElementById('fileInput').value='';document.getElementById('passwordInput').value='';
+pdfFile=null;document.getElementById('fileInfo').style.display='none';document.getElementById('passwordRow').style.display='none';document.getElementById('uploadZone').classList.remove('has-file');document.getElementById('uploadZone').querySelector('p').textContent='点击或拖拽加密的PDF文件到此处';document.getElementById('unlockBtn').disabled=true;document.getElementById('status').textContent='请上传需要解锁的PDF文件';document.getElementById('fileInput').value='';document.getElementById('passwordInput').value='';document.getElementById('result').style.display='none';
 });
 
 document.getElementById('unlockBtn').addEventListener('click',async()=>{
@@ -152,6 +160,11 @@ const baseName=pdfFile.name.replace(/\.pdf$/i,'');
 a.download=`${baseName}-unlocked.pdf`;a.click();
 URL.revokeObjectURL(url);
 status.textContent='✅ PDF已解锁并下载！新文件无密码、无权限限制。';
+const result=document.getElementById('result');
+if(result){
+document.getElementById('resultText').textContent=`文件: ${baseName}-unlocked.pdf\n原始大小: ${formatSize(pdfFile.size)}\n解锁后大小: ${formatSize(unlockedBytes.length)}\n打开密码: 已移除\n权限限制: 已移除\n状态: ✅ 解锁成功`;
+result.style.display='block';
+}
 }catch(e){
 let msg=e.message;
 if(msg.includes('password'))msg='❌ 密码错误或PDF需要密码。请确认密码正确后重试。';
@@ -159,6 +172,16 @@ else if(msg.includes('decrypt'))msg='❌ 解密失败，可能不支持此加密
 else msg='❌ 解锁失败: '+msg;
 status.textContent=msg;
 }finally{btn.disabled=false;btn.textContent='🔓 解锁PDF';}
+});
+
+document.getElementById('copyResultBtn').addEventListener('click',()=>{
+const txt=document.getElementById('resultText').textContent||'';
+if(!txt)return;
+const done=()=>{document.getElementById('status').textContent='✅ 结果已复制！';};
+const fallback=()=>{
+const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);done();
+};
+if(navigator.clipboard)navigator.clipboard.writeText(txt).then(done).catch(fallback);else fallback();
 });
 </script>
 <script src="../feedback-v2.js"></script>

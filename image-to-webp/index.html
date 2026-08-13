@@ -87,6 +87,10 @@ textarea.code-input:focus{border-color:rgba(6,182,212,.4);box-shadow:0 0 0 3px r
 .info-section{border:1px solid rgba(148,163,184,.1);border-radius:12px;padding:20px;background:rgba(30,41,59,.5)}
 .seo-content h2{background:linear-gradient(135deg,#06b6d4,#3b82f6);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:1.35rem}
 .seo-content h3{color:#22d3ee;font-size:1.1rem;margin-top:18px}
+.result{background:#0f172a;border:1px solid rgba(6,182,212,.3);border-radius:10px;padding:14px;margin-top:14px;font-size:.9rem}
+.result-title{font-weight:700;color:#22d3ee;margin-bottom:8px}
+.result-text div{margin-bottom:4px;color:#94a3b8}
+.result-text b{color:#22d3ee}
 </style>
 <meta property="og:image" content="https://free-toolbase.com/og-image.svg">
 <meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
@@ -131,6 +135,15 @@ textarea.code-input:focus{border-color:rgba(6,182,212,.4);box-shadow:0 0 0 3px r
     </div>
   </div>
   <p class="info-text" id="webp-savings" style="color:#4ade80"></p>
+  <div class="result" id="result">
+    <div class="result-title">📊 转换结果</div>
+    <div class="result-text" id="resultText"></div>
+    <div class="btn-group">
+      <button class="btn btn-secondary" onclick="copyWebPResult()">📋 复制结果</button>
+      <button class="btn btn-secondary" onclick="loadSampleImage()">🎲 生成示例图片</button>
+    </div>
+    <canvas id="webpChart" width="300" height="150" style="width:100%;max-width:340px;margin-top:10px"></canvas>
+  </div>
   <div class="btn-group">
     <button class="btn btn-success" onclick="downloadWebP()">📥 下载 WebP</button>
   </div>
@@ -233,6 +246,7 @@ function convertToWebP() {
     var txt = (lang==='zh-CN'?'压缩率: ':'Compression: ') + savings + '%';
     if (savings > 0) txt += (lang==='zh-CN'?' 节省了 ':' saved ') + formatSize(webpFile.size - webpBytes);
     document.getElementById('webp-savings').textContent = txt;
+    updateResult(webpFile.size, webpBytes, savings);
   };
   var r = new FileReader();
   r.onload = function(e) { img.src = e.target.result; };
@@ -252,6 +266,75 @@ function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
   return (bytes/1048576).toFixed(2) + ' MB';
+}
+
+function updateResult(orig, webp, savings) {
+  var rt = document.getElementById('resultText');
+  if (!rt) return;
+  rt.innerHTML = '<div>' + (lang==='zh-CN'?'原始大小: ':'Original: ') + '<b>' + formatSize(orig) + '</b></div>' +
+                 '<div>' + (lang==='zh-CN'?'WebP大小: ':'WebP: ') + '<b>' + formatSize(webp) + '</b></div>' +
+                 '<div>' + (lang==='zh-CN'?'压缩率: ':'Compression: ') + '<b>' + savings + '%</b></div>';
+  drawWebPChart(orig, webp);
+}
+
+function drawWebPChart(orig, webp) {
+  var canvas = document.getElementById('webpChart');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  var W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  var max = Math.max(orig, webp, 1);
+  var barW = 70, gap = 40, baseY = H - 26, maxH = H - 46;
+  var colors = ['#94a3b8', '#06b6d4'];
+  var labels = [lang==='zh-CN'?'原图':'Original', 'WebP'];
+  var vals = [orig, webp];
+  for (var i = 0; i < 2; i++) {
+    var h = Math.max(2, Math.round(maxH * vals[i] / max));
+    var x = 30 + i * (barW + gap);
+    ctx.fillStyle = colors[i];
+    ctx.fillRect(x, baseY - h, barW, h);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(labels[i], x + barW / 2, baseY + 15);
+    ctx.fillStyle = colors[i];
+    ctx.fillText(formatSize(vals[i]), x + barW / 2, baseY - h - 6);
+  }
+}
+
+function loadSampleImage() {
+  var c = document.createElement('canvas');
+  c.width = 800; c.height = 500;
+  var ctx = c.getContext('2d');
+  var g = ctx.createLinearGradient(0, 0, 800, 500);
+  g.addColorStop(0, '#06b6d4'); g.addColorStop(1, '#3b82f6');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 800, 500);
+  ctx.fillStyle = 'rgba(255,255,255,.92)';
+  ctx.beginPath(); ctx.arc(620, 140, 90, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#0f172a';
+  ctx.font = 'bold 56px sans-serif'; ctx.fillText('Free ToolBase', 60, 280);
+  ctx.font = '28px sans-serif'; ctx.fillText('WebP 示例图片', 60, 340);
+  ctx.fillStyle = '#facc15'; ctx.fillRect(60, 380, 220, 18);
+  ctx.fillStyle = '#34d399'; ctx.fillRect(60, 410, 160, 18);
+  c.toBlob(function(blob) {
+    var file = new File([blob], 'sample-demo.png', {type: 'image/png'});
+    var dt = new DataTransfer();
+    dt.items.add(file);
+    var input = document.getElementById('webp-input');
+    input.files = dt.files;
+    handleWebPFile(input);
+    toast(lang==='zh-CN'?'🎲 已生成示例图片':'🎲 Sample image generated');
+  }, 'image/png');
+}
+
+window.copyWebPResult = copyWebPResult; function copyWebPResult() {
+  var rt = document.getElementById('resultText');
+  var txt = rt ? rt.textContent.trim() : '';
+  if (!txt) return;
+  var done = function(){ toast(lang==='zh-CN'?'✅ 结果已复制':'✅ Copied'); };
+  var fallback = function(){ var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done(); };
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done).catch(fallback); else fallback();
 }
 
 </script>

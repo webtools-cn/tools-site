@@ -101,6 +101,8 @@
   <div class="input-row">
     <input type="url" id="urlInput" placeholder="输入网页URL，如 https://example.com" value="https://free-toolbase.com">
     <button class="btn" id="fetchBtn">🔍 检测并预览</button>
+    <button class="btn" id="exampleBtn" style="background:#334155">🎲 填入示例</button>
+    <button class="btn" id="copyMetaBtn" style="background:#334155">📋 复制结果</button>
   </div>
 
   <div class="previews" id="previews" style="display:none;">
@@ -310,6 +312,29 @@
   }
 
   fetchBtn.addEventListener('click', fetchMeta);
+
+  document.getElementById('exampleBtn').addEventListener('click', () => {
+    urlInput.value = 'https://example.com';
+    fetchMeta();
+  });
+
+  document.getElementById('copyMetaBtn').addEventListener('click', () => {
+    const rows = document.querySelectorAll('#metaBody tr');
+    if (!rows.length) { showToast('暂无检测结果，请先点击检测'); return; }
+    let txt = '';
+    rows.forEach(r => {
+      const tds = r.querySelectorAll('td');
+      if (tds.length >= 2) txt += tds[0].textContent + ': ' + tds[1].textContent + '\n';
+    });
+    txt = txt.trim();
+    const done = () => showToast('✅ 已复制检测结果');
+    const fallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta); done();
+    };
+    if (navigator.clipboard) navigator.clipboard.writeText(txt).then(done).catch(fallback); else fallback();
+  });
 
   // Also allow Enter key
   urlInput.addEventListener('keydown', (e) => {
