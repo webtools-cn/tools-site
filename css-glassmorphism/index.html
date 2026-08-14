@@ -41,7 +41,7 @@ a{color:#06b6d4;text-decoration:none}
 .tool-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
 .preview-area{height:320px;border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;margin-bottom:20px;border:1px solid rgba(148,163,184,.1)}
 .preview-bg{position:absolute;inset:0;background:linear-gradient(135deg,#667eea 0%,#764ba2 25%,#f093fb 50%,#f5576c 75%,#4facfe 100%);background-size:400% 400%;animation:bgMove 15s ease infinite}
-@keyframes bgMove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}
+@keyframes bgMove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 .glass-card{padding:32px 40px;border-radius:16px;text-align:center;position:relative;z-index:1;min-width:280px;transition:all .3s}
 .glass-card h3{font-size:1.4rem;color:#fff;margin-bottom:8px;text-shadow:0 1px 3px rgba(0,0,0,.3)}
 .glass-card p{color:rgba(255,255,255,.85);font-size:.95rem;text-shadow:0 1px 2px rgba(0,0,0,.2)}
@@ -84,11 +84,14 @@ a{color:#06b6d4;text-decoration:none}
 .bg-preset:hover,.bg-preset.active{border-color:#22d3ee;transform:scale(1.1)}
 @media(max-width:600px){.controls-grid{grid-template-columns:1fr}.preview-area{height:260px}.glass-card{padding:24px 28px;min-width:220px}
 .ad-slot{margin:0 auto;text-align:center;max-width:960px}.ad-slot:not(:has(ins[frame])){display:none}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{max-width:300px}
+}
 @media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.header{flex-direction:column;gap:8px}}
-}}
 
 
 .main-grid{display:grid;gap:20px;margin-bottom:20px}
+.hero{margin-bottom:16px}
+.hero p{color:#94a3b8;font-size:.95rem;margin-bottom:8px}
+.badge{display:inline-block;background:rgba(6,182,212,.15);color:#22d3ee;padding:2px 8px;border-radius:4px;font-size:.8rem}
 .section{background:#1e293b;border:1px solid rgba(148,163,184,.1);border-radius:12px;padding:20px;margin-bottom:16px}
 
 /* Visual enhancement v2 */
@@ -267,10 +270,6 @@ a{color:#06b6d4;text-decoration:none}
     </div>
   </div></div></div>
 </div>
-
-<div class="section"><h2>常见问题</h2>
-
-</div>
 </main>
 <div>
 <!-- AdSense -->
@@ -312,19 +311,127 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function copyCode() {
-  var text = document.getElementById('previewArea').innerText || document.getElementById('previewArea').textContent;
-  if (!text) { showToast('没有可复制的内容'); return; }
-  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
+// === 功能实现 ===
+var bgPresets=[
+  'linear-gradient(135deg,#667eea 0%,#764ba2 25%,#f093fb 50%,#f5576c 75%,#4facfe 100%)',
+  'linear-gradient(135deg,#43e97b 0%,#38f9d7 100%)',
+  'linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)',
+  'linear-gradient(135deg,#f6d365 0%,#fda085 100%)',
+  'radial-gradient(circle at 30% 30%,#ff9a9e,#a18cd1)',
+  'conic-gradient(from 0deg,#ff6a00,#ee0979,#7f00ff,#ff6a00)'
+];
+var presets={
+  default:{blur:12,opacity:15,bg:'#ffffff',radius:16,bw:1,bc:'#ffffff',bo:30,bs:'solid',pad:32,sb:20,sc:'#000000',so:20},
+  frosted:{blur:20,opacity:20,bg:'#ffffff',radius:20,bw:1,bc:'#ffffff',bo:35,bs:'solid',pad:36,sb:28,sc:'#000000',so:22},
+  dark:{blur:14,opacity:35,bg:'#111827',radius:16,bw:1,bc:'#ffffff',bo:15,bs:'solid',pad:32,sb:24,sc:'#000000',so:35},
+  subtle:{blur:8,opacity:8,bg:'#ffffff',radius:12,bw:1,bc:'#ffffff',bo:20,bs:'solid',pad:28,sb:16,sc:'#000000',so:12},
+  neon:{blur:18,opacity:18,bg:'#06b6d4',radius:24,bw:2,bc:'#22d3ee',bo:80,bs:'solid',pad:40,sb:30,sc:'#06b6d4',so:45},
+  heavy:{blur:40,opacity:25,bg:'#1e293b',radius:8,bw:2,bc:'#ffffff',bo:40,bs:'solid',pad:24,sb:40,sc:'#000000',so:30}
+};
+var defVals=presets.default;
+var glassCard,bgPresetsEl,presetsRow;
+
+function hexToRgba(hex,a){
+  var n=parseInt(hex.slice(1),16);
+  return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
+}
+function val(id){return document.getElementById(id).value;}
+
+function renderBgPresets(){
+  bgPresetsEl.innerHTML='';
+  bgPresets.forEach(function(css,i){
+    var s=document.createElement('div');
+    s.className='bg-preset'+(i===0?' active':'');
+    s.style.background=css;
+    s.title='背景预设 '+(i+1);
+    s.onclick=function(){
+      document.querySelectorAll('.bg-preset').forEach(function(x){x.classList.remove('active')});
+      s.classList.add('active');
+      document.getElementById('previewBg').style.background=css;
+    };
+    bgPresetsEl.appendChild(s);
+  });
 }
 
-function resetAll() {
-  document.querySelectorAll('input').forEach(function(el) { if(el.type==='number') el.value=''; else if(el.type==='text') el.value=''; });
-  document.querySelectorAll('select').forEach(function(el) { el.selectedIndex = 0; });
-  document.getElementById('previewArea').innerHTML = '';
-  showToast('已重置');
+function updateGlass(){
+  var blur=val('blurRange'),opacity=(val('opacityRange')/100),bg=val('bgColor');
+  var radius=val('radiusRange'),bw=val('borderWidthRange'),bc=val('borderColor');
+  var bo=(val('borderOpacityRange')/100),bs=val('borderStyle'),pad=val('paddingRange');
+  var sb=val('shadowBlurRange'),sc=val('shadowColor'),so=(val('shadowOpacityRange')/100);
+
+  document.getElementById('blurVal').textContent=blur+'px';
+  document.getElementById('opacityVal').textContent=(opacity).toFixed(2);
+  document.getElementById('radiusVal').textContent=radius+'px';
+  document.getElementById('borderWidthVal').textContent=bw+'px';
+  document.getElementById('borderOpacityVal').textContent=(bo).toFixed(2);
+  document.getElementById('paddingVal').textContent=pad+'px';
+  document.getElementById('shadowBlurVal').textContent=sb+'px';
+  document.getElementById('shadowOpacityVal').textContent=(so).toFixed(2);
+
+  glassCard.style.background=hexToRgba(bg,opacity);
+  glassCard.style.webkitBackdropFilter='blur('+blur+'px)';
+  glassCard.style.backdropFilter='blur('+blur+'px)';
+  glassCard.style.borderRadius=radius+'px';
+  glassCard.style.border=bw+'px solid '+hexToRgba(bc,bo);
+  glassCard.style.borderStyle=bs;
+  glassCard.style.padding=pad+'px';
+  glassCard.style.boxShadow='0 8px '+sb+'px '+hexToRgba(sc,so);
+
+  var code='.glass-card {\n'+
+    '  background: '+hexToRgba(bg,opacity)+';\n'+
+    '  backdrop-filter: blur('+blur+'px);\n'+
+    '  -webkit-backdrop-filter: blur('+blur+'px);\n'+
+    '  border-radius: '+radius+'px;\n'+
+    '  border: '+bw+'px solid '+hexToRgba(bc,bo)+';\n'+
+    '  border-style: '+bs+';\n'+
+    '  padding: '+pad+'px;\n'+
+    '  box-shadow: 0 8px '+sb+'px '+hexToRgba(sc,so)+';\n'+
+    '}';
+  document.getElementById('codeOutput').textContent=code;
 }
+
+function applyPreset(name){
+  var p=presets[name]||defVals;
+  document.getElementById('blurRange').value=p.blur;
+  document.getElementById('opacityRange').value=p.opacity;
+  document.getElementById('bgColor').value=p.bg;
+  document.getElementById('radiusRange').value=p.radius;
+  document.getElementById('borderWidthRange').value=p.bw;
+  document.getElementById('borderColor').value=p.bc;
+  document.getElementById('borderOpacityRange').value=p.bo;
+  document.getElementById('borderStyle').value=p.bs;
+  document.getElementById('paddingRange').value=p.pad;
+  document.getElementById('shadowBlurRange').value=p.sb;
+  document.getElementById('shadowColor').value=p.sc;
+  document.getElementById('shadowOpacityRange').value=p.so;
+  document.querySelectorAll('.preset-btn').forEach(function(x){x.classList.remove('active')});
+  var btn=document.querySelector('.preset-btn[data-preset="'+name+'"]');if(btn)btn.classList.add('active');
+  updateGlass();
+}
+
+function copyCode(){
+  var text=document.getElementById('codeOutput').textContent;
+  if(!text){showToast('没有可复制的内容');return;}
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});
+}
+
+function resetAll(){
+  applyPreset('default');
+  showToast('已重置为默认');
+}
+
+(function init(){
+  glassCard=document.getElementById('glassCard');
+  bgPresetsEl=document.getElementById('bgPresets');
+  presetsRow=document.getElementById('presetsRow');
+  renderBgPresets();
+  var ids=['blurRange','opacityRange','bgColor','radiusRange','borderWidthRange','borderColor','borderOpacityRange','borderStyle','paddingRange','shadowBlurRange','shadowColor','shadowOpacityRange'];
+  ids.forEach(function(id){var el=document.getElementById(id);el.addEventListener('input',updateGlass);el.addEventListener('change',updateGlass);});
+  presetsRow.querySelectorAll('.preset-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){applyPreset(btn.getAttribute('data-preset'));});
+  });
+  updateGlass();
+})();
 </script>
 </body>
 </html>
