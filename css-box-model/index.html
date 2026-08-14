@@ -38,6 +38,9 @@ a{color:#06b6d4;text-decoration:none}
 .nav-back a{color:#64748b}
 .nav-back a:hover{color:#94a3b8}
 .input-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
+.hero{text-align:center;margin-bottom:24px}
+.hero p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
+.badge{display:inline-block;padding:4px 14px;background:rgba(6,182,212,.1);color:#22d3ee;border-radius:20px;font-size:.8rem;font-weight:500}
 .input-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
 .input-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
 .input-group{display:flex;flex-direction:column;gap:6px}
@@ -121,9 +124,6 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; CSS盒模型计算器</p>
 <div class="hero"><p>免费在线CSS盒模型计算器，可视化显示内容区、内边距、边框、外边距，支持content-box和border-box模式切换，实时计算总宽高并生成CSS代码。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section">
-    </div>
-  </div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -250,7 +250,7 @@ a{color:#06b6d4;text-decoration:none}
       </div>
     </div>
     <div class="tip-box" id="tipBox">
-      <strong>提示：</strong>当前为 border-box 模式，width/height 包含 padding 和 border，元素实际占用尺寸 = 设置值 + margin。
+      <strong>提示：</strong><span id="tipText">当前为 border-box 模式，width/height 包含 padding 和 border，元素实际占用尺寸 = 设置值 + margin。</span>
     </div>
     <h3 style="font-size:.95rem;color:#f1f5f9;margin:16px 0 8px">生成的CSS代码</h3>
     <div class="code-block" id="cssCode">.box {
@@ -328,10 +328,6 @@ a{color:#06b6d4;text-decoration:none}
   </div></div>
 </main>
 
-<div class="section"><h2>常见问题</h2>
-
-</div>
-
 <div>
 <!-- AdSense -->
 
@@ -371,80 +367,92 @@ window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === 盒模型计算逻辑 ===
 function copyCSS() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var el = document.getElementById('cssCode');
+  if (!el || !el.textContent || !el.textContent.trim()) { showToast('暂无CSS代码'); return; }
+  navigator.clipboard.writeText(el.textContent).then(function(){ showToast('已复制到剪贴板'); })['catch'](function(){ showToast('复制失败'); });
 }
 
 function resetDefaults() {
-  document.querySelectorAll('input').forEach(function(el) { if(el.type==='number') el.value=''; else if(el.type==='text') el.value=''; });
-  document.querySelectorAll('select').forEach(function(el) { el.selectedIndex = 0; });
-  
-  showToast('已重置');
+  document.getElementById('width').value = '200';
+  document.getElementById('height').value = '100';
+  document.getElementById('paddingTop').value = '20';
+  document.getElementById('paddingRight').value = '20';
+  document.getElementById('paddingBottom').value = '20';
+  document.getElementById('paddingLeft').value = '20';
+  document.getElementById('borderTop').value = '2';
+  document.getElementById('borderRight').value = '2';
+  document.getElementById('borderBottom').value = '2';
+  document.getElementById('borderLeft').value = '2';
+  document.getElementById('marginTop').value = '10';
+  document.getElementById('marginRight').value = '10';
+  document.getElementById('marginBottom').value = '10';
+  document.getElementById('marginLeft').value = '10';
+  document.getElementById('boxSizing').value = 'border-box';
+  updateBoxModel();
+  showToast('已重置默认值');
 }
 
+function num(id){ return Math.max(0, parseInt(document.getElementById(id).value, 10) || 0); }
+
 function updateBoxModel() {
-  var w = parseInt(document.getElementById('width').value) || 0;
-  var h = parseInt(document.getElementById('height').value) || 0;
-  var pt = parseInt(document.getElementById('paddingTop').value) || 0;
-  var pr = parseInt(document.getElementById('paddingRight').value) || 0;
-  var pb = parseInt(document.getElementById('paddingBottom').value) || 0;
-  var pl = parseInt(document.getElementById('paddingLeft').value) || 0;
-  var bt = parseInt(document.getElementById('borderTop').value) || 0;
-  var br = parseInt(document.getElementById('borderRight').value) || 0;
-  var bb = parseInt(document.getElementById('borderBottom').value) || 0;
-  var bl = parseInt(document.getElementById('borderLeft').value) || 0;
-  var mt = parseInt(document.getElementById('marginTop').value) || 0;
-  var mr = parseInt(document.getElementById('marginRight').value) || 0;
-  var mb = parseInt(document.getElementById('marginBottom').value) || 0;
-  var ml = parseInt(document.getElementById('marginLeft').value) || 0;
-  
-  var boxSizing = document.querySelector('input[name="boxSizing"]:checked');
-  var sizing = boxSizing ? boxSizing.value : 'content';
-  
-  var contentW = w, contentH = h;
-  if (sizing === 'border') {
+  var w = Math.max(0, parseInt(document.getElementById('width').value, 10) || 0);
+  var h = Math.max(0, parseInt(document.getElementById('height').value, 10) || 0);
+  var pt = num('paddingTop'), pr = num('paddingRight'), pb = num('paddingBottom'), pl = num('paddingLeft');
+  var bt = num('borderTop'), br = num('borderRight'), bb = num('borderBottom'), bl = num('borderLeft');
+  var mt = num('marginTop'), mr = num('marginRight'), mb = num('marginBottom'), ml = num('marginLeft');
+
+  var sizing = document.getElementById('boxSizing').value;
+
+  var contentW, contentH;
+  if (sizing === 'border-box') {
     contentW = Math.max(0, w - pl - pr - bl - br);
     contentH = Math.max(0, h - pt - pb - bt - bb);
+  } else {
+    contentW = w;
+    contentH = h;
   }
-  
-  var paddingBoxW = contentW + pl + pr;
-  var paddingBoxH = contentH + pt + pb;
-  var borderBoxW = paddingBoxW + bl + br;
-  var borderBoxH = paddingBoxH + bt + bb;
-  var marginBoxW = borderBoxW + ml + mr;
-  var marginBoxH = borderBoxH + mt + mb;
-  
-  var preview = document.getElementById('boxPreview');
-  if (preview) {
-    preview.style.width = borderBoxW + 'px';
-    preview.style.height = borderBoxH + 'px';
-    preview.style.padding = pt + 'px ' + pr + 'px ' + pb + 'px ' + pl + 'px';
-    preview.style.borderWidth = bt + 'px ' + br + 'px ' + bb + 'px ' + bl + 'px';
-    preview.style.margin = mt + 'px ' + mr + 'px ' + mb + 'px ' + ml + 'px';
-  }
-  
+
+  var borderBoxW = contentW + pl + pr + bl + br;
+  var borderBoxH = contentH + pt + pb + bt + bb;
+  var totalW = borderBoxW + ml + mr;
+  var totalH = borderBoxH + mt + mb;
+
+  document.getElementById('totalWidth').textContent = totalW;
+  document.getElementById('totalHeight').textContent = totalH;
+  document.getElementById('contentWidthDisplay').textContent = contentW;
+  document.getElementById('contentHeightDisplay').textContent = contentH;
+
+  var marginBox = document.getElementById('marginBox');
+  var borderBox = document.getElementById('borderBox');
+  var paddingBox = document.getElementById('paddingBox');
+  var contentBox = document.getElementById('contentBox');
+  marginBox.style.margin = mt + 'px ' + mr + 'px ' + mb + 'px ' + ml + 'px';
+  borderBox.style.borderWidth = bt + 'px ' + br + 'px ' + bb + 'px ' + bl + 'px';
+  paddingBox.style.padding = pt + 'px ' + pr + 'px ' + pb + 'px ' + pl + 'px';
+  contentBox.style.width = contentW + 'px';
+  contentBox.style.height = Math.max(0, contentH) + 'px';
+  document.getElementById('contentText').textContent = contentW + ' × ' + contentH;
+
+  document.getElementById('tipText').textContent =
+    sizing === 'border-box'
+      ? '当前为 border-box 模式，width/height 包含 padding 和 border，元素实际占用尺寸 = 设置值 + margin。'
+      : '当前为 content-box 模式，width/height 只包含内容区，总尺寸 = width + padding + border + margin。';
+
   var codeEl = document.getElementById('cssCode');
-  if (codeEl) {
-    var code = '.box {\n';
-    code += '  width: ' + w + 'px;\n';
-    code += '  height: ' + h + 'px;\n';
-    code += '  padding: ' + pt + 'px ' + pr + 'px ' + pb + 'px ' + pl + 'px;\n';
-    code += '  border-width: ' + bt + 'px ' + br + 'px ' + bb + 'px ' + bl + 'px;\n';
-    code += '  margin: ' + mt + 'px ' + mr + 'px ' + mb + 'px ' + ml + 'px;\n';
-    code += '  box-sizing: ' + (sizing === 'border' ? 'border-box' : 'content-box') + ';\n';
-    code += '}';
-    codeEl.textContent = code;
-  }
-  
-  var sizesEl = document.getElementById('sizeInfo');
-  if (sizesEl) {
-    sizesEl.innerHTML = '<div>Content: ' + contentW + ' x ' + contentH + '</div>' +
-      '<div>Padding Box: ' + paddingBoxW + ' x ' + paddingBoxH + '</div>' +
-      '<div>Border Box: ' + borderBoxW + ' x ' + borderBoxH + '</div>' +
-      '<div>Margin Box: ' + marginBoxW + ' x ' + marginBoxH + '</div>';
-  }
+  var code = '.box {\n';
+  code += '  width: ' + w + 'px;\n';
+  code += '  height: ' + h + 'px;\n';
+  code += '  padding: ' + pt + 'px ' + pr + 'px ' + pb + 'px ' + pl + 'px;\n';
+  code += '  border-width: ' + bt + 'px ' + br + 'px ' + bb + 'px ' + bl + 'px;\n';
+  code += '  margin: ' + mt + 'px ' + mr + 'px ' + mb + 'px ' + ml + 'px;\n';
+  code += '  box-sizing: ' + sizing + ';\n';
+  code += '}';
+  codeEl.textContent = code;
 }
+
+updateBoxModel();
 </script>
 </body>
 </html>

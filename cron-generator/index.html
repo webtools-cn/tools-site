@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Cron表达式生成器，可视化生成和解析Cron定时任务表达式，支持秒/分/时/日/月/周，实时预览下次执行时间，纯前端本地计算。⏱️ Cron表达式生成器支持实时预览，操作简单快捷，操作简单即开即用。纯前端本地处理，数据不上传服务器，完全免费无需注册。">
+<meta name="description" content="免费Cron表达式生成器，可视化生成和解析Cron定时任务表达式，支持秒/分/时/日/月/周，实时预览下次执行时间，纯前端本地计算，无需注册，数据不上传，完全免费。">
 <meta name="keywords" content="Cron表达式生成器,工具,在线工具,免费">
 <title>免费Cron表达式生成器 - Free ToolBase</title>
 <link rel="canonical" href="https://free-toolbase.com/cron-generator/">
@@ -324,7 +324,7 @@ function updateCronDisplay(cron) {
   if (nextRuns) {
     var runs = getNextRuns(cron, 5);
     nextRuns.innerHTML = runs.map(function(r) {
-      return '<div style="padding:6px 0;border-bottom:1px solid #334155;color:#cbd5e1;">' + r + '</div>';
+      return '<li style="padding:6px 0;border-bottom:1px solid #334155;color:#cbd5e1;list-style:none;">' + r + '</li>';
     }).join('');
   }
 }
@@ -343,12 +343,19 @@ function describeCron(cron) {
   else if (min === '0') desc.push('每天 ' + hour + ' 点整执行');
   else desc.push('在 ' + hour + ':' + (min.length === 1 ? '0' + min : min) + ' 执行');
   // Day part
-  if (day !== '*' && day !== '?') {
+  if (day === 'L') desc[desc.length-1] += '（每月最后一天）';
+  else if (day !== '*' && day !== '?') {
     if (dow === '1' || dow === 'MON') desc[desc.length-1] += '（每周一）';
     else if (dow === '0' || dow === 'SUN') desc[desc.length-1] += '（每周日）';
     else if (dow === '1-5') desc[desc.length-1] += '（工作日）';
     else if (dow === '0,6' || dow === '6,0') desc[desc.length-1] += '（周末）';
     else if (day !== '*') desc[desc.length-1] += '（每月' + day + '日）';
+  } else if (dow !== '*' && dow !== '?') {
+    if (dow === '1' || dow === 'MON') desc[desc.length-1] += '（每周一）';
+    else if (dow === '0' || dow === 'SUN') desc[desc.length-1] += '（每周日）';
+    else if (dow === '1-5') desc[desc.length-1] += '（工作日）';
+    else if (dow === '0,6' || dow === '6,0') desc[desc.length-1] += '（周末）';
+    else desc[desc.length-1] += '（周' + dow + '）';
   }
   // Month part
   if (month !== '*' && month !== '?') desc[desc.length-1] += '（' + month + '月）';
@@ -402,7 +409,13 @@ function matchCron(parts, date) {
   if (!matchCronField(hour, date.getHours(), 0, 23)) return false;
   if (!matchCronField(month, date.getMonth()+1, 1, 12)) return false;
   // Day of month
-  var dayMatch = (day === '*' || day === '?') || matchCronField(day, date.getDate(), 1, 31);
+  var dayMatch;
+  if (day === 'L') {
+    var last = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    dayMatch = date.getDate() === last.getDate();
+  } else {
+    dayMatch = (day === '*' || day === '?') || matchCronField(day, date.getDate(), 1, 31);
+  }
   // Day of week (0=Sunday)
   var dowVal = date.getDay();
   var dowMatch = (dow === '*' || dow === '?') || matchCronField(dow, dowVal, 0, 6);
