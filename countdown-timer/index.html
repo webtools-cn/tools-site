@@ -107,13 +107,13 @@ a{color:#06b6d4;text-decoration:none}
 .fullscreen-overlay .fs-label{color:#64748b;margin-top:16px;font-size:1.2rem}
 .fullscreen-overlay .fs-close{position:absolute;top:20px;right:20px;background:rgba(148,163,184,.1);border:1px solid rgba(148,163,184,.2);color:#94a3b8;padding:8px 16px;border-radius:6px;cursor:pointer}
 .fullscreen-overlay .fs-close:hover{background:rgba(148,163,184,.2)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 .pulsing{animation:pulse 1s infinite}
-@keyframes flash{0%,100%{background:transparent}50%{background:rgba(239,68,68,.1)}
+@keyframes flash{0%,100%{background:transparent}50%{background:rgba(239,68,68,.1)}}
 .flashing{animation:flash .5s infinite}
 @media(max-width:640px){.timer-display .digit{font-size:2.5rem}.timer-display .colon{font-size:2rem}.presets-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}.timer-controls{gap:8px}.btn{padding:8px 16px;font-size:.85rem}
 .ad-slot{margin:0 auto;text-align:center;max-width:960px}.ad-slot:not(:has(ins[frame])){display:none}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{max-width:300px}
-}}}
+}
 
 
 .main-grid{display:grid;gap:20px;margin-bottom:20px}
@@ -168,12 +168,12 @@ a{color:#06b6d4;text-decoration:none}
   <div class="presets">
     <h2>🎯 预设时长</h2>
     <div class="presets-grid">
-      <div class="preset-btn" onclick="setPreset(5,0,0)"><span class="preset-name">5分钟</span><span class="preset-desc">短暂休息</span></div>
-      <div class="preset-btn" onclick="setPreset(10,0,0)"><span class="preset-name">10分钟</span><span class="preset-desc">休息片刻</span></div>
-      <div class="preset-btn" onclick="setPreset(15,0,0)"><span class="preset-name">15分钟</span><span class="preset-desc">小憩时间</span></div>
-      <div class="preset-btn active" onclick="setPreset(25,0,0)"><span class="preset-name">25分钟</span><span class="preset-desc">🍅 番茄钟</span></div>
-      <div class="preset-btn" onclick="setPreset(30,0,0)"><span class="preset-name">30分钟</span><span class="preset-desc">专注时段</span></div>
-      <div class="preset-btn" onclick="setPreset(0,1,0)"><span class="preset-name">1小时</span><span class="preset-desc">深度学习</span></div>
+      <div class="preset-btn" onclick="setPreset(5,this)"><span class="preset-name">5分钟</span><span class="preset-desc">短暂休息</span></div>
+      <div class="preset-btn" onclick="setPreset(10,this)"><span class="preset-name">10分钟</span><span class="preset-desc">休息片刻</span></div>
+      <div class="preset-btn" onclick="setPreset(15,this)"><span class="preset-name">15分钟</span><span class="preset-desc">小憩时间</span></div>
+      <div class="preset-btn active" onclick="setPreset(25,this)"><span class="preset-name">25分钟</span><span class="preset-desc">🍅 番茄钟</span></div>
+      <div class="preset-btn" onclick="setPreset(30,this)"><span class="preset-name">30分钟</span><span class="preset-desc">专注时段</span></div>
+      <div class="preset-btn" onclick="setPreset(60,this)"><span class="preset-name">1小时</span><span class="preset-desc">深度学习</span></div>
     </div>
   </div>
 
@@ -277,6 +277,7 @@ a{color:#06b6d4;text-decoration:none}
     </div>
   </div></div></div>
 </div>
+</main>
 
 <div>
 <!-- AdSense -->
@@ -308,14 +309,16 @@ a{color:#06b6d4;text-decoration:none}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
+function toggleFeedback(){const p=document.getElementById('feedback-panel');if(!p)return;p.style.display=p.style.display==='none'?'block':'none';}
 function submitFeedback(){
 const type=document.getElementById('feedback-type').value;
+const text=document.getElementById('feedback-text').value;
+if(!text){showToast("请输入反馈内容");return;}
 const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
 const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
 const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
+var el=document.getElementById('feedback-success');if(el)el.style.display='block';
 }
 
 // === 重写的函数实现 ===
@@ -406,9 +409,28 @@ function toggleFullscreen() {
     (document.exitFullscreen || document.webkitExitFullscreen || function(){}).call(document);
   }
 }
-function setPreset(h,m,s){var hi=document.getElementById('hours')||document.getElementById('h');var mi=document.getElementById('minutes')||document.getElementById('m');var si=document.getElementById('seconds')||document.getElementById('s');if(hi)hi.value=h;if(mi)mi.value=m;if(si)si.value=s;showToast('已设置: '+h+'h '+m+'m '+s+'s')}
+function setPreset(min,el){
+  var d=Math.floor(min/1440);
+  var h=Math.floor((min%1440)/60);
+  var m=min%60;
+  var dd=document.getElementById('customDays');
+  var hh=document.getElementById('customHours');
+  var mm=document.getElementById('customMinutes');
+  var ss=document.getElementById('customSeconds');
+  if(dd)dd.value=d;
+  if(hh)hh.value=h;
+  if(mm)mm.value=m;
+  if(ss)ss.value=0;
+  _totalSeconds=min*60;
+  _remainingSeconds=_totalSeconds;
+  if(el){
+    document.querySelectorAll('.preset-btn').forEach(function(b){b.classList.remove('active');});
+    el.classList.add('active');
+  }
+  updateDisplay();
+  showToast('已设置: '+min+' 分钟');
+}
 </script>
 
-</main>
 </body>
 </html>

@@ -116,9 +116,6 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线天数倒计时计算器</p>
 <div class="hero"><p>免费在线天数倒计时计算器，计算距离目标日期还剩多少天。支持多个倒计时事件，实时更新，适合节日、项目、生日等倒计时场景。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section">
-    </div>
-  </div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -221,34 +218,30 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function toggleFeedback(){const p=document.getElementById("feedback-panel");p.style.display=p.style.display==="none"?"block":"none";}
-function submitFeedback(){
-const type=document.getElementById("feedback-type").value;
-if(!text){showToast("请输入反馈内容");return;}
-const typeLabel={feedback:"💡 功能建议",bug:"🐛 问题反馈",other:"💬 其他"}[type];
-const title=encodeURIComponent(typeLabel+" - "+window.location.pathname);
-const body=encodeURIComponent("**页面**: "+window.location.href+"\n**类型**: "+typeLabel+"\n\n"+text);
-window.open("https://github.com/webtools-cn/tools-site/issues/new?title="+title+"&body="+body,"_blank");
-document.getElementById("feedback-success").style.display="block";
+// === 倒计时事件逻辑 ===
+function addEvent(){
+  var nameInput=document.getElementById('eventName');
+  var dateInput=document.getElementById('eventDate');
+  if(!nameInput.value.trim()){showToast('请输入事件名称');return;}
+  if(!dateInput.value){showToast('请选择日期');return;}
+  addEventItem({name:nameInput.value.trim(),date:dateInput.value});
+  nameInput.value='';
+  dateInput.value='';
+  showToast('事件已添加');
 }
 
-// === 重写的函数实现 ===
-function addEvent(){
-  var nameInput=document.getElementById('event-name')||document.querySelectorAll('input[type=text]')[0];
-  var dateInput=document.getElementById('event-date')||document.querySelector('input[type=date]');
-  if(!nameInput||!nameInput.value){showToast('请输入事件名称');return;}
-  if(!dateInput||!dateInput.value){showToast('请选择日期');return;}
-  var target=new Date(dateInput.value);
+function addEventItem(ev){
+  var target=new Date(ev.date);
   var now=new Date();
   var days=Math.ceil((target-now)/(1000*60*60*24));
-  var list=document.getElementById('event-list')||document.querySelector('.event-list');
-  if(list){
-    var item=document.createElement('div');
-    item.style.cssText='padding:12px;background:#0f172a;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between';
-    item.innerHTML='<span style="color:#e2e8f0">'+nameInput.value+'</span><span style="color:'+(days>0?'#22d3ee':'#f87171')+';font-weight:bold">'+(days>0?days+'天后':'已过'+(-days)+'天')+'</span>';
-    list.appendChild(item);
-  }
-  showToast('事件已添加');
+  var container=document.getElementById('eventsContainer');
+  var no=document.getElementById('noEvents');
+  if(no)no.style.display='none';
+  var item=document.createElement('div');
+  item.className='event-item';
+  item.style.cssText='padding:12px;background:#0f172a;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center';
+  item.innerHTML='<span style="color:#e2e8f0">'+ev.name+'</span><span style="color:'+(days>0?'#22d3ee':'#f87171')+';font-weight:bold">'+(days>0?days+'天后':'已过'+(-days)+'天')+'</span>';
+  container.appendChild(item);
 }
 
 function addSampleEvents(){
@@ -258,22 +251,16 @@ function addSampleEvents(){
     {name:'劳动节',date:'2027-05-01'},
     {name:'国庆节',date:'2027-10-01'}
   ];
-  var list=document.getElementById('event-list')||document.getElementById('eventList')||document.querySelector('.event-list');
-  if(!list){showToast('未找到事件列表');return;}
-  samples.forEach(function(s){
-    var target=new Date(s.date);
-    var now=new Date();
-    var days=Math.ceil((target-now)/(1000*60*60*24));
-    var item=document.createElement('div');
-    item.style.cssText='padding:12px;background:#0f172a;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center';
-    item.innerHTML='<span style="color:#e2e8f0">'+s.name+'</span><span style="color:'+(days>0?'#22d3ee':'#f87171')+';font-weight:bold">'+(days>0?days+'天后':'已过'+(-days)+'天')+'</span>';
-    list.appendChild(item);
-  });
+  samples.forEach(addEventItem);
   showToast('已添加'+samples.length+'个示例事件');
 }
 
-function clearAllEvents() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+function clearAllEvents(){
+  var container=document.getElementById('eventsContainer');
+  var no=document.getElementById('noEvents');
+  container.querySelectorAll('.event-item').forEach(function(i){i.remove();});
+  if(no)no.style.display='block';
+  showToast('已清除全部事件');
 }
 </script>
 </body>

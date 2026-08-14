@@ -82,6 +82,8 @@ input:focus{outline:none;border-color:rgba(6,182,212,.5)}
 
 .main-grid{display:grid;gap:20px;margin-bottom:20px}
 .section{background:#1e293b;border:1px solid rgba(148,163,184,.1);border-radius:12px;padding:20px;margin-bottom:16px}
+.hero{margin-bottom:16px}.hero p{color:#94a3b8;font-size:.9rem;margin-bottom:8px}
+.badge{display:inline-block;background:rgba(6,182,212,.15);color:#22d3ee;padding:4px 12px;border-radius:20px;font-size:.8rem;margin-bottom:16px}
 
 /* Visual enhancement v2 */
 .btn-primary{transition:all .2s ease;box-shadow:0 2px 8px rgba(6,182,212,.15)}
@@ -105,7 +107,7 @@ input:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <main class="container">
 <div class="header"><h1>🔢 CRC32校验和计算器</h1><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/crc32-calculator/" class="">EN</a></div></div>
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; CRC32校验和计算器</p>
-<div class="hero"><p>免费在线CRC32校验和计算器，支持文本字符串和文件的CRC32哈希计算。显示十进制和十六进制值，自定义多项式。无需注册，数据不上传。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
+<div class="hero"><p>免费在线CRC32校验和计算器，支持文本字符串和文件的CRC32哈希计算。显示十进制和十六进制值，自定义多项式。无需注册，数据绝不上传服务器。</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
 
@@ -214,6 +216,136 @@ input:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+
+(function(){
+  var crcTable=[];
+  (function makeTable(){
+    for(var n=0;n<256;n++){
+      var c=n;
+      for(var k=0;k<8;k++){
+        c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
+      }
+      crcTable[n]=c;
+    }
+  })();
+  function crc32(str){
+    var crc=0xFFFFFFFF;
+    for(var i=0;i<str.length;i++){
+      crc=crcTable[(crc^str.charCodeAt(i))&0xFF]^(crc>>>8);
+    }
+    return (crc^0xFFFFFFFF)>>>0;
+  }
+  function crc32FromBytes(bytes){
+    var crc=0xFFFFFFFF;
+    for(var i=0;i<bytes.length;i++){
+      crc=crcTable[(crc^bytes[i])&0xFF]^(crc>>>8);
+    }
+    return (crc^0xFFFFFFFF)>>>0;
+  }
+  function updateResult(crcVal){
+    var format=document.querySelector('input[name="format"]:checked').value;
+    var resultEl=document.getElementById('hashResult');
+    var metaEl=document.getElementById('hashMeta');
+    if(format==='hex'){
+      resultEl.textContent='0x'+crcVal.toString(16).toUpperCase().padStart(8,'0');
+    }else{
+      resultEl.textContent=crcVal.toString(10);
+    }
+    metaEl.textContent='32位CRC | 标准IEEE 802.3多项式 (0xEDB88320)';
+  }
+  function computeFromText(){
+    var text=document.getElementById('inputText').value;
+    if(!text){
+      document.getElementById('hashResult').textContent='请输入文本';
+      document.getElementById('hashMeta').textContent='';
+      return;
+    }
+    updateResult(crc32(text));
+  }
+  function computeFromFile(file){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var bytes=new Uint8Array(e.target.result);
+      updateResult(crc32FromBytes(bytes));
+      var fn=document.getElementById('fileName');
+      fn.textContent='文件: '+file.name+' ('+(file.size/1024).toFixed(1)+' KB)';
+      fn.style.display='block';
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  var calcBtn=document.getElementById('calcBtn');
+  if(calcBtn) calcBtn.addEventListener('click',computeFromText);
+  var clearBtn=document.getElementById('clearBtn');
+  if(clearBtn) clearBtn.addEventListener('click',function(){
+    document.getElementById('inputText').value='';
+    document.getElementById('hashResult').textContent='';
+    document.getElementById('hashMeta').textContent='';
+    document.getElementById('fileName').style.display='none';
+    document.getElementById('compareArea').style.display='none';
+  });
+  var loadBtn=document.getElementById('loadExampleBtn');
+  if(loadBtn) loadBtn.addEventListener('click',function(){
+    document.getElementById('inputText').value='The quick brown fox jumps over the lazy dog';
+    computeFromText();
+  });
+  var copyBtn=document.getElementById('copyBtn');
+  if(copyBtn) copyBtn.addEventListener('click',function(){
+    var t=document.getElementById('hashResult').textContent;
+    if(!t){showToast('请先计算');return}
+    navigator.clipboard.writeText(t).then(function(){showToast('已复制到剪贴板')}).catch(function(){showToast('复制失败')});
+  });
+  var compareBtn=document.getElementById('compareBtn');
+  if(compareBtn) compareBtn.addEventListener('click',function(){
+    var area=document.getElementById('compareArea');
+    area.style.display=area.style.display==='none'?'block':'none';
+  });
+  var ci=document.getElementById('compareInput');
+  if(ci) ci.addEventListener('input',function(){
+    var h1=document.getElementById('hashResult').textContent.trim();
+    var h2=this.value.trim();
+    var el=document.getElementById('compareResult');
+    if(!h2){el.textContent='';return;}
+    var n1=h1.replace(/^0x/i,'').toUpperCase();
+    var n2=h2.replace(/^0x/i,'').toUpperCase();
+    if(n1===n2){
+      el.style.color='#4ade80';
+      el.textContent='✓ 匹配！两个CRC32值相同';
+    }else{
+      el.style.color='#f87171';
+      el.textContent='✗ 不匹配。两个CRC32值不同';
+    }
+  });
+  var auto=document.getElementById('autoCalc');
+  var inputText=document.getElementById('inputText');
+  var debounceTimer;
+  if(inputText) inputText.addEventListener('input',function(){
+    if(auto&&auto.checked){
+      clearTimeout(debounceTimer);
+      debounceTimer=setTimeout(computeFromText,300);
+    }
+  });
+  document.querySelectorAll('input[name="format"]').forEach(function(el){
+    el.addEventListener('change',function(){
+      var crcVal=document.getElementById('hashResult').textContent;
+      if(crcVal&&crcVal!=='请输入文本') computeFromText();
+    });
+  });
+  var dropArea=document.getElementById('fileDropArea');
+  var fileInput=document.getElementById('fileInput');
+  if(dropArea) dropArea.addEventListener('click',function(){fileInput.click();});
+  if(dropArea) dropArea.addEventListener('dragover',function(e){e.preventDefault();dropArea.style.borderColor='rgba(6,182,212,.6)';});
+  if(dropArea) dropArea.addEventListener('dragleave',function(){dropArea.style.borderColor='rgba(148,163,184,.3)';});
+  if(dropArea) dropArea.addEventListener('drop',function(e){
+    e.preventDefault();
+    dropArea.style.borderColor='rgba(148,163,184,.3)';
+    var files=e.dataTransfer.files;
+    if(files.length>0) computeFromFile(files[0]);
+  });
+  if(fileInput) fileInput.addEventListener('change',function(){
+    if(this.files.length>0) computeFromFile(this.files[0]);
+  });
+  computeFromText();
+})();
 
 (function(){var s=document.getElementById('related-tools-section');if(!s)return;var p=window.location.pathname;var en=p.indexOf('/en/')!==-1;p=p.replace(/\/en\//g,'/');var slug=p.split('/').filter(Boolean).pop()||'';if(!slug){s.innerHTML='';return;}var depth=en?'../../':'../';fetch(depth+'related-tools.json').then(function(r){if(!r.ok)throw new Error('');return r.json();}).then(function(d){var data=en?d.en:d.cn;var t=data[slug];if(!t||!t.related||!t.related.length){s.innerHTML='';return;}var h='\x3Cdiv class="related-tools-inner">\x3Ch3 class="related-tools-title">'+(en?'🔗 You May Also Like':'🔗 相关工具推荐')+'\x3C/h3>\x3Cdiv class="related-tools-grid">';t.related.forEach(function(r){var link=en?'../../en/'+r.slug+'/':'../'+r.slug+'/';h+='\x3Ca href="'+link+'" class="related-tool-card">\x3Cspan class="related-tool-icon">'+(r.icon||'🔧')+'\x3C/span>\x3Cspan class="related-tool-name">'+r.name+'\x3C/span>\x3C/a>';});h+='\x3C/div>\x3C/div>';s.innerHTML=h;}).catch(function(){s.innerHTML='';});})();</script>
 
