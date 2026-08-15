@@ -22,7 +22,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Free ToolBase">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Broken Link Checker", "description": "Free online broken link checker. Batch check all links on a webpage for 404, 500 errors and more. Essential SEO tool. Supports URL input or HTML paste, client-side detection.", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Web", "dateModified": "2026-07-12", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Free ToolBase", "email": "dexshuang@google.com"}, "author": {"@type": "Organization", "name": "Free ToolBase"}}</script>
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What are broken links?","acceptedAnswer":{"@type":"Answer","text":"Broken links are hyperlinks pointing to non-existent or inaccessible pages. Common types: 404 (not found), 500 (server error), expired domains. They hurt user experience and SEO rankings."}},{"@type":"Question","name":"How do I use the broken link checker?","acceptedAnswer":{"@type":"Answer","text":"Enter a webpage URL or paste HTML code, then click Check Links. The tool extracts all links and tests each one's HTTP status—green for OK, red for broken."}},{"@type":"Question","name":"Why are broken links bad for SEO?","acceptedAnswer":{"@type":"Answer","text":"Search engine crawlers waste crawl budget on broken links, lowering your site's overall score. Many broken links signal poor site maintenance, hurting rankings. Regular checks are recommended."}},{"@type":"Question","name":"Will checking many links be slow?","acceptedAnswer":{"@type":"Answer","text":"Due to browser CORS policies, some links can't be directly tested. The tool uses no-cors mode for rapid probing and shows status codes for accessible links. We recommend batches under 100 links."}}]}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What are broken links?","acceptedAnswer":{"@type":"Answer","text":"Broken links are hyperlinks pointing to non-existent or inaccessible pages. Common types: 404 (not found), 500 (server error), expired domains. They hurt user experience and SEO rankings."}},{"@type":"Question","name":"How do I use the broken link checker?","acceptedAnswer":{"@type":"Answer","text":"Enter a webpage URL or paste HTML code, then click Check Links. The tool extracts all links and tests each one's HTTP status—green for OK, red for broken."}},{"@type":"Question","name":"Why are broken links bad for SEO?","acceptedAnswer":{"@type":"Answer","text":"Search engine crawlers waste crawl budget on broken links, lowering your site's overall score. Many broken links signal poor site maintenance, hurting rankings. Regular checks are recommended."}},{"@type":"Question","name":"Will checking many links be slow?","acceptedAnswer":{"@type":"Answer","text":"Due to browser CORS policies, some links can't be directly tested. The tool uses no-cors mode for rapid probing and shows status codes for accessible links. We recommend batches under 100 links."}}]}</script>
 <script type="application/ld+json">{
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
@@ -82,7 +82,7 @@
 <style>:root{--primary:#06b6d4;--primary-light:#22d3ee;--primary-dark:#0891b2;--bg:#0f172a;--card-bg:#1e293b;--text:#e2e8f0;--text-secondary:#94a3b8;--border:rgba(148,163,184,.1);--accent-gradient:linear-gradient(135deg,#06b6d4,#3b82f6);--radius:12px}
 
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,,sans-serif;line-height:1.6;min-height:100vh}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6;min-height:100vh}
 a{color:#06b6d4;text-decoration:none}
 .container{max-width:1200px;margin:0 auto;padding:24px 16px}
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
@@ -157,7 +157,7 @@ select{padding:8px 12px}
 </style>
 
 <link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/broken-link-checker/">
-<link rel="alternate" hreflang="en" href="https://free-toolbase.com/broken-link-checker/">
+<link rel="alternate" hreflang="zh" href="https://free-toolbase.com/broken-link-checker/">
 <link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/broken-link-checker/">
 
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
@@ -247,7 +247,10 @@ select{padding:8px 12px}
   <p style="text-align:center;color:#64748b;font-size:12px;margin-top:12px">Feedback: dexshuang@google.com</p>
 </footer>
 </div>
-<div id="related-tools"></div>
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+  <div class="related-tools-loading">Loading related tools...</div>
+</div>
 <script>
   'use strict';
   (function() {
@@ -281,6 +284,95 @@ select{padding:8px 12px}
     s.innerHTML = h;
   }).catch(function() { s.innerHTML = ''; });
 })();
+function ftShowToast(m){var t=document.getElementById('toast');if(t){t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},3000)}}
+async function checkLinks(){
+  var input=document.getElementById('pageUrl').value.trim();
+  var resultEl=document.getElementById('linkResult');
+  var resultBox=document.getElementById('result');
+  if(!input){ftShowToast('Please enter a URL or HTML code');return;}
+  var links=[];
+  if(/^https?:\/\//i.test(input)){
+    resultEl.innerHTML='<div style="color:#94a3b8;padding:20px;text-align:center">⏳ Fetching page content...</div>';
+    try{
+      var resp=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(input));
+      if(!resp.ok)throw new Error('HTTP '+resp.status);
+      var html=await resp.text();
+      var linkRegex=/<a[^>]+href=["']([^"']+)["']/gi;
+      var match;
+      while((match=linkRegex.exec(html))!==null){
+        var href=match[1];
+        if(href&&!href.startsWith('#')&&!href.startsWith('mailto:')&&!href.startsWith('tel:')&&!href.startsWith('javascript:')){
+          try{links.push(new URL(href,input).href);}catch(e){links.push(href);}
+        }
+      }
+    }catch(e){
+      resultEl.innerHTML='<div style="color:#f87171;padding:16px">❌ Failed to fetch page: '+e.message+'</div>';
+      return;
+    }
+  }else{
+    var linkRegex=/<a[^>]+href=["']([^"']+)["']/gi;
+    var match;
+    while((match=linkRegex.exec(input))!==null){
+      var href=match[1];
+      if(href&&!href.startsWith('#')&&!href.startsWith('mailto:')&&!href.startsWith('tel:')&&!href.startsWith('javascript:')){
+        links.push(href);
+      }
+    }
+  }
+  if(links.length===0){
+    resultEl.innerHTML='<div style="color:#94a3b8;padding:16px">No links found</div>';
+    return;
+  }
+  links=[...new Set(links)];
+  var maxLinks=Math.min(links.length,50);
+  links=links.slice(0,maxLinks);
+  resultEl.innerHTML='<div style="color:#94a3b8;padding:12px">Found '+links.length+' links, checking... <span id="checkProgress">0/'+links.length+'</span></div>';
+  var results=[];
+  for(var i=0;i<links.length;i++){
+    var link=links[i];
+    var status='Unknown';
+    var ok=false;
+    try{
+      if(link.startsWith('http')){
+        var controller=new AbortController();
+        var timeout=setTimeout(function(){controller.abort();},8000);
+        var resp=await fetch(link,{mode:'no-cors',signal:controller.signal,cache:'no-store'});
+        clearTimeout(timeout);
+        ok=true;
+        status=resp.type==='opaque'?'Reachable (unverifiable)':'OK';
+      }else{
+        status='Relative link (needs page context)';
+        ok=true;
+      }
+    }catch(e){
+      ok=false;
+      status=e.name==='AbortError'?'Timeout':'Unreachable';
+    }
+    results.push({url:link,ok:ok,status:status});
+    var prog=document.getElementById('checkProgress');
+    if(prog)prog.textContent=(i+1)+'/'+links.length;
+  }
+  var okCount=results.filter(function(r){return r.ok;}).length;
+  var failCount=results.filter(function(r){return !r.ok;}).length;
+  var html='<div style="margin-bottom:12px;padding:8px 12px;background:rgba(148,163,184,.05);border-radius:6px;font-size:.85rem">';
+  html+='<span style="color:#10b981">✅ OK: '+okCount+'</span> · ';
+  html+='<span style="color:#ef4444">❌ Broken: '+failCount+'</span> · ';
+  html+='<span style="color:#94a3b8">Total: '+results.length+'</span></div>';
+  results.forEach(function(r){
+    var color=r.ok?'#10b981':'#ef4444';
+    var icon=r.ok?'✅':'❌';
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;margin:2px 0;border-radius:4px;background:rgba(148,163,184,.03);font-size:.85rem">';
+    html+='<span>'+icon+'</span>';
+    html+='<span style="flex:1;word-break:break-all;color:#e2e8f0">'+r.url+'</span>';
+    html+='<span style="color:'+color+';font-size:.75rem;white-space:nowrap">'+r.status+'</span>';
+    html+='</div>';
+  });
+  html+='<div style="margin-top:12px;color:#64748b;font-size:.8rem">💡 Tip: Due to CORS limits, some links may show as reachable even if they return an error. Manually verify suspicious links.</div>';
+  resultEl.innerHTML=html;
+  resultBox.style.display='block';
+  resultBox.textContent='✅ '+okCount+' OK / ❌ '+failCount+' broken — Total: '+results.length+' links checked';
+  ftShowToast('Check complete');
+}
 function ftDrawChart(){
   var cv = document.getElementById('ftChart');
   if(!cv) return;
