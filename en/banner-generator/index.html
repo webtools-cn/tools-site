@@ -317,94 +317,181 @@ canvas{max-width:100%;border-radius:8px;border:1px solid rgba(148,163,184,.1);cu
   <p style="text-align:center;color:#64748b;font-size:12px;margin-top:12px">Feedback: dexshuang@google.com</p>
 </footer>
 </div>
-<div id="related-tools"></div>
+<div id="related-tools-section" class="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
+<div class="toast" id="toast"></div>
 <script>
+(function() {
   'use strict';
   var s = document.getElementById('related-tools-section');
-  if (!s) return;
-  var p = window.location.pathname;
-  var en = p.indexOf('/en/') !== -1;
-  p = p.replace(/\/en\//g, '/');
-  var slug = p.split('/').filter(Boolean).pop() || '';
-  if (!slug) { s.innerHTML = ''; return; }
-  var depth = en ? '../../' : '../';
-  var u = depth + 'related-tools.json';
-  fetch(u).then(function(r) {
-    if (!r.ok) throw new Error('not found');
-    return r.json();
-  }).then(function(d) {
-    var data = en ? d.en : d.cn;
-    var t = data[slug];
-    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 RelatedToolsRecommended')
-      + '</h3><div class="related-tools-grid">';
-    t.related.forEach(function(r) {
-      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '<a href="' + link + '" class="related-tool-card">'
-        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
-        + '<span class="related-tool-name">' + r.name + '</span></a>';
-    });
-    h += '</div></div>';
-    s.innerHTML = h;
-  }).catch(function() { s.innerHTML = ''; });
+  if (s) {
+    var p = window.location.pathname;
+    var en = p.indexOf('/en/') !== -1;
+    p = p.replace(/\/en\//g, '/');
+    var slug = p.split('/').filter(Boolean).pop() || '';
+    if (slug) {
+      var depth = en ? '../../' : '../';
+      var u = depth + 'related-tools.json';
+      fetch(u).then(function(r) {
+        if (!r.ok) throw new Error('not found');
+        return r.json();
+      }).then(function(d) {
+        var data = en ? d.en : d.cn;
+        var t = data[slug];
+        if (!t || !t.related || !t.related.length) return;
+        var h = '<h2 style="font-size:1.1rem;color:#f1f5f9;margin-bottom:12px">🔗 You May Also Like</h2><div style="display:flex;flex-wrap:wrap;gap:8px">';
+        t.related.forEach(function(r) {
+          h += '<a href="' + (en ? '../../en/' : '../') + r.slug + '/" style="display:inline-block;padding:8px 16px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;color:#22d3ee;font-size:14px;text-decoration:none">' + (r.icon || '🔧') + ' ' + r.name + '</a>';
+        });
+        h += '</div>';
+        s.innerHTML = h;
+      }).catch(function() { s.innerHTML = ''; });
+    }
+  }
+})();
 
-// === Implementation ===
-function downloadBanner() {
-  var text = document.getElementById('result').innerText || document.getElementById('result').textContent;
-  if (!text) { showToast('Nothing to export'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'banner-generator-output.txt';
-  a.click();
-  showToast('Downloaded');
+// === Banner rendering implementation ===
+function $(id) { return document.getElementById(id); }
+
+function showToast(msg) {
+  var t = $('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2200);
+}
+
+var PRESETS = [
+  { name: 'YouTube', w: 1280, h: 720 },
+  { name: 'Facebook', w: 820, h: 312 },
+  { name: 'Twitter', w: 1500, h: 500 },
+  { name: 'LinkedIn', w: 1128, h: 191 },
+  { name: 'Blog', w: 1200, h: 630 },
+  { name: 'Instagram', w: 1080, h: 1080 },
+  { name: 'WeChat', w: 900, h: 383 },
+  { name: 'Ad', w: 728, h: 90 }
+];
+
+var canvas = $('canvas');
+var ctx = canvas.getContext('2d');
+var bgImage = null;
+
+function buildPresets() {
+  var grid = $('presetGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  PRESETS.forEach(function(p) {
+    var b = document.createElement('button');
+    b.className = 'preset-btn';
+    b.type = 'button';
+    b.textContent = p.name;
+    b.onclick = function() {
+      $('width').value = p.w;
+      $('height').value = p.h;
+      drawPreview();
+    };
+    grid.appendChild(b);
+  });
 }
 
 function drawPreview() {
-  var el = document.getElementById('preview');
-  if (el) el.style.display = 'block';
-  showToast('Done');
-}
+  var w = parseInt($('width').value, 10) || 1280;
+  var h = parseInt($('height').value, 10) || 720;
+  w = Math.max(100, Math.min(4000, w));
+  h = Math.max(100, Math.min(4000, h));
+  $('width').value = w;
+  $('height').value = h;
+  var scale = parseInt($('scale').value, 10) || 1;
+  canvas.width = w * scale;
+  canvas.height = h * scale;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-function loadBgImage(e) {
-  var file = e.target.files[0];
-  if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function(ev) {
-    var rid = 'result';
-    var el = document.getElementById(rid);
-    if (el) el.textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
-    showToast('File loaded: ' + file.name);
-  };
-  reader.readAsText(file);
+  var bgType = $('bgType').value;
+  if (bgType === 'image' && bgImage) {
+    var iw = bgImage.width, ih = bgImage.height;
+    var ir = iw / ih, cr = w / h;
+    var sw, sh, sx, sy;
+    if (ir > cr) { sh = ih; sw = ih * cr; } else { sw = iw; sh = iw / cr; }
+    sx = (iw - sw) / 2; sy = (ih - sh) / 2;
+    ctx.drawImage(bgImage, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+  } else if (bgType === 'solid') {
+    ctx.fillStyle = $('solidColor').value;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else {
+    var dir = $('gradDir').value;
+    var g;
+    if (dir === 'vertical') g = ctx.createLinearGradient(0, 0, 0, h);
+    else if (dir === 'horizontal') g = ctx.createLinearGradient(0, 0, w, 0);
+    else g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, $('color1').value);
+    g.addColorStop(1, $('color2').value);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  var title = $('title').value || '';
+  var sub = $('subtitle').value || '';
+  var size = parseInt($('titleSize').value, 10) || 64;
+  var tcolor = $('titleColor').value;
+  var align = $('textAlign').value;
+  var weight = $('fontWeight').value;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'middle';
+  var cx = canvas.width / 2;
+  if (align === 'left') cx = Math.round(canvas.width * 0.06);
+  else if (align === 'right') cx = Math.round(canvas.width * 0.94);
+  var y = canvas.height / 2 - (sub ? Math.round(size * scale * 0.55) : 0);
+  ctx.fillStyle = tcolor;
+  ctx.font = weight + ' ' + Math.round(size * scale) + 'px Arial, Helvetica, sans-serif';
+  ctx.fillText(title, cx, y, Math.round(canvas.width * 0.88));
+  if (sub) {
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = 'normal ' + Math.round(size * scale * 0.5) + 'px Arial, Helvetica, sans-serif';
+    ctx.fillText(sub, cx, y + Math.round(size * scale * 0.85), Math.round(canvas.width * 0.88));
+  }
+  $('sizeLabel').textContent = w + ' × ' + h;
 }
 
 function switchBg() {
-  var sel = document.getElementById('bgStyle') || document.querySelector('select[name="bg"], select[data-bg]');
-  if (!sel) { showToast('Please select a background style'); return; }
-  var bg = sel.value;
-  var preview = document.getElementById('preview') || document.querySelector('.preview, .banner-preview');
-  if (!preview) { showToast('Preview area not found'); return; }
-  var bgMap = {
-    'solid': '#1e293b',
-    'gradient1': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    'gradient2': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-    'gradient3': 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-    'gradient4': 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-    'gradient5': 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-    'dark': '#0f172a',
-    'light': '#f8fafc'
-  };
-  preview.style.background = bgMap[bg] || bgMap['solid'];
-  showToast('Background switched');
+  var v = $('bgType').value;
+  $('bgGradient').style.display = v === 'gradient' ? '' : 'none';
+  $('bgSolid').style.display = v === 'solid' ? '' : 'none';
+  $('bgImage').style.display = v === 'image' ? '' : 'none';
+  drawPreview();
 }
 
 function updateCanvas() {
-  var el = document.getElementById('preview');
-  if (el) el.style.display = 'block';
-  showToast('Done');
+  drawPreview();
 }
+
+function loadBgImage() {
+  var input = $('bgImageInput');
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var img = new Image();
+    img.onload = function() {
+      bgImage = img;
+      drawPreview();
+      showToast('Background image loaded: ' + file.name);
+    };
+    img.onerror = function() { showToast('Could not load image'); };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function downloadBanner() {
+  if (!canvas.width) { showToast('Nothing to export'); return; }
+  var a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'banner-' + Date.now() + '.png';
+  a.click();
+  showToast('PNG downloaded');
+}
+
+buildPresets();
+drawPreview();
 </script>
 
 </main>
