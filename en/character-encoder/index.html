@@ -233,10 +233,10 @@ input[type=text]:focus,textarea:focus{outline:none;border-color:rgba(6,182,212,.
 <main class="container">
  <div class="header">
  <h1>🔡 Character Encoding Viewer</h1>
- <div class="lang-switch">
- <a href="../character-encoder/">中文</a>
- <a href="/en/" class="active">EN</a>
- </div>
+  <div class="lang-switch">
+  <a href="../character-encoder/">中文</a>
+  <a href="index.html" class="active">EN</a>
+  </div>
  </div>
  <p class="nav-back"><a href="/en/">← All Tools</a></p>
 
@@ -283,7 +283,7 @@ input[type=text]:focus,textarea:focus{outline:none;border-color:rgba(6,182,212,.
  <h2>Use Cases</h2>
  <p>The Character Encoding Viewer is invaluable across many development and everyday scenarios:</p>
  <p><strong>Web Development & XSS Prevention:</strong> When building web applications, handling user-supplied text data requires careful attention to XSS attacks. With this tool, you can quickly inspect the HTML entity representation of suspicious characters to ensure proper escaping before rendering. For example, entering <code>&lt;script&gt;</code> shows its HTML entity form, letting you verify that the encoding is correct.</p>
- <p><strong>Internationalization (i18n):</strong> Correctly handling Unicode characters is critical in multilingual web apps. This tool helps developers understand the byte representation of non-ASCII characters like Chinese, Arabic, or emoji across different encodings, making it easier to troubleshoot mojibake (garbled text). For instance, you can verify that the character in occupies 3 bytes in UTF-8 (E4 B8 AD) but only 2 bytes in UTF-16 (4E2D).</p>
+ <p><strong>Internationalization (i18n):</strong> Correctly handling Unicode characters is critical in multilingual web apps. This tool helps developers understand the byte representation of non-ASCII characters like Chinese, Arabic, or emoji across different encodings, making it easier to troubleshoot mojibake (garbled text). For instance, you can verify that the character 中 occupies 3 bytes in UTF-8 (E4 B8 AD) but only 2 bytes in UTF-16 (4E2D).</p>
  <p><strong>API Debugging:</strong> When debugging REST APIs, you often need to confirm that special characters in request parameters or response payloads are correctly encoded. This tool lets you instantly see the URL encoding and JavaScript escape sequences for any character, helping you track down encoding issues in API communication. For example, a space is %20 in URL encoding and can be written as \\x20 in JavaScript strings.</p>
  <p><strong>Learning Programming:</strong> For students learning about character encoding, the ASCII table and Unicode are foundational concepts. This tool provides a visual way to see the correspondence between characters and their numeric values, understand how UTF-8 and UTF-16 work, and deepen your grasp of how computers represent text.</p>
  </div>
@@ -299,7 +299,7 @@ input[type=text]:focus,textarea:focus{outline:none;border-color:rgba(6,182,212,.
  <h2>FAQ</h2>
  <div class="faq-item">
  <h3>What is a Unicode code point?</h3>
- <p>A Unicode code point is the unique numerical identifier assigned to each character in the Unicode standard, typically written as U+XXXX in hexadecimal. For example, the letter A has code point U+0041, and the Chinese character in has code point U+4E2D. Unicode currently defines over 140,000 characters covering virtually every writing system in the world.</p>
+ <p>A Unicode code point is the unique numerical identifier assigned to each character in the Unicode standard, typically written as U+XXXX in hexadecimal. For example, the letter A has code point U+0041, and the Chinese character 中 has code point U+4E2D. Unicode currently defines over 140,000 characters covering virtually every writing system in the world.</p>
  </div>
  <div class="faq-item">
  <h3>What is the difference between UTF-8 and UTF-16?</h3>
@@ -311,11 +311,11 @@ input[type=text]:focus,textarea:focus{outline:none;border-color:rgba(6,182,212,.
  </div>
  <div class="faq-item">
  <h3>How do JavaScript escape sequences work?</h3>
- <p>JavaScript supports multiple escape formats: \\xXX for Latin-1 characters (e.g., \\x41 is A), \\uXXXX for Unicode BMP characters (e.g., \\u4E2D is in), and \\u{X} for any Unicode character including those outside the BMP (e.g., \\u{1F600} is 😀). The brace notation was introduced in ES6 and supports the full Unicode range.</p>
+ <p>JavaScript supports multiple escape formats: \\xXX for Latin-1 characters (e.g., \\x41 is A), \\uXXXX for Unicode BMP characters (e.g., \\u4E2D is 中), and \\u{X} for any Unicode character including those outside the BMP (e.g., \\u{1F600} is 😀). The brace notation was introduced in ES6 and supports the full Unicode range.</p>
  </div>
  <div class="faq-item">
  <h3>What is the relationship between URL encoding and percent-encoding?</h3>
- <p>URL encoding and percent-encoding refer to the same encoding mechanism. It converts non-ASCII characters and special characters into the %XX format (where XX is hexadecimal). For example, a space becomes %20 or +, and the Chinese character in becomes %E4%B8%AD. RFC 3986 defines which characters require encoding, and RFC 3987 extends this for international characters.</p>
+ <p>URL encoding and percent-encoding refer to the same encoding mechanism. It converts non-ASCII characters and special characters into the %XX format (where XX is hexadecimal). For example, a space becomes %20 or +, and the Chinese character 中 becomes %E4%B8%AD. RFC 3986 defines which characters require encoding, and RFC 3987 extends this for international characters.</p>
  </div>
  <div class="faq-item">
  <h3>Is this tool safe to use?</h3>
@@ -324,25 +324,115 @@ input[type=text]:focus,textarea:focus{outline:none;border-color:rgba(6,182,212,.
  </div>
 
  <script>
-  const results=[];
-  const headers=['Char','Code Point','Decimal','Hex','UTF-8','UTF-16','JS Escape','CSS Escape','URL Encode','HTML Entity','Base64','Category'];
-</script>
+  (function(){
+    var input=document.getElementById('charInput');
+    var stats=document.getElementById('charStats');
+    var analyzeBtn=document.getElementById('analyzeBtn');
+    var sampleBtn=document.getElementById('sampleBtn');
+    var clearBtn=document.getElementById('clearBtn');
+    var resultSection=document.getElementById('resultSection');
+    var tableContainer=document.getElementById('resultTableContainer');
+    var asciiGrid=document.getElementById('asciiGrid');
+    var toast=document.getElementById('toast');
+
+    function showToast(m){toast.textContent=m;toast.classList.add('show');setTimeout(function(){toast.classList.remove('show')},2500)}
+
+    for(var i=0;i<128;i++){
+      var cell=document.createElement('div');
+      cell.className='ascii-cell';
+      var ch;
+      if(i===32){ch='&#9251;'}
+      else if(i<33||i===127){ch='&#9216;'}
+      else{ch=String.fromCharCode(i)}
+      if(i<32||i===127){cell.style.borderColor='rgba(239,68,68,.4)';cell.style.background='rgba(239,68,68,.08)'}
+      cell.innerHTML='<div class="ascii-char">'+ch+'</div><div class="ascii-code">'+i+'</div>';
+      (function(code){cell.addEventListener('click',function(){input.value=String.fromCharCode(code);analyze();});})(i);
+      asciiGrid.appendChild(cell);
+    }
+
+    function categoryOf(ch){
+      if(/[\u0000-\u001f\u007f]/.test(ch))return 'Control';
+      if(/\p{L}/u.test(ch))return 'Letter';
+      if(/\p{N}/u.test(ch))return 'Number';
+      if(/\p{P}/u.test(ch))return 'Punctuation';
+      if(/\p{S}/u.test(ch))return 'Symbol';
+      if(/\s/.test(ch))return 'Whitespace';
+      return 'Other';
+    }
+
+    function analyze(){
+      var text=input.value;
+      if(!text){resultSection.style.display='none';stats.textContent='';return;}
+      var chars=[];
+      for(var k=0;k<text.length;){
+        var cp0=text.codePointAt(k);
+        chars.push(text.slice(k,k+(cp0>0xffff?2:1)));
+        k+=(cp0>0xffff?2:1);
+      }
+      var rows='';
+      for(var j=0;j<chars.length;j++){
+        var ch=chars[j];
+        var cp=ch.codePointAt(0);
+        var hex=cp.toString(16).toUpperCase().padStart(4,'0');
+        var dec=cp.toString(10);
+        var utf8=new TextEncoder().encode(ch);
+        var utf8hex=Array.prototype.map.call(utf8,function(b){return b.toString(16).toUpperCase().padStart(2,'0')}).join(' ');
+        var utf16hex;
+        if(cp<=0xffff){utf16hex=hex}else{
+          var H=Math.floor((cp-0x10000)/0x400)+0xD800;
+          var L=((cp-0x10000)%0x400)+0xDC00;
+          utf16hex=H.toString(16).toUpperCase()+' '+L.toString(16).toUpperCase();
+        }
+        var jsEsc='\\u{'+cp.toString(16).toUpperCase()+'}';
+        var cssEsc='\\'+cp.toString(16).toUpperCase()+' ';
+        var urlEnc;
+        try{urlEnc=encodeURIComponent(ch)}catch(e){urlEnc='-'}
+        var htmlEntity='&#'+dec+';';
+        var b64='';
+        try{b64=btoa(unescape(encodeURIComponent(ch)))}catch(e){b64='-'}
+        var cat=categoryOf(ch);
+        rows+='<tr>'+
+          '<td class="char-cell">'+ch+'</td>'+
+          '<td class="code-cell copyable" data-copy="U+'+hex+'">U+'+hex+'</td>'+
+          '<td class="code-cell copyable" data-copy="'+dec+'">'+dec+'</td>'+
+          '<td class="code-cell copyable" data-copy="'+hex+'">'+hex+'</td>'+
+          '<td class="byte-cell copyable" data-copy="'+utf8hex+'">'+utf8hex+'</td>'+
+          '<td class="byte-cell copyable" data-copy="'+utf16hex+'">'+utf16hex+'</td>'+
+          '<td class="code-cell copyable" data-copy="'+jsEsc+'">'+jsEsc+'</td>'+
+          '<td class="code-cell copyable" data-copy="'+cssEsc+'">'+cssEsc+'</td>'+
+          '<td class="byte-cell copyable" data-copy="'+urlEnc+'">'+urlEnc+'</td>'+
+          '<td class="code-cell copyable" data-copy="'+htmlEntity+'">'+htmlEntity+'</td>'+
+          '<td class="byte-cell copyable" data-copy="'+b64+'">'+b64+'</td>'+
+          '<td class="type-cell">'+cat+'</td>'+
+        '</tr>';
+      }
+      tableContainer.innerHTML='<table class="result-table"><thead><tr>'+
+        '<th>Char</th><th>Code Point</th><th>Decimal</th><th>Hex</th><th>UTF-8</th><th>UTF-16</th><th>JS Escape</th><th>CSS Escape</th><th>URL Encode</th><th>HTML Entity</th><th>Base64</th><th>Category</th>'+
+        '</tr></thead><tbody>'+rows+'</tbody></table>';
+      resultSection.style.display='block';
+      stats.textContent=chars.length+' character(s)';
+    }
+
+    tableContainer.addEventListener('click',function(e){
+      var el=e.target.closest('.copyable');
+      if(!el)return;
+      var v=el.getAttribute('data-copy');
+      navigator.clipboard.writeText(v).then(function(){showToast('Copied: '+v)})['catch'](function(){showToast('Copy failed')});
+    });
+
+    analyzeBtn.addEventListener('click',analyze);
+    clearBtn.addEventListener('click',function(){input.value='';stats.textContent='';resultSection.style.display='none';});
+    sampleBtn.addEventListener('click',function(){input.value='A 中 😀 &lt;script&gt;';analyze();});
+    input.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();analyze();}});
+  })();
+ </script>
 <div class="seo-content"><p>Character Encoding Viewer · 100% Client-Side · Your Data Never Leaves Your Browser</p>
  <p style="margin-top:4px">Supports Unicode/UTF-8/UTF-16/HTML Entity/JS/CSS Escape/URL Encoding</p>
  <p style="margin-top:8px;color:#475569;font-size:.8rem">Feedback: dexshuang@google.com</p>
 </div>
 
-<div class="toast" id="toast"></div></div>content="index, follow">
-<link rel="alternate" hreflang="zh" href="https://free-toolbase.com/character-encoder/">
-<link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/character-encoder/">
-<link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/character-encoder/">
-
- <p>Character Encoding Viewer · 100% Client-Side · Your Data Never Leaves Your Browser</p>
- <p style="margin-top:4px">Supports Unicode/UTF-8/UTF-16/HTML Entity/JS/CSS Escape/URL Encoding</p>
- <p style="margin-top:8px;color:#475569;font-size:.8rem">Feedback: dexshuang@google.com</p>
-</div>
-
-<div class="toast" id="toast"></div></main>
+<div class="toast" id="toast"></div>
+</main>
 
 <footer class="footer container">
  <div style="margin-bottom:12px">
@@ -351,105 +441,16 @@ input[type=text]:focus,textarea:focus{outline:none;border-color:rgba(6,182,212,.
  <a href="mailto:dexshuang@google.com">Contact</a>
  <a href="../character-encoder/">中文</a>
  <a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener">GitHub</a>
+ </div>
 </footer>
- <script type="application/ld+json">{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    {
-      "@type": "ListItem",
-      "position": 1,
-      "name": "Home",
-      "item": "https://free-toolbase.com/en/"
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "name": "Free ToolBase",
-      "item": "https://free-toolbase.com/en/#online-tools"
-    },
-    {
-      "@type": "ListItem",
-      "position": 3,
-      "name": "Character Encoding Viewer",
-      "item": "https://free-toolbase.com/en/character-encoder/"
-    }
-  ],
-  "name": "Character Encoding Viewer"
-}</script>
-<meta property="og:image" content="https://free-toolbase.com/og-image.svg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
-
 <link rel="icon" type="image/svg+xml" href="../favicon.svg">
-<meta name="robots" <script>
-function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("Copy")})["catch"](function(){showToast("CopyFailed")})}
-
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-}
-</script>
-
-<!-- Feedback Widget -->
-</div>
-<script>
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 Feature Request',bug:'🐛 Bug Report',other:'💬 Other'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**Page**: '+window.location.href+'\n**Type**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-}
-</script>
+<meta name="robots" content="index, follow">
 <!-- Related Tools (cross-recommendation) -->
 <link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
 <div id="related-tools-section" class="related-tools-section">
- <div class="related-tools-loading">Loading related tools...
-<script src="https://free-toolbase.com/related-tools.js">
-document.addEventListener('click',function(e){
-  if(e.target&&e.target.closest&&e.target.closest('button')){
-    setTimeout(ftEnsureCopy,250);
-  }
-});
-function ftEnsureCopy(){
-  var res=document.getElementById('result');
-  if(!res||res.offsetParent===null)return;
-  if(res.querySelector('.ft-copy-btn'))return;
-  var langEN=/^en/i.test((document.documentElement.getAttribute('lang')||'zh'));
-  var btn=document.createElement('button');
-  btn.className='btn btn-secondary ft-copy-btn';
-  btn.textContent=langEN?'📋 Copy Result':'📋 Copy Result';
-  btn.style.cssText='margin-top:12px;display:block';
-  btn.onclick=function(){
-    var txt=(res.innerText||res.textContent||'').replace(/\s+/g,' ').trim();
-    function toast(m){
-      var t=document.getElementById('toast');
-      if(t){t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
-    }
-    if(navigator.clipboard&&navigator.clipboard.writeText){
-      navigator.clipboard.writeText(txt).then(function(){toast(langEN?'Copied!':'Copy')}).catch(function(){ftFallbackCopy(txt);toast(langEN?'Copied!':'Copy')});
-    }else{ftFallbackCopy(txt);toast(langEN?'Copied!':'Copy')}
-  };
-  res.appendChild(btn);
-}
-function ftFallbackCopy(txt){
-  var ta=document.createElement('textarea');
-  ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
-  document.body.appendChild(ta);ta.select();
-  try{document.execCommand('copy')}catch(err){}
-  document.body.removeChild(ta);
-}
-
-</script>
+ <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script>
 
 <!-- AdSense -->
 
