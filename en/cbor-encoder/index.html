@@ -160,8 +160,8 @@ header h1{font-size:1.6rem;color:#e2e8f0}header h1 span{color:#06b6d4}
 <body>
 <main class="container">
 <header>
+  <div class="lang-switch" style="float:right;margin-top:-32px"><a href="../../cbor-encoder/">中文</a></div>
   <h1>🔷 <span>CBOR</span> Encoder/Decoder</h1>
-  <div class="lang-switch"><a href="../../cbor-encoder/">中文</a></div>
 </header>
 <div class="breadcrumb"><a href="/en/">Home</a> › <a href="/en/">Developer Tools</a> › CBOR Encoder/Decoder</div>
 <div class="hero">
@@ -285,8 +285,17 @@ function pushUint64(v){const b=new BigUint64Array([BigInt(v)]);const d=new Uint8
 encode(obj);return new Uint8Array(bytes);}
 
 function decodeCbor(hexStr){const bytes=hexToBytes(hexStr);let offset=0;
-function decode(){if(offset>=bytes.length)throw new Error('Unexpected end at offset '+offset);const b=bytes[offset++];const major=(b>>5)&7;const info=b&0x1f;const ai=decodeAi(info);
-switch(major){case 0:return ai;case 1:return -1-ai;case 2:const bLen=ai;const bv=bytes.slice(offset,offset+bLen);offset+=bLen;return{type:'bytes',hex:Array.from(bv).map(x=>x.toString(16).padStart(2,'0')).join('')};case 3:const sLen=ai;const sv=new TextDecoder().decode(bytes.slice(offset,offset+sLen));offset+=sLen;return sv;case 4:const aLen=ai;const arr=[];for(let i=0;i<aLen;i++)arr.push(decode());return arr;case 5:const mLen=ai;const obj={};for(let i=0;i<mLen;i++){const k=decode();obj[k]=decode();}return obj;case 6:const tag=ai;const val=decode();return{type:'tag',tag:tag,value:val};case 7:switch(ai){case 20:return false;case 21:return true;case 22:return null;case 23:return undefined;case 25:const f16=decodeF16();return f16;case 26:const f32=new Float32Array(bytes.slice(offset,offset+4).buffer);offset+=4;return f32[0];case 27:const f64=new Float64Array(bytes.slice(offset,offset+8).buffer);offset+=8;return f64[0];default:return{type:'simple',value:ai};}}}
+function decode(){if(offset>=bytes.length)throw new Error('Unexpected end at offset '+offset);const b=bytes[offset++];const major=(b>>5)&7;const info=b&0x1f;
+if(major===7){
+  if(info===20)return false;if(info===21)return true;if(info===22)return null;if(info===23)return undefined;
+  if(info===24)return{type:'simple',value:bytes[offset++]};
+  if(info===25){const f16=decodeF16();return f16;}
+  if(info===26){const f32=new DataView(bytes.buffer).getFloat32(offset,false);offset+=4;return f32;}
+  if(info===27){const f64=new DataView(bytes.buffer).getFloat64(offset,false);offset+=8;return f64;}
+  return{type:'simple',value:info};
+}
+const ai=decodeAi(info);
+switch(major){case 0:return ai;case 1:return -1-ai;case 2:const bLen=ai;const bv=bytes.slice(offset,offset+bLen);offset+=bLen;return{type:'bytes',hex:Array.from(bv).map(x=>x.toString(16).padStart(2,'0')).join('')};case 3:const sLen=ai;const sv=new TextDecoder().decode(bytes.slice(offset,offset+sLen));offset+=sLen;return sv;case 4:const aLen=ai;const arr=[];for(let i=0;i<aLen;i++)arr.push(decode());return arr;case 5:const mLen=ai;const obj={};for(let i=0;i<mLen;i++){const k=decode();obj[k]=decode();}return obj;case 6:const tag=ai;const val=decode();return{type:'tag',tag:tag,value:val};default:return{type:'simple',value:ai};}}
 function decodeAi(info){if(info<=23)return info;if(info===24)return bytes[offset++];if(info===25){const v=(bytes[offset]<<8)|bytes[offset+1];offset+=2;return v;}if(info===26){const v=(bytes[offset]<<24)|(bytes[offset+1]<<16)|(bytes[offset+2]<<8)|bytes[offset+3];offset+=4;return v;}if(info===27){offset+=8;return Number(new BigUint64Array(bytes.slice(offset-8,offset).buffer)[0]);}throw new Error('Unsupported additional info: '+info);}
 function decodeF16(){const h=(bytes[offset]<<8)|bytes[offset+1];offset+=2;const sign=h>>15?-1:1;const exp=(h>>10)&0x1f;const frac=h&0x3ff;if(exp===0)return sign*5.960464477539063e-8*frac;if(exp===31)return sign*(frac?NaN:Infinity);return sign*Math.pow(2,exp-15)*(1+frac/1024);}
 return decode();}
