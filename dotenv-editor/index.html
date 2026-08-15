@@ -57,8 +57,7 @@
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; .env文件编辑器</p>
 <div class="hero"><p>免费在线.env文件编辑器，可视化管理环境变量，支持键值对编辑、分组、验证、导出多格式。无需注册，数据绝不上传。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><p class="hero-sub">可视化管理环境变量，支持键值对编辑、分组、验证、多格式导出</p>
-  <span class="badge">零依赖 · 可离线使用</span>
+<div><div class="section">
   <div class="main-grid">
     <div>
       <div class="input-section">
@@ -160,9 +159,6 @@
     <h2>扩展知识</h2>
     <p>.env文件格式源自Unix Shell的环境变量导出惯例，由dotenv库普及。标准格式为KEY=VALUE，每行一个变量，#开头为注释。值可以用单引号或双引号包裹，引号内支持多行值和转义字符。最佳实践：永远不要将.env文件提交到版本控制（加入.gitignore），生产环境使用密钥管理服务，开发环境使用.env.example模板。12-Factor App方法论推荐将配置存储在环境变量中，实现代码与配置的严格分离。</p>
   </div>
-<div class="section"><h2>常见问题</h2>
-
-</div>
 </main>
 <div>
 <!-- AdSense -->
@@ -249,7 +245,7 @@ function renderTable() {
 
 function sortAndRender() {
   var mode=document.getElementById('sortMode').value;
-  if(mode==='key'){envVars.sort(function(a,b){return a.key.localeCompare(b.key)})}
+  if(mode==='alpha'){envVars.sort(function(a,b){return a.key.localeCompare(b.key)})}
   else if(mode==='group'){envVars.sort(function(a,b){return a.group.localeCompare(b.group)})}
   renderTable();updatePreview();
 }
@@ -267,10 +263,10 @@ function addVariable() {
 function updatePreview() {
   var format=document.getElementById('exportFormat').value;
   var output='';
-  if(format==='dotenv'){
+  if(format==='env'||format==='docker'){
     var lastGrp='';
     envVars.forEach(function(v){
-      if(v.group!==lastGrp){output+='# '+v.group+'\n';lastGrp=v.group}
+      if(v.group&&v.group!=='ungrouped'&&v.group!==lastGrp){output+='# '+v.group+'\n';lastGrp=v.group}
       output+=v.key+'='+v.value+'\n';
     });
   }else if(format==='json'){
@@ -278,6 +274,10 @@ function updatePreview() {
     output=JSON.stringify(obj,null,2);
   }else if(format==='yaml'){
     envVars.forEach(function(v){output+=v.key+': '+v.value+'\n'});
+  }else if(format==='toml'){
+    envVars.forEach(function(v){output+=v.key+' = "'+v.value+'"\n'});
+  }else if(format==='shell'){
+    envVars.forEach(function(v){output+='export '+v.key+'='+JSON.stringify(v.value)+'\n'});
   }
   var out=document.getElementById('output');
   if(out)out.value=output;
@@ -293,11 +293,44 @@ function clearAll() {
   envVars=[];
   showToast('已清空');
 }
-function loadExample(){var example='# Database\nDB_HOST=localhost\nDB_PORT=5432\nDB_NAME=myapp\nDB_USER=admin\nDB_PASS=secret\n\n# API Keys\nAPI_KEY=your-api-key-here\nJWT_SECRET=your-jwt-secret\n\n# App Config\nPORT=3000\nNODE_ENV=development\nLOG_LEVEL=debug';var el=document.getElementById('envInput')||document.getElementById('editor')||document.querySelector('textarea');if(el)el.value=example;showToast('已加载示例')}
-function validateAll(){var editor=document.getElementById('envInput')||document.getElementById('editor')||document.querySelector('textarea');var output=document.getElementById('output')||document.getElementById('result');if(!editor){showToast('没有内容');return}var text=editor.value||editor.textContent;var lines=text.split('\n');var issues=[];lines.forEach(function(line,i){line=line.trim();if(!line||line.startsWith('#'))return;var eqIdx=line.indexOf('=');if(eqIdx===-1){issues.push('第'+(i+1)+'行: 缺少等号(=)');return}var key=line.substring(0,eqIdx).trim();if(!/^[A-Z_][A-Z0-9_]*$/i.test(key))issues.push('第'+(i+1)+'行: 变量名"'+key+'"不规范(只允许字母数字下划线)');var val=line.substring(eqIdx+1).trim();if(val.includes(' '))issues.push('第'+(i+1)+'行: 值包含空格，建议用引号包裹')});if(output){output.innerHTML=issues.length?'<ul>'+issues.map(function(s){return '<li>'+s+'</li>'}).join('')+'</ul>':'<p style="color:#22d3ee">✅ 所有变量格式正确</p>'}showToast(issues.length?'发现'+issues.length+'个问题':'验证通过')}
-function copyResult(){var el=document.getElementById('output')||document.getElementById('result');if(!el){showToast('没有结果可复制');return}var text=el.textContent||el.innerText;navigator.clipboard.writeText(text).then(function(){showToast('已复制')})['catch'](function(){showToast('复制失败')})}
-function downloadResult(){var el=document.getElementById('output')||document.getElementById('result');if(!el){showToast('没有结果可下载');return}var text=el.textContent||el.innerText;if(!text){showToast('结果为空');return}var blob=new Blob([text],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='validation-result.txt';a.click();URL.revokeObjectURL(a.href);showToast('已下载结果')}
+function loadExample(){var example='# Database\nDB_HOST=localhost\nDB_PORT=5432\nDB_NAME=myapp\nDB_USER=admin\nDB_PASS=secret\n\n# API Keys\nAPI_KEY=your-api-key-here\nJWT_SECRET=your-jwt-secret\n\n# App Config\nPORT=3000\nNODE_ENV=development\nLOG_LEVEL=debug';var el=document.getElementById('envInput')||document.getElementById('editor')||document.querySelector('textarea');if(el)el.value=example;parseInput();showToast('已加载示例')}
+function validateAll(){
+  var editor=document.getElementById('envInput')||document.getElementById('editor')||document.querySelector('textarea');
+  var list=document.getElementById('validationList');
+  if(!editor){showToast('没有内容');return}
+  var text=editor.value||editor.textContent||'';
+  var lines=text.split('\n');var issues=[];
+  lines.forEach(function(line,i){
+    line=line.trim();if(!line||line.startsWith('#'))return;
+    var eqIdx=line.indexOf('=');
+    if(eqIdx===-1){issues.push('第'+(i+1)+'行: 缺少等号(=)');return}
+    var key=line.substring(0,eqIdx).trim();
+    if(!/^[A-Z_][A-Z0-9_]*$/i.test(key))issues.push('第'+(i+1)+'行: 变量名"'+key+'"不规范(只允许字母数字下划线)');
+    var val=line.substring(eqIdx+1).trim();
+    if(val.includes(' '))issues.push('第'+(i+1)+'行: 值包含空格，建议用引号包裹')
+  });
+  if(list){
+    if(issues.length){list.innerHTML='<ul style="margin-left:18px;margin-top:8px">'+issues.map(function(s){return '<li style="color:#f87171;font-size:.85rem">'+s+'</li>'}).join('')+'</ul>'}
+    else{list.innerHTML='<p style="color:#22d3ee;font-size:.85rem;margin-top:8px">✅ 所有变量格式正确</p>'}
+  }
+  showToast(issues.length?'发现'+issues.length+'个问题':'验证通过')
+}
+function copyResult(){var el=document.getElementById('output')||document.getElementById('result');if(!el){showToast('没有结果可复制');return}var text=el.value||el.textContent||el.innerText;navigator.clipboard.writeText(text).then(function(){showToast('已复制')})['catch'](function(){showToast('复制失败')})}
+function downloadResult(){var el=document.getElementById('output')||document.getElementById('result');if(!el){showToast('没有结果可下载');return}var text=el.value||el.textContent||el.innerText;if(!text){showToast('结果为空');return}var blob=new Blob([text],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='dotenv-export.txt';a.click();URL.revokeObjectURL(a.href);showToast('已下载结果')}
 function shareLink(){var editor=document.getElementById('envInput')||document.getElementById('editor')||document.querySelector('textarea');if(!editor){showToast('没有内容');return}var text=editor.value||editor.textContent;if(!text){showToast('内容为空');return}var encoded=btoa(unescape(encodeURIComponent(text)));var url=window.location.origin+window.location.pathname+'#env='+encoded;navigator.clipboard.writeText(url).then(function(){showToast('分享链接已复制')})['catch'](function(){showToast('复制失败')})}
+(function(){
+  var dz=document.getElementById('dropZone');
+  if(!dz)return;
+  ['dragenter','dragover'].forEach(function(ev){dz.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();dz.style.borderColor='rgba(6,182,212,.6)'})});
+  ['dragleave','drop'].forEach(function(ev){dz.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();dz.style.borderColor=''})});
+  dz.addEventListener('drop',function(e){
+    var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
+    if(!f)return;
+    var r=new FileReader();
+    r.onload=function(){var el=document.getElementById('rawInput');if(el)el.value=r.result;parseInput();showToast('已导入: '+f.name)};
+    r.readAsText(f);
+  });
+})();
 </script>
 </body>
 </html>

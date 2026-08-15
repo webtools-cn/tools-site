@@ -7,7 +7,7 @@
 <meta charset="UTF-8">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Curl转Python工具工具，将cURL命令快速转换为Python requests代码。自动解析请求方法、Headers、Cookies、Body参数等。无需注册。纯前端本地处理，数据不上传服务器，无需注册即可免费使用。纯前端本地处理，数据不上传服务器，完全免费无需注册。">
+<meta name="description" content="免费在线Curl转Python工具，无需注册。将cURL命令快速转换为Python requests代码，自动解析请求方法、Headers、Cookies、Body等参数，支持GET/POST/PUT/DELETE及JSON/表单数据。纯前端本地处理，数据不上传服务器，完全免费无需注册。">
 <meta name="keywords" content="在线Curl转Python工具,工具,在线工具,免费">
 <title>免费在线Curl转Python工具 - Curl转Python工具，将cURL命令快速转换 | 无需注册</title>
 <link rel="canonical" href="https://free-toolbase.com/curl-to-python/">
@@ -55,6 +55,10 @@ a{color:#06b6d4;text-decoration:none}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:12px 24px;border-radius:8px;font-size:.9rem;border:1px solid rgba(148,163,184,.15);opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
 .toast.show{opacity:1}
 
+.hero{margin-bottom:24px}
+.hero p{color:#94a3b8;font-size:1rem;margin-bottom:8px}
+.badge{display:inline-block;background:rgba(6,182,212,.15);color:#22d3ee;padding:4px 12px;border-radius:20px;font-size:.8rem;margin-bottom:16px}
+
 
 .main-grid{display:grid;gap:20px;margin-bottom:20px}
 .section{background:#1e293b;border:1px solid rgba(148,163,184,.1);border-radius:12px;padding:20px;margin-bottom:16px}
@@ -83,9 +87,6 @@ a{color:#06b6d4;text-decoration:none}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线Curl转Python工具</p>
 <div class="hero"><p>免费在线Curl转Python工具，将cURL命令快速转换为Python requests代码。自动解析请求方法、Headers、Cookies、Body参数等。无需注册，数据不上传服务器。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section">
-</div>
-</div>
 <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -145,7 +146,10 @@ a{color:#06b6d4;text-decoration:none}
 
 <div class="content-section">
 <h2>❓ 常见问题</h2>
-
+<div class="faq-item"><div class="q">❓ Curl转Python需要上传数据吗？</div><div class="a">不需要。所有解析和转换操作完全在您的浏览器中执行，cURL命令和转换结果不会上传到任何服务器，保障数据安全。</div></div>
+<div class="faq-item"><div class="q">❓ 支持哪些cURL参数？</div><div class="a">支持常用的cURL参数：-X/--request（请求方法）、-H（请求头）、-d/--data（请求体）、-b/--cookie（Cookie）、-u/--user（基本认证）等。</div></div>
+<div class="faq-item"><div class="q">❓ 生成的Python代码使用什么库？</div><div class="a">默认生成使用Python requests库的代码，这是Python中最流行的HTTP请求方式。工具会自动识别JSON和表单数据并生成对应代码。</div></div>
+<div class="faq-item"><div class="q">❓ 转换结果可以复制吗？</div><div class="a">可以。转换完成后，您可以一键复制生成的Python代码，或点击「下载」保存为.py文件。</div></div>
 </div>
 
 <div class="content-section">
@@ -198,6 +202,97 @@ const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**:
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
 document.getElementById('feedback-success').style.display='block';
 }
+
+(function(){
+  var input=document.getElementById('curlInput');
+  var btnConvert=document.getElementById('convertBtn');
+  var btnClear=document.getElementById('clearCurlBtn');
+  var btnSample=document.getElementById('sampleCurlBtn');
+  var btnCopy=document.getElementById('copyPyBtn');
+  var btnDownload=document.getElementById('downloadPyBtn');
+  var resultBox=document.getElementById('pythonResult');
+  var codeOut=document.getElementById('pythonCode');
+  var errBox=document.getElementById('curlError');
+  var reqMethod=document.getElementById('reqMethod');
+  var reqUrl=document.getElementById('reqUrl');
+  if(!btnConvert||!input) return;
+
+  function parseCurl(s){
+    var r={m:'GET',u:'',h:{},d:null,c:{}};
+    var c=s.trim();
+    if(!c.toLowerCase().startsWith('curl')) return null;
+    c=c.replace(/^curl\s+/i,'').replace(/\\n/g,' ').replace(/\r\n/g,' ').replace(/\s+/g,' ');
+    var t=[],cur='',sD=0,dD=0;
+    for(var i=0;i<c.length;i++){
+      var ch=c[i];
+      if(ch==="'"&&!dD){sD=!sD;continue}
+      if(ch==='"'&&!sD){dD=!dD;continue}
+      if(ch===' '&&!sD&&!dD){if(cur){t.push(cur);cur=''}}else{cur+=ch}
+    }
+    if(cur)t.push(cur);
+    var idx=0;
+    function n(){return idx<t.length?t[idx++]:null}
+    while(idx<t.length){
+      var tok=n();
+      if(!tok)break;
+      if(tok==='-X'||tok==='--request'){r.m=n()||'GET'}
+      else if(tok==='-H'||tok==='--header'){var h=n()||'';var ci=h.indexOf(':');if(ci>0){r.h[h.substring(0,ci).trim()]=h.substring(ci+1).trim()}}
+      else if(tok==='-d'||tok==='--data'||tok==='--data-raw'||tok==='--data-binary'){r.d=n()||'';if(r.m==='GET')r.m='POST'}
+      else if(tok==='-b'||tok==='--cookie'){(n()||'').split(';').forEach(function(p){var e=p.indexOf('=');if(e>0)r.c[p.substring(0,e).trim()]=p.substring(e+1).trim()})}
+      else if(tok==='-u'||tok==='--user'){n()}
+      else if(!tok.startsWith('-')){r.u=tok}
+    }
+    if(r.d&&!r.h['Content-Type']&&!r.h['content-type']){
+      if(r.d.charAt(0)==='{'||r.d.charAt(0)==='['){r.h['Content-Type']='application/json'}
+      else if(r.d.indexOf('=')>=0){r.h['Content-Type']='application/x-www-form-urlencoded'}
+    }
+    return r;
+  }
+
+  function genPython(p){
+    var L=['import requests','import json',''];
+    var hk=Object.keys(p.h);
+    if(hk.length>0){L.push('headers = {');hk.forEach(function(k){L.push('    '+JSON.stringify(k)+': '+JSON.stringify(p.h[k])+',')});L.push('}','')}
+    var ck=Object.keys(p.c);
+    if(ck.length>0){L.push('cookies = {');ck.forEach(function(k){L.push('    '+JSON.stringify(k)+': '+JSON.stringify(p.c[k])+',')});L.push('}','')}
+    var url=p.u||'https://example.com';
+    var method=p.m.toLowerCase();
+    var args=[];
+    if(hk.length>0)args.push('headers=headers');
+    if(ck.length>0)args.push('cookies=cookies');
+    if(p.d){
+      var ct=(p.h['Content-Type']||'').toLowerCase();
+      var isJson=ct.indexOf('json')>=0||p.d.charAt(0)==='{'||p.d.charAt(0)==='[';
+      var parsed=null;
+      try{parsed=JSON.parse(p.d)}catch(e){}
+      if(parsed){L.push('data = '+JSON.stringify(parsed,null,4));args.push('json=data')}
+      else{L.push('data = '+JSON.stringify(p.d));args.push('data=data')}
+    }
+    L.push('response = requests.'+method+'("'+p.u.replace(/"/g,'\\"')+'"'+(args.length?', '+args.join(', '):'')+')');
+    L.push('print(response.status_code)');
+    L.push('print(response.json())');
+    return L.join('\n');
+  }
+
+  function convert(){
+    var cu=input.value.trim();
+    if(!cu){showToast('请输入cURL命令');return}
+    var p=parseCurl(cu);
+    if(!p||!p.u){errBox.style.display='block';errBox.textContent='错误：无法解析cURL命令，请检查格式。';resultBox.style.display='none';return}
+    errBox.style.display='none';
+    codeOut.textContent=genPython(p);
+    reqMethod.textContent=p.m;
+    reqUrl.textContent=p.u;
+    resultBox.style.display='block';
+  }
+
+  btnConvert.addEventListener('click',convert);
+  btnClear.addEventListener('click',function(){input.value='';resultBox.style.display='none';errBox.style.display='none'});
+  btnSample.addEventListener('click',function(){input.value='curl -X POST https://jsonplaceholder.typicode.com/posts -H "Content-Type: application/json" -H "Authorization: Bearer TOKEN" -d \'{"title":"Hello","body":"World","userId":1}\'';convert()});
+  btnCopy.addEventListener('click',function(){navigator.clipboard.writeText(codeOut.textContent).then(function(){btnCopy.textContent='✅ 已复制';setTimeout(function(){btnCopy.textContent='📋 复制'},2000)})});
+  btnDownload.addEventListener('click',function(){var b=new Blob([codeOut.textContent],{type:'text/x-python'});var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='request.py';a.click();URL.revokeObjectURL(u)});
+  input.addEventListener('keydown',function(e){if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();convert()}});
+})();
 </script>
 
 </main>

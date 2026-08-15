@@ -7,14 +7,12 @@
 <meta charset="UTF-8">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="CSS转SCSS转换器工具，在左侧CSS输入框中粘贴你的CSS代码，点击「转换为SCSS」按钮，工具会自动分析CSS选择器的层级关系，将重复的父级选择器合并为嵌套结构。纯前端本地处理，数据不上传服务器，无需注册免费使用。纯前端本地处理，数据不上传服务器，完全免费无需注册。">
+<meta name="description" content="在线CSS转SCSS转换器，在输入框粘贴你的CSS代码，点击转换为SCSS，工具会自动分析选择器层级关系，将重复的父级选择器合并为嵌套结构。支持颜色变量提取、媒体查询嵌套和缩进格式自定义。纯前端本地处理，数据不上传服务器，完全免费无需注册。">
 <meta name="keywords" content="在线CSS转SCSS转换器,工具,在线工具,免费">
 <title>免费在线CSS转SCSS转换器 - Free ToolBase</title>
 <link rel="canonical" href="https://free-toolbase.com/css-to-scss/">
 <meta property="og:title" content="免费在线CSS转SCSS转换器 - Free ToolBase">
-<meta property="og:description" content="免费在线CSS转SCSS工具，智能分析CSS代码并转换为嵌套SCSS/SASS语法。支持变量提取、伪类处理、媒体查询嵌套，无需注册，支持配置并处理
-        根据需要调整设置来自定义输出，然后点击主要操作按钮处理内容。结果即时显示，无需等待服务器。、复制或下载结果
-        使用"复制"按钮将结果复制到剪贴">
+<meta property="og:description" content="免费在线CSS转SCSS工具，智能分析CSS代码并转换为嵌套SCSS/SASS语法。支持变量提取、伪类处理、媒体查询嵌套，无需注册。纯前端本地处理，数据不上传服务器，完全免费。">
 <meta property="og:url" content="https://free-toolbase.com/css-to-scss/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Free ToolBase">
@@ -39,6 +37,7 @@ a{color:#06b6d4;text-decoration:none}
 .nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
 .nav-back a{color:#64748b}
 .nav-back a:hover{color:#94a3b8}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;background:rgba(6,182,212,.1);color:#22d3ee;border:1px solid rgba(6,182,212,.2);margin-bottom:16px}
 .input-section{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid rgba(148,163,184,.1)}
 .input-section h2{font-size:1.1rem;color:#f1f5f9;margin-bottom:12px}
 textarea{width:100%;min-height:120px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;font-family:monospace;font-size:.9rem;resize:vertical}
@@ -116,7 +115,7 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <main class="container">
 <div class="header"><h1>🔧 在线CSS转SCSS转换器</h1><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/css-to-scss/" class="">EN</a></div></div>
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线CSS转SCSS转换器</p>
-<div class="hero"><p>免费在线CSS转SCSS工具，智能分析CSS代码并转换为嵌套SCSS/SASS语法。支持变量提取、伪类处理、媒体查询嵌套，无需注册。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
+<div class="hero"><p>免费在线CSS转SCSS工具，智能分析CSS代码并转换为嵌套SCSS/SASS语法。支持变量提取、伪类处理、媒体查询嵌套。纯前端本地处理，无需注册，数据绝不上传服务器。</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section"><div class="input-section">
     <h2>CSS 输入</h2>
@@ -261,6 +260,7 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 
     </ol>
   </div>
+</main>
 <div>
 <!-- AdSense -->
 
@@ -302,45 +302,314 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function clearAll() {
-  document.getElementById('extractVars').value = '';
-  document.getElementById('nestMedia').value = '';
-  document.getElementById('sortRules').value = '';
-  document.getElementById('inputCss').value = '';
-  document.getElementById('indentStyle').selectedIndex = 0;
-  document.getElementById('resultBox').innerHTML = '';
-  document.getElementById('resultBox').style.display = 'none';
-  document.getElementById('resultStats').innerHTML = '';
-  document.getElementById('resultStats').style.display = 'none';
-  showToast('已重置');
+function getIndent() {
+  var v=document.getElementById('indentStyle').value;
+  if(v==='2sp')return '  ';
+  if(v==='4sp')return '    ';
+  return '\t';
+}
+
+function updateInputStats() {
+  var text=document.getElementById('inputCss').value;
+  var lines=text?text.split('\n').length:0;
+  document.getElementById('inputStats').innerHTML='<span>字符: '+text.length+'</span><span>行数: '+lines+'</span>';
+}
+
+function parseCssRules(cssText) {
+  var rules=[];
+  var cleaned=cssText.replace(/\/\*[\s\S]*?\*\//g,'');
+  var mediaBlocks=[];
+  var mediaRegex=/@media[^{]*\{/g;
+  var match;
+  while((match=mediaRegex.exec(cleaned))!==null){
+    var start=match.index;
+    var braceStart=cleaned.indexOf('{',start);
+    var depth=1;
+    var pos=braceStart+1;
+    while(depth>0&&pos<cleaned.length){
+      if(cleaned[pos]==='{')depth++;
+      else if(cleaned[pos]==='}')depth--;
+      pos++;
+    }
+    var query=cleaned.substring(start,braceStart).trim();
+    var innerContent=cleaned.substring(braceStart+1,pos-1);
+    mediaBlocks.push({query:query,content:innerContent});
+    cleaned=cleaned.substring(0,start)+cleaned.substring(pos);
+    mediaRegex.lastIndex=start;
+  }
+  var ruleRegex=/([^}]+)\{([^}]*)\}/g;
+  while((match=ruleRegex.exec(cleaned))!==null){
+    var selectors=match[1].trim();
+    var decls=match[2].trim();
+    if(selectors&&decls){
+      rules.push({selectors:selectors,declarations:decls,mediaQuery:null});
+    }
+  }
+  for(var i=0;i<mediaBlocks.length;i++){
+    var mb=mediaBlocks[i];
+    var irRegex=/([^}]+)\{([^}]*)\}/g;
+    var im;
+    while((im=irRegex.exec(mb.content))!==null){
+      var sel=im[1].trim();
+      var dec=im[2].trim();
+      if(sel&&dec){
+        rules.push({selectors:sel,declarations:dec,mediaQuery:mb.query});
+      }
+    }
+  }
+  return rules;
+}
+
+function extractColorValues(cssText) {
+  var colors=[];
+  var colorRegex=/(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))/g;
+  var m;
+  while((m=colorRegex.exec(cssText))!==null){colors.push(m[1]);}
+  return colors;
+}
+
+function buildColorMap(declarations) {
+  var colorCounts={};
+  for(var i=0;i<declarations.length;i++){
+    var colors=extractColorValues(declarations[i].value);
+    for(var j=0;j<colors.length;j++){
+      var c=colors[j].toLowerCase();
+      colorCounts[c]=(colorCounts[c]||0)+1;
+    }
+  }
+  var map={};
+  var idx=0;
+  var names=['primary','secondary','tertiary','accent','muted','light','dark','info','success','warning','danger','extra1','extra2','extra3','extra4','extra5'];
+  var colorKeys=Object.keys(colorCounts).sort(function(a,b){return colorCounts[b]-colorCounts[a];});
+  for(var k=0;k<colorKeys.length;k++){
+    if(colorCounts[colorKeys[k]]>=3){
+      idx++;
+      var varName='$color-'+(names[idx-1]||('custom-'+idx));
+      map[colorKeys[k]]=varName;
+    }
+  }
+  return map;
+}
+
+function replaceColorsInDeclarations(decl,colorMap) {
+  var result=decl;
+  var sortedKeys=Object.keys(colorMap).sort(function(a,b){return b.length-a.length;});
+  for(var i=0;i<sortedKeys.length;i++){
+    var regex=new RegExp(sortedKeys[i].replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+    result=result.replace(regex,colorMap[sortedKeys[i]]);
+  }
+  return result;
+}
+
+function getSelectorParts(selector) {
+  var parts=[];
+  var current='';
+  var depth=0;
+  for(var i=0;i<selector.length;i++){
+    var ch=selector[i];
+    if(ch==='('||ch==='['||ch==='{'){depth++;current+=ch;}
+    else if(ch===')'||ch===']'||ch==='}'){depth--;current+=ch;}
+    else if(ch===','&&depth===0){parts.push(current.trim());current='';}
+    else{current+=ch;}
+  }
+  if(current.trim())parts.push(current.trim());
+  return parts;
+}
+
+function buildTreeFromRules(rules) {
+  var root={children:{},declarations:[]};
+  for(var i=0;i<rules.length;i++){
+    var r=rules[i];
+    var selectors=getSelectorParts(r.selectors);
+    for(var si=0;si<selectors.length;si++){
+      var sel=selectors[si].trim();
+      if(!sel)continue;
+      var parts=[];
+      var current='';
+      var inBracket=0;
+      var inParen=0;
+      for(var ci=0;ci<sel.length;ci++){
+        var ch=sel[ci];
+        if(ch==='[')inBracket++;
+        else if(ch===']')inBracket--;
+        else if(ch==='(')inParen++;
+        else if(ch===')')inParen--;
+        if(inBracket===0&&inParen===0&&(ch===' '||ch==='>')){
+          if(ch==='>'){
+            if(current.trim())parts.push(current.trim());
+            parts.push('>');
+            current='';
+          }else{
+            if(current.trim())parts.push(current.trim());
+            current='';
+          }
+        }else{
+          current+=ch;
+        }
+      }
+      if(current.trim())parts.push(current.trim());
+      var node=root;
+      for(var pi=0;pi<parts.length;pi++){
+        var p=parts[pi];
+        if(!p)continue;
+        if(!node.children[p]){node.children[p]={children:{},declarations:[]};}
+        if(pi===parts.length-1){node.children[p].declarations.push({raw:r.declarations,mediaQuery:r.mediaQuery});}
+        node=node.children[p];
+      }
+    }
+  }
+  return root;
+}
+
+function renderNode(node,selector,indent,colorMap,depth,opts) {
+  var lines=[];
+  var children=node.children||{};
+  var decls=node.declarations||[];
+  if(!decls.length&&!Object.keys(children).length)return lines;
+  if(selector){
+    var formattedSel=selector;
+    if(selector.indexOf('&')===0||selector.indexOf(':')===0||selector.indexOf('[')===0){
+      if(selector.indexOf('&')!==0)formattedSel='&'+selector;
+    }
+    lines.push(indent+formattedSel+' {');
+  }
+  var innerIndent=indent+opts.indentStr;
+  if(decls.length){
+    var mqMap={};
+    var nonMqDecls=[];
+    for(var di=0;di<decls.length;di++){
+      var d=decls[di];
+      if(d.mediaQuery&&opts.nestMedia){
+        if(!mqMap[d.mediaQuery])mqMap[d.mediaQuery]=[];
+        mqMap[d.mediaQuery].push(d);
+      }else{
+        nonMqDecls.push(d);
+      }
+    }
+    for(var ni=0;ni<nonMqDecls.length;ni++){
+      var raw=nonMqDecls[ni].raw;
+      if(colorMap&&Object.keys(colorMap).length>0){raw=replaceColorsInDeclarations(raw,colorMap);}
+      raw=raw.replace(/;\s*$/,'');
+      lines.push(innerIndent+raw+';');
+    }
+    var mqKeys=Object.keys(mqMap);
+    if(opts.nestMedia&&mqKeys.length>0){
+      for(var mi=0;mi<mqKeys.length;mi++){
+        lines.push(innerIndent+mqKeys[mi]+' {');
+        for(var mdi=0;mdi<mqMap[mqKeys[mi]].length;mdi++){
+          var mraw=mqMap[mqKeys[mi]][mdi].raw;
+          if(colorMap&&Object.keys(colorMap).length>0){mraw=replaceColorsInDeclarations(mraw,colorMap);}
+          mraw=mraw.replace(/;\s*$/,'');
+          lines.push(innerIndent+opts.indentStr+mraw+';');
+        }
+        lines.push(innerIndent+'}');
+      }
+    }
+  }
+  var childKeys=Object.keys(children);
+  if(opts.sortRules)childKeys.sort();
+  for(var ci=0;ci<childKeys.length;ci++){
+    var childSel=childKeys[ci];
+    var childNode=children[childSel];
+    if(!childNode)continue;
+    var childLines=renderNode(childNode,childSel,innerIndent,colorMap,depth+1,opts);
+    lines=lines.concat(childLines);
+  }
+  if(selector){lines.push(indent+'}');}
+  return lines;
 }
 
 function convertToScss() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;if(typeof mainConvert==='function')mainConvert();else{{out.textContent=inp.value;showToast('Converted!')}};
-}
-
-function copyResult() {
-  var text = document.getElementById('resultBox').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
-}
-
-function downloadResult() {
-  var text = document.getElementById('resultBox').innerText;
-  if (!text) { showToast('没有可下载的结果'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'css-to-scss-result.txt';
-  a.click();
-  showToast('已下载');
+  var css=document.getElementById('inputCss').value.trim();
+  if(!css){showToast('请输入CSS代码');return;}
+  try{
+    var rules=parseCssRules(css);
+    if(rules.length===0){showToast('未找到有效的CSS规则');return;}
+    var colorMap={};
+    if(document.getElementById('extractVars').checked){
+      var allDecls=[];
+      for(var i=0;i<rules.length;i++){allDecls.push({value:rules[i].declarations});}
+      colorMap=buildColorMap(allDecls);
+    }
+    var opts={indentStr:getIndent(),nestMedia:document.getElementById('nestMedia').checked,sortRules:document.getElementById('sortRules').checked};
+    var root=buildTreeFromRules(rules);
+    var childKeys=Object.keys(root.children);
+    if(opts.sortRules)childKeys.sort();
+    var outputLines=[];
+    if(colorMap&&Object.keys(colorMap).length>0){
+      var colorKeys=Object.keys(colorMap);
+      for(var ci=0;ci<colorKeys.length;ci++){
+        outputLines.push('$'+colorMap[colorKeys[ci]].substring(1)+': '+colorKeys[ci]+';');
+      }
+      outputLines.push('');
+    }
+    for(var ci2=0;ci2<childKeys.length;ci2++){
+      var childSel=childKeys[ci2];
+      var childNode=root.children[childSel];
+      if(!childNode)continue;
+      var childLines=renderNode(childNode,childSel,'',colorMap,0,opts);
+      outputLines=outputLines.concat(childLines);
+    }
+    var output=outputLines.join('\n');
+    document.getElementById('resultBox').textContent=output;
+    var lineCount=output?output.split('\n').length:0;
+    document.getElementById('resultStats').innerHTML='<span>字符: '+output.length+'</span><span>行数: '+lineCount+'</span>';
+    showToast('转换完成！共处理 '+rules.length+' 条规则');
+  }catch(e){
+    document.getElementById('resultBox').textContent='转换错误: '+e.message;
+    showToast('转换失败，请检查CSS语法');
+  }
 }
 
 function loadSample() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
+  document.getElementById('inputCss').value='.container {\n  width: 100%;\n  max-width: 1200px;\n  margin: 0 auto;\n  padding: 0 16px;\n}\n\n.container .header {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  padding: 16px 0;\n}\n\n.container .header .logo {\n  font-size: 24px;\n  font-weight: bold;\n  color: #e2e8f0;\n}\n\n.container .header .logo:hover {\n  color: #0066cc;\n}\n\n.container .content .card {\n  background: #0f172a;\n  border-radius: 8px;\n  padding: 24px;\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);\n}\n\n@media (max-width: 768px) {\n  .container .content {\n    grid-template-columns: repeat(2, 1fr);\n  }\n}';
+  updateInputStats();
+  document.getElementById('resultBox').textContent='点击「转换为SCSS」查看结果...';
+  document.getElementById('resultStats').innerHTML='';
+  showToast('示例CSS已加载');
 }
+
+function clearAll() {
+  document.getElementById('inputCss').value='';
+  document.getElementById('resultBox').textContent='点击「转换为SCSS」查看结果...';
+  document.getElementById('inputStats').innerHTML='';
+  document.getElementById('resultStats').innerHTML='';
+  showToast('已清空');
+}
+
+function copyResult() {
+  var text=document.getElementById('resultBox').textContent;
+  if(!text||text==='点击「转换为SCSS」查看结果...'){showToast('没有可复制的结果');return;}
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(function(){showToast('已复制到剪贴板')});
+  }else{
+    var ta=document.createElement('textarea');
+    ta.value=text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('已复制到剪贴板');
+  }
+}
+
+function downloadResult() {
+  var text=document.getElementById('resultBox').textContent;
+  if(!text||text==='点击「转换为SCSS」查看结果...'){showToast('没有可下载的结果');return;}
+  var blob=new Blob([text],{type:'text/scss;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='converted.scss';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast('已下载 converted.scss');
+}
+
+document.getElementById('inputCss').addEventListener('input',updateInputStats);
+updateInputStats();
 </script>
 
-</main>
 </body>
 </html>

@@ -7,12 +7,12 @@
 <meta charset="UTF-8">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="免费在线CSV和TSV互转工具，一键将逗号分隔的数据转为制表符分隔，或将TSV转回CSV。支持引号转义处理、自定义分隔符预览、批量转换。纯前端处理，数据不上传服务器，支持配置选项根据需要调整参数设置，自定义输出格式和样式。所有设置实时生效。、获取结果点击处理按钮即可获取转换结果。支持一键复制、下载文件。">
+<meta name="description" content="免费在线CSV与TSV互转工具，一键将逗号分隔数据转为制表符分隔，或将TSV转回CSV。支持引号转义处理、自定义分隔符、批量转换与文件上传，转换结果可一键复制或下载。所有处理在浏览器本地完成，纯前端本地处理，数据不上传服务器，无需注册完全免费。">
 <meta name="keywords" content="在线CSV转TSV,工具,在线工具,免费">
 <title>免费在线CSV转TSV - Free ToolBase</title>
 <link rel="canonical" href="https://free-toolbase.com/csv-to-tsv/">
 <meta property="og:title" content="免费在线CSV转TSV - Free ToolBase">
-<meta property="og:description" content="免费在线CSV和TSV互转工具，一键将逗号分隔的数据转为制表符分隔，或将TSV转回CSV。支持引号转义处理、自定义分隔符预览、批量转换。纯前端处理，数据不上传服务器，支持配置选项根据需要调整参数设置，自定义输出格式和样式。所有设置实时生效。、获取结果点击处理按钮即可获取转换结果。支持一键复制、下载文件。所有处理在浏览器">
+<meta property="og:description" content="免费在线CSV与TSV互转工具，一键将逗号分隔数据转为制表符分隔，或将TSV转回CSV。支持引号转义处理、自定义分隔符、批量转换与文件上传，转换结果可一键复制或下载。所有处理在浏览器本地完成，数据不上传服务器。">
 <meta property="og:url" content="https://free-toolbase.com/csv-to-tsv/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Free ToolBase">
@@ -42,7 +42,7 @@ a{color:#06b6d4;text-decoration:none}
 textarea, input[type="text"], select{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:10px;color:#e2e8f0;font-size:.9rem;outline:none;width:100%;font-family:inherit}
 textarea:focus, input:focus, select:focus{border-color:rgba(6,182,212,.5)}
 textarea{
-      background: var(--surface);
+      background: var(--bg);
       color: var(--text);font-family:monospace;resize:vertical}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .btn{padding:8px 20px;border:none;border-radius:6px;font-size:.85rem;cursor:pointer;transition:all .2s;font-family:inherit}
@@ -93,6 +93,10 @@ textarea{
 .row>*{flex:1;min-width:200px}
 @media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.header{flex-direction:column;gap:8px}}
 
+.hero{margin-bottom:16px}
+.hero p{color:#94a3b8;font-size:.95rem;margin-bottom:8px}
+.badge{display:inline-block;background:rgba(6,182,212,.15);color:#22d3ee;padding:2px 8px;border-radius:4px;font-size:.8rem;margin-right:6px}
+
 .main-grid{display:grid;gap:20px;margin-bottom:20px}
 .section{background:#1e293b;border:1px solid rgba(148,163,184,.1);border-radius:12px;padding:20px;margin-bottom:16px}
 
@@ -120,9 +124,6 @@ textarea{
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线CSV转TSV</p>
 <div class="hero"><p>免费在线CSV和TSV互转工具，一键将逗号分隔的数据转为制表符分隔，或将TSV转回CSV。支持引号转义处理、自定义分隔符预览、批量转换。纯前端处理，数据不上传服务器。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section">
-      </div>
-    </div>
     <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -234,11 +235,80 @@ document.getElementById('feedback-success').style.display='block';
 <script src="https://free-toolbase.com/related-tools.js"></script>
 
 
-<div>
+<script>
+(function(){
+  var inputArea=document.getElementById('inputArea');
+  var outputArea=document.getElementById('outputArea');
+  var direction=document.getElementById('direction');
+  var inputDelimiter=document.getElementById('inputDelimiter');
+  var convertBtn=document.getElementById('convertBtn');
+  var sampleBtn=document.getElementById('sampleBtn');
+  var clearBtn=document.getElementById('clearBtn');
+  var copyBtn=document.getElementById('copyBtn');
+  var downloadBtn=document.getElementById('downloadBtn');
+  var rowCount=document.getElementById('rowCount');
+  var uploadZone=document.getElementById('uploadZone');
+  var fileInput=document.getElementById('fileInput');
+  function showToast(m){var t=document.getElementById('toast');if(t){t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},3000)}}
+  uploadZone.addEventListener('click',function(){fileInput.click()});
+  uploadZone.addEventListener('dragover',function(e){e.preventDefault();uploadZone.classList.add('dragover')});
+  uploadZone.addEventListener('dragleave',function(){uploadZone.classList.remove('dragover')});
+  uploadZone.addEventListener('drop',function(e){e.preventDefault();uploadZone.classList.remove('dragover');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});
+  fileInput.addEventListener('change',function(e){if(e.target.files[0])handleFile(e.target.files[0])});
+  function handleFile(file){var reader=new FileReader();reader.onload=function(e){inputArea.value=e.target.result;convert()};reader.readAsText(file)}
+  function escapeField(field){field=String(field);if(field.indexOf(',')!==-1||field.indexOf('"')!==-1||field.indexOf('\n')!==-1){return '"'+field.replace(/"/g,'""')+'"'}return field}
+  function convert(){
+    var text=inputArea.value.trim();
+    if(!text){showToast('请输入CSV或TSV数据');return}
+    var delim=inputDelimiter.value;
+    var lines=text.split('\n').filter(function(l){return l.trim()});
+    var rows=[];
+    for(var i=0;i<lines.length;i++){
+      var line=lines[i].trim();
+      var row=[];var cur='';var inQ=false;
+      for(var j=0;j<line.length;j++){
+        var ch=line[j];
+        if(ch==='"'){
+          if(inQ&&j+1<line.length&&line[j+1]==='"'){cur+='"';j++}else{inQ=!inQ}
+        }else if(ch===delim&&!inQ){row.push(cur);cur=''}
+        else{cur+=ch}
+      }
+      row.push(cur);rows.push(row);
+    }
+    var isCsvToTsv=direction.value==='csv-to-tsv';
+    var outDelim=isCsvToTsv?'\t':',';
+    var result=rows.map(function(row){return row.map(escapeField).join(outDelim)}).join('\n');
+    outputArea.value=result;
+    copyBtn.disabled=false;downloadBtn.disabled=false;
+    rowCount.textContent='共 '+rows.length+' 行，'+(rows[0]?rows[0].length:0)+' 列';
+    rowCount.style.display='block';
+  }
+  convertBtn.addEventListener('click',convert);
+  sampleBtn.addEventListener('click',function(){
+    inputArea.value='姓名,邮箱,年龄,城市\n张三,zhangsan@example.com,28,北京\n李四,lisi@example.com,34,上海\n王五,wangwu@example.com,45,广州\n赵六,zhaoliu@example.com,31,深圳';
+    convert();
+  });
+  clearBtn.addEventListener('click',function(){
+    inputArea.value='';outputArea.value='';copyBtn.disabled=true;downloadBtn.disabled=true;rowCount.style.display='none';
+  });
+  copyBtn.addEventListener('click',function(){
+    if(!outputArea.value){showToast('没有可复制的结果');return}
+    navigator.clipboard.writeText(outputArea.value).then(function(){showToast('已复制结果')})['catch'](function(){showToast('复制失败')});
+  });
+  downloadBtn.addEventListener('click',function(){
+    if(!outputArea.value){showToast('没有可下载的结果');return}
+    var ext=direction.value==='csv-to-tsv'?'tsv':'csv';
+    var blob=new Blob(['\uFEFF'+outputArea.value],{type:'text/plain'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='converted.'+ext;a.click();URL.revokeObjectURL(a.href);
+  });
+})();
+</script>
+
+
 <!-- AdSense -->
 
-<footer class="footer container">
 </main>
+<footer class="footer container">
 <div style="margin-bottom:12px">
 <a href="../index.html">首页</a>
 <a href="../index.html">全部工具</a>
@@ -270,5 +340,5 @@ document.getElementById('feedback-success').style.display='block';
 
 </script>
 
-</div></footer></body>
+</footer></body>
 </html>

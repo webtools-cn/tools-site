@@ -124,7 +124,7 @@ select:focus{border-color:rgba(6,182,212,.4)}
 <meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="robots" content="index, follow">
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
 
 </head>
 <body>
@@ -133,9 +133,6 @@ select:focus{border-color:rgba(6,182,212,.4)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; CSS 叠加层生成器</p>
 <div class="hero"><p>免费在线CSS叠加层生成器，可视化创建图片/背景叠加效果。支持颜色叠加、渐变叠加、毛玻璃(backdrop-filter)效果、暗色遮罩、自定义不透明度和混合模式，一键生成HTML+CSS代码。纯前端本地运行。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section">
-    </div>
-  </div>
   <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
   <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 14px;border-radius:20px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.12)">
@@ -143,12 +140,17 @@ select:focus{border-color:rgba(6,182,212,.4)}
     Updated: 2026-07-11
   </span>
 </div>
-
   </div>
+  <div class="section">
+    <h2>实时预览</h2>
+    <div class="overlay-preview" id="overlayPreview">
+      <div class="overlay-layer" id="overlayLayer"><span class="demo-text" id="demoText">叠加层效果预览</span></div>
+    </div>
     <div class="preview-text-input">
       <input type="text" id="demoTextInput" value="叠加层效果预览" placeholder="自定义预览文字">
     </div>
-  
+  </div>
+
 
   <div class="section">
     <h2>叠加层设置</h2>
@@ -321,7 +323,7 @@ select:focus{border-color:rgba(6,182,212,.4)}
 <div>
 <!-- AdSense -->
 
-<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#374151;">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px;"><a href="/acronym-generator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔤 缩写词生成器</a><a href="/add-watermark/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔏 图片添加水印工具</a><a href="/audio-crossfade/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">音频交叉渐变</a></div></section>
+<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#f1f5f9;">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px;"><a href="/acronym-generator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔤 缩写词生成器</a><a href="/add-watermark/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔏 图片添加水印工具</a><a href="/audio-crossfade/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">音频交叉渐变</a></div></section>
 <footer class="footer container">
 <div style="margin-bottom:12px">
 <a href="../index.html">首页</a>
@@ -352,6 +354,99 @@ const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**:
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
 document.getElementById('feedback-success').style.display='block';
 }
+
+function hexToRgba(hex,alpha){
+  var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return 'rgba('+r+','+g+','+b+','+alpha+')';
+}
+function showTab(name){
+  document.querySelectorAll('.tab-bar .tab').forEach(function(b){b.classList.toggle('active',b.dataset.tab===name)});
+  document.querySelectorAll('.tab-content').forEach(function(c){c.classList.toggle('active',c.id==='tab-'+name)});
+  updateOverlay();
+}
+document.querySelectorAll('.tab-bar .tab').forEach(function(b){b.addEventListener('click',function(){showTab(b.dataset.tab)});});
+function getOverlayCSS(){
+  var active=document.querySelector('.tab-bar .tab.active').dataset.tab;
+  var blend=document.getElementById('mixBlendMode').value;
+  var radius=document.getElementById('borderRadius').value;
+  var css='';
+  if(active==='solid'){
+    var c=document.getElementById('solidColor').value;
+    var o=(document.getElementById('solidOpacity').value)/100;
+    css='.overlay {\n  background-color: '+hexToRgba(c,o)+';\n  mix-blend-mode: '+blend+';\n  border-radius: '+radius+'px;\n}';
+  }else if(active==='gradient'){
+    var s=document.getElementById('gradStart').value;
+    var e=document.getElementById('gradEnd').value;
+    var dir=document.getElementById('gradDirection').value;
+    var go=(document.getElementById('gradOpacity').value)/100;
+    css='.overlay {\n  background: linear-gradient('+dir+', '+hexToRgba(s,go)+', '+hexToRgba(e,go)+');\n  mix-blend-mode: '+blend+';\n  border-radius: '+radius+'px;\n}';
+  }else{
+    var blur=document.getElementById('blurIntensity').value;
+    var bright=document.getElementById('glassBrightness').value;
+    var gbg=document.getElementById('glassBgColor').value;
+    var go2=(document.getElementById('glassOpacity').value)/100;
+    var bo=(document.getElementById('glassBorderOpacity').value)/100;
+    css='.overlay {\n  background: '+hexToRgba(gbg,go2)+';\n  backdrop-filter: blur('+blur+'px) brightness('+bright+');\n  -webkit-backdrop-filter: blur('+blur+'px) brightness('+bright+');\n  border: 1px solid rgba(255,255,255,'+bo+');\n  border-radius: '+radius+'px;\n}';
+  }
+  return css;
+}
+function updateOverlay(){
+  var layer=document.getElementById('overlayLayer');
+  if(!layer)return;
+  var active=document.querySelector('.tab-bar .tab.active').dataset.tab;
+  var blend=document.getElementById('mixBlendMode').value;
+  var radius=document.getElementById('borderRadius').value;
+  layer.style.mixBlendMode=blend;
+  layer.style.borderRadius=radius+'px';
+  if(active==='solid'){
+    var c=document.getElementById('solidColor').value;
+    var o=(document.getElementById('solidOpacity').value)/100;
+    layer.style.background=hexToRgba(c,o);
+    layer.style.backdropFilter='none';layer.style.webkitBackdropFilter='none';layer.style.border='none';
+  }else if(active==='gradient'){
+    var s=document.getElementById('gradStart').value;
+    var e=document.getElementById('gradEnd').value;
+    var dir=document.getElementById('gradDirection').value;
+    var go=(document.getElementById('gradOpacity').value)/100;
+    layer.style.background='linear-gradient('+dir+', '+hexToRgba(s,go)+', '+hexToRgba(e,go)+')';
+    layer.style.backdropFilter='none';layer.style.webkitBackdropFilter='none';layer.style.border='none';
+  }else{
+    var blur=document.getElementById('blurIntensity').value;
+    var bright=document.getElementById('glassBrightness').value;
+    var gbg=document.getElementById('glassBgColor').value;
+    var go2=(document.getElementById('glassOpacity').value)/100;
+    var bo=(document.getElementById('glassBorderOpacity').value)/100;
+    layer.style.background=hexToRgba(gbg,go2);
+    layer.style.backdropFilter='blur('+blur+'px) brightness('+bright+')';
+    layer.style.webkitBackdropFilter='blur('+blur+'px) brightness('+bright+')';
+    layer.style.border='1px solid rgba(255,255,255,'+bo+')';
+  }
+  document.getElementById('solidOpacityValue').textContent=document.getElementById('solidOpacity').value;
+  document.getElementById('gradOpacityValue').textContent=document.getElementById('gradOpacity').value;
+  document.getElementById('blurValue').textContent=document.getElementById('blurIntensity').value;
+  document.getElementById('brightnessValue').textContent=parseFloat(document.getElementById('glassBrightness').value).toFixed(1);
+  document.getElementById('glassOpacityValue').textContent=document.getElementById('glassOpacity').value;
+  document.getElementById('glassBorderValue').textContent=document.getElementById('glassBorderOpacity').value;
+  document.getElementById('borderRadiusValue').textContent=document.getElementById('borderRadius').value;
+  document.getElementById('cssOutput').textContent=getOverlayCSS();
+}
+['solidColor','solidOpacity','gradStart','gradEnd','gradDirection','gradOpacity','blurIntensity','glassBrightness','glassBgColor','glassOpacity','glassBorderOpacity','mixBlendMode','borderRadius'].forEach(function(id){
+  var el=document.getElementById(id);
+  if(el){el.addEventListener('input',updateOverlay);el.addEventListener('change',updateOverlay);}
+});
+document.getElementById('demoTextInput').addEventListener('input',function(){document.getElementById('demoText').textContent=this.value||'叠加层效果预览';});
+function buildFullHtml(){
+  var css=getOverlayCSS();
+  var html='<div class="preview-wrap">\n  <div class="overlay"><span class="demo-text">'+document.getElementById('demoTextInput').value+'</span></div>\n</div>';
+  return '/* CSS */\n'+css+'\n\n/* HTML */\n'+html;
+}
+document.getElementById('copyCssBtn').addEventListener('click',function(){
+  navigator.clipboard.writeText(document.getElementById('cssOutput').textContent).then(function(){showToast('CSS代码已复制')})["catch"](function(){showToast('复制失败')});
+});
+document.getElementById('copyAllBtn').addEventListener('click',function(){
+  navigator.clipboard.writeText(buildFullHtml()).then(function(){showToast('HTML+CSS已复制')})["catch"](function(){showToast('复制失败')});
+});
+updateOverlay();
 
 </script>
 </body>

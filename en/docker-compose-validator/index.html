@@ -268,7 +268,7 @@ function simpleYAMLParse(text){
       var key=kvMatch[1];var val=kvMatch[2].trim();
       var parent=stack[stack.length-1].obj;
       if(parent&&typeof parent==='object'){
-        if(key in parent)result.errors.push({line:i+1,type:'error',msg:'重复键名: '+key});
+        if(key in parent)result.errors.push({line:i+1,type:'error',msg:'Duplicate key: '+key});
         if(val===''||val[0]==='|'||val[0]==='>'){
           parent[key]={};
           stack.push({indent:indent,key:key,obj:parent[key],isArray:false});
@@ -293,14 +293,14 @@ function validate(){
   var input=document.getElementById('composeInput').value.trim();
   var resultArea=document.getElementById('resultArea');
   var statsEl=document.getElementById('stats');
-  if(!input){resultArea.innerHTML='<div class="result-item info"><span class="icon">ℹ️</span><span class="msg">Please enterdocker-compose.yml内容</span></div>';statsEl.innerHTML='';return;}
+  if(!input){resultArea.innerHTML='<div class="result-item info"><span class="icon">ℹ️</span><span class="msg">Please enter docker-compose.yml content</span></div>';statsEl.innerHTML='';return;}
   var issues=[];
   var parsed=simpleYAMLParse(input);
   parsed.errors.forEach(function(e){issues.push(e);});
   var data=parsed.data;
   var lines=input.split('\n');
 
-  if(!data.version&&!data.services)issues.push({line:1,type:'error',msg:'缺少version或services顶级键'});
+  if(!data.version&&!data.services)issues.push({line:1,type:'error',msg:'Missing top-level version or services key'});
   if(data.services&&typeof data.services==='object'){
     var serviceNames=Object.keys(data.services);
     var definedNetworks=data.networks?Object.keys(data.networks):[];
@@ -308,13 +308,13 @@ function validate(){
     serviceNames.forEach(function(name){
       var svc=data.services[name];
       if(typeof svc!=='object')return;
-      if(!svc.image&&!svc.build)issues.push({type:'error',msg:'服务 "'+name+'" 缺少image或build字段'});
+      if(!svc.image&&!svc.build)issues.push({type:'error',msg:'Service "'+name+'" is missing image or build field'});
       if(svc.ports){
         var ports=Array.isArray(svc.ports)?svc.ports:[svc.ports];
         ports.forEach(function(p){
           var ps=String(p);
           if(ps&&!ps.match(/^\d+:\d+$/)&&!ps.match(/^\d+:\d+\/(tcp|udp)$/)&&!ps.match(/^\d+-\d+:\d+-\d+$/)){
-            issues.push({type:'warning',msg:'服务 "'+name+'" 端口格式可能不正确: '+ps});
+            issues.push({type:'warning',msg:'Service "'+name+'" port format may be incorrect: '+ps});
           }
         });
       }
@@ -322,24 +322,24 @@ function validate(){
         var vols=Array.isArray(svc.volumes)?svc.volumes:[svc.volumes];
         vols.forEach(function(v){
           var vs=String(v);
-          if(vs&&vs[0]===':')issues.push({type:'error',msg:'服务 "'+name+'" 卷挂载缺少源路径: '+vs});
-          if(vs&&vs.split(':').length===3){var mode=vs.split(':')[2];if(mode!=='ro'&&mode!=='rw')issues.push({type:'warning',msg:'服务 "'+name+'" 卷挂载模式Invalid: '+mode});}
+          if(vs&&vs[0]===':')issues.push({type:'error',msg:'Service "'+name+'" volume mount is missing source path: '+vs});
+          if(vs&&vs.split(':').length===3){var mode=vs.split(':')[2];if(mode!=='ro'&&mode!=='rw')issues.push({type:'warning',msg:'Service "'+name+'" volume mount mode is invalid: '+mode});}
         });
       }
       if(svc.depends_on){
         var deps=Array.isArray(svc.depends_on)?svc.depends_on:[svc.depends_on];
-        deps.forEach(function(d){if(serviceNames.indexOf(d)===-1)issues.push({type:'error',msg:'服务 "'+name+'" depends_on引用了未定义的服务 "'+d+'"'});});
+        deps.forEach(function(d){if(serviceNames.indexOf(d)===-1)issues.push({type:'error',msg:'Service "'+name+'" depends_on references an undefined service "'+d+'"'});});
       }
       if(svc.networks){
         var nets=Array.isArray(svc.networks)?svc.networks:typeof svc.networks==='object'?Object.keys(svc.networks):[svc.networks];
-        nets.forEach(function(n){if(definedNetworks.indexOf(n)===-1)issues.push({type:'warning',msg:'服务 "'+name+'" 引用了未定义的网络 "'+n+'"'});});
+        nets.forEach(function(n){if(definedNetworks.indexOf(n)===-1)issues.push({type:'warning',msg:'Service "'+name+'" references an undefined network "'+n+'"'});});
       }
     });
     var seen={};
     lines.forEach(function(line,i){
       var m=line.match(/^\s{2}([a-zA-Z0-9_-]+)\s*:/);
       if(m&&m[1]===m[1].toLowerCase()){
-        if(seen[m[1]])issues.push({line:i+1,type:'error',msg:'重复的服务名: '+m[1]});
+        if(seen[m[1]])issues.push({line:i+1,type:'error',msg:'Duplicate service name: '+m[1]});
         seen[m[1]]=true;
       }
     });
@@ -347,15 +347,15 @@ function validate(){
 
   var errors=issues.filter(function(i){return i.type==='error';}).length;
   var warnings=issues.filter(function(i){return i.type==='warning';}).length;
-  statsEl.innerHTML='<div class="stat errors">❌ Error: '+errors+'</div><div class="stat warnings">⚠️ Warning: '+warnings+'</div>'+(errors===0&&warnings===0?'<div class="stat passed">✅ 验证通过</div>':'');
+  statsEl.innerHTML='<div class="stat errors">❌ Error: '+errors+'</div><div class="stat warnings">⚠️ Warning: '+warnings+'</div>'+(errors===0&&warnings===0?'<div class="stat passed">✅ Valid</div>':'');
 
   if(issues.length===0){
-    resultArea.innerHTML='<div class="result-item info"><span class="icon">✅</span><span class="msg">docker-compose.yml验证通过，未发现语法或配置问题。</span></div>';
+    resultArea.innerHTML='<div class="result-item info"><span class="icon">✅</span><span class="msg">docker-compose.yml is valid. No syntax or configuration issues found.</span></div>';
   }else{
     resultArea.innerHTML=issues.map(function(i){
       var cls=i.type==='error'?'error':'warning';
       var icon=i.type==='error'?'❌':'⚠️';
-      var lineStr=i.line?'<span class="line">行'+i.line+'</span>':'<span class="line">-</span>';
+      var lineStr=i.line?'<span class="line">Line '+i.line+'</span>':'<span class="line">-</span>';
       return '<div class="result-item '+cls+'"><span class="icon">'+icon+'</span>'+lineStr+'<span class="msg">'+i.msg+'</span></div>';
     }).join('');
   }

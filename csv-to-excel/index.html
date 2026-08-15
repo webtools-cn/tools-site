@@ -98,6 +98,8 @@ textarea{
 .main-grid{display:grid;gap:20px;margin-bottom:20px}
 .section{background:#1e293b;border:1px solid rgba(148,163,184,.1);border-radius:12px;padding:20px;margin-bottom:16px}
 
+.hero{margin-bottom:24px;color:#94a3b8;font-size:.95rem}
+.hero p{color:#94a3b8;font-size:1rem;margin-bottom:8px}
 /* Visual enhancement v2 */
 .btn-primary{transition:all .2s ease;box-shadow:0 2px 8px rgba(6,182,212,.15)}
 .btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(6,182,212,.3);filter:brightness(1.08)}
@@ -242,8 +244,7 @@ document.getElementById('feedback-success').style.display='block';
 <div id="related-tools-section" class="related-tools-section">
   <div class="related-tools-loading">加载相关工具中...</div>
 </div>
-<script src="https://free-toolbase.com/related-tools.js"></script>
-<div class="toast" id="toast"></div></main>
+<script src="https://free-toolbase.com/related-tools.js"></script></main>
 
 
 <div>
@@ -278,5 +279,204 @@ const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**:
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
 document.getElementById('feedback-success').style.display='block';
 }</script>
+<script>
+(function(){
+  'use strict';
+  var uploadZone=document.getElementById('uploadZone');
+  var fileInput=document.getElementById('fileInput');
+  var csvInput=document.getElementById('csvInput');
+  var delimiter=document.getElementById('delimiter');
+  var headerRow=document.getElementById('headerRow');
+  var convertBtn=document.getElementById('convertBtn');
+  var sampleBtn=document.getElementById('sampleBtn');
+  var downloadBtn=document.getElementById('downloadBtn');
+  var clearBtn=document.getElementById('clearBtn');
+  var previewArea=document.getElementById('previewArea');
+  var excelInfo=document.getElementById('excelInfo');
+  if(!convertBtn||!csvInput)return;
+
+  var currentData=null;
+
+  uploadZone.addEventListener('click',function(){fileInput.click();});
+  uploadZone.addEventListener('dragover',function(e){e.preventDefault();uploadZone.classList.add('dragover');});
+  uploadZone.addEventListener('dragleave',function(){uploadZone.classList.remove('dragover');});
+  uploadZone.addEventListener('drop',function(e){
+    e.preventDefault();uploadZone.classList.remove('dragover');
+    if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change',function(e){if(e.target.files[0])handleFile(e.target.files[0]);});
+
+  function handleFile(file){
+    var reader=new FileReader();
+    reader.onload=function(e){csvInput.value=e.target.result;convertBtn.click();};
+    reader.readAsText(file);
+  }
+
+  function parseCSV(text,delim){
+    var lines=text.split('\n').filter(function(l){return l.trim();});
+    if(lines.length===0)return[];
+    var rows=[];
+    for(var li=0;li<lines.length;li++){
+      var line=lines[li],row=[],cur='',inQ=false;
+      for(var i=0;i<line.length;i++){
+        var ch=line[i];
+        if(ch==='"'){
+          if(inQ&&i+1<line.length&&line[i+1]==='"'){cur+='"';i++;}
+          else inQ=!inQ;
+        }else if(ch===delim&&!inQ){row.push(cur);cur='';}
+        else cur+=ch;
+      }
+      row.push(cur);
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  convertBtn.addEventListener('click',function(){
+    var text=csvInput.value.trim();
+    if(!text){showToast('请输入或上传CSV数据');return;}
+    var delim=delimiter.value==='\t'?'\t':delimiter.value;
+    var rows=parseCSV(text,delim);
+    if(rows.length===0){showToast('没有可解析的数据');return;}
+    currentData={rows:rows,hasHeader:headerRow.value==='1'};
+    var html='<table style="width:100%;border-collapse:collapse;font-size:.85rem">';
+    for(var i=0;i<Math.min(rows.length,20);i++){
+      html+='<tr>';
+      for(var j=0;j<rows[i].length;j++){
+        var tag=(currentData.hasHeader&&i===0)?'th':'td';
+        html+='<'+tag+' style="border:1px solid rgba(148,163,184,.2);padding:4px 8px;text-align:left;color:#e2e8f0">'+escHtml(rows[i][j])+'</'+tag+'>';
+      }
+      html+='</tr>';
+    }
+    if(rows.length>20){
+      html+='<tr><td colspan="'+rows[0].length+'" style="border:1px solid rgba(148,163,184,.2);padding:4px 8px;color:#64748b;text-align:center">... 还有 '+(rows.length-20)+' 行未显示</td></tr>';
+    }
+    html+='</table>';
+    previewArea.innerHTML=html;
+    excelInfo.textContent='📊 '+rows.length+' 行 × '+rows[0].length+' 列';
+    excelInfo.style.display='block';
+    downloadBtn.disabled=false;
+    showToast('转换完成');
+  });
+
+  // ---- 纯前端 XLSX 生成（无外部库） ----
+  var crcTable=(function(){
+    var t=[],c;
+    for(var n=0;n<256;n++){c=n;for(var k=0;k<8;k++){c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);}t[n]=c>>>0;}
+    return t;
+  })();
+  function crc32(data){
+    var c=0xFFFFFFFF;
+    for(var i=0;i<data.length;i++){c=crcTable[(c^data[i])&0xFF]^(c>>>8);}
+    return (c^0xFFFFFFFF)>>>0;
+  }
+  function utf8Bytes(str){return unescape(encodeURIComponent(str));}
+  function strBytes(str){var b=utf8Bytes(str),out=[];for(var i=0;i<b.length;i++)out.push(b.charCodeAt(i));return out;}
+  function zipStore(entries){
+    var out=[],localOffset=0,central=[];
+    function le(arr,pos,val,n){for(var i=0;i<n;i++){arr[pos++]=val&0xff;val=val>>>8;}}
+    for(var e=0;e<entries.length;e++){
+      var name=entries[e].name,data=entries[e].data;
+      var nameBytes=strBytes(name),dataBytes=strBytes(data);
+      var crc=crc32(dataBytes),p=0,lh=[];
+      le(lh,p,0x04034b50,4);p+=4;le(lh,p,20,2);p+=2;le(lh,p,0,2);p+=2;le(lh,p,0,2);p+=2;
+      le(lh,p,0,2);p+=2;le(lh,p,0x21,2);p+=2;
+      le(lh,p,crc,4);p+=4;le(lh,p,dataBytes.length,4);p+=4;le(lh,p,dataBytes.length,4);p+=4;
+      le(lh,p,nameBytes.length,2);p+=2;le(lh,p,0,2);p+=2;
+      for(var i=0;i<nameBytes.length;i++)lh[p++]=nameBytes[i];
+      for(var i=0;i<dataBytes.length;i++)lh[p++]=dataBytes[i];
+      var q=0,ch=[];
+      le(ch,q,0x02014b50,4);q+=4;le(ch,q,20,2);q+=2;le(ch,q,20,2);q+=2;le(ch,q,0,2);q+=2;
+      le(ch,q,0,2);q+=2;le(ch,q,0,2);q+=2;le(ch,q,0x21,2);q+=2;
+      le(ch,q,crc,4);q+=4;le(ch,q,dataBytes.length,4);q+=4;le(ch,q,dataBytes.length,4);q+=4;
+      le(ch,q,nameBytes.length,2);q+=2;le(ch,q,0,2);q+=2;le(ch,q,0,2);q+=2;le(ch,q,0,2);q+=2;
+      le(ch,q,0,2);q+=2;le(ch,q,0,4);q+=4;le(ch,q,localOffset,4);q+=4;
+      for(var i=0;i<nameBytes.length;i++)ch[q++]=nameBytes[i];
+      for(var i=0;i<lh.length;i++)out.push(lh[i]);
+      for(var i=0;i<ch.length;i++)central.push(ch[i]);
+      localOffset+=lh.length;
+    }
+    var eocd=[],r=0;
+    le(eocd,r,0x06054b50,4);r+=4;le(eocd,r,0,2);r+=2;le(eocd,r,0,2);r+=2;
+    le(eocd,r,entries.length,2);r+=2;le(eocd,r,entries.length,2);r+=2;
+    le(eocd,r,central.length,4);r+=4;le(eocd,r,out.length,4);r+=4;le(eocd,r,0,2);r+=2;
+    for(var i=0;i<central.length;i++)out.push(central[i]);
+    for(var i=0;i<eocd.length;i++)out.push(eocd[i]);
+    return out;
+  }
+  function colName(i){var s='';i++;while(i>0){var m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26);}return s;}
+  function escXml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function makeSheetXml(rows){
+    var xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+    xml+='<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>';
+    for(var r=0;r<rows.length;r++){
+      xml+='<row r="'+(r+1)+'">';
+      for(var c=0;c<rows[r].length;c++){
+        xml+='<c r="'+colName(c)+(r+1)+'" t="inlineStr"><is><t xml:space="preserve">'+escXml(rows[r][c])+'</t></is></c>';
+      }
+      xml+='</row>';
+    }
+    xml+='</sheetData></worksheet>';
+    return xml;
+  }
+  function buildXlsx(rows){
+    var contentTypes='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+      '<Default Extension="xml" ContentType="application/xml"/>'+
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+
+      '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'+
+      '</Types>';
+    var rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'+
+      '</Relationships>';
+    var wbRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'+
+      '</Relationships>';
+    var wb='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+      '<sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>';
+    var sheet=makeSheetXml(rows);
+    return zipStore([
+      {name:'[Content_Types].xml',data:contentTypes},
+      {name:'_rels/.rels',data:rels},
+      {name:'xl/workbook.xml',data:wb},
+      {name:'xl/_rels/workbook.xml.rels',data:wbRels},
+      {name:'xl/worksheets/sheet1.xml',data:sheet}
+    ]);
+  }
+
+  downloadBtn.addEventListener('click',function(){
+    if(!currentData)return;
+    var bytes=buildXlsx(currentData.rows);
+    var u8=new Uint8Array(bytes.length);
+    for(var i=0;i<bytes.length;i++)u8[i]=bytes[i];
+    var blob=new Blob([u8],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='converted.xlsx';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    showToast('Excel文件已下载');
+  });
+
+  sampleBtn.addEventListener('click',function(){
+    csvInput.value='Name,Email,Age,City,Occupation\nJohn Doe,john@example.com,28,New York,Engineer\nJane Smith,jane@example.com,34,Los Angeles,Designer\nBob Johnson,bob@example.com,45,Chicago,Manager\nAlice Williams,alice@example.com,31,Houston,Developer\nCharlie Brown,charlie@example.com,22,Phoenix,Student';
+    convertBtn.click();
+  });
+
+  clearBtn.addEventListener('click',function(){
+    csvInput.value='';
+    previewArea.innerHTML='';
+    excelInfo.style.display='none';
+    downloadBtn.disabled=true;
+    currentData=null;
+  });
+})();
+
+</script>
 </body>
 </html>

@@ -235,136 +235,6 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 </div>
 
 
-  const base64Input = document.getElementById('base64Input');
-  const mimeType = document.getElementById('mimeType');
-  const filename = document.getElementById('filename');
-  const detectedInfo = document.getElementById('detectedInfo');
-  const decodeBtn = document.getElementById('decodeBtn');
-  const downloadBtn = document.getElementById('downloadBtn');
-  const clearBtn = document.getElementById('clearBtn');
-  const resultSection = document.getElementById('resultSection');
-  const previewBox = document.getElementById('previewBox');
-  const fileInfo = document.getElementById('fileInfo');
-
-  let decodedBlob = null;
-  let decodedExt = 'bin';
-
-  const extMap = {
-    'image/png':'png','image/jpeg':'jpg','image/gif':'gif','image/svg+xml':'svg',
-    'image/webp':'webp','image/x-icon':'ico','image/bmp':'bmp',
-    'application/pdf':'pdf','audio/mpeg':'mp3','audio/wav':'wav','audio/ogg':'ogg',
-    'video/mp4':'mp4','video/webm':'webm','application/json':'json',
-    'text/plain':'txt','text/html':'html','text/css':'css','text/csv':'csv',
-    'application/xml':'xml','application/zip':'zip','application/gzip':'gz',
-    'application/octet-stream':'bin'
-  };
-
-  base64Input.addEventListener('input', function() {
-    const val = this.value.trim();
-    if (val.startsWith('data:')) {
-      const match = val.match(/^data:([^;]+);base64,/);
-      if (match) {
-        const detectedMime = match[1];
-        detectedInfo.textContent = '🔍 Auto-detected: ' + detectedMime;
-        detectedInfo.classList.add('show');
-        // Set the select to auto
-        mimeType.value = 'auto';
-        const ext = extMap[detectedMime] || 'bin';
-        filename.placeholder = 'download.' + ext;
-      }
-    } else {
-      detectedInfo.classList.remove('show');
-      filename.placeholder = 'download';
-    }
-  });
-
-  decodeBtn.addEventListener('click', function() {
-    const val = base64Input.value.trim();
-    if (!val) { showToast('Please paste a Base64 string'); return; }
-    try {
-      let base64Data = val;
-      let detectedMime = null;
-
-      if (val.startsWith('data:')) {
-        const match = val.match(/^data:([^;]+);base64,(.*)$/s);
-        if (match) {
-          detectedMime = match[1];
-          base64Data = match[2];
-        }
-      }
-
-      const selectedMime = mimeType.value === 'auto' ? detectedMime : mimeType.value;
-      const finalMime = selectedMime || 'application/octet-stream';
-      decodedExt = extMap[finalMime] || 'bin';
-
-      // Decode Base64
-      const binaryStr = atob(base64Data.replace(/\s/g, ''));
-      const bytes = new Uint8Array(binaryStr.length);
-      for (let i = 0; i < binaryStr.length; i++) {
-        bytes[i] = binaryStr.charCodeAt(i);
-      }
-
-      decodedBlob = new Blob([bytes], {type: finalMime});
-      const sizeStr = decodedBlob.size < 1024 ? decodedBlob.size + ' B' :
-        decodedBlob.size < 1048576 ? (decodedBlob.size/1024).toFixed(1) + ' KB' :
-        (decodedBlob.size/1048576).toFixed(1) + ' MB';
-
-      // Preview
-      previewBox.innerHTML = '';
-      if (finalMime.startsWith('image/')) {
-        const img = document.createElement('img');
-        img.src = URL.createObjectURL(decodedBlob);
-        previewBox.appendChild(img);
-      } else if (finalMime === 'application/pdf') {
-        previewBox.innerHTML = '<div class="file-icon">📄</div>';
-      } else if (finalMime.startsWith('audio/')) {
-        previewBox.innerHTML = '<div class="file-icon">🎵</div>';
-        const audio = document.createElement('audio');
-        audio.controls = true;
-        audio.src = URL.createObjectURL(decodedBlob);
-        previewBox.appendChild(audio);
-      } else if (finalMime.startsWith('video/')) {
-        previewBox.innerHTML = '<div class="file-icon">🎬</div>';
-        const video = document.createElement('video');
-        video.controls = true;
-        video.src = URL.createObjectURL(decodedBlob);
-        video.style.maxWidth = '100%';
-        video.style.maxHeight = '300px';
-        previewBox.appendChild(video);
-      } else {
-        previewBox.innerHTML = '<div class="file-icon">📁</div>';
-      }
-
-      fileInfo.innerHTML = 'Type: <span>' + finalMime + '</span> | Size: <span>' + sizeStr + '</span> | Extension: <span>.' + decodedExt + '</span>';
-      resultSection.classList.add('show');
-      downloadBtn.style.display = 'inline-block';
-    } catch(err) {
-      showToast('Decode error: ' + err.message + '\n\nMake sure the input is a valid Base64 string.');
-    }
-  });
-
-  downloadBtn.addEventListener('click', function() {
-    if (!decodedBlob) return;
-    const name = filename.value.trim() || 'download';
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(decodedBlob);
-    a.download = name.endsWith('.' + decodedExt) ? name : name + '.' + decodedExt;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  });
-
-  clearBtn.addEventListener('click', function() {
-    base64Input.value = '';
-    decodedBlob = null;
-    resultSection.classList.remove('show');
-    downloadBtn.style.display = 'none';
-    detectedInfo.classList.remove('show');
-    filename.value = '';
-    filename.placeholder = 'download';
-    mimeType.value = 'auto';
-  });
-
-
 <!-- Feedback Widget -->
 </main><footer>
     <a href="../../">Home</a>
@@ -510,8 +380,8 @@ textarea:focus{border-color:rgba(6,182,212,.5)}
 <script>
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function toggleFeedback(){const p=document.getElementById('feedback-panel');if(!p)return;p.style.display=p.style.display==='none'?'block':'none';}
+const ftText=document.getElementById('feedback-text');if(ftText){ftText.addEventListener('input',function(){const c=document.getElementById('feedback-count');if(c){c.textContent=this.value.length+'/1000';}});}
 function submitFeedback(){
 const type=document.getElementById('feedback-type').value;
 const text=document.getElementById('feedback-text').value.trim();
