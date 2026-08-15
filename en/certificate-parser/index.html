@@ -183,7 +183,7 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <link rel="alternate" hreflang="zh" href="https://free-toolbase.com/certificate-parser/">
 <link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/certificate-parser/">
 
-<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
 </head>
 <body>
 <main class="container">
@@ -315,6 +315,22 @@ function ftFallbackCopy(txt){
     return bytes.buffer;
   }
 
+  function extractSPKI(bytes){
+    var oid=[0x2A,0x86,0x48,0x86,0xF7,0x0D,0x01,0x01,0x01];
+    for(var i=0;i+oid.length<=bytes.length;i++){
+      var match=true;
+      for(var j=0;j<oid.length;j++){
+        if(bytes[i+j]!==oid[j]){match=false;break;}
+      }
+      if(!match)continue;
+      var spkiStart=i-8;
+      if(spkiStart<0||bytes[spkiStart]!==0x30||bytes[spkiStart+1]!==0x82)continue;
+      var spkiLen=(bytes[spkiStart+2]<<8)|bytes[spkiStart+3];
+      return bytes.subarray(spkiStart,spkiStart+4+spkiLen);
+    }
+    return bytes;
+  }
+
   function displayResult(data){
     var table=document.getElementById('certTable');
     var rows=[
@@ -339,8 +355,10 @@ function ftFallbackCopy(txt){
       
       var der=base64ToArrayBuffer(b64);
       var certData={};
+      var derBytes=new Uint8Array(der);
+      var spki=extractSPKI(derBytes);
       
-      crypto.subtle.importKey('spki',der,{name:'RSASSA-PKCS1-v1_5',hash:{name:'SHA-256'}},true,['verify'])
+      crypto.subtle.importKey('spki',spki.buffer.slice(spki.byteOffset,spki.byteOffset+spki.byteLength),{name:'RSASSA-PKCS1-v1_5',hash:{name:'SHA-256'}},true,['verify'])
         .then(function(key){
           return crypto.subtle.exportKey('jwk',key);
         })
@@ -368,7 +386,7 @@ function ftFallbackCopy(txt){
   });
 
   document.getElementById('loadExampleBtn').addEventListener('click',function(){
-    document.getElementById('certInput').value='-----BEGIN CERTIFICATE-----\nMIICWzCCAcSgAwIBAgIJAJQ8xGqN0zKtMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV\nBAYTAkNOMQ8wDQYDVQQIDAZHdWFuZzExEjAQBgNVBAcMCVNpY2h1YW4xETAPBgNV\nBAoMCEV4YW1wbGUwHhcNMjQwMTAxMDAwMDAwWhcNMjUwMTAxMDAwMDAwWjBFMQsw\nCQYDVQQGEwJDTjEPMA0GA1UECAwGR3Vhbmd6MRIwEAYDVQQHDAlTaWNodWFuMREw\nDwYDVQQKDAhFeGFtcGxlMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDJ5mTT\nkKCfHe+8cHh7r1X0gkIoZ2fJKXQpBWW5pLGqJMwILKF7Jjq2LpVJXP5GQ0Aa9XhF\nmLKFVnQ6kQgGZkKj1jK8XpVGHJqMHS6Hc0VHapb9dGcKcZGp2WkO/YGMUHjGGCVL\nj2kFgQqOJj9ZVHXy2qkIQmXXgCnVx0WZCBinQIDAQABo1AwTjAdBgNVHQ4EFgQU\nLHKglII0rFsFgL7Jl6PCCFkXCBQwHwYDVR0jBBgwFoAULHKglII0rFsFgL7Jl6PC\nCFkXCBQwDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOBgQBiL8JZHrN0CqRI\nK2PHkmEt5BGhDJUHZJhHOTqAGVjAKkkRbRnMgQCQXqFHnEFnQEjKKVGmOGQGGHtD\nsQBOM0pGIdrBpVRPEPdKJPgQKNYYO/ZYLtCkA4TACUKRhVUYMCBQYBKjDKZDDKEL\nKuHMPMROXkYRV6lBYAqFZNQaMqHjPw==\n-----END CERTIFICATE-----';
+    document.getElementById('certInput').value='-----BEGIN CERTIFICATE-----\nMIIDzjCCAragAwIBAgIUQ1E/tY40VHAIFZdXQmXWNSHF+bwwDQYJKoZIhvcNAQEL\nBQAwYjELMAkGA1UEBhMCQ04xEjAQBgNVBAgMCUd1YW5nemhvdTESMBAGA1UEBwwJ\nR3Vhbmd6aG91MRUwEwYDVQQKDAxGcmVlVG9vbEJhc2UxFDASBgNVBAMMC2V4YW1w\nbGUuY29tMB4XDTI2MDgxNTE1NDMzMloXDTM2MDgxMjE1NDMzMlowYjELMAkGA1UE\nBhMCQ04xEjAQBgNVBAgMCUd1YW5nemhvdTESMBAGA1UEBwwJR3Vhbmd6aG91MRUw\nEwYDVQQKDAxGcmVlVG9vbEJhc2UxFDASBgNVBAMMC2V4YW1wbGUuY29tMIIBIjAN\nBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3jIXmBJguMLcxueqBVs7GCsMiStf\nAVcjjZyg3lO1qu8AmCe/MftzWsjRyxjJrOmnxoHphichumfOQky9Q5o8n8YhUdcr\n/bMO3CWSU4PGn2bd9gDyWJnjEhrUbkbL+kqkmWdpZhTa7Ha9clxbcMdFsoNeBh1Q\n0kbXNV/4mOyj56iX8YgPRdzRSdSurHf8+I8HV6RwgQgtfWuZazp1xHOvk4gINJ9u\nnnoxgA3J8ARj68QH6krXKS8AmGEC4mnEE1bILcQOnWwxj/KQb7VxYkfZgpTMN8IK\nBuNVpEDqkegrSMynTpoTvjD/tqi6E5Xi+QM6nxt72gDgqVbae4JV8p7TnwIDAQAB\no3wwejAdBgNVHQ4EFgQUotYqoaefRQJLHwBj/2ndyr/xk7owHwYDVR0jBBgwFoAU\notYqoaefRQJLHwBj/2ndyr/xk7owDwYDVR0TAQH/BAUwAwEB/zAnBgNVHREEIDAe\nggtleGFtcGxlLmNvbYIPd3d3LmV4YW1wbGUuY29tMA0GCSqGSIb3DQEBCwUAA4IB\nAQAGwktjNcPbh4m4q+sYP4tC4zeqNociesTElyXjpUT1dSZUKbI+iaPJwHRLCg6d\n9N3ESo5dTEv4eUim39OZOQ/ruMBmfnftcCv8qs04LBQrgUv5+XH562+ltG1HCTJY\nV4yHiYBGe0D4LZrnkiHL7Ox+ouQa/sAbCeSuUlpE7XVpH3eZMranvw9xt9AowPlH\n5GvmKGmYOLto9ACFGIDJnd9R61YvOEoeapMsn5Sj+bZ0MbWQieFrZQGj9IikhM4X\nhJs8bWMDKdapUo8jx6C9wO42KecYsgaK1LziBAINInAU2OnTvRSkcx7gZojxGF22\n30UEkSSrZLf16xfaZylDHZzi\n-----END CERTIFICATE-----';
     parseFullCert(document.getElementById('certInput').value);
   });
 

@@ -137,7 +137,7 @@ a{color:#06b6d4;text-decoration:none}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
 
-<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
 </head>
 <body>
 <main class="container">
@@ -225,19 +225,31 @@ class X509Cert{
     if((tag&0x20)===0x20){
       let items=[];
       while(dataOff<dataEnd){
-        let [itemLen,nextOff]=this.readLen(dataOff+1);
-        items.push({tag:this.view.getUint8(dataOff),start:dataOff,end:dataOff+2+itemLen});
-        dataOff=dataOff+2+itemLen;
+        let[itemLen,nextOff]=this.readLen(dataOff+1);
+        items.push({tag:this.view.getUint8(dataOff),start:dataOff,end:nextOff+itemLen});
+        dataOff=nextOff+itemLen;
       }
-      if(tag===0x30&&items.length>=6){
-        this.subject=this._extractName(items[4].start,items[4].end);
-        this.issuer=this._extractName(items[2].start,items[2].end);
-        this.notBefore=this._extractTime(items[3].start,items[3].end,0);
-        this.notAfter=this._extractTime(items[3].start,items[3].end,1);
-        this.serial=this._extractHex(items[0].start,items[0].end);
-        this.sigAlg=this._extractOID(items[1].start+2,items[1].end);
-        this.isExpired=new Date(this.notAfter)<new Date();
-        this.sans=this._extractSANs(items);
+      if(tag===0x30&&items.length>=3&&items[0].tag===0x30){
+        let tbs=items[0];
+        let tItems=[];
+        let[llen,lnOff]=this.readLen(tbs.start+1);
+        let o=lnOff,tEnd=lnOff+llen;
+        while(o<tEnd){
+          let[il,no]=this.readLen(o+1);
+          tItems.push({tag:this.view.getUint8(o),start:o,end:no+il});
+          o=no+il;
+        }
+        if(tItems.length>=5){
+          let off=tItems[0].tag===0xa0?1:0;
+          this.serial=this._extractHex(tItems[off].start,tItems[off].end);
+          this.sigAlg=this._extractOID(tItems[off+1].start+2,tItems[off+1].end);
+          this.issuer=this._extractName(tItems[off+2].start,tItems[off+2].end);
+          this.notBefore=this._extractTime(tItems[off+3].start,tItems[off+3].end,0);
+          this.notAfter=this._extractTime(tItems[off+3].start,tItems[off+3].end,1);
+          this.subject=this._extractName(tItems[off+4].start,tItems[off+4].end);
+          this.isExpired=new Date(this.notAfter)<new Date();
+          this.sans=this._extractSANs(tItems);
+        }
       }
     }
   }
@@ -264,7 +276,6 @@ class X509Cert{
           else if(oid==='85.4.6')names.push('C='+str);
           else if(oid==='85.4.10')names.push('O='+str);
         }
-        break;
       }
       return names.join(', ')||'N/A';
     }catch(e){return 'N/A'}
@@ -278,7 +289,14 @@ class X509Cert{
         let[len,noff]=this.readLen(off);off=noff;
         let ts=new TextDecoder().decode(new Uint8Array(this.view.buffer,off,len));
         off+=len;
-        let y=ts.slice(0,4),m=ts.slice(4,6),d=ts.slice(6,8),h=ts.slice(8,10)||'00',mi=ts.slice(10,12)||'00',sec=ts.slice(12,14)||'00';
+        let y,m,d,h,mi,sec;
+        if(ts.length>=15&&(ts[0]==='2'||ts[0]==='1')){
+          y=ts.slice(0,4);m=ts.slice(4,6);d=ts.slice(6,8);h=ts.slice(8,10);mi=ts.slice(10,12);sec=ts.slice(12,14);
+        }else{
+          let yy=parseInt(ts.slice(0,2),10);
+          y=(yy>=50?'19':'20')+ts.slice(0,2);
+          m=ts.slice(2,4);d=ts.slice(4,6);h=ts.slice(6,8)||'00';mi=ts.slice(8,10)||'00';sec=ts.slice(10,12)||'00';
+        }
         items.push(y+'-'+m+'-'+d+' '+h+':'+mi+':'+sec);
       }
       return items[idx]||'N/A';
@@ -297,9 +315,13 @@ class X509Cert{
     try{
       for(let item of items){
         if(item.tag===0xa3){
-          let off=item.start+2;
-          let[extLen,nOff]=this.readLen(off);off=nOff;
+          let[extLen,nOff]=this.readLen(item.start+1);
+          let off=nOff;
           let end=off+extLen;
+          if(this.view.getUint8(off)!==0x30)continue;
+          let[seqLen,seqNoff]=this.readLen(off+1);
+          off=seqNoff;
+          end=off+seqLen;
           while(off<end){
             let extTag=this.view.getUint8(off);off++;
             let[el,no]=this.readLen(off);off=no;
@@ -308,17 +330,22 @@ class X509Cert{
             let[oidL,oo]=this.readLen(off);off=oo;
             let oid=Array.from(new Uint8Array(this.view.buffer,off,oidL)).join('.');
             off+=oidL;
+            if(this.view.getUint8(off)===0x01){off+=2;}
             if(oid==='85.29.17'){
               let octTag=this.view.getUint8(off);off++;
               let[octL,oo2]=this.readLen(off);off=oo2;
-              let sanEnd=off+octL,sans=[];
+              let[snL,snOff]=this.readLen(off+1);
+              off=snOff;
+              let sanEnd=off+snL,sans=[];
               while(off<sanEnd){
                 let type=this.view.getUint8(off);off++;
                 let[dLen,doff]=this.readLen(off);off=doff;
                 let val=new TextDecoder().decode(new Uint8Array(this.view.buffer,off,dLen));
                 off+=dLen;
-                if(type===2)sans.push('DNS:'+val);
-                else if(type===7)sans.push('IP:'+val);
+                if(type===0x82)sans.push('DNS:'+val);
+                else if(type===0x87)sans.push('IP:'+val);
+                else if(type===0x81)sans.push('EMAIL:'+val);
+                else if(type===0x86)sans.push('URI:'+val);
                 else sans.push('TYPE'+type+':'+val);
               }
               return sans;
