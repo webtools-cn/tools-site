@@ -1,0 +1,44 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>overflow check</title></head>
+<body style="background:#111">
+<div id="out">waiting</div>
+<script>
+var pages = [
+  "en/compass-online/index.html",
+  "en/compatibility-test/index.html",
+  "en/complaint-letter/index.html",
+  "en/composting-calculator/index.html",
+  "en/compound-interest-calc/index.html",
+  "en/compound-interest-monthly/index.html",
+  "en/concrete-calculator/index.html",
+  "en/concrete-slab-calculator/index.html"
+];
+var results = [];
+var base = "/";
+function run(i) {
+  if (i >= pages.length) {
+    document.getElementById("out").textContent = "RESULTS:" + JSON.stringify(results);
+    return;
+  }
+  var f = document.createElement("iframe");
+  f.style.width = "375px";
+  f.style.height = "600px";
+  f.style.border = "none";
+  f.onload = function() {
+    setTimeout(function() {
+      try {
+        var d = f.contentDocument;
+        var scw = d.documentElement.scrollWidth;
+        var bodyw = d.body ? d.body.scrollWidth : 0;
+        var cw = d.documentElement.clientWidth;
+        results.push({ p: pages[i], docScrollW: scw, bodyScrollW: bodyw, clientW: cw, overflow: Math.max(scw, bodyw) > cw + 1 });
+      } catch (e) { results.push({ p: pages[i], err: e.message }); }
+      document.body.removeChild(f);
+      run(i + 1);
+    }, 800);
+  };
+  f.src = base + pages[i];
+  document.body.appendChild(f);
+}
+run(0);
+</script>
+</body></html>
