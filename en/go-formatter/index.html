@@ -56,7 +56,7 @@
       "name": "What formatting options are available?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Indentation (2/4 spaces/Tab), brace style (same-line/next-line), operator spacing, blank line cleanup, trailing whitespace removal• \u003cstrong\u003eGo-style indentation\u003c/strong\u003e — Default Tab indentation (gofmt standard)."
+        "text": "Indentation (2/4 spaces/Tab), brace style (same-line/next-line), operator spacing, blank line cleanup, and trailing whitespace removal."
       }
     },
     {
@@ -72,7 +72,7 @@
       "name": "Is my data secure?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. Every operation runs on your device — Operator spacing and Remove extra blank l are never sent to a server. No data is sent to any server."
+        "text": "Yes. Every operation runs on your device. No data is sent to any server."
       }
     }
   ]
@@ -160,7 +160,7 @@
 .faq-item p{color:#94a3b8;font-size:.88rem;line-height:1.6;padding-left:30px}
 </style>
 
-<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
 <link rel="alternate" hreflang="zh" href="https://free-toolbase.com/go-formatter/">
 <link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/go-formatter/">
 <link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/go-formatter/">
@@ -260,7 +260,7 @@ return strings.Join(items,",")}</textarea>
       • <strong>Operator Spacing</strong> — Add proper spaces around operators<br>
       • <strong>Blank Line Cleanup</strong> — Remove consecutive blank lines<br>
       • <strong>Go-style indentation</strong> — Default Tab indentation (gofmt standard)<br>
-      <em style="color:#64748b">Note: This tool provides basic formatting without complex AST analysis. All computation happens on your device — Operator spacing, Remove extra blank l and other inputs stay in your browser.</em>
+      <em style="color:#64748b">Note: This tool provides basic formatting without complex AST analysis. All computation happens on your device — your code and inputs stay in your browser.</em>
     </p>
   </div>
   <div class="section">
@@ -274,18 +274,16 @@ return strings.Join(items,",")}</textarea>
       <p style="margin-top:8px">Supports basic Go syntax structures including functions, classes, and control flow. For complex nesting, consider using an IDE formatter.</p></details>
     </div>
   </div>
-  
+
 <div>
 <!-- AdSense -->
 
-
-    <p>Online Tools Matrix · Free · Secure · Practical</p>
-  </div>
+</div>
 
 <script>
 
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("Copy")})["catch"](function(){showToast("CopyFailed")})}
+function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.value||el.textContent||'';if(!t){showToast('Nothing to copy');return;}function done(){showToast('Copied!')}function fb(){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(e){showToast('Copy failed')}document.body.removeChild(ta)}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done)['catch'](fb)}else{fb()}}
 (function() {
   'use strict';
   var s = document.getElementById('related-tools-section');
@@ -318,23 +316,120 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
-function copyOutput() {
-  var text = document.getElementById('output').innerText;
-  if (!text) { showToast('没有可Copy的Result'); return; }
-  copyText(text);
+// === Go formatter implementation ===
+function spaceOperators(s){
+  var res='';var i=0;var inStr=null;
+  function needSpaceBefore(){return res.length>0&&res.charAt(res.length-1)!==' ';}
+  while(i<s.length){
+    var ch=s.charAt(i);
+    if(inStr){res+=ch;if(ch==='\\'){i++;if(i<s.length){res+=s.charAt(i);}}else if(ch===inStr){inStr=null;}i++;continue;}
+    if(ch==='"'||ch==="'"||ch==='`'){inStr=ch;res+=ch;i++;continue;}
+    if(ch==='/'&&s.charAt(i+1)==='/'){res+=s.slice(i);break;}
+    var op2=s.substr(i,2),op3=s.substr(i,3);
+    if(op2==='++'||op2==='--'){res+=op2;i+=2;continue;}
+    if(op3==='<<='||op3==='>>='){if(needSpaceBefore())res+=' ';res+=op3;if(s.charAt(i+3)&&' ,)]};'.indexOf(s.charAt(i+3))<0)res+=' ';i+=3;continue;}
+    if(op2===':='||op2==='=='||op2==='!='||op2==='>='||op2==='<='||op2==='&&'||op2==='||'||op2==='+='||op2==='-='||op2==='*='||op2==='/='||op2==='%='||op2==='&='||op2==='|='||op2==='^='||op2==='<<'||op2==='>>'){
+      if(needSpaceBefore())res+=' ';
+      res+=op2;
+      if(s.charAt(i+2)&&' ,)]};'.indexOf(s.charAt(i+2))<0)res+=' ';
+      i+=2;continue;
+    }
+    if(ch==='='||ch==='+'||ch==='-'||ch==='*'||ch==='/'||ch==='%'||ch==='<'||ch==='>'||ch==='&'||ch==='|'||ch==='^'){
+      var prev=res.length?res.charAt(res.length-1):'';
+      var next=s.charAt(i+1);
+      var unary=(ch==='+'||ch==='-')&&'([{,;:=!?&|<>*/%^+-'.indexOf(prev)>=0;
+      var deref=(ch==='*')&&'([,{;:=+-'.indexOf(prev)>=0;
+      if(unary||deref){res+=ch;if(next&&'([{'.indexOf(next)<0)res+=' ';i++;continue;}
+      if(needSpaceBefore())res+=' ';
+      res+=ch;
+      if(next&&' ,)]};'.indexOf(next)<0)res+=' ';
+      i++;continue;
+    }
+    res+=ch;i++;
+  }
+  return res.replace(/ +/g,' ').replace(/\(\s/g,'(').replace(/\s\)/g,')').replace(/\[\s/g,'[').replace(/\s\]/g,']');
 }
 
+function braceDelta(s){
+  var open=0,close=0,inStr=null;
+  for(var i=0;i<s.length;i++){
+    var c=s.charAt(i);
+    if(inStr){if(c==='\\'){i++;}else if(c===inStr){inStr=null;}continue;}
+    if(c==='"'||c==='\''||c==='`'){inStr=c;continue;}
+    if(c==='/'&&s.charAt(i+1)==='/')break;
+    if(c==='{')open++;else if(c==='}')close++;
+  }
+  return {open:open,close:close};
+}
+
+function sortImports(lines){
+  var out=[];var i=0;
+  while(i<lines.length){
+    var l=lines[i];
+    if(/^\s*import\s*\(/.test(l)){
+      var block=[l];i++;
+      while(i<lines.length&&!/\)/.test(lines[i])){block.push(lines[i]);i++;}
+      if(i<lines.length)block.push(lines[i]);i++;
+      var body=block.slice(1,-1).filter(function(x){return x.trim();}).sort(function(a,b){return a.localeCompare(b);});
+      out.push(block[0]);body.forEach(function(b){out.push(b);});out.push(block[block.length-1]);
+    }else if(/^\s*import\s+(".*"|\w+\s+".*")/.test(l)){
+      var il=[l];i++;
+      while(i<lines.length&&/^\s*import\s+(".*"|\w+\s+".*")/.test(lines[i])){il.push(lines[i]);i++;}
+      il.sort(function(a,b){return a.localeCompare(b);});
+      il.forEach(function(x){out.push(x);});
+    }else{out.push(l);i++;}
+  }
+  return out;
+}
+
+function copyOutput() { copyText('outputCode'); }
+
 function downloadOutput() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Output.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+  var el=document.getElementById('outputCode');
+  if(!el||!el.value){showToast('Nothing to download');return;}
+  var t=el.value;var blob=new Blob([t],{type:'text/plain'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='formatted.go';a.click();
+  URL.revokeObjectURL(a.href);showToast('Downloaded!');
 }
 
 function formatCode() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;try{{var obj=JSON.parse(el.textContent||el.innerText);el.textContent=JSON.stringify(obj,null,2);showToast('Formatted!')}}catch(e){{showToast('Format failed: not valid JSON')}};
+  var input=document.getElementById('inputCode');
+  var output=document.getElementById('outputCode');
+  var errorBox=document.getElementById('errorBox');
+  var code=input?input.value:'';
+  if(errorBox)errorBox.style.display='none';
+  if(!code||!code.trim()){showToast('Please paste Go code first');return;}
+  var indentType=document.getElementById('indentType').value;
+  var braceStyle=document.getElementById('braceStyle').value;
+  var optOperator=document.getElementById('optOperator').checked;
+  var optBlank=document.getElementById('optBlank').checked;
+  var optTrailing=document.getElementById('optTrailing').checked;
+  var optImports=document.getElementById('optImports').checked;
+  var indent=indentType==='tab'?'\t':new Array(parseInt(indentType,10)+1).join(' ');
+  var lines=code.split('\n');var out=[];var depth=0;
+  for(var i=0;i<lines.length;i++){
+    var trimmed=lines[i].trim();
+    if(!trimmed){if(optBlank&&out.length&&out[out.length-1].trim()==='')continue;out.push('');continue;}
+    if(optOperator)trimmed=spaceOperators(trimmed);
+    if(optTrailing)trimmed=trimmed.replace(/\s+$/,'');
+    var d=braceDelta(trimmed);
+    var level=trimmed.charAt(0)==='}'?Math.max(0,depth-d.close):Math.max(0,depth);
+    var pad=level>0?new Array(level+1).join(indent):'';
+    if(braceStyle==='next'&&/^[^{}]+{$/.test(trimmed)){
+      out.push(pad+trimmed.slice(0,-1).trim());out.push(pad+'{');depth+=1;continue;
+    }
+    if(braceStyle==='same'&&trimmed==='{'&&out.length){out[out.length-1]=out[out.length-1]+' {';depth+=1;continue;}
+    out.push(pad+trimmed);
+    depth=depth+d.open-d.close;if(depth<0)depth=0;
+  }
+  if(optImports)out=sortImports(out);
+  output.value=out.join('\n');
+  document.getElementById('origSize').textContent=lines.length;
+  document.getElementById('fmtSize').textContent=out.length;
+  showToast('Formatted!');
 }
 
-
-function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E')
+formatCode();
 </script>
 
   <div class="faq-section">
@@ -353,7 +448,7 @@ function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G
     </div>
     <div class="faq-item">
       <h3>What formatting options are available?</h3>
-      <p>Indentation (2/4 spaces/Tab), brace style (same-line/next-line), operator spacing, blank line cleanup, trailing whitespace removal• <strong>Go-style indentation</strong> — Default Tab indentation (gofmt standard).</p>
+      <p>Indentation (2/4 spaces/Tab), brace style (same-line/next-line), operator spacing, blank line cleanup, and trailing whitespace removal.</p>
     </div>
     <div class="faq-item">
       <h3>Do I need to install software?</h3>
@@ -361,7 +456,7 @@ function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G
     </div>
     <div class="faq-item">
       <h3>Is my data secure?</h3>
-      <p>Yes. Every operation runs on your device — Operator spacing and Remove extra blank l are never sent to a server. No data is sent to any server.</p>
+      <p>Yes. Every operation runs on your device. No data is sent to any server.</p>
     </div>
   </div>
 

@@ -167,343 +167,13 @@ a{color:var(--primary);text-decoration:none}
 </main>
 <div class="toast" id="toast"></div>
 
+<script src="../../libs/qrcode-generator.min.js"></script>
 <script>
 (function(){
 'use strict';
 
 // ===== QR Code Encoder (self-contained, zero dependency) =====
 
-var QR = {};
-
-QR.capacity = [
-  [19,16,13,9],[34,28,22,16],[55,44,34,26],[80,64,48,36],
-  [108,86,62,46],[136,108,76,60],[156,124,88,66],[194,154,110,86],
-  [232,182,132,100],[274,216,154,122],[324,254,180,140],
-  [370,290,206,158],[428,334,244,180],[461,365,261,197],
-  [523,415,295,223],[589,453,325,253],[647,507,367,283],
-  [721,563,397,313],[795,627,445,341],[861,669,485,385],
-  [932,714,512,406],[1006,782,568,442],[1094,860,614,464],
-  [1174,914,664,514],[1276,1000,718,538],[1370,1062,754,596],
-  [1468,1128,808,628],[1531,1193,871,661],[1631,1267,911,701],
-  [1735,1373,985,745],[1843,1455,1033,793],[1955,1541,1115,845],
-  [2071,1631,1171,901],[2191,1725,1231,961],[2309,1812,1286,986],
-  [2434,1914,1354,1054],[2563,1992,1426,1096],[2699,2102,1502,1142],
-  [2809,2216,1582,1222],[2953,2334,1666,1276]
-];
-
-QR.eccTable = {L:0, M:1, Q:2, H:3};
-QR.versionSizes = [21,25,29,33,37,41,45,49,53,57,61,65,69,73,77,81,85,89,93,97,101,105,109,113,117,121,125,129,133,137,141,145,149,153,157,161,165,169,173,177];
-
-QR.genData = function(text, eccLevel){
-  var mode = 4;
-  var ver = 1;
-  var cap;
-  while(ver <= 40){
-    cap = QR.capacity[ver-1][QR.eccTable[eccLevel]];
-    if(text.length <= cap) break;
-    ver++;
-  }
-  if(ver > 40) { ver = 40; }
-  var dataBits = [];
-  dataBits.push(0,1,0,0);
-  var len = text.length;
-  var lenBits = ver <= 9 ? 8 : 16;
-  for(var i = lenBits-1; i >= 0; i--) dataBits.push((len >> i) & 1);
-  for(var i = 0; i < text.length; i++){
-    var c = text.charCodeAt(i);
-    for(var j = 7; j >= 0; j--) dataBits.push((c >> j) & 1);
-  }
-  var termLen = Math.min(4, cap * 8 - dataBits.length);
-  for(var i = 0; i < termLen; i++) dataBits.push(0);
-  while(dataBits.length % 8 !== 0) dataBits.push(0);
-  var padBytes = [0xEC, 0x11];
-  var pi = 0;
-  while(dataBits.length < cap * 8){
-    var b = padBytes[pi % 2];
-    for(var j = 7; j >= 0; j--) dataBits.push((b >> j) & 1);
-    pi++;
-  }
-  return {bits: dataBits, version: ver, eccLevel: eccLevel};
-};
-
-QR.rsGen = function(data, nPar){
-  var gfExp = [];
-  var gfLog = [];
-  var prim = 0x11D;
-  var x = 1;
-  for(var i = 0; i < 256; i++){
-    gfExp[i] = x;
-    gfLog[x] = i;
-    x <<= 1;
-    if(x & 0x100) x ^= prim;
-  }
-  gfLog[1] = 0;
-
-  function gfMul(a,b){
-    if(a === 0 || b === 0) return 0;
-    return gfExp[(gfLog[a] + gfLog[b]) % 255];
-  }
-
-  var gen = [1];
-  for(var i = 0; i < nPar; i++){
-    var term = [1, gfExp[i]];
-    var newGen = [];
-    for(var j = 0; j < gen.length + 1; j++) newGen[j] = 0;
-    for(var j = 0; j < gen.length; j++){
-      for(var k = 0; k < term.length; k++){
-        newGen[j+k] ^= gfMul(gen[j], term[k]);
-      }
-    }
-    gen = newGen;
-  }
-
-  var msg = data.slice();
-  for(var i = 0; i < nPar; i++) msg.push(0);
-  for(var i = 0; i < data.length; i++){
-    var factor = msg[i];
-    if(factor !== 0){
-      for(var j = 0; j < gen.length; j++){
-        msg[i+j] ^= gfMul(gen[j], factor);
-      }
-    }
-  }
-  return msg.slice(data.length);
-};
-
-QR.genECC = function(dataBytes, ver, eccLevel){
-  var blocks = QR.getBlocks(ver, QR.eccTable[eccLevel]);
-  var blockData = [];
-  var offset = 0;
-  for(var i = 0; i < blocks.length; i++){
-    var d = dataBytes.slice(offset, offset + blocks[i].data);
-    var par = QR.rsGen(d, blocks[i].par);
-    blockData.push({data: d, par: par});
-    offset += blocks[i].data;
-  }
-
-  var result = [];
-  var maxData = 0, maxPar = 0;
-  for(var i = 0; i < blocks.length; i++){
-    maxData = Math.max(maxData, blockData[i].data.length);
-    maxPar = Math.max(maxPar, blockData[i].par.length);
-  }
-  for(var i = 0; i < maxData; i++){
-    for(var j = 0; j < blocks.length; j++){
-      if(i < blockData[j].data.length) result.push(blockData[j].data[i]);
-    }
-  }
-  for(var i = 0; i < maxPar; i++){
-    for(var j = 0; j < blocks.length; j++){
-      if(i < blockData[j].par.length) result.push(blockData[j].par[i]);
-    }
-  }
-  return result;
-};
-
-QR.getBlocks = function(ver, eccIdx){
-  var table = [
-    [[1,26,19],[1,26,16],[1,26,13],[1,26,9]],
-    [[1,44,34],[1,44,28],[1,44,22],[1,44,16]],
-    [[1,70,55],[1,70,44],[2,35,17],[2,35,13]],
-    [[1,100,80],[2,50,32],[2,50,24],[4,25,9]],
-    [[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12]],
-    [[2,86,68],[4,43,27],[4,43,19],[4,43,15]],
-    [[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14]],
-    [[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15]],
-    [[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13]],
-    [[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16]],
-    [[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13]],
-    [[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15]],
-    [[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12]],
-    [[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13]],
-    [[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13]],
-    [[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16]],
-    [[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15]],
-    [[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15]],
-    [[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14]],
-    [[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16]],
-    [[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17]],
-    [[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13]],
-    [[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16]],
-    [[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17]],
-    [[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16]],
-    [[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17]],
-    [[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16]],
-    [[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16]],
-    [[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16]],
-    [[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16]],
-    [[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16]],
-    [[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16]],
-    [[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16]],
-    [[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17]],
-    [[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16]],
-    [[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16]],
-    [[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16]],
-    [[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16]],
-    [[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16]],
-    [[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]]
-  ];
-  var entry = table[ver-1][eccIdx];
-  var blocks = [];
-  var idx = 0;
-  while(idx < entry.length){
-    var count = entry[idx];
-    var data = entry[idx+1];
-    var par = entry[idx+2];
-    for(var i = 0; i < count; i++) blocks.push({data: data, par: par});
-    idx += 3;
-  }
-  return blocks;
-};
-
-QR.makeMatrix = function(data, ver){
-  var size = QR.versionSizes[ver-1];
-  var matrix = [];
-  var funcPattern = [];
-  for(var i = 0; i < size; i++){
-    matrix[i] = [];
-    funcPattern[i] = [];
-    for(var j = 0; j < size; j++){ matrix[i][j] = null; funcPattern[i][j] = false; }
-  }
-
-  function addFinder(row, col){
-    for(var r = -1; r <= 7; r++){
-      for(var c = -1; c <= 7; c++){
-        if(row+r < 0 || col+c < 0 || row+r >= size || col+c >= size) continue;
-        funcPattern[row+r][col+c] = true;
-        if((r >= 0 && r <= 6 && (c === 0 || c === 6)) || (c >= 0 && c <= 6 && (r === 0 || r === 6)) || (r >= 2 && r <= 4 && c >= 2 && c <= 4)){
-          matrix[row+r][col+c] = true;
-        } else {
-          matrix[row+r][col+c] = false;
-        }
-      }
-    }
-  }
-  addFinder(0, 0);
-  addFinder(0, size - 7);
-  addFinder(size - 7, 0);
-
-  for(var i = 8; i < size - 8; i++){
-    matrix[6][i] = matrix[i][6] = (i % 2 === 0);
-    funcPattern[6][i] = funcPattern[i][6] = true;
-  }
-
-  var alignPos = QR.getAlignPos(ver);
-  for(var ai = 0; ai < alignPos.length; ai++){
-    for(var aj = 0; aj < alignPos.length; aj++){
-      var row = alignPos[ai], col = alignPos[aj];
-      if(matrix[row][col] !== null) continue;
-      for(var r = -2; r <= 2; r++){
-        for(var c = -2; c <= 2; c++){
-          if(row+r < 0 || col+c < 0 || row+r >= size || col+c >= size) continue;
-          funcPattern[row+r][col+c] = true;
-          matrix[row+r][col+c] = (r === -2 || r === 2 || c === -2 || c === 2 || (r === 0 && c === 0));
-        }
-      }
-    }
-  }
-
-  var formatBits = QR.getFormatBits(QR.eccTable['M'], 0);
-  var fp = [
-    [0,1,2,3,4,5,7,8,8,8,8,8,8,8,8],
-    [8,size-1,size-1,size-1,size-1,size-1,8,8,7,5,4,3,2,1,0]
-  ];
-  var fc = [
-    [8,8,8,8,8,8,8,8,8,8,8,8,8,8,8],
-    [0,1,2,3,4,5,7,8,size-8,size-7,size-6,size-5,size-4,size-3,size-2,size-1]
-  ];
-  for(var i = 0; i < 15; i++){
-    var r1 = fp[0][i], c1 = fp[1][i];
-    var r2 = fc[0][i], c2 = fc[1][i];
-    funcPattern[r1][c1] = funcPattern[r2][c2] = true;
-    if(matrix[r1][c1] === null) matrix[r1][c1] = formatBits[i];
-    if(matrix[r2][c2] === null) matrix[r2][c2] = formatBits[i];
-  }
-
-  matrix[size-8][8] = true;
-  funcPattern[size-8][8] = true;
-
-  var byteIdx = 0;
-  var bitIdx = 7;
-  var up = true;
-  for(var col = size - 1; col >= 0; col -= 2){
-    if(col === 6) col = 5;
-    for(var row = up ? size - 1 : 0; up ? row >= 0 : row < size; row += up ? -1 : 1){
-      for(var c = col; c >= col-1; c--){
-        if(matrix[row][c] !== null) continue;
-        if(byteIdx < data.length){
-          var bit = (data[byteIdx] >> bitIdx) & 1;
-          matrix[row][c] = bit === 1;
-          bitIdx--;
-          if(bitIdx < 0){ bitIdx = 7; byteIdx++; }
-        } else {
-          matrix[row][c] = false;
-        }
-      }
-    }
-    up = !up;
-  }
-
-  var mask = 2;
-  for(var r = 0; r < size; r++){
-    for(var c = 0; c < size; c++){
-      if(matrix[r][c] === null) matrix[r][c] = false;
-      var masked = ((r + c) % 2 === 0);
-      if(!funcPattern[r][c] && (matrix[r][c] === true || matrix[r][c] === false)){
-        if(masked) matrix[r][c] = !matrix[r][c];
-      }
-    }
-  }
-
-  return matrix;
-};
-
-QR.getAlignPos = function(ver){
-  if(ver === 1) return [];
-  var num = Math.floor(ver / 7) + 2;
-  var step = (ver === 32) ? 26 : Math.ceil((QR.versionSizes[ver-1] - 13) / (2 * num - 2)) * 2;
-  var result = [6];
-  var pos = QR.versionSizes[ver-1] - 7;
-  for(var i = num - 1; i > 0; i--){
-    result.push(pos);
-    pos -= step;
-  }
-  result.sort(function(a,b){return a-b;});
-  return result;
-};
-
-QR.getFormatBits = function(ecc, mask){
-  var data = (ecc << 3) | mask;
-  var d = data << 10;
-  var gen = 0x537;
-  for(var i = 14; i >= 10; i--){
-    if(d & (1 << i)){
-      d ^= gen << (i - 10);
-    }
-  }
-  var bits = ((data << 10) | d) ^ 0x5412;
-  var result = [];
-  for(var i = 14; i >= 0; i--) result.push((bits >> i) & 1);
-  return result;
-};
-
-QR.encode = function(text, eccLevel){
-  eccLevel = eccLevel || 'M';
-  var gen = QR.genData(text, eccLevel);
-  var ver = gen.version;
-  var dataBytes = [];
-  for(var i = 0; i < gen.bits.length; i += 8){
-    var b = 0;
-    for(var j = 0; j < 8; j++){
-      if(i+j < gen.bits.length) b = (b << 1) | gen.bits[i+j];
-      else b = b << 1;
-    }
-    dataBytes.push(b);
-  }
-  var eccBytes = QR.genECC(dataBytes, ver, eccLevel);
-  var matrix = QR.makeMatrix(eccBytes, ver);
-  return {matrix: matrix, version: ver};
-};
 
 // ===== App Logic =====
 var canvasEl = null;
@@ -540,8 +210,10 @@ function generateQR(){
   if(!wifiStr) return;
 
   try {
-    var qr = QR.encode(wifiStr, 'M');
-    var size = QR.versionSizes[qr.version - 1];
+    var qr = qrcode(0, 'M');
+    qr.addData(wifiStr);
+    qr.make();
+    var size = qr.getModuleCount();
     var scale = Math.floor(300 / (size + 8));
     var imgSize = (size + 8) * scale;
 
@@ -552,14 +224,16 @@ function generateQR(){
     canvas.height = imgSize;
     var ctx = canvas.getContext('2d');
 
+    // Background
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, imgSize, imgSize);
 
+    // Quiet zone (4 modules)
     var quiet = 4 * scale;
     ctx.fillStyle = '#000000';
     for(var r = 0; r < size; r++){
       for(var c = 0; c < size; c++){
-        if(qr.matrix[r][c]){
+        if(qr.isDark(r, c)){
           ctx.fillRect(quiet + c * scale, quiet + r * scale, scale, scale);
         }
       }
