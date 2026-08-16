@@ -135,7 +135,7 @@ td{color:#cbd5e1}
 <div class="info-section"><h2>About Debt Avalanche Method</h2><p>The Debt Avalanche method saves the most on interest by paying off debts with the highest interest rate first while making minimum payments on others. Mathematically optimal, it minimizes total interest cost compared to the Snowball method (smallest balance first). Best for disciplined individuals focused on maximum savings.</p></div>
 <div class="footer"><p>© 2025 Free ToolBase · <a href="../index.html">Home</a> · <a href="../../debt-avalanche-calculator/">ZH</a></p></div>
 </main>
-<div id="toast"></div>
+<div id="toast" class="toast"></div>
 <script>
 function toast(m){var e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(function(){e.classList.remove('show');},2000);}
 function formatNum(n){return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -166,7 +166,7 @@ function calculate(){
     var balance=parseFloat(row.querySelector('.debt-balance').value)||0;
     var rate=parseFloat(row.querySelector('.debt-rate').value)||0;
     var minimum=parseFloat(row.querySelector('.debt-minimum').value)||0;
-    if(balance>0){debts.push({name:name,balance:balance,rate:rate/100/12,annualRate:rate,minimum:minimum,paidInterest:0,paidOff:0});}
+    if(balance>0){debts.push({name:name,balance:balance,orig:balance,rate:rate/100/12,annualRate:rate,minimum:minimum,paidInterest:0,paidOff:0});}
   });
   if(debts.length===0){toast('Add at least one debt');return;}
   var totalMinimum=debts.reduce(function(s,d){return s+d.minimum;},0);
@@ -189,10 +189,10 @@ function calculate(){
       if(d.balance<=0.001&&!d.paidOff){d.paidOff=month;d.balance=0;}
     }
   }
-  document.getElementById('totalDebt').textContent='$'+formatNum(debts.reduce(function(s,d){return s+d.paidInterest;},0));
+  document.getElementById('totalDebt').textContent='$'+formatNum(debts.reduce(function(s,d){return s+d.orig;},0));
   document.getElementById('totalInterest').textContent='$'+formatNum(totalInterest);
   document.getElementById('payoffTime').textContent=month+' months ('+Math.floor(month/12)+'y'+(month%12)+'m)';
-  document.getElementById('totalPaid').textContent='$'+formatNum(debts.reduce(function(s,d){return s+d.paidInterest;},0)+debts.reduce(function(s,d){return s+(d.balance||0);},0));
+  document.getElementById('totalPaid').textContent='$'+formatNum(debts.reduce(function(s,d){return s+d.orig;},0)+totalInterest);
   var tbody=document.querySelector('#payoffTable tbody');
   tbody.innerHTML='';
   debts.forEach(function(d,i){
@@ -200,7 +200,7 @@ function calculate(){
     row.insertCell().textContent=i+1;
     row.insertCell().textContent=d.name;
     row.insertCell().textContent=d.annualRate.toFixed(1)+'%';
-    row.insertCell().textContent='$'+formatNum(d.paidInterest);
+    row.insertCell().textContent='$'+formatNum(d.orig);
     row.insertCell().textContent=d.paidOff||'>'+month;
     row.insertCell().textContent='$'+formatNum(d.paidInterest);
   });
