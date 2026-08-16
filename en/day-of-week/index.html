@@ -84,7 +84,7 @@
 <meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="robots" content="index, follow">
-<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
 <link rel="alternate" hreflang="zh" href="https://free-toolbase.com/day-of-week/">
 <link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/day-of-week/">
@@ -165,37 +165,48 @@ function copyDayResult(){var d=document.getElementById('big-day').textContent;va
   function updateCalendar(ref){
     var y=ref.getFullYear(),m=ref.getMonth();
     document.getElementById('cal-month-title').textContent=months[m]+' '+y;
-    var html='';
-    weekdays.forEach(function(w){html+='<div class="ch">'+w.substring(0,2)+'</div>';});
+    var cal=document.getElementById('calendar');
+    cal.textContent='';
+    weekdays.forEach(function(w){var h=document.createElement('div');h.className='ch';h.textContent=w.substring(0,2);cal.appendChild(h);});
     var first=new Date(y,m,1);
     var last=new Date(y,m+1,0);
     var startDay=first.getDay();
-    for(var i=0;i<startDay;i++)html+='<div class="cd other"></div>';
+    for(var i=0;i<startDay;i++){var empty=document.createElement('div');empty.className='cd other';cal.appendChild(empty);}
     for(var d=1;d<=last.getDate();d++){
-      var cls='cd';
-      if(ref.getDate()===d)cls+=' today';
-      html+='<div class="'+cls+'">'+d+'</div>';
+      var cell=document.createElement('div');
+      cell.className='cd';
+      if(ref.getDate()===d)cell.className+=' today';
+      cell.textContent=d;
+      cal.appendChild(cell);
     }
-    document.getElementById('calendar').innerHTML=html;
   }
 
   document.getElementById('query-date').addEventListener('input',updateResult);
 
   function buildQuickCards(){
-    var html='';
+    var wrap=document.getElementById('quick-cards');
+    wrap.textContent='';
     var labels={'-3':'3 days ago','-2':'2 days ago','-1':'Yesterday','0':'Today','1':'Tomorrow','2':'2 days later','3':'3 days later'};
     for(var i=-3;i<=3;i++){
       var d=new Date(today);
       d.setDate(d.getDate()+i);
-      html+='<div class="quick-card" data-date="'+fmtDate(d)+'"><div class="qd">'+months[d.getMonth()].substring(0,3)+' '+d.getDate()+'</div><div class="qw">'+labels[''+i]+'</div></div>';
-    }
-    document.getElementById('quick-cards').innerHTML=html;
-    document.querySelectorAll('.quick-card').forEach(function(c){
-      c.addEventListener('click',function(){
+      var card=document.createElement('div');
+      card.className='quick-card';
+      card.setAttribute('data-date',fmtDate(d));
+      var qd=document.createElement('div');
+      qd.className='qd';
+      qd.textContent=months[d.getMonth()].substring(0,3)+' '+d.getDate();
+      var qw=document.createElement('div');
+      qw.className='qw';
+      qw.textContent=labels[''+i];
+      card.appendChild(qd);
+      card.appendChild(qw);
+      card.addEventListener('click',function(){
         document.getElementById('query-date').value=this.dataset.date;
         updateResult();
       });
-    });
+      wrap.appendChild(card);
+    }
   }
 
   buildQuickCards();
