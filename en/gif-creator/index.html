@@ -277,6 +277,7 @@ a{color:#06b6d4;text-decoration:none}
       <p>Common formats including PNG, JPEG, WebP, GIF, BMP, and SVG are supported. The exact formats depend on the specific tool.</p>
     </div>
   </div>
+</main>
 
 <div>
 <!-- AdSense -->
@@ -294,48 +295,286 @@ a{color:#06b6d4;text-decoration:none}
   <p style="text-align:center;color:#64748b;font-size:12px;margin-top:12px">Feedback: dexshuang@google.com</p>
 </footer>
 </div>
-<div id="related-tools"></div>
-<script>
-  'use strict';
-  var s = document.getElementById('related-tools-section');
-  if (!s) return;
-  var p = window.location.pathname;
-  var en = p.indexOf('/en/') !== -1;
-  p = p.replace(/\/en\//g, '/');
-  var slug = p.split('/').filter(Boolean).pop() || '';
-  if (!slug) { s.innerHTML = ''; return; }
-  var depth = en ? '../../' : '../';
-  var u = depth + 'related-tools.json';
-  fetch(u).then(function(r) {
-    if (!r.ok) throw new Error('not found');
-    return r.json();
-  }).then(function(d) {
-    var data = en ? d.en : d.cn;
-    var t = data[slug];
-    if (!t || !t.related || !t.related.length) { s.innerHTML = ''; return; }
-    var h = '<div class="related-tools-inner"><h3 class="related-tools-title">'
-      + (en ? '🔗 You May Also Like' : '🔗 RelatedToolsRecommended')
-      + '</h3><div class="related-tools-grid">';
-    t.related.forEach(function(r) {
-      var link = en ? '../../en/' + r.slug + '/' : '../' + r.slug + '/';
-      h += '<a href="' + link + '" class="related-tool-card">'
-        + '<span class="related-tool-icon">' + (r.icon || '🔧') + '</span>'
-        + '<span class="related-tool-name">' + r.name + '</span></a>';
-    });
-    h += '</div></div>';
-    s.innerHTML = h;
-  }).catch(function() { s.innerHTML = ''; });
 
-// === Implementation ===
-function downloadGIF() {
-  showToast('Done');
+<div class="toast" id="toast"></div>
+
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
+<script src="https://free-toolbase.com/related-tools.js"></script>
+
+<script>
+'use strict';
+function showToast(m) {
+  var t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = m;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2000);
 }
 
+var gifFrames = [];
+var gifBlobUrl = null;
+
+document.getElementById('uploadZone').addEventListener('click', function() {
+  document.getElementById('fileInput').click();
+});
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  gifFrames = [];
+  if (gifBlobUrl) { URL.revokeObjectURL(gifBlobUrl); gifBlobUrl = null; }
+  var fc = document.getElementById('framesContainer');
+  fc.innerHTML = '';
+  document.getElementById('previewBox').style.display = 'none';
+  var files = e.target.files;
+  if (!files || !files.length) { document.getElementById('optsRow').style.display = 'none'; return; }
+  var loaded = 0;
+  for (var i = 0; i < files.length; i++) {
+    (function(idx) {
+      var img = new Image();
+      img.onload = function() {
+        gifFrames.push({ img: img });
+        var card = document.createElement('div');
+        card.className = 'frame-card';
+        var canvas = document.createElement('canvas');
+        canvas.width = 60; canvas.height = 45;
+        var ctx = canvas.getContext('2d');
+        var s = Math.min(img.width, img.height);
+        var sx = (img.width - s) / 2, sy = (img.height - s) / 2;
+        ctx.drawImage(img, sx, sy, s, s, 0, 0, 60, 45);
+        var thumb = document.createElement('img');
+        thumb.src = canvas.toDataURL('image/png');
+        thumb.alt = 'Frame ' + (idx + 1);
+        card.appendChild(thumb);
+        var info = document.createElement('div');
+        info.className = 'frame-info';
+        info.textContent = 'Frame ' + (idx + 1);
+        card.appendChild(info);
+        var del = document.createElement('button');
+        del.className = 'frame-del';
+        del.title = 'Remove frame';
+        del.textContent = '×';
+        del.onclick = function() {
+          gifFrames.splice(idx, 1);
+          card.remove();
+          if (!gifFrames.length) {
+            document.getElementById('optsRow').style.display = 'none';
+            document.getElementById('previewBox').style.display = 'none';
+          }
+        };
+        card.appendChild(del);
+        fc.appendChild(card);
+        loaded++;
+        if (loaded === files.length) {
+          document.getElementById('optsRow').style.display = 'flex';
+          showToast('Loaded ' + gifFrames.length + ' frames');
+        }
+      };
+      img.src = URL.createObjectURL(files[idx]);
+    })(i);
+  }
+});
+
 function generateGIF() {
-  showToast('Done');
+  if (!gifFrames.length) { showToast('Please upload images first'); return; }
+  var delay = parseInt(document.getElementById('delay').value, 10) || 300;
+  var outWidth = parseInt(document.getElementById('outWidth').value, 10) || 480;
+  var loops = parseInt(document.getElementById('loops').value, 10) || 0;
+  delay = Math.max(50, Math.min(5000, delay));
+  outWidth = Math.max(100, Math.min(1200, outWidth));
+  loops = Math.max(0, Math.min(100, loops));
+  var prog = document.getElementById('progress');
+  var bar = document.getElementById('progressBar');
+  prog.style.display = 'block';
+  bar.style.width = '10%';
+  setTimeout(function() {
+    try {
+      var maxW = 0, maxH = 0;
+      for (var i = 0; i < gifFrames.length; i++) {
+        maxW = Math.max(maxW, gifFrames[i].img.naturalWidth);
+        maxH = Math.max(maxH, gifFrames[i].img.naturalHeight);
+      }
+      var scale = outWidth / maxW;
+      var w = Math.round(maxW * scale);
+      var h = Math.round(maxH * scale);
+      var blob = buildGif(gifFrames, delay, loops, w, h);
+      if (gifBlobUrl) URL.revokeObjectURL(gifBlobUrl);
+      gifBlobUrl = URL.createObjectURL(blob);
+      var img = document.getElementById('previewImg');
+      img.src = gifBlobUrl;
+      img.style.display = 'block';
+      document.getElementById('previewBox').style.display = 'block';
+      document.getElementById('gifSize').textContent = (blob.size / 1024).toFixed(1) + ' KB';
+      bar.style.width = '100%';
+      showToast('GIF generated');
+      setTimeout(function() { prog.style.display = 'none'; }, 400);
+    } catch (err) {
+      bar.style.width = '0%';
+      prog.style.display = 'none';
+      showToast('Generation failed: ' + err.message);
+    }
+  }, 50);
+}
+
+function downloadGIF() {
+  if (!gifBlobUrl) { showToast('Please generate a GIF first'); return; }
+  var a = document.createElement('a');
+  a.href = gifBlobUrl;
+  a.download = 'animated-' + Date.now() + '.gif';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  showToast('Download started');
+}
+
+function buildGif(frames, delay, loop, w, h) {
+  var header = 'GIF89a';
+  var lsd = packU16(w).concat(packU16(h)).concat([0xF7, 0x00, 0x00]);
+  var gce = [0x21, 0xF9, 0x04, 0x00].concat(packU16(Math.round(delay / 10))).concat([0x00]);
+  var ext = [0x21, 0xFF, 0x0B, 0x4E, 0x45, 0x54, 0x53, 0x43, 0x41, 0x50, 0x45, 0x32, 0x2E, 0x30, 0x03, 0x01].concat(packU16(loop)).concat([0x00]);
+  var framesData = [];
+  var globalColorTable = [];
+  for (var i = 0; i < frames.length; i++) {
+    var canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(frames[i].img, 0, 0, w, h);
+    var imageData = ctx.getImageData(0, 0, w, h);
+    var quantized = quantizeColors(imageData, 256);
+    var colorTable = quantized.palette;
+    if (i === 0) globalColorTable = colorTable;
+    var indexedPixels = quantized.indexed;
+    var lzwMinCodeSize = 8;
+    var imageDescriptor = [0x2C, 0x00, 0x00, 0x00, 0x00].concat(packU16(w)).concat(packU16(h)).concat([0x00]);
+    var compressed = lzwEncode(indexedPixels, lzwMinCodeSize);
+    var subBlocks = [];
+    var pos = 0;
+    while (pos < compressed.length) {
+      var blockSize = Math.min(255, compressed.length - pos);
+      subBlocks.push(blockSize);
+      for (var j = 0; j < blockSize; j++) subBlocks.push(compressed[pos + j]);
+      pos += blockSize;
+    }
+    subBlocks.push(0x00);
+    var frameData = [];
+    frameData = frameData.concat(gce);
+    frameData = frameData.concat(imageDescriptor);
+    if (i === 0) {
+      var gct = [];
+      for (var c = 0; c < 256; c++) {
+        gct = gct.concat(colorTable[c] ? colorTable[c] : [0, 0, 0]);
+      }
+      frameData = frameData.concat(gct);
+    }
+    frameData.push(lzwMinCodeSize);
+    frameData = frameData.concat(subBlocks);
+    framesData.push(frameData);
+  }
+  var trailer = 0x3B;
+  var bytes = [];
+  for (var k = 0; k < header.length; k++) bytes.push(header.charCodeAt(k));
+  bytes = bytes.concat(lsd);
+  bytes = bytes.concat(ext);
+  for (var f = 0; f < framesData.length; f++) bytes = bytes.concat(framesData[f]);
+  bytes.push(trailer);
+  return new Blob([new Uint8Array(bytes)], { type: 'image/gif' });
+}
+
+function packU16(v) { return [(v & 0xFF), ((v >> 8) & 0xFF)]; }
+
+function quantizeColors(imageData, maxColors) {
+  var d = imageData.data;
+  var w = imageData.width, h = imageData.height;
+  var pixels = [];
+  var pixelSet = {};
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      var idx = (y * w + x) * 4;
+      var r = d[idx], g = d[idx + 1], b = d[idx + 2];
+      var key = r + ',' + g + ',' + b;
+      if (!pixelSet[key]) { pixelSet[key] = true; pixels.push([r, g, b]); }
+    }
+  }
+  var palette = [];
+  var indexed = [];
+  var colorMap = {};
+  if (pixels.length <= maxColors) {
+    for (var i = 0; i < pixels.length; i++) {
+      var k = pixels[i][0] + ',' + pixels[i][1] + ',' + pixels[i][2];
+      colorMap[k] = i;
+      palette.push(pixels[i]);
+    }
+  } else {
+    var step = Math.ceil(pixels.length / maxColors);
+    for (var m = 0; m < maxColors && m * step < pixels.length; m++) {
+      var p = pixels[m * step];
+      var kk = p[0] + ',' + p[1] + ',' + p[2];
+      colorMap[kk] = m;
+      palette.push(p);
+    }
+  }
+  for (var yy = 0; yy < h; yy++) {
+    for (var xx = 0; xx < w; xx++) {
+      var ii = (yy * w + xx) * 4;
+      var r2 = d[ii], g2 = d[ii + 1], b2 = d[ii + 2];
+      var key2 = r2 + ',' + g2 + ',' + b2;
+      if (colorMap[key2] !== undefined) { indexed.push(colorMap[key2]); }
+      else {
+        var nearest = 0, bestDist = Infinity;
+        for (var pj = 0; pj < palette.length; pj++) {
+          var dr = r2 - palette[pj][0], dg = g2 - palette[pj][1], db = b2 - palette[pj][2];
+          var dist = dr * dr + dg * dg + db * db;
+          if (dist < bestDist) { bestDist = dist; nearest = pj; }
+        }
+        indexed.push(nearest);
+      }
+    }
+  }
+  while (palette.length < 256) palette.push([0, 0, 0]);
+  return { palette: palette, indexed: indexed };
+}
+
+function lzwEncode(indices, minCodeSize) {
+  var clearCode = 1 << minCodeSize;
+  var eoiCode = clearCode + 1;
+  var codeSize = minCodeSize + 1;
+  var nextCode = eoiCode + 1;
+  var dict = {};
+  for (var i = 0; i < clearCode; i++) { dict[String.fromCharCode(i)] = i; }
+  var current = String.fromCharCode(indices[0]);
+  var output = [];
+  output.push(clearCode);
+  function emitCode(code) {
+    output.push(code);
+    if (code >= (1 << codeSize) && codeSize < 12) { codeSize++; }
+  }
+  for (var j = 1; j < indices.length; j++) {
+    var c = String.fromCharCode(indices[j]);
+    var combined = current + c;
+    if (dict[combined] !== undefined) { current = combined; }
+    else {
+      emitCode(dict[current]);
+      if (nextCode < 4096) { dict[combined] = nextCode++; if (nextCode >= (1 << codeSize) && codeSize < 12) codeSize++; }
+      current = c;
+    }
+  }
+  emitCode(dict[current]);
+  emitCode(eoiCode);
+  var bits = [];
+  var bitBuf = 0, bitCount = 0;
+  for (var b = 0; b < output.length; b++) {
+    var code = output[b];
+    bitBuf |= code << bitCount;
+    bitCount += codeSize;
+    while (bitCount >= 8) {
+      bits.push(bitBuf & 0xFF);
+      bitBuf >>= 8;
+      bitCount -= 8;
+    }
+  }
+  if (bitCount > 0) bits.push(bitBuf & 0xFF);
+  return bits;
 }
 </script>
 
-</main>
 </body>
 </html>
+
