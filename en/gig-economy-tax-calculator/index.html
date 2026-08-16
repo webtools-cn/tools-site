@@ -223,7 +223,18 @@ var items=document.querySelectorAll('.result-item');
 items.forEach(function(item){
 text+=item.querySelector('.result-label').textContent+': '+item.querySelector('.result-value').textContent+'\n';
 });
-if(text)navigator.clipboard.writeText(text).then(function(){showToast('Copied to clipboard');});
+if(!text)return;
+function done(){showToast('Copied to clipboard');}
+function fallback(){
+  var ta=document.createElement('textarea');
+  ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');done();}catch(e){showToast('Copy failed');}
+  ta.remove();
+}
+if(navigator.clipboard&&navigator.clipboard.writeText){
+  navigator.clipboard.writeText(text).then(done)['catch'](fallback);
+}else{fallback();}
 }
 </script>
 </body>
