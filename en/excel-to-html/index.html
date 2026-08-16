@@ -95,8 +95,8 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
 .result-section.show{display:block}
 .preview-table{width:100%;overflow:auto;background:#0f172a;border-radius:8px;padding:8px;margin:12px 0}
 .preview-table table{border-collapse:collapse;font-size:.8rem;margin:0 auto}
-.preview-table td,.preview-table th{border:1px solid #ccc;padding:6px 10px;text-align:left;white-space:nowrap}
-.preview-table th{background:#f1f5f9;font-weight:600}
+.preview-table td,.preview-table th{border:1px solid #475569;padding:6px 10px;text-align:left;white-space:nowrap}
+.preview-table th{background:#1e293b;color:#22d3ee;font-weight:600}
 .html-output{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;padding:12px;margin:12px 0;position:relative}
 .html-output pre{overflow:auto;max-height:300px;font-size:.8rem;color:#e2e8f0;font-family:"SF Mono","Fira Code","Consolas",monospace;line-height:1.4}
 .html-output .copy-btn{position:absolute;top:8px;right:8px;padding:4px 12px;font-size:.75rem;background:rgba(6,182,212,.15);color:#22d3ee;border:1px solid rgba(6,182,212,.3);border-radius:4px;cursor:pointer}
@@ -215,17 +215,6 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
     <h3>What's the maximum file size?</h3>
     <p>Since all processing is done in-browser, the limit depends on your device's memory. Files up to 10MB typically work well. For very large Excel files with thousands of rows, consider splitting them before conversion.</p>
   </div>
-
-  <div>
-<!-- AdSense -->
-
-<footer>
-    <a href="../../">Home</a>
-    <a href="../../privacy-policy/">Privacy</a>
-    <a href="../../about/">About</a>
-<a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener">GitHub</a>
-  </footer>
-</div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
@@ -383,7 +372,7 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
             style += ';text-align:' + fmt.alignment.horizontal;
           }
         }
-        if (isHeader) { style += ';font-weight:bold;background-color:#f1f5f9'; }
+        if (isHeader) { style += ';font-weight:bold;background-color:#1e293b;color:#22d3ee'; }
 
         let extras = '';
         if (rowspan > 1) extras += ' rowspan="' + rowspan + '"';
@@ -425,206 +414,12 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
 
 <!-- Feedback Widget -->
 </main>
-<script>
-  const dropZone = document.getElementById('dropZone');
-  const fileInput = document.getElementById('fileInput');
-  const convertBtn = document.getElementById('convertBtn');
-  const clearBtn = document.getElementById('clearBtn');
-  const resultSection = document.getElementById('resultSection');
-  const sheetTabs = document.getElementById('sheetTabs');
-  const htmlOutput = document.getElementById('htmlOutput');
-  const previewTable = document.getElementById('previewTable');
-  const copyBtn = document.getElementById('copyBtn');
-  const statusBar = document.getElementById('statusBar');
-
-  let currentFile = null;
-  let workbook = null;
-  let currentSheet = null;
-
-  function showStatus(msg, type) {
-    statusBar.className = 'status-bar ' + type;
-    statusBar.textContent = msg;
-  }
-
-  dropZone.addEventListener('click', function() { fileInput.click(); });
-  dropZone.addEventListener('dragover', function(e) {
-    e.preventDefault(); dropZone.classList.add('dragover');
-  });
-  dropZone.addEventListener('dragleave', function() {
-    dropZone.classList.remove('dragover');
-  });
-  dropZone.addEventListener('drop', function(e) {
-    e.preventDefault(); dropZone.classList.remove('dragover');
-    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-  });
-  fileInput.addEventListener('change', function() {
-    if (this.files.length) handleFile(this.files[0]);
-    this.value = '';
-  });
-
-  function handleFile(file) {
-    const ext = file.name.split('.').pop().toLowerCase();
-    if (!['xlsx','xls'].includes(ext)) {
-      showStatus('Please select an Excel file (.xlsx or .xls)', 'error');
-      return;
-    }
-    currentFile = file;
-    convertBtn.disabled = false;
-    clearBtn.disabled = false;
-    showStatus('File loaded: ' + file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)', 'info');
-  }
-
-  convertBtn.addEventListener('click', function() {
-    if (!currentFile) return;
-    convertFile();
-  });
-
-  clearBtn.addEventListener('click', function() {
-    currentFile = null;
-    workbook = null;
-    resultSection.classList.remove('show');
-    convertBtn.disabled = true;
-    clearBtn.disabled = true;
-    hideStatus();
-  });
-
-  function hideStatus() { statusBar.className = 'status-bar'; statusBar.textContent = ''; }
-
-  async function convertFile() {
-    showStatus('Parsing Excel file...', 'info');
-    try {
-      const data = await readFileAsArrayBuffer(currentFile);
-      workbook = XLSX.read(data, {type: 'array', cellStyles: true});
-      renderSheetList();
-      showSheet(workbook.SheetNames[0]);
-      resultSection.classList.add('show');
-      showStatus('✅ Converted successfully — ' + workbook.SheetNames.length + ' sheet(s) found', 'success');
-    } catch(err) {
-      showStatus('Error: ' + err.message, 'error');
-    }
-  }
-
-  function readFileAsArrayBuffer(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = function(e) { resolve(e.target.result); };
-      reader.onerror = function() { reject(new Error('Failed to read file')); };
-      reader.readAsArrayBuffer(file);
-    });
-  }
-
-  function renderSheetList() {
-    sheetTabs.innerHTML = '';
-    workbook.SheetNames.forEach(function(name, i) {
-      const tab = document.createElement('button');
-      tab.className = 'tab' + (i === 0 ? ' active' : '');
-      tab.textContent = name;
-      tab.addEventListener('click', function() {
-        document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
-        this.classList.add('active');
-        showSheet(name);
-      });
-      sheetTabs.appendChild(tab);
-    });
-  }
-
-  function showSheet(sheetName) {
-    currentSheet = sheetName;
-    const sheet = workbook.Sheets[sheetName];
-    if (!sheet) return;
-
-    const html = XLSX.utils.sheet_to_html(sheet, {header: '', footer: ''});
-    const cleanedHtml = html.replace(/<table[^>]*>/, '<table>');
-
-    // Generate clean HTML with inline styles for formatting
-    const ref = sheet['!ref'];
-    if (!ref) { htmlOutput.textContent = '<!-- Empty sheet -->'; previewTable.innerHTML = ''; return; }
-    const range = XLSX.utils.decode_range(ref);
-    const mergedCells = sheet['!merges'] || [];
-
-    let tableHtml = '<table style="border-collapse:collapse;width:100%;font-family:sans-serif;font-size:14px">\n';
-    let colStyles = sheet['!cols'] || [];
-
-    for (let R = range.s.r; R <= range.e.r; R++) {
-      tableHtml += '  <tr>\n';
-      for (let C = range.s.c; C <= range.e.c; C++) {
-        const addr = XLSX.utils.encode_cell({r: R, c: C});
-        const cell = sheet[addr];
-        // Check if cell is merged and is NOT the top-left of merge (skip non-top-left)
-        let merged = false, rowspan = 1, colspan = 1;
-        for (let m of mergedCells) {
-          if (m.s.r <= R && m.e.r >= R && m.s.c <= C && m.e.c >= C) {
-            if (m.s.r !== R || m.s.c !== C) { merged = true; break; }
-            rowspan = m.e.r - m.s.r + 1;
-            colspan = m.e.c - m.s.c + 1;
-          }
-        }
-        if (merged) continue;
-
-        const isHeader = R === range.s.r;
-        const tag = isHeader ? 'th' : 'td';
-        let style = 'border:1px solid #ccc;padding:6px 10px;text-align:' + (cell && cell.t === 'n' ? 'right' : 'left');
-
-        if (cell && cell.s) {
-          const fmt = cell.s;
-          if (fmt.fill && fmt.fill.fgColor && fmt.fill.fgColor.rgb) {
-            style += ';background-color:#' + fmt.fill.fgColor.rgb;
-          }
-          if (fmt.font) {
-            if (fmt.font.bold) style += ';font-weight:bold';
-            if (fmt.font.italic) style += ';font-style:italic';
-            if (fmt.font.color && fmt.font.color.rgb) style += ';color:#' + fmt.font.color.rgb;
-            if (fmt.font.sz) style += ';font-size:' + fmt.font.sz + 'px';
-          }
-          if (fmt.alignment && fmt.alignment.horizontal) {
-            style += ';text-align:' + fmt.alignment.horizontal;
-          }
-        }
-        if (isHeader) { style += ';font-weight:bold;background-color:#f1f5f9'; }
-
-        let extras = '';
-        if (rowspan > 1) extras += ' rowspan="' + rowspan + '"';
-        if (colspan > 1) extras += ' colspan="' + colspan + '"';
-
-        const val = cell ? cell.v !== undefined ? cell.v : '' : '';
-        tableHtml += '    <' + tag + ' style="' + style + '"' + extras + '>' + escapeHtml(String(val)) + '</' + tag + '>\n';
-      }
-      tableHtml += '  </tr>\n';
-    }
-    tableHtml += '</table>';
-
-    htmlOutput.textContent = tableHtml;
-    previewTable.innerHTML = tableHtml;
-  }
-
-  function escapeHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  copyBtn.addEventListener('click', function() {
-    const text = htmlOutput.textContent;
-    if (!text || text.startsWith('<!--')) return;
-    navigator.clipboard.writeText(text).then(function() {
-      copyBtn.textContent = '✅ Copied!';
-      setTimeout(function() { copyBtn.textContent = '📋 Copy HTML'; }, 2000);
-    }).catch(function() {
-      // Fallback
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      copyBtn.textContent = '✅ Copied!';
-      setTimeout(function() { copyBtn.textContent = '📋 Copy HTML'; }, 2000);
-    });
-  });</script>
 
 <!-- Feedback Widget -->
 
 <script>
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-document.getElementById('feedback-text').addEventListener('input',function(){document.getElementById('feedback-count').textContent=this.value.length+'/1000';});
+function toggleFeedback(){const p=document.getElementById('feedback-panel');if(!p)return;p.style.display=p.style.display==='none'?'block':'none';}
+var _ft=document.getElementById('feedback-text');if(_ft){_ft.addEventListener('input',function(){var c=document.getElementById('feedback-count');if(c)c.textContent=this.value.length+'/1000';});}
 function submitFeedback(){
 const type=document.getElementById('feedback-type').value;
 const text=document.getElementById('feedback-text').value.trim();
@@ -676,5 +471,16 @@ function ftFallbackCopy(txt){
 }
 
 </script>
+<footer style="background:#0f172a;border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:40px">
+  <div style="max-width:960px;margin:0 auto;padding:0 20px;display:flex;flex-wrap:wrap;justify-content:center;gap:16px">
+    <a href="../../" style="color:#94a3b8;text-decoration:none;font-size:14px">Home</a>
+    <a href="../../privacy-policy/" style="color:#94a3b8;text-decoration:none;font-size:14px">Privacy</a>
+    <a href="../../about/" style="color:#94a3b8;text-decoration:none;font-size:14px">About</a>
+    <a href="mailto:dexshuang@google.com" style="color:#94a3b8;text-decoration:none;font-size:14px">Contact</a>
+    <a href="../../excel-to-html/" style="color:#94a3b8;text-decoration:none;font-size:14px">中文</a>
+    <a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener" style="color:#94a3b8;text-decoration:none;font-size:14px">GitHub</a>
+  </div>
+  <p style="text-align:center;color:#64748b;font-size:12px;margin-top:12px">© 2026 Free ToolBase — All conversions run locally in your browser</p>
+</footer>
 </body>
 </html>
