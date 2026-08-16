@@ -22,7 +22,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Free ToolBase">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "CSV to Excel - Convert CSV to XLSX Online·No Signup, Client-Side", "description": "Free online CSV to Excel (XLSX) converter. Quickly transform CSV files into downloadable Excel spreadsheets. Supports custom delimiters, encoding options, and header row detection. Powered by SheetJS — all processing happens in your browser with no server uploads.", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Web", "publisher": {"@type": "Organization", "name": "Free ToolBase", "email": "dexshuang@google.com"}, "author": {"@type": "Organization", "name": "Free ToolBase"}, "dateModified": "2026-07-11", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}}</script>
-<style>:root{--primary:#06b6d4;--primary-light:#22d3ee;--primary-dark:#0891b2;--bg:#0f172a;--card-bg:#1e293b;--text:#e2e8f0;--text-secondary:#94a3b8;--border:rgba(148,163,184,.1);--accent-gradient:linear-gradient(135deg,#06b6d4,#3b82f6);--radius:12px}
+<style>:root{--primary:#06b6d4;--primary-light:#22d3ee;--primary-dark:#0891b2;--bg:#0f172a;--card-bg:#1e293b;--surface:#1e293b;--text:#e2e8f0;--text-secondary:#94a3b8;--border:rgba(148,163,184,.1);--accent-gradient:linear-gradient(135deg,#06b6d4,#3b82f6);--radius:12px}
 
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6;min-height:100vh}
@@ -218,138 +218,16 @@ textarea{
 <link rel="alternate" hreflang="x-default" href="https://free-toolbase.com/en/csv-to-excel/">
 </head><body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-  const uploadZone = document.getElementById('uploadZone');
-  const fileInput = document.getElementById('fileInput');
-  const csvInput = document.getElementById('csvInput');
-  const delimiter = document.getElementById('delimiter');
-  const headerRow = document.getElementById('headerRow');
-  const convertBtn = document.getElementById('convertBtn');
-  const sampleBtn = document.getElementById('sampleBtn');
-  const downloadBtn = document.getElementById('downloadBtn');
-  const clearBtn = document.getElementById('clearBtn');
-  const previewArea = document.getElementById('previewArea');
-  const excelInfo = document.getElementById('excelInfo');
-  
-  let currentData = null;
-  
-  uploadZone.addEventListener('click', () => fileInput.click());
-  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
-  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
-  uploadZone.addEventListener('drop', (e) => { e.preventDefault(); uploadZone.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
-  fileInput.addEventListener('change', (e) => { if(e.target.files[0]) handleFile(e.target.files[0]); });
-  
-  function handleFile(file){
-    const reader = new FileReader();
-    reader.onload = function(e){
-      csvInput.value = e.target.result;
-      convertBtn.click();
-    };
-    reader.readAsText(file);
-  }
-  
-  function parseCSV(text, delim){
-    const lines = text.split('\n').filter(l => l.trim());
-    if(lines.length === 0) return [];
-    const rows = [];
-    for(const line of lines){
-      const row = [];
-      let current = '';
-      let inQuotes = false;
-      for(let i = 0; i < line.length; i++){
-        const ch = line[i];
-        if(ch === '"'){
-          if(inQuotes && i+1 < line.length && line[i+1] === '"'){
-            current += '"';
-            i++;
-          } else {
-            inQuotes = !inQuotes;
-          }
-        } else if(ch === delim && !inQuotes){
-          row.push(current);
-          current = '';
-        } else {
-          current += ch;
-        }
-      }
-      row.push(current);
-      rows.push(row);
-    }
-    return rows;
-  }
-  
-  convertBtn.addEventListener('click', () => {
-    const text = csvInput.value.trim();
-    if(!text){ showToast('PleaseInputorUploadCSVData'); return; }
-    const delim = delimiter.value === '\t' ? '\t' : delimiter.value;
-    const rows = parseCSV(text, delim);
-    if(rows.length === 0){ showToast('nohavecanparse Data'); return; }
-    
-    currentData = {rows, hasHeader: headerRow.value === '1'};
-    
-    // Show preview
-    let html = '<table style="width:100%;border-collapse:collapse;font-size:.85rem">';
-    const startRow = currentData.hasHeader ? 0 : 0;
-    for(let i = 0; i < Math.min(rows.length, 20); i++){
-      html += '<tr>';
-      for(const cell of rows[i]){
-        const tag = currentData.hasHeader && i === 0 ? 'th' : 'td';
-        html += '<' + tag + ' style="border:1px solid rgba(148,163,184,.2);padding:4px 8px;text-align:left;color:#e2e8f0">' + escapeHtml(cell) + '</' + tag + '>';
-      }
-      html += '</tr>';
-    }
-    if(rows.length > 20){
-      html += '<tr><td colspan="' + rows[0].length + '" style="border:1px solid rgba(148,163,184,.2);padding:4px 8px;color:#64748b;text-align:center">... alsohave ' + (rows.length - 20) + ' row</td></tr>';
-    }
-    html += '</table>';
-    previewArea.innerHTML = html;
-    excelInfo.textContent = '📊 ' + rows.length + ' row × ' + rows[0].length + ' column';
-    excelInfo.style.display = 'block';
-    downloadBtn.disabled = false;
-  });
-  
-  function escapeHtml(s){
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-  
-  downloadBtn.addEventListener('click', () => {
-    if(!currentData) return;
-    const ws = XLSX.utils.aoa_to_sheet(currentData.rows);
-    if(currentData.hasHeader){
-      // First row already in data
-    }
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-    const blob = new Blob([wbout], {type:'application/octet-stream'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'converted.xlsx';
-    a.click();
-  });
-  
-  sampleBtn.addEventListener('click', () => {
-    csvInput.value = 'Name,Email,Age,City,Occupation\nJohn Doe,john@example.com,28,New York,Engineer\nJane Smith,jane@example.com,34,Los Angeles,Designer\nBob Johnson,bob@example.com,45,Chicago,Manager\nAlice Williams,alice@example.com,31,Houston,Developer\nCharlie Brown,charlie@example.com,22,Phoenix,Student';
-    convertBtn.click();
-  });
-  
-  clearBtn.addEventListener('click', () => {
-    csvInput.value = '';
-    previewArea.innerHTML = '';
-    excelInfo.style.display = 'none';
-    downloadBtn.disabled = true;
-    currentData = null;
-  });</script>
 
   <main class="container">
     <div class="header">
       <h1>📊 CSV to Excel</h1>
       <div class="lang-switch">
-        <a href="/tools-site/csv-to-excel/">中文</a>
-        <a href="/tools-site/en/csv-to-excel/" class="active">English</a>
+        <a href="/csv-to-excel/">中文</a>
+        <a href="/en/csv-to-excel/" class="active">English</a>
       </div>
     </div>
-    <div class="nav-back"><a href="/tools-site/en/">← Back to Tools</a></div>
+    <div class="nav-back"><a href="/en/">← Back to Tools</a></div>
 
 <!-- Freshness badge - GEO signal -->
 <div style="text-align:center;margin-top:-8px;margin-bottom:16px;font-size:0.8rem;color:#64748b">
@@ -444,8 +322,124 @@ data4,data5,data6"></textarea>
 
     </div>
   </main>
-<!-- Feedback Widget -->
-</div>
+<script>
+  const uploadZone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('fileInput');
+  const csvInput = document.getElementById('csvInput');
+  const delimiter = document.getElementById('delimiter');
+  const headerRow = document.getElementById('headerRow');
+  const convertBtn = document.getElementById('convertBtn');
+  const sampleBtn = document.getElementById('sampleBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const previewArea = document.getElementById('previewArea');
+  const excelInfo = document.getElementById('excelInfo');
+  
+  let currentData = null;
+  
+  uploadZone.addEventListener('click', () => fileInput.click());
+  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('drop', (e) => { e.preventDefault(); uploadZone.classList.remove('dragover'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+  fileInput.addEventListener('change', (e) => { if(e.target.files[0]) handleFile(e.target.files[0]); });
+  
+  function handleFile(file){
+    const reader = new FileReader();
+    reader.onload = function(e){
+      csvInput.value = e.target.result;
+      convertBtn.click();
+    };
+    reader.readAsText(file);
+  }
+  
+  function parseCSV(text, delim){
+    const lines = text.split('\n').filter(l => l.trim());
+    if(lines.length === 0) return [];
+    const rows = [];
+    for(const line of lines){
+      const row = [];
+      let current = '';
+      let inQuotes = false;
+      for(let i = 0; i < line.length; i++){
+        const ch = line[i];
+        if(ch === '"'){
+          if(inQuotes && i+1 < line.length && line[i+1] === '"'){
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if(ch === delim && !inQuotes){
+          row.push(current);
+          current = '';
+        } else {
+          current += ch;
+        }
+      }
+      row.push(current);
+      rows.push(row);
+    }
+    return rows;
+  }
+  
+  convertBtn.addEventListener('click', () => {
+    const text = csvInput.value.trim();
+    if(!text){ showToast('Please enter or upload CSV data'); return; }
+    const delim = delimiter.value === '\t' ? '\t' : delimiter.value;
+    const rows = parseCSV(text, delim);
+    if(rows.length === 0){ showToast('No parseable data found'); return; }
+    
+    currentData = {rows, hasHeader: headerRow.value === '1'};
+    
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:.85rem">';
+    for(let i = 0; i < Math.min(rows.length, 20); i++){
+      html += '<tr>';
+      for(const cell of rows[i]){
+        const tag = currentData.hasHeader && i === 0 ? 'th' : 'td';
+        html += '<' + tag + ' style="border:1px solid rgba(148,163,184,.2);padding:4px 8px;text-align:left;color:#e2e8f0">' + escapeHtml(cell) + '</' + tag + '>';
+      }
+      html += '</tr>';
+    }
+    if(rows.length > 20){
+      html += '<tr><td colspan="' + rows[0].length + '" style="border:1px solid rgba(148,163,184,.2);padding:4px 8px;color:#64748b;text-align:center">... and ' + (rows.length - 20) + ' more rows</td></tr>';
+    }
+    html += '</table>';
+    previewArea.innerHTML = html;
+    excelInfo.textContent = '📊 ' + rows.length + ' row × ' + rows[0].length + ' column';
+    excelInfo.style.display = 'block';
+    downloadBtn.disabled = false;
+  });
+  
+  function escapeHtml(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  
+  downloadBtn.addEventListener('click', () => {
+    if(!currentData) return;
+    const ws = XLSX.utils.aoa_to_sheet(currentData.rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    const blob = new Blob([wbout], {type:'application/octet-stream'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'converted.xlsx';
+    a.click();
+  });
+  
+  sampleBtn.addEventListener('click', () => {
+    csvInput.value = 'Name,Email,Age,City,Occupation\nJohn Doe,john@example.com,28,New York,Engineer\nJane Smith,jane@example.com,34,Los Angeles,Designer\nBob Johnson,bob@example.com,45,Chicago,Manager\nAlice Williams,alice@example.com,31,Houston,Developer\nCharlie Brown,charlie@example.com,22,Phoenix,Student';
+    convertBtn.click();
+  });
+  
+  clearBtn.addEventListener('click', () => {
+    csvInput.value = '';
+    previewArea.innerHTML = '';
+    excelInfo.style.display = 'none';
+    downloadBtn.disabled = true;
+    currentData = null;
+  });
+</script>
 <script>
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 
@@ -464,6 +458,7 @@ document.getElementById('feedback-success').style.display='block';
   <div class="related-tools-loading">Loading related tools...</div>
 <script src="https://free-toolbase.com/related-tools.js"></script>
 <div class="toast" id="toast"></div>
+</div>
 
 <!-- AdSense -->
 
