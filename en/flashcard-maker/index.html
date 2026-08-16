@@ -106,8 +106,8 @@ a{color:#06b6d4;text-decoration:none}
 .form-group label{display:block;color:#94a3b8;font-size:.9rem;margin-bottom:6px;font-weight:500}
 .form-group input[type="number"],.form-group input[type="text"],.form-group select,.form-group textarea,.form-group input[type="date"]{width:100%;padding:10px 14px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:8px;color:#e2e8f0;font-size:.9rem;outline:none;transition:all .2s}
 .form-group textarea{
-      background: var(--surface);
-      color: var(--text);min-height:80px;resize:vertical}
+      background: #0f172a;
+      color: #e2e8f0;min-height:80px;resize:vertical}
 .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:rgba(6,182,212,.4);box-shadow:0 0 0 3px rgba(6,182,212,.1)}
 .form-row{display:flex;gap:12px;flex-wrap:wrap}
 .form-row .form-group{flex:1;min-width:200px}
@@ -189,7 +189,7 @@ a{color:#06b6d4;text-decoration:none}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://free-toolbase.com/og-image.svg">
 
-<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
 <meta name="robots" content="index, follow">
 <link rel="alternate" hreflang="zh" href="https://free-toolbase.com/flashcard-maker/">
 <link rel="alternate" hreflang="en" href="https://free-toolbase.com/en/flashcard-maker/">
@@ -197,7 +197,7 @@ a{color:#06b6d4;text-decoration:none}
 </head>
 <body>
 <main class="container">
- <div class="header"><h1>📇 Flashcard Maker</h1><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../flashcard-maker/">EN</a></div></div>
+ <div class="header"><h1>📇 Flashcard Maker</h1><div class="lang-switch"><a href="../../flashcard-maker/">中文</a><a href="index.html" class="active">EN</a></div></div>
  <p class="nav-back"><a href="../../index.html">&larr; All Tools</a></p>
 
 <!-- Freshness badge - GEO signal -->
@@ -274,7 +274,7 @@ a{color:#06b6d4;text-decoration:none}
 function flipCard(){
   var el=document.getElementById("studyCard");
   if(!el)return;
-  if(el._flipped){el.textContent=el._back;el._flipped=false}
+  if(el._flipped){el.textContent=el._front;el._flipped=false}
   else{el.textContent=el._back;el._flipped=true}
 }
 function nextCard(){window._studyIdx=(window._studyIdx||0)+1;showCard()}
@@ -315,10 +315,18 @@ function render(){
   list.innerHTML=html
 }
 document.addEventListener("DOMContentLoaded",render);
+document.addEventListener("DOMContentLoaded",render);
 </script>
 
 
 <!-- Feedback Widget -->
+<!-- Feedback Widget -->
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
+<div id="related-tools-section" class="related-tools-section">
+ <div class="related-tools-loading">Loading related tools...</div>
+</div>
+<script src="https://free-toolbase.com/related-tools.js"></script>
+<div class="toast" id="toast"></div>
 </main></div><footer style="background:#0f172a;border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:40px">
   <div style="max-width:1200px;margin:0 auto;padding:0 20px;display:flex;flex-wrap:wrap;justify-content:center;gap:16px">
     <a href="../index.html" style="color:#94a3b8;text-decoration:none;font-size:14px">Home</a>
@@ -331,8 +339,6 @@ document.addEventListener("DOMContentLoaded",render);
   </div>
   <p style="text-align:center;color:#64748b;font-size:12px;margin-top:12px">Feedback: dexshuang@google.com</p>
 </footer>
-<div class="toast" id="toast"></div>
-
 <script>
 var cards=JSON.parse(localStorage.getItem("flashcards")||"[]");
 function toast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},2000)}
@@ -349,16 +355,16 @@ function addCard(){
   var front=document.getElementById("fcFront").value.trim();
   var back=document.getElementById("fcBack").value.trim();
   var deck=document.getElementById("fcNewDeck").value.trim()||document.getElementById("fcDeck").value;
-  if(!front||!back){toast("");return}
+  if(!front||!back){toast("Please enter both Front and Back text");return}
   cards.push({id:Date.now(),front:front,back:back,deck:deck,created:new Date().toISOString()});
   document.getElementById("fcFront").value="";document.getElementById("fcBack").value="";document.getElementById("fcNewDeck").value="";
-  save();toast("cardAlreadyAdd")
+  save();toast("Card added")
 }
 function deleteCard(id){cards=cards.filter(function(c){return c.id!==id});save()}
 function startStudy(){
   var deck=document.getElementById("fcDeck").value;
   var deckCards=cards.filter(function(c){return c.deck===deck});
-  if(deckCards.length<2){toast("");return}
+  if(deckCards.length<2){toast("Need at least 2 cards in this deck to start studying");return}
   // Shuffle
   for(var i=deckCards.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=deckCards[i];deckCards[i]=deckCards[j];deckCards[j]=t}
   window._studyCards=deckCards;window._studyIdx=0;
@@ -366,7 +372,7 @@ function startStudy(){
 }
 function showCard(){
   var idx=window._studyIdx;var cards=window._studyCards;
-  if(!cards||idx>=cards.length){toast("");hideStudy();return}
+  if(!cards||idx>=cards.length){toast("Finished studying this deck!");hideStudy();return}
   var card=cards[idx];
   var lang=document.documentElement.lang;
   var modal=document.getElementById("studyModal");
@@ -384,6 +390,7 @@ function showCard(){
   }
   document.getElementById("studyProgress").textContent=(idx+1)+" / "+cards.length;
   document.getElementById("studyCard").textContent=card.front;
+  document.getElementById("studyCard")._front=card.front;
   document.getElementById("studyCard")._flipped=false;
   document.getElementById("studyCard")._back=card.back;
   document.getElementById("studyHint").textContent=lang==="zh-CN"?"":"Click card to flip for answer";
@@ -392,18 +399,13 @@ function toggleFeedback(){const p=document.getElementById('feedback-panel');p.st
 function submitFeedback(){
 const type=document.getElementById('feedback-type').value;
 const typeLabel={feedback:'💡 Feature Request',bug:'🐛 Bug Report',other:'💬 Other'}[type];
+const text=document.getElementById('feedback-text')?document.getElementById('feedback-text').value:'';
 const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
 const body=encodeURIComponent('**Page**: '+window.location.href+'\n**Type**: '+typeLabel+'\n\n'+text);
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
 document.getElementById('feedback-success').style.display='block';
 }
 </script>
-<!-- Related Tools (cross-recommendation) -->
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section">
- <div class="related-tools-loading">Loading related tools...</div>
-</div>
-<script src="https://free-toolbase.com/related-tools.js"></script>
 
 </body>
 </html>
