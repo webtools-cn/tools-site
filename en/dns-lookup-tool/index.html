@@ -25,7 +25,7 @@
     "offers": { "@type": "Offer", "price": "0" }
   }
   </script>
- <style>:root{--surface:#1e293b;--error:#EF4444;;--text:#e2e8f0}
+ <style>:root{--surface:#1e293b;--error:#EF4444;--text:#e2e8f0}
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#0f172a; color:#e2e8f0; min-height:100vh; }
     header { background:var(--surface); border-bottom:1px solid rgba(148,163,184,.1); padding:16px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
@@ -55,7 +55,7 @@
     footer a { color:#22d3ee; }
     .row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
     .row > * { flex:1; min-width:150px; }
-    .tag { display:inline-block; padding:2px 10px; border-radius:12px; font-size:12px; background:rgba(79,70,229,.2); color:#818cf8; margin:2px; }
+    .tag { display:inline-block; padding:2px 10px; border-radius:12px; font-size:12px; background:rgba(6,182,212,.15); color:#22d3ee; margin:2px; }
     .status { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; }
     .status.open { background:#10b981; }
     .status.closed { background:var(--error); }
@@ -121,13 +121,12 @@
 </div>
 
  <div style="margin-top:16px; font-size:12px; color:#94a3b8;">
- <strong>common DNSrecordType：</strong><br>
+ <strong>Common DNS record types:</strong><br>
  <span class="tag">A</span> IPv4 <span class="tag">AAAA</span> IPv6 <span class="tag">CNAME</span> <br>
- <span class="tag">MX</span> emailserver <span class="tag">NS</span> domainserver <span class="tag">TXT</span> Textrecord
+ <span class="tag">MX</span> email server <span class="tag">NS</span> domain server <span class="tag">TXT</span> Text record
  </div>
- </div>
- <div class="result" id="result"></div>
- <h2>What is DNS Lookup Tool?</h2><p>DNS Lookup Tool is a free online tool that runs entirely in your browser. No software installation, no account registration, just open the page and start using it. All input data is processed locally and never uploaded to any server, ensuring complete privacy. Whether you're a student, engineer, designer, or office worker, you can get started in seconds.</p><h2>Use Cases</h2><ul><li>Verify mathematical calculations during study or teaching</li><li>Solve geometry problems quickly in engineering work</li><li>Calculate ratios and percentages in daily life</li><li>Mobile math calculations without a calculator app</li></ul><h2>Key Features</h2><ul><li><strong>Completely Free</strong>: Ideal for students and engineers</li><li><strong>Transparent Formulas</strong>: Shows calculation steps</li><li><strong>High Precision</strong>: Supports decimals and fractions</li><li><strong>Cross-Platform</strong>: Phone and desktop supported</li></ul><h3>Is DNS Lookup Tool accurate?</h3><p>This tool's logic is based on standard mathematical formulas. Results are accurate and reliable.</p><h3>Do I need internet to use DNS Lookup Tool?</h3><p>You need internet to load the page initially. Once loaded, the tool works offline.</p><h3>Is my data recorded?</h3><p>No. This tool has no backend server. All data exists only in your browser's memory.</p>
+  </div>
+ <h2>What is DNS Lookup Tool?</h2><p>DNS Lookup Tool is a free online tool that runs entirely in your browser. No software installation, no account registration, just open the page and start using it. Queries are sent over encrypted HTTPS to Google's public DNS resolver, and results are shown instantly. Whether you're a developer, sysadmin, or everyday user, you can start in seconds.</p><h2>Use Cases</h2><ul><li>Check whether a domain resolves to the expected IP address</li><li>Verify MX records point to the correct mail server</li><li>Confirm NS records after changing domain name servers</li><li>Inspect TXT records such as SPF, DKIM, and verification tokens</li></ul><h2>Key Features</h2><ul><li><strong>Completely Free</strong>: No signup, no limits</li><li><strong>Multiple Record Types</strong>: A, AAAA, CNAME, MX, NS, TXT, SOA</li><li><strong>Privacy Safe</strong>: DNS queries run over encrypted HTTPS</li><li><strong>Cross-Platform</strong>: Phone and desktop supported</li></ul><h3>How is the DNS lookup performed?</h3><p>Queries are sent to Google's public DNS resolver using DNS over HTTPS. The records returned come directly from the authoritative name servers.</p><h3>Do I need internet to use DNS Lookup Tool?</h3><p>You need internet to load the page and to perform lookups, since DNS records are fetched live from a resolver.</p><h3>Is my data recorded?</h3><p>No. This tool has no backend server. Only the domain you enter is sent to the DNS resolver, and nothing is stored on our side.</p>
 </main>
 <!-- AdSense -->
 
@@ -152,20 +151,23 @@
 
     async function lookupDNS() {
       const domain = domainInput.value.trim();
-      if (!domain) { showResult('PleaseInputdomain', true); return; }
-      showResult('queryin...');
+      if (!domain) { showResult('Please enter a domain name', true); return; }
+      showResult('Querying...');
       try {
         const type = recordType.value;
-        const url = `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=${type}`;
+        const url = 'https://dns.google/resolve?name=' + encodeURIComponent(domain) + '&type=' + type;
         const resp = await fetch(url);
         const data = await resp.json();
-        if (data.Answer) {
-          let out = `queryResult：${domain} (${type})\n${'─''\n')}`, true);
+        const answers = (data && data.Answer) || [];
+        if (answers.length) {
+          let out = 'Query result for ' + domain + ' (' + type + '):\n';
+          answers.forEach(function(a){ out += a.name + '  ' + a.type + '  TTL ' + a.TTL + '  ' + a.data + '\n'; });
+          showResult(out.trim());
         } else {
-          showResult(`Notfindto${type}record`, true);
+          showResult('No ' + type + ' records found for ' + domain, true);
         }
       } catch(e) {
-        showResult('queryfailed：' + e.message + '', true);
+        showResult('Query failed: ' + e.message, true);
       }
     }
 
