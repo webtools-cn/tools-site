@@ -156,8 +156,11 @@
       try {
         const type = recordType.value;
         const url = 'https://dns.google/resolve?name=' + encodeURIComponent(domain) + '&type=' + type;
-        const resp = await fetch(url);
+        const ctrl = new AbortController();
+        const timer = setTimeout(function(){ ctrl.abort(); }, 9000);
+        const resp = await fetch(url, { signal: ctrl.signal });
         const data = await resp.json();
+        clearTimeout(timer);
         const answers = (data && data.Answer) || [];
         if (answers.length) {
           let out = 'Query result for ' + domain + ' (' + type + '):\n';
@@ -167,7 +170,7 @@
           showResult('No ' + type + ' records found for ' + domain, true);
         }
       } catch(e) {
-        showResult('Query failed: ' + e.message, true);
+        showResult('Query failed or timed out. Please check your network connection.', true);
       }
     }
 

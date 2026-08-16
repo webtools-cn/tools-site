@@ -237,9 +237,12 @@ function checkDKIM() {
   var host = selector + '._domainkey.' + domain;
   var result = document.getElementById('result');
   result.innerHTML = '<div class="warning">Querying ' + esc(host) + ' ...</div>';
-  fetch('https://dns.google/resolve?name=' + encodeURIComponent(host) + '&type=TXT')
+  var ctrl = new AbortController();
+  var timer = setTimeout(function(){ ctrl.abort(); }, 9000);
+  fetch('https://dns.google/resolve?name=' + encodeURIComponent(host) + '&type=TXT', { signal: ctrl.signal })
     .then(function(resp){ return resp.json(); })
     .then(function(data){
+      clearTimeout(timer);
       var answers = (data && data.Answer) || [];
       var txt = answers.filter(function(a){ return a.type === 16; });
       if (!txt.length) {
@@ -251,7 +254,8 @@ function checkDKIM() {
       result.innerHTML = html;
     })
     .catch(function(){
-      result.innerHTML = '<div class="error">Query failed. Please check your network connection.</div>';
+      clearTimeout(timer);
+      result.innerHTML = '<div class="error">Query failed or timed out. Please check your network connection.</div>';
     });
 }
 
