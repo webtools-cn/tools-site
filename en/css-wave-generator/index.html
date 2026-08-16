@@ -210,7 +210,7 @@ input[type=color]{width:48px;height:40px;padding:2px;background:#0f172a;border:1
 <main class="container">
   <div class="header">
     <h1>🌊 CSS Wave Generator</h1>
-    <div class="lang-switch"><a href="../../css-wave-generator/"></a><a href="./" class="active">EN</a></div>
+    <div class="lang-switch"><a href="../../css-wave-generator/">中文</a><a href="./" class="active">EN</a></div>
   </div>
   <p class="nav-back"><a href="/en/">← All Tools</a></p>
   <div class="input-section">
@@ -277,10 +277,10 @@ input[type=color]{width:48px;height:40px;padding:2px;background:#0f172a;border:1
 <div>
 <!-- AdSense -->
 
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css"><div id="related-tools-section" class="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div><script src="https://free-toolbase.com/related-tools.js"></script></div></div>
+<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css"><div id="related-tools-section" class="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div><script src="https://free-toolbase.com/related-tools.js"></script></div>
 <footer>
   <a href="/en/">Home</a> | <a href="/en/">All Tools</a> | <a href="mailto:dexshuang@google.com">Contact</a> | <a href="../privacy/">Privacy</a> | <a href="../terms/">Terms</a> | <a href="../about/">About</a>
-<a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener">GitHub</a> | <a href="../../css-wave-generator/"></a>
+<a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener">GitHub</a> | <a href="../../css-wave-generator/">中文</a>
   <p style="margin-top:8px">CSS Wave Generator | No Signup, Client-Side · No Server Uploads</p>
   <p style="margin-top:8px;color:#475569;font-size:.8rem">Feedback: dexshuang@google.com</p>
 </footer>
@@ -288,66 +288,102 @@ input[type=color]{width:48px;height:40px;padding:2px;background:#0f172a;border:1
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("Copied")})["catch"](function(){showToast("Copy failed")})}
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 Feature request',bug:'🐛 Feedback',other:'💬 Other'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**Page**: '+window.location.href+'\n**Type**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-}
+  function generateWave(){
+    var type=document.getElementById('waveType').value;
+    var dir=document.getElementById('waveDir').value;
+    var c1=document.getElementById('color1').value;
+    var c2=document.getElementById('color2').value;
+    var bg=document.getElementById('bgColor').value;
+    var h=parseInt(document.getElementById('waveHeight').value)||60;
+    var freq=parseInt(document.getElementById('waveFreq').value)||2;
+    var shadow=document.getElementById('showShadow').checked;
+    var flip=document.getElementById('flipH').checked;
+    var w=1200;
+    var layers=type==='multi'?3:1;
+    var animated=type==='animated';
+    var preview=document.getElementById('wavePreview');
+    preview.style.background=bg;
+    preview.style.minHeight=(h+80)+'px';
+    var svgPaths=[];
+    var cssAnim='';
+    for(var l=0;l<layers;l++){
+      var opacity=1-l*0.25;
+      var offset=l*15;
+      var speed=3+l*2;
+      var color=l===0?c1:l===1?c2:c1;
+      var points=[];
+      var segments=freq*2;
+      var segW=w/segments;
+      for(var i=0;i<=segments;i++){
+        var x=i*segW;
+        var y=dir==='bottom'?(h+offset+Math.sin(i*Math.PI)*10):(80-h-offset-Math.sin(i*Math.PI)*10);
+        if(i===0)points.push('M0,'+y);
+        else{
+          var cpx1=(i-0.5)*segW;
+          var cpy1=y-(h*0.5);
+          var cpx2=(i-0.5)*segW;
+          var cpy2=y+(h*0.5);
+          points.push('C'+cpx1+','+cpy1+' '+cpx2+','+cpy2+' '+x+','+y);
+        }
+      }
+      var bottomY=dir==='bottom'?(h+80):0;
+      points.push('L'+w+','+bottomY+' L0,'+bottomY+' Z');
+      var pathD=points.join(' ');
+      var animClass=animated?'wave-anim-'+l:'';
+      svgPaths.push('<path d="'+pathD+'" fill="'+color+'" opacity="'+opacity+'" class="'+animClass+'"/>');
+      if(animated){
+        cssAnim+='@keyframes waveMove'+l+'{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.wave-anim-'+l+'{animation:waveMove'+l+' '+speed+'s linear infinite}\n';
+      }
+    }
+    var flipTransform=flip?' transform="scale(-1,1) translate(-'+w+',0)"':'';
+    var shadowFilter=shadow?'<defs><filter id="ws"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="rgba(0,0,0,0.3)"/></filter></defs>':'';
+    var svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+w+' '+(h+80)+'" preserveAspectRatio="none" style="width:100%;height:100%;display:block"'+flipTransform+'>'+shadowFilter+svgPaths.join('')+'</svg>';
+    preview.innerHTML=svg;
+    if(animated){
+      var style=document.getElementById('waveAnimStyle');
+      if(!style){style=document.createElement('style');style.id='waveAnimStyle';document.head.appendChild(style);}
+      style.textContent=cssAnim;
+    }
+    var fullCode=svg;
+    if(animated)fullCode='<style>\n'+cssAnim+'@media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.header{flex-direction:column;gap:8px}}</style>\n\n'+svg;
+    document.getElementById('svgCode').textContent=fullCode;
+  }
 
-// === rewritten function implementation ===
-var quotes = [
-  {text:'A journey of a thousand miles begins with a single step.',author:'Lao Tzu',cat:'Motivation'},
-  {text:'The best time to plant a tree was 20 years ago. The second best time is now.',author:'Chinese Proverb',cat:'Motivation'},
-  {text:'Success is not final, failure is not fatal: it is the courage to continue that counts.',author:'Winston Churchill',cat:'Motivation'},
-  {text:'The only way to do great work is to love what you do.',author:'Steve Jobs',cat:'Motivation'},
-  {text:'Whether you think you can or you think you can\'t, you\'re right.',author:'Henry Ford',cat:'Motivation'},
-  {text:'It always seems impossible until it\'s done.',author:'Nelson Mandela',cat:'Motivation'},
-  {text:'Genius is one percent inspiration and ninety-nine percent perspiration.',author:'Thomas Edison',cat:'Wisdom'},
-  {text:'Knowledge is power.',author:'Francis Bacon',cat:'Wisdom'},
-  {text:'The only true wisdom is in knowing you know nothing.',author:'Socrates',cat:'Wisdom'},
-  {text:'An investment in knowledge pays the best interest.',author:'Benjamin Franklin',cat:'Wisdom'},
-  {text:'Life is what happens when you\'re busy making other plans.',author:'John Lennon',cat:'Life'},
-  {text:'In the middle of difficulty lies opportunity.',author:'Albert Einstein',cat:'Life'},
-  {text:'The purpose of our lives is to be happy.',author:'Dalai Lama',cat:'Life'},
-  {text:'You miss 100% of the shots you don\'t take.',author:'Wayne Gretzky',cat:'Life'},
-  {text:'The best and most beautiful things in the world cannot be seen or even touched — they must be felt with the heart.',author:'Helen Keller',cat:'Love'},
-  {text:'Being deeply loved by someone gives you strength, while loving someone deeply gives you courage.',author:'Lao Tzu',cat:'Love'},
-  {text:'To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment.',author:'Ralph Waldo Emerson',cat:'Life'},
-  {text:'The journey of life is not to arrive at the grave safely, but to fall, get up, and keep going.',author:'Maya Angelou',cat:'Life'},
-  {text:'Happiness is not something ready made. It comes from your own actions.',author:'Dalai Lama',cat:'Life'},
-  {text:'Well done is better than well said.',author:'Benjamin Franklin',cat:'Wisdom'},
-  {text:'A problem is a chance for you to do your best.',author:'Duke Ellington',cat:'Motivation'},
-  {text:'Everything you\'ve ever wanted is on the other side of fear.',author:'George Addair',cat:'Motivation'},
-  {text:'Perseverance is not a long race; it is many short races one after the other.',author:'Walter Elliot',cat:'Motivation'},
-  {text:'The secret of getting ahead is getting started.',author:'Mark Twain',cat:'Motivation'}
-];
-var currentQuote = null;
+  ['waveType','waveDir','color1','color2','bgColor','waveHeight','waveFreq','showShadow','flipH'].forEach(function(id){
+    document.getElementById(id).addEventListener('input',function(){
+      document.getElementById('heightVal').textContent=document.getElementById('waveHeight').value+'px';
+      document.getElementById('freqVal').textContent=document.getElementById('waveFreq').value;
+      generateWave();
+    });
+    document.getElementById(id).addEventListener('change',generateWave);
+  });
 
-function generateQuote() {
-  var idx = Math.floor(Math.random() * quotes.length);
-  currentQuote = quotes[idx];
-  document.getElementById('quoteText').textContent = currentQuote.text;
-  document.getElementById('quoteAuthor').textContent = '— ' + currentQuote.author;
-  document.getElementById('quoteCategory').textContent = currentQuote.cat;
-}
+  document.getElementById('copySvg').addEventListener('click',function(){
+    navigator.clipboard.writeText(document.getElementById('svgCode').textContent).then(function(){showToast('SVG code copied!');});
+  });
+  document.getElementById('copyCss').addEventListener('click',function(){
+    var svg=document.getElementById('svgCode').textContent;
+    var data='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+    var css='.wave-divider {\n  width: 100%;\n  height: 120px;\n  background-image: url("'+data+'");\n  background-size: 100% 100%;\n  background-repeat: no-repeat;\n}\n';
+    navigator.clipboard.writeText(css).then(function(){showToast('CSS code copied!');});
+  });
+  document.getElementById('resetBtn').addEventListener('click',function(){
+    document.getElementById('waveType').value='single';
+    document.getElementById('waveDir').value='bottom';
+    document.getElementById('color1').value='#06b6d4';
+    document.getElementById('color2').value='#22d3ee';
+    document.getElementById('bgColor').value='#0f172a';
+    document.getElementById('waveHeight').value=60;
+    document.getElementById('waveFreq').value=2;
+    document.getElementById('showShadow').checked=true;
+    document.getElementById('flipH').checked=false;
+    document.getElementById('heightVal').textContent='60px';
+    document.getElementById('freqVal').textContent='2';
+    generateWave();showToast('Reset complete');
+  });
 
-function copyQuote() {
-  if (!currentQuote) return;
-  var t = '\"' + currentQuote.text + '\" — ' + currentQuote.author;
-  navigator.clipboard.writeText(t).then(function(){showToast('Copied')}).catch(function(){showToast('Copy failed')});
-}
-
-function shareTwitter() {
-  if (!currentQuote) return;
-  var t = encodeURIComponent('\"' + currentQuote.text + '\" — ' + currentQuote.author);
-  window.open('https://twitter.com/intent/tweet?text=' + t, '_blank');
-}
-
-
+  generateWave();
 </script>
-<div class="toast" id="toast"></body>
+<div class="toast" id="toast"></div>
+</body>
 </html>
