@@ -104,7 +104,7 @@ a{color:#06b6d4;text-decoration:none}
 .container{max-width:960px;margin:0 auto;padding:24px 16px}
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
 .header h1{font-size:1.4rem;color:#f1f5f9}
-.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1);align-self:flex-start}
 .lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
 .lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
 .nav-back{color:#64748b;font-size:.85rem;margin-bottom:16px}
@@ -316,22 +316,20 @@ function toNested(cssText) {
   for (const rule of rules) {
     const parts = rule.selector.split(/\s+/);
     if (parts.length < 2) {
-      result += rule.selector + ' {' + nl;
-      result += indent + rule.body + nl;
-      result += '}' + nl + nl;
+      if (!groups[rule.selector]) groups[rule.selector] = { own: [], children: [] };
+      groups[rule.selector].own.push(rule.body);
       continue;
     }
     const parent = parts[0];
     const child = parts.slice(1).join(' ');
-    if (!groups[parent]) groups[parent] = [];
-    groups[parent].push({ child, body: rule.body });
+    if (!groups[parent]) groups[parent] = { own: [], children: [] };
+    groups[parent].children.push({ child, body: rule.body });
   }
   
-  for (const [parent, children] of Object.entries(groups)) {
+  for (const [parent, g] of Object.entries(groups)) {
     result += parent + ' {' + nl;
-    const parentRule = rules.find(r => r.selector === parent);
-    if (parentRule) result += indent + parentRule.body + nl;
-    for (const child of children) {
+    for (const body of g.own) result += indent + body + nl;
+    for (const child of g.children) {
       let childSel = child.child.startsWith('&') ? child.child : '& ' + child.child;
       childSel = childSel.replace(/\s+/g, ' ').trim();
       result += indent + childSel + ' {' + nl;
@@ -359,20 +357,21 @@ function flattenCSS(cssText) {
   let result = '';
   const lines = cssText.split('\n');
   const selectors = [''];
-  
+
   for (let line of lines) {
     const t = line.trim();
     if (!t) continue;
     if (t.startsWith('/*')) { result += t + '\n'; continue; }
-    
+
     if (t.includes('{')) {
       const sel = t.replace('{', '').trim();
       if (sel && !sel.startsWith('}')) {
+        const base = selectors[selectors.length-1] || '';
         if (sel.startsWith('&')) {
-          const base = selectors[selectors.length-1] || '';
-          selectors.push(base + sel.substring(1).trim());
+          const rest = sel.substring(1);
+          selectors[selectors.length-1] = base ? base + rest : rest.trim();
         } else {
-          selectors.push(sel);
+          selectors.push(base ? base + ' ' + sel : sel);
         }
       }
     } else if (t === '}') {
@@ -380,10 +379,8 @@ function flattenCSS(cssText) {
     } else if (t.includes('}')) {
       selectors.pop();
     } else {
-      const path = selectors.filter(s => s).join(' ');
-      if (path && t.includes(':')) {
-        result += path + ' {\n  ' + t.replace(/;$/, '') + ';\n}\n\n';
-      } else if (path) {
+      const path = selectors[selectors.length-1] || '';
+      if (path) {
         result += path + ' {\n  ' + t.replace(/;$/, '') + ';\n}\n\n';
       }
     }
@@ -401,10 +398,12 @@ function simpleFlatten(cssText) {
     if (t.endsWith('{')) {
       const sel = t.slice(0, -1).trim();
       if (sel) {
-        if (sel.startsWith('&') && selectors.length > 0) {
-          selectors.push(selectors[selectors.length-1] + sel.substring(1));
+        const base = selectors[selectors.length-1] || '';
+        if (sel.startsWith('&')) {
+          const rest = sel.substring(1);
+          selectors[selectors.length-1] = base ? base + rest : rest.trim();
         } else {
-          selectors.push(sel);
+          selectors.push(base ? base + ' ' + sel : sel);
         }
       }
     } else if (t === '}') {
@@ -414,7 +413,7 @@ function simpleFlatten(cssText) {
       if (b) output += '  '.repeat(selectors.length-1) + b + '\n';
       selectors.pop();
     } else {
-      const path = selectors.filter(s => s).join(' ');
+      const path = selectors[selectors.length-1] || '';
       if (path) output += path + ' {\n  ' + t + '\n}\n\n';
     }
   }
