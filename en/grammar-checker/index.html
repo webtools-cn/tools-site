@@ -545,7 +545,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (result.errors.length === 0) {
       errorList.innerHTML = '';
       showToast('✨ No issues found! Great writing.');
+    } else {
+      errorList.innerHTML = result.errors.map(e => {
+        const info = e.informational ? ' (informational)' : '';
+        return '<div class="error-item">' +
+          '<div class="error-text"><span class="error-type">' + escapeHtml(e.type) + info + '</span>' + escapeHtml(e.original) + '</div>' +
+          (e.suggestion ? '<div class="error-fix">→ ' + escapeHtml(e.suggestion) + '</div>' : '') +
+          '</div>';
+      }).join('');
     }
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
   function showToast(msg) {
@@ -554,6 +566,35 @@ document.addEventListener('DOMContentLoaded', () => {
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 2500);
   }
+
+  inputText.addEventListener('input', () => {
+    const text = inputText.value;
+    wordCount.textContent = text.trim() ? text.trim().split(/\s+/).length : 0;
+  });
+
+  checkBtn.addEventListener('click', runCheck);
+  clearBtn.addEventListener('click', () => {
+    inputText.value = '';
+    resultSection.style.display = 'none';
+    wordCount.textContent = '0';
+    errorCount.textContent = '0';
+    scoreDisplay.textContent = '—';
+  });
+
+  sampleBtn.addEventListener('click', () => {
+    inputText.value = 'Their are many people who think that the english language is easy to learn. However, their are a lot of rules to remember. Youre writing should be checked for mistakes like these: its important to check your work thoroughly. A common mistake is using "alot" instead of "a lot". Another thing to watch for is the use of passive voice which was used by many writers. If you dont check your work, errors can slip threw.';
+    wordCount.textContent = inputText.value.trim().split(/\s+/).length;
+    runCheck();
+  });
+
+  inputText.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') runCheck();
+  });
+
+  copyBtn.addEventListener('click', () => {
+    const text = markedOutput.textContent;
+    navigator.clipboard.writeText(text).then(() => showToast('📋 Text copied!'));
+  });
 });
 </script>
 

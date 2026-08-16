@@ -30,7 +30,29 @@ def check_js_blocks_batch(codes):
     except Exception:
         return [False] * len(codes)
 
-issues = {'struct': [], 'footer_pos': [], 'faq_dup': [], 'js_syntax': [], 'cn_in_en': [], 'meta_short': [], 'thin': [], 'dup': [], 'home_num': []}
+issues = {'struct': [], 'footer_pos': [], 'faq_dup': [], 'js_syntax': [], 'cn_in_en': [], 'meta_short': [], 'thin': [], 'dup': [], 'home_num': [], 'ga_id': [], 'ads_id': []}
+
+# 0b. GA/AdSense ID 白名单检测 (防8/12 ID错误复发)
+GOOD_GA = 'G-9W1157EBQV'
+GOOD_ADS = 'ca-pub-5998441792679372'
+for p in pages:
+    try:
+        h = open(p, encoding='utf-8', errors='ignore').read()
+    except: continue
+    for m in re.finditer(r'gtag/js\?id=([A-Z0-9-]+)', h):
+        if m.group(1) != GOOD_GA:
+            issues['ga_id'].append((p, m.group(1)))
+    for m in re.finditer(r"gtag\('config','([A-Z0-9-]+)'", h):
+        if m.group(1) != GOOD_GA:
+            issues['ga_id'].append((p, 'config:' + m.group(1)))
+    for m in re.finditer(r'client=(ca-pub-\d+)', h):
+        if m.group(1) != GOOD_ADS:
+            issues['ads_id'].append((p, m.group(1)))
+    # 结构损坏: gtag/js?id= 前缀缺失或双ID拼接
+    if re.search(r'googletagmanager\.com/(?!gtag/js\?id=)[^"\']*', h):
+        issues['ga_id'].append((p, 'MALFORMED_GTM_URL'))
+    if re.search(r'adsbygoogle\.js\?(?!client=)[^"\']*', h):
+        issues['ads_id'].append((p, 'MALFORMED_ADS_URL'))
 
 # 0. 批量JS语法检查
 all_js_codes = []
@@ -141,7 +163,7 @@ print('=' * 55)
 sections = [
     ('结构不平衡', 'struct'), ('footer位置错', 'footer_pos'), ('FAQ重复', 'faq_dup'),
     ('JS语法失败', 'js_syntax'), ('EN含中文', 'cn_in_en'), ('meta<50', 'meta_short'),
-    ('薄页<500', 'thin'), ('首页数字不一致', 'home_num'),
+    ('薄页<500', 'thin'), ('首页数字不一致', 'home_num'), ('GA ID错误', 'ga_id'), ('AdSense ID错误', 'ads_id'),
 ]
 total = 0
 for label, key in sections:
