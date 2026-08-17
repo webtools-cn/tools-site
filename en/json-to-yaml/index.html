@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
@@ -9,7 +9,7 @@
   gtag('config', 'G-QVBQNJ3L5E');
 </script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Free online json to yaml converter | online format converter tool. Fast, secure, and no registration required. Works entirely in your browser.">
 <meta name="keywords" content="JSON to YAMLconvert JSON to YAMLJSON YAML converterdata format converteronline JSON toolYAML formatterJSON transformationYAML serialization">
@@ -217,9 +217,95 @@
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
 <script>
-function convertJsonToYaml(){var input=document.getElementById('json-input').value.trim();if(!input){showToast('PleaseInputJSONData');return;}var indent=parseInt(document.getElementById('indent-select').value);var errEl=document.getElementById('error-msg');errEl.style.display='none';try{var obj=JSON.parse(input);var yaml=jsyaml.dump(obj,{indent:indent,lineWidth:-1,noRefs:true,sortKeys:false});document.getElementById('yaml-output').textContent=yaml;showToast('Convertsuccess！');}catch(e){errEl.textContent='JSONparseerror：'+e.message;errEl.style.display='block';document.getElementById('yaml-output').textContent='';showToast('JSONFormaterror');}}
+function jsonToYaml(obj, indent, level) {
+  level = level || 0;
+  indent = indent || 2;
+  var prefix = ' '.repeat(level * indent);
+  
+  if (obj === null) return 'null';
+  if (obj === undefined) return 'null';
+  if (typeof obj === 'boolean') return obj.toString();
+  if (typeof obj === 'number') return obj.toString();
+  if (typeof obj === 'string') {
+    if (obj.indexOf('\n') !== -1) {
+      return '|\n' + obj.split('\n').map(function(line) { return prefix + '  ' + line; }).join('\n');
+    }
+    if (obj.indexOf(':') !== -1 || obj.indexOf('#') !== -1 || obj.indexOf('{') !== -1 || obj.indexOf('}') !== -1 ||
+        obj.indexOf('[') !== -1 || obj.indexOf(']') !== -1 || obj.indexOf(',') !== -1 || obj.indexOf('&') !== -1 ||
+        obj.indexOf('*') !== -1 || obj.indexOf('?') !== -1 || obj.indexOf('|') !== -1 || obj.indexOf('-') !== -1 ||
+        obj.indexOf('<') !== -1 || obj.indexOf('>') !== -1 || obj.indexOf('=') !== -1 || obj.indexOf('!') !== -1 ||
+        obj.indexOf('%') !== -1 || obj.indexOf('@') !== -1 || obj.indexOf('`') !== -1 ||
+        obj === 'true' || obj === 'false' || obj === 'null' || obj === 'yes' || obj === 'no' ||
+        obj === 'True' || obj === 'False' || obj === 'Yes' || obj === 'No' ||
+        /^\d/.test(obj) || obj === '') {
+      return '"' + obj.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n') + '"';
+    }
+    return obj;
+  }
+  
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return '[]';
+    var lines = [];
+    obj.forEach(function(item) {
+      if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+        var keys = Object.keys(item);
+        if (keys.length > 0) {
+          lines.push(prefix + '- ' + keys[0] + ': ' + jsonToYaml(item[keys[0]], indent, level + 1));
+          keys.slice(1).forEach(function(key) {
+            lines.push(prefix + '  ' + key + ': ' + jsonToYaml(item[key], indent, level + 1));
+          });
+        } else {
+          lines.push(prefix + '- {}');
+        }
+      } else if (Array.isArray(item)) {
+        lines.push(prefix + '-');
+        item.forEach(function(subItem) {
+          lines.push(prefix + '  - ' + jsonToYaml(subItem, indent, level + 1));
+        });
+      } else {
+        lines.push(prefix + '- ' + jsonToYaml(item, indent, level));
+      }
+    });
+    return '\n' + lines.join('\n');
+  }
+  
+  if (typeof obj === 'object') {
+    var keys = Object.keys(obj);
+    if (keys.length === 0) return '{}';
+    var lines = [];
+    keys.forEach(function(key) {
+      var val = obj[key];
+      if (typeof val === 'object' && val !== null) {
+        lines.push(prefix + key + ':' + jsonToYaml(val, indent, level + 1));
+      } else {
+        lines.push(prefix + key + ': ' + jsonToYaml(val, indent, level));
+      }
+    });
+    return '\n' + lines.join('\n');
+  }
+  
+  return String(obj);
+}
+
+function convertJsonToYaml(){
+  var input=document.getElementById('json-input').value.trim();
+  if(!input){showToast('Please input JSON data');return;}
+  var indent=parseInt(document.getElementById('indent-select').value);
+  var errEl=document.getElementById('error-msg');
+  errEl.style.display='none';
+  try{
+    var obj=JSON.parse(input);
+    var yaml=jsonToYaml(obj, indent, 0);
+    document.getElementById('yaml-output').textContent=yaml;
+    showToast('Conversion successful!');
+  }catch(e){
+    errEl.textContent='JSON parse error: '+e.message;
+    errEl.style.display='block';
+    document.getElementById('yaml-output').textContent='';
+    showToast('JSON format error');
+  }
+}
 function copyResult(){var text=document.getElementById('yaml-output').textContent;if(!text||text==='click"ConvertforYAML"viewResult'){showToast('nohavecanCopy content');return;}navigator.clipboard.writeText(text).then(function(){showToast('');}).catch(function(){showToast('Copyfailed');});}
 function downloadResult(){var text=document.getElementById('yaml-output').textContent;if(!text||text==='click"ConvertforYAML"viewResult'){showToast('nohavecanDownload content');return;}var blob=new Blob([text],{type:'text/yaml'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='output.yaml';a.click();URL.revokeObjectURL(a.href);showToast('Downloadsuccess');}
 function clearAll(){document.getElementById('json-input').value='';document.getElementById('yaml-output').textContent='click"ConvertforYAML"viewResult';document.getElementById('error-msg').style.display='none';}
