@@ -51,6 +51,10 @@
 
 .nav-back{color:#64748b;font-size:.85rem;margin-bottom:12px}.nav-back a{color:#64748b;text-decoration:none}.nav-back a:hover{color:#94a3b8}
 
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
+.lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8;text-decoration:none}
+.lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
+
 .main-grid{display:grid;gap:20px;margin-bottom:20px}
 .section{background:#1e293b;border:1px solid rgba(148,163,184,.1);border-radius:12px;padding:20px;margin-bottom:16px}
 
@@ -142,7 +146,10 @@
 <body>
 <main class="container">
     <header>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <h1>🎨 CSS Pattern Generator</h1>
+        <div class="lang-switch"><a href="/pattern-generator/">中文</a><a href="/en/pattern-generator/" class="active">EN</a></div>
+        </div>
 
         <p>Generate various CSS background patterns with live preview and one-click copy</p>
     <div class="nav-back"><a href="/en/">← Back to Home</a></div></header>
@@ -262,77 +269,23 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
   })();
 
-// === 重写的函数实现 ===
-function copyCode() {
-  var text = document.getElementById('preview').innerText || document.getElementById('preview').textContent;
-  if (!text) { showToast('没有可Copy的内容'); return; }
-  navigator.clipboard.writeText(text).then(function() { showToast('Copy'); }).catch(function() { showToast('CopyFailed'); });
-}
-
-function randomize() {
-  var result = Math.random() > 0.5 ? '正面' : '反面';
-  document.getElementById('preview').textContent = result;
-  document.getElementById('preview').style.display = 'block';
-  showToast('随机ResultGenerated');
-}
-
-function updatePattern(){
-  var typeEl = document.getElementById('pattern-type') || document.querySelector('select');
-  var color1El = document.getElementById('color1') || document.querySelectorAll('input[type=color]')[0];
-  var color2El = document.getElementById('color2') || document.querySelectorAll('input[type=color]')[1];
-  var sizeEl = document.getElementById('pattern-size') || document.querySelector('input[type=range]');
-  var preview = document.getElementById('preview') || document.querySelector('.preview-box');
-  var codeBox = document.getElementById('code') || document.querySelector('.code-box');
-  
-  var type = typeEl ? typeEl.value : 'stripes';
-  var c1 = color1El ? color1El.value : '#22d3ee';
-  var c2 = color2El ? color2El.value : '#0f172a';
-  var size = sizeEl ? parseInt(sizeEl.value) : 20;
-  
-  var bg = '';
-  switch(type){
-    case 'stripes':
-      bg = 'repeating-linear-gradient(90deg, ' + c1 + ' 0, ' + c1 + ' ' + size + 'px, ' + c2 + ' ' + size + 'px, ' + c2 + ' ' + (size*2) + 'px)';
-      break;
-    case 'horizontal-stripes':
-      bg = 'repeating-linear-gradient(0deg, ' + c1 + ' 0, ' + c1 + ' ' + size + 'px, ' + c2 + ' ' + size + 'px, ' + c2 + ' ' + (size*2) + 'px)';
-      break;
-    case 'diagonal-stripes':
-      bg = 'repeating-linear-gradient(45deg, ' + c1 + ' 0, ' + c1 + ' ' + size + 'px, ' + c2 + ' ' + size + 'px, ' + c2 + ' ' + (size*2) + 'px)';
-      break;
-    case 'grid':
-      bg = 'linear-gradient(' + c1 + ' 1px, transparent 1px), linear-gradient(90deg, ' + c1 + ' 1px, transparent 1px)';
-      bg += ', ' + c2;
-      break;
-    case 'dots':
-      bg = 'radial-gradient(' + c1 + ' ' + (size/3) + 'px, transparent ' + (size/2) + 'px)';
-      bg += ', ' + c2;
-      break;
-    case 'checkerboard':
-      bg = 'conic-gradient(' + c1 + ' 90deg, ' + c2 + ' 90deg 180deg, ' + c1 + ' 180deg 270deg, ' + c2 + ' 270deg)';
-      break;
-    default:
-      bg = 'repeating-linear-gradient(90deg, ' + c1 + ' 0, ' + c1 + ' ' + size + 'px, ' + c2 + ' ' + size + 'px, ' + c2 + ' ' + (size*2) + 'px)';
-  }
-  
-  if(preview){
-    preview.style.backgroundImage = bg;
-    preview.style.backgroundSize = (type === 'grid' || type === 'dots') ? size + 'px ' + size + 'px' : '';
-  }
-  if(codeBox){
-    codeBox.textContent = 'background: ' + bg + ';';
-  }
-}
-
-// 初始化
-updatePattern();
-
-
-function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date()); gtag('config', 'G-QVBQNJ3L5E');
-
-
 function hexAlpha(pct) { const hex = Math.round(pct * 2.55).toString(16).padStart(2, '0'); return pct >= 100 ? '' : hex; }
+
+const patterns = {
+  'horizontal-stripes': { name: 'Horizontal Stripes', gen: (c1,c2,s,o) => `repeating-linear-gradient(0deg, ${c1} 0, ${c1} ${s}px, ${c2} ${s}px, ${c2} ${s*2}px)` },
+  'vertical-stripes': { name: 'Vertical Stripes', gen: (c1,c2,s,o) => `repeating-linear-gradient(90deg, ${c1} 0, ${c1} ${s}px, ${c2} ${s}px, ${c2} ${s*2}px)` },
+  'diagonal-stripes': { name: 'Diagonal Stripes', gen: (c1,c2,s,o) => `repeating-linear-gradient(45deg, ${c1} 0, ${c1} ${s}px, ${c2} ${s}px, ${c2} ${s*2}px)` },
+  'grid': { name: 'Grid', gen: (c1,c2,s,o) => `linear-gradient(${c1} 1px, transparent 1px), linear-gradient(90deg, ${c1} 1px, transparent 1px), ${c2}` },
+  'dots': { name: 'Dots', gen: (c1,c2,s,o) => `radial-gradient(${c1} ${s/3}px, transparent ${s/2}px), ${c2}` },
+  'checkerboard': { name: 'Checkerboard', gen: (c1,c2,s,o) => `conic-gradient(${c1} 90deg, ${c2} 90deg 180deg, ${c1} 180deg 270deg, ${c2} 270deg)` },
+  'zigzag': { name: 'Zigzag', gen: (c1,c2,s,o) => `linear-gradient(135deg, ${c1} 25%, transparent 25%) -${s}px 0, linear-gradient(225deg, ${c1} 25%, transparent 25%) -${s}px 0, linear-gradient(315deg, ${c1} 25%, transparent 25%), linear-gradient(45deg, ${c1} 25%, transparent 25%), ${c2}` },
+  'waves': { name: 'Waves', gen: (c1,c2,s,o) => `radial-gradient(circle at 50% 0, ${c1} ${s}px, transparent ${s}px), ${c2}` },
+  'diamond': { name: 'Diamond', gen: (c1,c2,s,o) => `linear-gradient(45deg, ${c1} 25%, transparent 25%, transparent 75%, ${c1} 75%), linear-gradient(45deg, ${c1} 25%, transparent 25%, transparent 75%, ${c1} 75%), ${c2}` },
+  'triangles': { name: 'Triangles', gen: (c1,c2,s,o) => `linear-gradient(120deg, ${c1} 50%, transparent 50%), linear-gradient(240deg, ${c1} 50%, transparent 50%), linear-gradient(60deg, ${c1} 50%, transparent 50%), linear-gradient(300deg, ${c1} 50%, transparent 50%), ${c2}` },
+  'cross': { name: 'Cross', gen: (c1,c2,s,o) => `linear-gradient(${c1} ${s/3}px, transparent ${s/3}px), linear-gradient(90deg, ${c1} ${s/3}px, transparent ${s/3}px), ${c2}` },
+  'circles': { name: 'Circles', gen: (c1,c2,s,o) => `radial-gradient(${c1} ${s/2}px, transparent ${s/2}px), ${c2}` },
+  'hexagon': { name: 'Hexagon', gen: (c1,c2,s,o) => `linear-gradient(60deg, ${c1} 25%, transparent 25.5%, transparent 75%, ${c1} 75%), linear-gradient(-60deg, ${c1} 25%, transparent 25.5%, transparent 75%, ${c1} 75%), ${c2}` }
+};
 
 const patternSizes = {
     'grid': (s) => `${s}px ${s}px`, 'dots': (s) => `${s}px ${s}px`, 'checkerboard': (s) => `${s*2}px ${s*2}px`,
@@ -419,21 +372,5 @@ initGrid(); updatePattern();
 </script>
 
 <div class="related-tools-section" id="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
-
-  <div class="faq-section">
-    
-    <div class="faq-item">
-      
-      
-    </div>
-    <div class="faq-item">
-      
-      
-    </div>
-    <div class="faq-item">
-      
-      
-    </div>
-  </div>
 </body>
 </html>
