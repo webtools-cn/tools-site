@@ -196,15 +196,14 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
     <p>No. All editing, validation, and formatting operations happen entirely in your browser. Your data never leaves your device.</p>
   </div>
 
-  <div>
 <!-- AdSense -->
 
+</main>
 <footer>
     <p>Contact: <a href="mailto:dexshuang@google.com">dexshuang@google.com</a></p>
     <p><a href="../privacy-policy/">Privacy Policy</a> · <a href="../terms-of-service/">Terms of Service</a></p>
-  <a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/webtools-cn/tools-site" target="_blank" rel="noopener">GitHub</a>
 </footer>
-</div>
 
 <script>
   var textArea = document.getElementById('jsonTextArea');
@@ -279,96 +278,5 @@ a{color:#06b6d4;text-decoration:none}.container{max-width:960px;margin:0 auto;pa
   textArea.addEventListener('keydown', function(e) { if (e.key === 'Enter' && e.shiftKey) validateJson(); });
   updateCharCount();</script>
 
-<!-- Feedback -->
-</main>
-<script>
-  var textArea = document.getElementById('jsonTextArea');
-  var treeContainer = document.getElementById('treeContainer');
-  var textViewBtn = document.getElementById('textViewBtn');
-  var treeViewBtn = document.getElementById('treeViewBtn');
-  var formatBtn = document.getElementById('formatBtn');
-  var compressBtn = document.getElementById('compressBtn');
-  var copyBtn = document.getElementById('copyBtn');
-  var clearBtn = document.getElementById('clearBtn');
-  var validateBtn = document.getElementById('validateBtn');
-  var statusMsg = document.getElementById('statusMsg');
-  var charCount = document.getElementById('charCount');
-
-  function updateCharCount() { charCount.textContent = textArea.value.length + ' chars'; }
-  textArea.addEventListener('input', updateCharCount);
-
-  function validateJson() {
-    var text = textArea.value.trim();
-    if (!text) { statusMsg.textContent = '⚠️ Enter JSON'; statusMsg.style.color = '#eab308'; return false; }
-    try { JSON.parse(text); statusMsg.textContent = '✅ Valid JSON'; statusMsg.style.color = '#22c55e'; return true; }
-    catch(e) { statusMsg.textContent = '❌ ' + e.message; statusMsg.style.color = '#ef4444'; return false; }
-  }
-  validateBtn.addEventListener('click', validateJson);
-
-  formatBtn.addEventListener('click', function() {
-    var text = textArea.value.trim(); if (!text) return;
-    try { textArea.value = JSON.stringify(JSON.parse(text), null, 2); updateCharCount(); statusMsg.textContent = '✅ Formatted'; statusMsg.style.color = '#22c55e'; }
-    catch(e) { statusMsg.textContent = '❌ ' + e.message; statusMsg.style.color = '#ef4444'; }
-  });
-  compressBtn.addEventListener('click', function() {
-    var text = textArea.value.trim(); if (!text) return;
-    try { textArea.value = JSON.stringify(JSON.parse(text)); updateCharCount(); statusMsg.textContent = '✅ Minified'; statusMsg.style.color = '#22c55e'; }
-    catch(e) { statusMsg.textContent = '❌ ' + e.message; statusMsg.style.color = '#ef4444'; }
-  });
-  copyBtn.addEventListener('click', function() {
-    navigator.clipboard.writeText(textArea.value).then(function() { statusMsg.textContent = '✅ Copied'; statusMsg.style.color = '#22c55e'; setTimeout(function(){statusMsg.textContent='Ready';statusMsg.style.color='#64748b';},2000); });
-  });
-  clearBtn.addEventListener('click', function() { textArea.value = ''; updateCharCount(); statusMsg.textContent='Cleared';statusMsg.style.color='#64748b'; treeContainer.innerHTML=''; treeContainer.style.display='none'; textArea.style.display='block'; textViewBtn.classList.add('active'); treeViewBtn.classList.remove('active'); });
-
-  function buildTree(obj, container) {
-    container.innerHTML = '';
-    function createNode(key, value, parent) {
-      var div = document.createElement('div'); div.className = 'tree-node'; var html = '';
-      if (key !== null) html += '<span class="key">"' + key + '"</span><span class="colon">:</span> ';
-      if (value === null) html += '<span class="null">null</span>';
-      else if (typeof value === 'string') html += '<span class="string">"' + value.replace(/"/g,'\\"') + '"</span>';
-      else if (typeof value === 'number') html += '<span class="number">' + value + '</span>';
-      else if (typeof value === 'boolean') html += '<span class="boolean">' + value + '</span>';
-      else if (Array.isArray(value)) {
-        if (value.length===0) { html += '<span class="bracket">[]</span>'; }
-        else { html += '<span class="arrow expanded" onclick="toggleTreeNode(this)">▶</span><span class="bracket">[</span><span class="number" style="color:#64748b;font-size:.75rem">' + value.length + ' items</span><span class="bracket">]</span>'; div.innerHTML = html; parent.appendChild(div); var c = document.createElement('div'); c.className = 'tree-children show'; value.forEach(function(v,i){createNode(i,v,c);}); parent.appendChild(c); return; }
-      } else if (typeof value === 'object') {
-        var keys = Object.keys(value);
-        if (keys.length===0) { html += '<span class="bracket">{}</span>'; }
-        else { html += '<span class="arrow expanded" onclick="toggleTreeNode(this)">▶</span><span class="bracket">{</span><span class="number" style="color:#64748b;font-size:.75rem"> ' + keys.length + ' keys</span><span class="bracket">}</span>'; div.innerHTML = html; parent.appendChild(div); var c = document.createElement('div'); c.className = 'tree-children show'; keys.forEach(function(k){createNode(k,value[k],c);}); parent.appendChild(c); return; }
-      }
-      div.innerHTML = html; parent.appendChild(div);
-    }
-    createNode(null, obj, container);
-  }
-
-  window.toggleTreeNode = function(el) { el.classList.toggle('expanded'); var children = el.parentElement.nextElementSibling; if (children && children.classList.contains('tree-children')) children.classList.toggle('show'); };
-
-  function switchToTree() {
-    var text = textArea.value.trim(); if (!text) { statusMsg.textContent='⚠️ No data';statusMsg.style.color='#eab308'; return; }
-    try { var obj = JSON.parse(text); buildTree(obj, treeContainer); treeContainer.style.display='block'; textArea.style.display='none'; textViewBtn.classList.remove('active'); treeViewBtn.classList.add('active'); statusMsg.textContent='✅ Tree View';statusMsg.style.color='#22c55e'; }
-    catch(e) { statusMsg.textContent='❌ ' + e.message;statusMsg.style.color='#ef4444'; }
-  }
-  function switchToText() { treeContainer.style.display='none'; textArea.style.display='block'; textViewBtn.classList.add('active'); treeViewBtn.classList.remove('active'); statusMsg.textContent='Text View';statusMsg.style.color='#64748b'; }
-  textViewBtn.addEventListener('click', switchToText); treeViewBtn.addEventListener('click', switchToTree);
-  textArea.addEventListener('keydown', function(e) { if (e.key === 'Enter' && e.shiftKey) validateJson(); });
-  updateCharCount();</script>
-
-<!-- Feedback -->
-
-<script>
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={"feedback":"Feature Request","bug":"Bug Report","other":"Other"}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**Page**: '+window.location.href+'\n**Type**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-}
-</script>
-<link rel="stylesheet" href="https://free-toolbase.com/related-tools.css">
-<div id="related-tools-section" class="related-tools-section"><div class="related-tools-loading">Loading related tools...</div></div>
-<script src="https://free-toolbase.com/related-tools.js"></script>
 </body>
 </html>
