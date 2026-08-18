@@ -184,7 +184,13 @@ textarea{
 <body>
 <main class="container">
     <header>
-        <h1>⚡ Regex Optimizer</h1>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+            <h1>⚡ Regex Optimizer</h1>
+            <div class="lang-switch" style="display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)">
+                <a href="../regex-optimizer/" style="padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8">中文</a>
+                <a href="index.html" class="active" style="padding:6px 12px;border-radius:5px;font-size:.85rem;background:rgba(6,182,212,.2);color:#22d3ee">EN</a>
+            </div>
+        </div>
         <p>Free online tool to analyze and optimize regular expression performance. Detect common anti-patterns, get optimization suggestions, and test in real-time.</p>
         <span class="badge">Zero Dependencies · Works Offline</span>
     </header>
@@ -279,18 +285,7 @@ textarea{
         <div class="faq-item"><h3>Is my data safe?</h3><p>Completely safe. This tool runs 100% in the browser. Your regex and test text are processed only in local memory, never uploaded to any server.</p></div>
     </div>
 
-    <div class="seo-content"><p>Free online tool to analyze and optimize regular expression performance. Detect common anti-patterns, get optimization suggestions, and test in real-time.</p>
-    </div>
-
-    <div class="card">
-        <h2>❓ FAQ</h2>
-        <div class="faq-item"><h3>What are regex anti-patterns?</h3><p>Common inefficient patterns like greedy quantifiers causing backtracking, unnecessary capture groups, duplicate character classes that are syntactically correct but cause significant performance degradation.</p></div>
-        <div class="faq-item"><h3>Can the optimizer automatically modify my regex?</h3><p>The optimizer provides specific suggestions and optimized regex. You can apply with one click. Optimizations guarantee semantic equivalence — same results, better performance.</p></div>
-        <div class="faq-item"><h3>Which regex flags are supported?</h3><p>Common flags: g (global), i (case-insensitive), m (multiline), s (dotAll), u (Unicode).</p></div>
-        <div class="faq-item"><h3>How does it detect backtracking issues?</h3><p>It detects nested quantifiers (like (a+)+), overlapping alternation branches (like a|a), and other catastrophic backtracking patterns with optimization solutions.</p></div>
-        <div class="faq-item"><h3>Is the optimized regex always faster?</h3><p>In most cases yes. The optimizer eliminates redundant structures and reduces backtracking. Testing with real data is recommended.</p></div>
-        <div class="faq-item"><h3>Is my data safe?</h3><p>Completely safe. This tool runs 100% in the browser. Your regex and test text are processed only in local memory, never uploaded to any server.</p></div>
-    </div>
+</main>
 
 <footer class="footer container">
   <div style="margin-bottom:12px">
@@ -308,7 +303,7 @@ textarea{
 </footer>
   
 <div id="toast" class="toast">Copied!</div>
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"HowTo","name":"How to Use Regex Optimizer","description":"Step-by-step guide for using Regex Optimizer","totalTime":"PT1M","tool":{"@type":"HowToTool","name":"Regex Optimizer"},"step":[{"@type":"HowToStep","position":1,"name":"Enter input","text":"Type or paste the value you want to convert"},{"@type":"HowToStep","position":2,"name":"Select format","text":"Choose the source and target format"},{"@type":"HowToStep","position":3,"name":"Click Convert","te<script>
+<script>
 
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("Copy")})["catch"](function(){showToast("CopyFailed")})}
@@ -341,67 +336,67 @@ function analyzeRegex(){
   try{
     new RegExp(pattern,flags);
   }catch(e){
-    statusEl.innerHTML='<div class="error-msg">❌ 正则语法Error：'+e.message+'</div>';
+    statusEl.innerHTML='<div class="error-msg">❌ Regex syntax error: '+e.message+'</div>';
     analysisEl.innerHTML='';suggestEl.innerHTML='';return;
   }
-  statusEl.innerHTML='<div class="success-msg">✅ 正则语法正确</div>';
+  statusEl.innerHTML='<div class="success-msg">✅ Regex syntax is valid</div>';
   const issues=[];
   let optimized=pattern;
   // Check nested quantifiers
   if(/\([^)]*[+*][^)]*\)[+*{]/.test(pattern)){
-    issues.push({severity:'danger',title:'嵌套量词 - 灾难性回溯风险',desc:'嵌套量词如(a+)+会导致指数级回溯，可能造成正则引擎卡死。',fix:'使用占有量词(a++)或原子组(?>a+)，或重构正则避免嵌套。',example:pattern.replace(/\(([^)]*[+*])\)([+*{])/,'($1)$2→建议重构')});
+    issues.push({severity:'danger',title:'Nested quantifiers - Catastrophic backtracking risk',desc:'Nested quantifiers like (a+)+ cause exponential backtracking, potentially freezing the regex engine.',fix:'Use possessive quantifiers (a++), atomic groups (?>a+), or restructure to avoid nesting.',example:pattern.replace(/\(([^)]*[+*])\)([+*{])/,'($1)$2 -> suggest restructure')});
   }
   // Check duplicate alternation
   const altParts=pattern.split('|');
   if(altParts.length>1){
     const seen=new Set();
-    for(const p of altParts){if(seen.has(p)){issues.push({severity:'warning',title:'重复的交替分支',desc:`交替分支"${p}"出现多次，冗余分支增加不必要的回溯。`,fix:'移除重复的交替分支。',example:`${altParts.filter((v,i,a)=>a.indexOf(v)===i).join('|')}`});break}seen.add(p)}
+    for(const p of altParts){if(seen.has(p)){issues.push({severity:'warning',title:'Duplicate alternation branch',desc:`Branch "${p}" appears multiple times, adding unnecessary backtracking.`,fix:'Remove duplicate alternation branches.',example:`${altParts.filter((v,i,a)=>a.indexOf(v)===i).join('|')}`});break}seen.add(p)}
   }
   // Check greedy .* with no anchor
   if(/\.\*[^$]*[^?]/.test(pattern)&&!pattern.includes('^')&&!pattern.includes('$')){
-    issues.push({severity:'warning',title:'贪婪 .* 可能导致过度回溯',desc:'贪婪的.*会匹配尽可能多的字符，然后大量回溯。',fix:'考虑使用非贪婪.*?或更具体的字符类替代。',example:pattern.replace(/\.\*/,'.*?')});
+    issues.push({severity:'warning',title:'Greedy .* may cause excessive backtracking',desc:'Greedy .* matches as many characters as possible, then backtracks heavily.',fix:'Consider using non-greedy .*? or more specific character classes.',example:pattern.replace(/\.\*/,'.*?')});
   }
   // Check unnecessary capture group
   const captureGroups=(pattern.match(/\((?!\?)/g)||[]).length;
   const nonCaptureGroups=(pattern.match(/\(\?:/g)||[]).length;
   if(captureGroups>3){
-    issues.push({severity:'info',title:'过多捕获组',desc:`检测到${captureGroups}个捕获组，不需要捕获的组应使用(?:...)非捕获组。`,fix:'将不需要引用的捕获组改为非捕获组(?:...)。',example:pattern.replace(/\((?!\?)/,'(?:')});
+    issues.push({severity:'info',title:'Too many capture groups',desc:`Found ${captureGroups} capture groups. Groups not needed for referencing should use non-capturing (?:...) groups.`,fix:'Convert unnecessary capture groups to non-capturing (?:...).',example:pattern.replace(/\((?!\?)/,'(?:')});
   }
   // Check [a-zA-Z0-9_] can be \w
   if(pattern.includes('[a-zA-Z0-9_]')||pattern.includes('[A-Za-z0-9_]')||pattern.includes('[a-zA-Z0-9]')){
-    issues.push({severity:'info',title:'字符类可简化',desc:'[a-zA-Z0-9_]等价于\\w，[a-zA-Z0-9]等价于[\\w&&[^_]]或简化写法。',fix:'使用\\w替代[a-zA-Z0-9_]。',example:pattern.replace(/\[a-zA-Z0-9_\]/g,'\\w').replace(/\[A-Za-z0-9_\]/g,'\\w')});
+    issues.push({severity:'info',title:'Character class can be simplified',desc:'[a-zA-Z0-9_] is equivalent to \\w, [a-zA-Z0-9] can be simplified.',fix:'Use \\w instead of [a-zA-Z0-9_].',example:pattern.replace(/\[a-zA-Z0-9_\]/g,'\\w').replace(/\[A-Za-z0-9_\]/g,'\\w')});
   }
   // Check \d{1}
   if(/\\d\{1,\}/.test(pattern)){
-    issues.push({severity:'info',title:'量词可简化',desc:'\\d{1}等价于\\d+，更简洁。',fix:'使用+替代{1}。',example:pattern.replace(/\\d\{1,\}/g,'\\d+')});
+    issues.push({severity:'info',title:'Quantifier can be simplified',desc:'\\d{1} is equivalent to \\d+, more concise.',fix:'Use + instead of {1}.',example:pattern.replace(/\\d\{1,\}/g,'\\d+')});
   }
   // Complexity estimate
-  let complexity='低';
+  let complexity='Low';
   let complexityColor='var(--success)';
-  if(issues.some(i=>i.severity==='danger')){complexity='危险';complexityColor='var(--danger)'}
-  else if(issues.some(i=>i.severity==='warning')){complexity='中等';complexityColor='var(--warning)'}
-  else if(issues.length>0){complexity='低-可优化';complexityColor='var(--accent)'}
+  if(issues.some(i=>i.severity==='danger')){complexity='Dangerous';complexityColor='var(--danger)'}
+  else if(issues.some(i=>i.severity==='warning')){complexity='Medium';complexityColor='var(--warning)'}
+  else if(issues.length>0){complexity='Low - Optimizable';complexityColor='var(--accent)'}
 
   analysisEl.innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
       <div style="background:var(--bg);padding:12px;border-radius:8px;text-align:center">
-        <div style="font-size:.85rem;color:var(--text-weak)">复杂度</div>
+        <div style="font-size:.85rem;color:var(--text-weak)">Complexity</div>
         <div style="font-size:1.3rem;font-weight:700;color:${complexityColor}">${complexity}</div>
       </div>
       <div style="background:var(--bg);padding:12px;border-radius:8px;text-align:center">
-        <div style="font-size:.85rem;color:var(--text-weak)">问题数</div>
+        <div style="font-size:.85rem;color:var(--text-weak)">Issues</div>
         <div style="font-size:1.3rem;font-weight:700;color:var(--text)">${issues.length}</div>
       </div>
       <div style="background:var(--bg);padding:12px;border-radius:8px;text-align:center">
-        <div style="font-size:.85rem;color:var(--text-weak)">捕获组</div>
+        <div style="font-size:.85rem;color:var(--text-weak)">Capture Groups</div>
         <div style="font-size:1.3rem;font-weight:700;color:var(--text)">${captureGroups}</div>
       </div>
     </div>
-    <div style="color:var(--text-secondary);font-size:.9rem"><strong>原始正则：</strong><code style="background:rgba(6,182,212,.15);color:var(--accent);padding:2px 8px;border-radius:4px">${pattern.replace(/</g,'&lt;')}</code></div>
+    <div style="color:var(--text-secondary);font-size:.9rem"><strong>Original regex:</strong><code style="background:rgba(6,182,212,.15);color:var(--accent);padding:2px 8px;border-radius:4px">${pattern.replace(/</g,'&lt;')}</code></div>
   `;
 
   if(issues.length===0){
-    suggestEl.innerHTML='<div class="success-msg">✅ 未检测到明显的性能问题，正则表达式看起来不错！</div>';
+    suggestEl.innerHTML='<div class="success-msg">✅ No obvious performance issues detected. Your regex looks good!</div>';
     optimizedRegex=pattern;
   }else{
     let html='';
@@ -410,8 +405,8 @@ function analyzeRegex(){
       html+=`<div class="suggestion">
         <h4>${icon} ${issue.title}</h4>
         <p>${issue.desc}</p>
-        <p style="margin-top:6px"><strong>建议：</strong>${issue.fix}</p>
-        ${issue.example?`<p style="margin-top:6px"><strong>优化示例：</strong><code>${issue.example.replace(/</g,'&lt;')}</code></p>`:''}
+        <p style="margin-top:6px"><strong>Suggestion:</strong>${issue.fix}</p>
+        ${issue.example?`<p style="margin-top:6px"><strong>Optimization example:</strong><code>${issue.example.replace(/</g,'&lt;')}</code></p>`:''}
       </div>`;
     });
     suggestEl.innerHTML=html;
@@ -452,32 +447,32 @@ function testRegex(){
       if(m) matches.push({match:m[0],index:m.index,groups:m.slice(1)});
     }
     if(matches.length===0){
-      matchEl.innerHTML='<div class="warn-msg">⚠️ 未找到匹配</div>';
+      matchEl.innerHTML='<div class="warn-msg">⚠️ No matches found</div>';
     }else{
-      let html=`<div class="success-msg">✅ 找到 ${matches.length} 个匹配</div><div style="margin-top:8px">`;
+      let html=`<div class="success-msg">✅ Found ${matches.length} match(es)</div><div style="margin-top:8px">`;
       matches.forEach((m,i)=>{
         html+=`<div style="background:var(--bg);padding:8px;border-radius:6px;margin:4px 0;font-size:.9rem">
-          <strong>#${i+1}</strong> 位置 ${m.index}: <code style="background:rgba(6,182,212,.2);color:var(--accent);padding:2px 6px;border-radius:3px">${m.match.replace(/</g,'&lt;')}</code>
-          ${m.groups.length>0?`<br><span style="color:var(--text-weak)">捕获组: ${m.groups.map((g,j)=>`$${j+1}=${g||'undefined'}`).join(', ')}</span>`:''}
+          <strong>#${i+1}</strong> Position ${m.index}: <code style="background:rgba(6,182,212,.2);color:var(--accent);padding:2px 6px;border-radius:3px">${m.match.replace(/</g,'&lt;')}</code>
+          ${m.groups.length>0?`<br><span style="color:var(--text-weak)">Capture groups: ${m.groups.map((g,j)=>`$${j+1}=${g||'undefined'}`).join(', ')}</span>`:''}
         </div>`;
       });
       html+='</div>';
       matchEl.innerHTML=html;
     }
   }catch(e){
-    matchEl.innerHTML='<div class="error-msg">❌ 匹配Error：'+e.message+'</div>';
+    matchEl.innerHTML='<div class="error-msg">❌ Match error: '+e.message+'</div>';
   }
 }
 function copyOptimized(){
   const flags=document.getElementById('flagsInput').value.trim();
   const text=optimizedRegex?`/${optimizedRegex}/${flags}`:'';
-  if(!text){showToast('没有优化Result');return}
-  navigator.clipboard.writeText(text).then(()=>showToast('Copy优化后的正则！')).catch(()=>showToast('CopyFailed'));
+  if(!text){showToast('No optimized result');return}
+  navigator.clipboard.writeText(text).then(()=>showToast('Copied optimized regex!')).catch(()=>showToast('Copy failed'));
 }
 function downloadReport(){
   const raw=document.getElementById('regexInput').value;
   const flags=document.getElementById('flagsInput').value;
-  const report=`正则表达式优化报告\n==================\n原始正则: ${raw}\n标志: ${flags}\n优化后: ${optimizedRegex}\n\n分析时间: ${new Date().toISOString()}\n`;
+  const report=`Regex Optimization Report\n==================\nOriginal: ${raw}\nFlags: ${flags}\nOptimized: ${optimizedRegex}\n\nAnalysis time: ${new Date().toISOString()}\n`;
   const blob=new Blob([report],{type:'text/plain'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='regex-optimization-report.txt';a.click();
   URL.revokeObjectURL(a.href);
@@ -489,10 +484,6 @@ document.addEventListener('keydown',function(e){
   if(e.ctrlKey&&e.shiftKey&&e.key==='X'){clearInput();e.preventDefault()}
 });
 window.addEventListener('load',function(){loadExample()});
-
-
-function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date()); gtag('config', 'G-QVBQNJ3L5E');
 
 </script>
 
