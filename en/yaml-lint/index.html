@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Free Online YAML Lint | No Signup</title>
     <meta name="description" content="Free online yaml lint. Ideal for developers and everyday users. Works entirely in your browser. Fast, secure, and no registration required.">
@@ -33,10 +33,10 @@
         .faq-item h3 { font-size: 1.05rem; color: #e2e8f0; margin-bottom: 6px; }
         .faq-item p { color: #94a3b8; font-size: 0.95rem; line-height: 1.6; }
         .status-bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; margin-top: 12px; font-weight: 600; }
-        .status-bar.valid { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-        .status-bar.invalid { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .status-bar.valid { background: rgba(34,197,94,.1); color: #4ade80; border: 1px solid rgba(34,197,94,.3); }
+        .status-bar.invalid { background: rgba(239,68,68,.1); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
         .status-bar .icon { font-size: 1.2rem; }
-        .error-item { padding: 8px 12px; background: #fef2f2; border-left: 3px solid #ef4444; border-radius: 0 8px 8px 0; margin-bottom: 8px; font-size: 13px; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; }
+        .error-item { padding: 8px 12px; background: rgba(239,68,68,.08); border-left: 3px solid #ef4444; border-radius: 0 8px 8px 0; margin-bottom: 8px; font-size: 13px; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; color: #e2e8f0; }
         .output-area { background: #1e293b; color: #e2e8f0; border-radius: 8px; padding: 16px; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap; max-height: 300px; overflow-y: auto; margin-top: 12px; }
         .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
         footer { text-align: center; padding: 30px 0; color: #94a3b8; font-size: 0.85rem; }
@@ -191,14 +191,73 @@
         <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "YAML Lint", "description": "Free online YAML validator and formatter", "applicationCategory": "DeveloperApplication", "operatingSystem": "Any", "url": "https://free-toolbase.com/en/yaml-lint/", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Free ToolBase", "email": "dexshuang@google.com"}, "author": {"@type": "Organization", "name": "Free ToolBase"}, "dateModified": "2026-07-16"}</script>
         <script>
         </script>
-        <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
         <script>
         var lastOutput = '';
+        function parseYamlSimple(text) {
+            var lines = text.split('\n');
+            var root = {};
+            var stack = [{obj: root, indent: -1}];
+            var lastKey = null;
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                var trimmed = line.trim();
+                if (!trimmed || trimmed.startsWith('#') || trimmed === '---' || trimmed === '...') continue;
+                var indent = line.search(/\S/);
+                if (indent < 0) indent = 0;
+                while (stack.length > 1 && stack[stack.length - 1].indent >= indent) stack.pop();
+                var parent = stack[stack.length - 1].obj;
+                if (trimmed.startsWith('- ')) {
+                    var val = trimmed.substring(2).trim();
+                    if (!Array.isArray(parent)) {
+                        var k = lastKey;
+                        if (k && parent[k] !== undefined && !Array.isArray(parent[k])) parent[k] = [parent[k]];
+                        else if (k) parent[k] = parent[k] || [];
+                        else parent = [];
+                    }
+                    if (val.includes(':')) {
+                        var item = {};
+                        var ci = val.indexOf(':');
+                        var ik = val.substring(0, ci).trim();
+                        var iv = val.substring(ci + 1).trim();
+                        item[ik] = parseVal(iv);
+                        parent.push(item);
+                        stack.push({obj: item, indent: indent});
+                    } else {
+                        parent.push(parseVal(val));
+                    }
+                    lastKey = null;
+                    continue;
+                }
+                var ci = trimmed.indexOf(':');
+                if (ci === -1) continue;
+                var key = trimmed.substring(0, ci).trim();
+                var valStr = trimmed.substring(ci + 1).trim();
+                if (valStr) {
+                    parent[key] = parseVal(valStr);
+                } else {
+                    var newObj = {};
+                    parent[key] = newObj;
+                    stack.push({obj: newObj, indent: indent});
+                }
+                lastKey = key;
+            }
+            return root;
+        }
+        function parseVal(v) {
+            v = v.trim();
+            if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) return v.slice(1, -1);
+            if (v === 'true' || v === 'True') return true;
+            if (v === 'false' || v === 'False') return false;
+            if (v === 'null' || v === '~' || v === '') return null;
+            if (/^-?\d+$/.test(v)) return parseInt(v, 10);
+            if (/^-?\d+\.\d+$/.test(v)) return parseFloat(v);
+            return v;
+        }
         function validateYAML() {
             var input = document.getElementById('yamlInput').value.trim();
             if (!input) { document.getElementById('statusCard').style.display = 'none'; return; }
             try {
-                var result = jsyaml.load(input);
+                var result = parseYamlSimple(input);
                 document.getElementById('statusCard').style.display = '';
                 document.getElementById('statusBar').className = 'status-bar valid';
                 document.getElementById('statusIcon').textContent = '✅';
@@ -217,8 +276,36 @@
             }
         }
         function getTypeInfo(obj) { if (obj === null) return 'null'; if (Array.isArray(obj)) return 'array, ' + obj.length + ' items'; if (typeof obj === 'object') return 'object, ' + Object.keys(obj).length + ' keys'; return typeof obj; }
-        function formatYAML() { var input = document.getElementById('yamlInput').value.trim(); if (!input) return; try { var obj = jsyaml.load(input); document.getElementById('yamlInput').value = jsyaml.dump(obj, { indent: 2, lineWidth: 120, noRefs: true }); validateYAML(); } catch(e) { showToast('Cannot format: ' + e.message); } }
-        function convertToJSON() { var input = document.getElementById('yamlInput').value.trim(); if (!input) return; try { var obj = jsyaml.load(input); lastOutput = JSON.stringify(obj, null, 2); document.getElementById('outputCard').style.display = ''; document.getElementById('outputArea').textContent = lastOutput; } catch(e) { showToast('YAML parse failed: ' + e.message); } }
+        function dumpYaml(obj, indent) {
+            indent = indent || 0;
+            var sp = ' '.repeat(indent);
+            var out = '';
+            if (obj === null || obj === undefined) { out += sp + 'null\n'; }
+            else if (typeof obj === 'string') { out += sp + obj + '\n'; }
+            else if (typeof obj === 'number' || typeof obj === 'boolean') { out += sp + String(obj) + '\n'; }
+            else if (Array.isArray(obj)) {
+                for (var i = 0; i < obj.length; i++) {
+                    if (typeof obj[i] === 'object' && obj[i] !== null && !Array.isArray(obj[i])) {
+                        out += sp + '-\n' + dumpYaml(obj[i], indent + 2);
+                    } else {
+                        out += sp + '- ' + String(obj[i]) + '\n';
+                    }
+                }
+            } else if (typeof obj === 'object') {
+                var keys = Object.keys(obj);
+                for (var k = 0; k < keys.length; k++) {
+                    var val = obj[keys[k]];
+                    if (typeof val === 'object' && val !== null) {
+                        out += sp + keys[k] + ':\n' + dumpYaml(val, indent + 2);
+                    } else {
+                        out += sp + keys[k] + ': ' + String(val) + '\n';
+                    }
+                }
+            }
+            return out;
+        }
+        function formatYAML() { var input = document.getElementById('yamlInput').value.trim(); if (!input) return; try { var obj = parseYamlSimple(input); document.getElementById('yamlInput').value = dumpYaml(obj).replace(/^\n+/, '').replace(/\n+$/, ''); validateYAML(); } catch(e) { showToast('Cannot format: ' + e.message); } }
+        function convertToJSON() { var input = document.getElementById('yamlInput').value.trim(); if (!input) return; try { var obj = parseYamlSimple(input); lastOutput = JSON.stringify(obj, null, 2); document.getElementById('outputCard').style.display = ''; document.getElementById('outputArea').textContent = lastOutput; } catch(e) { showToast('YAML parse failed: ' + e.message); } }
         function loadExample() { document.getElementById('yamlInput').value = '# Application Config\nname: WebTools\nversion: 2.0.0\ndescription: Free online tool suite\n\n# Server config\nserver:\n  host: 0.0.0.0\n  port: 8080\n  debug: false\n\n# Database config\ndatabase:\n  driver: postgresql\n  host: localhost\n  port: 5432\n  name: webtools_db\n  pool:\n    min: 5\n    max: 20\n\n# Features\nfeatures:\n  - yaml-validation\n  - auto-format\n  - json-conversion\n  - syntax-highlighting\n\n# Environment\nenv:\n  NODE_ENV: production\n  LOG_LEVEL: info'; validateYAML(); }
         function clearAll() { document.getElementById('yamlInput').value = ''; document.getElementById('statusCard').style.display = 'none'; document.getElementById('outputCard').style.display = 'none'; }
         function copyOutput() { navigator.clipboard.writeText(document.getElementById('outputArea').textContent).then(function() { showToast('Copied to clipboard'); }); }
