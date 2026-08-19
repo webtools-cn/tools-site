@@ -233,64 +233,138 @@ a{color:#06b6d4;text-decoration:none}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
+var sourceImageData=null;
+var originalImageData=null;
+
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function submitFeedback(){
 const type=document.getElementById('feedback-type').value;
 const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
 const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**Page**: '+window.location.href+'\n**Type**: '+typeLabel+'\n\n'+text);
+const body=encodeURIComponent('**Page**: '+window.location.href+'\n**Type**: '+typeLabel+'\n\n');
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
 document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
-function autoThreshold(){
-  var canvas=document.getElementById('canvas')||document.querySelector('canvas');
-  if(!canvas){showToast('请先加载图片');return;}
-  var ctx=canvas.getContext('2d');
-  var imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
-  var data=imageData.data;
-  var sum=0;
-  for(var i=0;i<data.length;i+=4)sum+=(data[i]+data[i+1]+data[i+2])/3;
-  var threshold=sum/(data.length/4);
+function loadImage(file){
+  if(!file||!file.type.startsWith('image/')){showToast('请选择有效的图片文件');return;}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var sc=document.getElementById('sourceCanvas');
+      var rc=document.getElementById('resultCanvas');
+      sc.width=img.width;sc.height=img.height;
+      rc.width=img.width;rc.height=img.height;
+      var sctx=sc.getContext('2d');
+      sctx.drawImage(img,0,0);
+      sourceImageData=sctx.getImageData(0,0,img.width,img.height);
+      originalImageData=sctx.getImageData(0,0,img.width,img.height);
+      applyThreshold();
+      document.getElementById('fileInfo').classList.add('show');
+      document.getElementById('fileName').textContent=file.name;
+      document.getElementById('fileDims').textContent=img.width+'×'+img.height+'px';
+      document.getElementById('fileSizeDisplay').textContent=(file.size/1024).toFixed(1)+' KB';
+      document.getElementById('optionsGroup').style.display='block';
+      document.getElementById('previewContainer').style.display='block';
+      document.getElementById('downloadSection').classList.add('show');
+      showToast('图片已加载: '+file.name);
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function applyThreshold(){
+  if(!sourceImageData)return;
+  var threshold=parseInt(document.getElementById('thresholdSlider').value);
+  document.getElementById('thresholdValue').textContent=threshold;
+  var rc=document.getElementById('resultCanvas');
+  var rctx=rc.getContext('2d');
+  var imgData=new ImageData(new Uint8ClampedArray(originalImageData.data),originalImageData.width,originalImageData.height);
+  var data=imgData.data;
   for(var i=0;i<data.length;i+=4){
     var brightness=(data[i]+data[i+1]+data[i+2])/3;
     var val=brightness>threshold?255:0;
     data[i]=val;data[i+1]=val;data[i+2]=val;
   }
-  ctx.putImageData(imageData,0,0);
-  showToast('自动阈值: '+Math.round(threshold));
+  rctx.putImageData(imgData,0,0);
 }
 
-function downloadImage() {
-  var text = document.getElementById('previewContainer').innerText || document.getElementById('previewContainer').textContent;
-  if (!text) { showToast('没有可导出的内容'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'image-threshold-output.txt';
-  a.click();
-  showToast('已下载');
+function autoThreshold(){
+  if(!originalImageData){showToast('请先加载图片');return;}
+  var data=originalImageData.data;
+  var histogram=new Array(256).fill(0);
+  for(var i=0;i<data.length;i+=4){
+    var brightness=Math.round((data[i]+data[i+1]+data[i+2])/3);
+    histogram[brightness]++;
+  }
+  var total=data.length/4;
+  var sum=0;for(var i=0;i<256;i++)sum+=i*histogram[i];
+  var sumB=0;var wB=0;var maxVariance=0;var threshold=128;
+  for(var t=0;t<256;t++){
+    wB+=histogram[t];
+    if(wB===0)continue;
+    var wF=total-wB;
+    if(wF===0)break;
+    sumB+=t*histogram[t];
+    var mB=sumB/wB;
+    var mF=(sum-sumB)/wF;
+    var variance=wB*wF*(mB-mF)*(mB-mF);
+    if(variance>maxVariance){maxVariance=variance;threshold=t;}
+  }
+  document.getElementById('thresholdSlider').value=threshold;
+  applyThreshold();
+  showToast('Otsu自动阈值: '+threshold);
 }
 
 function invertColors(){
-  var canvas=document.getElementById('canvas')||document.querySelector('canvas');
-  if(!canvas||!canvas.getContext){showToast('请先加载图片');return;}
-  var ctx=canvas.getContext('2d');
-  var imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
+  var rc=document.getElementById('resultCanvas');
+  if(!rc||!rc.getContext){showToast('请先加载图片');return;}
+  var rctx=rc.getContext('2d');
+  var imageData=rctx.getImageData(0,0,rc.width,rc.height);
   var data=imageData.data;
   for(var i=0;i<data.length;i+=4){
     data[i]=255-data[i];
     data[i+1]=255-data[i+1];
     data[i+2]=255-data[i+2];
   }
-  ctx.putImageData(imageData,0,0);
+  rctx.putImageData(imageData,0,0);
   showToast('颜色已反转');
 }
 
-function resetImage() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+function resetImage(){
+  if(!originalImageData){showToast('请先加载图片');return;}
+  var rc=document.getElementById('resultCanvas');
+  var rctx=rc.getContext('2d');
+  rctx.putImageData(originalImageData,0,0);
+  document.getElementById('thresholdSlider').value=128;
+  document.getElementById('thresholdValue').textContent='128';
+  showToast('已重置');
 }
+
+function downloadImage(){
+  var rc=document.getElementById('resultCanvas');
+  if(!rc){showToast('请先加载图片');return;}
+  var a=document.createElement('a');
+  a.href=rc.toDataURL('image/png');
+  a.download='threshold-result.png';
+  a.click();
+  showToast('已下载二值化图片');
+}
+
+var uploadArea=document.getElementById('uploadArea');
+var fileInput=document.getElementById('fileInput');
+uploadArea.addEventListener('click',function(){fileInput.click();});
+uploadArea.addEventListener('dragover',function(e){e.preventDefault();uploadArea.classList.add('dragover');});
+uploadArea.addEventListener('dragleave',function(){uploadArea.classList.remove('dragover');});
+uploadArea.addEventListener('drop',function(e){
+  e.preventDefault();uploadArea.classList.remove('dragover');
+  var file=e.dataTransfer.files[0];
+  if(file)loadImage(file);
+});
+fileInput.addEventListener('change',function(e){var file=e.target.files[0];if(file)loadImage(file);});
+document.getElementById('thresholdSlider').addEventListener('input',function(){applyThreshold();});
 </script>
 
 

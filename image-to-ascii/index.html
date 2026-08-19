@@ -212,10 +212,6 @@ a{color:#06b6d4;text-decoration:none}
     </div>
   </div></div></div>
 </div>
-
-<div class="section"><h2>常见问题</h2>
-
-</div>
 </main>
 <div>
 <!-- AdSense -->
@@ -224,19 +220,155 @@ a{color:#06b6d4;text-decoration:none}
 </div>
 <div class="toast" id="toast"></div>
 <script>
-function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+(function(){
+var charsets={
+  simple:" .:-=+*#%@",
+  detailed:" .'`^\":;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",
+  blocks:" \u2591\u2592\u2593\u2588"
+};
+var img=new Image();
+var canvas=document.createElement("canvas");
+var ctx=canvas.getContext("2d");
+var asciiText="";
+var dropZone=document.getElementById("dropZone");
+var fileInput=document.getElementById("fileInput");
+var previewSection=document.getElementById("previewSection");
+var controls=document.getElementById("controls");
+var imgContainer=document.getElementById("imgContainer");
+var asciiContainer=document.getElementById("asciiContainer");
+var widthSlider=document.getElementById("widthSlider");
+var widthValue=document.getElementById("widthValue");
+var charsetSelect=document.getElementById("charsetSelect");
+var invertCheck=document.getElementById("invertCheck");
+var colorCheck=document.getElementById("colorCheck");
+var regenerateBtn=document.getElementById("regenerateBtn");
+var copyBtn=document.getElementById("copyBtn");
+var downloadBtn=document.getElementById("downloadBtn");
+var clearBtn=document.getElementById("clearBtn");
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+
+dropZone.addEventListener("click",function(){fileInput.click()});
+dropZone.addEventListener("dragover",function(e){e.preventDefault();dropZone.classList.add("dragover")});
+dropZone.addEventListener("dragleave",function(){dropZone.classList.remove("dragover")});
+dropZone.addEventListener("drop",function(e){
+  e.preventDefault();dropZone.classList.remove("dragover");
+  var f=e.dataTransfer.files;
+  if(f&&f[0]&&f[0].type.startsWith("image/"))loadFile(f[0]);
+});
+fileInput.addEventListener("change",function(){if(fileInput.files[0])loadFile(fileInput.files[0])});
+
+function loadFile(file){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    img.onload=function(){
+      previewSection.classList.remove("hidden");
+      controls.classList.remove("hidden");
+      var prev=imgContainer.querySelector("img");
+      if(prev)prev.remove();
+      var display=document.createElement("img");
+      display.src=e.target.result;
+      imgContainer.innerHTML="";
+      imgContainer.appendChild(display);
+      generate();
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
+function generate(){
+  if(!img.src)return;
+  var cols=parseInt(widthSlider.value);
+  var ratio=img.height/img.width;
+  var charW=0.55;
+  var rows=Math.round(cols*ratio*charW);
+  if(rows<1)rows=1;
+  canvas.width=cols;
+  canvas.height=rows;
+  ctx.drawImage(img,0,0,cols,rows);
+  var imageData=ctx.getImageData(0,0,cols,rows);
+  var pixels=imageData.data;
+  var cs=charsets[charsetSelect.value]||charsets.detailed;
+  var invert=invertCheck.checked;
+  var colorMode=colorCheck.checked;
+  var lines=[];
+  var colorLines=[];
+  for(var y=0;y<rows;y++){
+    var line="";
+    var cline="";
+    for(var x=0;x<cols;x++){
+      var i=(y*cols+x)*4;
+      var r=pixels[i],g=pixels[i+1],b=pixels[i+2];
+      var gray=0.299*r+0.587*g+0.114*b;
+      if(invert)gray=255-gray;
+      var idx=Math.floor(gray/256*cs.length);
+      if(idx>=cs.length)idx=cs.length-1;
+      var ch=cs[idx];
+      line+=ch;
+      if(colorMode){
+        cline+='<span style="color:rgb('+r+','+g+','+b+')">'+escapeHtml(ch===" "?"&nbsp;":ch)+"</span>";
+      }
+    }
+    lines.push(line);
+    if(colorMode)colorLines.push(cline);
+  }
+  asciiText=lines.join("\n");
+  if(colorMode){
+    asciiContainer.innerHTML=colorLines.join("\n");
+    asciiContainer.style.whiteSpace="pre";
+  }else{
+    asciiContainer.textContent=asciiText;
+    asciiContainer.style.whiteSpace="pre";
+  }
+}
+
+function escapeHtml(s){
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+widthSlider.addEventListener("input",function(){widthValue.textContent=widthSlider.value});
+widthSlider.addEventListener("change",function(){widthValue.textContent=widthSlider.value;if(img.src)generate()});
+charsetSelect.addEventListener("change",function(){if(img.src)generate()});
+invertCheck.addEventListener("change",function(){if(img.src)generate()});
+colorCheck.addEventListener("change",function(){if(img.src)generate()});
+regenerateBtn.addEventListener("click",function(){if(img.src)generate()});
+
+copyBtn.addEventListener("click",function(){
+  if(!asciiText){showToast("请先上传图片");return}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(asciiText).then(function(){showToast("已复制到剪贴板")}).catch(function(){showToast("复制失败")});
+  }else{
+    var ta=document.createElement("textarea");
+    ta.value=asciiText;ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand("copy");showToast("已复制到剪贴板")}catch(e){showToast("复制失败")}
+    document.body.removeChild(ta);
+  }
+});
+
+downloadBtn.addEventListener("click",function(){
+  if(!asciiText){showToast("请先上传图片");return}
+  var blob=new Blob([asciiText],{type:"text/plain;charset=utf-8"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="ascii-art.txt";
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast("已下载文件");
+});
+
+clearBtn.addEventListener("click",function(){
+  img.src="";asciiText="";
+  imgContainer.innerHTML='<span style="color:#64748b">等待上传...</span>';
+  asciiContainer.innerHTML='<span style="color:#64748b">上传图片后自动生成...</span>';
+  previewSection.classList.add("hidden");
+  controls.classList.add("hidden");
+  fileInput.value="";
+  widthSlider.value=120;widthValue.textContent="120";
+  charsetSelect.selectedIndex=1;invertCheck.checked=false;colorCheck.checked=false;
+});
+})();
 </script>
 <section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#374151">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px"><a href="/image-pixel-art/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🖼️ 🎨 在线图片像素艺术生成器</a><a href="/svg-color-changer/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🖼️ 🎨 SVG颜色修改器</a><a href="/image-stitcher/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🖼️ 🖼️ 在线图片拼接工具</a><a href="/color-gradient-extractor/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🖼️ 🎨 图片渐变色提取</a><a href="/image-watermark/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🖼️ 🖼️ 在线图片加水印工具</a></div></section>
 
