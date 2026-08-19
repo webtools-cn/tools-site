@@ -132,8 +132,19 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
   </div>
 
   <div class="result-section">
-    <h2>结果</h2>
-    <div class="result-box" id="resultBox">结果将显示在这里...</div>
+    <h2>文本→十六进制结果</h2>
+    <div class="result-box" id="hexOutput">结果将显示在这里...</div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="copyResult('hexOutput')">📋 复制结果</button>
+    </div>
+  </div>
+  <div class="result-section">
+    <h2>十六进制→文本结果</h2>
+    <div class="result-box" id="textOutput">结果将显示在这里...</div>
+  </div>
+  <textarea id="textInput" style="display:none"></textarea>
+  <textarea id="hexInput2" style="display:none"></textarea>
+  <div id="fileHexOutput" style="display:none"></div>
     <div class="stats" id="resultStats"></div>
     <div class="btn-row">
       <button class="btn btn-secondary" onclick="copyResult()">📋 复制结果</button>
@@ -233,9 +244,7 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
   </div></div></div>
 </div>
 
-<div class="section"><h2>常见问题</h2>
 
-</div>
 </main>
 <div>
 <!-- AdSense -->
@@ -273,13 +282,13 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 
-function textToHex(){var input=document.getElementById('textInput').value;var hex=input.split('').map(function(c){return c.charCodeAt(0).toString(16).padStart(2,'0');}).join(' ');document.getElementById('hexOutput').value=hex.toUpperCase();}
-function hexToText(){var input=document.getElementById('hexInput2').value.trim();var clean=input.replace(/\s+/g,'');if(!/^[0-9a-fA-F]+$/.test(clean)){document.getElementById('textOutput').value='无效的十六进制输入';return;}var text='';for(var i=0;i<clean.length;i+=2){text+=String.fromCharCode(parseInt(clean.substr(i,2),16));}document.getElementById('textOutput').value=text;}
-function clearAll(){document.getElementById('textInput').value='';document.getElementById('hexOutput').value='';document.getElementById('hexInput2').value='';document.getElementById('textOutput').value='';document.getElementById('fileHexOutput').innerHTML='';}
-function copyResult(id){var el=document.getElementById(id||'hexOutput');if(el&&el.value){navigator.clipboard.writeText(el.value).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});}}
-function resultToInput(){var hex=document.getElementById('hexOutput').value;if(hex){document.getElementById('hexInput2').value=hex;hexToText();}}
-function swapText(){var t=document.getElementById('textInput').value;var h=document.getElementById('hexOutput').value;document.getElementById('textInput').value=h;document.getElementById('hexOutput').value=t;}
-function handleFile(e){var file=e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){var bytes=new Uint8Array(ev.target.result);var hex=Array.from(bytes).map(function(b){return b.toString(16).padStart(2,'0');}).join(' ');document.getElementById('fileHexOutput').innerHTML='<div style="color:#94a3b8;font-size:.8rem;margin-bottom:4px">文件: '+file.name+' ('+file.size+' bytes)</div><pre style="font-size:.75rem;color:#e2e8f0;white-space:pre-wrap;max-height:300px;overflow-y:auto">'+hex.toUpperCase()+'</pre>';};reader.readAsArrayBuffer(file);}
+function textToHex(){var input=document.getElementById('inputText').value;var sep=document.getElementById('sepSelect').value;var prefix=document.getElementById('prefix0x').checked;var upper=document.getElementById('upperCase').checked;var hex=Array.from(new TextEncoder().encode(input)).map(function(b){var h=b.toString(16).padStart(2,'0');return prefix?'0x'+h:h;}).join(sep);if(upper)hex=hex.toUpperCase();document.getElementById('hexOutput').textContent=hex||'结果将显示在这里...';}
+function hexToText(){var input=document.getElementById('inputText').value.trim();var clean=input.replace(/0x/gi,'').replace(/\s+/g,'');if(!/^[0-9a-fA-F]+$/.test(clean)){document.getElementById('textOutput').textContent='无效的十六进制输入';return;}var bytes=[];for(var i=0;i<clean.length;i+=2){bytes.push(parseInt(clean.substr(i,2),16));}var text=new TextDecoder().decode(new Uint8Array(bytes));document.getElementById('textOutput').textContent=text||'结果将显示在这里...';}
+function clearAll(){document.getElementById('inputText').value='';document.getElementById('hexOutput').textContent='结果将显示在这里...';document.getElementById('textOutput').textContent='结果将显示在这里...';document.getElementById('fileHexOutput').innerHTML='';}
+function copyResult(id){var el=document.getElementById(id||'hexOutput');if(el){var txt=el.textContent||el.innerText;navigator.clipboard.writeText(txt).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});}}
+function resultToInput(){var hex=document.getElementById('hexOutput').textContent;if(hex&&hex!=='结果将显示在这里...'){document.getElementById('inputText').value=hex;hexToText();}}
+function swapText(){var t=document.getElementById('inputText').value;var h=document.getElementById('hexOutput').textContent;document.getElementById('inputText').value=(h&&h!=='结果将显示在这里...')?h:'';document.getElementById('hexOutput').textContent=t||'结果将显示在这里...';}
+function handleFile(e){var file=e;if(e.target)file=e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){var bytes=new Uint8Array(ev.target.result);var hex=Array.from(bytes).map(function(b){return b.toString(16).padStart(2,'0');}).join(' ');document.getElementById('fileHexOutput').innerHTML='<div style="color:#94a3b8;font-size:.8rem;margin-bottom:4px">文件: '+file.name+' ('+file.size+' bytes)</div><pre style="font-size:.75rem;color:#e2e8f0;white-space:pre-wrap;max-height:300px;overflow-y:auto">'+hex.toUpperCase()+'</pre>';document.getElementById('fileHexOutput').style.display='block';};reader.readAsArrayBuffer(file);}
 function copyFileHex(){var el=document.getElementById('fileHexOutput');if(el){var pre=el.querySelector('pre');if(pre){navigator.clipboard.writeText(pre.textContent).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});}}}
 function downloadFileHex(){var el=document.getElementById('fileHexOutput');if(el){var pre=el.querySelector('pre');if(pre){var blob=new Blob([pre.textContent],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hex-dump.txt';a.click();}}}
 window.clearAll=clearAll;window.copyFileHex=copyFileHex;window.copyResult=copyResult;window.downloadFileHex=downloadFileHex;window.hexToText=hexToText;window.resultToInput=resultToInput;window.swapText=swapText;window.textToHex=textToHex;window.handleFile=handleFile;

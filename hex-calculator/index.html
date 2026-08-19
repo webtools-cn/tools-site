@@ -83,7 +83,7 @@ input:focus,select:focus{border-color:rgba(6,182,212,.5)}
 </head>
 <body>
 <main class="container">
-<div class="header"><h1>🔢 在线十六进制计算器</h1><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/hex-calculator/" class="">EN</a><div class="seo-content"><h3>在线十六进制计算器的计算逻辑</h3><ul><li><code>result</code> = hex1 * hex2</li><li><code>maxV</code> = Math.max.apply(null,nums)</li><li><code>y</code> = padT+(H-padT-padB)*g/4, val=maxV*(4-g)/4</li><li><code>bw</code> = (W-padL-padR)/nums.length*0.55</li><li><code>bh</code> = (H-padT-padB)*nums[i]/maxV</li><li><code>x</code> = padL+(W-padL-padR)*(i+0.5)/nums.length</li></ul><h3>十六进制数1、十六进制数2等参数详解</h3><p>使用在线十六进制计算器时，需要输入十六进制数1、十六进制数2等参数。每个参数都会直接影响计算结果，请根据实际场景填写准确数值。该工具完全在浏览器端处理，数据不会上传服务器。</p></div></div></div>
+<div class="header"><h1>🔢 在线十六进制计算器</h1><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/hex-calculator/" class="">EN</a></div></div>
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线十六进制计算器</p>
 <div class="hero"><p>免费在线十六进制计算器，支持加、减、乘、除、AND、OR、XOR运算，可切换十进制和十六进制显示，纯前端实现。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
@@ -180,20 +180,43 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 // === 重写的函数实现 ===
 function calc() {
-  var hex1 = parseFloat(document.getElementById('hex1').value);
-  var hex2 = parseFloat(document.getElementById('hex2').value);
-  if (hex1 === undefined || isNaN(hex1)) {
-    showToast('请输入有效数值');
+  var hex1Str = document.getElementById('hex1').value.trim();
+  var hex2Str = document.getElementById('hex2').value.trim();
+  var op = document.getElementById('op').value;
+  if (!hex1Str || !hex2Str) {
+    showToast('请输入两个十六进制数');
     return;
   }
-  var result = hex1 * hex2;
-  document.getElementById('result').innerHTML = '<div class="result-item"><span class="result-label">结果</span><span class="result-value">' + result + '</span></div>';
-  document.getElementById('result').style.display = 'block';
-  showToast('计算完成');
+  var clean1 = hex1Str.replace(/^0x/i, '');
+  var clean2 = hex2Str.replace(/^0x/i, '');
+  if (!/^[0-9a-fA-F]+$/.test(clean1) || !/^[0-9a-fA-F]+$/.test(clean2)) {
+    showToast('请输入有效的十六进制数');
+    return;
+  }
+  var n1 = parseInt(clean1, 16);
+  var n2 = parseInt(clean2, 16);
+  var result;
+  switch(op) {
+    case '+': result = n1 + n2; break;
+    case '-': result = n1 - n2; break;
+    case '*': result = n1 * n2; break;
+    case '/': result = n2 !== 0 ? Math.floor(n1 / n2) : NaN; break;
+    case '&': result = n1 & n2; break;
+    case '|': result = n1 | n2; break;
+    case '^': result = n1 ^ n2; break;
+    default: result = NaN;
+  }
+  if (isNaN(result) || !isFinite(result)) {
+    showToast('计算错误');
+    return;
+  }
+  var hexResult = result.toString(16).toUpperCase();
+  document.getElementById('result').innerHTML = '<div class="hex">' + hexResult + '</div><div class="dec">十进制: ' + result + ' | 十六进制: 0x' + hexResult + '</div>';
+  ftDrawChart();
 }
 
 function fillExample(){
-  var vals = [["hex1", "1"], ["hex2", "2"]];
+  var vals = [["hex1", "FF"], ["hex2", "0A"]];
   for(var i=0;i<vals.length;i++){
     var el = document.getElementById(vals[i][0]);
     if(el){el.value = vals[i][1];}
