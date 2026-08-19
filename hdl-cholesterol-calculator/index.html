@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="免费在线HDL高密度脂蛋白胆固醇计算器，根据总胆固醇、LDL低密度脂蛋白和甘油三酯水平精准计算HDL胆固醇值。支持mg/dL和mmol/L两种临床单位自由切换，帮助评估心血管疾病风险等级。适合关注血脂健康的人群参考使用。纯前端本地计算，医疗数据不离开设备。，为您的血脂健康管理提供数据参考。">
 <meta name="keywords" content="在线HDL胆固醇计算器,工具,在线工具,免费">
@@ -120,7 +120,7 @@
   <a href="../backlink-checker/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">反链检测器</a>
   <a href="../calorie-tracker/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">热量记录器</a>
   <a href="../food-calorie/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">食物热量查询</a>
-</div></section>
+</section>
 <footer style="background:#0f172a;border-top:1px solid rgba(148,163,184,.1);padding:24px 0;margin-top:40px">
   <div style="max-width:1200px;margin:0 auto;padding:0 20px;display:flex;flex-wrap:wrap;justify-content:center;gap:16px">
     <a href="../index.html" style="color:#94a3b8;text-decoration:none;font-size:14px">首页</a>
@@ -160,14 +160,42 @@ function calculate() {
   var totalCholesterol = parseFloat(document.getElementById('totalCholesterol').value);
   var ldlCholesterol = parseFloat(document.getElementById('ldlCholesterol').value);
   var triglycerides = parseFloat(document.getElementById('triglycerides').value);
-  if (totalCholesterol === undefined || isNaN(totalCholesterol)) {
-    showToast('请输入有效数值');
+  var unit = getUnit();
+  if (isNaN(totalCholesterol) || isNaN(ldlCholesterol) || isNaN(triglycerides)) {
+    showToast('请填写所有数值');
     return;
   }
-  var result = totalCholesterol * ldlCholesterol;
-  document.getElementById('resultSection').innerHTML = '<div class="result-item"><span class="result-label">结果</span><span class="result-value">' + result + '</span></div>';
+  var hdl;
+  if (unit === 'mgdl') {
+    hdl = totalCholesterol - ldlCholesterol - triglycerides / 5;
+  } else {
+    hdl = totalCholesterol - ldlCholesterol - triglycerides / 2.2;
+  }
+  hdl = Math.round(hdl * 10) / 10;
   document.getElementById('resultSection').style.display = 'block';
-  showToast('计算完成');
+  document.getElementById('resultHdl').textContent = hdl;
+  document.getElementById('resultUnit').textContent = units[unit].label;
+  var li = document.getElementById('levelIndicator');
+  var risk;
+  if (unit === 'mgdl') {
+    if (hdl >= 60) { risk = 'optimal'; li.innerHTML = '🟢 HDL水平理想，心血管保护作用强'; }
+    else if (hdl >= 40) { risk = 'moderate'; li.innerHTML = '🟡 HDL水平中等，建议通过运动和饮食改善'; }
+    else { risk = 'risky'; li.innerHTML = '🔴 HDL水平偏低，心血管疾病风险增加！建议咨询医生'; }
+  } else {
+    if (hdl >= 1.55) { risk = 'optimal'; li.innerHTML = '🟢 HDL水平理想，心血管保护作用强'; }
+    else if (hdl >= 1.03) { risk = 'moderate'; li.innerHTML = '🟡 HDL水平中等，建议通过运动和饮食改善'; }
+    else { risk = 'risky'; li.innerHTML = '🔴 HDL水平偏低，心血管疾病风险增加！建议咨询医生'; }
+  }
+  li.className = 'level-indicator level-' + risk;
+  var detail = '<div class="section"><h2>📋 详细血脂分析</h2><table class="info-table"><tr><th>指标</th><th>数值</th><th>单位</th></tr>';
+  detail += '<tr><td>总胆固醇 (TC)</td><td>' + totalCholesterol + '</td><td>' + units[unit].label + '</td></tr>';
+  detail += '<tr><td>LDL胆固醇</td><td>' + ldlCholesterol + '</td><td>' + units[unit].label + '</td></tr>';
+  detail += '<tr><td>甘油三酯 (TG)</td><td>' + triglycerides + '</td><td>' + units[unit].label + '</td></tr>';
+  detail += '<tr><td><strong>HDL（计算值）</strong></td><td><strong>' + hdl + '</strong></td><td>' + units[unit].label + '</td></tr></table></div>';
+  if (unit === 'mgdl' && triglycerides > 400) {
+    detail += '<p style="color:#fbbf24;margin-top:8px;font-size:.85rem">⚠️ 甘油三酯>400 mg/dL，Friedewald公式不准确，建议直接测定法。</p>';
+  }
+  document.getElementById('detailSection').innerHTML = detail;
 }
 
 function fillExample(){
