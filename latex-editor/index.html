@@ -179,7 +179,7 @@ textarea:focus,.text-input:focus{outline:none;border-color:rgba(6,182,212,.5)}
   
   </div>
 
-
+</main>
 <div>
 <!-- AdSense -->
 
@@ -237,49 +237,94 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 // === 重写的函数实现 ===
 function copyLatex() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var el=document.getElementById('latexInput');
+  if(!el)return;
+  navigator.clipboard.writeText(el.value).then(function(){showToast('已复制LaTeX代码')}).catch(function(){showToast('复制失败')});
 }
 
 function exportPNG() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;var blob=new Blob([el.textContent||el.innerText],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.json';a.click();showToast('Exported!');
+  var preview=document.getElementById('latexPreview');
+  if(!preview)return;
+  var svg=preview.querySelector('svg');
+  if(!svg){showToast('请先渲染公式');return;}
+  var canvas=document.createElement('canvas');
+  var ctx=canvas.getContext('2d');
+  var data=new XMLSerializer().serializeToString(svg);
+  var img=new Image();
+  img.onload=function(){
+    canvas.width=img.width*2;canvas.height=img.height*2;
+    ctx.scale(2,2);ctx.drawImage(img,0,0);
+    canvas.toBlob(function(blob){
+      var a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download='formula.png';
+      a.click();
+      showToast('已导出PNG图片');
+    });
+  };
+  img.src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(data)));
 }
 
 function exportSVG() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;var blob=new Blob([el.textContent||el.innerText],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.json';a.click();showToast('Exported!');
+  var preview=document.getElementById('latexPreview');
+  if(!preview)return;
+  var svg=preview.querySelector('svg');
+  if(!svg){showToast('请先渲染公式');return;}
+  var data=new XMLSerializer().serializeToString(svg);
+  var blob=new Blob([data],{type:'image/svg+xml'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='formula.svg';
+  a.click();
+  showToast('已导出SVG图片');
 }
 
-function insertTemplate(){
-  var select=document.getElementById('template')||document.querySelector('select');
-  var input=document.getElementById('latexInput')||document.getElementById('input')||document.querySelector('textarea');
-  if(!select||!input){showToast('未找到模板选择器');return;}
+function insertTemplate(type){
+  var input=document.getElementById('latexInput');
+  if(!input){showToast('未找到编辑器');return;}
   var templates={
-    'document':'\\documentclass{article}\n\\begin{document}\n\n\\end{document}',
-    'equation':'\\begin{equation}\n  f(x) = ax^2 + bx + c\n\\end{equation}',
-    'matrix':'\\begin{bmatrix}\n  a & b \\\\\n  c & d\n\\end{bmatrix}',
-    'table':'\\begin{table}[h]\n\\centering\n\\begin{tabular}{|c|c|c|}\n\\hline\nA & B & C \\\\\n\\hline\n1 & 2 & 3 \\\\\n4 & 5 & 6 \\\\\n\\hline\n\\end{tabular}\n\\caption{表格标题}\n\\end{table}',
-    'list':'\\begin{itemize}\n  \\item 第一项\n  \\item 第二项\n\\end{itemize}',
-    'image':'\\begin{figure}[h]\n\\centering\n\\includegraphics[width=0.8\\textwidth]{image.png}\n\\caption{图片说明}\n\\label{fig:img}\n\\end{figure}'
+    'frac':'\\frac{a}{b}',
+    'sqrt':'\\sqrt{x}',
+    'sum':'\\sum_{i=1}^{n} x_i',
+    'int':'\\int_{a}^{b} f(x)\\,dx',
+    'matrix':'\\begin{pmatrix}\n  a & b \\\\\n  c & d\n\\end{pmatrix}',
+    'lim':'\\lim_{x \\to \\infty} f(x)',
+    'alpha':'\\alpha',
+    'infty':'\\infty',
+    'cdot':'\\cdot',
+    'text':'\\text{文本}'
   };
-  var tpl=templates[select.value]||'';
+  var tpl=templates[type]||'';
   if(tpl){
-    input.value=tpl;
+    var start=input.selectionStart||input.value.length;
+    input.value=input.value.substring(0,start)+tpl+input.value.substring(start);
+    input.focus();
+    renderLatex();
     showToast('模板已插入');
   }
 }
 
 function loadExample() {
-  document.getElementById('latexInput').value = '示例数据';
+  document.getElementById('latexInput').value = '\\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}';
+  renderLatex();
   showToast('已加载示例');
 }
 
 function renderLatex() {
-  var el = document.getElementById('preview');
-  if (el) el.style.display = 'block';
-  showToast('已更新');
+  var input=document.getElementById('latexInput');
+  var preview=document.getElementById('latexPreview');
+  if(!input||!preview)return;
+  var latex=input.value.trim();
+  if(!latex){preview.innerHTML='<span style="color:#64748b">等待输入...</span>';return;}
+  if(typeof MathJax!=='undefined'&&MathJax.typesetPromise){
+    preview.innerHTML='$$'+latex+'$$';
+    MathJax.typesetPromise([preview]);
+  }else{
+    preview.innerHTML='<span style="color:#94a3b8;font-size:.9rem">'+latex+'</span>';
+  }
 }
 </script>
 
 
-</main>
 </body>
 </html>
