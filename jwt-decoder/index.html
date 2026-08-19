@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="JWT Token解析工具工具，一键解码JSON Web Token的Header、Payload和Signature，查看过期时间与Claims声明。无需注册。纯前端本地处理，数据不上传服务器，无需注册即可免费使用。纯前端本地处理，数据不上传服务器，完全免费无需注册。">
 <meta name="keywords" content="在线JWT Token解析工具,工具,在线工具,免费">
@@ -234,14 +234,14 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
   </div></div></div>
 </div>
 
-<div class="section"><h2>常见问题</h2>
+<div class="section">
 
 </div>
 </main>
 <div>
 <!-- AdSense -->
 
-<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#374151;">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px;"><a href="/base32-encode-decode/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">免费在线Base32编解码工具 - RFC 464...</a><a href="/base45-encoder/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔤 在线Base45编码解码工具</a><a href="/base64-encode-decode/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">免费Base64编解码器 - Text & Fil...</a></div></section>
+<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#e2e8f0;">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px;"><a href="/base32-encode-decode/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">免费在线Base32编解码工具 - RFC 464...</a><a href="/base45-encoder/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔤 在线Base45编码解码工具</a><a href="/base64-encode-decode/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">免费Base64编解码器 - Text & Fil...</a></div></section>
 <footer class="footer container">
 <div style="margin-bottom:12px">
 <a href="../index.html">首页</a>
@@ -276,22 +276,67 @@ document.getElementById('feedback-success').style.display='block';
 // === 重写的函数实现 ===
 function clearAll() {
   document.getElementById('jwtInput').value = '';
-  document.getElementById('resultArea').innerHTML = '';
+  document.getElementById('headerRaw').textContent = '';
+  document.getElementById('headerJson').innerHTML = '';
+  document.getElementById('payloadRaw').textContent = '';
+  document.getElementById('payloadJson').innerHTML = '';
+  document.getElementById('claimsGrid').innerHTML = '';
+  document.getElementById('sigRaw').textContent = '';
   document.getElementById('resultArea').style.display = 'none';
   showToast('已重置');
 }
 
-function copyPart() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
-}
+function copyPart(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")}).catch(function(){showToast("复制失败")})}
 
-function decodeJWT() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;if(typeof mainConvert==='function')mainConvert();else{{out.textContent=inp.value;showToast('Converted!')}};
+function decodeJWT(){
+  var jwt=document.getElementById('jwtInput').value.trim();
+  if(!jwt){showToast('请先输入JWT Token');return}
+  var parts=jwt.split('.');
+  if(parts.length<3){showToast('无效的JWT格式');return}
+  var resultSection=document.getElementById('resultArea');
+  try{
+    var header=JSON.parse(atob(parts[0].replace(/-/g,'+').replace(/_/g,'/')));
+    var payload=JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
+    document.getElementById('headerRaw').textContent=parts[0];
+    document.getElementById('headerJson').innerHTML=highlightJson(header);
+    document.getElementById('payloadRaw').textContent=parts[1];
+    document.getElementById('payloadJson').innerHTML=highlightJson(payload);
+    document.getElementById('sigRaw').textContent=parts[2];
+    var grid=document.getElementById('claimsGrid');
+    grid.innerHTML='';
+    Object.keys(payload).forEach(function(k){
+      var v=payload[k];
+      var valStr=typeof v==='object'?JSON.stringify(v):String(v);
+      var timeStr='';
+      if(k==='exp'||k==='iat'||k==='nbf'){
+        var d=new Date(v*1000);
+        timeStr=d.toLocaleString();
+        if(k==='exp'){
+          var now=Date.now();
+          timeStr+=now>v*1000?' <span class="exp-badge exp-expired">已过期</span>':' <span class="exp-badge exp-valid">有效</span>';
+        }
+      }
+      grid.innerHTML+='<div class="claim-card"><div class="claim-key">'+k+'</div><div class="claim-val">'+valStr+'</div>'+(timeStr?'<div class="claim-time">'+timeStr+'</div>':'')+'</div>';
+    });
+    resultSection.style.display='block';
+  }catch(e){
+    showToast('无效的JWT格式');
+  }
+}
+function highlightJson(obj){
+  var s=JSON.stringify(obj,null,2);
+  s=s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  s=s.replace(/"([^"]+)":/g,'<span class="json-key">"$1"</span>:');
+  s=s.replace(/: "([^"]*)"/g,': <span class="json-string">"$1"</span>');
+  s=s.replace(/: (\d+)/g,': <span class="json-number">$1</span>');
+  s=s.replace(/: (true|false)/g,': <span class="json-boolean">$1</span>');
+  s=s.replace(/: (null)/g,': <span class="json-null">$1</span>');
+  return s;
 }
 
 function loadExample() {
-  document.getElementById('jwtInput').value = '示例数据';
-  showToast('已加载示例');
+  document.getElementById('jwtInput').value = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+  decodeJWT();
 }
 </script>
 
