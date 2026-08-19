@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="8-bit像素风格。支持自由调节像素块大小（2px-64px）和颜色数量，实时预览像素化转换效果并下载PNG高清图片。制作社交媒体个性头像、游戏像素素材和复古艺术风格设计作品的趣味在线创意工具，无需注册完全免费。纯前端本地处理，数据安全有保障。">
 <meta name="keywords" content="在线图片像素艺术生成器,工具,在线工具,免费">
@@ -244,9 +244,6 @@ a{color:#06b6d4;text-decoration:none}
   </div></div></div>
 </div>
 
-<div class="section"><h2>常见问题</h2>
-
-</div>
 </main>
 <div>
 <!-- AdSense -->
@@ -258,47 +255,55 @@ a{color:#06b6d4;text-decoration:none}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-}
-
 // === 重写的函数实现 ===
+var _uploadedImage = null;
+var _pixelSize = 8;
+var _colorCount = 256;
+var _outputCanvas = null;
+
 function applyPixelArt(){
-  var fileInput=document.getElementById('fileInput')||document.querySelector('input[type=file]');
+  var fileInput=document.getElementById('fileInput');
   if(!fileInput||!fileInput.files||!fileInput.files[0]){showToast('请先选择图片');return;}
-  var sizeEl=document.getElementById('pixelSize')||document.querySelector('input[type=range]');
-  var pixelSize=sizeEl?parseInt(sizeEl.value):8;
+  var sizeEl=document.getElementById('pixelSize');
+  _pixelSize=sizeEl?parseInt(sizeEl.value):8;
+  var colorEl=document.getElementById('colorCount');
+  _colorCount=colorEl?parseInt(colorEl.value):256;
   var file=fileInput.files[0];
   var reader=new FileReader();
   reader.onload=function(e){
     var img=new Image();
     img.onload=function(){
-      var canvas=document.createElement('canvas');
-      var w=Math.floor(img.width/pixelSize);
-      var h=Math.floor(img.height/pixelSize);
-      canvas.width=w;
-      canvas.height=h;
-      var ctx=canvas.getContext('2d');
-      ctx.drawImage(img,0,0,w,h);
-      var preview=document.getElementById('preview')||document.getElementById('result')||document.getElementById('output');
-      if(preview){
-        preview.innerHTML='';
-        var displayCanvas=document.createElement('canvas');
-        displayCanvas.width=w*pixelSize;
-        displayCanvas.height=h*pixelSize;
-        displayCanvas.style.cssText='image-rendering:pixelated;max-width:100%;border-radius:8px';
-        var dCtx=displayCanvas.getContext('2d');
-        dCtx.imageSmoothingEnabled=false;
-        dCtx.drawImage(canvas,0,0,w*pixelSize,h*pixelSize);
-        preview.appendChild(displayCanvas);
-        window._pixelArtCanvas=displayCanvas;
+      _uploadedImage=img;
+      var w=Math.floor(img.width/_pixelSize);
+      var h=Math.floor(img.height/_pixelSize);
+      var smallCanvas=document.createElement('canvas');
+      smallCanvas.width=w;
+      smallCanvas.height=h;
+      var sCtx=smallCanvas.getContext('2d');
+      sCtx.drawImage(img,0,0,w,h);
+      var imgData=sCtx.getImageData(0,0,w,h);
+      var data=imgData.data;
+      if(_colorCount<256){
+        for(var i=0;i<data.length;i+=4){
+          data[i]=Math.round(data[i]/(256/_colorCount))*(256/_colorCount);
+          data[i+1]=Math.round(data[i+1]/(256/_colorCount))*(256/_colorCount);
+          data[i+2]=Math.round(data[i+2]/(256/_colorCount))*(256/_colorCount);
+        }
+        sCtx.putImageData(imgData,0,0);
       }
+      _outputCanvas=document.createElement('canvas');
+      _outputCanvas.width=w*_pixelSize;
+      _outputCanvas.height=h*_pixelSize;
+      _outputCanvas.style.cssText='image-rendering:pixelated;max-width:100%;border-radius:8px';
+      var dCtx=_outputCanvas.getContext('2d');
+      dCtx.imageSmoothingEnabled=false;
+      dCtx.drawImage(smallCanvas,0,0,w*_pixelSize,h*_pixelSize);
+      var wrapper=document.getElementById('canvasWrapper');
+      if(wrapper){
+        wrapper.innerHTML='';
+        wrapper.appendChild(_outputCanvas);
+      }
+      document.getElementById('editor').classList.add('active');
       showToast('像素化完成');
     };
     img.src=e.target.result;
@@ -307,25 +312,59 @@ function applyPixelArt(){
 }
 
 function downloadResult() {
-  var text = document.getElementById('outputWidthVal').innerText;
-  if (!text) { showToast('没有可下载的结果'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'image-pixel-art-result.txt';
+  if(!_outputCanvas){showToast('请先应用效果');return;}
+  var a=document.createElement('a');
+  a.href=_outputCanvas.toDataURL('image/png');
+  a.download='pixel-art-'+Date.now()+'.png';
   a.click();
   showToast('已下载');
 }
 
 function resetImage() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+  _uploadedImage=null;
+  _outputCanvas=null;
+  var fileInput=document.getElementById('fileInput');
+  if(fileInput)fileInput.value='';
+  var editor=document.getElementById('editor');
+  if(editor)editor.classList.remove('active');
+  var uploadArea=document.getElementById('uploadArea');
+  if(uploadArea)uploadArea.style.display='';
+  var compareRow=document.getElementById('compareRow');
+  if(compareRow)compareRow.style.display='none';
+  showToast('已重置');
 }
 
 function toggleCompare() {
-  showToast('Toggled!');
+  var row=document.getElementById('compareRow');
+  if(!row)return;
+  row.style.display=row.style.display==='none'?'block':'none';
+  if(row.style.display==='block'&&_uploadedImage){
+    var origBox=document.getElementById('originalImgBox');
+    if(origBox&&_uploadedImage.src){origBox.innerHTML='<img src="'+_uploadedImage.src+'" style="max-width:100%;max-height:400px;border-radius:4px">';}
+    var resultBox=document.getElementById('resultImgBox');
+    if(resultBox&&_outputCanvas){resultBox.innerHTML='';resultBox.appendChild(_outputCanvas.cloneNode(true));}
+  }
 }
+// Wire up upload area
+(function(){
+  var ua=document.getElementById('uploadArea');
+  var fi=document.getElementById('fileInput');
+  if(ua&&fi){
+    ua.addEventListener('click',function(){fi.click();});
+    ua.addEventListener('dragover',function(e){e.preventDefault();ua.classList.add('dragover');});
+    ua.addEventListener('dragleave',function(){ua.classList.remove('dragover');});
+    ua.addEventListener('drop',function(e){e.preventDefault();ua.classList.remove('dragover');if(e.dataTransfer.files[0]){fi.files=e.dataTransfer.files;applyPixelArt();}});
+  }
+  // Wire up sliders
+  var ps=document.getElementById('pixelSize');
+  var cc=document.getElementById('colorCount');
+  var ow=document.getElementById('outputWidth');
+  if(ps)ps.addEventListener('input',function(){document.getElementById('pixelSizeVal').textContent=this.value;});
+  if(cc)cc.addEventListener('input',function(){document.getElementById('colorCountVal').textContent=this.value;});
+  if(ow)ow.addEventListener('input',function(){document.getElementById('outputWidthVal').textContent=this.value==0?'自动':this.value;});
+})();
 </script>
-<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#374151">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px"><a href="/color-inverter/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🖼️ 🎨 图片颜色反转工具</a><a href="/photo-collage/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🖼️ 🖼️ 图片拼贴制作</a><a href="/image-emboss-filter/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🖼️ 🗿 图片浮雕效果工具</a><a href="/id-photo-cropper/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🖼️ 🖼 在线证件照裁剪工具</a><a href="/image-negative/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🖼️ 图片负片效果工具在线</a></div></section>
+<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#e2e8f0">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px"><a href="../color-inverter/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🖼️ 图片颜色反转工具</a><a href="../photo-collage/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🖼️ 图片拼贴制作</a><a href="../image-emboss-filter/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🖼️ 图片浮雕效果工具</a><a href="../id-photo-cropper/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🖼️ 在线证件照裁剪工具</a><a href="../image-negative/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px">🖼️ 图片负片效果工具</a></div></section>
 
 
 

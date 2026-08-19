@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="免费在线图片像素化工具，将普通图片转换为像素艺术风格的方块效果。支持自定义像素块大小和色彩保留数量，可一键导出PNG格式下载保存，适合头像制作、艺术创作和游戏素材设计，纯前端Canvas处理完全免费。纯前端本地处理，数据不上传服务器，完全免费无需注册。">
 <meta name="keywords" content="在线图片像素化工具,工具,在线工具,免费">
@@ -222,9 +222,6 @@ a{color:#06b6d4;text-decoration:none}
     </div></div></div>
 
 
-<div class="section"><h2>常见问题</h2>
-
-</div>
 </main>
 <div>
 <!-- AdSense -->
@@ -256,16 +253,92 @@ a{color:#06b6d4;text-decoration:none}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
+// === Pixelate Tool ===
+var _pixelateImg=null;
+var _pixelateCanvas=null;
+
+(function(){
+  var ua=document.getElementById('uploadArea');
+  var fi=document.getElementById('fileInput');
+  var bs=document.getElementById('blockSize');
+  var dlBtn=document.getElementById('downloadBtn');
+  var rsBtn=document.getElementById('resetBtn');
+  var ctrl=document.getElementById('controls');
+  var prev=document.getElementById('previewSection');
+
+  if(ua&&fi){
+    ua.addEventListener('click',function(){fi.click();});
+    ua.addEventListener('dragover',function(e){e.preventDefault();ua.classList.add('dragover');});
+    ua.addEventListener('dragleave',function(){ua.classList.remove('dragover');});
+    ua.addEventListener('drop',function(e){e.preventDefault();ua.classList.remove('dragover');if(e.dataTransfer.files[0])handlePixelateFile(e.dataTransfer.files[0]);});
+    fi.addEventListener('change',function(e){if(e.target.files[0])handlePixelateFile(e.target.files[0]);});
+  }
+  if(bs)bs.addEventListener('input',function(){
+    document.getElementById('blockSizeValue').textContent=this.value;
+    if(_pixelateImg)doPixelate();
+  });
+  if(dlBtn)dlBtn.addEventListener('click',function(){
+    if(!_pixelateCanvas){showToast('请先上传图片');return;}
+    var a=document.createElement('a');
+    a.href=_pixelateCanvas.toDataURL('image/png');
+    a.download='pixelate-'+Date.now()+'.png';
+    a.click();
+    showToast('已下载');
+  });
+  if(rsBtn)rsBtn.addEventListener('click',function(){
+    _pixelateImg=null;_pixelateCanvas=null;
+    fi.value='';
+    ctrl.style.display='none';
+    prev.style.display='none';
+    ua.style.display='';
+    document.getElementById('originalImg').src='';
+    showToast('已重置');
+  });
+})();
+
+function handlePixelateFile(file){
+  if(!file||!file.type.startsWith('image/')){showToast('请选择图片文件');return;}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      _pixelateImg=img;
+      document.getElementById('originalImg').src=e.target.result;
+      document.getElementById('origSize').textContent='尺寸: '+img.width+'×'+img.height;
+      document.getElementById('uploadArea').style.display='none';
+      document.getElementById('controls').style.display='';
+      document.getElementById('previewSection').style.display='';
+      doPixelate();
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
+function doPixelate(){
+  if(!_pixelateImg)return;
+  var blockSize=parseInt(document.getElementById('blockSize').value)||10;
+  var w=_pixelateImg.width,h=_pixelateImg.height;
+  var smallW=Math.max(1,Math.floor(w/blockSize));
+  var smallH=Math.max(1,Math.floor(h/blockSize));
+  var tmp=document.createElement('canvas');
+  tmp.width=smallW;tmp.height=smallH;
+  var tCtx=tmp.getContext('2d');
+  tCtx.imageSmoothingEnabled=false;
+  tCtx.drawImage(_pixelateImg,0,0,smallW,smallH);
+  _pixelateCanvas=document.createElement('canvas');
+  _pixelateCanvas.width=w;_pixelateCanvas.height=h;
+  var ctx=_pixelateCanvas.getContext('2d');
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(tmp,0,0,w,h);
+  var display=document.getElementById('pixelCanvas');
+  display.width=w;display.height=h;
+  var dCtx=display.getContext('2d');
+  dCtx.imageSmoothingEnabled=false;
+  dCtx.drawImage(tmp,0,0,w,h);
+  document.getElementById('pixelSize').textContent='尺寸: '+w+'×'+h;
+  document.getElementById('pixelBlock').textContent='块大小: '+blockSize;
+}
 </script>
 </body>
 </html>
