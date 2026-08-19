@@ -128,7 +128,7 @@ a{color:#06b6d4;text-decoration:none}
 <link href="favicon.svg" rel="icon" type="image/svg+xml"/>
 </head>
 <body>
-<div class="container">
+<main class="container">
 <div class="header"><h1>图片转SVG工具</h1><div class="lang-switch"><a class="active" href="index.html">中文</a><a class="" href="../en/image-to-svg/">EN</a></div></div>
 <p class="nav-back"><a href="../index.html">首页</a> › <a href="../index.html#tools">工具</a> › 图片转SVG工具</p>
 <div class="hero"><p>免费在线图片转SVG工具，将位图转换为SVG矢量图，支持颜色量化、路径简化、实时预览。前端本地运行，无需服务器。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
@@ -142,6 +142,12 @@ a{color:#06b6d4;text-decoration:none}
 <svg fill="none" height="11" stroke="#06b6d4" stroke-width="2" viewbox="0 0 24 24" width="11"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
     Updated: 2026-07-11
   </span>
+</div>
+<div class="upload-area" id="uploadArea">
+<div class="icon">🖼️</div>
+<p><strong>点击上传图片</strong> 或拖拽图片到此处</p>
+<p style="font-size:.8rem;color:#64748b;margin-top:4px">支持 JPG / PNG / WebP / BMP</p>
+<input type="file" id="fileInput" accept="image/*">
 </div>
 <div class="form-group">
 <label>简化程度</label>
@@ -250,32 +256,124 @@ function submitFeedback(){
 const type=document.getElementById('feedback-type').value;
 const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
 const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
+const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+(document.getElementById('feedback-text')?document.getElementById('feedback-text').value:'') );
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
 document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
+var svgImageData = null;
+var svgDataUrl = null;
+
 function clearAll() {
   document.getElementById('simplify').selectedIndex = 0;
   document.getElementById('scale').selectedIndex = 0;
   document.getElementById('mode').selectedIndex = 0;
-  document.getElementById('previewSection').innerHTML = '';
   document.getElementById('previewSection').style.display = 'none';
+  document.getElementById('codeSection').style.display = 'none';
+  document.getElementById('downloadBtn').style.display = 'none';
+  document.getElementById('uploadArea').style.display = '';
+  svgImageData = null;
+  svgDataUrl = null;
   showToast('已重置');
 }
 
 function convertToSvg() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;if(typeof mainConvert==='function')mainConvert();else{{out.textContent=inp.value;showToast('Converted!')}};
+  if (!svgImageData) { showToast('请先上传图片'); return; }
+  var simplify = parseInt(document.getElementById('simplify').value);
+  var scale = parseFloat(document.getElementById('scale').value);
+  var mode = document.getElementById('mode').value;
+  var canvas = document.getElementById('originalCanvas');
+  var ctx = canvas.getContext('2d');
+  var w = Math.round(svgImageData.naturalWidth * scale);
+  var h = Math.round(svgImageData.naturalHeight * scale);
+  canvas.width = w;
+  canvas.height = h;
+  ctx.drawImage(svgImageData, 0, 0, w, h);
+  var imageData = ctx.getImageData(0, 0, w, h);
+  var data = imageData.data;
+  var colors = {};
+  for (var i = 0; i < data.length; i += 4) {
+    var r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+    if (a < 128) continue;
+    var qr = Math.round(r / (simplify + 1)) * (simplify + 1);
+    var qg = Math.round(g / (simplify + 1)) * (simplify + 1);
+    var qb = Math.round(b / (simplify + 1)) * (simplify + 1);
+    var key = qr + ',' + qg + ',' + qb;
+    if (!colors[key]) colors[key] = {r: qr, g: qg, b: qb, pixels: []};
+    colors[key].pixels.push({x: Math.floor(i/4) % w, y: Math.floor((i/4) / w)});
+  }
+  var svgParts = ['<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">'];
+  if (mode === 'pixels') {
+    for (var key in colors) {
+      var c = colors[key];
+      var hex = '#' + ((1<<24)+(c.r<<16)+(c.g<<8)+c.b).toString(16).slice(1);
+      c.pixels.forEach(function(p) {
+        svgParts.push('<rect x="' + p.x + '" y="' + p.y + '" width="1" height="1" fill="' + hex + '"/>');
+      });
+    }
+  } else {
+    for (var key in colors) {
+      var c = colors[key];
+      var hex = '#' + ((1<<24)+(c.r<<16)+(c.g<<8)+c.b).toString(16).slice(1);
+      var points = c.pixels.map(function(p) { return p.x + ',' + p.y; }).join(' ');
+      svgParts.push('<g fill="' + hex + '" opacity="1"><path d="M' + points.replace(/(\d+),(\d+)/g, function(m,x,y) { return 'M' + x + ',' + y + 'h1v1h-1z'; }) + '"/></g>');
+    }
+  }
+  svgParts.push('</svg>');
+  var svgStr = svgParts.join('\n');
+  document.getElementById('svgCode').textContent = svgStr;
+  document.getElementById('svgPreview').innerHTML = svgStr;
+  document.getElementById('stats').innerHTML = '<div class="stat">颜色数: <span>' + Object.keys(colors).length + '</span></div><div class="stat">尺寸: <span>' + w + 'x' + h + '</span></div>';
+  document.getElementById('previewSection').style.display = '';
+  document.getElementById('codeSection').style.display = '';
+  document.getElementById('downloadBtn').style.display = '';
+  svgDataUrl = svgStr;
+  showToast('转换完成');
 }
 
 function copySvg() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  if (!svgDataUrl) { showToast('请先转换'); return; }
+  navigator.clipboard.writeText(svgDataUrl).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
 }
 
 function downloadSvg() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Svg.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+  if (!svgDataUrl) { showToast('请先转换'); return; }
+  var blob = new Blob([svgDataUrl], {type: 'image/svg+xml'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'image.svg';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已下载');
+}
+
+// Upload handlers
+var uploadArea = document.getElementById('uploadArea');
+var fileInput = document.getElementById('fileInput');
+uploadArea.addEventListener('click', function() { fileInput.click(); });
+uploadArea.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('dragover'); });
+uploadArea.addEventListener('dragleave', function() { this.classList.remove('dragover'); });
+uploadArea.addEventListener('drop', function(e) {
+  e.preventDefault(); this.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleSvgFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', function(e) { if (e.target.files[0]) handleSvgFile(e.target.files[0]); });
+
+function handleSvgFile(file) {
+  if (!file.type.startsWith('image/')) { showToast('请选择图片文件'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      svgImageData = img;
+      uploadArea.style.display = 'none';
+      showToast('图片已加载，点击"转换SVG"');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 </script>
-</div></body>
+</main></body>
 </html>
