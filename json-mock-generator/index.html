@@ -259,7 +259,7 @@ a{color:#06b6d4;text-decoration:none}
 <div>
 <!-- AdSense -->
 
-<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#374151;">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px;"><a href="/acronym-generator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔤 缩写词生成器</a><a href="/add-watermark/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔏 图片添加水印工具</a><a href="/audio-crossfade/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">音频交叉渐变</a></div></section>
+<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#22d3ee;">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px;"><a href="/acronym-generator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔤 缩写词生成器</a><a href="/add-watermark/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔏 图片添加水印工具</a><a href="/audio-crossfade/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">音频交叉渐变</a></div></section>
 <footer class="footer container">
 <div style="margin-bottom:12px">
 <a href="../index.html">首页</a>
@@ -292,26 +292,48 @@ document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
-function clearFields() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+var MOCK_FIELDS=[
+  {id:'name',label:'姓名',type:'string'},
+  {id:'email',label:'邮箱',type:'string'},
+  {id:'phone',label:'手机号',type:'string'},
+  {id:'idcard',label:'身份证号',type:'string'},
+  {id:'address',label:'地址',type:'string'},
+  {id:'company',label:'公司',type:'string'},
+  {id:'job',label:'职位',type:'string'},
+  {id:'url',label:'URL',type:'string'},
+  {id:'ip',label:'IP地址',type:'string'},
+  {id:'uuid',label:'UUID',type:'string'},
+  {id:'date',label:'日期',type:'string'},
+  {id:'timestamp',label:'时间戳',type:'number'},
+  {id:'number',label:'随机数字',type:'number'},
+  {id:'boolean',label:'布尔值',type:'boolean'},
+  {id:'color',label:'颜色',type:'string'},
+  {id:'username',label:'用户名',type:'string'},
+  {id:'paragraph',label:'简介',type:'string'}
+];
+function initFieldGrid(){
+  var grid=document.getElementById('fieldGrid');
+  if(!grid)return;
+  var html='';
+  MOCK_FIELDS.forEach(function(f){
+    html+='<label class="data-type-item"><input type="checkbox" value="'+f.id+'" checked><span class="type-name">'+f.label+'</span><span class="type-desc">'+f.type+'</span></label>';
+  });
+  grid.innerHTML=html;
+  updateFieldStats();
+  grid.addEventListener('change',updateFieldStats);
 }
-
-function copyResult() {
-  var text = document.getElementById('resultBox').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+function updateFieldStats(){
+  var total=MOCK_FIELDS.length;
+  var checked=document.querySelectorAll('#fieldGrid input[type=checkbox]:checked').length;
+  var stats=document.getElementById('fieldStats');
+  if(stats) stats.innerHTML='<span>已选 '+checked+'/'+total+' 个字段</span>';
 }
+function selectAllFields(){document.querySelectorAll('#fieldGrid input[type=checkbox]').forEach(function(cb){cb.checked=true});updateFieldStats();showToast('已全选');}
+function deselectAllFields(){document.querySelectorAll('#fieldGrid input[type=checkbox]').forEach(function(cb){cb.checked=false});updateFieldStats();showToast('已取消全选');}
+function clearFields(){document.querySelectorAll('#fieldGrid input[type=checkbox]').forEach(function(cb){cb.checked=false});updateFieldStats();showToast('已清空');}
+window.addEventListener('DOMContentLoaded',initFieldGrid);
 
-function deselectAllFields() {
-  document.querySelectorAll('input[type=checkbox][id^=field-]').forEach(function(cb){cb.checked=false});
-  showToast('已取消全选');
-}
-
-function selectAllFields() {
-  document.querySelectorAll('input[type=checkbox][id^=field-]').forEach(function(cb){cb.checked=true});
-  showToast('已全选');
-}
-
+function copyResult(){var text=document.getElementById('resultBox').innerText;if(!text){showToast('没有可复制的结果');return;}navigator.clipboard.writeText(text).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});}
 function downloadResult() {
   var text = document.getElementById('resultBox').innerText;
   if (!text) { showToast('没有可下载的结果'); return; }
@@ -324,25 +346,82 @@ function downloadResult() {
 }
 
 function generateData() {
-  var count=document.getElementById('mockCount')||document.querySelector('input[type=number]');
-  var type=document.getElementById('mockType')||document.querySelector('select');
-  if(!count){showToast('请输入数量');return;}
-  var n=parseInt(count.value)||5;
-  var t=type?type.value:'user';
-  var data=[];
+  var countEl = document.getElementById('dataCount');
+  var langEl = document.getElementById('dataLang');
+  var formatEl = document.getElementById('outputFormat');
+  var indentEl = document.getElementById('indentSize');
+  if(!countEl){showToast('请输入数量');return;}
+  var n = Math.min(parseInt(countEl.value)||5, 10000);
+  var lang = langEl ? langEl.value : 'zh';
+  var format = formatEl ? formatEl.value : 'json';
+  var indent = indentEl ? parseInt(indentEl.value) : 2;
+
+  var checkedFields = [];
+  document.querySelectorAll('#fieldGrid input[type=checkbox]:checked').forEach(function(cb){
+    checkedFields.push(cb.value);
+  });
+  if(checkedFields.length === 0){showToast('请至少选择一个字段');return;}
+
+  var zhNames = ['张三','李四','王五','赵六','钱七','孙八','周九','吴十','郑十一','王十二'];
+  var enNames = ['Alice','Bob','Charlie','Diana','Eve','Frank','Grace','Hank','Iris','Jack'];
+  var zhCities = ['北京','上海','广州','深圳','杭州','成都','武汉','南京','重庆','西安'];
+  var enCities = ['New York','Los Angeles','Chicago','Houston','Phoenix','Seattle','Denver','Boston','Miami','Austin'];
+  var companies = ['科技有限公司','互联网集团','数据科技','智能系统','云计算公司','创新工场','数码世界','网络技术'];
+  var jobs = ['工程师','产品经理','设计师','分析师','开发人员','架构师','测试工程师','运维工程师'];
+
+  function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+  function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+  function randEmail(name){return name.toLowerCase().replace(/\s/g,'')+'@example.com';}
+  function randPhone(){return '1'+['3','5','7','8','9'][randInt(0,4)]+String(randInt(100000000,999999999));}
+  function randIdCard(){var p=['110101','310101','440301','330102','510104'];return pick(p)+String(randInt(19700101,20051231))+String(randInt(1000,9999));}
+  function randIP(){return randInt(1,255)+'.'+randInt(0,255)+'.'+randInt(0,255)+'.'+randInt(1,254);}
+  function randDate(){var y=randInt(2020,2026),m=String(randInt(1,12)).padStart(2,'0'),d=String(randInt(1,28)).padStart(2,'0');return y+'-'+m+'-'+d;}
+  function randUUID(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
+  function randURL(){return 'https://example.com/page/'+randInt(1,999);}
+  function randColor(){return '#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');}
+  function randBool(){return Math.random()>0.5;}
+
+  var data = [];
   for(var i=0;i<n;i++){
-    if(t==='user'||t==='用户'){
-      data.push({id:i+1,name:'用户'+(i+1),email:'user'+(i+1)+'@example.com',age:Math.floor(18+Math.random()*50),active:Math.random()>0.5});
-    }else if(t==='product'||t==='产品'){
-      data.push({id:i+1,name:'商品'+(i+1),price:Math.floor(Math.random()*10000)/100,stock:Math.floor(Math.random()*100),category:'cat'+Math.floor(Math.random()*5)});
-    }else{
-      data.push({id:i+1,value:Math.floor(Math.random()*1000),label:'item'+(i+1)});
-    }
+    var name = lang==='en'?pick(enNames):lang==='mixed'?(Math.random()>0.5?pick(enNames):pick(zhNames)):pick(zhNames);
+    var city = lang==='en'?pick(enCities):pick(zhCities);
+    var item = {};
+    checkedFields.forEach(function(f){
+      switch(f){
+        case 'name': item.name=name; break;
+        case 'email': item.email=randEmail(name); break;
+        case 'phone': item.phone=randPhone(); break;
+        case 'idcard': item.idCard=randIdCard(); break;
+        case 'address': item.address=city+'市'+pick(['朝阳区','海淀区','浦东新区','南山区','西湖区'])+pick(['路','街'])+randInt(1,200)+'号'; break;
+        case 'company': item.company=(lang==='en'?'Tech '+pick(companies):pick(companies)); break;
+        case 'job': item.job=(lang==='en'?pick(jobs):pick(jobs)); break;
+        case 'url': item.url=randURL(); break;
+        case 'ip': item.ip=randIP(); break;
+        case 'uuid': item.uuid=randUUID(); break;
+        case 'date': item.date=randDate(); break;
+        case 'timestamp': item.timestamp=new Date(randDate()).getTime(); break;
+        case 'number': item.number=randInt(1,10000); break;
+        case 'boolean': item.active=randBool(); break;
+        case 'color': item.color=randColor(); break;
+        case 'username': item.username=name.toLowerCase().replace(/\s/g,'')+randInt(1,999); break;
+        case 'paragraph': item.bio='这是'+name+'的个人简介，来自'+city+'。'; break;
+        default: item[f]='sample_'+randInt(1,999);
+      }
+    });
+    data.push(item);
   }
-  var json=JSON.stringify(data,null,2);
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');
-  if(out){out.textContent=json;}
-  showToast('已生成'+n+'条JSON Mock数据！');
+
+  var output;
+  if(format==='csv'){
+    var headers=checkedFields.join(',');
+    var rows=data.map(function(row){return checkedFields.map(function(f){return '"'+String(row[f]||'').replace(/"/g,'""')+'"';}).join(',');});
+    output=headers+'\n'+rows.join('\n');
+  }else{
+    output=JSON.stringify(data,null,indent);
+  }
+  var resultBox=document.getElementById('resultBox');
+  if(resultBox) resultBox.textContent=output;
+  showToast('已生成'+n+'条数据');
 }
 
 
