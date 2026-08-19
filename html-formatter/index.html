@@ -188,14 +188,12 @@ textarea::placeholder{color:#64748b}
     </div></div></div></div>
 </div>
 
-<div class="section"><h2>常见问题</h2>
 
-</div>
 </main>
 <div>
 <!-- AdSense -->
 
-<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#374151;">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px;"><a href="/character-unicode-finder/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">字符Unicode查询器</a><a href="/css-gradient-border-animation/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🌈 CSS渐变边框动画生成器</a><a href="/css-specificity-calculator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🎨 CSS选择器优先级计算器</a></div></section>
+<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#e2e8f0;">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px;"><a href="/character-unicode-finder/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">字符Unicode查询器</a><a href="/css-gradient-border-animation/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🌈 CSS渐变边框动画生成器</a><a href="/css-specificity-calculator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🎨 CSS选择器优先级计算器</a></div></section>
 <footer class="footer container">
 <div style="margin-bottom:12px">
 <a href="../index.html">首页</a>
@@ -219,48 +217,76 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
+const type=document.getElementById('feedback-type')?.value||'other';
 const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
 const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
+const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel);
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
 }
 
 // === 重写的函数实现 ===
 function clearAll() {
-  document.getElementById('attrNewline').value = '';
-  document.getElementById('removeComments').value = '';
-  document.getElementById('livePreview').value = '';
+  document.getElementById('attrNewline').checked = false;
+  document.getElementById('removeComments').checked = false;
+  document.getElementById('livePreview').checked = false;
   document.getElementById('inputText').value = '';
   document.getElementById('resultText').value = '';
   document.getElementById('indentSize').selectedIndex = 0;
+  document.getElementById('inputStats').innerHTML = '';
   showToast('已重置');
 }
 
 function copyResult() {
-  var text = document.getElementById('result').innerText;
+  var text = document.getElementById('resultText').value;
   if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制到剪贴板')})["catch"](function(){showToast("复制失败")});
 }
 
 function downloadResult() {
-  var text = document.getElementById('result').innerText;
+  var text = document.getElementById('resultText').value;
   if (!text) { showToast('没有可下载的结果'); return; }
-  var blob = new Blob([text], {type: 'text/plain'});
+  var blob = new Blob([text], {type: 'text/html'});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'html-formatter-result.txt';
+  a.download = 'html-formatter-result.html';
   a.click();
   showToast('已下载');
 }
 
 function formatHTML() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;try{{var obj=JSON.parse(el.textContent||el.innerText);el.textContent=JSON.stringify(obj,null,2);showToast('Formatted!')}}catch(e){{showToast('Format failed: not valid JSON')}};
+  var input = document.getElementById('inputText').value;
+  if (!input.trim()) { showToast('请输入要格式化的HTML代码'); return; }
+  var indentSize = document.getElementById('indentSize').value;
+  var attrNewline = document.getElementById('attrNewline').checked;
+  var removeComments = document.getElementById('removeComments').checked;
+  var indent = indentSize === 'tab' ? '\t' : ' '.repeat(parseInt(indentSize));
+  var result = input;
+  if (removeComments) {
+    result = result.replace(/<!--[\s\S]*?-->/g, '');
+  }
+  result = result.replace(/>\s+</g, '>\n<');
+  var lines = result.split('\n');
+  var formatted = '';
+  var level = 0;
+  var selfClosing = /^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/i;
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) continue;
+    if (line.match(/^<\/\w/)) { level = Math.max(0, level - 1); }
+    formatted += indent.repeat(level) + line + '\n';
+    if (line.match(/^<\w[^>]*[^\/]>/) && !line.match(/^<(img|br|hr|input|meta|link)/i) && !selfClosing.test(line.match(/^<(\w+)/)?.[1] || '')) {
+      level++;
+    }
+  }
+  document.getElementById('resultText').value = formatted.trim();
+  var stats = document.getElementById('inputStats');
+  stats.innerHTML = '<span>输入: ' + input.length + ' 字符</span><span>输出: ' + formatted.trim().length + ' 字符</span>';
+  showToast('格式化完成');
 }
 
 function loadSample() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
+  document.getElementById('inputText').value = '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n<meta charset="UTF-8">\n<title>示例页面</title>\n</head>\n<body>\n<div class="container">\n<h1>欢迎</h1>\n<p>这是一个示例段落。</p>\n<ul>\n<li>项目一</li>\n<li>项目二</li>\n</ul>\n</div>\n</body>\n</html>';
+  showToast('示例已加载');
 }
 </script>
 
