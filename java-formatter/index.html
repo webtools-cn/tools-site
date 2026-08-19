@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Java代码格式化工具，自动调整缩进、规范空格、对齐大括号并移除多余空行。支持自定义缩进大小、大括号风格和import排序等选项，格式化后一键复制或下载。适用于Java开发者代码规范化和团队代码风格统一，纯前端处理代码不上传服务器完全免费。">
 <meta name="keywords" content="在线Java格式化工具,工具,在线工具,免费">
@@ -93,7 +93,7 @@ a{color:#06b6d4;text-decoration:none}
 <main class="container">
 <div class="header"><h1>☕ 在线Java格式化工具</h1><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/java-formatter/" class="">EN</a></div></div>
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线Java格式化工具</p>
-<div class="hero"><p>免费在线Java代码格式化工具，自动调整缩进、规范空格、对齐大括号、移除多余空行、清理尾部空白。纯前端处理，代码不上传服务器。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
+<div class="hero"><p>免费在线Java代码格式化工具，自动调整缩进、规范空格、对齐大括号、移除多余空行、清理尾部空白。纯前端处理，代码不上传服务器。</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section"><div class="code-pair">
       <div class="code-box">
@@ -130,10 +130,10 @@ return result>100?100:result;
       </div>
     </div>
     <div class="btn-row">
-      <button class="btn btn-primary" onclick="formatJava()">✨ 格式化</button>
-      <button class="btn btn-secondary" onclick="copyOutput()">📋 复制结果</button>
-      <button class="btn btn-secondary" onclick="downloadOutput()">💾 下载</button>
-      <button class="btn btn-danger" onclick="document.getElementById('inputCode').value='';document.getElementById('outputCode').value=''">🗑️ 清空</button>
+      <button class="btn btn-primary" id="btnFormat">✨ 格式化</button>
+      <button class="btn btn-secondary" id="btnCopy">📋 复制结果</button>
+      <button class="btn btn-secondary" id="btnDownload">💾 下载</button>
+      <button class="btn btn-danger" id="btnClear">🗑️ 清空</button>
     </div>
     <div class="error-box" id="errorBox"></div>
     <div class="stats">
@@ -176,7 +176,7 @@ return result>100?100:result;
       <li style="margin-bottom:16px"><strong>复制或下载结果</strong><br><span style="color:#94a3b8;font-size:.9rem">格式化完成后，点击"复制"复制到剪贴板，或点击"下载"保存为文件。完全免费，没有使用限制。</span></li>
     </ol>
   </div>
-<div class="section"><h2>常见问题</h2></div>
+</div>
 </main>
 <div>
 <!-- AdSense -->
@@ -233,20 +233,71 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
+function formatJava() {
+  var input = document.getElementById('inputCode').value;
+  var output = document.getElementById('outputCode');
+  if (!input.trim()) { showToast('请先粘贴Java代码'); return; }
+  try {
+    var result = doFormatJava(input);
+    output.value = result;
+    var origLines = input.split('\n').length;
+    var fmtLines = result.split('\n').length;
+    document.getElementById('origSize').textContent = origLines;
+    document.getElementById('fmtSize').textContent = fmtLines;
+    showToast('格式化完成！');
+  } catch(e) {
+    showToast('格式化出错: ' + e.message);
+  }
+}
+
+function doFormatJava(code) {
+  var lines = code.split('\n');
+  var result = [];
+  var indent = 0;
+  var indentStr = '    ';
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) { result.push(''); continue; }
+    if (line.match(/^\}/) || line.match(/^\)/) || line.match(/^\]/)) {
+      indent = Math.max(0, indent - 1);
+    }
+    result.push(indentStr.repeat(indent) + line);
+    if (line.match(/\{$/) || line.match(/\)$/) || line.match(/\]$/)) {
+      if (line.match(/\{$/)) indent++;
+    }
+    if (line.match(/\}\s*$/) && !line.match(/^\}/)) {
+      // closing brace on same line as content, no change
+    }
+  }
+  return result.join('\n');
+}
+
 function copyOutput() {
-  var text = document.getElementById('output').innerText;
+  var text = document.getElementById('outputCode').value;
   if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  navigator.clipboard.writeText(text).then(function(){ showToast('已复制'); })['catch'](function(){ showToast('复制失败'); });
 }
 
 function downloadOutput() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Output.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+  var el = document.getElementById('outputCode');
+  if (!el || !el.value) { showToast('没有可下载的内容'); return; }
+  var blob = new Blob([el.value], {type:'text/plain'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'formatted.java';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已下载！');
 }
-
-function formatJava() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;try{{var obj=JSON.parse(el.textContent||el.innerText);el.textContent=JSON.stringify(obj,null,2);showToast('Formatted!')}}catch(e){{showToast('Format failed: not valid JSON')}};
-}
+document.getElementById('btnFormat').addEventListener('click', formatJava);
+document.getElementById('btnCopy').addEventListener('click', copyOutput);
+document.getElementById('btnDownload').addEventListener('click', downloadOutput);
+document.getElementById('btnClear').addEventListener('click', function(){
+  document.getElementById('inputCode').value='';
+  document.getElementById('outputCode').value='';
+  document.getElementById('origSize').textContent='0';
+  document.getElementById('fmtSize').textContent='0';
+});
 </script>
 
 
