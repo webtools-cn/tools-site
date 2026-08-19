@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Git Diff查看器，粘贴git diff输出即可语法高亮显示代码变更。支持统一格式(unified)和分列对比(split)两种视图模式，自动识别新增行、删除行和修改行。代码审查和patch审核的轻量级工具。纯前端本地渲染，无需注册完全免费。">
 <meta name="keywords" content="Git Diff查看器,工具,在线工具,免费">
@@ -100,16 +100,15 @@ footer a{color:#22d3ee;text-decoration:none}
 
         
         <p>在线Git Diff查看器，支持统一/并排视图，高亮增删改行，代码审查必备</p>
-    </header>
+    </div>
 
-    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "HowTo", "name": "如何使用Git Diff查看器", "step": [{"@type": "HowToStep", "position": 1, "text": "选择输入模式：粘贴Git Diff或文本对比", "name": "选择输入模式：粘贴Git Diff或文本对比"}, {"@type": "HowToStep", "position": 2, "text": "输入或粘贴diff内容/两段文本", "name": "输入或粘贴diff内容/两段文本"}, {"@type": "HowToStep", "position": 3, "text": "选择视图模式：统一视图或并排视图", "name": "选择视图模式：统一视图或并排视图"}, {"@type": "HowToStep", "position": 4, "text": "查看高亮差异结果", "name": "查看高亮差异结果"}]}</script>
-    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Git Diff查看器", "description": "免费在线Git Diff查看器。支持统一视图和并排视图，高亮增删改行，支持Git diff格式粘贴，开发者代码审查必备工具。", "applicationCategory": "UtilityApplication", "operatingSystem": "Any", "url": "https://free-toolbase.com/git-diff-viewer/", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "publisher": {"@type": "Organization", "name": "Online Tools", "email": "dexshuang@google.com"}, "author": {"@type": "Organization", "name": "Online Tools"}, "dateModified": "2026-07-16"}</script>
+
 
     <div class="section">
         <h2>📋 输入模式</h2>
         <div class="tab-bar">
-            <button class="active" onclick="switchMode('diff',this)">📝 粘贴Git Diff</button>
-            <button onclick="switchMode('compare',this)">🔄 文本对比</button>
+            <button class="active" onclick="switchMode('diff');document.querySelectorAll('.tab-bar button').forEach(function(b){b.classList.remove('active')});this.classList.add('active')">📝 粘贴Git Diff</button>
+            <button onclick="switchMode('compare');document.querySelectorAll('.tab-bar button').forEach(function(b){b.classList.remove('active')});this.classList.add('active')">🔄 文本对比</button>
         </div>
         <div id="diffMode">
             <textarea id="diffInput" rows="12" placeholder="粘贴Git diff输出，例如：&#10;diff --git a/file.js b/file.js&#10;--- a/file.js&#10;+++ b/file.js&#10;@@ -1,5 +1,6 @@&#10;-const old = 'hello';&#10;+const new = 'world';"></textarea>
@@ -194,26 +193,54 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 // === 重写的函数实现 ===
 function renderDiff() {
-  var input1 = document.getElementById('text1') || document.querySelectorAll('textarea')[0];
-  var input2 = document.getElementById('text2') || document.querySelectorAll('textarea')[1];
-  if (!input1 || !input2) { showToast('未找到输入区域'); return; }
-  var lines1 = input1.value.split('\n');
-  var lines2 = input2.value.split('\n');
-  var output = document.getElementById('diffOutput') || document.querySelector('.diff-output, #output');
+  var currentMode = document.querySelector('.tab-bar button.active');
+  var isCompareMode = currentMode && currentMode.textContent.indexOf('文本对比') !== -1;
+  var input1, input2;
+  if (isCompareMode) {
+    input1 = document.getElementById('textOld');
+    input2 = document.getElementById('textNew');
+  } else {
+    input1 = document.getElementById('diffInput');
+    input2 = null;
+  }
+  if (!input1) { showToast('未找到输入区域'); return; }
+  var output = document.getElementById('diffOutput');
   if (!output) { showToast('未找到输出区域'); return; }
   
   var html = '';
-  var maxLen = Math.max(lines1.length, lines2.length);
-  for (var i = 0; i < maxLen; i++) {
-    var l1 = lines1[i] || '';
-    var l2 = lines2[i] || '';
-    if (l1 === l2) {
-      html += '<div style="color:#94a3b8;padding:2px 8px">  ' + escapeHtml(l1) + '</div>';
-    } else {
-      if (l1) html += '<div style="color:#ef4444;padding:2px 8px;background:rgba(239,68,68,0.1)">- ' + escapeHtml(l1) + '</div>';
-      if (l2) html += '<div style="color:#22c55e;padding:2px 8px;background:rgba(34,197,94,0.1)">+ ' + escapeHtml(l2) + '</div>';
+  if (isCompareMode && input2) {
+    var lines1 = input1.value.split('\n');
+    var lines2 = input2.value.split('\n');
+    var maxLen = Math.max(lines1.length, lines2.length);
+    for (var i = 0; i < maxLen; i++) {
+      var l1 = lines1[i] || '';
+      var l2 = lines2[i] || '';
+      if (l1 === l2) {
+        html += '<div style="color:#94a3b8;padding:2px 8px">  ' + escapeHtml(l1) + '</div>';
+      } else {
+        if (l1) html += '<div style="color:#ef4444;padding:2px 8px;background:rgba(239,68,68,0.1)">- ' + escapeHtml(l1) + '</div>';
+        if (l2) html += '<div style="color:#22c55e;padding:2px 8px;background:rgba(34,197,94,0.1)">+ ' + escapeHtml(l2) + '</div>';
+      }
+    }
+  } else {
+    var diffText = input1.value;
+    var lines = diffText.split('\n');
+    for (var j = 0; j < lines.length; j++) {
+      var line = lines[j];
+      if (line.startsWith('+++') || line.startsWith('---') || line.startsWith('diff')) {
+        html += '<div style="color:#94a3b8;padding:2px 8px;font-weight:600">' + escapeHtml(line) + '</div>';
+      } else if (line.startsWith('+')) {
+        html += '<div style="color:#22c55e;padding:2px 8px;background:rgba(34,197,94,0.1)">' + escapeHtml(line) + '</div>';
+      } else if (line.startsWith('-')) {
+        html += '<div style="color:#ef4444;padding:2px 8px;background:rgba(239,68,68,0.1)">' + escapeHtml(line) + '</div>';
+      } else if (line.startsWith('@@')) {
+        html += '<div style="color:#a78bfa;padding:2px 8px;font-weight:600">' + escapeHtml(line) + '</div>';
+      } else {
+        html += '<div style="color:#94a3b8;padding:2px 8px">' + escapeHtml(line) + '</div>';
+      }
     }
   }
+  document.getElementById('resultCard').style.display = 'block';
   output.innerHTML = html;
   showToast('差异已渲染');
 }
@@ -222,17 +249,16 @@ function escapeHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function switchMode() {
-  var sel = document.getElementById('diffMode') || document.querySelector('select[name="mode"]');
-  if (!sel) return;
-  var mode = sel.value;
-  var output = document.getElementById('diffOutput') || document.querySelector('.diff-output, #output');
-  if (output) {
-    if (mode === 'unified') output.style.fontFamily = 'monospace';
-    else if (mode === 'split') output.style.display = 'flex';
+function switchMode(mode) {
+  var diffMode = document.getElementById('diffMode');
+  var compareMode = document.getElementById('compareMode');
+  if (mode === 'diff') {
+    diffMode.style.display = 'block';
+    compareMode.style.display = 'none';
+  } else {
+    diffMode.style.display = 'none';
+    compareMode.style.display = 'block';
   }
-  renderDiff();
-  showToast('已切换到' + mode + '模式');
 }
 </script>
 
