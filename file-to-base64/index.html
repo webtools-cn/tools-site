@@ -112,11 +112,17 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <div class="main-grid">
 <div>
     <div class="preview-box" id="previewBox" style="display:none"></div>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="icon">📁</div>
+      <p>点击选择文件或拖拽到此处</p>
+      <p class="sub">支持任意格式文件</p>
+      <input type="file" id="fileInput" style="display:none">
+    </div>
   </div>
   <div class="btn-row">
-    <button class="btn btn-primary" id="convertBtn" onclick="convertFile()">🔄 转换为Base64</button>
-    <button class="btn btn-success" onclick="copyResult()">📋 复制Base64</button>
-    <button class="btn btn-secondary" onclick="clearAll()">🗑️ 清空</button>
+    <button class="btn btn-primary" id="convertBtn">🔄 转换为Base64</button>
+    <button class="btn btn-success" id="copyBtn">📋 复制Base64</button>
+    <button class="btn btn-secondary" id="clearBtn">🗑️ 清空</button>
   </div>
   <span class="copy-msg" id="copyMsg">✓ 已复制</span>
   <div style="margin-top:12px">
@@ -185,37 +191,52 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 </div>
 <div class="toast" id="toast"></div>
 <script>function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+var dropZone=document.getElementById('dropZone');
+var fileInput=document.getElementById('fileInput');
+dropZone.addEventListener('dragover',function(e){e.preventDefault();dropZone.classList.add('dragover')});
+dropZone.addEventListener('dragleave',function(){dropZone.classList.remove('dragover')});
+dropZone.addEventListener('drop',function(e){e.preventDefault();dropZone.classList.remove('dragover');if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0])});
+fileInput.addEventListener('change',function(){if(fileInput.files.length)handleFile(fileInput.files[0])});
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
+function handleFile(file){
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var dataUrl=e.target.result;
+    document.getElementById('outputText').value=dataUrl;
+    var info='文件名: '+file.name+'\n大小: '+(file.size<1024?file.size+' B':file.size<1048576?(file.size/1024).toFixed(1)+' KB':(file.size/1048576).toFixed(2)+' MB')+'\n类型: '+(file.type||'未知')+'\nBase64长度: '+dataUrl.length+' 字符';
+    var preview=document.getElementById('previewBox');
+    preview.style.display='block';
+    preview.innerHTML='<div style="font-size:.82rem;color:#94a3b8;white-space:pre-wrap">'+info+'</div>';
+    dropZone.style.display='none';
+    showToast('文件已加载: '+file.name);
+  };
+  reader.readAsDataURL(file);
 }
 
-// === 重写的函数实现 ===
-function clearAll() {
-  document.getElementById('outputText').value = '';
-  document.getElementById('previewBox').innerHTML = '';
-  document.getElementById('previewBox').style.display = 'none';
-  showToast('已重置');
-}
+document.getElementById('convertBtn').addEventListener('click',function(){
+  var out=document.getElementById('outputText');
+  if(!out.value){showToast('请先上传文件');return;}
+  showToast('转换完成');
+});
 
-function convertFile() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;if(typeof mainConvert==='function')mainConvert();else{{out.textContent=inp.value;showToast('Converted!')}};
-}
+document.getElementById('copyBtn').addEventListener('click',function(){
+  var text=document.getElementById('outputText').value;
+  if(!text){showToast('没有可复制的内容');return;}
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制到剪贴板')}).catch(function(){showToast('复制失败')});
+});
 
-function copyResult() {
-  var text = document.getElementById('previewBox').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
-}
+document.getElementById('clearBtn').addEventListener('click',function(){
+  document.getElementById('outputText').value='';
+  document.getElementById('previewBox').innerHTML='';
+  document.getElementById('previewBox').style.display='none';
+  document.getElementById('fileInput').value='';
+  dropZone.style.display='';
+  showToast('已清空');
+});
+
+function toggleFeedback(){var p=document.getElementById('feedback-panel');if(p)p.style.display=p.style.display==='none'?'block':'none';}
 </script>
 </body>
 </html>
