@@ -118,7 +118,7 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <p class="nav-back"><a href="../index.html">首页</a> &rsaquo; <a href="../index.html#tools">工具</a> &rsaquo; 在线HTML代码验证器</p>
 <div class="hero"><p>免费在线HTML代码验证器，实时检测标签未闭合、属性引号缺失、嵌套层级错误和语义结构问题。支持一键格式化自动修复代码缩进和结构，帮助前端开发者快速排查页面渲染异常。所有校验在浏览器本地完成，HTML代码不上传服务器保护项目源码安全。无需注册，粘贴代码即用。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
-<div><div class="section"><div class="input-section">
+<div class="input-section">
     <h2>输入HTML代码</h2>
     <textarea id="htmlInput" placeholder="在此粘贴或输入HTML代码...&#10;例如：&#10;<div class=\"container\">&#10;  <div>标题</div>&#10;  <p>段落内容</p>&#10;</div>"></textarea>
     <div class="stats" id="inputStats"></div>
@@ -179,13 +179,11 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <div>
 <!-- AdSense -->
 
-<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#374151;">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px;"><a href="/docker-compose-validator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🐳 Docker Compose验证器</a><a href="/file-type-detector/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔍 在线文件类型识别器</a><a href="/google-index-checker/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔎 Google索引检测器</a>
+<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="font-size:1.1rem;margin-bottom:0.5rem;color:#e2e8f0;">🔗 相关工具推荐</h2><div style="display:flex;flex-wrap:wrap;gap:4px;"><a href="/docker-compose-validator/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🐳 Docker Compose验证器</a><a href="/file-type-detector/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔍 在线文件类型识别器</a><a href="/google-index-checker/" style="display:inline-block;padding:6px 12px;margin:4px;background:#0f172a;border-radius:6px;text-decoration:none;color:#22d3ee;font-size:14px;">🔎 Google索引检测器</a>
   </section>
 </div>
   </div>
-  </div>
-  </div>
-  </div>
+</div>
 </main>
 <footer class="footer container">
 <div style="margin-bottom:12px">
@@ -208,41 +206,110 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-}
+function toggleFeedback(){var p=document.getElementById('feedback-panel');if(p){p.style.display=p.style.display==='none'?'block':'none';}}
+function submitFeedback(){}
 
 // === 重写的函数实现 ===
 function clearAll() {
   document.getElementById('htmlInput').value = '';
-  document.getElementById('resultSection').innerHTML = '';
   document.getElementById('resultSection').style.display = 'none';
+  document.getElementById('statusBadge').innerHTML = '';
   document.getElementById('resultStats').innerHTML = '';
-  document.getElementById('resultStats').style.display = 'none';
+  document.getElementById('errorList').innerHTML = '';
+  document.getElementById('formattedOutput').style.display = 'none';
   showToast('已重置');
 }
 
 function copyFormatted() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var el = document.getElementById('codeOutput');
+  if (!el) { showToast('没有可复制的内容'); return; }
+  var t = el.textContent || el.innerText;
+  navigator.clipboard.writeText(t).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});
 }
 
 function formatHtml() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;try{{var obj=JSON.parse(el.textContent||el.innerText);el.textContent=JSON.stringify(obj,null,2);showToast('Formatted!')}}catch(e){{showToast('Format failed: not valid JSON')}};
+  var el = document.getElementById('htmlInput');
+  if (!el || !el.value.trim()) { showToast('请先输入HTML代码'); return; }
+  try {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(el.value, 'text/html');
+    var serializer = new XMLSerializer();
+    var formatted = serializer.serializeToString(doc.body);
+    formatted = formatted.replace(/></g, '>\n<').replace(/<(\/?)(div|p|h[1-6]|ul|ol|li|table|tr|td|th|thead|tbody|section|article|nav|header|footer|main|aside|figure|figcaption|blockquote|pre|code|br|hr|img|input|a|span|strong|em|b|i|u|s|small|label|select|option|textarea|button|form|fieldset|dl|dt|dd)([^>]*?)>/gi, function(m, sl, tag, attrs) {
+      return '\n<' + sl + tag + attrs + '>';
+    });
+    el.value = formatted.trim();
+    showToast('格式化完成');
+  } catch(e) {
+    showToast('格式化失败: ' + e.message);
+  }
 }
 
 function loadExample() {
-  document.getElementById('htmlInput').value = '示例数据';
-  showToast('已加载示例');
+  document.getElementById('htmlInput').value = '<!DOCTYPE html>\n<html>\n<head>\n  <title>示例页面</title>\n</head>\n<body>\n  <div class="container">\n    <h1>标题</h1>\n    <p>段落文字</p>\n    <img src="test.png">\n    <br>\n    <ul>\n      <li>列表项1\n      <li>列表项2</li>\n    </ul>\n    <div class="unclosed">\n    <p>未闭合的div</p>\n  </div>\n</body>\n</html>';
+  showToast('已加载示例（包含多种常见错误）');
 }
 
 function validateHtml() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;var v=inp.value.trim();if(!v){{out.textContent='Please enter input';return}}out.textContent=v.length>0?'Valid ✓':'Invalid ✗';showToast('Validated!');
+  var inp = document.getElementById('htmlInput');
+  var resultSection = document.getElementById('resultSection');
+  var statusBadge = document.getElementById('statusBadge');
+  var errorList = document.getElementById('errorList');
+  var resultStats = document.getElementById('resultStats');
+  if (!inp || !inp.value.trim()) { showToast('请输入HTML代码'); return; }
+  var html = inp.value;
+  var errors = [];
+  var warnings = [];
+  var lines = html.split('\n');
+  var openTags = [];
+  var voidTags = ['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'];
+  lines.forEach(function(line, idx) {
+    var lineNum = idx + 1;
+    var tagMatches = line.match(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g);
+    if (!tagMatches) return;
+    tagMatches.forEach(function(tag) {
+      var isClosing = tag.charAt(1) === '/';
+      var isSelfClosing = tag.charAt(tag.length - 2) === '/';
+      var tagNameMatch = tag.match(/<\/?([a-zA-Z][a-zA-Z0-9]*)/);
+      if (!tagNameMatch) return;
+      var tagName = tagNameMatch[1].toLowerCase();
+      if (voidTags.indexOf(tagName) >= 0) return;
+      if (isSelfClosing) return;
+      if (!isClosing) {
+        openTags.push({name: tagName, line: lineNum});
+      } else {
+        if (openTags.length > 0 && openTags[openTags.length - 1].name === tagName) {
+          openTags.pop();
+        } else {
+          errors.push({line: lineNum, msg: '未匹配的闭合标签: </' + tagName + '>', hint: '检查是否有未正确闭合的开标签'});
+        }
+      }
+    });
+    var unquotedAttr = line.match(/<\w+\s+[^>]*\w+=[^"'\s>]+/g);
+    if (unquotedAttr) {
+      unquotedAttr.forEach(function(m) {
+        warnings.push({line: lineNum, msg: '属性值可能缺少引号', hint: m.substring(0, 60)});
+      });
+    }
+  });
+  openTags.forEach(function(t) {
+    errors.push({line: t.line, msg: '未闭合的标签: <' + t.name + '>', hint: '添加对应的闭合标签 </' + t.name + '>'});
+  });
+  var totalTags = (html.match(/<[a-zA-Z][a-zA-Z0-9]*/g) || []).length;
+  resultSection.style.display = 'block';
+  if (errors.length === 0 && warnings.length === 0) {
+    statusBadge.innerHTML = '<span class="status-badge status-pass">验证通过</span>';
+  } else if (errors.length > 0) {
+    statusBadge.innerHTML = '<span class="status-badge status-fail">发现 ' + errors.length + ' 个错误</span>';
+  } else {
+    statusBadge.innerHTML = '<span class="status-badge status-warn">发现 ' + warnings.length + ' 个警告</span>';
+  }
+  resultStats.innerHTML = '<span>总标签: ' + totalTags + '</span><span>错误: ' + errors.length + '</span><span>警告: ' + warnings.length + '</span>';
+  var html2 = '';
+  errors.forEach(function(e) { html2 += '<div class="error-item"><div class="error-line">行 ' + e.line + '</div><div><div class="error-msg">' + e.msg + '</div><div class="error-hint">' + e.hint + '</div></div></div>'; });
+  warnings.forEach(function(e) { html2 += '<div class="error-item warn"><div class="error-line">行 ' + e.line + '</div><div><div class="error-msg">' + e.msg + '</div><div class="error-hint">' + e.hint + '</div></div></div>'; });
+  errorList.innerHTML = html2;
+  showToast(errors.length === 0 ? '验证通过' : '发现 ' + errors.length + ' 个错误');
 }
 </script>
 </body>
