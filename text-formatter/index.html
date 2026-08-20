@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="在线文本格式化工具：一键完成中英文自动排版，支持去除多余空行、统一标点符号、段落首行缩进、自动编号和全角半角转换。适合文章排版润色、代码注释整理、邮件格式优化和各类文档批量处理，操作简单即开即用。纯前端本地处理，数据不上传服务器，完全免费无需注册。">
 <meta name="keywords" content="在线文本格式化工具,工具,在线工具,免费">
@@ -214,9 +214,6 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
   </div></div></div>
 </div>
 
-<div class="section"><h2>常见问题</h2>
-
-</div>
 </main>
 <div>
 <!-- AdSense -->
@@ -225,7 +222,7 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 <footer class="footer container">
 <div style="margin-bottom:12px">
 <a href="../index.html">首页</a>
-<a href="../index.html">全部工具</a>
+<a href="../index.html#tools">全部工具</a>
 <a href="mailto:dexshuang@google.com">联系我们</a>
 <a href="../privacy/">隐私政策</a>
 <a href="../terms/">服务条款</a>
@@ -255,20 +252,20 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function clearInput() {
-  document.querySelectorAll('input[type="text"],input[type="number"],textarea').forEach(function(el) { el.value = ''; });
-  document.getElementById('resultBox').innerHTML = '';
+  document.getElementById('inputText').value = '';
+  document.getElementById('resultBox').textContent = '结果将显示在这里...';
   showToast('已清空');
 }
 
 function copyResult() {
   var text = document.getElementById('resultBox').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  if (!text || text === '结果将显示在这里...') { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(text).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
 }
 
 function downloadResult() {
   var text = document.getElementById('resultBox').innerText;
-  if (!text) { showToast('没有可下载的结果'); return; }
+  if (!text || text === '结果将显示在这里...') { showToast('没有可下载的结果'); return; }
   var blob = new Blob([text], {type: 'text/plain'});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -278,15 +275,42 @@ function downloadResult() {
 }
 
 function formatText() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;try{{var obj=JSON.parse(el.textContent||el.innerText);el.textContent=JSON.stringify(obj,null,2);showToast('Formatted!')}}catch(e){{showToast('Format failed: not valid JSON')}};
+  var input = document.getElementById('inputText').value;
+  if (!input.trim()) { showToast('请输入文本'); return; }
+  var result = input;
+  // 处理顺序: 去除字符 → 大小写 → 全角半角 → 中英文空格 → 去空行 → 去行首尾空格 → 排序/反转 → 首行缩进 → 对齐 → 行号
+  if (document.getElementById('optRemoveNumbers').checked) result = result.replace(/[0-9]/g, '');
+  if (document.getElementById('optRemoveLetters').checked) result = result.replace(/[A-Za-z]/g, '');
+  if (document.getElementById('optRemovePunct').checked) result = result.replace(/[^\w\s\u4e00-\u9fa5]/g, '');
+  if (document.getElementById('optRemoveChinese').checked) result = result.replace(/[\u4e00-\u9fa5]/g, '');
+  if (document.getElementById('optUpperCase').checked) result = result.toUpperCase();
+  if (document.getElementById('optLowerCase').checked) result = result.toLowerCase();
+  if (document.getElementById('optFullWidth').checked) result = result.replace(/[!-~]/g, function(c) { return String.fromCharCode(c.charCodeAt(0) + 0xFEE0); });
+  if (document.getElementById('optHalfWidth').checked) result = result.replace(/[\uff01-\uff5e]/g, function(c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); });
+  if (document.getElementById('optAutoSpace').checked) result = result.replace(/([\u4e00-\u9fa5])([A-Za-z0-9])/g, '$1 $2').replace(/([A-Za-z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
+  if (document.getElementById('optRemoveBlank').checked) result = result.replace(/\n{3,}/g, '\n\n');
+  if (document.getElementById('optTrimLines').checked) result = result.split('\n').map(function(l) { return l.trim(); }).join('\n');
+  if (document.getElementById('optSortLines').checked) result = result.split('\n').sort().join('\n');
+  if (document.getElementById('optReverseLines').checked) result = result.split('\n').reverse().join('\n');
+  if (document.getElementById('optDeduplicate').checked) { var seen = {}; result = result.split('\n').filter(function(l) { if (seen[l]) return false; seen[l] = true; return true; }).join('\n'); }
+  var indent = parseInt(document.getElementById('indentSpaces').value) || 0;
+  if (indent > 0) { var sp = ''; for (var i = 0; i < indent; i++) sp += ' '; result = result.split('\n').map(function(l) { return l ? sp + l : l; }).join('\n'); }
+  if (document.getElementById('optLineNumbers').checked) result = result.split('\n').map(function(l, i) { return (i + 1) + '. ' + l; }).join('\n');
+  var align = document.querySelector('input[name="textAlign"]:checked').value;
+  document.getElementById('resultBox').textContent = result;
+  showToast('格式化完成');
 }
 
 function pasteSample() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!inp)return;inp.value='Sample data';if(typeof convert==='function')convert();else if(typeof process==='function')process();showToast('Sample loaded!');
+  document.getElementById('inputText').value = '这是一段示例文本，包含中英文混排测试。\nHello World! 今天是2025年，天气很好。\n\n第二段落：全角半角测试，abc123！@#$\n第三段落的缩进和空格处理测试。';
+  showToast('已加载示例');
 }
 
 function resultToInput() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!out||!inp)return;inp.value=out.textContent||out.innerText;out.textContent='';if(typeof convert==='function')convert();showToast('Moved to input!');
+  var out = document.getElementById('resultBox').innerText;
+  if (!out || out === '结果将显示在这里...') { showToast('没有可复制的结果'); return; }
+  document.getElementById('inputText').value = out;
+  showToast('已填入输入');
 }
 </script>
 
