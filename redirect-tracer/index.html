@@ -110,7 +110,6 @@ a{color:#06b6d4;text-decoration:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.header{flex-direction:column;gap:8px}}
 
-.main-grid{display:grid;gap:20px;margin-bottom:20px}
 .section{background:#1e293b;border:1px solid rgba(148,163,184,.1);border-radius:12px;padding:20px;margin-bottom:16px}
 
 /* Visual enhancement v2 */
@@ -158,7 +157,6 @@ a{color:#06b6d4;text-decoration:none}
       </div>
       <div class="btn-row">
         <button class="btn btn-primary" id="trace-btn" onclick="traceRedirect()">🔍 追踪重定向</button>
-        </button>
         <button class="btn btn-secondary" onclick="clearResult()">🗑️ 清空</button>
       </div>
     </div>
@@ -212,8 +210,8 @@ a{color:#06b6d4;text-decoration:none}
       <h3>能检测JavaScript重定向吗？</h3>
       <p>不能。本工具检测的是HTTP服务端重定向（301/302等）。JavaScript重定向（如window.location.href='url'）需要浏览器执行JS后才能触发，无法通过HTTP请求头检测。</p>
     </div>
-  </div></div></div>
-</main>
+</div>
+</div>
 <div class="seo-content">
     <h2>URL重定向追踪器能做什么？</h2>
     <p>URL重定向追踪器是一款免费在线工具，帮助网站管理员、SEO优化师和开发者检测URL的跳转链路。输入一个URL，工具会自动追踪其所有HTTP重定向步骤，显示每一步的状态码（301/302/307/308等）、目标URL和关键响应头信息。支持单个URL检测和批量检测两种模式，所有请求从浏览器直接发出，不经过任何中间服务器。</p>
@@ -253,13 +251,9 @@ a{color:#06b6d4;text-decoration:none}
       <h3>URL重定向追踪器能检测哪些状态码？</h3>
       <p>能检测所有HTTP重定向状态码，包括301（永久重定向）、302（临时重定向）、303（See Other）、307（临时重定向-保持方法）、308（永久重定向-保持方法），以及200（正常响应）和404等错误状态码。</p>
     </div>
-<div class="section"><h2>常见问题</h2>
-
 </div>
 </div>
-<div>
-<!-- AdSense -->
-
+</main>
 <footer class="footer container">
 <div style="margin-bottom:12px">
 <a href="../index.html">首页</a>
@@ -275,7 +269,6 @@ a{color:#06b6d4;text-decoration:none}
 <p style="text-align:center;margin-top:8px;color:#64748b;font-size:.85rem">在线URL重定向追踪器 | 无需注册 · 数据绝不上传服务器</p>
 <p style="margin-top:8px;color:#475569;font-size:.8rem;text-align:center">问题反馈: dexshuang@google.com</p>
 </footer>
-</div>
 <div class="toast" id="toast"></div>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
@@ -291,59 +284,41 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 // === 重定向追踪 - fetch + CORS代理 ===
 async function batchTrace(){
-  var urlInput=document.getElementById('urlInput')||document.querySelector('input[type="text"]');
-  var resultSection=document.getElementById('result-section')||document.getElementById('result');
+  var urlInput=document.getElementById('batch-input');
+  var resultSection=document.getElementById('result-section');
   if(!urlInput||!resultSection){showToast('页面元素缺失');return;}
-  var url=urlInput.value.trim();
-  if(!url){showToast('请输入URL');return;}
-  if(!/^https?:\/\//i.test(url))url='http://'+url;
-  resultSection.innerHTML='<div style="text-align:center;padding:20px;color:#94a3b8"><div style="display:inline-block;width:24px;height:24px;border:3px solid rgba(148,163,184,.2);border-top-color:#22d3ee;border-radius:50%;animation:spin 1s linear infinite"></div> 正在追踪重定向...</div>';
-  var chain=[];
-  var currentUrl=url;
-  var maxHops=10;
-  var visited=new Set();
-  for(var i=0;i<maxHops;i++){
-    if(visited.has(currentUrl)){chain.push({url:currentUrl,status:'循环检测',type:'loop'});break;}
-    visited.add(currentUrl);
+  var urls=urlInput.value.trim().split('\n').filter(function(u){return u.trim();});
+  if(!urls.length){showToast('请输入URL');return;}
+  resultSection.style.display='block';
+  var html='<div style="padding:12px"><h3 style="color:#f1f5f9;margin-bottom:12px">🔗 批量追踪结果</h3>';
+  for(var k=0;k<urls.length;k++){
+    var url=urls[k].trim();
+    if(!/^https?:\/\//i.test(url))url='http://'+url;
+    html+='<div style="margin-bottom:12px;padding:12px;background:#0f172a;border-radius:8px;border:1px solid rgba(148,163,184,.1)">';
+    html+='<div style="word-break:break-all;font-size:.85rem;color:#e2e8f0;margin-bottom:4px">'+url+'</div>';
     try{
-      var startTime=performance.now();
-      var resp=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(currentUrl),{redirect:'manual'});
-      var elapsed=Math.round(performance.now()-startTime);
+      var resp=await fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url),{redirect:'manual'});
       var status=resp.status;
-      var finalUrl=resp.headers.get('x-final-url')||currentUrl;
-      if(status>=300&&status<400){
-        chain.push({url:currentUrl,status:status+' Redirect',time:elapsed+'ms',type:'redirect'});
-        if(finalUrl&&finalUrl!==currentUrl){currentUrl=finalUrl;}
-        else break;
-      }else{
-        chain.push({url:currentUrl,status:status+' OK',time:elapsed+'ms',type:'final'});
-        break;
-      }
+      var finalUrl=resp.headers.get('x-final-url')||url;
+      var color=status>=200&&status<300?'#10b981':status>=300&&status<400?'#fbbf24':'#ef4444';
+      html+='<div style="font-size:.8rem;color:#64748b">状态: <span style="color:'+color+'">'+status+'</span>'+(finalUrl!==url?' → '+finalUrl:'')+'</div>';
     }catch(e){
-      chain.push({url:currentUrl,status:'Error: '+e.message,time:'-',type:'error'});
-      break;
+      html+='<div style="font-size:.8rem;color:#ef4444">错误: '+e.message+'</div>';
     }
-  }
-  var html='<div style="padding:12px">';
-  html+='<h3 style="color:#f1f5f9;margin-bottom:12px">🔗 重定向链 ('+chain.length+'步)</h3>';
-  chain.forEach(function(step,idx){
-    var icon=step.type==='final'?'✅':step.type==='redirect'?'↪️':step.type==='loop'?'🔄':'❌';
-    var color=step.type==='final'?'#10b981':step.type==='redirect'?'#22d3ee':'#ef4444';
-    html+='<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin:4px 0;background:rgba(148,163,184,.05);border-radius:6px;border-left:3px solid '+color+'">';
-    html+='<span>'+icon+'</span>';
-    html+='<div style="flex:1;min-width:0"><div style="word-break:break-all;font-size:.85rem">'+step.url+'</div><div style="font-size:.75rem;color:#64748b">'+step.status+(step.time?' · '+step.time:'')+'</div></div>';
     html+='</div>';
-  });
+  }
   html+='</div>';
   resultSection.innerHTML=html;
-  showToast('追踪完成');
+  showToast('批量追踪完成');
 }
 
 function clearResult(){
-  var urlInput=document.getElementById('urlInput')||document.querySelector('input[type="text"]');
-  var resultSection=document.getElementById('result-section')||document.getElementById('result');
+  var urlInput=document.getElementById('url-input');
+  var batchInput=document.getElementById('batch-input');
+  var resultSection=document.getElementById('result-section');
   if(urlInput)urlInput.value='';
-  if(resultSection)resultSection.innerHTML='';
+  if(batchInput)batchInput.value='';
+  if(resultSection){resultSection.innerHTML='';resultSection.style.display='none';}
   showToast('已清空');
 }
 
