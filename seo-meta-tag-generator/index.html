@@ -242,9 +242,9 @@ a{color:#06b6d4;text-decoration:none}
     </div>
     <div class="result-box" id="resultBox"></div>
     <div class="btn-row">
-      <button class="btn btn-secondary" onclick="fillExample()" style="margin-left:8px">🎲 填入示例</button><button class="btn btn-primary" onclick="copyResult()">📋 复制全部代码</button>
+      <button class="btn btn-primary" onclick="copyResult()">📋 复制全部代码</button>
       <button class="btn btn-secondary" onclick="downloadResult()">💾 下载 HTML 片段</button>
-      <button class="btn btn-secondary" onclick="fillExample()">✨ 填充示例</button>
+      <button class="btn btn-secondary" onclick="fillExample()">🎲 填入示例</button>
       <button class="btn btn-danger" onclick="clearAll()">🗑 清空</button>
     </div>
   </div>
@@ -307,10 +307,6 @@ a{color:#06b6d4;text-decoration:none}
     </div>
   </div></div></div>
 </div>
-
-<div class="section"><h2>常见问题</h2>
-
-</div>
 </main>
 <div>
 <!-- AdSense -->
@@ -368,13 +364,21 @@ function clearAll() {
 }
 
 function copyResult() {
-  var text = document.getElementById('previewContent').innerText;
+  var text = document.getElementById('resultBox').innerText;
   if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showToast('已复制'); } catch(e) { showToast('复制失败'); }
+    document.body.removeChild(ta);
+  }
 }
 
 function downloadResult() {
-  var text = document.getElementById('previewContent').innerText;
+  var text = document.getElementById('resultBox').innerText;
   if (!text) { showToast('没有可下载的结果'); return; }
   var blob = new Blob([text], {type: 'text/plain'});
   var a = document.createElement('a');
@@ -451,19 +455,8 @@ function generate() {
   document.getElementById('previewContent').innerHTML = previewHtml;
   showToast('Meta标签已生成');
 }
-function switchPreview(platform){document.querySelectorAll('.preview-panel,.preview-tab').forEach(function(e){e.style.display='none'});var sel=document.getElementById(platform+'Preview')||document.querySelector('.'+platform+'-preview');if(sel)sel.style.display='block';document.querySelectorAll('.tab-btn,.bg-option').forEach(function(e){e.classList.remove('active')});var btn=document.querySelector('[data-preview="'+platform+'"]');if(btn)btn.classList.add('active')}
-function switchResult(type){document.querySelectorAll('.result-panel,.result-tab-content').forEach(function(e){e.style.display='none'});var sel=document.getElementById(type+'Result')||document.querySelector('.'+type+'-result');if(sel)sel.style.display='block';document.querySelectorAll('.tab-btn,.bg-option').forEach(function(e){e.classList.remove('active')});var btn=document.querySelector('[data-result="'+type+'"]');if(btn)btn.classList.add('active')}
-
-function fillExample(){
-  var vals = [["fKeywords", "1"], ["fImage", "1200"]];
-  for(var i=0;i<vals.length;i++){
-    var el = document.getElementById(vals[i][0]);
-    if(el){el.value = vals[i][1];}
-  }
-  copyResult();
-  var t=document.getElementById('toast');
-  if(t){t.textContent='已填入示例并计算';t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
-}
+function switchPreview(platform){document.querySelectorAll('.preview-tab').forEach(function(e){e.classList.remove('active')});event.target.classList.add('active')}
+function switchResult(type){document.querySelectorAll('.result-tab').forEach(function(e){e.classList.remove('active')});event.target.classList.add('active')}
 </script>
 
 
