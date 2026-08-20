@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="在线文本分割工具，按字符数、行数或分隔符切割文本。支持正则表达式分割、保留分隔符、批量编号。适合处理CSV数据、长文本分块和日志分析。纯前端本地处理。无需注册，完全免费，数据本地处理。 支持多种输入格式，操作简单快捷。纯前端本地处理，数据不上传服务器，完全免费无需注册。">
 <meta name="keywords" content="在线文本分割工具,工具,在线工具,免费">
@@ -278,41 +278,89 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function submitFeedback(){
 const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
+const typeLabel={feedback:'功能建议',bug:'问题反馈',other:'其他'}[type];
 const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
+const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel);
 window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
 }
 
-// === 重写的函数实现 ===
+// === 修复后的函数实现 ===
 function clearAll() {
-  document.getElementById('charCount').value = '';
-  document.getElementById('lineCount').value = '';
-  document.getElementById('delimiter').value = '';
-  document.getElementById('trimSpaces').value = '';
-  document.getElementById('regexPattern').value = '';
-  document.getElementById('regexGlobal').value = '';
-  document.getElementById('fixedWidth').value = '';
   document.getElementById('inputText').value = '';
+  document.getElementById('charCount').value = '500';
+  document.getElementById('lineCount').value = '50';
+  document.getElementById('delimiter').value = ',';
+  document.getElementById('regexPattern').value = '\\s+';
+  document.getElementById('fixedWidth').value = '80';
   document.getElementById('resultSummary').innerHTML = '';
-  document.getElementById('resultSummary').style.display = 'none';
-  document.getElementById('resultList').innerHTML = '';
-  document.getElementById('resultList').style.display = 'none';
-  showToast('已重置');
+  document.getElementById('resultList').innerHTML = '<div class="empty-result">点击「开始分割」查看结果</div>';
+  showToast('已清空');
 }
 
 function copyAllResults() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var el = document.getElementById('resultList');
+  if (!el || el.querySelector('.empty-result')) { showToast('没有可复制的结果'); return; }
+  var items = el.querySelectorAll('.result-item-text');
+  var texts = [];
+  items.forEach(function(item) { texts.push(item.textContent); });
+  navigator.clipboard.writeText(texts.join('\n\n')).then(function() { showToast('已复制全部结果'); }).catch(function() { showToast('复制失败'); });
 }
 
 function doSplit() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;if(typeof mainConvert==='function')mainConvert();else{{out.textContent=inp.value;showToast('Converted!')}};
+  var text = document.getElementById('inputText').value;
+  if (!text.trim()) { showToast('请输入要分割的文本'); return; }
+  var mode = document.querySelector('input[name="splitMode"]:checked').value;
+  var parts = [];
+  if (mode === 'chars') {
+    var count = parseInt(document.getElementById('charCount').value) || 500;
+    for (var i = 0; i < text.length; i += count) { parts.push(text.substring(i, i + count)); }
+  } else if (mode === 'lines') {
+    var count = parseInt(document.getElementById('lineCount').value) || 50;
+    var lines = text.split('\n');
+    for (var i = 0; i < lines.length; i += count) { parts.push(lines.slice(i, i + count).join('\n')); }
+  } else if (mode === 'delimiter') {
+    var delim = document.getElementById('delimiter').value || ',';
+    var trim = document.getElementById('trimSpaces').checked;
+    parts = text.split(delim);
+    if (trim) parts = parts.map(function(p) { return p.trim(); });
+  } else if (mode === 'regex') {
+    try {
+      var pattern = document.getElementById('regexPattern').value || '\\s+';
+      var global = document.getElementById('regexGlobal').checked;
+      var flags = global ? 'g' : '';
+      parts = text.split(new RegExp(pattern, flags));
+    } catch(e) { showToast('正则表达式语法错误'); return; }
+  } else if (mode === 'fixedWidth') {
+    var w = parseInt(document.getElementById('fixedWidth').value) || 80;
+    for (var i = 0; i < text.length; i += w) { parts.push(text.substring(i, i + w)); }
+  }
+  parts = parts.filter(function(p) { return p.length > 0; });
+  var summary = document.getElementById('resultSummary');
+  summary.innerHTML = '<span>共 ' + parts.length + ' 段</span><span>总字符: ' + text.length + '</span>';
+  var list = document.getElementById('resultList');
+  var html = '';
+  parts.forEach(function(p, i) {
+    html += '<div class="result-item"><div class="result-item-header"><span class="result-item-title">片段 ' + (i + 1) + '</span><div class="result-item-actions"><button onclick="navigator.clipboard.writeText(this.closest(\'.result-item\').querySelector(\'.result-item-text\').textContent).then(function(){showToast(\'已复制\')})">复制</button></div></div><div class="result-item-text">' + p.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div></div>';
+  });
+  list.innerHTML = html || '<div class="empty-result">没有分割结果</div>';
+  showToast('分割完成');
 }
 
 function exportResults() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;var blob=new Blob([el.textContent||el.innerText],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.json';a.click();showToast('Exported!');
+  var el = document.getElementById('resultList');
+  if (!el || el.querySelector('.empty-result')) { showToast('没有可导出的结果'); return; }
+  var items = el.querySelectorAll('.result-item-text');
+  var texts = [];
+  items.forEach(function(item, i) { texts.push('=== 片段 ' + (i + 1) + ' ===\n' + item.textContent); });
+  var blob = new Blob([texts.join('\n\n')], {type: 'text/plain'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'text-split-result.txt';
+  a.click();
+  showToast('已导出');
 }
+
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 </script>
 </body>
 </html>
