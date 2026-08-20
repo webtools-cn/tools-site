@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="免费在线字符串转义工具工具，选择转义模式：在页面顶部的模式选择区域，点击对应的按钮切换转义模式。工具支持JSON、HTML、URL、正则表达式、JavaScript、SQL和XML七种模式。每种模式都有独立的转义规则和字符映射表。纯前端本地处理，数据不上传服务器，无需注册免费使用。">
 <meta name="keywords" content="在线字符串转义工具,工具,在线工具,免费">
@@ -210,23 +210,12 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
       <h3>什么是JavaScript字符串转义？</h3>
       <p>JavaScript字符串转义用于将特殊字符转换为可在字符串字面量中安全使用的形式，如换行符转为<code>\n</code>、制表符转为<code>\t</code>、反斜杠转为<code>\\</code>等。这在动态生成JS代码时尤为重要。</p>
     </div>
-  </div></div></div>
+  </div>  </div></div>
 </div>
 
-<div class="section"><h2>常见问题</h2>
-
-</div>
 </main>
-<div>
-<!-- AdSense -->
-
-<section class="related-tools" style="margin:2rem 0;padding:1rem;background:#0f172a;border-radius:8px;"><h2 style="color:#e2e8f0;font-size:18px;margin-bottom:12px">🔗 相关工具推荐</h2>
-  <a href="../user-agent-parser/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">User-Agent 解析器</a>
-  <a href="../sql-formatter/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">SQL格式化工具</a>
-  <a href="../html-form-generator/" style="color:#06b6d4;text-decoration:none;font-size:14px;display:block;padding:6px 0">HTML表单生成器</a>
-</section>
-</div>
-<footer class="footer container">
+<div class="toast" id="toast"></div>
+<footer class="footer">
 <div style="margin-bottom:12px">
 <a href="../index.html">首页</a>
 <a href="../index.html">全部工具</a>
@@ -260,35 +249,94 @@ document.getElementById('feedback-success').style.display='block';
 // === 重写的函数实现 ===
 function clearAll() {
   document.getElementById('inputText').value = '';
-  document.getElementById('resultBox').innerHTML = '';
-  document.getElementById('resultBox').style.display = 'none';
+  document.getElementById('resultBox').textContent = '结果将显示在这里...';
   document.getElementById('resultStats').innerHTML = '';
-  document.getElementById('resultStats').style.display = 'none';
-  document.getElementById('previewTable').innerHTML = '';
-  document.getElementById('previewTable').style.display = 'none';
+  document.getElementById('inputStats').innerHTML = '';
   showToast('已重置');
+}
+
+function updateStats(id, text) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var len = text ? text.length : 0;
+  var lines = text ? text.split('\n').length : 0;
+  el.innerHTML = '<span>字符: ' + len + '</span><span>行数: ' + lines + '</span>';
 }
 
 function copyResult() {
   var text = document.getElementById('resultBox').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  if (!text || text === '结果将显示在这里...') { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制到剪贴板')}).catch(function(){showToast('复制失败')});
 }
 
 function doEscape() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;if(typeof mainConvert==='function')mainConvert();else{{out.textContent=inp.value;showToast('Converted!')}};
+  var inp=document.getElementById('inputText');
+  var out=document.getElementById('resultBox');
+  if(!inp||!out)return;
+  var mode=document.querySelector('.mode-btn.active');
+  var modeType=mode?mode.dataset.mode:'json';
+  var text=inp.value;
+  if(!text){showToast('请输入需要转义的文本');return;}
+  var result='';
+  switch(modeType){
+    case'json':result=text.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n').replace(/\r/g,'\\r').replace(/\t/g,'\\t');break;
+    case'html':result=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');break;
+    case'url':result=encodeURIComponent(text);break;
+    case'regex':result=text.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');break;
+    case'js':result=text.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"').replace(/\n/g,'\\n').replace(/\r/g,'\\r').replace(/\t/g,'\\t');break;
+    case'sql':result=text.replace(/'/g,"''");break;
+    case'xml':result=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');break;
+    default:result=text;
+  }
+  out.textContent=result;
+  updateStats('resultStats',result);
+  showToast('已转义');
 }
 
 function doUnescape() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;if(typeof mainConvert==='function')mainConvert();else{{out.textContent=inp.value;showToast('Converted!')}};
+  var inp=document.getElementById('inputText');
+  var out=document.getElementById('resultBox');
+  if(!inp||!out)return;
+  var mode=document.querySelector('.mode-btn.active');
+  var modeType=mode?mode.dataset.mode:'json';
+  var text=inp.value;
+  if(!text){showToast('请输入需要还原的文本');return;}
+  var result='';
+  switch(modeType){
+    case'json':try{result=JSON.parse('"'+text+'"')}catch(e){result=text};break;
+    case'html':var el=document.createElement('div');el.innerHTML=text;result=el.textContent;break;
+    case'url':try{result=decodeURIComponent(text)}catch(e){result=text};break;
+    case'regex':result=text.replace(/\\([.*+?^${}()|[\]\\])/g,'$1');break;
+    case'js':result=text.replace(/\\n/g,'\n').replace(/\\r/g,'\r').replace(/\\t/g,'\t').replace(/\\'/g,"'").replace(/\\"/g,'"').replace(/\\\\/g,'\\');break;
+    case'sql':result=text.replace(/''/g,"'");break;
+    case'xml':var el2=document.createElement('div');el2.innerHTML=text;result=el2.textContent;break;
+    default:result=text;
+  }
+  out.textContent=result;
+  updateStats('resultStats',result);
+  showToast('已还原');
 }
 
 function resultToInput() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!out||!inp)return;inp.value=out.textContent||out.innerText;out.textContent='';if(typeof convert==='function')convert();showToast('Moved to input!');
+  var out=document.getElementById('resultBox');
+  var inp=document.getElementById('inputText');
+  if(!out||!inp)return;
+  inp.value=out.textContent||out.innerText;
+  out.textContent='';
+  updateStats('inputStats',inp.value);
+  showToast('已填入输入');
 }
 
 function swapText() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');if(!inp||!out)return;var t=inp.value;inp.value=out.textContent||out.innerText;out.textContent=t;showToast('Swapped!');
+  var inp=document.getElementById('inputText');
+  var out=document.getElementById('resultBox');
+  if(!inp||!out)return;
+  var t=inp.value;
+  inp.value=out.textContent||out.innerText;
+  out.textContent=t;
+  updateStats('inputStats',inp.value);
+  updateStats('resultStats',out.textContent);
+  showToast('已交换');
 }
 </script>
 </body>
