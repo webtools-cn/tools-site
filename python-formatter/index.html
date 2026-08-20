@@ -1,20 +1,18 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Python代码格式化工具，使用🐍 Python 格式化工具非常简单，只需三个步骤：。纯前端本地处理，数据不上传服务器，无需注册完全免费。完全免费无需注册，纯前端本地处理保障数据安全。无需注册完全免费，纯前端本地处理。纯前端本地处理，数据不上传服务器，完全免费无需注册。">
+<meta name="description" content="免费在线Python代码格式化工具，自动调整缩进、规范空格、移除多余空行、清理尾部空白。支持PEP 8规范检查，纯前端处理代码不上传服务器，开发者日常必备。">
 <meta name="keywords" content="在线Python格式化工具,工具,在线工具,免费">
 <title>Python代码格式化 - Free ToolBase</title>
 <link rel="canonical" href="https://free-toolbase.com/python-formatter/">
 <meta property="og:title" content="免费在线Python格式化工具 - Python Format Online, Beautify Python Code | 无需注册">
-<meta property="og:description" content="免费在线Python代码格式化工具，自动调整缩进、规范空格、对齐括号、移除多余空行。支持PEP 8规范检查，纯前端处理代码不上传服务器，开发者日常必备工具，支持调整设置（可选）
-        根据需要调整可用的选项和参数来定制输出。大多数设置支持实时更新，无需点击即可预览效果。、复制或下载结果
-        对结果">
+<meta property="og:description" content="免费在线Python代码格式化工具，自动调整缩进、规范空格、对齐括号、移除多余空行。支持PEP 8规范检查，纯前端处理代码不上传服务器，开发者日常必备工具。">
 <meta property="og:url" content="https://free-toolbase.com/python-formatter/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Free ToolBase">
@@ -67,7 +65,7 @@ a{color:#06b6d4;text-decoration:none}
 .error-box{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:12px;color:#f87171;font-size:.85rem;margin-bottom:12px;display:none}
 @media(max-width:640px){.header{flex-direction:column;gap:12px}.header h1{font-size:1.3rem}
 .ad-slot{margin:0 auto;text-align:center;max-width:960px}.ad-slot:not(:has(ins[frame])){display:none}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{max-width:300px}
-}}
+}
 
 
 .main-grid{display:grid;gap:20px;margin-bottom:20px}
@@ -211,13 +209,44 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function copyOutput() {
-  var text = document.getElementById('output').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  var el = document.getElementById('outputCode');
+  if (!el || !el.value) { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(el.value).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});
 }
 
 function formatPython() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;try{{var obj=JSON.parse(el.textContent||el.innerText);el.textContent=JSON.stringify(obj,null,2);showToast('Formatted!')}}catch(e){{showToast('Format failed: not valid JSON')}};
+  var input = document.getElementById('inputCode').value;
+  var output = document.getElementById('outputCode');
+  var errorBox = document.getElementById('errorBox');
+  if (!input.trim()) { showToast('请输入Python代码'); return; }
+  errorBox.style.display = 'none';
+  try {
+    var lines = input.split('\n');
+    var result = [];
+    var indentLevel = 0;
+    var indentStr = '    ';
+    var keywords = ['def ','class ','if ','elif ','else:','for ','while ','try:','except','finally:','with ','return ','import ','from '];
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trimEnd();
+      var stripped = line.trim();
+      if (!stripped) { result.push(''); continue; }
+      var dedent = stripped.startsWith(')') || stripped.startsWith(']') || stripped.startsWith('}') || stripped.startsWith('elif ') || stripped.startsWith('else:') || stripped.startsWith('except') || stripped.startsWith('finally:');
+      if (dedent && indentLevel > 0) indentLevel--;
+      var formatted = indentStr.repeat(indentLevel) + stripped;
+      result.push(formatted);
+      if (stripped.endsWith(':') && !stripped.startsWith('#')) indentLevel++;
+      if (stripped.match(/\):$/) || stripped.match(/\]:$/) || stripped.match(/\}:$/)) indentLevel = Math.max(0, indentLevel - 1);
+    }
+    var formattedCode = result.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    output.value = formattedCode;
+    document.getElementById('origSize').textContent = lines.length;
+    document.getElementById('fmtSize').textContent = formattedCode.split('\n').length;
+    document.getElementById('indentInfo').textContent = '4空格';
+    showToast('格式化完成');
+  } catch(e) {
+    errorBox.textContent = '格式化出错: ' + e.message;
+    errorBox.style.display = 'block';
+  }
 }
 </script>
 
