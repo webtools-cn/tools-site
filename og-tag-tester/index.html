@@ -5,7 +5,7 @@
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="OG标签测试工具，在线预览网页在社交媒体分享时的展示效果。支持Open Graph og:title/og:image/og:description标签验证。适合SEO优化和社交媒体运营人员。无需注册，完全免费，数据本地处理。纯前端本地处理，数据不上传服务器，完全免费无需注册。">
 <meta name="keywords" content="OG标签测试工具,工具,在线工具,免费">
@@ -230,7 +230,41 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
 
 // === 重写的函数实现 ===
 function analyzeHtml() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;var v=inp.value;out.textContent='Length: '+v.length+' chars, '+v.split(/\s+/).filter(Boolean).length+' words, '+v.split('\n').length+' lines';showToast('Analyzed!');
+  var inp = document.getElementById('htmlInput');
+  var out = document.getElementById('resultsPanel');
+  if(!inp || !inp.value.trim()){showToast('请先粘贴HTML源码');return;}
+  var html = inp.value;
+  var results = [];
+  var ogTitle = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i);
+  var ogDesc = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i);
+  var ogImage = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
+  var ogUrl = html.match(/<meta[^>]*property=["']og:url["'][^>]*content=["']([^"']+)["']/i);
+  var ogType = html.match(/<meta[^>]*property=["']og:type["'][^>]*content=["']([^"']+)["']/i);
+  var twCard = html.match(/<meta[^>]*name=["']twitter:card["'][^>]*content=["']([^"']+)["']/i);
+  var twTitle = html.match(/<meta[^>]*name=["']twitter:title["'][^>]*content=["']([^"']+)["']/i);
+  var title = html.match(/<title>([^<]+)<\/title>/i);
+  var desc = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
+  results.push('=== 页面基本信息 ===');
+  results.push('Title: '+(title?title[1]:'❌ 缺失'));
+  results.push('Description: '+(desc?desc[1]:'❌ 缺失'));
+  results.push('');
+  results.push('=== Open Graph 标签 ===');
+  results.push('og:title: '+(ogTitle?ogTitle[1]:'❌ 缺失'));
+  results.push('og:description: '+(ogDesc?ogDesc[1]:'❌ 缺失'));
+  results.push('og:image: '+(ogImage?ogImage[1]:'❌ 缺失'));
+  results.push('og:url: '+(ogUrl?ogUrl[1]:'❌ 缺失'));
+  results.push('og:type: '+(ogType?ogType[1]:'❌ 缺失'));
+  results.push('');
+  results.push('=== Twitter Card 标签 ===');
+  results.push('twitter:card: '+(twCard?twCard[1]:'❌ 缺失'));
+  results.push('twitter:title: '+(twTitle?twTitle[1]:'❌ 缺失'));
+  var score=0;var total=7;
+  if(title)score++;if(desc)score++;if(ogTitle)score++;if(ogDesc)score++;if(ogImage)score++;if(twCard)score++;if(ogUrl)score++;
+  results.push('');
+  results.push('=== 评分: '+score+'/'+total+' ===');
+  out.style.display='block';
+  out.innerHTML='<div class="panel"><div class="panel-title">📋 分析结果</div><pre style="color:#94a3b8;font-size:.85rem;white-space:pre-wrap">'+results.join('\n')+'</pre></div>';
+  showToast('分析完成，得分: '+score+'/'+total);
 }
 
 function clearAll() {
@@ -242,12 +276,13 @@ function clearAll() {
 }
 
 function fetchAndAnalyze(){
-  var urlInput=document.getElementById('url')||document.getElementById('urlInput')||document.querySelector('input[type=url]')||document.querySelector('input[type=text]');
-  var output=document.getElementById('output')||document.getElementById('result');
+  var urlInput=document.getElementById('urlInput');
+  var output=document.getElementById('resultsPanel');
   if(!urlInput||!urlInput.value){showToast('请输入URL');return;}
   var url=urlInput.value.trim();
   if(!url.match(/^https?:\/\//)){url='https://'+url;}
-  if(output)output.textContent='正在分析...';
+  output.style.display='block';
+  output.innerHTML='<div class="panel"><div class="panel-title">⏳ 正在分析...</div></div>';
   fetch(url).then(function(r){return r.text();}).then(function(html){
     var results=[];
     var ogTitle=html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i);
@@ -277,17 +312,17 @@ function fetchAndAnalyze(){
     if(title)score++;if(desc)score++;if(ogTitle)score++;if(ogDesc)score++;if(ogImage)score++;if(twCard)score++;if(ogUrl)score++;
     results.push('');
     results.push('=== 评分: '+score+'/'+total+' ===');
-    if(output)output.textContent=results.join('\n');
+    output.innerHTML='<div class="panel"><div class="panel-title">📋 分析结果</div><pre style="color:#94a3b8;font-size:.85rem;white-space:pre-wrap">'+results.join('\n')+'</pre></div>';
     showToast('分析完成，得分: '+score+'/'+total);
   })['catch'](function(err){
-    if(output)output.textContent='分析失败: '+err.message+'\n\n可能原因: CORS限制或URL不可达。纯前端工具受同源策略限制，建议使用浏览器开发者工具查看。';
-    showToast('分析失败（CORS限制）');
+    output.innerHTML='<div class="panel"><div class="panel-title">❌ 分析失败</div><p style="color:#ef4444;font-size:.85rem">'+err.message+'</p><p style="color:#64748b;font-size:.8rem;margin-top:8px">可能原因: CORS限制或URL不可达。建议使用「粘贴HTML源码」方式。</p></div>';
+    showToast('分析失败');
   });
 }
 
 function loadExample() {
-  document.getElementById('urlInput').value = '示例文本';
-  document.getElementById('htmlInput').value = '示例数据';
+  document.getElementById('urlInput').value = 'https://github.com';
+  document.getElementById('htmlInput').value = '<meta property="og:title" content="Example Page">\n<meta property="og:description" content="This is an example">\n<meta property="og:image" content="https://example.com/image.png">\n<title>Example Page</title>\n<meta name="description" content="Example description">';
   showToast('已加载示例');
 }
 
@@ -296,8 +331,9 @@ function switchTab(tab) {
   tabs.forEach(function(t) { t.style.display = 'none'; });
   var btns = document.querySelectorAll('.tab-btn');
   btns.forEach(function(b) { b.classList.remove('active'); });
-  document.getElementById(tab).style.display = 'block';
-  event.target.classList.add('active');
+  var el = document.getElementById('tab-'+tab);
+  if(el) el.style.display = 'block';
+  if(event && event.target) event.target.classList.add('active');
 }
 </script>
 </body>
