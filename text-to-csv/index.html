@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="CSV工具，将分隔符文本快速转换为CSV文件。支持制表符/逗号/管道/分号/空格分隔，表格预览，一键导出CSV。纯前端处理，支持选择分隔符、获取CSV，操作简单即开即用，适合日常办公和学习使用。纯前端本地处理，数据不上传服务器，完全免费无需注册。">
 <meta name="keywords" content="文本转CSV转换器,工具,在线工具,免费">
@@ -121,6 +121,16 @@ table tr:hover td{background:rgba(148,163,184,.05)}
 李四	32	上海	设计师
 王五	25	深圳	产品经理
 赵六	30	杭州	数据分析师</textarea>
+    <div class="option-row">
+      <label>分隔符：</label>
+      <select id="delimiter">
+        <option value="\t" selected>制表符 (Tab)</option>
+        <option value=",">逗号 (,)</option>
+        <option value="|">管道符 (|)</option>
+        <option value=";">分号 (;)</option>
+        <option value=" ">空格</option>
+      </select>
+    </div>
     <div class="toolbar">
       <button class="btn btn-primary" id="convertBtn">🔄 转换</button>
       <button class="btn btn-danger" id="clearBtn">🗑 清空</button>
@@ -158,7 +168,7 @@ table tr:hover td{background:rgba(148,163,184,.05)}
   </div></div></main>
 
 
-<div class="section"><h2>常见问题</h2></div>
+
 <div>
 <!-- AdSense -->
 
@@ -185,27 +195,100 @@ table tr:hover td{background:rgba(148,163,184,.05)}
 </footer>
 <div class="toast" id="toast"></div>
 <script>
-function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+var csvData=[];
 
-function toggleFeedback(){var p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-document.addEventListener('DOMContentLoaded',function(){
-});
-function submitFeedback(){
-var type=document.getElementById('feedback-type').value;
-var labels=type==='bug'?'bug':'enhancement';
-var body='## '+type+'\n\n'+text+'\n\n---\n*From: text-to-csv tool*';
-fetch('https://api.github.com/repos/webtools-cn/tools-site/issues',{
-method:'POST',headers:{'Content-Type':'application/json','Authorization':'token github...o5p5'},
-body:JSON.stringify({title:'[Feedback] 文本转CSV转换器 - '+type,body:body,labels:[labels]})
-}).then(function(r){
-if(r.ok||r.status===201){
-document.getElementById('feedback-success').style.display='block';
-setTimeout(function(){document.getElementById('feedback-success').style.display='none';},3000);
-}else{showToast('提交失败，请重试');}
-}).catch(function(){showToast('网络错误，请重试');});
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+
+function getDelimiter(){var v=document.getElementById("delimiter").value;return v==="\\t"?'\t':v;}
+
+function parseCSV(text,delimiter){
+  var lines=text.split('\n').filter(function(l){return l.length>0;});
+  if(!lines.length)return[];
+  return lines.map(function(line){
+    var fields=[];var field='';var inQuote=false;
+    for(var i=0;i<line.length;i++){
+      var ch=line[i];
+      if(inQuote){
+        if(ch==='"'){
+          if(i+1<line.length&&line[i+1]==='"'){field+='"';i++;}
+          else{inQuote=false;}
+        }else{field+=ch;}
+      }else{
+        if(ch==='"'){inQuote=true;}
+        else if(ch===delimiter){fields.push(field);field='';}
+        else{field+=ch;}
+      }
+    }
+    fields.push(field);
+    return fields;
+  });
 }
 
+function escapeCSV(field){
+  var s=String(field);
+  if(s.indexOf('"')!==-1||s.indexOf(',')!==-1||s.indexOf('\n')!==-1){
+    return'"'+s.replace(/"/g,'""')+'"';
+  }
+  return s;
+}
+
+function convert(){
+  var text=document.getElementById("textInput").value;
+  if(!text.trim()){showToast("请输入数据");return;}
+  var delimiter=getDelimiter();
+  csvData=parseCSV(text,delimiter);
+  if(!csvData.length){showToast("解析失败");return;}
+  var maxCols=0;
+  csvData.forEach(function(r){if(r.length>maxCols)maxCols=r.length;});
+  document.getElementById("rowCount").textContent=csvData.length;
+  document.getElementById("colCount").textContent=maxCols;
+  var html='<table><thead><tr>';
+  for(var c=0;c<maxCols;c++)html+='<th>'+escapeCSV(csvData[0][c]||'列'+(c+1))+'</th>';
+  html+='</tr></thead><tbody>';
+  for(var i=1;i<csvData.length;i++){
+    html+='<tr>';
+    for(var j=0;j<maxCols;j++)html+='<td>'+(csvData[i][j]||'')+'</td>';
+    html+='</tr>';
+  }
+  html+='</tbody></table>';
+  document.getElementById("tableWrap").innerHTML=html;
+  showToast("转换成功");
+}
+
+function downloadCSV(){
+  if(!csvData.length){showToast("请先转换数据");return;}
+  var csv=csvData.map(function(row){return row.map(escapeCSV).join(',');}).join('\n');
+  var bom='\uFEFF';
+  var blob=new Blob([bom+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="data.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function copyCSV(){
+  if(!csvData.length){showToast("请先转换数据");return;}
+  var csv=csvData.map(function(row){return row.map(escapeCSV).join(',');}).join('\n');
+  navigator.clipboard.writeText(csv).then(function(){
+    var el=document.getElementById("copyAlert");el.style.display="block";
+    setTimeout(function(){el.style.display="none";},2000);
+    showToast("已复制");
+  })["catch"](function(){showToast("复制失败");});
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+  document.getElementById("convertBtn").addEventListener("click",convert);
+  document.getElementById("clearBtn").addEventListener("click",function(){
+    document.getElementById("textInput").value="";
+    csvData=[];
+    document.getElementById("rowCount").textContent="0";
+    document.getElementById("colCount").textContent="0";
+    document.getElementById("tableWrap").innerHTML='<div style="padding:16px;color:#64748b;text-align:center">点击"转换"按钮预览数据</div>';
+  });
+  document.getElementById("copyBtn").addEventListener("click",copyCSV);
+  document.getElementById("downloadBtn").addEventListener("click",downloadCSV);
+});
 </script>
 </body>
 </html>
