@@ -103,14 +103,13 @@ textarea::placeholder{color:#475569}
 .info-section h3{font-size:1rem;color:#e2e8f0;margin:16px 0 8px}
 .info-section p{color:#94a3b8;font-size:.9rem;margin-bottom:8px;line-height:1.7}
 .info-section code{background:rgba(6,182,212,.1);color:#22d3ee;padding:2px 6px;border-radius:3px;font-size:.85rem}
-.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1);position:fixed;top:16px;right:16px;z-index:100}
+.lang-switch{display:flex;gap:4px;background:#1e293b;border-radius:8px;padding:4px;border:1px solid rgba(148,163,184,.1)}
 .lang-switch a{padding:6px 12px;border-radius:5px;font-size:.85rem;color:#94a3b8}
 .lang-switch a.active{background:rgba(6,182,212,.2);color:#22d3ee}
 .empty-state{text-align:center;padding:40px 20px;color:#64748b}
 .empty-state-icon{font-size:3rem;margin-bottom:12px;opacity:.5}
 .ad-slot{margin:0 auto;text-align:center;max-width:960px}.ad-slot:not(:has(ins[frame])){display:none}.ad-slot:empty{display:none}.ad-slot ins{display:block}.ad-slot.ad-sidebar{max-width:300px}
 @media(max-width:640px){h1{font-size:1.2rem;word-break:break-word}.header{flex-direction:column;gap:8px}}
-}}}}
 
 
 .main-grid{display:grid;gap:20px;margin-bottom:20px}
@@ -313,14 +312,13 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function addRule() {
-  var container = document.getElementById('rules') || document.querySelector('.rules-container');
+  var container = document.getElementById('rulesContainer');
   if (!container) { showToast('未找到规则容器'); return; }
   var rules = container.querySelectorAll('.rule-item');
   var idx = rules.length;
   var div = document.createElement('div');
   div.className = 'rule-item';
-  div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:8px;background:#1e293b;border-radius:6px';
-  div.innerHTML = '<input type="text" placeholder="查找" style="flex:1;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px" class="rule-find"><input type="text" placeholder="替换为" style="flex:1;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px" class="rule-replace"><select style="background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:4px;padding:6px" class="rule-mode"><option value="text">文本</option><option value="regex">正则</option></select><button onclick="this.parentElement.remove();updateStats();" style="padding:6px 10px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer">✕</button>';
+  div.innerHTML = '<div class="rule-header"><span class="rule-num">#' + (idx + 1) + '</span><label><input type="checkbox" class="rule-regex" style="accent-color:#06b6d4"> 正则</label><label><input type="checkbox" class="rule-case" style="accent-color:#06b6d4"> 区分大小写</label></div><div class="rule-inputs"><input type="text" placeholder="查找内容" class="rule-find"><input type="text" placeholder="替换为" class="rule-replace"></div><button class="remove-rule" onclick="this.parentElement.remove();updateStats();">×</button>';
   container.appendChild(div);
   showToast('已添加规则 #' + (idx + 1));
 }
@@ -328,23 +326,60 @@ function addRule() {
 function clearAll() {
   document.getElementById('inputText').value = '';
   document.getElementById('outputText').value = '';
-  document.getElementById('outputCount').innerHTML = '';
-  document.getElementById('outputCount').style.display = 'none';
+  document.getElementById('inputCount').textContent = '0 字符';
+  document.getElementById('outputCount').textContent = '0 字符';
+  document.getElementById('statsRow').style.display = 'none';
   showToast('已重置');
 }
 
 function copyOutput() {
-  var text = document.getElementById('outputCount').innerText;
+  var text = document.getElementById('outputText').value;
   if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  navigator.clipboard.writeText(text).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")});
 }
 
 function doReplace() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;if(typeof mainConvert==='function')mainConvert();else{{out.textContent=inp.value;showToast('Converted!')}};
+  var input = document.getElementById('inputText').value;
+  if (!input) { showToast('请输入原文本'); return; }
+  var rules = document.querySelectorAll('.rule-item');
+  var result = input;
+  var count = 0;
+  
+  rules.forEach(function(rule) {
+    var find = rule.querySelector('.rule-find');
+    var replace = rule.querySelector('.rule-replace');
+    var isRegex = rule.querySelector('.rule-regex');
+    var caseSensitive = rule.querySelector('.rule-case');
+    if (!find || !find.value) return;
+    
+    var flags = 'g';
+    if (!caseSensitive || !caseSensitive.checked) flags += 'i';
+    
+    try {
+      var regex = isRegex && isRegex.checked ? new RegExp(find.value, flags) : new RegExp(find.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+      var matches = result.match(regex);
+      if (matches) count += matches.length;
+      result = result.replace(regex, replace ? replace.value : '');
+    } catch(e) {
+      showToast('正则表达式错误: ' + e.message);
+    }
+  });
+  
+  document.getElementById('outputText').value = result;
+  document.getElementById('inputCount').textContent = input.length + ' 字符';
+  document.getElementById('outputCount').textContent = result.length + ' 字符';
+  document.getElementById('statReplaceCount').textContent = count;
+  document.getElementById('statInputLen').textContent = input.length;
+  document.getElementById('statOutputLen').textContent = result.length;
+  document.getElementById('statsRow').style.display = 'flex';
+  showToast('已替换 ' + count + ' 处');
 }
 
 function undoReplace() {
-  document.execCommand('undo');showToast('Undo!');
+  document.getElementById('outputText').value = '';
+  document.getElementById('outputCount').textContent = '0 字符';
+  document.getElementById('statsRow').style.display = 'none';
+  showToast('已撤销');
 }
 
 function updateStats() {
