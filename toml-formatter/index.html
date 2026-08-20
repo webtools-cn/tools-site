@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="免费在线TOML格式化与转换工具，支持TOML美化、语法验证、TOML转JSON、JSON转TOML。适用于Rust/Cargo配置文件、Python pyproject.toml编辑和DevOps配置管理。实时语法高亮和错误提示，纯前端本地处理，数据不上传服务器，无需注册完全免费。">
 <meta name="keywords" content="在线TOML格式化与转换工具,工具,在线工具,免费">
@@ -181,7 +181,7 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 </div>
 
 <div class="section"><h2>常见问题</h2>
-
+<div class="faq-item"><h3>TOML格式可以嵌套吗？</h3><p>可以。TOML使用[section]表示表，使用[section.subsection]表示嵌套表，使用[[array]]表示数组表。支持多层嵌套。</p></div>
 </div>
 </main>
 <div>
@@ -222,19 +222,29 @@ document.getElementById('feedback-success').style.display='block';
 // === 重写的函数实现 ===
 function clearAll() {
   document.getElementById('inputArea').value = '';
-  document.getElementById('resultBox').innerHTML = '';
-  document.getElementById('resultBox').style.display = 'none';
+  document.getElementById('resultBox').textContent = '结果将显示在这里...';
   showToast('已重置');
 }
 
 function copyResult() {
   var text = document.getElementById('resultBox').innerText;
-  if (!text) { showToast('没有可复制的结果'); return; }
-  copyText(text);
+  if (!text || text === '结果将显示在这里...') { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制')}).catch(function(){showToast('复制失败')});
 }
 
 function formatTOML() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;try{{var obj=JSON.parse(el.textContent||el.innerText);el.textContent=JSON.stringify(obj,null,2);showToast('Formatted!')}}catch(e){{showToast('Format failed: not valid JSON')}};
+  var inp = document.getElementById('inputArea');
+  var out = document.getElementById('resultBox');
+  if (!inp || !out) return;
+  if (!inp.value.trim()) { showToast('请输入TOML内容'); return; }
+  try {
+    var obj = parseTOML(inp.value);
+    out.textContent = toTOML(obj, '');
+    showToast('已格式化TOML');
+  } catch(e) {
+    out.textContent = '格式化错误: ' + e.message;
+    showToast('TOML格式化失败');
+  }
 }
 
 function tomlToJSON() {
@@ -351,11 +361,32 @@ function toTOMLValue(val) {
 }
 
 function resultToInput() {
-  var out=document.getElementById('output')||document.getElementById('result')||document.getElementById('result-text');var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');if(!out||!inp)return;inp.value=out.textContent||out.innerText;out.textContent='';if(typeof convert==='function')convert();showToast('Moved to input!');
+  var out = document.getElementById('resultBox');
+  var inp = document.getElementById('inputArea');
+  if (!out || !inp) return;
+  var text = out.textContent;
+  if (!text || text === '结果将显示在这里...') { showToast('没有结果可填入'); return; }
+  inp.value = text;
+  out.textContent = '结果将显示在这里...';
+  showToast('已填入输入框');
 }
 
 function validateTOML() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;var v=inp.value.trim();if(!v){{out.textContent='Please enter input';return}}out.textContent=v.length>0?'Valid ✓':'Invalid ✗';showToast('Validated!');
+  var inp = document.getElementById('inputArea');
+  var out = document.getElementById('resultBox');
+  if (!inp || !out) return;
+  var v = inp.value.trim();
+  if (!v) { showToast('请输入TOML内容'); return; }
+  try {
+    parseTOML(v);
+    out.textContent = '✅ TOML语法有效';
+    out.className = 'result-box status-ok';
+    showToast('验证通过');
+  } catch(e) {
+    out.textContent = '❌ TOML语法错误: ' + e.message;
+    out.className = 'result-box status-err';
+    showToast('验证失败');
+  }
 }
 </script>
 
