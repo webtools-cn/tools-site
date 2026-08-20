@@ -242,16 +242,6 @@ textarea:focus{outline:none;border-color:rgba(6,182,212,.5)}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
-}
-
 // === 重写的函数实现 ===
 function addCol() {
   var table = document.querySelector('#tableContainer table');
@@ -283,64 +273,153 @@ function addRow() {
 }
 
 function autoDetect() {
-  var input = document.getElementById('inputText') || document.querySelector('textarea');
+  var input = document.getElementById('inputText');
   if (!input || !input.value.trim()) { showToast('请先输入文本'); return; }
   var text = input.value.trim();
-  var delimiter = '\t';
-  if (text.includes(',')) delimiter = ',';
+  var delimiter = ',';
+  if (text.includes('\t')) delimiter = '\t';
+  else if (text.includes(',')) delimiter = ',';
   else if (text.includes(';')) delimiter = ';';
   else if (text.includes('|')) delimiter = '|';
-  else if (text.includes('\t')) delimiter = '\t';
   else delimiter = /\s+/;
   
-  var lines = text.split('\n').filter(function(l) { return l.trim(); });
-  var table = document.getElementById('dataTable') || document.querySelector('table');
-  if (!table) { showToast('未找到表格'); return; }
-  table.innerHTML = '';
-  
-  lines.forEach(function(line, i) {
-    var cells = typeof delimiter === 'string' ? line.split(delimiter) : line.split(delimiter);
-    var row = table.insertRow();
-    cells.forEach(function(cellText) {
-      var cell = i === 0 ? document.createElement('th') : document.createElement('td');
-      cell.textContent = cellText.trim();
-      cell.style.cssText = 'padding:8px;border:1px solid #334155;background:' + (i === 0 ? '#1e293b' : '#0f172a');
-      cell.contentEditable = 'true';
-      row.appendChild(cell);
-    });
-  });
-  updateTableOutput();
+  document.getElementById('delimiter').value = delimiter === '\t' ? 'tab' : delimiter === ',' ? 'comma' : delimiter === ';' ? 'semicolon' : delimiter === '|' ? 'pipe' : 'auto';
+  convertToTable();
   showToast('已自动识别分隔符并生成表格');
 }
 
 function clearAll() {
   document.getElementById('customDelimiter').value = '';
-  document.getElementById('firstRowHeader').value = '';
-  document.getElementById('trimSpaces').value = '';
-  document.getElementById('removeEmpty').value = '';
   document.getElementById('inputText').value = '';
   document.getElementById('delimiter').selectedIndex = 0;
+  document.getElementById('firstRowHeader').checked = true;
+  document.getElementById('trimSpaces').checked = true;
+  document.getElementById('removeEmpty').checked = true;
+  document.getElementById('tableSection').style.display = 'none';
+  document.getElementById('tableContainer').innerHTML = '';
+  document.getElementById('inputStats').innerHTML = '';
   showToast('已重置');
 }
 
 function convertToTable() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;if(typeof mainConvert==='function')mainConvert();else{{out.textContent=inp.value;showToast('Converted!')}};
+  var input = document.getElementById('inputText');
+  if (!input || !input.value.trim()) { showToast('请先输入文本数据'); return; }
+  var text = input.value.trim();
+  var delimSel = document.getElementById('delimiter').value;
+  var trim = document.getElementById('trimSpaces').checked;
+  var removeEmpty = document.getElementById('removeEmpty').checked;
+  var firstHeader = document.getElementById('firstRowHeader').checked;
+  
+  var delimiter;
+  if (delimSel === 'tab') delimiter = '\t';
+  else if (delimSel === 'comma') delimiter = ',';
+  else if (delimSel === 'semicolon') delimiter = ';';
+  else if (delimSel === 'space') delimiter = /\s+/;
+  else if (delimSel === 'pipe') delimiter = '|';
+  else if (delimSel === 'custom') {
+    var custom = document.getElementById('customDelimiter').value;
+    if (!custom) { showToast('请输入自定义分隔符'); return; }
+    delimiter = custom;
+  } else {
+    // auto detect
+    if (text.includes('\t')) delimiter = '\t';
+    else if (text.includes(',')) delimiter = ',';
+    else if (text.includes(';')) delimiter = ';';
+    else if (text.includes('|')) delimiter = '|';
+    else delimiter = /\s+/;
+  }
+  
+  var lines = text.split('\n');
+  if (removeEmpty) lines = lines.filter(function(l) { return l.trim(); });
+  
+  var container = document.getElementById('tableContainer');
+  container.innerHTML = '';
+  
+  var table = document.createElement('table');
+  table.className = 'data-table';
+  table.id = 'dataTable';
+  
+  lines.forEach(function(line, i) {
+    var cells = typeof delimiter === 'string' ? line.split(delimiter) : line.split(delimiter);
+    if (trim) cells = cells.map(function(c) { return c.trim(); });
+    
+    var row = table.insertRow();
+    cells.forEach(function(cellText) {
+      var cell = (firstHeader && i === 0) ? document.createElement('th') : document.createElement('td');
+      cell.textContent = cellText;
+      cell.contentEditable = 'true';
+      row.appendChild(cell);
+    });
+  });
+  
+  container.appendChild(table);
+  document.getElementById('tableSection').style.display = 'block';
+  document.getElementById('tableStats').textContent = ' (' + table.rows.length + '行 × ' + (table.rows[0] ? table.rows[0].cells.length : 0) + '列)';
+  showToast('表格已生成');
 }
 
 function copyCSV() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var table = document.querySelector('#tableContainer table');
+  if (!table) { showToast('请先生成表格'); return; }
+  var rows = table.querySelectorAll('tr');
+  var csv = [];
+  rows.forEach(function(row) {
+    var cells = row.querySelectorAll('th, td');
+    var rowData = [];
+    cells.forEach(function(cell) {
+      var val = cell.textContent.replace(/"/g, '""');
+      rowData.push('"' + val + '"');
+    });
+    csv.push(rowData.join(','));
+  });
+  navigator.clipboard.writeText(csv.join('\n')).then(function() { showToast('已复制CSV'); }).catch(function() { showToast('复制失败'); });
 }
 
 function copyHTML() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var table = document.querySelector('#tableContainer table');
+  if (!table) { showToast('请先生成表格'); return; }
+  navigator.clipboard.writeText(table.outerHTML).then(function() { showToast('已复制HTML'); }).catch(function() { showToast('复制失败'); });
 }
 
 function copyMarkdown() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
+  var table = document.querySelector('#tableContainer table');
+  if (!table) { showToast('请先生成表格'); return; }
+  var rows = table.querySelectorAll('tr');
+  var md = [];
+  rows.forEach(function(row, i) {
+    var cells = row.querySelectorAll('th, td');
+    var rowData = [];
+    cells.forEach(function(cell) { rowData.push(cell.textContent); });
+    md.push('| ' + rowData.join(' | ') + ' |');
+    if (i === 0) {
+      md.push('| ' + rowData.map(function() { return '---'; }).join(' | ') + ' |');
+    }
+  });
+  navigator.clipboard.writeText(md.join('\n')).then(function() { showToast('已复制Markdown'); }).catch(function() { showToast('复制失败'); });
 }
 
 function downloadCSV() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='CSV.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
+  var table = document.querySelector('#tableContainer table');
+  if (!table) { showToast('请先生成表格'); return; }
+  var rows = table.querySelectorAll('tr');
+  var csv = [];
+  rows.forEach(function(row) {
+    var cells = row.querySelectorAll('th, td');
+    var rowData = [];
+    cells.forEach(function(cell) {
+      var val = cell.textContent.replace(/"/g, '""');
+      rowData.push('"' + val + '"');
+    });
+    csv.push(rowData.join(','));
+  });
+  var bom = '\uFEFF';
+  var blob = new Blob([bom + csv.join('\n')], { type: 'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'table.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已下载CSV');
 }
 </script>
 
