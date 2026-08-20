@@ -285,63 +285,214 @@ input[type="range"]{width:100%;margin-top:4px;accent-color:#06b6d4}
 </div>
 <div class="toast" id="toast"></div>
 <script>
-function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
+var currentTool = 'select';
+var selectedElement = null;
+var history = [];
+var historyIndex = -1;
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
+function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
+
+function setTool(tool){
+  document.querySelectorAll('.tool-btn').forEach(function(e){e.classList.remove('active')});
+  var s = document.querySelector('[data-tool="'+tool+'"]');
+  if(s) s.classList.add('active');
+  currentTool = tool;
+  var c = document.getElementById('svgCanvas');
+  if(c) c.style.cursor = tool === 'select' ? 'default' : 'crosshair';
+  document.getElementById('activeTool').textContent = '工具: ' + {select:'选择',rect:'矩形',circle:'圆形',line:'线条',path:'路径'}[tool];
 }
 
-// === 重写的函数实现 ===
-function clearCanvas() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
+function clearCanvas(){
+  var canvas = document.getElementById('svgCanvas');
+  if(canvas) canvas.innerHTML = '';
+  document.getElementById('elementCount').textContent = '元素: 0';
+  showToast('画布已清空');
 }
 
 function deleteSelected(){
-  var selected=document.querySelectorAll('.svg-element.selected,[data-selected=true]');
-  if(!selected.length){showToast('请先选择元素');return;}
-  selected.forEach(function(el){el.remove();});
-  showToast('已删除选中元素');
-}
-
-function downloadPng() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Png.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
-}
-
-function downloadSvg() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;var blob=new Blob([t],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Svg.txt';a.click();URL.revokeObjectURL(a.href);showToast('Downloaded!');
-}
-
-function showSvgCode(){
-  var svg=document.querySelector('svg');
-  var output=document.getElementById('output')||document.getElementById('code')||document.getElementById('result');
-  if(!svg){showToast('未找到SVG元素');return;}
-  var code=svg.outerHTML;
-  if(output){output.textContent=code;output.style.display='block';}
-  showToast('SVG代码已显示');
-}
-
-function undo() {
-  document.execCommand('undo');showToast('Undo!');
+  if(selectedElement){
+    selectedElement.remove();
+    selectedElement = null;
+    document.getElementById('elementCount').textContent = '元素: ' + document.getElementById('svgCanvas').children.length;
+    showToast('已删除选中元素');
+  } else {
+    showToast('请先选择元素');
+  }
 }
 
 function updateSelected(){
-  var selected=document.querySelector('.svg-element.selected,[data-selected=true]');
-  if(!selected){showToast('请先选择元素');return;}
-  var fillEl=document.getElementById('fill')||document.querySelector('input[type=color]');
-  var strokeEl=document.getElementById('stroke')||document.querySelectorAll('input[type=color]')[1];
-  if(fillEl)selected.setAttribute('fill',fillEl.value);
-  if(strokeEl)selected.setAttribute('stroke',strokeEl.value);
+  if(!selectedElement){showToast('请先选择元素');return;}
+  var fill = document.getElementById('fillColor').value;
+  var stroke = document.getElementById('strokeColor').value;
+  var strokeWidth = document.getElementById('strokeWidth').value;
+  selectedElement.setAttribute('fill', fill);
+  selectedElement.setAttribute('stroke', stroke);
+  selectedElement.setAttribute('stroke-width', strokeWidth);
   showToast('属性已更新');
 }
-function setTool(tool){document.querySelectorAll('.tool-btn,.bg-option').forEach(function(e){e.classList.remove('active')});var s=document.querySelector('[data-tool="'+tool+'"]');if(s)s.classList.add('active');if(window.currentTool!==undefined)window.currentTool=tool;else window.currentTool=tool;var c=document.getElementById('canvas')||document.getElementById('svgCanvas');if(c)c.style.cursor=tool==='select'?'default':'crosshair'}
-function loadTemplate(name){var templates={'blank':'<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg"></svg>','rect':'<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">\n  <rect x="50" y="50" width="200" height="100" fill="#4F46E5"/>\n</svg>','circle':'<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">\n  <circle cx="200" cy="150" r="80" fill="#06b6d4"/>\n</svg>','icon':'<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">\n  <path d="M150 50 L250 50 L300 150 L200 250 L100 150 Z" fill="none" stroke="#22d3ee" stroke-width="3"/>\n</svg>'};var editor=document.getElementById('svgInput')||document.getElementById('editor')||document.querySelector('textarea');if(editor)editor.value=templates[name]||'';showToast('已加载模板: '+name)}
+
+function showSvgCode(){
+  var svg = document.getElementById('svgCanvas');
+  if(!svg){showToast('未找到SVG画布');return;}
+  var code = svg.outerHTML;
+  prompt('SVG代码（复制后关闭）:', code);
+  showToast('SVG代码已显示');
+}
+
+function downloadSvg(){
+  var svg = document.getElementById('svgCanvas');
+  if(!svg){showToast('未找到SVG画布');return;}
+  var code = '<?xml version="1.0" encoding="UTF-8"?>\n' + svg.outerHTML;
+  var blob = new Blob([code], {type:'image/svg+xml'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'drawing.svg';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('SVG已下载');
+}
+
+function downloadPng(){
+  var svg = document.getElementById('svgCanvas');
+  if(!svg){showToast('未找到SVG画布');return;}
+  var canvas = document.createElement('canvas');
+  canvas.width = 800;
+  canvas.height = 480;
+  var ctx = canvas.getContext('2d');
+  var data = new XMLSerializer().serializeToString(svg);
+  var img = new Image();
+  img.onload = function(){
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+    var a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'drawing.png';
+    a.click();
+    showToast('PNG已导出');
+  };
+  img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data)));
+}
+
+function undo(){
+  showToast('撤销功能开发中');
+}
+
+function loadTemplate(name){
+  var templates = {
+    star: '<polygon points="100,10 123,75 190,75 135,115 155,180 100,145 45,180 65,115 10,75 L77,75" fill="#06b6d4" stroke="#0891b2" stroke-width="2"/>',
+    heart: '<path d="M100,30 C100,30 40,-10 20,30 C0,70 50,120 100,170 C150,120 200,70 180,30 C160,-10 100,30 100,30 Z" fill="#ef4444" stroke="#dc2626" stroke-width="2"/>',
+    arrow: '<path d="M50,100 L150,100 M120,70 L150,100 L120,130" fill="none" stroke="#22d3ee" stroke-width="3"/>',
+    check: '<path d="M40,100 L80,140 L160,60" fill="none" stroke="#22c55e" stroke-width="4"/>',
+    home: '<path d="M100,30 L170,90 L155,90 L155,160 L115,160 L115,110 L85,110 L85,160 L45,160 L45,90 L30,90 Z" fill="none" stroke="#94a3b8" stroke-width="2"/>',
+    chat: '<path d="M30,40 L170,40 L170,120 L70,120 L40,150 L40,120 L30,120 Z" fill="none" stroke="#a78bfa" stroke-width="2"/>'
+  };
+  var canvas = document.getElementById('svgCanvas');
+  if(!canvas) return;
+  var elem = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  elem.innerHTML = templates[name] || '';
+  elem.style.cursor = 'move';
+  elem.addEventListener('click', function(e){
+    e.stopPropagation();
+    if(selectedElement) selectedElement.style.outline = '';
+    selectedElement = this;
+    this.style.outline = '2px dashed #22d3ee';
+  });
+  canvas.appendChild(elem);
+  document.getElementById('elementCount').textContent = '元素: ' + canvas.children.length;
+  showToast('已添加模板: ' + name);
+}
+
+var canvas = document.getElementById('svgCanvas');
+var isDrawing = false;
+var startX, startY, currentShape;
+
+canvas.addEventListener('mousedown', function(e){
+  if(currentTool === 'select') return;
+  isDrawing = true;
+  var rect = canvas.getBoundingClientRect();
+  var scaleX = 800 / rect.width;
+  var scaleY = 480 / rect.height;
+  startX = (e.clientX - rect.left) * scaleX;
+  startY = (e.clientY - rect.top) * scaleY;
+  
+  if(currentTool === 'rect'){
+    currentShape = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    currentShape.setAttribute('x', startX);
+    currentShape.setAttribute('y', startY);
+    currentShape.setAttribute('width', 0);
+    currentShape.setAttribute('height', 0);
+    currentShape.setAttribute('fill', document.getElementById('fillColor').value);
+    currentShape.setAttribute('stroke', document.getElementById('strokeColor').value);
+    currentShape.setAttribute('stroke-width', document.getElementById('strokeWidth').value);
+  } else if(currentTool === 'circle'){
+    currentShape = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    currentShape.setAttribute('cx', startX);
+    currentShape.setAttribute('cy', startY);
+    currentShape.setAttribute('r', 0);
+    currentShape.setAttribute('fill', document.getElementById('fillColor').value);
+    currentShape.setAttribute('stroke', document.getElementById('strokeColor').value);
+    currentShape.setAttribute('stroke-width', document.getElementById('strokeWidth').value);
+  } else if(currentTool === 'line'){
+    currentShape = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    currentShape.setAttribute('x1', startX);
+    currentShape.setAttribute('y1', startY);
+    currentShape.setAttribute('x2', startX);
+    currentShape.setAttribute('y2', startY);
+    currentShape.setAttribute('stroke', document.getElementById('strokeColor').value);
+    currentShape.setAttribute('stroke-width', document.getElementById('strokeWidth').value);
+  }
+  
+  if(currentShape){
+    currentShape.style.cursor = 'move';
+    currentShape.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(selectedElement) selectedElement.style.outline = '';
+      selectedElement = this;
+      this.style.outline = '2px dashed #22d3ee';
+    });
+    canvas.appendChild(currentShape);
+  }
+});
+
+canvas.addEventListener('mousemove', function(e){
+  if(!isDrawing || !currentShape) return;
+  var rect = canvas.getBoundingClientRect();
+  var scaleX = 800 / rect.width;
+  var scaleY = 480 / rect.height;
+  var x = (e.clientX - rect.left) * scaleX;
+  var y = (e.clientY - rect.top) * scaleY;
+  
+  if(currentTool === 'rect'){
+    var w = Math.abs(x - startX);
+    var h = Math.abs(y - startY);
+    currentShape.setAttribute('x', Math.min(x, startX));
+    currentShape.setAttribute('y', Math.min(y, startY));
+    currentShape.setAttribute('width', w);
+    currentShape.setAttribute('height', h);
+  } else if(currentTool === 'circle'){
+    var r = Math.sqrt(Math.pow(x - startX, 2) + Math.pow(y - startY, 2));
+    currentShape.setAttribute('r', r);
+  } else if(currentTool === 'line'){
+    currentShape.setAttribute('x2', x);
+    currentShape.setAttribute('y2', y);
+  }
+});
+
+canvas.addEventListener('mouseup', function(){
+  if(isDrawing && currentShape){
+    document.getElementById('elementCount').textContent = '元素: ' + canvas.children.length;
+  }
+  isDrawing = false;
+  currentShape = null;
+});
+
+canvas.addEventListener('click', function(e){
+  if(currentTool === 'select' && e.target === canvas){
+    if(selectedElement) selectedElement.style.outline = '';
+    selectedElement = null;
+  }
+});
 </script>
 
 
