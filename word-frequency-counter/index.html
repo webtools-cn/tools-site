@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="CSV报告。适用于SEO关键词密度分析、学术论文词频研究和文本特征提取，浏览器本地处理保障数据隐私。纯前端本地处理，数据不上传服务器，无需注册完全免费。无需注册，完全免费，数据本地处理。 支持多种输入格式，操作简单快捷。纯前端本地处理，数据不上传服务器，完全免费无需注册。">
 <meta name="keywords" content="词频统计器,工具,在线工具,免费">
@@ -97,6 +97,12 @@ a{color:#06b6d4;text-decoration:none}
 <meta name="robots" content="index, follow">
 </head>
 <body>
+<header style="background:var(--card-bg);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
+<div class="container" style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:960px;margin:0 auto">
+<a href="/" style="color:var(--primary);text-decoration:none;font-weight:600;font-size:18px">🧰 Free ToolBase</a>
+<div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/word-frequency-counter/">EN</a></div>
+</div>
+</header>
 <main class="container">
 <div class="header"><h1>📊 词频统计器</h1>
 <div style="background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.3);border-radius:8px;padding:12px 16px;margin:12px 0;color:#22d3ee;font-size:.9rem">📌 此工具已合并至 <a href="/character-frequency/" style="color:#22d3ee;text-decoration:underline">character frequency</a></div><div class="lang-switch"><a href="index.html" class="active">中文</a><a href="../en/word-frequency-counter/" class="">EN</a></div></div>
@@ -206,28 +212,72 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function analyze() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;var v=inp.value;out.textContent='Length: '+v.length+' chars, '+v.split(/\s+/).filter(Boolean).length+' words, '+v.split('\n').length+' lines';showToast('Analyzed!');
+  var inp = document.getElementById('inp');
+  if (!inp) return;
+  var text = inp.value;
+  if (!text.trim()) { showToast('请输入文本'); return; }
+  var filterStr = document.getElementById('filter').value;
+  var filterWords = filterStr ? filterStr.split(',').map(function(s){return s.trim();}).filter(Boolean) : [];
+  var minFreq = parseInt(document.getElementById('minFreq').value) || 1;
+  var isWordMode = document.getElementById('modeWord').classList.contains('active');
+  var tokens;
+  if (isWordMode) {
+    tokens = text.match(/[\u4e00-\u9fff\u3400-\u4dbf]+|[a-zA-Z0-9]+/g) || [];
+  } else {
+    tokens = text.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || [];
+  }
+  tokens = tokens.map(function(t) { return t.toLowerCase(); });
+  if (filterWords.length) {
+    tokens = tokens.filter(function(t) { return filterWords.indexOf(t) === -1; });
+  }
+  var freq = {};
+  tokens.forEach(function(t) { freq[t] = (freq[t] || 0) + 1; });
+  var sorted = Object.entries(freq).filter(function(e) { return e[1] >= minFreq; }).sort(function(a, b) { return b[1] - a[1]; });
+  document.getElementById('totalWords').textContent = tokens.length;
+  document.getElementById('uniqueWords').textContent = sorted.length;
+  document.getElementById('maxFreq').textContent = sorted.length ? sorted[0][1] : 0;
+  var tbody = document.getElementById('resultBody');
+  tbody.innerHTML = sorted.map(function(e, i) {
+    var pct = (e[1] / tokens.length * 100).toFixed(2);
+    var barW = (e[1] / (sorted[0][1] || 1) * 100).toFixed(0);
+    return '<tr><td>' + (i + 1) + '</td><td>' + e[0] + '</td><td>' + e[1] + '</td><td>' + pct + '%</td><td><div class="freq-bar-wrap"><div class="freq-bar" style="width:' + barW + '%"></div></div></td></tr>';
+  }).join('');
+  document.getElementById('resultSection').style.display = 'block';
+  showToast('分析完成');
 }
 
 function clearAll() {
   document.getElementById('filter').value = '';
-  document.getElementById('minFreq').value = '';
+  document.getElementById('minFreq').value = '1';
   document.getElementById('inp').value = '';
-  document.getElementById('resultSection').innerHTML = '';
+  document.getElementById('resultBody').innerHTML = '';
+  document.getElementById('totalWords').textContent = '0';
+  document.getElementById('uniqueWords').textContent = '0';
+  document.getElementById('maxFreq').textContent = '0';
   document.getElementById('resultSection').style.display = 'none';
   showToast('已重置');
 }
 
 function exportCSV() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;var blob=new Blob([el.textContent||el.innerText],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.json';a.click();showToast('Exported!');
+  var rows = document.querySelectorAll('#resultBody tr');
+  if (!rows.length) { showToast('请先分析'); return; }
+  var csv = 'Rank,Word,Count,Percentage\n';
+  rows.forEach(function(row) {
+    var cells = row.querySelectorAll('td');
+    csv += cells[0].textContent + ',"' + cells[1].textContent + '",' + cells[2].textContent + ',' + cells[3].textContent + '\n';
+  });
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'word-frequency.csv';
+  a.click();
+  showToast('已导出CSV');
 }
 
 function setMode(value) {
-  if(typeof value === 'string') {
-    var el = document.querySelector('[data-preset="' + value + '"], [data-mode="' + value + '"]');
-    if(el) el.classList.add('active');
-  }
-  showToast('已应用');
+  document.getElementById('modeWord').classList.toggle('active', value === 'word');
+  document.getElementById('modeChar').classList.toggle('active', value === 'char');
+  showToast('已切换到' + (value === 'word' ? '按词' : '按字') + '统计');
 }
 </script>
 
