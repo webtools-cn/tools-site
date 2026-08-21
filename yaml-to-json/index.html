@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="YAML转JSON工具  YAML to JSON格式转换器工具，在线YAML转JSON格式转换工具。一键将YAML配置或数据转换为JSON格式，可自定义缩进。无需注册，数据安全不上传服务器。纯前端本地处理，数据不上传服务器，无需注册完全免费。">
+<meta name="description" content="免费在线YAML转JSON工具，一键将YAML配置或数据转换为JSON格式，可自定义缩进。纯前端本地处理，数据不上传服务器，无需注册。">
 <meta name="keywords" content="YAML转JSON工具 · 在线YAML to JSON格式转换器,工具,在线工具,免费">
 <title>免费YAML转JSON工具 | 在线YAML to JSON格式转换器 - Free ToolBase</title>
 <link rel="canonical" href="https://free-toolbase.com/yaml-to-json/">
@@ -162,13 +162,120 @@ author:
 <div class="toast" id="toast"></div>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function convertYamlToJson(){var input=document.getElementById('yaml-input').value.trim();if(!input){showToast('请输入YAML数据');return;}var indent=parseInt(document.getElementById('indent-select').value);var errEl=document.getElementById('error-msg');errEl.style.display='none';try{var obj=jsyaml.load(input);var json=JSON.stringify(obj,null,indent);document.getElementById('json-output').textContent=json;showToast('转换成功！');}catch(e){errEl.textContent='YAML解析错误：'+e.message;errEl.style.display='block';document.getElementById('json-output').textContent='';showToast('YAML格式错误');}}
-function copyResult(){var text=document.getElementById('json-output').textContent;if(!text||text==='点击"转换为JSON"查看结果'){showToast('没有可复制的内容');return;}navigator.clipboard.writeText(text).then(function(){showToast('已复制到剪贴板');}).catch(function(){showToast('复制失败');});}
-function downloadResult(){var text=document.getElementById('json-output').textContent;if(!text||text==='点击"转换为JSON"查看结果'){showToast('没有可下载的内容');return;}var blob=new Blob([text],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='output.json';a.click();URL.revokeObjectURL(a.href);showToast('下载成功');}
-function clearAll(){document.getElementById('yaml-input').value='';document.getElementById('json-output').textContent='点击"转换为JSON"查看结果';document.getElementById('error-msg').style.display='none';}
-function showToast(m){var t=document.getElementById('toastMsg');t.textContent=m;t.style.display='block';setTimeout(function(){t.style.display='none';},2000);}
+function parseYAMLValue(val) {
+  if (val === 'null' || val === '~') return null;
+  if (val === 'true' || val === 'yes') return true;
+  if (val === 'false' || val === 'no') return false;
+  if (/^-?\d+$/.test(val)) return parseInt(val, 10);
+  if (/^-?\d+\.\d+$/.test(val)) return parseFloat(val);
+  if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) return val.slice(1, -1);
+  return val;
+}
+
+function parseYamlRecursive(text) {
+  var lines = text.split('\n');
+  var idx = 0;
+  function getIndent(line) { return line.search(/\S/); }
+  function skipEmpty() {
+    while (idx < lines.length && (lines[idx].trim() === '' || lines[idx].trim().startsWith('#'))) idx++;
+  }
+  function parseValue(indent) {
+    skipEmpty();
+    if (idx >= lines.length) return null;
+    var line = lines[idx];
+    var currIndent = getIndent(line);
+    if (currIndent < indent) return null;
+    var trimmed = line.trim();
+    if (trimmed.startsWith('- ')) {
+      var arr = [];
+      while (idx < lines.length) {
+        skipEmpty();
+        if (idx >= lines.length) break;
+        line = lines[idx]; currIndent = getIndent(line);
+        if (currIndent < indent) break;
+        trimmed = line.trim();
+        if (!trimmed.startsWith('- ')) break;
+        var itemStr = trimmed.substring(2).trim(); idx++;
+        var nextLine = idx < lines.length ? lines[idx] : '';
+        var nextIndent = getIndent(nextLine);
+        if (nextLine.trim() !== '' && !nextLine.trim().startsWith('#') && nextIndent > currIndent && !trimmed.includes(':')) {
+          arr.push(parseMapping(currIndent + 2));
+        } else if (itemStr.includes(': ')) {
+          var parts = itemStr.split(': ', 2);
+          var obj = {}; obj[parts[0].trim()] = parseYAMLValue(parts[1]); arr.push(obj);
+        } else { arr.push(parseYAMLValue(itemStr)); }
+      }
+      return arr;
+    }
+    if (trimmed.includes(': ')) return parseMapping(indent);
+    return parseYAMLValue(trimmed);
+  }
+  function parseMapping(indent) {
+    var obj = {};
+    while (idx < lines.length) {
+      skipEmpty();
+      if (idx >= lines.length) break;
+      var line = lines[idx]; var currIndent = getIndent(line);
+      if (currIndent < indent) break;
+      var trimmed = line.trim();
+      if (!trimmed.includes(':') || trimmed.startsWith('-')) break;
+      var colonPos = trimmed.indexOf(':');
+      var key = trimmed.substring(0, colonPos).trim();
+      var valStr = trimmed.substring(colonPos + 1).trim(); idx++;
+      if (valStr === '') {
+        skipEmpty();
+        if (idx < lines.length) {
+          var nextLine = lines[idx]; var nextIndent = getIndent(nextLine);
+          if (nextIndent > currIndent && nextLine.trim() !== '' && !nextLine.trim().startsWith('#')) {
+            if (nextLine.trim().startsWith('- ')) { obj[key] = parseValue(currIndent + 2); }
+            else { obj[key] = parseMapping(currIndent + 2); }
+            continue;
+          }
+        }
+        obj[key] = null;
+      } else { obj[key] = parseYAMLValue(valStr); }
+    }
+    return obj;
+  }
+  skipEmpty();
+  if (idx >= lines.length) return null;
+  var firstLine = lines[idx]; var firstIndent = getIndent(firstLine);
+  if (firstLine.trim().startsWith('- ')) return parseValue(firstIndent);
+  return parseMapping(firstIndent);
+}
+
+function convertYamlToJson(){
+  var input=document.getElementById('yaml-input').value.trim();
+  if(!input){showToast('请输入YAML数据');return;}
+  var indent=parseInt(document.getElementById('indent-select').value);
+  var errEl=document.getElementById('error-msg');errEl.style.display='none';
+  try{
+    var obj=parseYamlRecursive(input);
+    var json=JSON.stringify(obj,null,indent);
+    document.getElementById('json-output').textContent=json;
+    showToast('转换成功！');
+  }catch(e){
+    errEl.textContent='YAML解析错误：'+e.message;errEl.style.display='block';
+    document.getElementById('json-output').textContent='';showToast('YAML格式错误');
+  }
+}
+function copyResult(){
+  var text=document.getElementById('json-output').textContent;
+  if(!text||text==='点击"转换为JSON"查看结果'){showToast('没有可复制的内容');return;}
+  navigator.clipboard.writeText(text).then(function(){showToast('已复制到剪贴板');}).catch(function(){showToast('复制失败');});
+}
+function downloadResult(){
+  var text=document.getElementById('json-output').textContent;
+  if(!text||text==='点击"转换为JSON"查看结果'){showToast('没有可下载的内容');return;}
+  var blob=new Blob([text],{type:'application/json'});var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='output.json';a.click();URL.revokeObjectURL(a.href);showToast('下载成功');
+}
+function clearAll(){
+  document.getElementById('yaml-input').value='';
+  document.getElementById('json-output').textContent='点击"转换为JSON"查看结果';
+  document.getElementById('error-msg').style.display='none';
+}
 </script>
 </body>
 </html>

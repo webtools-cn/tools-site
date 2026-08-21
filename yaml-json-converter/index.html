@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="YAML JSON互转工具 - YAML和JSON互转工具支持YAML转JSON 无需注册工具，支持YAML转JSON、JSON转YAML，实时双向转换，语法验证与错误定位，一键复制。无需注册。纯前端本地处理，数据不上传服务器，无需注册即可免费使用。">
+<meta name="description" content="免费在线YAML与JSON互转工具，支持双向转换、语法验证与错误定位，一键复制结果。纯前端本地处理，数据不上传服务器，无需注册。">
 <meta name="keywords" content="在线YAML JSON互转工具,工具,在线工具,免费">
 <title>免费在线YAML JSON互转工具 - YAML和JSON互转工具，支持YAML转JSON | 无需注册</title>
 <link rel="canonical" href="https://free-toolbase.com/yaml-json-converter/">
@@ -232,18 +232,267 @@ select{appearance:auto;font-family:inherit}
 <div class="toast" id="toast"></div>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
+var srcEditor = document.getElementById('srcEditor');
+var dstOutput = document.getElementById('dstOutput');
+var statusBar = document.getElementById('statusBar');
+var srcLabel = document.getElementById('srcLabel');
+var dstLabel = document.getElementById('dstLabel');
+var inputLabel = document.getElementById('inputLabel');
+var dirBtns = document.querySelectorAll('#directionBtns .btn');
+var currentDir = 'yaml2json';
+
+function parseYamlValue(val) {
+  if (val === 'null' || val === '~') return null;
+  if (val === 'true' || val === 'yes' || val === 'on') return true;
+  if (val === 'false' || val === 'no' || val === 'off') return false;
+  if (/^-?\d+$/.test(val)) return parseInt(val, 10);
+  if (/^-?\d+\.\d+$/.test(val)) return parseFloat(val);
+  if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+    return val.slice(1, -1);
+  }
+  return val;
 }
 
+function parseYamlRecursive(text) {
+  var lines = text.split('\n');
+  var idx = 0;
+  function getIndent(line) { return line.search(/\S/); }
+  function skipEmpty() {
+    while (idx < lines.length && (lines[idx].trim() === '' || lines[idx].trim().startsWith('#'))) idx++;
+  }
+  function parseValue(indent) {
+    skipEmpty();
+    if (idx >= lines.length) return null;
+    var line = lines[idx];
+    var currIndent = getIndent(line);
+    if (currIndent < indent) return null;
+    var trimmed = line.trim();
+    if (trimmed.startsWith('- ')) {
+      var arr = [];
+      while (idx < lines.length) {
+        skipEmpty();
+        if (idx >= lines.length) break;
+        line = lines[idx];
+        currIndent = getIndent(line);
+        if (currIndent < indent) break;
+        trimmed = line.trim();
+        if (!trimmed.startsWith('- ')) break;
+        var itemStr = trimmed.substring(2).trim();
+        idx++;
+        var nextLine = idx < lines.length ? lines[idx] : '';
+        var nextIndent = getIndent(nextLine);
+        if (nextLine.trim() !== '' && !nextLine.trim().startsWith('#') && nextIndent > currIndent && !trimmed.includes(':')) {
+          var subObj = parseMapping(currIndent + 2);
+          arr.push(subObj);
+        } else if (itemStr.includes(': ')) {
+          var parts = itemStr.split(': ', 2);
+          var obj = {};
+          obj[parts[0].trim()] = parseScalar(parts[1]);
+          arr.push(obj);
+        } else {
+          arr.push(parseScalar(itemStr));
+        }
+      }
+      return arr;
+    }
+    if (trimmed.includes(': ')) return parseMapping(indent);
+    return parseScalar(trimmed);
+  }
+  function parseMapping(indent) {
+    var obj = {};
+    while (idx < lines.length) {
+      skipEmpty();
+      if (idx >= lines.length) break;
+      var line = lines[idx];
+      var currIndent = getIndent(line);
+      if (currIndent < indent) break;
+      var trimmed = line.trim();
+      if (!trimmed.includes(':') || trimmed.startsWith('-')) break;
+      var colonPos = trimmed.indexOf(':');
+      var key = trimmed.substring(0, colonPos).trim();
+      var valStr = trimmed.substring(colonPos + 1).trim();
+      idx++;
+      if (valStr === '') {
+        skipEmpty();
+        if (idx < lines.length) {
+          var nextLine = lines[idx];
+          var nextIndent = getIndent(nextLine);
+          if (nextIndent > currIndent && nextLine.trim() !== '' && !nextLine.trim().startsWith('#')) {
+            if (nextLine.trim().startsWith('- ')) { obj[key] = parseValue(currIndent + 2); }
+            else { obj[key] = parseMapping(currIndent + 2); }
+            continue;
+          }
+        }
+        obj[key] = null;
+      } else if (valStr === '|') {
+        var blockLines = [];
+        var blockBaseIndent = currIndent + 2;
+        while (idx < lines.length) {
+          var bl = lines[idx];
+          var bi = getIndent(bl);
+          if (bi < blockBaseIndent && bl.trim() !== '') break;
+          if (bl.trim() === '') { blockLines.push(''); idx++; continue; }
+          blockLines.push(bl.substring(blockBaseIndent));
+          idx++;
+        }
+        obj[key] = blockLines.join('\n').replace(/\n+$/, '');
+      } else {
+        obj[key] = parseScalar(valStr);
+      }
+    }
+    return obj;
+  }
+  function parseScalar(val) {
+    val = val.trim();
+    if (val === 'null' || val === '~') return null;
+    if (val === 'true' || val === 'True' || val === 'TRUE' || val === 'yes' || val === 'Yes') return true;
+    if (val === 'false' || val === 'False' || val === 'FALSE' || val === 'no' || val === 'No') return false;
+    if (/^-?\d+$/.test(val)) {
+      var n = parseInt(val, 10);
+      if (n >= -9007199254740991 && n <= 9007199254740991) return n;
+    }
+    if (/^-?\d+\.\d+$/.test(val)) return parseFloat(val);
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) return val.slice(1, -1);
+    return val;
+  }
+  skipEmpty();
+  if (idx >= lines.length) return null;
+  var firstLine = lines[idx];
+  var firstIndent = getIndent(firstLine);
+  if (firstLine.trim().startsWith('- ')) return parseValue(firstIndent);
+  return parseMapping(firstIndent);
+}
+
+var YAML = {
+  parse: parseYamlRecursive,
+  stringify: function(obj, indent) {
+    indent = indent || 0;
+    var sp = '  ';
+    var result = '';
+    if (obj === null || obj === undefined) return 'null\n';
+    if (typeof obj === 'string') {
+      if (obj === '') return "''\n";
+      if (/^[0-9]/.test(obj) || obj.includes(':') || obj.includes('#') || obj.includes("'") || obj.includes('"') || obj === 'null' || obj === 'true' || obj === 'false' || obj.includes('\n')) {
+        if (obj.includes('\n')) return '|\n' + obj.split('\n').map(function(l) { return sp.repeat(indent + 1) + l; }).join('\n') + '\n';
+        return JSON.stringify(obj) + '\n';
+      }
+      return obj + '\n';
+    }
+    if (typeof obj === 'number') return obj + '\n';
+    if (typeof obj === 'boolean') return (obj ? 'true' : 'false') + '\n';
+    if (Array.isArray(obj)) {
+      for (var i = 0; i < obj.length; i++) {
+        result += sp.repeat(indent) + '- ';
+        if (typeof obj[i] === 'object' && obj[i] !== null) { result += '\n' + YAML.stringify(obj[i], indent + 2); }
+        else { result += YAML.stringify(obj[i], 0).trim() + '\n'; }
+      }
+      return result;
+    }
+    if (typeof obj === 'object') {
+      var keys = Object.keys(obj);
+      if (keys.length === 0) return '{}\n';
+      for (var i = 0; i < keys.length; i++) {
+        var k = keys[i];
+        var v = obj[k];
+        var keyStr = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k) ? k : JSON.stringify(k);
+        result += sp.repeat(indent) + keyStr + ': ';
+        if (typeof v === 'object' && v !== null) {
+          if (Array.isArray(v) && v.length === 0) result += '[]\n';
+          else if (!Array.isArray(v) && Object.keys(v).length === 0) result += '{}\n';
+          else result += '\n' + YAML.stringify(v, indent + 2);
+        } else { result += YAML.stringify(v, 0).trim() + '\n'; }
+      }
+      return result;
+    }
+    return String(obj) + '\n';
+  }
+};
+
+function convert() {
+  var text = srcEditor.value;
+  if (!text.trim()) { dstOutput.innerHTML = '<div class="empty-hint">等待输入...</div>'; statusBar.textContent = ''; return; }
+  try {
+    if (currentDir === 'yaml2json') {
+      var parsed = YAML.parse(text);
+      if (parsed === null || (typeof parsed === 'object' && Object.keys(parsed).length === 0 && !Array.isArray(parsed))) {
+        dstOutput.textContent = '{}'; statusBar.textContent = '⚠️ 空结果'; return;
+      }
+      var json = JSON.stringify(parsed, null, 2);
+      dstOutput.textContent = json;
+      statusBar.textContent = '✅ 转换成功！' + json.split('\n').length + ' 行，' + new Blob([json]).size + ' 字节';
+    } else {
+      var parsed = JSON.parse(text);
+      var yaml = YAML.stringify(parsed, 0);
+      dstOutput.textContent = yaml.trim();
+      statusBar.textContent = '✅ 转换成功！' + yaml.split('\n').length + ' 行';
+    }
+  } catch (e) {
+    dstOutput.innerHTML = '<div style="color:#ef4444;padding:12px;font-family:monospace;font-size:.82rem">❌ ' + e.message.replace(/</g,'&lt;') + '</div>';
+    statusBar.textContent = '❌ 错误: ' + e.message;
+  }
+}
+
+dirBtns.forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    dirBtns.forEach(function(b) { b.className = 'btn btn-secondary'; });
+    this.className = 'btn btn-primary active';
+    currentDir = this.getAttribute('data-dir');
+    if (currentDir === 'yaml2json') {
+      srcLabel.textContent = 'YAML'; dstLabel.textContent = 'JSON';
+      inputLabel.innerHTML = '📝 输入 YAML';
+      srcEditor.placeholder = '在此粘贴 YAML 或 JSON 内容...';
+    } else {
+      srcLabel.textContent = 'JSON'; dstLabel.textContent = 'YAML';
+      inputLabel.innerHTML = '📝 输入 JSON';
+      srcEditor.placeholder = '在此粘贴 JSON 内容...';
+    }
+    convert();
+  });
+});
+
+var debounceTimer;
+srcEditor.addEventListener('input', function() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(convert, 300);
+});
+
+document.getElementById('loadSampleBtn').addEventListener('click', function() {
+  if (currentDir === 'yaml2json') {
+    srcEditor.value = 'server:\n  host: localhost\n  port: 8080\n  ssl: true\ndatabase:\n  name: myapp\n  pool: 10\n  options:\n    - replica\n    - backup\nusers:\n  - name: Alice\n    role: admin\n    email: alice@example.com\n  - name: Bob\n    role: user\n    email: bob@example.com\nsettings:\n  theme: dark\n  lang: zh-CN\n  notifications:\n    email: true\n    sms: false';
+  } else {
+    srcEditor.value = JSON.stringify({"server":{"host":"localhost","port":8080,"ssl":true},"database":{"name":"myapp","pool":10,"options":["replica","backup"]},"users":[{"name":"Alice","role":"admin","email":"alice@example.com"},{"name":"Bob","role":"user","email":"bob@example.com"}],"settings":{"theme":"dark","lang":"zh-CN","notifications":{"email":true,"sms":false}}}, null, 2);
+  }
+  convert();
+});
+
+document.getElementById('clearSrcBtn').addEventListener('click', function() {
+  srcEditor.value = '';
+  dstOutput.innerHTML = '<div class="empty-hint">等待输入...</div>';
+  statusBar.textContent = '';
+});
+
+document.getElementById('copyDstBtn').addEventListener('click', function() {
+  var text = dstOutput.textContent || dstOutput.innerText;
+  if (!text || text === '等待输入...') return;
+  navigator.clipboard.writeText(text).then(function() {
+    var btn = document.getElementById('copyDstBtn');
+    btn.textContent = '✅ 已复制';
+    setTimeout(function(){ btn.textContent = '📋 复制'; }, 2000);
+  });
+});
+
+document.getElementById('downloadDstBtn').addEventListener('click', function() {
+  var text = dstOutput.textContent || dstOutput.innerText;
+  if (!text || text === '等待输入...') return;
+  var ext = currentDir === 'yaml2json' ? '.json' : '.yaml';
+  var blob = new Blob([text], {type: 'text/plain'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'converted' + ext;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
 </script>
 
 

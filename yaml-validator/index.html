@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9W1157EBQV"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-9W1157EBQV');</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QVBQNJ3L5E"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');</script>
 <script>window.addEventListener("error",function(e){if(e&&e.message===""){e.preventDefault();}});window.addEventListener("unhandledrejection",function(e){if(e&&e.reason&&e.reason.message===""){e.preventDefault();}});</script>
 <meta charset="UTF-8">
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="YAML验证格式化工具，验证YAML语法正确性，支持JSON/YAML互转。格式化输出带行号显示，可自定义缩进。适合配置文件编辑、K8s配置检查和CI/CD管道调试。纯前端本地处理，数据不上传服务器，无需注册即可免费使用。纯前端本地处理，数据不上传服务器，完全免费无需注册。">
+<meta name="description" content="免费在线YAML验证和格式化工具，验证YAML语法正确性，支持JSON/YAML互转。格式化输出带行号显示，可自定义缩进。纯前端本地处理，无需注册。">
 <meta name="keywords" content="YAML验证格式化,工具,在线工具,免费">
 <title>免费YAML验证格式化 - YAML验证和格式化工具，验证YAML语法正确性 | 无需注册</title>
 <link rel="canonical" href="https://free-toolbase.com/yaml-validator/">
@@ -215,114 +215,177 @@ features:
 <div class="toast" id="toast"></div>
 <script>
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
-function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
-function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
-function submitFeedback(){
-const type=document.getElementById('feedback-type').value;
-const typeLabel={feedback:'💡 功能建议',bug:'🐛 问题反馈',other:'💬 其他'}[type];
-const title=encodeURIComponent(typeLabel+' - '+window.location.pathname);
-const body=encodeURIComponent('**页面**: '+window.location.href+'\n**类型**: '+typeLabel+'\n\n'+text);
-window.open('https://github.com/webtools-cn/tools-site/issues/new?title='+title+'&body='+body,'_blank');
-document.getElementById('feedback-success').style.display='block';
+function parseYAMLValue(val) {
+  if (val === 'null' || val === '~') return null;
+  if (val === 'true' || val === 'yes') return true;
+  if (val === 'false' || val === 'no') return false;
+  if (/^-?\d+$/.test(val)) return parseInt(val, 10);
+  if (/^-?\d+\.\d+$/.test(val)) return parseFloat(val);
+  if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) return val.slice(1, -1);
+  return val;
 }
 
-// === 重写的函数实现 ===
-function copyYAMLResult() {
-  var el=document.getElementById('output');if(!el){el=document.querySelector('.output,.result,#output,#result')}if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){{showToast('Copied!')}}).catch(function(){{showToast('Copy failed')}});
-}
-
-function formatYAML() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;try{{var obj=JSON.parse(el.textContent||el.innerText);el.textContent=JSON.stringify(obj,null,2);showToast('Formatted!')}}catch(e){{showToast('Format failed: not valid JSON')}};
+function parseYamlRecursive(text) {
+  var lines = text.split('\n');
+  var idx = 0;
+  function getIndent(line) { return line.search(/\S/); }
+  function skipEmpty() {
+    while (idx < lines.length && (lines[idx].trim() === '' || lines[idx].trim().startsWith('#'))) idx++;
+  }
+  function parseValue(indent) {
+    skipEmpty();
+    if (idx >= lines.length) return null;
+    var line = lines[idx]; var currIndent = getIndent(line);
+    if (currIndent < indent) return null;
+    var trimmed = line.trim();
+    if (trimmed.startsWith('- ')) {
+      var arr = [];
+      while (idx < lines.length) {
+        skipEmpty();
+        if (idx >= lines.length) break;
+        line = lines[idx]; currIndent = getIndent(line);
+        if (currIndent < indent) break;
+        trimmed = line.trim();
+        if (!trimmed.startsWith('- ')) break;
+        var itemStr = trimmed.substring(2).trim(); idx++;
+        var nextLine = idx < lines.length ? lines[idx] : '';
+        var nextIndent = getIndent(nextLine);
+        if (nextLine.trim() !== '' && !nextLine.trim().startsWith('#') && nextIndent > currIndent && !trimmed.includes(':')) {
+          arr.push(parseMapping(currIndent + 2));
+        } else if (itemStr.includes(': ')) {
+          var parts = itemStr.split(': ', 2);
+          var obj = {}; obj[parts[0].trim()] = parseYAMLValue(parts[1]); arr.push(obj);
+        } else { arr.push(parseYAMLValue(itemStr)); }
+      }
+      return arr;
+    }
+    if (trimmed.includes(': ')) return parseMapping(indent);
+    return parseYAMLValue(trimmed);
+  }
+  function parseMapping(indent) {
+    var obj = {};
+    while (idx < lines.length) {
+      skipEmpty();
+      if (idx >= lines.length) break;
+      var line = lines[idx]; var currIndent = getIndent(line);
+      if (currIndent < indent) break;
+      var trimmed = line.trim();
+      if (!trimmed.includes(':') || trimmed.startsWith('-')) break;
+      var colonPos = trimmed.indexOf(':');
+      var key = trimmed.substring(0, colonPos).trim();
+      var valStr = trimmed.substring(colonPos + 1).trim(); idx++;
+      if (valStr === '') {
+        skipEmpty();
+        if (idx < lines.length) {
+          var nextLine = lines[idx]; var nextIndent = getIndent(nextLine);
+          if (nextIndent > currIndent && nextLine.trim() !== '' && !nextLine.trim().startsWith('#')) {
+            if (nextLine.trim().startsWith('- ')) { obj[key] = parseValue(currIndent + 2); }
+            else { obj[key] = parseMapping(currIndent + 2); }
+            continue;
+          }
+        }
+        obj[key] = null;
+      } else { obj[key] = parseYAMLValue(valStr); }
+    }
+    return obj;
+  }
+  skipEmpty();
+  if (idx >= lines.length) return null;
+  var firstLine = lines[idx]; var firstIndent = getIndent(firstLine);
+  if (firstLine.trim().startsWith('- ')) return parseValue(firstIndent);
+  return parseMapping(firstIndent);
 }
 
 function validateYAML() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(!inp||!out)return;var v=inp.value.trim();if(!v){{out.textContent='Please enter input';return}}out.textContent=v.length>0?'Valid ✓':'Invalid ✗';showToast('Validated!');
+  var input = document.getElementById('yamlInput');
+  var output = document.getElementById('yamlOutput');
+  var status = document.getElementById('yamlStatus');
+  if (!input || !input.value.trim()) {
+    output.value = '';
+    status.textContent = '等待输入';
+    status.style.color = '#94a3b8';
+    return;
+  }
+  try {
+    var result = parseYamlRecursive(input.value);
+    var formatted = JSON.stringify(result, null, 2);
+    output.value = formatted;
+    status.textContent = '✅ YAML 有效';
+    status.style.color = '#4ade80';
+  } catch(e) {
+    output.value = '';
+    status.textContent = '❌ YAML 无效: ' + e.message;
+    status.style.color = '#f87171';
+  }
+}
+
+function formatYAML() {
+  var input = document.getElementById('yamlInput');
+  var indent = parseInt(document.getElementById('yamlIndent').value);
+  if (!input || !input.value.trim()) { showToast('请输入YAML'); return; }
+  try {
+    var result = parseYamlRecursive(input.value);
+    var formatted = yamlStringify(result, indent);
+    input.value = formatted;
+    showToast('格式化完成');
+  } catch(e) {
+    showToast('格式化失败: ' + e.message);
+  }
+}
+
+function yamlStringify(obj, indent) {
+  indent = indent || 2;
+  var sp = ' '.repeat(indent);
+  var result = '';
+  if (obj === null || obj === undefined) return 'null\n';
+  if (typeof obj === 'string') return obj + '\n';
+  if (typeof obj === 'number') return obj + '\n';
+  if (typeof obj === 'boolean') return (obj ? 'true' : 'false') + '\n';
+  if (Array.isArray(obj)) {
+    for (var i = 0; i < obj.length; i++) {
+      result += '- ';
+      if (typeof obj[i] === 'object' && obj[i] !== null) result += '\n' + yamlStringify(obj[i], indent + 2);
+      else result += String(obj[i]) + '\n';
+    }
+    return result;
+  }
+  if (typeof obj === 'object') {
+    var keys = Object.keys(obj);
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i]; var v = obj[k];
+      result += k + ': ';
+      if (typeof v === 'object' && v !== null) result += '\n' + yamlStringify(v, indent);
+      else result += String(v) + '\n';
+    }
+    return result;
+  }
+  return String(obj) + '\n';
 }
 
 function yamlToJSON() {
-  var input = document.getElementById('yamlInput') || document.getElementById('input') || document.querySelector('textarea');
-  var output = document.getElementById('result') || document.getElementById('output') || document.getElementById('jsonOutput');
+  var input = document.getElementById('yamlInput');
+  var output = document.getElementById('yamlOutput');
+  var status = document.getElementById('yamlStatus');
   if (!input || !input.value.trim()) { showToast('请输入YAML'); return; }
-  var yaml = input.value.trim();
   try {
-    var result = parseYAML(yaml);
+    var result = parseYamlRecursive(input.value);
     var json = JSON.stringify(result, null, 2);
-    if (output) {
-      output.value = json;
-      output.textContent = json;
-    }
-    showToast('YAML有效');
+    output.value = json;
+    status.textContent = '✅ YAML 有效，已转为 JSON';
+    status.style.color = '#4ade80';
   } catch(e) {
-    if (output) {
-      var d = document.createElement('div');
-      d.style.color = '#f87171';
-      d.textContent = 'YAML解析错误: ' + e.message;
-      output.innerHTML = '';
-      output.appendChild(d);
-    }
-    showToast('YAML无效: ' + e.message);
+    output.value = '';
+    status.textContent = '❌ YAML 无效: ' + e.message;
+    status.style.color = '#f87171';
+    showToast('YAML解析错误: ' + e.message);
   }
 }
-function parseYAML(text) {
-  var result = {};
-  var lines = text.split('\n');
-  var stack = [{indent: -1, obj: result}];
-  
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i];
-    var trimmed = line.replace(/#.*$/, '').replace(/\s+$/, '');
-    if (!trimmed) continue;
-    var indent = line.length - line.replace(/^\s*/, '').length;
-    var content = trimmed.trim();
-    
-    while (stack.length > 1 && stack[stack.length-1].indent >= indent) {
-      stack.pop();
-    }
-    var parent = stack[stack.length-1];
-    
-    if (content.startsWith('- ')) {
-      var itemValue = content.substring(2).trim();
-      if (!parent.obj[parent._currentKey]) {
-        parent.obj[parent._currentKey] = [];
-      }
-      if (itemValue.includes(':')) {
-        var kv = itemValue.split(':', 2);
-        var obj = {};
-        obj[kv[0].trim()] = parseYAMLValue(kv[1].trim());
-        parent.obj[parent._currentKey].push(obj);
-      } else {
-        parent.obj[parent._currentKey].push(parseYAMLValue(itemValue));
-      }
-    } else if (content.includes(':')) {
-      var idx = content.indexOf(':');
-      var key = content.substring(0, idx).trim();
-      var val = content.substring(idx + 1).trim();
-      if (val === '') {
-        parent.obj[key] = {};
-        parent._currentKey = key;
-        stack.push({indent: indent, obj: parent.obj[key]});
-      } else {
-        parent.obj[key] = parseYAMLValue(val);
-        parent._currentKey = key;
-      }
-    }
-  }
-  return result;
-}
-function parseYAMLValue(val) {
-  if (val === 'true') return true;
-  if (val === 'false') return false;
-  if (val === 'null' || val === '~') return null;
-  if (/^-?\d+$/.test(val)) return parseInt(val);
-  if (/^-?\d+\.\d+$/.test(val)) return parseFloat(val);
-  if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-    return val.substring(1, val.length - 1);
-  }
-  if (val.startsWith('[') && val.endsWith(']')) {
-    return val.substring(1, val.length-1).split(',').map(function(s) { return parseYAMLValue(s.trim()); });
-  }
-  return val;
+
+function copyYAMLResult() {
+  var el = document.getElementById('yamlOutput');
+  if (!el || !el.value) { showToast('没有可复制的结果'); return; }
+  navigator.clipboard.writeText(el.value).then(function() { showToast('已复制'); }).catch(function() { showToast('复制失败'); });
 }
 </script>
 
