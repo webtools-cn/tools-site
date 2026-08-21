@@ -81,16 +81,18 @@
 <div class="hero"><p>免费在线白板工具，支持画笔、形状、文字、橡皮擦，可导出PNG/SVG，纯前端本地运行，无需注册。 | 无需注册 · 数据绝不上传服务器</p><span class="badge">零依赖·可离线使用</span></div>
 <div class="main-grid">
 <div><div class="section">
-    
-
-        
+    <div class="toolbar">
+        <button class="btn btn-secondary btn-active" onclick="setTool('pen',this)" title="画笔">✏️ 画笔</button>
+        <button class="btn btn-secondary" onclick="setTool('eraser',this)" title="橡皮擦">🧹 橡皮</button>
+        <div class="separator"></div>
+        <input type="color" id="colorPicker" value="#e2e8f0" onchange="currentColor=this.value" title="颜色">
         <span class="size-label" id="size-label">3px</span>
         <input type="range" id="size-slider" min="1" max="30" value="3" oninput="currentSize=+this.value;document.getElementById('size-label').textContent=this.value+'px'">
-        
+        <div class="separator"></div>
         <button class="btn btn-secondary" onclick="undo()" title="撤销">↩️ 撤销</button>
         <button class="btn btn-secondary" onclick="redo()" title="重做">↪️ 重做</button>
         <button class="btn btn-secondary" onclick="clearCanvas()" title="清空">🗑️ 清空</button>
-        
+        <div class="separator"></div>
         <button class="btn btn-primary" onclick="exportPNG()">💾 PNG</button>
         <button class="btn btn-primary" onclick="exportSVG()">💾 SVG</button>
     </div>
@@ -153,26 +155,32 @@ function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.
   }).catch(function() { s.innerHTML = ''; });
 })();
 
-// === 重写的函数实现 ===
-function clearCanvas() {
-  var inp=document.getElementById('input')||document.getElementById('input-text')||document.querySelector('textarea');var out=document.getElementById('output')||document.getElementById('result');if(inp)inp.value='';if(out)out.textContent='';showToast('Reset!');
-}
+// === Canvas Drawing Implementation ===
+function setTool(tool,btn){currentTool=tool;document.querySelectorAll('.toolbar .btn-secondary').forEach(function(b){b.classList.remove('btn-active');});if(btn)btn.classList.add('btn-active');if(tool==='eraser'){ctx.globalCompositeOperation='destination-out';currentColor='rgba(0,0,0,1)';}else{ctx.globalCompositeOperation='source-over';currentColor=document.getElementById('colorPicker').value;}}
 
-function exportPNG() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;var blob=new Blob([el.textContent||el.innerText],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.json';a.click();showToast('Exported!');
-}
+var currentTool='pen',currentSize=3,currentColor='#e2e8f0',isDrawing=false;
+var canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+var history=[],historyIndex=-1,maxHistory=50;
 
-function exportSVG() {
-  var el=document.getElementById('output')||document.getElementById('result')||document.querySelector('.output,.result');if(!el)return;var blob=new Blob([el.textContent||el.innerText],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='data.json';a.click();showToast('Exported!');
-}
+function saveState(){if(historyIndex<history.length-1)history=history.slice(0,historyIndex+1);history.push(canvas.toDataURL());if(history.length>maxHistory)history.shift();historyIndex=history.length-1;}
+function restoreState(){if(historyIndex>=0){var img=new Image();img.onload=function(){ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);};img.src=history[historyIndex];}}
 
-function redo() {
-  document.execCommand('redo');showToast('Redo!');
-}
+ctx.fillStyle='#0f172a';ctx.fillRect(0,0,canvas.width,canvas.height);
+saveState();
 
-function undo() {
-  document.execCommand('undo');showToast('Undo!');
-}
+canvas.addEventListener('mousedown',function(e){isDrawing=true;var r=canvas.getBoundingClientRect();ctx.beginPath();ctx.moveTo(e.clientX-r.left,e.clientY-r.top);});
+canvas.addEventListener('mousemove',function(e){if(!isDrawing)return;var r=canvas.getBoundingClientRect();ctx.lineWidth=currentSize;ctx.lineCap='round';ctx.strokeStyle=currentColor;ctx.lineTo(e.clientX-r.left,e.clientY-r.top);ctx.stroke();});
+canvas.addEventListener('mouseup',function(){isDrawing=false;saveState();});
+canvas.addEventListener('mouseleave',function(){if(isDrawing){isDrawing=false;saveState();}});
+
+function clearCanvas(){ctx.fillStyle='#0f172a';ctx.fillRect(0,0,canvas.width,canvas.height);saveState();showToast('已清空');}
+
+function exportPNG(){var link=document.createElement('a');link.download='whiteboard.png';link.href=canvas.toDataURL('image/png');link.click();showToast('PNG已导出');}
+
+function exportSVG(){var dataUrl=canvas.toDataURL('image/png');var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+canvas.width+'" height="'+canvas.height+'"><image href="'+dataUrl+'" width="'+canvas.width+'" height="'+canvas.height+'"/></svg>';var blob=new Blob([svg],{type:'image/svg+xml'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='whiteboard.svg';a.click();URL.revokeObjectURL(url);showToast('SVG已导出');}
+
+function redo(){if(historyIndex<history.length-1){historyIndex++;restoreState();showToast('重做');}}
+function undo(){if(historyIndex>0){historyIndex--;restoreState();showToast('撤销');}}
 </script>
 
 
