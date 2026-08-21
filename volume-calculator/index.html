@@ -7,14 +7,12 @@
 <meta charset="UTF-8">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5998441792679372" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="免费在线免费体积计算器 - Sphere, Cube, Cylinder, Cone | Online | 无需注册工具，快速高效地完成免费体积计算器 - Sphere, Cube, Cylinder, Cone | Online | 无需注册操作。支持实时交互和即时结果显示。">
+<meta name="description" content="免费在线体积计算器，支持球体、立方体、长方体、圆柱体、圆锥体、圆台、三棱柱等形状的体积计算。可切换单位，纯前端本地运行，无需注册。">
 <meta name="keywords" content="体积计算器,工具,在线工具,免费">
 <title>免费体积计算器 - Sphere, Cube, Cylinder, Cone | Online | 无需注册</title>
 <link rel="canonical" href="https://free-toolbase.com/volume-calculator/">
 <meta property="og:title" content="免费体积计算器 - Sphere, Cube, Cylinder, Cone | Online | 无需注册">
-<meta property="og:description" content="免费在线体积计算器，支持球体、立方体、长方体、圆柱体、圆锥体、圆台、棱柱等常见三维形状的体积计算。可切换单位，纯前端本地运行，支持配置选项
-        选择任何附加选项，如计算模式、货币、时间段或精度。改变数值时计算器会自动更新。、查看计算结果
-        计算结果立即以清晰的格式显示。可以复制结果或调整输入值">
+<meta property="og:description" content="免费在线体积计算器，支持球体、立方体、长方体、圆柱体、圆锥体、圆台、棱柱等常见三维形状的体积计算。可切换单位，纯前端本地运行，无需注册。">
 <meta property="og:url" content="https://free-toolbase.com/volume-calculator/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Free ToolBase">
@@ -199,6 +197,27 @@ a{color:#06b6d4;text-decoration:none}
 function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show")},3000)}
 function copyText(id){var el=document.getElementById(id);if(!el)return;var t=el.textContent||el.innerText;navigator.clipboard.writeText(t).then(function(){showToast("已复制")})["catch"](function(){showToast("复制失败")})}
 
+var shapeInputs={
+  sphere:'<div class="form-group"><label>半径</label><input type="number" id="in_r" placeholder="例如：5" step="any"></div>',
+  cube:'<div class="form-group"><label>边长</label><input type="number" id="in_a" placeholder="例如：10" step="any"></div>',
+  cuboid:'<div class="form-row"><div class="form-group"><label>长</label><input type="number" id="in_l" placeholder="例如：10" step="any"></div><div class="form-group"><label>宽</label><input type="number" id="in_w" placeholder="例如：5" step="any"></div></div><div class="form-group"><label>高</label><input type="number" id="in_h" placeholder="例如：3" step="any"></div>',
+  cylinder:'<div class="form-row"><div class="form-group"><label>底面半径</label><input type="number" id="in_r" placeholder="例如：5" step="any"></div><div class="form-group"><label>高</label><input type="number" id="in_h" placeholder="例如：10" step="any"></div></div>',
+  cone:'<div class="form-row"><div class="form-group"><label>底面半径</label><input type="number" id="in_r" placeholder="例如：5" step="any"></div><div class="form-group"><label>高</label><input type="number" id="in_h" placeholder="例如：10" step="any"></div></div>',
+  frustum:'<div class="form-row"><div class="form-group"><label>下底半径 R</label><input type="number" id="in_R" placeholder="例如：8" step="any"></div><div class="form-group"><label>上底半径 r</label><input type="number" id="in_r2" placeholder="例如：4" step="any"></div></div><div class="form-group"><label>高</label><input type="number" id="in_h" placeholder="例如：6" step="any"></div>',
+  prism:'<div class="form-row"><div class="form-group"><label>三角形底边</label><input type="number" id="in_b" placeholder="例如：6" step="any"></div><div class="form-group"><label>三角形高</label><input type="number" id="in_th" placeholder="例如：4" step="any"></div></div><div class="form-group"><label>棱柱长度</label><input type="number" id="in_h" placeholder="例如：10" step="any"></div>'
+};
+
+function switchShape(shape){
+  document.querySelectorAll('.shape-tab').forEach(function(t){t.classList.remove('active')});
+  document.querySelector('[data-shape="'+shape+'"]').classList.add('active');
+  document.getElementById('inputArea').innerHTML=shapeInputs[shape]||'';
+}
+
+document.querySelectorAll('.shape-tab').forEach(function(tab){
+  tab.addEventListener('click',function(){switchShape(this.getAttribute('data-shape'))});
+});
+switchShape('sphere');
+
 function toggleFeedback(){const p=document.getElementById('feedback-panel');p.style.display=p.style.display==='none'?'block':'none';}
 function submitFeedback(){
 const type=document.getElementById('feedback-type').value;
@@ -211,14 +230,59 @@ document.getElementById('feedback-success').style.display='block';
 
 // === 重写的函数实现 ===
 function calculate() {
+  var activeTab = document.querySelector('.shape-tab.active');
+  if (!activeTab) { showToast('请选择形状'); return; }
+  var shape = activeTab.getAttribute('data-shape');
+  var result = 0;
+  var label = '';
 
-  if (true === undefined || isNaN(0)) {
-    showToast('请输入有效数值');
-    return;
+  if (shape === 'sphere') {
+    var r = parseFloat(document.getElementById('in_r')?.value);
+    if (isNaN(r) || r <= 0) { showToast('请输入有效半径'); return; }
+    result = (4/3) * Math.PI * Math.pow(r, 3);
+    label = '球体体积 (r=' + r + ')';
+  } else if (shape === 'cube') {
+    var a = parseFloat(document.getElementById('in_a')?.value);
+    if (isNaN(a) || a <= 0) { showToast('请输入有效边长'); return; }
+    result = Math.pow(a, 3);
+    label = '立方体体积 (a=' + a + ')';
+  } else if (shape === 'cuboid') {
+    var l = parseFloat(document.getElementById('in_l')?.value);
+    var w = parseFloat(document.getElementById('in_w')?.value);
+    var h = parseFloat(document.getElementById('in_h')?.value);
+    if (isNaN(l) || isNaN(w) || isNaN(h) || l <= 0 || w <= 0 || h <= 0) { showToast('请输入有效尺寸'); return; }
+    result = l * w * h;
+    label = '长方体体积 (' + l + '×' + w + '×' + h + ')';
+  } else if (shape === 'cylinder') {
+    var r = parseFloat(document.getElementById('in_r')?.value);
+    var h = parseFloat(document.getElementById('in_h')?.value);
+    if (isNaN(r) || isNaN(h) || r <= 0 || h <= 0) { showToast('请输入有效尺寸'); return; }
+    result = Math.PI * Math.pow(r, 2) * h;
+    label = '圆柱体体积 (r=' + r + ', h=' + h + ')';
+  } else if (shape === 'cone') {
+    var r = parseFloat(document.getElementById('in_r')?.value);
+    var h = parseFloat(document.getElementById('in_h')?.value);
+    if (isNaN(r) || isNaN(h) || r <= 0 || h <= 0) { showToast('请输入有效尺寸'); return; }
+    result = (1/3) * Math.PI * Math.pow(r, 2) * h;
+    label = '圆锥体体积 (r=' + r + ', h=' + h + ')';
+  } else if (shape === 'frustum') {
+    var R = parseFloat(document.getElementById('in_R')?.value);
+    var r = parseFloat(document.getElementById('in_r2')?.value);
+    var h = parseFloat(document.getElementById('in_h')?.value);
+    if (isNaN(R) || isNaN(r) || isNaN(h) || R <= 0 || r <= 0 || h <= 0) { showToast('请输入有效尺寸'); return; }
+    result = (1/3) * Math.PI * h * (R*R + R*r + r*r);
+    label = '圆台体积 (R=' + R + ', r=' + r + ', h=' + h + ')';
+  } else if (shape === 'prism') {
+    var b = parseFloat(document.getElementById('in_b')?.value);
+    var th = parseFloat(document.getElementById('in_th')?.value);
+    var h = parseFloat(document.getElementById('in_h')?.value);
+    if (isNaN(b) || isNaN(th) || isNaN(h) || b <= 0 || th <= 0 || h <= 0) { showToast('请输入有效尺寸'); return; }
+    result = 0.5 * b * th * h;
+    label = '三棱柱体积 (底=' + b + ', 高=' + th + ', 棱长=' + h + ')';
   }
-  var result = value;
-  document.getElementById('resultVolume').innerHTML = '<div class="result-item"><span class="result-label">结果</span><span class="result-value">' + result + '</span></div>';
-  document.getElementById('resultVolume').style.display = 'block';
+
+  var display = result >= 1e6 ? result.toExponential(2) : (result < 0.01 ? result.toExponential(2) : result.toFixed(4));
+  document.getElementById('resultVolume').innerHTML = '<div style="text-align:center"><div style="color:#94a3b8;font-size:.85rem;margin-bottom:4px">' + label + '</div><div style="font-size:2rem;font-weight:700;color:#fbbf24">' + display + '</div></div>';
   showToast('计算完成');
 }
 
