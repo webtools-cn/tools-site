@@ -3,7 +3,7 @@
 import json, re, subprocess, sys, os
 
 SITE = "free-toolbase.com"
-KEY = "4ad7588719f777dfd0c4ce891360e57e"
+KEY = "5117df90-ca22-4ffb-9482-a09420c05601"
 KEY_URL = f"https://{SITE}/{KEY}.txt"
 SITEMAP = f"{SITE}/sitemap.xml"
 
