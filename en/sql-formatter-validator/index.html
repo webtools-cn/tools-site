@@ -274,7 +274,6 @@ const SQL_KEYWORDS = new Set([
   'ENCRYPTED','BYPASSRLS','REPLICATION','INHERIT','OWNER','PRIVILEGES','TYPE','DOMAIN',
   'SEQUENCE','GENERATED','ALWAYS','IDENTITY','STORED','VIRTUAL'
 ]);
-
 const SQL_FUNCTIONS = new Set([
   'NOW','CURRENT_TIMESTAMP','CURRENT_DATE','CURRENT_TIME','LOCALTIME','LOCALTIMESTAMP',
   'UPPER','LOWER','TRIM','LTRIM','RTRIM','LENGTH','CHAR_LENGTH','SUBSTRING','SUBSTR',
@@ -286,110 +285,81 @@ const SQL_FUNCTIONS = new Set([
   'NTH_VALUE','NTILE','CUME_DIST','PERCENT_RANK','REGEXP_REPLACE','REGEXP_MATCHES','MD5','SHA256',
   'GEN_RANDOM_UUID','UUID_GENERATE_V4','GREATEST','LEAST','NULLIF','COALESCE'
 ]);
-
 function formatSQL() {
   const input = document.getElementById('input').value.trim();
   if (!input) { showToast('Please enter a SQL statement'); return; }
   const dialect = document.getElementById('dialect').value;
   const indentOpt = document.getElementById('indent').value;
   const indent = indentOpt === 'tab' ? '\t' : ' '.repeat(parseInt(indentOpt));
-
   let sql = input.replace(/\s+/g, ' ').trim();
-  
   // 主要关键字前换行
   const majorKeywords = ['SELECT','FROM','WHERE','GROUP BY','HAVING','ORDER BY','LIMIT','OFFSET',
     'INSERT INTO','VALUES','UPDATE','SET','DELETE FROM','CREATE TABLE','ALTER TABLE','DROP',
     'JOIN','LEFT JOIN','RIGHT JOIN','INNER JOIN','OUTER JOIN','CROSS JOIN','FULL JOIN',
     'UNION ALL','UNION','INTERSECT','EXCEPT','ON','RETURNING','WITH'];
-  
   const reMajor = new RegExp('\\b(' + majorKeywords.map(k => k.replace(/\s/g, '\\s+')).join('|') + ')\\b', 'gi');
-  
   sql = sql.replace(reMajor, '\n$1');
-  
   // 清理开头换行
   sql = sql.replace(/^\n+/, '');
-  
   // 缩进处理
   const lines = sql.split('\n');
   let formatted = [];
   let depth = 0;
-  
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i].trim();
     if (!line) continue;
-    
     // 检测减少缩进的关键字（这些行的前一行应该减少缩进）
     const decIndent = /^(\)|\)\s*,|UNION|UNION ALL|INTERSECT|EXCEPT|RETURNING)/i;
-    
     if (i > 0 && !decIndent.test(line)) {
       // 如果上一行以逗号结尾或是某些子句，保持Depth
     }
-    
     // 检测Depth变化
     const openParen = (line.match(/\(/g) || []).length;
     const closeParen = (line.match(/\)/g) || []).length;
-    
     if (closeParen > openParen) {
       depth = Math.max(0, depth - (closeParen - openParen));
     }
-    
     formatted.push(indent.repeat(depth) + line);
-    
     if (openParen > closeParen) {
       depth += (openParen - closeParen);
     }
-    
     // 逗号结尾的 VALUES 项目特殊缩进
     if (/\bVALUES\b/i.test(line) && line.endsWith(',')) {
       depth = 1;
     }
   }
-  
   let result = formatted.join('\n');
-  
   // 语法高亮
   result = highlightSQL(result);
-  
   document.getElementById('output').innerHTML = result;
   updateStats(input);
   document.getElementById('messages').innerHTML = '';
 }
-
 function highlightSQL(sql) {
   // 转义HTML
   let escaped = sql.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  
   // 注释
   escaped = escaped.replace(/(--[^\n]*)/g, '<span class="cmt">$1</span>');
   escaped = escaped.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="cmt">$1</span>');
-  
   // 字符串
   escaped = escaped.replace(/('(?:[^'\\]|\\.)*')/g, '<span class="str">$1</span>');
-  
   // 数字
   escaped = escaped.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="num">$1</span>');
-  
   // 函数
   const fnPattern = new RegExp('\\b(' + [...SQL_FUNCTIONS].join('|') + ')\\s*\\(', 'gi');
   escaped = escaped.replace(fnPattern, '<span class="fn">$&</span>');
-  
   // 关键字
   const kwPattern = new RegExp('\\b(' + [...SQL_KEYWORDS].join('|') + ')\\b', 'gi');
   escaped = escaped.replace(kwPattern, '<span class="kw">$1</span>');
-  
   return escaped;
 }
-
 function validateSQL() {
   const input = document.getElementById('input').value.trim();
   if (!input) { showToast('Please enter a SQL statement'); return; }
-  
   const errors = [];
   const dialect = document.getElementById('dialect').value;
-  
   // 基本语法检查
   const upperInput = input.toUpperCase();
-  
   // 括号匹配
   let depth = 0;
   for (let i = 0; i < input.length; i++) {
@@ -403,13 +373,11 @@ function validateSQL() {
   if (depth > 0) {
     errors.push({line: getLineNumber(input, input.length-1), msg: `Bracket mismatch: missing ${depth} right parenthesis`});
   }
-  
   // 引号匹配
   const singleQuotes = (input.match(/'/g) || []).length;
   if (singleQuotes % 2 !== 0) {
     errors.push({line: getLineNumber(input, input.lastIndexOf("'")), msg: 'Single quote mismatch'});
   }
-  
   // 常见语法检查
   if (/\bSELECT\b/i.test(upperInput) && !/\bFROM\b/i.test(upperInput) && !/SELECT\s+\*/.test(input)) {
     // SELECT通常需要FROM，除非是SELECT表达式
@@ -417,26 +385,21 @@ function validateSQL() {
       errors.push({line: 1, msg: 'SELECT may be missing FROM clause (ignore if expression)'});
     }
   }
-  
   if (/\bINSERT\b/i.test(upperInput) && !/\bINTO\b/i.test(upperInput)) {
     errors.push({line: 1, msg: 'INSERT missing INTO keyword'});
   }
-  
   if (/\bDELETE\b/i.test(upperInput) && !/\bFROM\b/i.test(upperInput)) {
     errors.push({line: 1, msg: 'DELETE missing FROM keyword'});
   }
-  
   // 分号检查
   if (!/;\s*$/.test(input.trim())) {
     errors.push({line: getLineNumber(input, input.length-1), msg: 'Hint: missing semicolon at end'});
   }
-  
   // 逗号后检查
   const trailingComma = /,\s*(FROM|WHERE|GROUP|HAVING|ORDER|LIMIT|OFFSET|\))/i;
   if (trailingComma.test(input)) {
     errors.push({line: 1, msg: 'Possible extra comma (comma directly before keyword)'});
   }
-  
   const msgDiv = document.getElementById('messages');
   if (errors.length === 0) {
     msgDiv.innerHTML = '<div class="success-msg">✅ SQL syntax validation passed</div>';
@@ -448,11 +411,9 @@ function validateSQL() {
     showToast(`Found ${errors.length} issue(s)`);
   }
 }
-
 function getLineNumber(text, pos) {
   return text.substring(0, pos).split('\n').length;
 }
-
 function updateStats(input) {
   const stmts = input.split(';').filter(s => s.trim()).length;
   document.getElementById('stmtCount').textContent = stmts;
@@ -460,13 +421,11 @@ function updateStats(input) {
   const tables = (input.match(/\b(FROM|JOIN|INTO|UPDATE|TABLE)\s+([`"\[]?\w+[`"\]]?)/gi) || []).length;
   document.getElementById('tableCount').textContent = tables;
 }
-
 function copyOutput() {
   const output = document.getElementById('output').textContent;
   if (!output || output === 'Waiting for input...') { showToast('Please format SQL first'); return; }
   navigator.clipboard.writeText(output).then(() => showToast('Copied to clipboard'));
 }
-
 function clearAll() {
   document.getElementById('input').value = '';
   document.getElementById('output').innerHTML = 'Waiting for input...';
@@ -475,7 +434,6 @@ function clearAll() {
   document.getElementById('charCount').textContent = '0';
   document.getElementById('tableCount').textContent = '0';
 }
-
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -483,7 +441,6 @@ function showToast(msg) {
   clearTimeout(t._timeout);
   t._timeout = setTimeout(() => t.classList.remove('show'), 2000);
 }
-
 // 示例加载
 document.addEventListener('DOMContentLoaded', () => {
   const sample = `SELECT u.id, u.name, u.email, COUNT(o.id) AS order_count
@@ -498,9 +455,6 @@ LIMIT 20;`;
   document.getElementById('input').value = sample;
   updateStats(sample);
 })
-
-function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');
-
 </script>
 
 <div class="toast" id="toast"></div>

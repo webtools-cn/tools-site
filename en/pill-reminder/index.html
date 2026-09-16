@@ -135,40 +135,24 @@ a{color:#06b6d4;text-decoration:none}
 </main>
 <div class="toast" id="toast"></div>
 <script>
-
 var STORAGE_KEY='pill_reminder_meds';
 var meds=[];
-
 function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000);}
-
 function loadMeds(){try{var data=localStorage.getItem(STORAGE_KEY);if(data){meds=JSON.parse(data);}}catch(e){meds=[];}renderMeds();}
-
 function saveMeds(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(meds));}catch(e){showToast('Storage space insufficient')}}
-
 function addMed(){var name=document.getElementById('medName').value.trim();var dose=document.getElementById('medDose').value.trim();var time=document.getElementById('medTime').value;if(!name){showToast('Please enter medication name');return;}if(!time){showToast('Please set medication time');return;}var times=[time];var extras=document.querySelectorAll('#extraTimes input[type="time"]');extras.forEach(function(t){if(t.value)times.push(t.value)});times.sort();meds.push({id:Date.now(),name:name,dose:dose||'1 tablet',times:times});document.getElementById('medName').value='';document.getElementById('medDose').value='';document.getElementById('extraTimes').innerHTML='';saveMeds();renderMeds();showToast('Added '+name);}
-
 function removeMed(id){meds=meds.filter(function(m){return m.id!==id});saveMeds();renderMeds();}
-
 function renderMeds(){var list=document.getElementById('medList');if(meds.length===0){list.innerHTML='<li style="color:#64748b;text-align:center;padding:20px">No medications yet. Add one above.</li>';document.getElementById('clearAllBtn').style.display='none';document.getElementById('scheduleSection').style.display='none';return;}document.getElementById('clearAllBtn').style.display='inline-block';list.innerHTML='';meds.forEach(function(m){var li=document.createElement('li');li.className='med-item';li.innerHTML='<div class="info"><div class="name">'+m.name+'</div><div class="detail">'+m.dose+' · '+m.times.length+' times/day</div></div><div class="times">'+m.times.map(function(t){return '<span class="time-tag">'+t+'</span>'}).join('')+'</div><button class="btn btn-danger" style="padding:4px 10px;font-size:.75rem" data-id="'+m.id+'">Delete</button>';list.appendChild(li);});document.querySelectorAll('.med-item .btn-danger').forEach(function(btn){btn.addEventListener('click',function(){removeMed(parseInt(btn.dataset.id))})});renderSchedule();}
-
 function renderSchedule(){var allSchedule=[];meds.forEach(function(m){m.times.forEach(function(t){allSchedule.push({time:t,name:m.name,dose:m.dose,id:m.id+'_'+t})})});allSchedule.sort(function(a,b){return a.time.localeCompare(b.time)});var body=document.getElementById('scheduleBody');body.innerHTML='';if(allSchedule.length===0){document.getElementById('scheduleSection').style.display='none';return;}document.getElementById('scheduleSection').style.display='block';var doneKey='pill_done_'+new Date().toISOString().slice(0,10);var doneSet;try{doneSet=new Set(JSON.parse(localStorage.getItem(doneKey)||'[]'));}catch(e){doneSet=new Set();}allSchedule.forEach(function(s){var tr=document.createElement('tr');var key=s.id;var isDone=doneSet.has(key);tr.innerHTML='<td class="time-col">'+s.time+'</td><td>'+s.name+'</td><td>'+s.dose+'</td><td><button class="done-btn'+(isDone?' done':'')+'" data-key="'+key+'">'+(isDone?'Done ✓':'Mark Done')+'</button></td>';body.appendChild(tr);});document.querySelectorAll('.done-btn').forEach(function(btn){btn.addEventListener('click',function(){var dk=btn.dataset.key;var ds;try{ds=new Set(JSON.parse(localStorage.getItem(doneKey)||'[]'));}catch(e){ds=new Set();}if(ds.has(dk)){ds.delete(dk);}else{ds.add(dk);}localStorage.setItem(doneKey,JSON.stringify([...ds]));renderSchedule();})});}
-
 function addExtraTime(){var div=document.getElementById('extraTimes');var input=document.createElement('input');input.type='time';input.style.cssText='margin-right:8px;margin-bottom:8px;background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:.85rem';div.appendChild(input);}
-
 function clearAll(){if(confirm('Are you sure you want to clear all medication records?')){meds=[];saveMeds();renderMeds();showToast('Cleared');}}
-
 function enableNotify(){if(!('Notification' in window)){showToast('Your browser does not support desktop notifications');return;}Notification.requestPermission().then(function(p){if(p==='granted'){showToast('Desktop notifications enabled');scheduleNotifications();}else{showToast('Notification permission denied');}});}
-
 function scheduleNotifications(){meds.forEach(function(m){m.times.forEach(function(t){var now=new Date();var target=new Date();var parts=t.split(':');target.setHours(parseInt(parts[0]),parseInt(parts[1]),0,0);var delay=target-now;if(delay>0&&delay<86400000){setTimeout(function(){if(Notification.permission==='granted'){new Notification('💊 Medication Reminder',{body:'Time to take '+m.name+' ('+m.dose+')!',icon:'favicon.svg'});}},delay);}});});showToast('Today\'s reminders set');}
-
 document.getElementById('addBtn').addEventListener('click',addMed);
 document.getElementById('addTimeBtn').addEventListener('click',addExtraTime);
 document.getElementById('clearAllBtn').addEventListener('click',clearAll);
 document.getElementById('enableNotifyBtn').addEventListener('click',enableNotify);
 loadMeds();
-
-
-function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-QVBQNJ3L5E');
 </script>
 </body>
 </html>
