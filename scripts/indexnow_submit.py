@@ -11,22 +11,39 @@ def get_urls_from_sitemap():
     with open('sitemap.xml') as f:
         return re.findall(r'<loc>(https?://[^<]+)</loc>', f.read())
 
+def file_to_url(f):
+    """CN: tool-name/index.html -> https://free-toolbase.com/tool-name/
+       EN: en/tool-name/index.html -> https://free-toolbase.com/en/tool-name/"""
+    if f == 'index.html':
+        return f"https://{SITE}/"
+    m = re.match(r'^([^/]+)/index\.html$', f)
+    if m:
+        return f"https://{SITE}/{m.group(1)}/"
+    m = re.match(r'^en/([^/]+)/index\.html$', f)
+    if m:
+        return f"https://{SITE}/en/{m.group(1)}/"
+    return None
+
+
 def get_recently_changed_urls():
     """获取最近git commit修改的URL"""
-    r = subprocess.run(['git', 'diff', 'HEAD~1', '--name-only'], 
-                      capture_output=True, text=True, timeout=10)
+    try:
+        r = subprocess.run(['git', 'diff', '--name-only', 'HEAD~1', 'HEAD'],
+                           capture_output=True, text=True, timeout=10)
+    except Exception:
+        return []
     changed = r.stdout.strip().split('\n') if r.stdout.strip() else []
     urls = []
     for f in changed:
-        # CN: tool-name/index.html -> https://free-toolbase.com/tool-name/
-        m = re.match(r'^([^/]+)/index\.html$', f)
-        if m:
-            urls.append(f"https://{SITE}/{m.group(1)}/")
-        # EN: en/tool-name/index.html -> https://free-toolbase.com/en/tool-name/
-        m = re.match(r'^en/([^/]+)/index\.html$', f)
-        if m:
-            urls.append(f"https://{SITE}/en/{m.group(1)}/")
+        u = file_to_url(f)
+        if u:
+            urls.append(u)
     return urls
+
+
+def get_urls_from_stdin():
+    """从标准输入读 URL（每行一个），供 post-commit hook 复用。"""
+    return [ln.strip() for ln in sys.stdin.read().splitlines() if ln.strip()]
 
 def submit_indexnow(urls, endpoint="https://api.indexnow.org/IndexNow"):
     if not urls:
@@ -63,6 +80,9 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == '--all':
         urls = get_urls_from_sitemap()
         print(f"Submitting all {len(urls)} URLs from sitemap...")
+    elif len(sys.argv) > 1 and sys.argv[1] == '--stdin':
+        urls = get_urls_from_stdin()
+        print(f"Submitting {len(urls)} URLs from stdin...")
     else:
         urls = get_recently_changed_urls()
         print(f"Submitting {len(urls)} recently changed URLs...")
