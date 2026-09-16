@@ -180,8 +180,16 @@ def main():
         if ".git" in r.split(os.sep) or "index.html" not in fs:
             continue
         p = os.path.join(r, "index.html")
-        rel = "/" + os.path.relpath(p, ROOT).replace("/index.html", "").replace(os.sep, "/") + "/"
-        rel = rel.replace("//", "/")
+        # 正确归一：index.html → 目录路径。根目录必须是 "/"，绝不能算出 "/index.html/"
+        rel = os.path.relpath(p, ROOT).replace(os.sep, "/")
+        if rel == "index.html":
+            rel = "/"
+        elif rel.endswith("/index.html"):
+            rel = "/" + rel[: -len("index.html")]
+        else:
+            rel = "/" + rel
+        if not rel.endswith("/"):
+            rel += "/"
         if rel in seen_paths:
             continue
         head = open(p, encoding="utf-8", errors="ignore").read()
