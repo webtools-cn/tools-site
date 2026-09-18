@@ -1,78 +1,56 @@
-# W1 报告：四 ID + 广告 + 统计 全站覆盖核查与修复
+# W1 修复报告：3 页移动端横向溢出
 
-日期：2026-09-18
-分支：`worker/w1`
+> 实测环境：真实浏览器（Chromium headless），375px 视口，`document.documentElement.scrollWidth - clientWidth` 计算溢出。
+> 修复手法沿用 W2 已验证配方（grid `minmax(0,1fr)` / flex `flex-wrap:wrap` / 横向滚动容器 `overflow-x:auto`）。
 
-## 一、结论
+## 1. modular-scale-calculator
 
-**全站 ID 铁律 100% 通过。** 修复前 12 页残留禁用 AdSense ID，修复后零残留。
+| 项 | 值 |
+|:--|:--|
+| 修复前溢出 | **+360px**（元凶 DIV 宽 719px） |
+| 修复后实测 | **0px** |
+| 根因 | `.main-grid` 网格轨道 `1fr`（= `minmax(auto,1fr)`）的 auto 最小值被内部 `.scale-text`（`white-space:nowrap` 长文本）的 min-content（719px）撑开，wrapper div 被拉到 719px |
+| 改动 CSS | ① `.main-grid` 加 `grid-template-columns:minmax(0,1fr)`（配方2）；② `.scale-text` 加 `min-width:0`（配方3） |
 
-## 二、修复前后覆盖率对比
-
-| 指标 | 修复前 | 修复后 |
-|:-----|:------|:------|
-| GA 加载器 `G-QVBQNJ3L5E` | 7551/7551 | 7551/7551 |
-| GA config `G-QVBQNJ3L5E` | 7551/7551 | 7551/7551 |
-| Adsterra `pl31040516` | 7551/7551 | 7551/7551 |
-| Bing `19B854C82A618C376CC972901EF717E5` | 7551/7551 | 7551/7551 |
-| 禁用 AdSense `ca-pub-*` | **12 页残留** | **0** |
-| 禁用 GA（6 个废弃 ID） | 0 | 0 |
-| 禁用 Bing（打错版） | 0 | 0 |
-| Google 验证文件 | 存在且正确 | 存在且正确 |
-
-## 三、发现的问题与修复
-
-### 问题 1：12 页残留禁用 AdSense ID `ca-pub-5527959372219623`
-
-- 10 页为 `<meta name="google-adsense-account" content="ca-pub-5527959372219623">`
-- 2 页为 `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527959372219623" ...></script>`
-
-涉及页面：
-```
-macro-nutrient-calculator, data-transfer-rate-converter, tax-refund-calculator,
-bac-calculator, file-checksum-calculator, test-score-calculator
-+ 对应 en/ 6 页
+自证：
+```bash
+node -e "const s=require('fs').readFileSync('modular-scale-calculator/index.html','utf8'); console.log('含grid minmax(0,1fr):', s.includes('grid-template-columns:minmax(0,1fr)'))"
+# 含grid minmax(0,1fr): true
 ```
 
-修复：删除上述 AdSense meta/script 行（仅删 ID 相关行，未动业务逻辑）。
+## 2. drum-beat-maker
 
-### 问题 2：闸门脚本 `scripts/validate_ids.py` 漏检
+| 项 | 值 |
+|:--|:--|
+| 修复前溢出 | **+246px**（音序器网格超视口） |
+| 修复后实测 | **0px**（网格内部可横向滚动，clientWidth=301 / scrollWidth=516，页面 scrollWidth=375） |
+| 根因 | `.sequencer-grid` 的 `repeat(16,1fr)` 轨道 auto 最小值被 `.seq-cell`（`min-height:28px` + `aspect-ratio:1`）撑到 28px/列，网格 min-content ≈ 579px |
+| 改动 CSS | `.sequencer-grid` 改为 `repeat(16,minmax(24px,1fr))` + `overflow-x:auto;-webkit-overflow-scrolling:touch`（配方2+6），移动端横向滚动、桌面端正常铺满 |
 
-- 原 FORBIDDEN 列表只含单个 `ca-pub-5998441792679372`，漏掉其他 `ca-pub-*` → 改为正则 `ca-pub-[0-9]+` 全量拦截
-- 原列表 `G-4BZ8MD6QDM` 与任务指定 `G-4BZ4DM6QDM` 不符 → 已更正
-
-## 四、验收标准证据（真实命令输出）
-
-### 1. `python3 scripts/validate_ids.py`
-```
-PASS ID 铁律通过: 7551 页全部 OK (GA=1 GAconfig=1 Adsterra=1 Bing=1, 零禁用ID)
-PASS 根目录: googlefd1a7b2848e1c305.html 存在且内容正确, robots.txt 未屏蔽
-```
-
-### 2. `grep -rl "ca-pub-" --include=*.html . | wc -l`
-```
-0
+自证：
+```bash
+node -e "const s=require('fs').readFileSync('drum-beat-maker/index.html','utf8'); console.log('含overflow-x:auto:', s.includes('overflow-x:auto'))"
+# 含overflow-x:auto: true
 ```
 
-### 3. `grep -c '<loc>' sitemap.xml`
+## 3. eq-presets
+
+| 项 | 值 |
+|:--|:--|
+| 修复前溢出 | **+161px**（元凶 DIV 宽 520px） |
+| 修复后实测 | **0px** |
+| 根因 | `.slider-group` flex 行 10 列 × `min-width:40px`（≈436px min-content）经 `.grid-2`、`.main-grid` 两级 `1fr` 轨道 auto 最小值逐级撑开至 520px |
+| 改动 CSS | `.slider-group` 加 `flex-wrap:wrap`（配方3），min-content 降为单列 40px，滑块自动换行，全部可见 |
+
+自证：
+```bash
+node -e "const s=require('fs').readFileSync('eq-presets/index.html','utf8'); console.log('含flex-wrap:wrap:', s.includes('flex-wrap:wrap'))"
+# 含flex-wrap:wrap: true
 ```
-7166
-```
 
-### 4. `git log --oneline` / `git status --short`
-```
-b53868a6e8 fix(ids): W1 清除全站残留 AdSense ca-pub ID + 修复闸门脚本漏检
-093f5abcdc feat: add mead-calculator (CN+EN) - 蜂蜜酒配方计算器
-...
-git status --short: （空，干净）
-```
-
-## 五、补充核查
-
-- sitemap 7166 条 URL 全部映射到存在的 `index.html`（缺失 0）
-- 全站 HTML 无任何禁用 GA / 禁用 Bing ID
-- 根目录 `googlefd1a7b2848e1c305.html` 内容 = `google-site-verification: googlefd1a7b2848e1c305.html`，robots.txt 未屏蔽
-
-## 六、备注
-
-仓库内存在历史遗留的临时/审计文件（`.temp/*.json`、`_tmp_check_js_*.js`）内含废弃 GA ID 字符串，但均非站点页面、不在 sitemap、不影响线上，未改动。
+## 合规确认
+- 未改 URL、未动 GA `G-QVBQNJ3L5E` / Adsterra `pl31040516` / Bing `msvalidate.01`
+- 未改可执行 JS 逻辑（仅改 CSS）
+- 未删页面、未加 noindex、未 `git push`
+- 未使用 `!important`
+- 每页修复后立即单独 `git commit`（3 个独立提交）
