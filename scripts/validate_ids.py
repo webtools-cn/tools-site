@@ -44,11 +44,11 @@ GOOGLE_FILE_BODY = "google-site-verification: " + GOOGLE_FILE
 # 零容忍：任何页面出现即判 FAIL（含"正确 ID 的打错版"）
 FORBIDDEN = [
     "G-9W1157EBQV",                       # 废弃 GA
-    "G-4BZ8MD6QDM", "G-PZN7F2ESMS", "G-1RHEM5P4NK", "G-7WLERB1KHP",
+    "G-4BZ4DM6QDM", "G-PZN7F2ESMS", "G-1RHEM5P4NK", "G-7WLERB1KHP",
     "G-XXXXXXXXXX",                       # 占位符
-    "ca-pub-5998441792679372",            # 废弃 AdSense
     "19B854C82C618C376CC972901EF717E5",   # Bing 打错版（第10位 C 应为 A）
 ]
+RE_FORBIDDEN_CA_PUB = re.compile(r"ca-pub-[0-9]+")  # 任何 AdSense ID 一律禁止
 
 BING_TAG = '<meta name="msvalidate.01" content="%s">' % BING_ID
 RE_ID = re.compile(r"[A-Z]{1,2}-[A-Z0-9]{6,}")
@@ -104,6 +104,9 @@ def check_page(path, do_fix=False):
     for b in FORBIDDEN:
         if b in head:
             probs.append("!! 禁用 ID 残留 -> %s" % b)
+    m = RE_FORBIDDEN_CA_PUB.search(head)
+    if m:
+        probs.append("!! 禁用 AdSense ID 残留 -> %s" % m.group(0))
     return probs
 
 
