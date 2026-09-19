@@ -35,7 +35,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-GA = "G-QVBQNJ3L5E"
+GA = "G-9W1157EBQV"   # 用户唯一正确 GA 属性（2026-09-16 曾被误迁移，已回滚）
 ADSTERRA_HOST = "pl31040516.profitableratecpmnetwork"
 BING_ID = "19B854C82A618C376CC972901EF717E5"
 GOOGLE_FILE = "googlefd1a7b2848e1c305.html"
@@ -43,7 +43,7 @@ GOOGLE_FILE_BODY = "google-site-verification: " + GOOGLE_FILE
 
 # 零容忍：任何页面出现即判 FAIL（含"正确 ID 的打错版"）
 FORBIDDEN = [
-    "G-9W1157EBQV",                       # 废弃 GA
+    "G-QVBQNJ3L5E",                       # 废弃 GA（2026-09-16 误迁移产物，永久封禁）
     "G-4BZ4DM6QDM", "G-PZN7F2ESMS", "G-1RHEM5P4NK", "G-7WLERB1KHP",
     "G-XXXXXXXXXX",                       # 占位符
     "19B854C82C618C376CC972901EF717E5",   # Bing 打错版（第10位 C 应为 A）
